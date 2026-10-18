@@ -21,6 +21,13 @@ const STATUS_LABELS: Record<string, string> = {
   expirado: 'Expirado',
 };
 
+const REQUEST_STATUS_LABELS: Record<string, string> = {
+  rascunho: 'Rascunho',
+  publicado: 'Publicado',
+  encerrado: 'Encerrado',
+  cancelado: 'Cancelado',
+};
+
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
@@ -36,7 +43,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   const manager = canManage(role);
   const owner = role === 'proprietario';
 
-  const [{ data: buildings }, { data: docs }, { data: managed }, { data: members }, { data: invites }] =
+  const [{ data: buildings }, { data: docs }, { data: managed }, { data: members }, { data: invites }, { data: requests }] =
     await Promise.all([
       supabase.from('buildings').select('id, nome_interno, tipo, concelho, pisos').eq('org_id', id).order('nome_interno'),
       supabase
@@ -56,6 +63,11 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             .is('accepted_at', null)
             .order('created_at')
         : Promise.resolve({ data: null }),
+      supabase
+        .from('work_requests')
+        .select('id, titulo, status, prazo_propostas, building_id')
+        .eq('org_id', id)
+        .order('created_at', { ascending: false }),
     ]);
 
   const memberIds = (members ?? []).map((m) => m.user_id);
@@ -172,6 +184,40 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             <p className="mt-3 text-sm text-slate-600">
               Registe o prédio uma vez e use-o em todos os pedidos de orçamento. A morada fica privada: aos pintores só
               é mostrado o concelho.
+            </p>
+          )}
+        </section>
+      )}
+
+      {ownsBuildings && (
+        <section className={card}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-semibold">Pedidos de orçamento</h2>
+            {manager && buildings && buildings.length > 0 && (
+              <Link href={`/app/organizacoes/${org.id}/pedidos/novo`} className={smallButton}>
+                Novo pedido
+              </Link>
+            )}
+          </div>
+          {requests && requests.length > 0 ? (
+            <ul className="mt-4 divide-y divide-slate-100 text-sm">
+              {requests.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <Link href={`/app/pedidos/${r.id}`} className="font-medium hover:underline">
+                    {r.titulo}
+                  </Link>
+                  <span className="text-slate-600">
+                    {REQUEST_STATUS_LABELS[r.status]}
+                    {r.status === 'publicado' && r.prazo_propostas ? ` · propostas até ${ptDate(r.prazo_propostas)}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">
+              {buildings && buildings.length > 0
+                ? 'Descreva a obra uma vez e receba propostas comparáveis.'
+                : 'Registe primeiro um prédio para pedir orçamentos.'}
             </p>
           )}
         </section>

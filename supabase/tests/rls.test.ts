@@ -269,3 +269,89 @@ describe('perfis', () => {
     );
   });
 });
+
+describe('pedidos e anúncios', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // pintor
+  let requestId: string;
+  let buildingId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [P, email(P)]);
+    await createOrg(P, 'pintor', 'Pinturas Exemplo', '501964843');
+    buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — fachadas', 'fachadas', $3, current_date + 10) returning id`,
+          [condo, buildingId, 'Pintura das fachadas e tetos das varandas, com fissuras a reparar.'],
+        ),
+      )
+    ).id;
+  });
+
+  it('não publica sem superfícies', async () => {
+    await expect(
+      as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId])),
+    ).rejects.toThrow(/superfície/);
+  });
+
+  it('a área calculada pela base de dados é igual à do domínio', async () => {
+    const r = await as(A, () =>
+      one<{ area_cm2: number }>(
+        `insert into public.request_surfaces (request_id, kind, largura_cm, altura_cm, vaos_cm2)
+         values ($1, 'fachada', 1200, 1550, 2450) returning area_cm2`,
+        [requestId],
+      ),
+    );
+    expect(r.area_cm2).toBe(16150); // o mesmo vetor de src/domain/request.test.ts
+  });
+
+  it('publicado: o pintor vê o anúncio anónimo, mas não o pedido nem o prédio', async () => {
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+    const listing = await as(P, () =>
+      one<Record<string, unknown>>('select * from public.request_listings where request_id = $1', [requestId]),
+    );
+    expect(listing.concelho).toBe('Lisboa');
+    expect(listing.area_total_cm2).toBe(16150);
+    expect(Object.keys(listing)).not.toContain('titulo');
+    const privateRows = await as(P, async () => [
+      ...(await db.query('select id from public.work_requests')).rows,
+      ...(await db.query('select id from public.buildings')).rows,
+    ]);
+    expect(privateRows).toEqual([]);
+    const surfaces = await as(P, async () => (await db.query('select area_cm2 from public.request_surfaces')).rows);
+    expect(surfaces).toHaveLength(1);
+  });
+
+  it('quem não é pintor não vê anúncios', async () => {
+    const rows = await as(B, async () => (await db.query('select request_id from public.request_listings')).rows);
+    expect(rows).toEqual([]);
+  });
+
+  it('um pedido publicado não se altera nem recebe superfícies', async () => {
+    await expect(
+      as(A, () => db.query(`update public.work_requests set descricao = 'outra coisa qualquer' where id = $1`, [requestId])),
+    ).rejects.toThrow(/não pode ser alterado/);
+    await expect(
+      as(A, () =>
+        db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'muro', 1000)`, [requestId]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('ninguém escreve anúncios diretamente', async () => {
+    await expect(as(A, () => db.query(`update public.request_listings set concelho = 'Porto'`))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('voltar a rascunho fecha o anúncio e sobe a versão', async () => {
+    const r = await as(A, () =>
+      one<{ version: number }>(`update public.work_requests set status = 'rascunho' where id = $1 returning version`, [requestId]),
+    );
+    expect(r.version).toBe(2);
+    const rows = await as(P, async () => (await db.query('select request_id from public.request_listings')).rows);
+    expect(rows).toEqual([]);
+  });
+});

@@ -20,6 +20,20 @@ type DocKind =
 type DocStatus = 'submetido' | 'em_validacao' | 'aprovado' | 'rejeitado' | 'expirado';
 type MemberRole = 'proprietario' | 'gestor' | 'financeiro' | 'leitor';
 type OrgKind = 'condominio' | 'administradora' | 'particular' | 'pintor' | 'fornecedor';
+type RequestStatus = 'rascunho' | 'publicado' | 'encerrado' | 'cancelado';
+type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior';
+type SurfaceKind =
+  | 'fachada'
+  | 'empena'
+  | 'varandas'
+  | 'muro'
+  | 'escadas_atrio'
+  | 'beirais_cobertura'
+  | 'elementos_metalicos'
+  | 'paredes_interiores'
+  | 'tetos'
+  | 'outro';
+type AreaSource = 'estimativa' | 'medicao_cliente' | 'planta';
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
@@ -222,6 +236,138 @@ export type Database = {
           },
         ];
       };
+      work_requests: {
+        Row: {
+          building_id: string;
+          cor_acabamento: string | null;
+          created_at: string;
+          created_by: string;
+          descricao: string;
+          execucao_ate: string | null;
+          execucao_desde: string | null;
+          id: string;
+          org_id: string;
+          prazo_propostas: string | null;
+          published_at: string | null;
+          ref: string;
+          status: RequestStatus;
+          tipo_obra: WorkType;
+          titulo: string;
+          trabalhos: string[];
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          building_id: string;
+          cor_acabamento?: string | null;
+          created_at?: string;
+          created_by?: string;
+          descricao?: string;
+          execucao_ate?: string | null;
+          execucao_desde?: string | null;
+          id?: string;
+          org_id: string;
+          prazo_propostas?: string | null;
+          published_at?: string | null;
+          ref?: string;
+          status?: RequestStatus;
+          tipo_obra: WorkType;
+          titulo: string;
+          trabalhos?: string[];
+          updated_at?: string;
+          version?: number;
+        };
+        Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'work_requests_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'work_requests_building_same_org';
+            columns: ['building_id', 'org_id'];
+            isOneToOne: false;
+            referencedRelation: 'buildings';
+            referencedColumns: ['id', 'org_id'];
+          },
+        ];
+      };
+      request_surfaces: {
+        Row: {
+          altura_cm: number | null;
+          area_cm2: number;
+          area_direta_cm2: number | null;
+          created_at: string;
+          descricao: string | null;
+          id: string;
+          kind: SurfaceKind;
+          largura_cm: number | null;
+          origem: AreaSource;
+          quantidade: number;
+          request_id: string;
+          vaos_cm2: number | null;
+        };
+        Insert: {
+          altura_cm?: number | null;
+          area_direta_cm2?: number | null;
+          created_at?: string;
+          descricao?: string | null;
+          id?: string;
+          kind: SurfaceKind;
+          largura_cm?: number | null;
+          origem?: AreaSource;
+          quantidade?: number;
+          request_id: string;
+          vaos_cm2?: number | null;
+        };
+        Update: Partial<Database['public']['Tables']['request_surfaces']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'request_surfaces_request_id_fkey';
+            columns: ['request_id'];
+            isOneToOne: false;
+            referencedRelation: 'work_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      request_listings: {
+        Row: {
+          aberto: boolean;
+          area_total_cm2: number;
+          concelho: string;
+          cor_acabamento: string | null;
+          descricao: string;
+          execucao_ate: string | null;
+          execucao_desde: string | null;
+          fachadas: number | null;
+          pisos: number | null;
+          prazo_propostas: string;
+          published_at: string;
+          ref: string;
+          request_id: string;
+          tem_varandas: boolean;
+          tipo_imovel: BuildingKind;
+          tipo_obra: WorkType;
+          trabalhos: string[];
+          version: number;
+        };
+        // Escrita só pelo gatilho de publicação (a base de dados recusa o resto).
+        Insert: Partial<Database['public']['Tables']['request_listings']['Row']>;
+        Update: Partial<Database['public']['Tables']['request_listings']['Row']>;
+        Relationships: [
+          {
+            foreignKeyName: 'request_listings_request_id_fkey';
+            columns: ['request_id'];
+            isOneToOne: true;
+            referencedRelation: 'work_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       platform_admins: {
         Row: { created_at: string; user_id: string };
         Insert: { created_at?: string; user_id: string };
@@ -264,6 +410,10 @@ export type Database = {
       doc_status: DocStatus;
       member_role: MemberRole;
       org_kind: OrgKind;
+      request_status: RequestStatus;
+      work_type: WorkType;
+      surface_kind: SurfaceKind;
+      area_source: AreaSource;
     };
     CompositeTypes: { [_ in never]: never };
   };
