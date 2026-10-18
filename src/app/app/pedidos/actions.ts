@@ -1,11 +1,14 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
-import { parseRequest, parseSurface, publishBlockers } from '@/domain/request';
+import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
+import { parseRequest, parseSurface, publishBlockers, revealingContent } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
+import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -117,4 +120,84 @@ export async function changeRequestStatus(requestId: string, status: 'rascunho' 
   const { supabase } = await getUser();
   await supabase.from('work_requests').update({ status }).eq('id', requestId);
   revalidatePath(`/app/pedidos/${requestId}`);
+}
+
+// --- Fotografias -------------------------------------------------------------------
+
+export async function uploadPhoto(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const kind = String(form.get('kind') ?? '');
+  const legenda = String(form.get('legenda') ?? '').trim().slice(0, 200) || null;
+  const file = form.get('ficheiro');
+  if (!(PHOTO_KINDS as readonly string[]).includes(kind)) return { errors: { kind: 'Escolha o tipo de fotografia.' } };
+  if (!(file instanceof File)) return { errors: { ficheiro: 'Escolha uma fotografia.' } };
+  const revealing = legenda ? revealingContent(legenda) : [];
+  if (revealing.length > 0) return { errors: { legenda: `A legenda parece conter ${revealing.join(', ')}.` } };
+
+  // Valida pelos bytes e retira os metadados (GPS, aparelho, data) antes de guardar.
+  const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
+  if ('error' in clean) return { errors: { ficheiro: clean.error } };
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { count } = await supabase
+    .from('request_photos')
+    .select('id', { count: 'exact', head: true })
+    .eq('request_id', requestId);
+  if ((count ?? 0) >= MAX_PHOTOS_PER_REQUEST) {
+    return { errors: {}, message: `Cada pedido tem no máximo ${MAX_PHOTOS_PER_REQUEST} fotografias.` };
+  }
+
+  const path = `${requestId}/${randomUUID()}.${clean.type === 'image/png' ? 'png' : 'jpg'}`;
+  const upload = await supabase.storage.from('fotos').upload(path, clean.bytes, { contentType: clean.type });
+  if (upload.error) {
+    return { errors: {}, message: 'Não foi possível carregar a fotografia. O pedido tem de estar em rascunho.' };
+  }
+  const { error } = await supabase.from('request_photos').insert({
+    request_id: requestId,
+    kind: kind as PhotoKind,
+    storage_path: path,
+    legenda,
+    submitted_by: user.id,
+  });
+  if (error) {
+    await supabase.storage.from('fotos').remove([path]);
+    return { errors: {}, message: 'Não foi possível registar a fotografia. Tente de novo.' };
+  }
+  revalidatePath(`/app/pedidos/${requestId}`);
+  return {
+    errors: {},
+    ok: true,
+    message: kind === 'pormenor' ? 'Fotografia enviada. Vai ser revista antes de chegar aos pintores.' : 'Fotografia guardada.',
+  };
+}
+
+export async function deletePhoto(requestId: string, photoId: string) {
+  const { supabase } = await getUser();
+  const { data } = await supabase
+    .from('request_photos')
+    .delete()
+    .eq('id', photoId)
+    .eq('request_id', requestId)
+    .select('storage_path');
+  if (data && data.length > 0) await supabase.storage.from('fotos').remove(data.map((p) => p.storage_path));
+  revalidatePath(`/app/pedidos/${requestId}`);
+}
+
+export async function reviewPhoto(photoId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const decision = String(form.get('decision') ?? '');
+  const notas = String(form.get('notas') ?? '').trim() || null;
+  if (decision !== 'aprovada' && decision !== 'rejeitada') return { errors: {}, message: 'Decisão inválida.' };
+  if (decision === 'rejeitada' && !notas) return { errors: { notas: 'Explique o motivo ao cliente.' } };
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  if (!(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+  const { data, error } = await supabase
+    .from('request_photos')
+    .update({ revisao: decision, notas_revisao: notas, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+    .eq('id', photoId)
+    .select('id');
+  if (error || !data || data.length === 0) return { errors: {}, message: 'Não foi possível registar a decisão.' };
+  revalidatePath('/app/validacao');
+  return { errors: {}, ok: true, message: decision === 'aprovada' ? 'Aprovada para o anúncio.' : 'Fica fora do anúncio.' };
 }

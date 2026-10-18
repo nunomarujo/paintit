@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { changeRequestStatus, deleteSurface, updateRequest } from '@/app/app/pedidos/actions';
+import { changeRequestStatus, deletePhoto, deleteSurface, updateRequest } from '@/app/app/pedidos/actions';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
+import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
+import { PhotoUpload } from './PhotoUpload';
 import { PublishButton } from './PublishButton';
 import { SurfaceForm } from './SurfaceForm';
 
@@ -28,11 +30,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: req } = await supabase.from('work_requests').select('*').eq('id', id).maybeSingle();
   if (!req) notFound();
 
-  const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }] = await Promise.all([
+  const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }] = await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
     supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
+    supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
   ]);
   if (!org || !building) notFound();
 
@@ -139,6 +142,44 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         )}
       </section>
 
+      <section className={card}>
+        <h2 className="font-semibold">Fotografias</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          As fotografias gerais ficam só convosco e com a equipa da plataforma. As de pormenor (uma fissura, um teto de
+          varanda) podem ir para o anúncio, mas só depois de a equipa confirmar que não deixam reconhecer o prédio. A
+          localização e os dados do aparelho são retirados de todas.
+        </p>
+        {(photos ?? []).length > 0 && (
+          <ul className="mt-4 grid gap-4 sm:grid-cols-3">
+            {(photos ?? []).map((p) => (
+              <li key={p.id} className="text-sm">
+                <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado */}
+                  <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Fotografia'} className="aspect-square w-full rounded-lg object-cover" />
+                </a>
+                <p className="mt-1">{p.legenda ?? (p.kind === 'geral' ? 'Geral' : 'Pormenor')}</p>
+                <p className="text-slate-500">
+                  {p.kind === 'geral' ? 'Privada' : PHOTO_REVIEW_LABELS[p.revisao ?? 'pendente']}
+                  {p.revisao === 'rejeitada' && p.notas_revisao ? `: ${p.notas_revisao}` : ''}
+                </p>
+                {manager && draft && (
+                  <form action={deletePhoto.bind(null, req.id, p.id)}>
+                    <button type="submit" className="text-red-700 hover:underline">
+                      Remover
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {manager && draft && (
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <PhotoUpload requestId={req.id} />
+          </div>
+        )}
+      </section>
+
       <section className="space-y-4">
         <div>
           <h2 className="font-semibold">O que os pintores vão ver</h2>
@@ -162,6 +203,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             execucaoDesde: req.execucao_desde,
             execucaoAte: req.execucao_ate,
             surfaces: list.map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
+            photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
           }}
         />
         {manager && draft && <PublishButton requestId={req.id} blockers={blockers} />}

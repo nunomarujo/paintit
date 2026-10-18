@@ -1,3 +1,4 @@
+import { BuildingVolume } from '@/components/BuildingVolume';
 import { BUILDING_KIND_LABELS, type BuildingKind } from '@/domain/organization';
 import {
   DESIRED_WORK_LABELS,
@@ -24,6 +25,8 @@ export interface ListingView {
   execucaoDesde: string | null;
   execucaoAte: string | null;
   surfaces: { kind: SurfaceKind; descricao: string | null; area: number }[];
+  /** Só fotografias de pormenor aprovadas pela equipa da plataforma. */
+  photos: { id: string; legenda: string | null }[];
 }
 
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
@@ -31,7 +34,8 @@ const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
 /**
  * O anúncio tal como o pintor o vê. É usado na pré-visualização do cliente e na
  * vista do pintor, para que as duas nunca divirjam: não recebe morada, nomes
- * nem o título interno, por construção.
+ * nem o título interno, por construção. O volume é gerado dos dados do prédio
+ * e as fotografias são só pormenores já revistos.
  */
 export function ListingPreview({ l }: { l: ListingView }) {
   const total = l.surfaces.reduce((n, s) => n + s.area, 0);
@@ -44,11 +48,25 @@ export function ListingPreview({ l }: { l: ListingView }) {
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
-      <h3 className="mt-1 text-lg font-semibold">
-        {WORK_TYPE_LABELS[l.tipoObra]} · {l.concelho}
-      </h3>
-      <p className="text-slate-600">{caracteristicas.join(' · ')}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
+          <h3 className="mt-1 text-lg font-semibold">
+            {WORK_TYPE_LABELS[l.tipoObra]} · {l.concelho}
+          </h3>
+          <p className="text-slate-600">{caracteristicas.join(' · ')}</p>
+        </div>
+        <figure className="w-40 shrink-0">
+          <BuildingVolume
+            pisos={l.pisos}
+            fachadas={l.fachadas}
+            temVarandas={l.temVarandas}
+            moradia={l.tipoImovel === 'moradia'}
+            className="h-32 w-full"
+          />
+          <figcaption className="text-center text-xs text-slate-500">Volume genérico, não à escala</figcaption>
+        </figure>
+      </div>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-3">
         <div>
@@ -100,6 +118,23 @@ export function ListingPreview({ l }: { l: ListingView }) {
             ))}
           </tbody>
         </table>
+      )}
+
+      {l.photos.length > 0 && (
+        <div className="mt-4">
+          <p className="text-slate-500">Pormenores</p>
+          <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {l.photos.map((p) => (
+              <li key={p.id}>
+                <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado, sem otimização */}
+                  <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Pormenor da obra'} className="aspect-square w-full rounded-lg object-cover" />
+                </a>
+                {p.legenda && <p className="mt-1 text-xs text-slate-600">{p.legenda}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </article>
   );

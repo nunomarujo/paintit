@@ -34,6 +34,8 @@ type SurfaceKind =
   | 'tetos'
   | 'outro';
 type AreaSource = 'estimativa' | 'medicao_cliente' | 'planta';
+type PhotoKind = 'geral' | 'pormenor';
+type PhotoReview = 'pendente' | 'aprovada' | 'rejeitada';
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
@@ -295,6 +297,44 @@ export type Database = {
           },
         ];
       };
+      request_photos: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: PhotoKind;
+          legenda: string | null;
+          notas_revisao: string | null;
+          request_id: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          revisao: PhotoReview | null;
+          storage_path: string;
+          submitted_by: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: PhotoKind;
+          legenda?: string | null;
+          notas_revisao?: string | null;
+          request_id: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          revisao?: PhotoReview | null;
+          storage_path: string;
+          submitted_by?: string;
+        };
+        Update: Partial<Database['public']['Tables']['request_photos']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'request_photos_request_id_fkey';
+            columns: ['request_id'];
+            isOneToOne: false;
+            referencedRelation: 'work_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       request_surfaces: {
         Row: {
           altura_cm: number | null;
@@ -414,6 +454,8 @@ export type Database = {
       work_type: WorkType;
       surface_kind: SurfaceKind;
       area_source: AreaSource;
+      photo_kind: PhotoKind;
+      photo_review: PhotoReview;
     };
     CompositeTypes: { [_ in never]: never };
   };

@@ -36,23 +36,24 @@ Fontes:
 | --- | --- |
 | 0. Fundações: domínio do dinheiro testado, site público com simulador | Feito |
 | 1. Contas, entidades, prédios, equipa e convites, documentos, validação | Feito |
-| 2. Pedidos: superfícies e áreas, pré-visualização, publicação anónima | Feito, falta a parte 2B |
+| 2. Pedidos: superfícies e áreas, pré-visualização, publicação anónima, volume 3D, fotografias | Feito |
 | 3–6 | Por fazer (`docs/ROADMAP.md`) |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 4 migrações aplicadas, avisos de segurança a
-zero. Primeira conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde
-18/10/2026. A app corre localmente (`npm run dev`); ainda não está alojada.
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 5 migrações aplicadas, avisos de segurança a
+zero (fora o aviso da proteção de palavras-passe divulgadas, que não se aplica: a entrada é por link). Primeira
+conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
+condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 
 ## Próximo passo
 
-**Fase 2B — fotografias e volume 3D.** Proposta feita ao promotor, à espera de confirmação:
+**Fase 3 — marketplace**: oportunidades e convites para pintores, propostas discriminadas, comparador, mensagens
+com filtro de contactos. A vista do anúncio é `src/components/ListingPreview.tsx` (já inclui o volume 3D de
+`src/domain/volume.ts` e os pormenores aprovados).
 
-- volume 3D gerado a partir dos dados do prédio (pisos, fachadas, dimensões), sem usar fotografias;
-- fotografias originais privadas; fotos de pormenor só chegam ao pintor depois de revisão humana pela equipa da
-  plataforma (no lançamento), em vez de desfoque automático por um serviço externo.
-
-Depois: **fase 3 — marketplace** (oportunidades e convites para pintores, propostas discriminadas, comparador,
-mensagens com filtro de contactos), usando `src/components/ListingPreview.tsx` como vista do anúncio.
+Fase 2B (feita a 18/10/2026): `request_photos` e armazenamento privado `fotos` (caminho `<pedido>/<ficheiro>`).
+Gerais ficam privadas; pormenores entram como `pendente` e só a equipa da plataforma os aprova, em
+`/app/validacao`. Os pintores só veem pormenores aprovados de anúncios abertos. Os metadados das imagens são
+retirados no servidor (`src/domain/photo.ts`) antes de guardar.
 
 ## Pendente do promotor
 

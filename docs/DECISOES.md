@@ -18,6 +18,7 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | 18/10/2026 | Papel da plataforma | Termina na assinatura das duas partes; depois só guarda prova |
 | 18/10/2026 | Assinatura eletrónica | Chave Móvel Digital é suficiente |
 | 18/10/2026 | Fotografias | Só servem para o volume 3D não reconhecível; pormenores só se não identificarem o prédio |
+| 18/10/2026 | Volume 3D e fotografias | O volume é gerado dos dados do prédio (pisos, fachadas, varandas), nunca de fotografias. Fotografias gerais ficam privadas; as de pormenor só chegam aos pintores depois de revisão humana pela equipa da plataforma. Metadados (GPS, aparelho) retirados de todas |
 | 18/10/2026 | Código existente | O protótipo v0.5 é referência funcional; a app é escrita de raiz |
 | 18/10/2026 | Stack | Next.js, TypeScript, Postgres na UE, parceiro de pagamentos autorizado |
 | 18/10/2026 | Base de dados | Projeto Supabase "Paint it" na organização mar-nordico, região eu-west-1 |

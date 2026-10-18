@@ -26,7 +26,7 @@ const SUPABASE_STUB = `
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
   alter table storage.objects enable row level security;
   grant usage on schema storage to authenticated;
-  grant select, insert on storage.objects to authenticated;
+  grant select, insert, delete on storage.objects to authenticated;
   grant usage on schema public to anon, authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated;
 `;
@@ -353,5 +353,89 @@ describe('pedidos e anúncios', () => {
     expect(r.version).toBe(2);
     const rows = await as(P, async () => (await db.query('select request_id from public.request_listings')).rows);
     expect(rows).toEqual([]);
+  });
+});
+
+describe('fotografias do pedido', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
+  let requestId: string;
+  let geral: string;
+  let pormenor: string;
+  const path = (name: string) => `${requestId}/${name}`;
+  const addPhoto = (user: string, kind: string, name: string) =>
+    as(user, () =>
+      one<{ id: string; revisao: string | null }>(
+        `insert into public.request_photos (request_id, kind, storage_path, revisao) values ($1, $2, $3, 'aprovada')
+         returning id, revisao`,
+        [requestId, kind, path(name)],
+      ),
+    );
+  const painterSees = async () =>
+    as(P, async () => ({
+      rows: (await db.query<{ id: string }>('select id from public.request_photos')).rows.map((r) => r.id),
+      files: (await db.query<{ name: string }>(`select name from storage.objects where bucket_id = 'fotos'`)).rows.map((r) => r.name),
+    }));
+
+  beforeAll(async () => {
+    requestId = (await one<{ id: string }>(`select id from public.work_requests where status = 'rascunho' limit 1`)).id;
+    for (const name of ['geral.jpg', 'pormenor.jpg']) {
+      await as(A, () => db.query(`insert into storage.objects (bucket_id, name) values ('fotos', $1)`, [path(name)]));
+    }
+    geral = (await addPhoto(A, 'geral', 'geral.jpg')).id;
+  });
+
+  it('entra sempre por rever, mesmo que se tente aprovar ao enviar', async () => {
+    const r = await addPhoto(C, 'pormenor', 'pormenor.jpg');
+    pormenor = r.id;
+    expect(r.revisao).toBe('pendente');
+  });
+
+  it('um estranho não envia fotografias nem ficheiros', async () => {
+    await expect(addPhoto(B, 'geral', 'x.jpg')).rejects.toThrow(/row-level security/);
+    await expect(
+      as(B, () => db.query(`insert into storage.objects (bucket_id, name) values ('fotos', $1)`, [path('x.jpg')])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('o cliente não aprova as próprias fotografias', async () => {
+    const rows = await as(A, async () =>
+      (await db.query(`update public.request_photos set revisao = 'aprovada', reviewed_by = $2 where id = $1 returning id`, [pormenor, A])).rows,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('a equipa da plataforma revê, mas não muda a fotografia', async () => {
+    await expect(
+      as(ADMIN, () => db.query(`update public.request_photos set revisao = 'rejeitada', reviewed_by = $2 where id = $1`, [pormenor, ADMIN])),
+    ).rejects.toThrow(/Explique/);
+    await expect(
+      as(ADMIN, () => db.query(`update public.request_photos set legenda = 'x', reviewed_by = $2 where id = $1`, [pormenor, ADMIN])),
+    ).rejects.toThrow(/Só a revisão/);
+    const geralRows = await as(ADMIN, async () =>
+      (await db.query(`update public.request_photos set reviewed_by = $2 where id = $1 returning id`, [geral, ADMIN])).rows,
+    );
+    expect(geralRows).toEqual([]);
+    await as(ADMIN, () =>
+      db.query(`update public.request_photos set revisao = 'aprovada', reviewed_by = $2, reviewed_at = now() where id = $1`, [pormenor, ADMIN]),
+    );
+  });
+
+  it('o pintor só vê o pormenor aprovado, e só com o anúncio aberto', async () => {
+    expect(await painterSees()).toEqual({ rows: [], files: [] });
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+    expect(await painterSees()).toEqual({ rows: [pormenor], files: [path('pormenor.jpg')] });
+    const strangers = await as(B, async () => (await db.query('select id from public.request_photos')).rows);
+    expect(strangers).toEqual([]);
+  });
+
+  it('com o pedido publicado não se juntam nem apagam fotografias', async () => {
+    await expect(addPhoto(A, 'geral', 'outra.jpg')).rejects.toThrow(/row-level security/);
+    const rows = await as(A, async () => (await db.query('delete from public.request_photos where id = $1 returning id', [geral])).rows);
+    expect(rows).toEqual([]);
+  });
+
+  it('fechado o anúncio, o pintor deixa de ver', async () => {
+    await as(A, () => db.query(`update public.work_requests set status = 'encerrado' where id = $1`, [requestId]));
+    expect(await painterSees()).toEqual({ rows: [], files: [] });
   });
 });
