@@ -3,52 +3,35 @@
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { DOC_KINDS, parseBuilding, parseOrganization, type DocKind, type FieldErrors } from '@/domain/organization';
+import {
+  DOC_KINDS,
+  parseBuilding,
+  parseInvite,
+  parseOrganization,
+  type BuildingInput,
+  type DocKind,
+  type FieldErrors,
+  type OrganizationInput,
+} from '@/domain/organization';
+import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 
-export type FormState = { errors: FieldErrors; message?: string; ok?: boolean };
-
-const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
-
-export async function createOrganization(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = parseOrganization(form);
-  if (!parsed.value) return { errors: parsed.errors };
-  const { supabase, user } = await getUser();
-  if (!user) return NOT_SIGNED_IN;
-
-  const v = parsed.value;
-  const { data, error } = await supabase
-    .from('organizations')
-    .insert({
-      kind: v.kind,
-      nome: v.nome,
-      nif: v.nif,
-      morada_fiscal: v.moradaFiscal,
-      codigo_postal: v.codigoPostal,
-      localidade: v.localidade,
-      email_contacto: v.emailContacto,
-      telefone: v.telefone,
-      atendimento_publico: v.atendimentoPublico,
-      gerida_por: v.geridaPor,
-      created_by: user.id,
-    })
-    .select('id')
-    .single();
-  if (error || !data) return { errors: {}, message: 'Não foi possível guardar. Confirme os dados e tente de novo.' };
-
-  revalidatePath('/app');
-  redirect(`/app/organizacoes/${data.id}`);
+function orgColumns(v: OrganizationInput) {
+  return {
+    nome: v.nome,
+    nif: v.nif,
+    morada_fiscal: v.moradaFiscal,
+    codigo_postal: v.codigoPostal,
+    localidade: v.localidade,
+    email_contacto: v.emailContacto,
+    telefone: v.telefone,
+    atendimento_publico: v.atendimentoPublico,
+    gerida_por: v.geridaPor,
+  };
 }
 
-export async function createBuilding(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = parseBuilding(form);
-  if (!parsed.value) return { errors: parsed.errors };
-  const { supabase, user } = await getUser();
-  if (!user) return NOT_SIGNED_IN;
-
-  const v = parsed.value;
-  const { error } = await supabase.from('buildings').insert({
-    org_id: orgId,
+function buildingColumns(v: BuildingInput) {
+  return {
     nome_interno: v.nomeInterno,
     tipo: v.tipo,
     morada: v.morada,
@@ -63,12 +46,182 @@ export async function createBuilding(orgId: string, _prev: FormState, form: Form
     tem_varandas: v.temVarandas,
     tem_elevador: v.temElevador,
     acessos: v.acessos,
-    created_by: user.id,
-  });
+  };
+}
+
+export type FormState = { errors: FieldErrors; message?: string; ok?: boolean };
+
+const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+
+export async function createOrganization(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseOrganization(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const v = parsed.value;
+  const { data, error } = await supabase
+    .from('organizations')
+    .insert({ kind: v.kind, ...orgColumns(v), created_by: user.id })
+    .select('id')
+    .single();
+  if (error || !data) return { errors: {}, message: 'Não foi possível guardar. Confirme os dados e tente de novo.' };
+
+  revalidatePath('/app');
+  redirect(`/app/organizacoes/${data.id}`);
+}
+
+export async function createBuilding(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseBuilding(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const { error } = await supabase
+    .from('buildings')
+    .insert({ org_id: orgId, ...buildingColumns(parsed.value), created_by: user.id });
   if (error) return { errors: {}, message: 'Não foi possível guardar o prédio. Só gestores da entidade o podem fazer.' };
 
   revalidatePath(`/app/organizacoes/${orgId}`);
   redirect(`/app/organizacoes/${orgId}`);
+}
+
+export async function updateOrganization(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseOrganization(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  // O tipo de entidade não muda depois de criada; .select() confirma que a RLS deixou alterar.
+  const { data, error } = await supabase.from('organizations').update(orgColumns(parsed.value)).eq('id', orgId).select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar. Só proprietários e gestores podem alterar estes dados.' };
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  redirect(`/app/organizacoes/${orgId}`);
+}
+
+export async function updateBuilding(
+  orgId: string,
+  buildingId: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const parsed = parseBuilding(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const { data, error } = await supabase
+    .from('buildings')
+    .update(buildingColumns(parsed.value))
+    .eq('id', buildingId)
+    .eq('org_id', orgId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar o prédio. Só proprietários e gestores o podem alterar.' };
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  redirect(`/app/organizacoes/${orgId}`);
+}
+
+export async function inviteMember(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseInvite(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const { error } = await supabase
+    .from('org_invitations')
+    .insert({ org_id: orgId, email: parsed.value.email, role: parsed.value.role, invited_by: user.id });
+  if (error) {
+    const duplicate = error.code === '23505';
+    return {
+      errors: {},
+      message: duplicate ? 'Já existe um convite pendente para este email.' : 'Só o proprietário pode convidar.',
+    };
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  return {
+    errors: {},
+    ok: true,
+    message: `Convite criado. Peça a ${parsed.value.email} que entre na plataforma com este email para o aceitar.`,
+  };
+}
+
+export async function cancelInvitation(orgId: string, invitationId: string) {
+  const { supabase } = await getUser();
+  await supabase.from('org_invitations').delete().eq('id', invitationId).eq('org_id', orgId);
+  revalidatePath(`/app/organizacoes/${orgId}`);
+}
+
+export async function removeMember(orgId: string, userId: string) {
+  const { supabase } = await getUser();
+  await supabase.from('org_members').delete().eq('org_id', orgId).eq('user_id', userId);
+  revalidatePath(`/app/organizacoes/${orgId}`);
+}
+
+export async function acceptInvitation(invitationId: string) {
+  const { supabase, user } = await getUser();
+  if (!user) redirect('/entrar');
+
+  const { data: inv } = await supabase
+    .from('org_invitations')
+    .select('id, org_id, role, accepted_at, expires_at')
+    .eq('id', invitationId)
+    .maybeSingle();
+  if (!inv || inv.accepted_at || new Date(inv.expires_at) < new Date()) {
+    redirect('/app?convite=invalido');
+  }
+
+  // A política só deixa entrar com o papel exato de um convite pendente para o email da conta.
+  const joined = await supabase.from('org_members').insert({ org_id: inv.org_id, user_id: user.id, role: inv.role });
+  if (joined.error && joined.error.code !== '23505') redirect('/app?convite=invalido');
+  await supabase
+    .from('org_invitations')
+    .update({ accepted_at: new Date().toISOString(), accepted_by: user.id })
+    .eq('id', inv.id);
+
+  revalidatePath('/app');
+  redirect(`/app/organizacoes/${inv.org_id}`);
+}
+
+export async function updateProfile(_prev: FormState, form: FormData): Promise<FormState> {
+  const nome = String(form.get('nome') ?? '').trim();
+  const telefone = String(form.get('telefone') ?? '').trim() || null;
+  if (!nome) return { errors: { nome: 'Indique o seu nome.' } };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const { error } = await supabase.from('profiles').update({ nome, telefone }).eq('user_id', user.id);
+  if (error) return { errors: {}, message: 'Não foi possível guardar.' };
+  revalidatePath('/app/perfil');
+  return { errors: {}, ok: true, message: 'Perfil guardado.' };
+}
+
+export async function reviewDocument(documentId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const decision = String(form.get('decision') ?? '');
+  const notas = String(form.get('notas') ?? '').trim() || null;
+  if (decision !== 'aprovado' && decision !== 'rejeitado') return { errors: {}, message: 'Decisão inválida.' };
+  if (decision === 'rejeitado' && !notas) return { errors: { notas: 'Explique o motivo da rejeição.' } };
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  if (!(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+
+  const { data, error } = await supabase
+    .from('org_documents')
+    .update({
+      status: decision,
+      notas_validacao: notas,
+      validated_by: user.id,
+      validated_at: new Date().toISOString(),
+    })
+    .eq('id', documentId)
+    .select('id');
+  if (error || !data || data.length === 0) return { errors: {}, message: 'Não foi possível registar a decisão.' };
+  revalidatePath('/admin/documentos');
+  return { errors: {}, ok: true, message: decision === 'aprovado' ? 'Aprovado.' : 'Rejeitado.' };
 }
 
 const MAX_BYTES = 10 * 1024 * 1024;

@@ -8,7 +8,7 @@ marca, piloto) avança em paralelo e condiciona o lançamento.
 | Fase | Conteúdo | Estado |
 | --- | --- | --- |
 | 0. Fundações | Projeto, regras de contratação testadas, site público com simulador | Feito |
-| 1. Contas e organizações | Feito: entrada por email, entidades com NIF validado e morada fiscal, administradora com vários condomínios, prédios, envio de documentos de verificação. Falta: convidar membros, editar entidade e prédio, validação dos documentos pela equipa | Em curso |
+| 1. Contas e organizações | Entrada por email, entidades com NIF validado e morada fiscal, administradora com vários condomínios, prédios, edição, equipa com papéis e convites, perfil, documentos de verificação e ecrã de validação para a equipa da plataforma. Fica para depois: email automático do convite (precisa de serviço de email) e aviso de documentos a expirar | Feito |
 | 2. Prédios e pedidos | Ficha do prédio, vários prédios por administradora, pedido de orçamento, áreas, fotografias privadas, volume 3D genérico | |
 | 3. Marketplace | Oportunidades para pintores, convites, propostas discriminadas, comparador, mensagens com filtro de contactos | |
 | 4. Contratação | Garantia, minuta, assinatura com CMD, fee, prazos e desvios, ligados ao parceiro de pagamentos | |

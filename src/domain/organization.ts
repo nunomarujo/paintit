@@ -18,7 +18,24 @@ export const ORG_KIND_LABELS: Record<OrgKind, string> = {
 export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'leitor'] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
-export const BUILDING_KINDS = ['edificio_habitacao', 'edificio_misto', 'moradia', 'apartamento', 'comercial'] as const;
+export const MEMBER_ROLE_LABELS: Record<MemberRole, { label: string; description: string }> = {
+  proprietario: { label: 'Proprietário', description: 'Gere tudo, incluindo a equipa.' },
+  gestor: { label: 'Gestor', description: 'Gere prédios, pedidos e documentos.' },
+  financeiro: { label: 'Financeiro', description: 'Envia documentos e acompanha pagamentos.' },
+  leitor: { label: 'Leitor', description: 'Só consulta.' },
+};
+
+export function parseInvite(form: FormData): { value?: { email: string; role: MemberRole }; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const email = (text(form.get('email')) ?? '').toLowerCase();
+  if (!EMAIL.test(email)) errors.email = 'Indique um email válido.';
+  const role = text(form.get('role'));
+  if (!role || !(MEMBER_ROLES as readonly string[]).includes(role)) errors.role = 'Escolha o papel.';
+  if (Object.keys(errors).length > 0) return { errors };
+  return { errors, value: { email, role: role as MemberRole } };
+}
+
+export const BUILDING_KINDS =['edificio_habitacao', 'edificio_misto', 'moradia', 'apartamento', 'comercial'] as const;
 export type BuildingKind = (typeof BUILDING_KINDS)[number];
 
 export const BUILDING_KIND_LABELS: Record<BuildingKind, string> = {

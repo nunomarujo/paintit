@@ -188,6 +188,40 @@ export type Database = {
           },
         ];
       };
+      org_invitations: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          org_id: string;
+          role: MemberRole;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          org_id: string;
+          role: MemberRole;
+        };
+        Update: Partial<Database['public']['Tables']['org_invitations']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'org_invitations_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       platform_admins: {
         Row: { created_at: string; user_id: string };
         Insert: { created_at?: string; user_id: string };
@@ -195,9 +229,30 @@ export type Database = {
         Relationships: [];
       };
       profiles: {
-        Row: { created_at: string; nome: string; telefone: string | null; updated_at: string; user_id: string };
-        Insert: { created_at?: string; nome?: string; telefone?: string | null; updated_at?: string; user_id: string };
-        Update: { created_at?: string; nome?: string; telefone?: string | null; updated_at?: string; user_id?: string };
+        Row: {
+          created_at: string;
+          email: string | null;
+          nome: string;
+          telefone: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          email?: string | null;
+          nome?: string;
+          telefone?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string | null;
+          nome?: string;
+          telefone?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [];
       };
     };

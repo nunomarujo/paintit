@@ -33,6 +33,10 @@ eu-west-1). A organização tem outros projetos: nunca os ler nem alterar.
   atualizado.
 - `drop` e outras operações destrutivas pedem confirmação manual no Supabase: preferir migrações aditivas.
 - Variáveis: `.env.example` (valores públicos). A chave secreta (service role) nunca entra no repositório.
+- Equipa da plataforma: tabela `platform_admins`, só alterável por SQL no Supabase (não há ecrã para isso, de
+  propósito).
+- Verificar na base real com utilizadores `zz-test-*` dentro de um bloco `do $$ … raise exception … $$`: o erro
+  final reverte tudo e traz o resultado. Confirmar depois que não ficou nada gravado.
 
 ```bash
 npm install

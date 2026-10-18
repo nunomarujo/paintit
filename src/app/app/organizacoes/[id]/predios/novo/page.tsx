@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { createBuilding } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
 import { BuildingForm } from './BuildingForm';
 
@@ -16,7 +17,10 @@ export default async function NewBuildingPage({ params }: { params: Promise<{ id
       </Link>
       <h1 className="mt-3 text-2xl font-semibold">{org.kind === 'particular' ? 'Novo imóvel' : 'Novo prédio'}</h1>
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-        <BuildingForm orgId={org.id} defaultKind={org.kind === 'particular' ? 'moradia' : 'edificio_habitacao'} />
+        <BuildingForm
+          action={createBuilding.bind(null, org.id)}
+          defaultKind={org.kind === 'particular' ? 'moradia' : 'edificio_habitacao'}
+        />
       </div>
     </div>
   );

@@ -13,11 +13,13 @@ const SUPABASE_STUB = `
   create role anon nologin;
   create role authenticated nologin;
   create schema auth;
-  create table auth.users (id uuid primary key);
+  create table auth.users (id uuid primary key, email text);
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  create function auth.jwt() returns jsonb language sql stable as
+    $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
   grant usage on schema auth to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
+  grant execute on function auth.uid(), auth.jwt() to anon, authenticated;
   create schema storage;
   create table storage.buckets (id text primary key, name text, public boolean,
     file_size_limit bigint, allowed_mime_types text[]);
@@ -33,12 +35,18 @@ const A = '00000000-0000-4000-8000-00000000000a'; // administradora e condomíni
 const B = '00000000-0000-4000-8000-00000000000b'; // outro utilizador, sem relação
 const C = '00000000-0000-4000-8000-00000000000c'; // gestor na administradora de A
 const ADMIN = '00000000-0000-4000-8000-0000000000ad'; // equipa da plataforma
+const D = '00000000-0000-4000-8000-00000000000d'; // convidada para o condomínio
+
+const email = (user: string) => `u${user.slice(-2)}@teste.invalid`;
 
 let db: PGlite;
 
 async function as<T>(user: string | null, fn: () => Promise<T>): Promise<T> {
   await db.exec(user ? 'set role authenticated' : 'set role anon');
   await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [user ?? '']);
+  await db.query(`select set_config('request.jwt.claims', $1, false)`, [
+    user ? JSON.stringify({ sub: user, email: email(user) }) : '',
+  ]);
   try {
     return await fn();
   } finally {
@@ -74,7 +82,9 @@ beforeAll(async () => {
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
     await db.exec(readFileSync(join(dir, file), 'utf8'));
   }
-  for (const u of [A, B, C, ADMIN]) await db.query('insert into auth.users (id) values ($1)', [u]);
+  for (const u of [A, B, C, D, ADMIN]) {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [u, email(u)]);
+  }
   await db.query('insert into public.platform_admins (user_id) values ($1)', [ADMIN]);
 
   adminOrg = (await createOrg(A, 'administradora', 'Gestão Exemplo Lda', '500000000')).id;
@@ -177,5 +187,85 @@ describe('documentos de verificação', () => {
     await expect(
       as(B, () => db.query(`insert into storage.objects (bucket_id, name) values ('documentos', $1)`, [`${condo}/x.pdf`])),
     ).rejects.toThrow(/row-level security/);
+  });
+});
+
+describe('convites', () => {
+  const invite = (role: string, to = email(D)) =>
+    as(A, () =>
+      one<{ id: string }>(
+        `insert into public.org_invitations (org_id, email, role) values ($1, $2, $3) returning id`,
+        [condo, to, role],
+      ),
+    );
+
+  it('só o proprietário convida', async () => {
+    await expect(
+      as(C, () => db.query(`insert into public.org_invitations (org_id, email, role) values ($1, 'x@teste.invalid', 'leitor')`, [condo])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('a convidada vê o convite; um estranho não', async () => {
+    const inv = await invite('gestor');
+    const seen = await as(D, async () => (await db.query('select id from public.org_invitations where id = $1', [inv.id])).rows);
+    expect(seen).toHaveLength(1);
+    const stranger = await as(B, async () => (await db.query('select id from public.org_invitations')).rows);
+    expect(stranger).toEqual([]);
+  });
+
+  it('a convidada não pode mudar o papel do convite', async () => {
+    await expect(as(D, () => db.query(`update public.org_invitations set role = 'proprietario'`))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('não se junta com um papel diferente do convidado', async () => {
+    await expect(
+      as(D, () => db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'proprietario')`, [condo, D])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('aceita com o papel do convite e passa a ver o condomínio', async () => {
+    await as(D, async () => {
+      await db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'gestor')`, [condo, D]);
+      await db.query(
+        `update public.org_invitations set accepted_at = now(), accepted_by = $2 where org_id = $1 and email = $3`,
+        [condo, D, email(D)],
+      );
+    });
+    const orgs = await as(D, async () => (await db.query('select id from public.organizations where id = $1', [condo])).rows);
+    expect(orgs).toHaveLength(1);
+  });
+
+  it('um convite expirado não serve', async () => {
+    const other = (await createOrg(A, 'particular', 'Casa A', null)).id;
+    await db.query(
+      `insert into public.org_invitations (org_id, email, role, invited_by, expires_at) values ($1, $2, 'leitor', $3, now() - interval '1 day')`,
+      [other, email(B), A],
+    );
+    await expect(
+      as(B, () => db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'leitor')`, [other, B])),
+    ).rejects.toThrow(/row-level security/);
+  });
+});
+
+describe('perfis', () => {
+  it('o perfil é criado com o email da conta', async () => {
+    const p = await as(A, () => one<{ email: string }>('select email from public.profiles where user_id = $1', [A]));
+    expect(p.email).toBe(email(A));
+  });
+
+  it('colegas veem-se; estranhos não', async () => {
+    const colleague = await as(D, async () => (await db.query('select user_id from public.profiles where user_id = $1', [A])).rows);
+    expect(colleague).toHaveLength(1);
+    const stranger = await as(B, async () => (await db.query('select user_id from public.profiles where user_id = $1', [A])).rows);
+    expect(stranger).toEqual([]);
+  });
+
+  it('o utilizador muda o nome mas não o email', async () => {
+    await as(A, () => db.query(`update public.profiles set nome = 'Ana' where user_id = $1`, [A]));
+    await expect(as(A, () => db.query(`update public.profiles set email = 'outro@teste.invalid' where user_id = $1`, [A]))).rejects.toThrow(
+      /permission denied/,
+    );
   });
 });

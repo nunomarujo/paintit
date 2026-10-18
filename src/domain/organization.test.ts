@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { isValidNif } from './nif';
 import { INVALID_NIFS, VALID_NIFS } from './nif.vectors';
-import { missingDocs, parseBuilding, parseOrganization } from './organization';
+import { missingDocs, parseBuilding, parseInvite, parseOrganization } from './organization';
+
+describe('convite', () => {
+  it('normaliza o email para minúsculas', () => {
+    const f = new FormData();
+    f.set('email', ' Maria@Exemplo.PT ');
+    f.set('role', 'gestor');
+    expect(parseInvite(f).value).toEqual({ email: 'maria@exemplo.pt', role: 'gestor' });
+  });
+
+  it('recusa papel inexistente', () => {
+    const f = new FormData();
+    f.set('email', 'maria@exemplo.pt');
+    f.set('role', 'administrador');
+    expect(parseInvite(f).errors.role).toBeDefined();
+  });
+});
 import { safeNext } from '@/lib/redirect';
 
 describe('documentos em falta', () => {

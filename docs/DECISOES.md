@@ -24,6 +24,13 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | 18/10/2026 | Entrada | Link por email, sem palavra-passe |
 | 18/10/2026 | Administradoras | Uma administradora gere vários condomínios; cada condomínio tem NIF, prédios e pedidos próprios |
 
+## Notas técnicas em aberto
+
+- Dois avisos de desempenho no Supabase ("várias políticas permissivas" em `org_members` e `profiles`): as políticas
+  foram somadas em vez de substituídas, porque o `drop` exige confirmação manual. Sem efeito na segurança; fundir
+  numa migração futura, com confirmação.
+- Índice redundante `org_documents_building_id_idx`: remover na mesma migração.
+
 ## Passos pendentes do promotor
 
 | Onde | O quê | Valor |
@@ -31,6 +38,7 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | Supabase › Authentication › URL Configuration | Site URL e Redirect URLs, quando houver domínio | `https://<domínio>` e `https://<domínio>/auth/confirmar` |
 | Supabase › Authentication › SMTP | Envio de emails por um serviço próprio (o envio de origem tem limites baixos e cai no spam) | Por escolher |
 | Alojamento | Publicar a app (por exemplo Vercel, região UE) com as variáveis de `.env.example` | Por decidir |
+| App | Entrar pela primeira vez, para a conta ser acrescentada à equipa da plataforma (`platform_admins`) | Conta do promotor |
 
 ## Em aberto (com a proposta implementada por omissão)
 
