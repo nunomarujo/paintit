@@ -1,0 +1,1373 @@
+App de Empreitadas de Pintura
+Documento mestre de requisitos e funcionamento | Versão 0.3 | 17 de outubro de 2026
+Promotora do projeto: Carla Dias. Nome comercial da plataforma: por definir. Mercado inicial de referência: Portugal. Moeda inicial: euro. Idioma inicial: português de Portugal.
+Esta versão consolida o conceito discutido e transforma-o numa base de trabalho para produto, design, desenvolvimento e operação. É um documento evolutivo: as decisões confirmadas são preservadas, as propostas de detalhe estão identificadas e as matérias pendentes têm um registo próprio. Não constitui um contrato pronto para assinatura nem confirma que todos os mecanismos de pagamento já foram aceites por um parceiro financeiro.
+0. Como utilizar e atualizar este documento
+0.1 Estados das decisões
+CONFIRMADO significa uma orientação expressa pela promotora na conversa. PROPOSTO significa um desenvolvimento funcional introduzido para tornar a app executável e sujeito a revisão. A VALIDAR identifica uma dependência comercial, técnica, operacional ou jurídica que ainda não está resolvida. SUBSTITUÍDO identifica uma hipótese anterior que já não deve orientar o desenvolvimento.
+Os requisitos de cada capítulo constituem propostas de implementação das decisões confirmadas, salvo indicação expressa em contrário. A presença de um requisito neste documento não converte uma proposta do assistente numa decisão comercial aprovada.
+Cada requisito tem um identificador estável. Nas revisões seguintes, o identificador é mantido mesmo que o texto seja alterado. Um requisito eliminado fica marcado como substituído, com referência à decisão que o substitui. Não se reutilizam identificadores.
+0.2 Estrutura e leitores
+Os capítulos 1 a 5 definem o negócio, os atores e os percursos. Os capítulos 6 a 9 descrevem os quatro backoffices. Os restantes capítulos aprofundam medição, inteligência artificial, propostas, dinheiro, contratos, execução, dados, operação e critérios de aceitação. O capítulo 34 desenvolve o percurso de contratação e os cenários financeiros da versão 0.2. O capítulo 35 apresenta o mapa funcional dos ecrãs e o percurso a transformar em protótipo.
+Produto usa este documento para delimitar o comportamento. Design transforma os percursos em ecrãs. Desenvolvimento transforma requisitos em tarefas técnicas. Operações utiliza as regras para tratar exceções. A validação jurídica e o parceiro de pagamentos fecham os pontos que lhes dizem respeito.
+0.3 Histórico de alterações
+VER-01 — Versão 0.1, 17/10/2026. Criação da base detalhada. Integra a comissão de 3% a cargo do pintor, mínimo de 150 € e ausência de teto. Integra o anonimato antes do pagamento, os quatro backoffices, a medição manual assistida, o volume 3D representativo, a comparação de propostas e a comprovação de compra de materiais.
+VER-02 — Versão 0.2, 17/10/2026. Desenvolvimento da primeira etapa da sequência aceite pela promotora: contratação e dinheiro. Acrescenta o capítulo 34, com percurso principal, quatro cenários, movimentos conciliados, política proposta de comissão e cancelamentos, acertos por alterações, funções dos quatro backoffices e critérios de aceitação. As novas políticas comerciais permanecem propostas até confirmação.
+VER-03 — Versão 0.3, 17/10/2026. Acrescenta o capítulo 35: navegação dos quatro backoffices, inventário de 42 ecrãs, descrição dos percursos, esquemas funcionais de comparação, comissão, tranche e acordo, e âmbito do protótipo a construir. Os dados de demonstração são fictícios. Não existe ainda protótipo navegável nem integrações reais.
+1. Visão, problema e proposta de valor
+1.1 O problema a resolver
+Uma administração de condomínio ou um particular precisa de descrever uma pintura, obter propostas e perceber as diferenças entre elas. As propostas podem abranger áreas, produtos, preparação, acessos e reparações diferentes. O preço global, por si só, não permite comparar o conteúdo do serviço.
+O pintor precisa de informação suficiente para orçamentar, de apoio na preparação técnica da proposta e de oportunidades comerciais com intenção real. O fornecedor de materiais precisa de apresentar produtos adequados e associar vendas a profissionais. A plataforma precisa de receber pela apresentação das partes antes de revelar informação que permita contornar essa cobrança.
+1.2 Serviço da plataforma
+A atividade remunerada pretendida é a apresentação das partes depois de existir uma proposta escolhida e um compromisso de avanço. A plataforma disponibiliza ferramentas suplementares de recolha de informação, medição, comparação, documentação, pagamentos e acompanhamento.
+A execução da pintura pertence ao prestador. O cliente decide a contratação e autoriza os adiantamentos e as tranches. A plataforma não assume, como proposta de negócio, a obrigação de terminar uma obra abandonada, pagar outro pintor ou garantir que um material foi aplicado apenas porque foi comprado.
+Esta delimitação tem de ser coerente em contratos, interface, publicidade e apoio ao cliente. Não elimina as obrigações próprias que a plataforma efetivamente assuma, por exemplo sobre a execução de instruções de pagamento, o tratamento de dados ou a exatidão das verificações que anuncia.
+1.3 Âmbito inicial e evolução
+O âmbito inicial são empreitadas de pintura de condomínios: fachadas, varandas, muros e zonas comuns. A arquitetura deve permitir particulares que pretendam pintar uma moradia, apartamento ou divisão interior. O mínimo comercial de 150 € foi aceite, mas o seu impacto em trabalhos pequenos deve ser acompanhado.
+A plataforma começa especializada em pintura. A extensão a outras especialidades da construção, financiamento, seguros de execução, venda própria de materiais ou contratação de equipas pela plataforma não está aprovada.
+1.4 Objetivos verificáveis
+Reduzir o esforço de criar um pedido de orçamento com informação suficiente.
+Permitir comparar propostas para uma base comum e identificar diferenças de âmbito.
+Permitir ao pintor apresentar um preço global acompanhado dos trabalhos e materiais.
+Ocultar contactos e elementos identificadores antes do acontecimento financeiro aprovado.
+Cobrar uma comissão de 3% ao prestador, com mínimo de 150 € e sem limite máximo.
+Apresentar evidência de compra de materiais sem afirmar uma aplicação que não foi verificada.
+Registar decisões, versões, autorizações e pagamentos de forma rastreável.
+Construir histórico de avaliações associado a relações e obras efetivamente registadas.
+2. Registo das decisões comerciais e funcionais
+2.1 Decisões confirmadas
+DEC-01 | CONFIRMADO — Existem pelo menos quatro backoffices: cliente/condomínio, prestador/pintor, fornecedor de tintas e materiais, administrador e gestores da app.
+DEC-02 | CONFIRMADO — Os profissionais inscrevem-se, consultam as características das obras e apresentam propostas. O cliente escolhe; a escolha não é automaticamente atribuída ao preço mais baixo.
+DEC-03 | CONFIRMADO — A comissão é de 3%, paga pelo prestador/pintor, com mínimo de 150 € e sem limite máximo. A base fiscal e comercial exata sobre a qual incidem os 3% ainda tem de ser confirmada.
+DEC-04 | CONFIRMADO — O acesso às identidades e contactos deve acontecer apenas depois de estar salvaguardada a cobrança prevista. Não basta iniciar um pagamento nem enviar um comprovativo não validado.
+DEC-05 | CONFIRMADO — Não são publicadas fotografias gerais reais nem moradas exatas no anúncio. São publicadas uma localização aproximada e uma representação do volume da obra.
+DEC-06 | CONFIRMADO — A app deve recortar, filtrar e ocultar elementos identificadores em pormenores fotográficos que sejam disponibilizados aos concorrentes.
+DEC-07 | CONFIRMADO — Os m² podem ser inseridos manualmente. As ferramentas de cálculo, incluindo fotografias, auxiliam o utilizador e não tornam a introdução manual dependente de uma reconstrução automática.
+DEC-08 | CONFIRMADO — As fotografias tomadas pela app ajudam a construir um volume 3D simples e representativo do edifício, com varandas, edifícios contíguos e outros elementos relevantes para pintar.
+DEC-09 | CONFIRMADO — O pintor apresenta preço global e descreve os trabalhos. Pintar pode envolver lavagem, remoção de revestimentos, reparações, primários, proteção e outros trabalhos complementares.
+DEC-10 | CONFIRMADO — A inteligência artificial ajuda a identificar hipóteses de trabalhos e a consultar instruções de fabricantes e fichas técnicas.
+DEC-11 | CONFIRMADO — A informação é apresentada ao cliente de forma resumida e detalhada, para comparar o preço e o conteúdo das propostas.
+DEC-12 | CONFIRMADO — Fornecedores de tintas e materiais podem registar-se, disponibilizar produtos e associar comprovativos de venda ao pintor.
+DEC-13 | CONFIRMADO — A compra comprovada constitui uma verificação limitada. Não comprova, por si só, aplicação naquela obra.
+DEC-14 | CONFIRMADO — O histórico de avaliações do pintor participa na comparação de propostas futuras. Os pesos concretos do ranking estão por definir.
+DEC-15 | CONFIRMADO — O contrato deve prever correções de área ao preço por m² definido na proposta, limitadas a uma tolerância percentual ainda por estabelecer.
+DEC-16 | CONFIRMADO — O cliente pode aceitar adiantamentos e pagamentos por etapas. É o cliente que confirma a etapa e autoriza a libertação da tranche.
+DEC-17 | CONFIRMADO — Pretende-se que o dinheiro da obra seja entregue no circuito da plataforma e libertado de acordo com o compromisso assumido, com possibilidade de retenção em litígio. A entidade que guarda os fundos e as condições concretas dependem da solução contratada.
+DEC-18 | CONFIRMADO — Pretende-se formalização digital, verificação de assinaturas e, quando disponíveis e adequados, atributos profissionais e poderes de representação.
+DEC-19 | CONFIRMADO — As partes podem aceitar um acordo para encerrar uma disputa, incluindo uma repartição percentual do montante disponível.
+DEC-20 | CONFIRMADO — A plataforma não se apresenta como garante da conclusão ou da qualidade material da empreitada. O cliente assume a decisão de autorizar pagamentos ao pintor, sem eliminar direitos ou responsabilidades que resultem da lei.
+2.2 Orientações a reconciliar com a nova comissão
+DEC-21 | A VALIDAR — A ideia de caução do pintor igual à comissão surgiu quando a comissão era suportada pelo cliente. Com a comissão agora paga pelo pintor, é necessário decidir se existe uma caução adicional, o seu objetivo e o seu montante. Não se presume uma cobrança definitiva de 6%.
+DEC-22 | A VALIDAR — Foi admitida a devolução da caução no primeiro adiantamento ou pagamento intercalar. É necessário definir o evento exato, a origem da caução e o tratamento de cancelamentos posteriores.
+DEC-23 | A VALIDAR — Falta decidir se o cliente entrega uma reserva antes de conhecer o prestador, a quem pertence essa reserva e quando é reembolsável. Não está aprovada uma comissão autónoma paga pelo cliente.
+DEC-24 | A VALIDAR — Falta fechar os casos em que a comissão é reembolsada, creditada, mantida ou parcialmente devolvida. A cobrança pela apresentação não deve ser confundida com uma garantia absoluta de irreversibilidade.
+DEC-25 | A VALIDAR — A expressão “fiel depositária” traduz uma intenção de proteção dos fundos. O produto financeiro e a sua designação pública dependem de validação jurídica e da aceitação por um parceiro autorizado.
+DEC-26 | A VALIDAR — O objetivo de obter três propostas não é uma garantia de que existirão três pintores disponíveis, nem uma afirmação de que todas as obras estão legalmente sujeitas a três orçamentos.
+2.3 Hipóteses anteriores substituídas
+DEC-27 | SUBSTITUÍDO — Comissão de 2%, teto de 750 € e comissão necessariamente suportada pelo cliente. Estes elementos não devem aparecer como regras atuais em cálculos, ecrãs ou contratos.
+DEC-28 | SUBSTITUÍDO — Publicação de fotografias gerais reais do edifício no anúncio. Os originais são privados; a publicação usa apenas derivados autorizados.
+DEC-29 | SUBSTITUÍDO — Apresentar a compra de uma tinta como certificação da sua aplicação. O sistema distingue expressamente os dois factos.
+DEC-30 | CONFIRMADO — Em 17/10/2026, a promotora aceitou a sequência: detalhar contratação e dinheiro; desenhar ecrãs; criar protótipo navegável; validar com intervenientes; fechar a primeira versão. A validação jurídica e do parceiro acompanha os pontos dependentes. A aceitação da sequência não confirma automaticamente todas as novas políticas propostas.
+3. Atores, organizações e permissões
+3.1 Identidades e contextos
+IAM-01 — Uma pessoa tem uma conta individual e pode pertencer a mais de uma organização. A conta pessoal não deve ser partilhada entre trabalhadores. Cada ação guarda o utilizador, a organização e o contexto em que foi praticada.
+IAM-02 — A mesma pessoa pode administrar condomínios e representar uma empresa, mas tem de escolher o contexto ativo. Os dados de um papel não são automaticamente disponibilizados noutro.
+IAM-03 — O condomínio, a empresa administradora, o pintor empresarial e o fornecedor são entidades distintas. Uma administradora pode gerir vários condomínios; cada condomínio mantém os seus pedidos, documentos, fundos e autorizações.
+IAM-04 — O prestador pode ser uma empresa ou um profissional individual. A verificação de identidade, atividade, representação, faturação e conta de recebimento é adequada ao tipo de entidade e ao parceiro de pagamentos.
+IAM-05 — O fornecedor de materiais pode ter estabelecimentos, comerciais e gestores de catálogo. Um funcionário de vendas não recebe automaticamente permissão para aprovar documentos financeiros ou reivindicar representação de uma marca.
+3.2 Papéis propostos
+O cliente dispõe de proprietário/administrador do espaço, gestor de pedidos, aprovador financeiro e leitor. Um particular pode acumular estes papéis. Num condomínio, a visualização por condóminos é opcional e não confere poder para autorizar pagamentos.
+O prestador dispõe de proprietário da conta, orçamentista, responsável técnico/obra e financeiro. O fornecedor dispõe de administrador, gestor de catálogo, comercial e responsável pela validação de vendas.
+A equipa da app dispõe de superadministrador, operações, validação de contas, apoio, financeiro, revisão técnica, gestão de disputas e auditoria. Estes papéis são separados mesmo que, no início, algumas pessoas acumulem funções.
+3.3 Regras de acesso
+IAM-06 — As permissões são verificadas no servidor. Ocultar um botão não é suficiente. A leitura de um ficheiro, a exportação e a consulta por API obedecem à mesma regra.
+IAM-07 — Os originais das fotografias e a morada exata são acessíveis apenas ao cliente autorizado e aos operadores estritamente necessários antes da apresentação. O fornecedor de materiais não recebe esses dados por defeito.
+IAM-08 — Uma revelação de contactos aplica-se ao par cliente-prestador selecionado e à obra em causa. Não desbloqueia os contactos para todos os concorrentes.
+IAM-09 — Um administrador técnico não deve poder movimentar fundos livremente por ter acesso ao sistema. As operações financeiras exigem papéis próprios e, nos casos de risco definidos, uma segunda aprovação.
+IAM-10 — A representação e a autorização para contratar e pagar são verificadas separadamente. Uma assinatura válida identifica o signatário, mas não demonstra sempre que esse signatário pode autorizar a obra concreta.
+IAM-11 — A retirada de acesso a um colaborador produz efeito imediato nas sessões e nos documentos privados. O histórico das ações anteriores conserva a identificação do autor.
+IAM-12 — O acesso extraordinário da equipa de apoio a dados privados exige motivo, duração e registo. Não pode transformar-se numa partilha informal de moradas ou contactos.
+4. Objetos principais e informação de base
+4.1 Entidades do domínio
+DAT-01 — Utilizador: identificação, contactos verificados, idioma, autenticação, organizações, papéis, consentimentos, estado da conta e histórico de segurança. A morada pessoal não é obrigatória para todos os papéis.
+DAT-02 — Organização: tipo, denominação, identificação fiscal quando necessária, representantes, dados de faturação, verificações e referências do parceiro de pagamentos. Não guardar credenciais bancárias sensíveis na app.
+DAT-03 — Edifício/local: proprietário lógico, morada privada, zona publicável, tipo de construção, pisos, acessos, condicionantes e conjuntos de superfícies. O identificador público deve ser diferente de códigos municipais ou nomes que revelem o local.
+DAT-04 — Pedido de empreitada: referência, cliente, versão, âmbito, superfícies, prazo de propostas, disponibilidade de execução, condições técnicas, anexos públicos tratados e anexos privados.
+DAT-05 — Superfície: fachada ou divisão, elemento, material de suporte, área bruta, descontos, acrescentos, área a pintar, origem da medida, confirmação, estado e tratamentos associados.
+DAT-06 — Ficheiro: proprietário, obra, finalidade, classificação de privacidade, original/derivado, estado de análise, versão, integridade e permissões de acesso.
+DAT-07 — Proposta: autor, obra e versão respondida, âmbito, linhas técnicas, materiais, preço global, impostos, prazo, adiantamentos, tranches, exclusões, preço de ajustamento, validade e versões.
+DAT-08 — Apresentação: cliente, prestador selecionado, proposta aceite para avançar, condições do serviço de apresentação, obrigação financeira, pagamentos confirmados e evento de revelação.
+DAT-09 — Contrato/obra: partes, documentos assinados, poderes, âmbito congelado, calendário, tranches, alterações, ocorrências e estados de execução.
+DAT-10 — Produto e sistema de pintura: fabricante, referência, gama, base, cor, embalagem, unidade, utilização, ficha técnica, ficha de segurança, revisão e compatibilidades documentadas.
+DAT-11 — Venda/evidência: fornecedor, comprador, documento, produtos, quantidades, devoluções, associação à obra e estado de confirmação. A quantidade reservada para uma obra não pode ser contada integralmente noutra.
+DAT-12 — Movimento financeiro: finalidade, montante em cêntimos, moeda, ordenante, destinatário, entidade custodiante, identificador externo, estado e conciliação. Comissão, dinheiro da obra e caução são distinguíveis.
+DAT-13 — Avaliação/disputa: relação com obra e autor, critérios, evidências, contraditório, decisões, pagamentos afetados e histórico. A edição não deve apagar a versão anterior.
+4.2 Regras transversais de dados
+DAT-14 — Valores monetários são calculados em cêntimos, com regra explícita de arredondamento. Áreas e quantidades usam precisão própria e não são arredondadas antecipadamente para calcular o preço.
+DAT-15 — Datas técnicas são guardadas com referência temporal inequívoca e mostradas no fuso do utilizador. Os prazos contratuais indicam se contam dias de calendário ou úteis.
+DAT-16 — As versões relevantes são imutáveis após aceitação. Alterações criam nova versão ou aditamento. Não se recalcula retroativamente um compromisso aceite com parâmetros comerciais novos.
+5. Percurso global e estados do processo
+5.1 Percurso principal proposto
+O cliente cria o local, introduz medidas e captura fotografias. A app ajuda a construir a descrição e o volume, trata os elementos publicáveis e pede validação. O pedido publicado recebe propostas. O cliente compara e seleciona uma proposta para avançar.
+O pintor confirma disponibilidade, conhece a comissão e paga o que estiver definido para a apresentação. A app valida os requisitos financeiros e documentais aplicáveis e só então revela os contactos. A contratação da empreitada é formalizada com identidades completas, após a informação exigida.
+O cliente financia a obra no circuito acordado. O prestador executa e pede pagamentos. O cliente aprova ou contesta. As compras de materiais vão sendo associadas. A receção final, as avaliações e o arquivo encerram o percurso normal.
+5.2 Estados independentes
+EST-01 — Pedido: rascunho, em preparação, em revisão, publicado, a receber propostas, suspenso, encerrado para propostas, adjudicado ou cancelado. Um pedido pode regressar à publicação se falhar a apresentação, mantendo o histórico.
+EST-02 — Proposta: rascunho, submetida, pedido de esclarecimento, revista, selecionada, não selecionada, retirada, expirada. Uma proposta selecionada não equivale automaticamente a contrato de empreitada assinado.
+EST-03 — Apresentação: aguardando confirmações, aguardando pagamento, pagamento em validação, elegível para revelação, contactos revelados, falha, cancelamento em análise ou encerrada.
+EST-04 — Contrato: por preparar, pronto para assinatura, parcialmente assinado, assinado, alterado, resolvido ou concluído. A app deve distinguir claramente seleção, apresentação, contrato e início de obra.
+EST-05 — Execução: por iniciar, em curso, suspensa, conclusão proposta, receção com reservas, concluída, abandonada ou em litígio. O litígio pode coexistir com uma obra parcialmente executada.
+EST-06 — Cada tranche: planeada, por financiar, financiada, libertação pedida, em revisão, aprovada, em processamento, paga, contestada, cancelada ou reembolsada. “Aprovada” e “paga” não são sinónimos.
+EST-07 — Compra de material: declarada, documento submetido, vendedor a confirmar, compra confirmada, parcialmente devolvida, anulada ou divergência em análise. Nenhum destes estados significa aplicação confirmada.
+5.3 Exceções a tratar desde a conceção
+Captura insuficiente, edifício parcialmente inacessível ou falha do processamento 3D.
+Menos propostas do que o objetivo, propostas expiradas ou ausência de disponibilidade.
+Falha do pagamento da comissão, pagamento duplicado ou comunicação tardia do parceiro.
+Descoberta de identidade num derivado público e necessidade de suspensão imediata.
+Alteração da área, dos trabalhos ou dos materiais após seleção.
+Falta de autorização do representante, assinatura inválida ou mudança de administrador.
+Cancelamento legítimo, abandono, alegação de fraude, devolução de material e litígio parcial.
+6. Backoffice do cliente e do condomínio
+6.1 Navegação e página inicial
+A navegação proposta contém: Visão geral, Condomínios/Locais, Pedidos de orçamento, Propostas, Contratos e obras, Pagamentos, Materiais, Mensagens, Documentos, Avaliações e Definições. Para particulares, os rótulos e campos são simplificados sem alterar as regras de segurança.
+CLI-01 — O painel mostra pedidos em preparação, propostas recebidas, decisões pendentes, obras ativas, tranches a aprovar e documentos em falta. Os montantes a financiar, financiados e já pagos aparecem separados. Um utilizador só vê os locais e ações para os quais tem permissão.
+CLI-02 — O utilizador pode criar uma conta particular ou associar-se a uma organização. O registo inicial pede apenas a informação necessária para começar; a contratação e os pagamentos acrescentam as verificações obrigatórias. O progresso do registo é guardado.
+CLI-03 — A administradora pode alternar entre condomínios e consultar um painel agregado, sem misturar documentos ou saldos. Cada condomínio tem nome interno, identificação, local privado, representantes e lista de utilizadores autorizados.
+CLI-04 — A gestão de equipa permite convidar, atribuir papéis, retirar acesso e definir aprovadores financeiros. Um convite não dá acesso até ser aceite e validado. A delegação temporária tem data de fim e não elimina a necessidade de poderes legais adequados.
+6.2 Criação de um pedido
+CLI-05 — O assistente de criação divide o pedido em local, superfícies, estado, fotografias, âmbito, prazos e revisão. Permite guardar rascunho, retomar noutro dispositivo e identificar campos em falta. A publicação nunca depende de preencher informação sem relação com a obra.
+CLI-06 — Os tipos iniciais incluem fachadas, zonas comuns interiores, muros, moradia e interiores particulares. Cada tipo adapta perguntas e unidades. Uma pintura de sala não pede número de pisos do prédio ou andaimes se isso não for relevante.
+CLI-07 — A descrição do edifício recolhe pisos, fachadas, varandas, materiais, acessos, edifícios contíguos e condicionantes conhecidas. O utilizador pode responder “não sei”. A app não transforma essa resposta numa característica técnica confirmada.
+CLI-08 — A introdução de áreas permite valor direto ou cálculo por dimensões. Mostra a decomposição, os descontos e os acrescentos. O cliente pode corrigir a estimativa da app, deixando visível a origem e a razão da alteração.
+CLI-09 — A captura guiada indica que vistas faltam e permite repetir imagens desfocadas. Pormenores são associados a uma superfície e a uma observação. Os originais continuam privados mesmo que a pré-visualização pública seja aprovada.
+CLI-10 — O cliente descreve problemas observados, reparações anteriores, humidade, fissuras e descamação, sem ser obrigado a diagnosticar a causa. As sugestões da app são apresentadas como hipóteses e perguntas de confirmação.
+CLI-11 — O âmbito identifica o que deve ser pintado e o que fica excluído. A escolha de cor, acabamento, reparações pretendidas, limpeza, proteção e acessos pode ficar definida, aberta a propostas ou sujeita a avaliação.
+CLI-12 — A localização publicável pode ser uma localidade, corredor geográfico ou intervalo de distância. A app mostra exatamente o texto que será publicado e evita converter esse intervalo numa coordenada exata apresentada no mapa.
+CLI-13 — Antes de publicar, o cliente vê o anúncio tal como será mostrado aos pintores: volume, áreas, âmbito, pormenores tratados e zona aproximada. Não pode publicar acidentalmente o original através de um anexo. A revisão automática pode encaminhar casos duvidosos para a equipa.
+6.3 Propostas, escolha e apresentação
+CLI-14 — A lista de propostas mostra preço global, conteúdo resumido, prazo, estado de completude, condições financeiras e avaliação do profissional sob identificação permitida. Não usa “melhor proposta” sem apresentar os critérios aplicados.
+CLI-15 — O comparador permite escolher propostas lado a lado e abrir diferenças de preparação, demãos, materiais, acessos, reparações, impostos, prazos e exclusões. Informação ausente aparece como não indicada, sem ser tratada como incluída.
+CLI-16 — O cliente pode pedir esclarecimentos pelo canal interno. Perguntas que alterem o âmbito comum são convertidas em atualização do pedido, disponibilizada aos concorrentes relevantes. A app não revela preços ou soluções proprietárias de outro pintor.
+CLI-17 — A seleção é uma intenção de avançar com uma proposta identificada e vigente. O resumo de confirmação mostra o que acontece a seguir, quem paga a comissão e quais as condições ainda por cumprir. Propostas expiradas exigem reconfirmação do pintor.
+CLI-18 — Antes da revelação, o cliente não vê a firma, telefone, e-mail, morada profissional ou anexos identificadores do concorrente, salvo informação que tenha de ser apresentada naquele momento por imposição legal. Esta compatibilidade jurídica é uma dependência do desenho final.
+CLI-19 — Quando o evento de apresentação é autorizado, a app disponibiliza os contactos apenas às partes elegíveis e regista data, destinatários e versão da proposta. Se o pagamento estiver pendente, mostra o estado e a ação necessária, sem uma opção manual de contornar o bloqueio.
+6.4 Contratação e acompanhamento
+CLI-20 — O cliente consulta o contrato, os anexos, os poderes de representação necessários e o estado de cada assinatura. Pode descarregar a versão assinada e distinguir uma minuta de um documento em vigor.
+CLI-21 — O painel financeiro apresenta o financiamento da obra, o saldo disponível, as tranches e os destinatários. Uma comissão devida pelo pintor não é cobrada ao cliente como taxa autónoma sem nova decisão comercial expressa.
+CLI-22 — Para aprovar um adiantamento ou tranche, o aprovador vê o motivo, o valor, a evidência e o saldo que restará. A autorização é explícita, associada ao utilizador e confirmada antes da ordem de pagamento. A app não afirma que verificou fisicamente uma etapa apenas porque o cliente a aprovou.
+CLI-23 — O cliente pode contestar uma tranche, pedir esclarecimentos ou aprovar apenas uma parte quando o processo o permitir. O valor não contestado é distinguido do valor em discussão. A falta de resposta gera lembretes e revisão, segundo uma política a aprovar.
+CLI-24 — As alterações de área, âmbito, prazo, materiais ou preço são apresentadas em aditamento com comparação entre antes e depois. Não há aumento unilateral do orçamento pelo pintor ou pela inteligência artificial.
+CLI-25 — A página de materiais mostra produtos prometidos, compras associadas e divergências. Usa expressões como “compra confirmada pelo fornecedor” e não “aplicação certificada”. Quantidades, devoluções e substituições ficam visíveis segundo as permissões.
+CLI-26 — O cliente pode registar ocorrências com superfície, descrição, fotografia privada, gravidade indicada e pedido. A ocorrência gera um identificador e não altera automaticamente o estado financeiro.
+CLI-27 — A receção final permite aceitar, aceitar com reservas ou apontar trabalhos pendentes. O estado da obra e a autorização de pagamento final são decisões relacionadas mas registadas separadamente.
+CLI-28 — Após o acontecimento de elegibilidade definido, o cliente avalia o serviço por critérios e pode atualizar a avaliação. A app indica se houve obra concluída, execução parcial ou cancelamento, sem apresentar todos os casos como trabalhos concluídos.
+6.5 Exportação e critérios de aceitação
+CLI-29 — O cliente pode exportar um dossier com pedido, propostas autorizadas, comparativo, contrato, aditamentos, autorizações, comprovativos permitidos e avaliações. A exportação antes da apresentação mantém o anonimato.
+CLI-30 — Aceitação do backoffice: um particular deve conseguir criar um pedido manual sem produzir 3D; uma administradora deve gerir dois condomínios sem cruzar os dados; um leitor não consegue autorizar uma tranche; um pagamento pendente não revela contactos.
+7. Backoffice do prestador de serviços e pintor
+7.1 Navegação, perfil e oportunidades
+A navegação proposta contém: Visão geral, Oportunidades, Propostas, Apresentações e comissões, Obras, Materiais e compras, Recebimentos, Documentos, Equipa, Avaliações e Definições.
+PIN-01 — O painel mostra oportunidades compatíveis, propostas a completar, seleções a confirmar, comissões por pagar, obras e recebimentos. A previsão de receita não é apresentada como dinheiro já recebido.
+PIN-02 — O perfil recolhe entidade, atividade, zonas de serviço, capacidade, especialidades, disponibilidade e documentação necessária. São separados dados privados de verificação e atributos publicáveis. Um nome comercial ou logótipo não é publicado se contrariar a política de anonimato.
+PIN-03 — A empresa pode convidar orçamentistas, responsáveis de obra e financeiros. Só os papéis autorizados submetem propostas vinculativas, aceitam as condições da apresentação ou alteram a conta de recebimento.
+PIN-04 — O profissional define zonas e distância operacional. O filtro usa a localização aproximada disponibilizada; não permite deduzir a morada através de consultas repetidas de distância demasiado precisas.
+PIN-05 — A lista de oportunidades filtra por tipo de pintura, intervalo de área, altura, necessidade de acessos especiais, prazo e distância aproximada. Pedidos sem informação essencial são identificados antes de o pintor investir na proposta.
+PIN-06 — A ficha da oportunidade apresenta volume 3D quando disponível, superfícies, áreas com origem, pormenores tratados, trabalhos desejados e incertezas. O profissional pode rodar o volume e selecionar uma superfície para abrir a informação associada.
+7.2 Construção da proposta
+PIN-07 — O pintor pode preencher por formulário, texto ou ditado, com extração assistida. O texto extraído é uma sugestão de preenchimento. O profissional revê os campos antes de os submeter e confirma os compromissos técnicos.
+PIN-08 — A proposta inclui preço global e discriminação técnica dos trabalhos. A divulgação pública dos custos internos de mão de obra, margem e desconto comercial não é obrigatória por defeito.
+PIN-09 — Cada trabalho indica incluído, excluído, opcional ou sujeito a confirmação, as superfícies abrangidas, quantidade quando aplicável e descrição do método. Um campo vazio não é convertido automaticamente em excluído nem incluído.
+PIN-10 — O assistente sugere preparações e reparações com base nos dados disponíveis. O pintor aceita, rejeita ou altera, podendo explicar a decisão. Uma sugestão não confirmada não entra como obrigação no orçamento.
+PIN-11 — A escolha de material usa fabricante, produto exato, referência, acabamento, base/cor quando conhecida e número de demãos. Produtos não presentes no catálogo podem ser introduzidos e ficam a aguardar correspondência ou validação.
+PIN-12 — A calculadora estima quantidades com área, rendimento por demão, número de demãos e fator de perdas configurável. O rendimento tem fonte e condições. Os arredondamentos para embalagens e os materiais já em stock são distinguíveis.
+PIN-13 — A app pode sugerir produtos de fornecedores verificados com base na adequação documentada. Publicidade e incentivo comercial são identificados. O pintor mantém a escolha e pode justificar uma alternativa.
+PIN-14 — As condições financeiras incluem adiantamento, etapas, percentagens ou valores, vencimentos e pressupostos. A soma das tranches tem de corresponder ao valor contratual relevante; os opcionais não aceites ficam fora dessa soma.
+PIN-15 — O pintor introduz o preço de ajustamento por m² e a tolerância aplicável quando a política estiver definida. Se existirem superfícies com preços diferentes, são registadas separadamente. Custos fixos são identificados para evitar ajustamentos indevidos.
+PIN-16 — O simulador financeiro mostra preço ao cliente, comissão de 3% com mínimo de 150 €, impostos aplicáveis à comissão, custos conhecidos e valor líquido previsto. O pintor não descobre a comissão depois de ser selecionado.
+PIN-17 — A submissão valida campos essenciais, compatibilidade de datas, validade da proposta e coerência das tranches. Contradições técnicas geram aviso e pedido de revisão; só impedimentos objetivos e definidos devem bloquear.
+PIN-18 — A proposta submetida fica versionada. Uma revisão não elimina a proposta anterior nem altera silenciosamente o que já foi selecionado. O cliente recebe a indicação das diferenças relevantes.
+7.3 Seleção, pagamento e trabalho
+PIN-19 — Quando selecionado, o pintor confirma disponibilidade e compromisso no prazo configurado. Se não responder, a seleção expira segundo regra explícita; o cliente pode escolher outro concorrente sem revelar os seus contactos ao primeiro.
+PIN-20 — O pagamento da comissão tem referência própria, fatura correspondente e estado verificável. O acesso à morada ou telefone não é concedido com base numa captura de ecrã de transferência.
+PIN-21 — Se houver caução adicional aprovada, o painel mostra finalidade, montante, condições de perda e devolução, separadamente da comissão. Na ausência dessa decisão, não é gerada automaticamente uma segunda cobrança de igual valor.
+PIN-22 — Após a apresentação, o pintor consulta contactos, morada e documentação autorizada. Não recebe acesso a outros condomínios da mesma administradora nem a propostas dos concorrentes.
+PIN-23 — A preparação do contrato reutiliza os elementos confirmados da proposta. O pintor verifica a identidade do cliente, os representantes e os anexos antes de assinar. Alterações técnicas posteriores seguem o processo de aditamento.
+PIN-24 — O responsável de obra regista início, progresso, materiais e ocorrências. Cada registo pode ser associado a uma superfície e etapa. Fotografias de execução não se tornam públicas automaticamente.
+PIN-25 — Para pedir uma tranche, o pintor seleciona a etapa, acrescenta evidências e confirma o valor. Não pode levantar o saldo total por ter pedido a conclusão de uma única fase.
+PIN-26 — As compras podem ser associadas por confirmação do fornecedor, documento submetido ou declaração de stock próprio. Os diferentes níveis de evidência não são equiparados.
+PIN-27 — O pintor propõe substituições de material com motivo, equivalência documentada, efeito no preço e necessidade de aprovação. O produto contratual não é substituído silenciosamente no catálogo.
+PIN-28 — O financeiro acompanha pagamentos recebidos, em processamento, retidos ou contestados, comissão e eventual caução. Deve conseguir conciliar cada valor com uma obra e uma operação.
+PIN-29 — O prestador responde a ocorrências, avaliações e disputas, com acesso às evidências relevantes. A possibilidade de resposta não permite remover a avaliação do cliente.
+PIN-30 — Aceitação do backoffice: uma proposta de 40 000 € gera comissão de 1 200 € na base de cálculo exemplificada; não existe teto; pagar duas vezes não revela mais dados; um colaborador técnico não pode alterar o IBAN.
+8. Backoffice do fornecedor de tintas e materiais
+8.1 Navegação e verificação
+A navegação proposta contém: Visão geral, Empresa e estabelecimentos, Catálogo, Documentação técnica, Pedidos de informação, Vendas a confirmar, Documentos, Devoluções, Equipa e Relatórios.
+FOR-01 — O registo recolhe entidade, contactos, estabelecimentos, área de fornecimento, categorias e representantes. A verificação do fornecedor distingue identidade validada, atividade verificada e autorização de marca.
+FOR-02 — A expressão “revendedor autorizado” ou equivalente só pode ser utilizada mediante evidência válida para a marca e âmbito indicados. Uma conta aprovada pela app não equivale a certificação concedida pelo fabricante.
+FOR-03 — O fornecedor gere colaboradores com permissões distintas para catálogo, preços, vendas e documentos. Uma confirmação de venda identifica quem a fez e em representação de que entidade.
+8.2 Catálogo e documentação
+FOR-04 — Cada produto tem fabricante, gama, referência, categoria, utilização, embalagem e unidade. Cor, base e acabamento são variantes quando afetam o fornecimento. Produtos com nomes semelhantes não são fundidos sem verificação.
+FOR-05 — A ficha técnica e a ficha de segurança têm origem, língua, data de revisão e ligação ao produto. Um novo documento não apaga a versão utilizada numa proposta anterior.
+FOR-06 — O fornecedor pode disponibilizar preço público, preço dirigido a determinado profissional ou apenas pedido de cotação. A visibilidade e validade do preço são explícitas; descontos privados não são publicados ao condomínio por defeito.
+FOR-07 — Disponibilidade, prazo de entrega e zona de distribuição têm data de atualização. A app não apresenta stock antigo como disponibilidade garantida.
+FOR-08 — A importação de catálogo permite validar correspondências, unidades e duplicados antes de publicar. Linhas inválidas são rejeitadas individualmente com motivo, sem corromper produtos já existentes.
+FOR-09 — Alegações de desempenho são associadas à fonte técnica. Um fornecedor não pode atribuir classificações de qualidade da plataforma aos próprios produtos.
+8.3 Vendas e comprovação
+FOR-10 — O fornecedor recebe pedidos de confirmação de compra que identificam o profissional e os produtos necessários à validação. Não recebe automaticamente a morada do condomínio ou os preços das propostas concorrentes.
+FOR-11 — A associação de uma fatura exige confirmar vendedor, comprador, referência, data, produtos, quantidades e estado. Um orçamento ou fatura pro forma não é rotulado como compra concluída.
+FOR-12 — O documento pode abranger várias obras. A associação faz-se por linha e quantidade. O sistema impede que dez embalagens sejam contabilizadas como dez em cada uma de duas obras sem justificar uma quantidade total de vinte.
+FOR-13 — A confirmação da compra e a confirmação de entrega são estados distintos. A disponibilidade de documentos de transporte permite aumentar a evidência de entrega, sem comprovar aplicação.
+FOR-14 — O fornecedor regista devoluções, notas de crédito e anulações ligadas ao documento inicial. A atualização reduz a quantidade elegível e notifica as obras afetadas.
+FOR-15 — Uma divergência entre o produto contratado e o vendido gera alerta factual. A app não acusa automaticamente o pintor de fraude: pode haver substituição aprovada, stock anterior ou outro documento ainda não associado.
+FOR-16 — A informação exibida ao cliente deve ser a necessária para comprovar a compra: produto, quantidade e estado. Dados de outras compras, descontos e informações comerciais sem relação com a obra são ocultados.
+8.4 Relação comercial e controlo
+FOR-17 — O fornecedor pode responder a pedidos de esclarecimento sobre produtos e documentação. As respostas não alteram por si só uma proposta contratada.
+FOR-18 — Eventuais campanhas, patrocínios ou comissões sobre materiais são uma evolução a decidir. Não constituem receita aprovada nesta versão e não podem influenciar ocultamente o ranking técnico.
+FOR-19 — O painel apresenta pedidos de confirmação pendentes, divergências, documentos rejeitados e materiais associados. Os relatórios respeitam a separação entre fornecedores concorrentes.
+FOR-20 — A suspensão de um fornecedor impede novas publicações e confirmações quando necessário, mas preserva o histórico de documentos e a evidência utilizada em obras.
+FOR-21 — Aceitação do backoffice: uma compra confirmada aparece com esse estado exato; uma devolução parcial atualiza as quantidades; um fornecedor não consulta uma obra que não lhe foi associada; a compra nunca produz automaticamente um selo de aplicação.
+9. Backoffice dos administradores e gestores da app
+9.1 Navegação e separação de funções
+A navegação proposta contém: Operação, Utilizadores e organizações, Pedidos, Propostas e apresentações, Pagamentos e conciliação, Catálogo, Verificações, Conteúdos técnicos, Moderação, Disputas, Apoio, Configuração, Auditoria e Indicadores.
+ADM-01 — O painel operacional apresenta filas de trabalho por prioridade, responsável e prazo: contas por validar, anúncios com risco de identificação, comissões pendentes, pagamentos inconciliados e disputas. Um indicador agregado não dá acesso irrestrito aos documentos subjacentes.
+ADM-02 — A gestão de contas permite validar, pedir documentos, limitar funções, suspender e reativar com motivo. As decisões relevantes são comunicadas e podem ser revistas conforme a política aprovada.
+ADM-03 — Os papéis da equipa têm permissões granulares. Apoio não altera percentagens de comissão; conteúdo técnico não movimenta dinheiro; financeiro não modifica uma avaliação para encerrar uma reclamação.
+9.2 Operação de pedidos e propostas
+ADM-04 — A revisão de publicação mostra original privado e derivado lado a lado apenas aos operadores autorizados. O gestor pode aprovar o derivado, pedir novo tratamento ou bloquear a publicação, registando a razão.
+ADM-05 — Um anúncio com potencial exposição de identidade pode ser suspenso imediatamente. A ação revoga acessos aos derivados afectados e coloca-os em revisão, mantendo evidência do incidente.
+ADM-06 — A equipa pode ajudar a estruturar um pedido, mas alterações de área, âmbito ou condições que afetem propostas exigem validação do cliente e nova versão.
+ADM-07 — O gestor acompanha a existência de propostas suficientes e pode desencadear convites dentro da plataforma. Não pode inventar propostas, duplicar prestadores ou apresentar como independente uma empresa relacionada sem o indicar.
+ADM-08 — A moderação de propostas verifica campos e conteúdo proibido. Não altera preços, produtos ou compromissos técnicos em nome do pintor sem um fluxo explícito de revisão pelo autor.
+ADM-09 — A abertura dos contactos tem um registo próprio. A equipa não pode usar um botão genérico de “aprovar” para ignorar pagamento não confirmado. Exceções legais ou operacionais exigem autorização, motivo e trilho de auditoria.
+9.3 Gestão financeira
+ADM-10 — A configuração inicial da comissão é 3%, mínimo 150 €, teto inexistente. A base de incidência, impostos, arredondamento e momento de aquisição são parâmetros documentados. Uma alteração futura é versionada e não modifica compromissos anteriores.
+ADM-11 — O financeiro consulta comissão, dinheiro da obra, eventual caução, reembolsos e taxas do parceiro como rubricas distintas. Não é permitido considerar fundos dos clientes como receita da plataforma.
+ADM-12 — A conciliação compara o registo interno com as operações confirmadas pelo parceiro. Pagamentos sem referência, montantes divergentes e notificações duplicadas entram numa fila de exceções.
+ADM-13 — Reembolsos e libertações extraordinárias exigem base contratual, beneficiário, montante, motivo e autorização. Operações acima de limiares a definir podem exigir dupla aprovação.
+ADM-14 — A emissão de documentos da comissão é feita à entidade que a deve, atualmente o prestador. Correções e notas de crédito mantêm referência ao documento inicial e não apagam movimentos.
+ADM-15 — A devolução de caução, se aprovada, é uma operação separada da fatura da comissão e do pagamento da obra. O gestor consegue demonstrar a origem e o destino de cada montante.
+9.4 Conteúdo, verificações e disputas
+ADM-16 — A equipa de catálogo valida produtos, correspondências de referência, documentos e alegações de autorização de marca. Conflitos entre fornecedores não são resolvidos por preferência comercial oculta.
+ADM-17 — A equipa técnica gere as fontes autorizadas para o assistente, documentos desatualizados e instruções contraditórias. Uma correção urgente deve propagar um alerta às recomendações afetadas quando justificável.
+ADM-18 — A gestão de disputas reúne cronologia, propostas, contratos, evidências e valores afetados. O operador distingue alegações de factos verificados e regista as propostas de acordo sem as impor como decisão judicial.
+ADM-19 — Um acordo de repartição de fundos só é executado após as aprovações exigidas. A percentagem acordada identifica claramente a base: saldo retido, tranche contestada ou outro montante definido.
+ADM-20 — Sinais de abuso incluem cancelamentos repetidos após apresentação, documentos duplicados, falsas compras e contas relacionadas. Os sinais justificam revisão, não uma condenação automática.
+ADM-21 — A moderação de avaliações segue regras públicas e preserva contraditório. A remoção exige motivo; uma avaliação desfavorável não é removida apenas por prejudicar a conversão.
+9.5 Configuração, apoio e auditoria
+ADM-22 — Parâmetros configuráveis incluem regiões, categorias, campos por tipo de obra, prazos, limites de ficheiros, fontes técnicas e notificações. Parâmetros financeiros ou contratuais exigem controlo de versão e aprovação adequada.
+ADM-23 — O apoio pode consultar o contexto mínimo necessário e comunicar através de um processo registado. O acesso assistido à conta não permite imitar a assinatura ou a aprovação financeira do cliente.
+ADM-24 — A auditoria apresenta quem consultou, alterou, aprovou, revelou ou exportou informação sensível. Os registos são protegidos contra alteração pelos utilizadores operacionais.
+ADM-25 — Os indicadores incluem publicação, propostas válidas, seleção, pagamento de comissão, revelação, contratação, cancelamento, execução e disputas. Não se confunde comissão faturada, comissão recebida e receita líquida após custos.
+ADM-26 — Aceitação do backoffice: um gestor de apoio não consegue ordenar um pagamento; uma alteração de comissão não afeta uma proposta já aceite; um reembolso fica conciliado; um desbloqueio de identidade tem sempre fundamento e autor identificados.
+10. Medição manual e ferramentas de cálculo
+10.1 Modelo de medição
+MED-01 — A app aceita uma área diretamente introduzida e permite decompô-la por superfícies. A identificação da origem é obrigatória: declaração do cliente, cálculo por dimensões, estimativa fotográfica, documento existente ou confirmação do profissional.
+MED-02 — A calculadora suporta retângulos e decomposição de formas simples. Cada superfície pode conter largura, altura, unidades repetidas, portas/janelas a descontar e elementos a acrescentar. O utilizador consegue perceber como se chegou ao resultado.
+MED-03 — As varandas são decompostas em elementos relevantes: teto inferior, paredes interiores, frente, laterais e guardas. As guardas metálicas podem exigir outra unidade ou metodologia de medição, sem conversão automática para m² de parede.
+MED-04 — A área bruta, os descontos e a área líquida são guardados separadamente. A política de desconto de vãos é definida no pedido ou confirmada antes de comparar propostas.
+MED-05 — A app não soma áreas de tratamento incompatíveis como se fossem uma área única. A mesma parede pode ter lavagem em toda a área, reparação parcial e acabamento em toda a área; cada trabalho usa a quantidade adequada.
+MED-06 — Valores negativos, unidades incoerentes e dimensões impossíveis são bloqueados. Valores muito elevados ou relações suspeitas originam pedido de confirmação, sem alterar silenciosamente os dados.
+MED-07 — A área estimada apresenta a sua condição de estimativa. Não se atribui uma precisão percentual universal a fotografias ou ao 3D sem validação empírica da tecnologia utilizada.
+10.2 Confirmação e alteração
+MED-08 — O pintor pode propor uma medição diferente, anexando método, dimensões e evidência. A proposta não substitui de imediato a medição contratual; o cliente vê a diferença e confirma ou contesta.
+MED-09 — Uma alteração durante o concurso gera nova versão do pedido e notifica os profissionais que estejam a concorrer. Estes podem atualizar a proposta ou confirmar a anterior.
+MED-10 — Depois do contrato, a correção distingue variação de quantidade, mudança de âmbito e patologia descoberta. A tolerância de área não autoriza acrescentar automaticamente trabalhos diferentes.
+MED-11 — PROPOSTO: o ajustamento é simétrico, para mais e para menos, com preços unitários definidos. Custos fixos não variam automaticamente. A promotora deve confirmar este detalhe e o tratamento de quantidades mínimas.
+MED-12 — Exemplo proposto: área inicial de 1 000 m², preço variável de ajustamento de 12 €/m² e confirmação de 1 040 m² geram mais 480 € nessa componente. Andaimes com preço fixo permanecem inalterados. O exemplo não define a tolerância comercial.
+MED-13 — Acima da tolerância aprovada, a app interrompe o acerto automático e exige acordo documentado. Não permite fragmentar várias alterações para contornar o limite acumulado.
+MED-14 — Aceitação: o mesmo conjunto de dimensões reproduz o mesmo resultado; a mudança de unidade não duplica a área; o histórico permite reconstruir a medição usada em cada proposta.
+11. Captura de imagens e proteção da identidade
+11.1 Originais privados e derivados publicáveis
+IMG-01 — A captura pela app é o percurso principal. A eventual importação de fotografias já existentes é uma funcionalidade a decidir e, se existir, fica identificada como importação sem fingir captura guiada.
+IMG-02 — O processo solicita vistas gerais sobrepostas, vistas dos elementos relevantes e pormenores. Não exige que o utilizador aceda a zonas perigosas ou restritas para completar o pedido.
+IMG-03 — Os originais são guardados em área privada. A imagem publicável é um ficheiro derivado distinto, com relação ao original e histórico do tratamento. A app não usa o mesmo URL para servir original e derivado.
+IMG-04 — O tratamento procura números de polícia, placas de rua, nomes de estabelecimentos, matrículas, rostos, logótipos, letreiros, contactos e outros elementos identificadores. Deve ainda remover metadados de localização e nomes de ficheiro reveladores.
+IMG-05 — O recorte de um pormenor preserva a informação técnica necessária e remove o contexto identificador. Não cria digitalmente fissuras ou reparações inexistentes para substituir elementos ocultados.
+IMG-06 — O processo deteta também informação identificadora em texto livre, mensagens, PDFs, assinaturas, carimbos, plantas e miniaturas. A proteção não termina na galeria fotográfica.
+IMG-07 — Os casos de baixa confiança entram em revisão ou pedem nova imagem. A app não publica uma imagem só porque o detetor não encontrou texto legível.
+IMG-08 — A morada e coordenadas reais, quando necessárias, não são incluídas no ficheiro 3D público, nas respostas da API, em metadados, nos relatórios ou em ligações partilháveis.
+11.2 Validação e incidentes
+IMG-09 — A pré-visualização pública permite ao cliente identificar detalhes que reconhece como sensíveis. A aprovação do cliente não substitui controlos técnicos sobre metadados ou acessos.
+IMG-10 — Um profissional pode denunciar a exposição de identidade sem a reproduzir em mensagens públicas. A denúncia preserva a referência e conduz à revisão do anúncio.
+IMG-11 — Uma correção deve revogar o acesso às versões publicadas afetadas quando tecnicamente possível. O sistema não promete apagar cópias que terceiros já tenham descarregado.
+IMG-12 — Depois da apresentação, os originais relevantes podem ser disponibilizados ao prestador selecionado segundo as permissões e finalidades definidas. Não são publicados para todos os visitantes.
+IMG-13 — Aceitação: um utilizador não selecionado não obtém a imagem original alterando o URL; um derivado não contém coordenadas EXIF; uma assinatura de orçamento com telefone é removida ou bloqueada antes da publicação.
+12. Volume 3D representativo e visualização
+12.1 Objetivo do modelo
+MOD-01 — O modelo serve para compreender volume, superfícies, varandas, obstáculos e condições de execução. Não é apresentado como levantamento topográfico, diagnóstico estrutural ou medição certificada.
+MOD-02 — A representação pública usa geometria e materiais neutros. Mantém os elementos necessários ao orçamento e reduz características visuais identificadoras. Uma eventual simplificação que afete a leitura técnica é assinalada.
+MOD-03 — O prédio de três pisos com varandas em duas fachadas deve poder ser representado sem edição 3D especializada pelo cliente. O sistema combina extração automática com confirmação de pisos, dimensões e elementos.
+MOD-04 — Prédios contíguos podem ser volumes neutros para indicar impossibilidade de acesso lateral ou parede encostada. Não devem reproduzir fachadas vizinhas com detalhe desnecessário.
+MOD-05 — Zonas não captadas ficam identificadas como desconhecidas ou estimadas. Não são completadas com pormenores inventados apresentados como reais.
+MOD-06 — O visualizador permite rodar, aproximar, selecionar superfícies, mostrar áreas e abrir pormenores e anotações. As seleções são consistentes com os identificadores usados no pedido e nas propostas.
+MOD-07 — A app mantém separadas a versão geométrica e a versão do orçamento. Uma reconstrução posterior não altera automaticamente as quantidades ou o contrato.
+12.2 Alternativas e funcionamento técnico
+MOD-08 — Se a reconstrução falhar, o pedido pode avançar com áreas manuais e uma representação esquemática. A ausência de 3D é visível e não bloqueia toda a plataforma.
+MOD-09 — A estimativa métrica por fotografias exige informação de escala adequada. Sem ela, o volume pode servir para visualização, mantendo as dimensões como não confirmadas.
+MOD-10 — A edição assistida permite corrigir pisos, acrescentar uma varanda, associar uma superfície e marcar um obstáculo. As correções não exigem conhecimentos de software profissional de modelação.
+MOD-11 — O processamento é assíncrono, com progresso, falha explicada e possibilidade de repetir. O utilizador não perde o pedido se fechar a app durante a reconstrução.
+MOD-12 — São produzidas versões compatíveis com telemóveis e computadores. Uma vista 2D e a lista de superfícies permitem consultar a informação quando o dispositivo não suporta bem o 3D.
+MOD-13 — A qualidade geométrica, o tempo de processamento e o risco de identificação devem ser validados com um conjunto real de edifícios antes de definir compromissos comerciais.
+MOD-14 — Aceitação: o modelo não contém morada nos metadados; varandas selecionadas abrem as superfícies corretas; o modo simplificado mantém acessível a descrição e as áreas.
+13. Assistente técnico e inteligência artificial
+13.1 Funções e contexto
+IA-01 — O assistente ajuda o cliente a descrever a obra e o pintor a estruturar a solução. O contexto do cliente e o contexto técnico do pintor são diferentes, mas ambos se baseiam nos dados autorizados da obra.
+IA-02 — A análise visual descreve sinais observáveis e hipóteses, como descamação, manchas ou fissuras aparentes. A causa, profundidade, humidade interna ou necessidade estrutural não são confirmadas apenas pela imagem.
+IA-03 — As sugestões de trabalhos incluem preparação, limpeza, remoção de revestimento sem aderência, reparação, primário, acabamento, proteção e limpeza final quando justificáveis. Cada sugestão indica por que foi apresentada e o que falta confirmar.
+IA-04 — O pintor confirma a solução que integra a proposta. A app regista a sugestão, a resposta do profissional e a versão final, sem usar o texto da inteligência artificial como assinatura técnica.
+13.2 Fontes e recomendações de produto
+IA-05 — A consulta técnica privilegia documentação do fabricante do produto exato e fontes aprovadas. Cada instrução relevante permite abrir a fonte, a revisão e as condições a que se aplica.
+IA-06 — O assistente considera o sistema de pintura: suporte, preparação, primário, acabamento, demãos, rendimento, diluição, aplicação, secagem e condições ambientais. Não combina produtos de marcas diferentes como compatíveis sem suporte documental adequado.
+IA-07 — Quando não encontra a informação, diz que não conseguiu confirmar e pede dados ou contacto técnico. Não inventa valores de rendimento, garantias, espessura ou tempos de secagem.
+IA-08 — Uma ficha nova não reescreve automaticamente propostas contratadas. O sistema identifica o que foi utilizado e emite alerta se surgir informação com impacto relevante.
+IA-09 — As recomendações comerciais são separadas do fundamento técnico. Uma comissão do fornecedor, se vier a existir, não pode ser apresentada como evidência de melhor qualidade.
+IA-10 — Conteúdo de ficheiros, páginas e mensagens é tratado como informação a analisar, não como instrução para alterar permissões, revelar moradas, efetuar pagamentos ou ignorar regras da plataforma.
+13.3 Controlo, segurança e custo
+IA-11 — O assistente não aprova pagamentos, assina contratos, resolve disputas, altera preços ou publica fotografias por iniciativa própria. Pode preparar uma sugestão, ficando a ação a cargo de um utilizador autorizado.
+IA-12 — A informação enviada ao fornecedor de IA é limitada ao necessário. O contrato tecnológico deve definir retenção, uso para treino, localização e subcontratação; a escolha desse fornecedor está pendente.
+IA-13 — As respostas relevantes guardam referências e contexto suficiente para revisão. O sistema identifica a versão da ferramenta e distingue conteúdo gerado de conteúdo confirmado.
+IA-14 — Os limites de utilização devem evitar consumo ilimitado antes de haver qualquer negócio, sem impedir a conclusão de um pedido legítimo. Os valores e a política comercial desses limites ficam por decidir.
+IA-15 — Aceitação: uma pergunta sobre um produto inexistente não gera uma ficha inventada; uma instrução maliciosa dentro de um PDF não revela contactos; uma sugestão de primário não entra na proposta sem confirmação.
+14. Pedido comum e estrutura das propostas
+14.1 Base de comparação
+PRO-01 — Todas as propostas respondem a uma versão identificada do mesmo pedido. Uma atualização relevante exige reconfirmação para que não sejam comparados preços de áreas ou trabalhos diferentes.
+PRO-02 — A proposta conserva o texto do pintor e uma estrutura normalizada. O cliente pode consultar a descrição original autorizada quando isso ajuda a perceber a interpretação.
+PRO-03 — O preço global identifica impostos, encargos conhecidos, opcionais, validade e condições. A comparação usa a mesma base fiscal ou apresenta claramente as diferenças.
+PRO-04 — As linhas técnicas incluem trabalho, superfície, quantidade/unidade quando aplicável, método, produto, demãos, estado de inclusão, pressupostos e exclusões.
+PRO-05 — Os trabalhos de acesso incluem andaimes, plataforma elevatória ou outras soluções propostas, montagem, desmontagem e condicionantes. A app não presume que um preço inclui licenças ou ocupação de espaço público se isso não estiver indicado.
+PRO-06 — A proposta distingue reparação incluída até determinada quantidade de reparação apenas orçamentável após observação. Um preço condicionado é identificado como tal na comparação.
+PRO-07 — Datas incluem início possível, duração estimada, condicionantes meteorológicas e disponibilidade. Uma data desejada pelo cliente não é apresentada como compromisso do pintor sem confirmação.
+14.2 Validade e negociação
+PRO-08 — O cliente pode solicitar alternativas de produto ou âmbito sem apagar a proposta principal. Cada alternativa identifica o seu preço e efeito nos trabalhos.
+PRO-09 — O pintor não vê os valores individuais dos concorrentes por defeito. PROPOSTO: usar propostas reservadas até à escolha, evitando que o processo se transforme apenas em sucessivas reduções de preço.
+PRO-10 — O histórico de esclarecimentos relevantes acompanha a proposta. Um esclarecimento que altera uma obrigação exige nova versão ou aceitação explícita.
+PRO-11 — A seleção de uma proposta congela a versão usada para calcular a comissão e preparar a apresentação. O efeito de aditamentos posteriores sobre a comissão é uma decisão ainda pendente.
+PRO-12 — A app impede a submissão de uma proposta vazia com um preço meramente indicativo apresentado como firme. Permite, contudo, identificar honestamente os pontos dependentes de confirmação.
+PRO-13 — Aceitação: duas propostas de versões diferentes são assinaladas; um opcional não aceite não reduz artificialmente o preço de uma proposta completa; uma revisão não destrói o histórico.
+15. Comparação justa, ranking e explicações
+15.1 Duas camadas de apresentação
+CMP-01 — O resumo mostra preço comparável, âmbito, principais diferenças, prazo, condições financeiras, evidência disponível e histórico do profissional. O detalhe abre linhas, fontes e exclusões.
+CMP-02 — A app apresenta critérios e explicações de ordenação. O utilizador pode ordenar por preço, completude, prazo ou avaliação, sem confundir uma dessas ordenações com uma garantia de resultado.
+CMP-03 — Uma proposta com trabalhos em falta não é declarada mais barata para o mesmo serviço. A app mostra o que falta e pode pedir uma revisão, mantendo o preço efetivamente oferecido.
+CMP-04 — A avaliação de materiais considera adequação ao suporte e sistema, consumo e condições documentadas. Preço por litro e notoriedade da marca não são equivalentes a qualidade global.
+15.2 Comparação de custos de materiais
+CMP-05 — O custo real de compra só é conhecido se houver dados fiáveis e autorização para o tratar. Na sua ausência, a app usa preços de referência identificados com data, origem, quantidade e impostos.
+CMP-06 — Um cálculo de impacto compara a mesma área, número de demãos e condições ou explica as diferenças. Considera rendimento, embalagens e preparação adicional necessária quando documentada.
+CMP-07 — Exemplo ilustrativo: proposta A de 20 000 € e B de 20 400 € diferem 2%. Se os materiais de B representarem mais 600 € a preços comparáveis, esse acréscimo equivale a 3% do valor de A. A app pode explicar os dois números; não pode concluir automaticamente que B tem melhor margem, durabilidade ou relação qualidade/preço.
+CMP-08 — Uma compra posterior não deve reescrever retroativamente o preço de referência utilizado na decisão. Pode acrescentar evidência sobre o que foi efetivamente adquirido.
+15.3 Avaliações e classificação
+CMP-09 — Os pesos de preço, âmbito, prazo e avaliações ficam configuráveis e versionados, mas exigem aprovação antes de produção. Não estão definidos nesta versão.
+CMP-10 — A classificação distingue quantidade de avaliações, atualidade e semelhança do trabalho. Um profissional novo aparece com histórico insuficiente, não com uma falsa avaliação de zero qualidade.
+CMP-11 — Uma avaliação contestada pode ser identificada como tal. A existência de uma disputa não prova automaticamente incumprimento.
+CMP-12 — Conteúdo patrocinado é assinalado e não altera ocultamente a pontuação técnica. A equipa comercial não pode comprar uma classificação de qualidade para um fornecedor.
+CMP-13 — Aceitação: o utilizador consegue explicar as principais diferenças entre duas propostas; a app mostra quando usa estimativas; mudar os pesos altera a ordenação de forma rastreável e não modifica contratos existentes.
+16. Comissão da plataforma e cobrança pela apresentação
+16.1 Regra comercial atual
+FIN-01 | CONFIRMADO — A comissão é de 3% a cargo do prestador, com mínimo de 150 € e sem limite máximo. A regra anterior de teto de 750 € está eliminada.
+FIN-02 | A VALIDAR — A base B pode ser o preço da empreitada sem IVA; esta é a hipótese de trabalho usada nos exemplos, não uma decisão fiscal já aprovada. Devem ser definidos tratamento de opcionais, descontos, aditamentos e impostos da própria comissão.
+FIN-03 — Na hipótese de base adotada nos exemplos, a comissão antes dos impostos próprios é F = máximo entre 150 € e 0,03 × B. O resultado é arredondado segundo uma regra monetária explícita e uniforme.
+FIN-04 — O mínimo equivale a 3% aos 5 000 €. Abaixo desse valor, a taxa efetiva é superior a 3%. O simulador mostra o montante efetivo, evitando anunciar apenas “3%” quando se aplica o mínimo.
+
+Valor usado como base
+ | Comissão
+ | Taxa efetiva
+ | 2 000 €
+ | 150 €
+ | 7,5%
+ | 5 000 €
+ | 150 €
+ | 3%
+ | 10 000 €
+ | 300 €
+ | 3%
+ | 20 000 €
+ | 600 €
+ | 3%
+ | 40 000 €
+ | 1 200 €
+ | 3%
+ | 60 000 €
+ | 1 800 €
+ | 3%
+ | 100 000 €
+ | 3 000 €
+ | 3%
+ | 
+Os exemplos desta tabela são valores da comissão antes dos impostos que lhe sejam aplicáveis. Não fixam a base de incidência, ainda a confirmar. Uma caução eventualmente reembolsável não é receita de comissão.
+16.2 Preço do pintor e informação prévia
+FIN-05 — O pintor conhece o cálculo antes de submeter e volta a confirmá-lo antes de pagar. A app guarda o parâmetro comercial aplicado e a versão da proposta.
+FIN-06 — O preço global apresentado ao cliente é o preço do prestador para a obra. O prestador pode incorporar economicamente o custo da plataforma nesse preço, mas a app não acrescenta automaticamente uma comissão autónoma ao cliente.
+FIN-07 — O simulador pode permitir indicar o valor líquido pretendido antes de impostos e de outros custos. Na zona proporcional, para obter 40 000 € depois da comissão de 3%, o preço seria aproximadamente 41 237,11 €, com comissão de 1 237,11 €. Este cálculo não substitui o cálculo de margem, impostos ou custos da obra.
+FIN-08 — O cálculo deve tratar corretamente a zona do mínimo. Não basta dividir todos os valores por 0,97: quando o mínimo se aplica, o valor fixo de 150 € determina o resultado.
+16.3 Momento da cobrança e acesso
+FIN-09 — O evento de cobrança está ligado à apresentação de um cliente e prestador selecionados. A emissão de uma proposta não gera, por si só, a comissão integral, salvo futura alteração comercial expressa.
+FIN-10 — Antes de revelar contactos, a app confirma que o pagamento exigido foi recebido no estado aceite pelo parceiro e que as restantes condições do processo estão cumpridas. “Autorizado”, “pendente” e “recebido” são diferenciados.
+FIN-11 — Pagamentos duplicados não geram duas apresentações nem duas comissões. O excesso entra em reconciliação e no fluxo de regularização.
+FIN-12 — Uma falha técnica depois do pagamento e antes da apresentação gera uma obrigação de resolução: completar a apresentação em condições válidas ou aplicar a política de reembolso. Não é tratada como serviço automaticamente concluído.
+FIN-13 — As identidades são reveladas pelo servidor apenas ao par correto. O registo do evento inclui as partes, o pedido, a proposta, a condição financeira verificada e a data.
+FIN-14 — O pagamento recebido e o reconhecimento de que o serviço de apresentação foi prestado são estados diferentes. As condições de reembolso, livre resolução e validade do serviço são definidas no contrato aplicável.
+16.4 Conciliação, faturação e alterações
+FIN-15 — A comissão é faturada ao prestador. Se houver devolução, a regularização tem como destinatário quem a pagou e segue os documentos adequados. A antiga hipótese de devolver ao condomínio uma comissão paga por ele não é transposta automaticamente para este modelo.
+FIN-16 — A comissão paga antes da apresentação não volta a ser descontada das tranches do pintor. Uma retenção posterior exige demonstrar outra obrigação ou uma regularização explícita, sem dupla cobrança.
+FIN-17 — Exemplo: proposta de 40 000 €, comissão de 1 200 € paga pelo pintor e primeira tranche da obra de 4 000 €. Se não houver outras retenções contratadas, a tranche é de 4 000 €, não de 2 800 €. O custo de 1 200 € já foi suportado pelo pintor.
+FIN-18 | A VALIDAR — Falta decidir se a comissão fica definitivamente calculada sobre a proposta selecionada ou se há acerto por alterações posteriores. Até existir decisão, o sistema conserva ambas as bases e não cria cobranças adicionais por iniciativa própria.
+FIN-19 — O custo de processamento de pagamentos, assinaturas, verificação e apoio é medido separadamente. A viabilidade económica não deve ser inferida apenas a partir da percentagem de comissão.
+FIN-20 — Aceitação: 40 000 € produzem 1 200 € na base exemplificada; 100 000 € produzem 3 000 €; 2 000 € produzem 150 €; nenhuma função aplica um teto; nenhum pagamento intercalar desconta novamente uma comissão já paga.
+17. Caução, reserva e proteção contra contratação por fora
+17.1 O que ainda precisa de decisão
+CAU-01 — A caução é um valor reembolsável que garante uma obrigação definida. A comissão é o preço do serviço da plataforma. O adiantamento é dinheiro relativo à obra. Os três conceitos não são intermutáveis.
+CAU-02 — A versão atual não presume caução adicional obrigatória de 3%. A promotora deve decidir se mantém uma caução além da comissão paga pelo pintor, que risco ela cobre e quando é devolvida.
+CAU-03 — A eventual reserva paga pelo cliente é igualmente pendente. Deve ter finalidade, titularidade, destino e regra de devolução próprios. Não pode ser introduzida como uma segunda comissão disfarçada.
+CAU-04 — Se a comissão permanecer legitimamente devida após a apresentação, mesmo quando a obra não avança, a caução não é o mecanismo principal de cobrança dessa comissão. Pode ter outra função de compromisso, se aprovada.
+17.2 Requisitos para uma caução futura
+CAU-05 — Caso exista, a caução deve estar constituída antes do acesso que pretende proteger. A origem do valor é registada. Uma retenção de dinheiro do cliente ainda reembolsável não é automaticamente garantia adicional do pintor.
+CAU-06 — A condição de devolução pode ser a primeira tranche ou outro evento aprovado. Deve ser um acontecimento objetivo: financiamento confirmado, aprovação do cliente, pagamento executado ou outro que seja especificamente escolhido.
+CAU-07 — Um pedido de adiantamento ainda não aprovado não produz devolução automática. A app identifica o evento exato e evita que clicar repetidamente numa ação antecipe a devolução.
+CAU-08 — A devolução da caução não anula nem devolve a comissão. Se o produto comercial pretender outra consequência, essa regra precisa de ser aprovada e refletida em toda a contabilidade.
+CAU-09 — Um saldo de caução reutilizável, se adotado, tem titularidade e afetação por obra. O mesmo euro não garante simultaneamente obrigações ilimitadas em várias empreitadas.
+17.3 Contratação fora da plataforma
+CAU-10 — As condições podem prever obrigação contra contorno da comissão para a relação apresentada, com âmbito temporal e material a validar. Não devem presumir propriedade perpétua sobre todas as relações comerciais futuras das partes.
+CAU-11 — A proteção inclui anonimato, cobrança prévia, evidência da apresentação, controlo de documentos e gestão de cancelamentos. A exclusão de contas é uma consequência sujeita a prova e procedimento, não um substituto da cobrança.
+CAU-12 — Indícios de contas relacionadas ou repetição de cancelamentos geram revisão. A app não deve afirmar que houve fraude com base apenas num padrão estatístico.
+CAU-13 — Relações pré-existentes entre cliente e pintor são uma exceção a regulamentar. O momento e os meios de declaração devem evitar que uma relação inventada seja usada apenas depois da revelação.
+CAU-14 — Aceitação: a plataforma consegue explicar que valores recebeu, de quem e para quê; a devolução de uma caução não elimina a fatura da comissão; não existe uma cobrança adicional não aprovada.
+18. Dinheiro da obra, tranches e integração de pagamentos
+18.1 Modelo pretendido e implementação
+PAG-01 | CONFIRMADO — Pretende-se financiar a obra no circuito da plataforma e libertar montantes de acordo com o contrato e as autorizações do cliente. Adiantamentos e pagamentos intercalares são possíveis quando aceites.
+PAG-02 | PROPOSTO — Utilizar um parceiro autorizado para receber, guardar e movimentar os fundos, mantendo a experiência dentro da app. A escolha depende de aceitação de condomínios, empresas e particulares, montantes, duração, cauções e disputas.
+PAG-03 — A app não deve receber fundos de obras na conta operacional corrente como se fossem receita própria. O esquema de titularidade e segregação tem de ser definido com o parceiro.
+PAG-04 — A promessa de retenção até acordo ou decisão judicial só pode ser publicada depois de confirmada a capacidade contratual do serviço escolhido, incluindo prazos e custos.
+18.2 Financiamento e execução
+PAG-05 — O financiamento integral é o modelo pretendido. Um financiamento apenas por etapas seria uma alternativa futura a aprovar, não uma mudança silenciosa ao conceito.
+PAG-06 — O plano financeiro contém valor contratual, moeda, impostos, adiantamento, etapas, montantes e condições de libertação. As percentagens identificam a base de cálculo.
+PAG-07 — Antes de financiar, o cliente vê beneficiário, finalidade, serviço do parceiro, custo total e regras de devolução. A plataforma não apresenta uma mera autorização de cartão como saldo garantido por tempo ilimitado.
+PAG-08 — O prestador pode confirmar que existe financiamento suficiente para a etapa sem aceder aos dados bancários privados do cliente.
+PAG-09 — A ordem de libertação exige saldo suficiente, tranche elegível, autorização válida, destinatário verificado e ausência de bloqueio incompatível. A falta de um requisito impede a operação e explica a razão.
+PAG-10 — A autorização do cliente identifica valor, destinatário, etapa e versão contratual. Uma alteração relevante desses elementos invalida a autorização anterior e exige nova confirmação.
+PAG-11 — O cliente é informado de que autoriza a entrega ao prestador e de que a recuperação posterior pode exigir um processo distinto. A interface não promete que um montante já recebido pelo pintor continua disponível para devolução automática.
+PAG-12 — Uma tranche aprovada mas ainda não executada pode ser cancelável segundo o parceiro. Uma tranche já paga não regressa ao saldo por simples mudança de estado na app.
+18.3 Livro de movimentos e reconciliação
+PAG-13 — Cada operação tem identificador único e ligação à obrigação que liquida. Repetir uma notificação externa ou carregar duas vezes no botão não executa um segundo pagamento.
+PAG-14 — O registo distingue entrada de fundos, transferência interna, pagamento ao beneficiário, comissão, custo do parceiro, reembolso, contestação e ajuste. Os montantes são conciliáveis com o sistema externo.
+PAG-15 — Os saldos são derivados dos movimentos confirmados. A app não permite a um gestor editar diretamente o saldo para corrigir uma diferença sem uma operação identificada.
+PAG-16 — Pagamentos atrasados, incompletos ou superiores ao esperado entram em revisão. Não se associam a uma obra diferente apenas porque o valor coincide.
+PAG-17 — Alterações de conta de recebimento exigem verificação reforçada e comunicação aos intervenientes relevantes. Um pedido por mensagem não substitui o processo.
+PAG-18 — Contestações bancárias, falhas e custos externos têm procedimentos próprios. A ausência de garantia da obra não elimina obrigações que a plataforma tenha assumido no contrato com o prestador de pagamentos.
+PAG-19 — Aceitação: uma notificação repetida mantém o mesmo saldo; uma autorização insuficiente não paga; um reembolso parcial conserva o histórico; uma comissão e uma caução não entram no saldo de execução da obra por erro.
+19. Contratos, assinaturas e representação
+19.1 Documentos distintos
+CON-01 — São distinguidos: condições de utilização, contrato do serviço de apresentação, proposta técnica, contrato da empreitada, condições do parceiro de pagamentos e eventuais aditamentos. A interface explica a finalidade de cada documento.
+CON-02 — O serviço de apresentação identifica a plataforma como prestadora, preço, momento de execução, condições de cobrança, cancelamento e apoio. Deve ser conhecido antes do respetivo pagamento.
+CON-03 — O contrato da empreitada identifica cliente, pintor, representantes, âmbito, superfícies, produtos, métodos, preço, tolerância, prazo, tranches, alterações e resolução de conflitos.
+CON-04 — A apresentação das identidades após cobrança é uma decisão de produto confirmada. O momento de vinculação ao contrato de empreitada e as informações legais obrigatórias são uma dependência a validar antes de produção.
+19.2 Assinatura e prova
+CON-05 — O sistema verifica integridade, identidade, validade e resultado da validação de assinatura. Um PDF com uma imagem de assinatura não é rotulado como assinatura qualificada.
+CON-06 — Atributos profissionais, quando suportados e relevantes, são validados com o seu âmbito. Se o atributo não comprovar poderes para a obra, é recolhida evidência adicional adequada.
+CON-07 — No condomínio, a representação e a autorização para a decisão concreta são tratadas separadamente. O dossier pode incluir nomeação, ata, mandato ou outro documento aplicável.
+CON-08 — A versão assinada é imutável. Um aditamento tem referência ao contrato inicial e às versões que altera. Uma atualização do modelo de minuta não substitui contratos existentes.
+CON-09 — A app conserva o resultado da validação e os elementos necessários à prova de integridade. A política de conservação e a solução de validação a longo prazo serão definidas com os requisitos legais.
+CON-10 — A plataforma pode registar a celebração e fornecer evidência do processo, mas não afirma ser notário, entidade certificadora ou garante da capacidade de cada parte apenas por armazenar documentos.
+CON-11 — Aceitação: alterar um documento assinado impede tratá-lo como original válido; a assinatura de um representante não autoriza automaticamente todos os pagamentos; cada parte consegue obter a sua versão contratual.
+20. Execução, alterações e receção
+20.1 Plano de trabalho
+OBR-01 — O plano associa etapas a trabalhos e superfícies. “50% executado” deve ter um significado verificável, não apenas uma percentagem livre introduzida pelo pintor.
+OBR-02 — Exemplos de etapas são montagem de acessos, preparação, reparações previstas, aplicação do sistema e limpeza/receção. As etapas concretas e os seus pesos são definidos por contrato, não impostos universalmente.
+OBR-03 — Um adiantamento pode não corresponder a trabalho já executado. A interface identifica essa diferença para que o cliente saiba o que está a autorizar.
+OBR-04 — O prestador regista evidências e o cliente pode aprovar ou contestar. A app trata a aprovação como declaração do cliente, sem a converter em inspeção técnica independente.
+20.2 Alterações e imprevistos
+OBR-05 — A alteração de área utiliza o processo de medição e a tolerância aprovada. A descoberta de patologia, acesso impossível ou trabalho adicional segue um pedido de alteração de âmbito.
+OBR-06 — O aditamento mostra descrição, causa, fotografias, preço, prazo, materiais, efeito nas tranches e efeito na comissão quando essa regra estiver definida.
+OBR-07 — Nenhuma das partes pode alterar unilateralmente o documento em vigor. A recusa de um aditamento mantém visível o compromisso anterior e desencadeia negociação ou o mecanismo contratual aplicável.
+OBR-08 — Substituições de materiais exigem descrição e aprovação quando afetem o contratado. A disponibilidade comercial de um produto alternativo não altera automaticamente o compromisso.
+OBR-09 — A suspensão regista causa, data, tarefas em segurança, pagamentos afetados e condição de retoma. A plataforma não conclui que toda a suspensão é abandono.
+20.3 Conclusão
+OBR-10 — O pintor pede a conclusão e entrega os documentos previstos. O cliente aceita, aceita com reservas ou identifica pendências específicas.
+OBR-11 — As reservas têm responsável, descrição, prazo acordado e valor eventualmente retido, quando aplicável. Não se retém automaticamente todo o saldo por uma pendência menor sem enquadramento.
+OBR-12 — O dossier final inclui versões contratadas, alterações, materiais declarados e comprovados, autorizações de pagamento e instruções de manutenção disponíveis. A existência do dossier não equivale a certificação da execução.
+OBR-13 — Aceitação: uma fotografia de progresso está ligada à etapa correta; um aditamento não aceite não aumenta a tranche; a obra pode ser recebida com reservas sem apagar as pendências.
+21. Compra de materiais e verificação limitada
+MAT-01 — O sistema distingue produto prometido, produto comprado, produto entregue e produto declarado como aplicado. Só os factos efetivamente comprovados recebem um estado de verificação correspondente.
+MAT-02 — A evidência de compra associa vendedor, comprador, documento, data, produto e quantidade. A correspondência usa referência e variante; não basta uma descrição genérica como “tinta exterior”.
+MAT-03 — A validação pode combinar documento e confirmação do fornecedor. Uma fatura isolada não demonstra necessariamente pagamento, entrega ou ausência de anulação.
+MAT-04 — O stock anterior do pintor é uma situação legítima possível, mas tem outro tipo de evidência. A falta de uma compra nova não prova utilização de material diferente.
+MAT-05 — A afetação de quantidades a obras respeita o total elegível. O sistema permite afetação parcial e correção, preservando o histórico.
+MAT-06 — Devoluções e notas de crédito atualizam a quantidade confirmada. A app alerta quando a evidência deixa de suportar a quantidade anteriormente apresentada ao cliente.
+MAT-07 — A comparação com o consumo previsto é um alerta de coerência, não uma prova automática de fraude. Rendimento real, suporte e stock podem explicar diferenças.
+MAT-08 — O cliente consulta a informação necessária, com proteção dos dados comerciais não relevantes. O documento integral só é disponibilizado quando a finalidade e as permissões o justificarem.
+MAT-09 — Não é emitido um selo “tinta aplicada” nesta versão com base apenas em compra, fotografia de embalagem ou declaração do prestador.
+MAT-10 — Aceitação: vinte litros comprados e cinco devolvidos resultam em quinze litros elegíveis; o mesmo documento não duplica quantidades; um orçamento de fornecedor não aparece como aquisição confirmada.
+22. Avaliações e reputação
+AVA-01 — A elegibilidade é ligada a uma relação registada e ao estado da obra. Avaliações de uma obra concluída e de um cancelamento devem ser apresentadas em categorias distinguíveis.
+AVA-02 — Critérios propostos: cumprimento do âmbito, acabamento observado, prazos, comunicação, organização e limpeza. A escala e a ponderação final ficam a aprovar.
+AVA-03 — A avaliação inicial não demonstra durabilidade a longo prazo. Uma avaliação posterior pode recolher o comportamento do revestimento ao longo do tempo sem afirmar causalidade técnica automática.
+AVA-04 — O sistema apresenta número de avaliações, data e tipo de trabalho, protegendo a identidade do edifício. Fotografias de avaliações passam pelo mesmo controlo de privacidade.
+AVA-05 — O prestador pode responder e contestar conteúdo que viole regras. Não pode comprar a remoção de uma avaliação legítima nem condicionar a devolução de dinheiro a uma avaliação positiva.
+AVA-06 — Incentivos, se algum dia forem usados, são identificados. Relações entre contas e avaliações duplicadas são sujeitas a controlo.
+AVA-07 — Profissionais sem histórico são identificados como novos. O ranking não lhes atribui experiência que não têm nem uma pontuação negativa artificial.
+AVA-08 — A alteração ou moderação de avaliação conserva motivo e versão. Os critérios públicos devem distinguir opinião, alegação de incumprimento e facto comprovado.
+AVA-09 — Aceitação: um utilizador sem relação elegível não avalia; a conta do pintor não avalia a própria obra; uma atualização mantém o histórico e recalcula a reputação segundo a regra vigente.
+23. Cancelamentos, disputas e reembolsos
+23.1 Classificação
+DIS-01 — O sistema distingue cancelamento antes de seleção, antes de pagamento, depois de pagamento mas antes de apresentação, depois da apresentação, após contrato e após início de execução.
+DIS-02 — O autor do pedido de cancelamento e a causa são campos diferentes. Pedir ao cliente que carregue no botão não transfere automaticamente a responsabilidade.
+DIS-03 — Motivos incluem indisponibilidade, desistência, informação incorreta, alteração substancial, impedimento comprovado, incumprimento alegado e suspeita de contratação por fora. As categorias não determinam sozinhas a decisão.
+DIS-04 — A política de reembolso da comissão, agora paga pelo pintor, tem de ser definida. Não se presume devolução ao cliente, crédito obrigatório nem perda automática em todos os cancelamentos.
+23.2 Processo e valores
+DIS-05 — Cada caso reúne cronologia, contrato, propostas, mensagens, evidências e operações. As partes veem a informação necessária ao contraditório, respeitando dados de terceiros.
+DIS-06 — O bloqueio de fundos identifica valor, motivo, fundamento, prazo de revisão e quem pode autorizar alterações. Só abrange fundos que ainda estejam sob controlo do mecanismo contratado.
+DIS-07 — Um acordo de repartição identifica montante-base, percentagem ou valor para cada parte, efeito sobre tranches, comissão e caução, e obrigações remanescentes. As percentagens têm de fechar a repartição prevista.
+DIS-08 — As partes confirmam o acordo pelos meios exigidos. O sistema executa uma única vez, conserva prova e confirma o resultado efetivo do parceiro de pagamentos.
+DIS-09 — Sem acordo, o caso segue o mecanismo aplicável de mediação, arbitragem admissível ou tribunal. A plataforma não se atribui poderes para decidir definitivamente qualquer conflito por uma cláusula genérica.
+DIS-10 — A avaliação técnica independente, se disponibilizada, tem prestador, preço, âmbito, acesso a dados e regras de aceitação definidos. Não está aprovada uma inspeção gratuita obrigatória em todas as obras.
+DIS-11 — A suspeita de fraude pode justificar restrições proporcionais e revisão. Exclusão definitiva e execução de caução exigem o procedimento contratual e jurídico aprovado.
+DIS-12 — Reembolsos ao cliente, devolução de caução ao pintor e regularização da comissão são operações distintas. Um caso não fica encerrado financeiramente apenas porque foi marcado como resolvido.
+DIS-13 — Aceitação: um acordo de 60%/40% identifica a que saldo se aplica; um reembolso não ultrapassa o montante elegível; fundos já pagos não são apresentados como ainda retidos; a decisão fica auditável.
+24. Mensagens, notificações e documentos
+24.1 Comunicação
+COM-01 — Cada pedido e obra tem conversas associadas. Antes da apresentação, os participantes usam identificadores permitidos e não recebem contactos diretos através de notificações ou anexos.
+COM-02 — Mensagens são analisadas para números de telefone, e-mails, URLs, nomes comerciais e referências de localização que possam contornar a regra de apresentação. Casos ambíguos podem exigir revisão, sem impedir descrições técnicas legítimas.
+COM-03 — Uma conversa não altera por si só preço, âmbito ou tranche. Quando contém um acordo relevante, a app permite convertê-lo em pedido de alteração, confirmação ou aditamento.
+COM-04 — Notificações têm categoria, destinatário, canal, prazo e ligação ao objeto. E-mails ou notificações no ecrã bloqueado não devem expor dados privados além do necessário.
+COM-05 — Eventos propostos: pedido publicado; esclarecimento recebido; proposta submetida ou revista; seleção; comissão pendente, recebida ou falhada; contactos disponíveis; assinatura pendente; financiamento recebido; tranche pedida, aprovada, paga ou contestada; compra confirmada; devolução; aditamento; conclusão; avaliação e disputa.
+COM-06 — O envio é idempotente quando o mesmo evento é recebido mais de uma vez. A aplicação regista tentativa, entrega conhecida e falha, sem afirmar que um e-mail foi lido apenas porque foi enviado.
+COM-07 — Preferências permitem reduzir mensagens promocionais, mantendo as comunicações operacionais necessárias segundo a política aplicável. O prazo de uma ação não depende apenas de um canal falível.
+24.2 Dossier e exportação
+DOC-01 — Cada documento tem tipo, autor, obra, versão, privacidade e estado. Minutas, assinados, anulados e substituídos são visualmente distintos.
+DOC-02 — A exportação usa permissões do momento e conserva a origem dos documentos. Um ficheiro gerado para concorrentes nunca inclui dados reservados por reutilizar um modelo de dossier completo.
+DOC-03 — A partilha externa, se disponibilizada, tem destinatário ou token, prazo e possibilidade de revogação. Não se usam ligações públicas permanentes para contratos, faturas ou moradas.
+DOC-04 — A disponibilização de uma nova versão não substitui silenciosamente uma versão assinada ou usada numa decisão. O utilizador pode abrir a versão vigente e o histórico.
+DOC-05 — Aceitação: uma notificação de seleção não revela a morada; uma exportação anónima continua anónima; um anexo com contacto é bloqueado ou tratado antes de chegar ao concorrente.
+25. Segurança, privacidade e matriz de acesso
+25.1 Matriz resumida
+A tabela é uma visão resumida. “Autorizado” pressupõe o papel adequado, a relação com a obra e o estado do processo. Não substitui as regras detalhadas dos quatro backoffices.
+
+Recurso / ação
+ | Cliente
+ | Pintor
+ | Fornecedor
+ | Equipa da app
+ | Anúncio tratado
+ | Próprios pedidos
+ | Oportunidades elegíveis
+ | Acesso publicável
+ | Operação autorizada
+ | Originais e morada
+ | Próprios locais
+ | Após apresentação, se autorizado
+ | Só necessidade específica autorizada
+ | Revisão e apoio autorizados
+ | Propostas e preços
+ | Propostas do seu pedido
+ | Apenas próprias propostas
+ | Sem acesso por defeito
+ | Operação com necessidade
+ | Contactos das partes
+ | Após o evento aprovado
+ | Após o evento aprovado
+ | Só relação de fornecimento autorizada
+ | Acesso restrito e auditado
+ | Autorizar tranche
+ | Aprovador habilitado
+ | Pode pedir, não aprovar pelo cliente
+ | Sem permissão
+ | Exceção fundamentada; papel financeiro
+ | Compra e documento
+ | Evidência relevante da obra
+ | Compras próprias
+ | Vendas próprias
+ | Validação autorizada
+ | Alterar comissão
+ | Sem permissão
+ | Sem permissão
+ | Sem permissão
+ | Papel próprio; regra versionada
+ | Avaliações
+ | Avaliar relação elegível
+ | Consultar e responder
+ | Sem alteração de avaliações do pintor
+ | Moderar com fundamento
+ | 
+25.2 Controlos
+SEG-01 — Todas as consultas e alterações verificam utilizador, organização, papel, obra e estado. Trocar um identificador num URL ou numa chamada não permite abrir dados de outro cliente.
+SEG-02 — Documentos e imagens privados usam acesso autenticado ou ligações de duração limitada. Cópias de segurança, miniaturas e pré-visualizações respeitam a mesma classificação.
+SEG-03 — A autenticação reforçada é proposta para gestores internos, aprovadores financeiros e alterações sensíveis. Sessões podem ser revogadas e ações críticas podem exigir reconfirmação.
+SEG-04 — Os dados são protegidos em trânsito e em armazenamento por mecanismos adequados. As chaves e segredos são geridos fora do código e não aparecem em logs de apoio ou respostas do assistente.
+SEG-05 — A receção de ficheiros valida tipo real, tamanho e conteúdo potencialmente malicioso. O nome da extensão não é suficiente para confiar num documento.
+SEG-06 — Os logs não guardam dados de cartão, palavras-passe, documentos completos ou moradas sem necessidade. A auditoria protege a prova da ação com minimização dos dados.
+SEG-07 — A conta de um colaborador não pode ser usada por outra pessoa. O fim de uma relação de trabalho permite revogar acessos sem apagar a autoria histórica.
+SEG-08 — São previstas rotinas de deteção, resposta e registo de incidentes, incluindo exposição de identidade antes da apresentação. A comunicação aos afetados segue a análise aplicável.
+25.3 Governo de dados
+SEG-09 — A política de retenção distingue rascunhos, fotografias, propostas, contratos, documentos fiscais, avaliações e litígios. Os prazos são definidos com fundamento, não com uma regra única de conservação ilimitada.
+SEG-10 — Os pedidos de acesso, correção e eliminação têm processo próprio. Uma obrigação de conservar um documento não autoriza manter toda a conta e todas as imagens indefinidamente.
+SEG-11 — A utilização de dados para treino, avaliação ou melhoria de modelos é separada da prestação do serviço e depende das bases e condições aprovadas. Não se presume autorização para reutilizar fachadas e contratos.
+SEG-12 — Fornecedores tecnológicos e subcontratantes têm responsabilidades, acessos e condições documentadas. O utilizador sabe quem presta o serviço de pagamento e o que a plataforma efetivamente controla.
+SEG-13 — Uma organização não consulta análises individuais de um concorrente nem exporta dados comerciais de outro fornecedor. Estatísticas agregadas devem evitar a reidentificação de casos raros.
+SEG-14 — Aceitação: uma chamada direta à API obedece à mesma regra que o ecrã; uma conta revogada perde acesso; a ferramenta de apoio não consegue devolver o original privado a um concorrente não selecionado.
+26. Arquitetura funcional e integrações propostas
+26.1 Princípios
+TEC-01 — A escolha de tecnologias não está fechada. Recomenda-se separar módulos e responsabilidades sem impor desde início uma infraestrutura distribuída complexa.
+TEC-02 — A aplicação deve suportar utilização em computador e telemóvel. O mecanismo de captura pode exigir capacidades móveis específicas, a validar em dispositivos representativos antes da escolha entre aplicação nativa, híbrida ou web.
+TEC-03 — Os quatro backoffices usam serviços comuns de identidade, permissões, obras e documentos, com interfaces adequadas a cada papel. Não são quatro bases de dados independentes sem relação.
+TEC-04 — O processamento de imagens, 3D, documentos e IA é executado em tarefas assíncronas, com estado, repetição controlada e tratamento de falhas.
+TEC-05 — As operações financeiras dependem de confirmações do parceiro e de um registo interno conciliável. O sucesso de uma chamada de interface não é prova de que o beneficiário recebeu o dinheiro.
+26.2 Módulos e fronteiras
+Identidade e organizações: contas, convites, papéis, representação e verificações.
+Locais e medições: edifícios, superfícies, dimensões, fontes e versões.
+Ficheiros e privacidade: originais, derivados, análise, classificação e acesso.
+Reconstrução e visualização: processamento 3D, geometrias, anotações e versões leves.
+Concurso e propostas: publicação, esclarecimentos, versões, seleção e validade.
+Apresentação e comissão: cálculo, obrigação, pagamento, elegibilidade e revelação.
+Contratos e execução: assinaturas, etapas, alterações, receção e dossier.
+Pagamentos: financiamento, autorizações, ordens, conciliação e reembolsos.
+Materiais: catálogo, fontes técnicas, vendas, afetações e devoluções.
+Reputação e casos: avaliações, moderação, apoio, disputas e acordos.
+Operação: configurações, auditoria, indicadores e filas de intervenção.
+26.3 Interfaces e integrações
+TEC-06 — As interfaces têm contratos de dados versionados. Campos privados não são enviados ao navegador apenas para serem escondidos visualmente.
+TEC-07 — As integrações de pagamento verificam a autenticidade de notificações, evitam repetição de efeitos e suportam notificações fora de ordem. Um evento antigo não pode regredir um pagamento confirmado para pendente.
+TEC-08 — A atualização do estado e o registo do evento que desencadeia uma ação devem ser consistentes. Em caso de falha, a recuperação não pode pagar, revelar ou notificar duas vezes.
+TEC-09 — Integrações previstas: prestador de pagamentos, assinatura/validação digital, mensagens, processamento de imagem/3D, modelos de IA e fontes de produto. Cada uma tem alternativa de falha e responsabilidade definida.
+TEC-10 — A escolha do parceiro financeiro exige validar moedas, montantes, tipos de entidade, identificação, custódia, duração, bloqueios, tranches, reembolsos, contestações, relatórios e estrutura de custos. Uma funcionalidade de API não basta para confirmar cobertura contratual.
+TEC-11 — A importação de catálogo e documentos deve permitir execução manual na primeira fase. Integrações automáticas com fabricantes e sistemas de faturação são uma evolução a priorizar, não uma condição universal de entrada.
+TEC-12 — O ambiente de testes utiliza entidades e pagamentos de teste. Dados reais e fundos reais não são usados para demonstrar funcionalidades inacabadas.
+TEC-13 — Aceitação: o sistema recupera de uma falha entre pagamento e atualização; a indisponibilidade do 3D não impede editar áreas; a indisponibilidade da IA não bloqueia o envio manual de uma proposta válida.
+27. Requisitos não funcionais e operação
+27.1 Usabilidade e acessibilidade
+NFR-01 — A linguagem é português de Portugal e explica conceitos como comissão, caução, adiantamento, tranche e compra confirmada. Os termos técnicos aparecem quando ajudam a decidir, não como obstáculo ao preenchimento.
+NFR-02 — Os percursos principais funcionam em ecrã pequeno, com navegação por teclado quando aplicável, contraste adequado, foco visível e mensagens de erro associadas ao campo.
+NFR-03 — O 3D tem alternativa textual e visual simples. Uma pessoa não precisa de manipular o modelo para consultar área, trabalhos, preço ou estado de pagamento.
+NFR-04 — Os formulários guardam progresso e permitem recuperar de uma ligação interrompida. A app distingue ficheiro capturado, enviado e processado.
+27.2 Desempenho e disponibilidade
+NFR-05 — PROPOSTO: ações comuns de consulta devem responder em até dois segundos no percentil 95, excluindo transferência de ficheiros e processamento pesado, sob carga de referência a definir.
+NFR-06 — O processamento de 3D e IA apresenta progresso e prazo estimado quando houver dados para o calcular. Não se promete um tempo universal antes de medir a tecnologia e os tamanhos reais.
+NFR-07 — PROPOSTO: objetivo inicial de disponibilidade mensal de 99,5% para funções centrais, sujeito a orçamento e arquitetura. Os períodos e exclusões são definidos antes de o transformar num compromisso externo.
+NFR-08 — PROPOSTO: objetivos de recuperação de até quatro horas e perda máxima de dados de quinze minutos, a validar. Os movimentos financeiros devem poder ser reconciliados com o parceiro para recuperar eventos externos confirmados.
+NFR-09 — São feitos exercícios de recuperação e verificação de cópias de segurança. A mera existência de uma cópia não demonstra que contratos e movimentos podem ser restaurados.
+27.3 Qualidade e observabilidade
+NFR-10 — A monitorização cobre falhas de pagamento, divergência de saldos, revelação indevida, tarefas bloqueadas, notificações falhadas e aumento de erros. Os alertas têm responsável e procedimento de resposta.
+NFR-11 — Os registos permitem reconstruir o percurso de uma operação sem expor dados sensíveis desnecessários. Uma ação financeira tem referência de correlação entre app e parceiro.
+NFR-12 — As alterações de software têm reversão planeada. Uma reversão técnica não reverte automaticamente um pagamento já realizado ou um contacto já revelado.
+NFR-13 — Alterações nas regras financeiras, classificação e anonimização exigem revisão específica. A qualidade de um modelo de IA é avaliada com exemplos relevantes para a pintura e para o português utilizado.
+NFR-14 — Aceitação: um erro de processamento tem caminho de recuperação; as ações essenciais não dependem apenas de cor; é possível rastrear uma comissão desde o cálculo até ao documento e pagamento.
+28. Indicadores de negócio e aprendizagem
+KPI-01 — Funil do cliente: pedido iniciado, pedido publicável, pedido publicado, propostas recebidas, propostas comparáveis, proposta selecionada, apresentação paga e contrato formalizado.
+KPI-02 — Funil do prestador: registo, verificação, consulta, proposta, seleção, aceitação da comissão, pagamento e contratação. A desistência na comissão é medida separadamente da falta de disponibilidade.
+KPI-03 — Qualidade da oferta: número de profissionais independentes por zona, tempo até proposta válida, percentagem de pedidos sem resposta e motivos de rejeição.
+KPI-04 — Receita: comissão calculada, faturada, recebida, reembolsada e líquida de custos identificados. Fundos da obra e cauções não entram como receita.
+KPI-05 — Custo por apresentação: aquisição de clientes e prestadores, pedidos não convertidos, IA, 3D, verificação, pagamentos, assinaturas, apoio e tratamento de conflitos.
+KPI-06 — Confiança: exposições de identidade, cancelamentos após apresentação, divergências de materiais, tranches contestadas e tempo de resolução. Os indicadores não provam causalidade ou fraude sem revisão.
+KPI-07 — Retenção: novos pedidos de administradoras, regresso de particulares, repetição de propostas dos pintores e participação dos fornecedores.
+KPI-08 — O mínimo de 150 € é acompanhado por faixa de valor de obra. Em trabalhos pequenos, mede-se se impede a adesão e se o custo de servir permite uma política diferente no futuro.
+KPI-09 — A ausência de teto é mantida como decisão atual. O impacto em obras maiores é medido, sem aplicar automaticamente o antigo teto ou negociar exceções invisíveis ao modelo.
+29. Cenários de aceitação de ponta a ponta
+Os cenários seguintes são uma base funcional para desenvolvimento e validação. Não representam testes já executados sobre uma app existente.
+UAT-01 — Cliente particular cria pedido de pintura interior com área manual; guarda, retoma e publica sem obrigatoriedade de 3D. Verificar CLI-05, CLI-06 e MOD-08.
+UAT-02 — Administradora gere dois condomínios; um colaborador autorizado apenas num deles não consulta o outro por interface, exportação ou API. Verificar IAM-03 e SEG-01.
+UAT-03 — Captura de prédio com três pisos e varandas em duas fachadas; a representação distingue superfícies de varanda e partes desconhecidas. Verificar MED-03 e MOD-03.
+UAT-04 — Fotografia com número de polícia e coordenadas; o derivado publicável não expõe esses elementos e o original continua privado. Verificar IMG-03 a IMG-08.
+UAT-05 — Pintor tenta enviar contacto num PDF e numa mensagem; o sistema trata ou bloqueia antes de entregar ao cliente anónimo. Verificar IMG-06 e COM-02.
+UAT-06 — Reconstrução falha; o cliente conserva medidas e descrição e pode continuar com representação simples. Verificar MOD-08 e MOD-11.
+UAT-07 — Duas propostas respondem a versões diferentes da área; o comparador sinaliza a incompatibilidade e pede atualização. Verificar PRO-01 e CMP-01.
+UAT-08 — Uma proposta exclui primário e outra inclui; o resumo apresenta a diferença sem declarar equivalência apenas pelo preço. Verificar PRO-04 e CMP-03.
+UAT-09 — O assistente não encontra a ficha do produto exato; pede informação e não inventa rendimento ou garantia. Verificar IA-05 a IA-07.
+UAT-10 — Uma ficha técnica contém instrução para revelar contactos; a app trata-a como conteúdo não fiável e mantém as permissões. Verificar IA-10 e IA-11.
+UAT-11 — Proposta de 40 000 € gera comissão de 1 200 € e proposta de 100 000 € gera 3 000 €, na base de cálculo exemplificada, sem teto. Verificar FIN-01 a FIN-04.
+UAT-12 — Proposta de 2 000 € gera mínimo de 150 € e mostra a taxa efetiva de 7,5%. Verificar FIN-04.
+UAT-13 — Comissão pendente ou comprovativo não validado; contactos continuam bloqueados. Verificar FIN-10 e PIN-20.
+UAT-14 — Comissão confirmada e requisitos cumpridos; só o par selecionado recebe contactos e a ação fica registada. Verificar IAM-08 e FIN-13.
+UAT-15 — Notificação de pagamento duplicada; não há segunda cobrança, segundo documento ou segunda apresentação. Verificar FIN-11 e TEC-07.
+UAT-16 — Comissão paga, mas falha de revelação; o caso entra em recuperação e não fica falsamente concluído. Verificar FIN-12.
+UAT-17 — Pintor já pagou 1 200 € de comissão e recebe tranche de 4 000 €; a app não volta a descontar os 1 200 €. Verificar FIN-16 e FIN-17.
+UAT-18 — Caução desativada por falta de decisão; nenhuma segunda cobrança é criada. Se ativada no futuro, é uma obrigação separada. Verificar CAU-02.
+UAT-19 — Utilizador leitor tenta aprovar tranche; a operação é rejeitada no servidor. Verificar IAM-06 e CLI-22.
+UAT-20 — Cliente aprova tranche; uma notificação externa repetida não paga duas vezes e o saldo fica reconciliado. Verificar PAG-09 a PAG-15.
+UAT-21 — Produto confirmado em compra e depois parcialmente devolvido; a quantidade elegível diminui e a obra recebe alerta. Verificar MAT-05 e MAT-06.
+UAT-22 — A mesma linha de fatura é associada a duas obras acima da quantidade disponível; a segunda afetação é bloqueada ou corrigida. Verificar FOR-12.
+UAT-23 — Área confirmada excede a tolerância acumulada; não há aumento automático e é necessário acordo. Verificar MED-13.
+UAT-24 — Pintor propõe produto alternativo; o contrato continua a mostrar o produto inicial até existir aprovação adequada. Verificar PIN-27 e OBR-08.
+UAT-25 — Cliente contesta uma parte do saldo; o sistema distingue os valores e não afirma poder reter dinheiro já pago ao pintor. Verificar DIS-06.
+UAT-26 — Acordo de 60%/40% sobre saldo definido é aceite pelas partes; a execução fecha o montante e não se repete. Verificar DIS-07 e DIS-08.
+UAT-27 — Documento assinado é alterado; a nova versão não conserva a indicação de original assinado válido. Verificar CON-05 e CON-08.
+UAT-28 — Gestor de apoio tenta alterar comissão ou conta de recebimento; a ação é negada. Verificar ADM-03 e PAG-17.
+UAT-29 — Avaliação emitida por conta sem relação elegível é rejeitada; profissional novo aparece sem histórico, não como avaliado negativamente. Verificar AVA-01 e AVA-07.
+UAT-30 — Alteração futura da taxa comercial não modifica uma apresentação já calculada e aceite sob a versão anterior. Verificar DAT-16 e ADM-10.
+30. Sequência de desenvolvimento proposta
+30.1 Fase de definição
+Fechar base de comissão, reembolsos, caução, reserva do cliente, identidade pré-contratual e solução de pagamentos. Mapear exemplos reais de propostas de pintura e testar a ficha comum. Definir uma zona-piloto e recrutar oferta suficiente, sem prometer três propostas em todos os casos.
+Saída: decisões registadas, modelo de dados inicial, percursos e critérios de aceitação aprovados para a primeira entrega. A validação financeira não deve ser adiada para depois de construir um fluxo incompatível.
+30.2 Primeira versão operacional
+Disponibilizar os quatro backoffices com contas e permissões; criação manual assistida de pedidos; captura privada; tratamento de imagens; volume simples editável quando possível; propostas estruturadas; comparador; seleção; cobrança da comissão; revelação controlada; contratos; registo de compras e avaliações.
+A participação do fornecedor pode começar com catálogo e confirmação manual de documentos. A administração precisa de filas operacionais reais, mesmo que inicialmente a equipa seja pequena.
+Os pagamentos de obra só entram em produção quando o circuito financeiro e as condições estiverem validados. Até lá, uma demonstração deve identificar claramente simulações e não receber fundos reais.
+30.3 Automatização e aprofundamento
+Melhorar reconstrução 3D, extração de propostas, consulta de fichas, importação de catálogos, confirmações de venda, gestão de tranches, conciliação, alertas e análise de qualidade. Automatizar depois de conhecer as exceções mais frequentes.
+30.4 Expansão
+Adaptar o percurso a pintura interior de particulares, novas regiões e eventualmente outras especialidades. A simplificação do formulário não deve retirar controlos de pagamentos ou privacidade. A política do mínimo e a capacidade operacional são revistas com dados, mantendo as decisões comerciais em vigor até alteração expressa.
+31. Decisões pendentes e perguntas para as próximas revisões
+PEN-01 — Base da comissão: a v0.2 propõe valor da obra sem IVA, depois de descontos, incluindo opcionais aceites e acertos simétricos por alterações reais aprovadas. Confirmar esta política; ver FLX-06 e FLX-59 a FLX-66. Cancelamento não é tratado como redução automática da base para zero.
+PEN-02 — Impostos e documentos da comissão: como apresentar o custo final ao pintor e emitir fatura e regularizações conforme a entidade que operar a app?
+PEN-03 — Caução: a v0.2 recomenda não exigir uma segunda caução além da comissão paga pelo pintor. Proposta ainda não confirmada. Se for mantida, definir obrigação garantida, origem, montante e devolução; ver FLX-02 e capítulo 17.
+PEN-04 — Reserva do cliente: a v0.2 recomenda não cobrar reserva antes da apresentação. Financiamento integral depois do contrato e adiantamentos expressamente autorizados são circuitos diferentes. Proposta por confirmar; ver FLX-02 e FLX-25/26.
+PEN-05 — Devolução da caução: só haverá fluxo de devolução se for aprovada a sua existência. Mantendo-se uma caução, definir evento exato e cancelamentos cobertos; não confundir devolução com restituição da comissão. Ver PEN-03 e CAU-05 a CAU-09.
+PEN-06 — Comissão em cancelamento: a v0.2 propõe regularização se a apresentação não ocorreu ou era inválida, e ausência de reembolso automático após apresentação válida. Exceções e direitos aplicáveis continuam a validar. Ver cenários e matriz de 34.6 a 34.9.
+PEN-07 — Contratos e informação: a v0.2 propõe seleção para apresentação, comissão paga pelo pintor, revelação e só depois contrato de empreitada identificado. Validar informação prévia, vinculação e direitos por tipo de relação; ver FLX-03 a FLX-05 e FLX-24.
+PEN-08 — Pagamentos: qual o parceiro que aceita o modelo completo e quais os custos, prazos, limites e responsabilidades? A solução cobre retenções prolongadas em litígio?
+PEN-09 — Tolerância de área: qual o valor de x%, aplica-se por superfície ou ao total, é simétrica e como se tratam erros grandes de descrição?
+PEN-10 — Preço de ajustamento: usar preço variável específico por trabalho/superfície ou outra regra? Como separar custos fixos?
+PEN-11 — Propostas: são reservadas ou existe algum mecanismo de licitação visível? Qual o prazo, validade e número-alvo de propostas?
+PEN-12 — Ranking: quais os critérios e pesos, como tratar novos profissionais e que informação é mostrada antes da apresentação?
+PEN-13 — Perfil anónimo: que experiência, documentos verificados, carteira de trabalhos e avaliações podem ser exibidos sem revelar a empresa?
+PEN-14 — Verificação de profissionais: que documentos e critérios são obrigatórios por tipo e dimensão de obra? Qual o processo de renovação?
+PEN-15 — Fornecedores: o que significa estar verificado pela app e que prova é exigida para alegar autorização de marca?
+PEN-16 — Materiais: os preços de referência são públicos, negociados ou apenas estimados? O cliente vê preços de compra reais ou apenas produto e quantidade?
+PEN-17 — IA e 3D: quais fornecedores tecnológicos, custos por pedido, qualidade exigida e limitações de captura? Qual o processo de revisão humana?
+PEN-18 — Tranches: a v0.2 propõe autorização expressa, sem libertação por silêncio, com prazos operacionais configuráveis, evidência por etapa e aprovação parcial quando prevista. Confirmar política e tratamento de atrasos; ver FLX-29 a FLX-31 e FLX-85/86.
+PEN-19 — Disputas: existe avaliação técnica externa, quem a paga e como se decide a sua utilização? Que limites de intervenção assume a app?
+PEN-20 — Avaliações: escala, critérios, momento de elegibilidade e avaliação posterior. Como apresentar cancelamentos sem confundir com obras concluídas?
+PEN-21 — Operação: zona inicial, volume de pedidos, capacidade de apoio, horários e prazos de resposta. Que funcionalidades exigem intervenção humana no piloto?
+PEN-22 — Produto e marca: nome comercial, identidade visual, canais móveis e web, tipos de utilizador e ordem de expansão.
+PEN-23 — Política de dados: prazos de conservação, dados usados na IA, acesso a originais depois da apresentação e tratamento de pedidos de eliminação.
+PEN-24 — Recursos e calendário: orçamento de desenvolvimento e operação, equipa, prioridades e data-alvo. Esta versão não presume um orçamento nem promete um prazo de implementação.
+32. Referências de suporte e limites da validação
+As referências seguintes foram consultadas durante a discussão do conceito em 17/10/2026. Servem de base a decisões técnicas e a validações futuras. Não demonstram que um fornecedor tenha aprovado esta app nem substituem uma proposta comercial ou análise jurídica do caso concreto.
+REF-01 — Agisoft: utilização de distâncias conhecidas para dar escala a modelos fotogramétricos. https://agisoft.freshdesk.com/support/solutions/articles/31000162602-creating-scale-bars-in-the-project-without-coded-targets
+REF-02 — CIN: informação de produto, preparação e documentação técnica de Nováqua HD, como exemplo do tipo de fonte oficial a consultar. https://cin.com/deco/pt/pt/exterior/exterior-metais-esmalte-directo-ao-metal/10125-novaqua-hd
+REF-03 — Banco de Portugal: entidades e serviços de pagamento autorizados. https://clientebancario.bportugal.pt/pt-pt/instituicoes
+REF-04 — Stripe: pagamentos manuais, prazos de retenção e distinção em relação a escrow. https://docs.stripe.com/connect/manual-payouts
+REF-05 — Mangopay: carteiras, entradas, transferências e pagamentos a beneficiários. https://docs.mangopay.com/guides/e-wallet-system
+REF-06 — Mangopay: contestações bancárias e processo associado. https://docs.mangopay.com/guides/disputes
+REF-07 — Autenticação.gov: assinatura digital com atributos profissionais. https://www.autenticacao.gov.pt/web/guest/atributos-profissionais/assinatura-digital
+REF-08 — PGDL: versão atualizada do Decreto-Lei n.º 24/2014, sobre contratos à distância e fora do estabelecimento comercial. A aplicabilidade depende do tipo de parte e contrato. https://pgdlisboa.pt/leis/lei_print_articulado.php?nid=2062&tabela=leis
+REF-09 — PGDL: versão atualizada do Decreto-Lei n.º 446/85, sobre cláusulas contratuais gerais. https://www.pgdlisboa.pt/leis/lei_print_articulado.php?nid=837&tabela=leis
+REF-10 — Upwork: política contra contratação e pagamentos por fora, como referência de funcionamento de marketplace. https://support.upwork.com/hc/en-us/articles/360052511133-Circumvention-and-why-it-s-against-the-rules
+REF-11 — Airbnb: responsabilidade e consequências de cancelamentos, como referência comparativa e não como regra aplicável a empreitadas. https://www.airbnb.pt/help/article/990
+REF-12 — Zaask: modelo de acesso a oportunidades para profissionais, distinto da comissão proposta neste documento. https://www.zaask.pt/prestadores-de-servico
+As instruções e preços dos fornecedores externos podem mudar. A implementação deve confirmar a versão em vigor e os termos efetivamente contratados. As decisões de negócio desta app resultam da promotora, não das condições comerciais de outra plataforma.
+33. Glossário e continuidade do documento
+Apresentação: disponibilização controlada das identidades e contactos do cliente e do prestador selecionado, no âmbito do serviço remunerado da plataforma.
+Seleção: decisão do cliente de pretender avançar com uma proposta. Não é automaticamente sinónimo de contrato assinado nem de obra iniciada.
+Comissão: preço devido pelo prestador à plataforma; regra atual de 3%, mínimo 150 €, sem teto, com base de cálculo e impostos a fechar.
+Caução: montante que garante uma obrigação definida e que pode ser reembolsável; a sua manutenção e condições estão pendentes no modelo comercial atual.
+Adiantamento: pagamento ao prestador antes da execução equivalente, autorizado pelo cliente segundo as condições acordadas.
+Tranche: parcela de pagamento associada a uma condição ou etapa. Pode estar financiada, autorizada e ainda não paga.
+Compra confirmada: evidência de aquisição do produto e quantidade identificados. Não comprova aplicação na obra.
+Volume representativo: modelo simplificado que permite compreender a geometria relevante e os trabalhos, preservando a privacidade e identificando estimativas.
+Aditamento: alteração documentada e aprovada a um contrato ou compromisso em vigor.
+Versão de referência: conjunto de dados congelado que sustenta uma proposta, apresentação, contrato ou decisão.
+Na próxima atualização, este documento deve manter os identificadores e acrescentar um registo das alterações. As decisões pendentes que forem fechadas passam a confirmadas com data. Requisitos alterados devem indicar os fluxos, ecrãs, cálculos e critérios de aceitação afetados.
+34. Contratação, comissão e dinheiro da obra — desenvolvimento v0.2
+Âmbito desta revisão: concretizar o primeiro passo da sequência aceite pela promotora em 17/10/2026. São descritos o percurso normal, a desistência do pintor, a desistência do cliente e um litígio após uma tranche paga. A autorização para desenvolver esta sequência não significa aprovação automática das novas políticas comerciais abaixo. Os capítulos 16 a 19 e 23 mantêm-se; este capítulo acrescenta regras propostas, exemplos e decisões identificáveis.
+34.1 Recomendação de base e estatuto das decisões
+FLX-01 | CONFIRMADO — Preservar comissão de 3%, paga pelo pintor, mínimo de 150 € e sem teto. A apresentação das identidades/contactos fica dependente de recebimento confirmado. O financiamento integral da obra e as libertações autorizadas pelo cliente continuam a ser o modelo pretendido.
+FLX-02 | PROPOSTO — No lançamento, o cliente não paga comissão nem reserva antes da apresentação; o pintor paga apenas a comissão, sem caução adicional obrigatória. Esta recomendação fecha um percurso de trabalho para desenho, mas DEC-21 a DEC-24 e PEN-03 a PEN-06 continuam pendentes de confirmação. Caso se adote uma caução, será necessário acrescentar um circuito próprio sem alterar silenciosamente este percurso.
+FLX-03 | PROPOSTO — Separar três compromissos: seleção de uma proposta para apresentação; contratação do serviço de apresentação à plataforma, paga pelo pintor; contratação da empreitada entre cliente e pintor já identificados. O botão anterior à revelação deve dizer “Selecionar proposta e pedir apresentação”, evitando prometer uma adjudicação definitiva que o fluxo ainda não formalizou.
+FLX-04 | PROPOSTO — A comissão remunera uma apresentação válida de um cliente com pedido qualificado e interesse reconfirmado. Não compra uma garantia de adjudicação. Esta consequência deve estar visível para o pintor antes de pagar: o cliente pode não celebrar a empreitada. Esconder esse risco comercial comprometeria a aceitação do modelo pelos profissionais.
+FLX-05 | A VALIDAR — Nos casos de consumo abrangidos pelo DL n.º 24/2014, a identidade do prestador integra a informação anterior à vinculação contratual ou proposta correspondente. A separação acima é uma proposta de desenho, não prova de conformidade. A classificação de cada interveniente e a validade dos três momentos exigem validação jurídica; não se presume que todo condomínio seja consumidor nem que todo contrato tenha o mesmo regime. Referência RFL-01.
+FLX-06 | PROPOSTO — A base dos 3% é o valor da empreitada sem IVA, incluindo trabalhos, materiais, acessos e opcionais efetivamente selecionados, depois de descontos. Excluem-se opcionais não aceites, o IVA da obra e impostos da própria comissão. O imposto aplicável à comissão é calculado separadamente. A hipótese permite desenvolver cálculos coerentes e continua sujeita a PEN-01 e PEN-02.
+FLX-07 | PROPOSTO — A comissão é devida pela apresentação válida, independentemente do sucesso posterior da obra, dentro das condições contratuais e direitos aplicáveis. Cancelar a obra não transforma automaticamente o serviço de apresentação já prestado num serviço inexistente. Falhas desse próprio serviço têm tratamento diferente, explicitado neste capítulo.
+34.2 O que cada montante significa
+FLX-08 — Comissão: preço do serviço da app, devido pelo pintor. Financiamento da obra: fundos destinados às obrigações da empreitada, movimentados pelo parceiro de pagamentos. Adiantamento: parcela da obra que o cliente aceita entregar antes da prestação correspondente. Tranche: parcela libertada segundo uma etapa acordada. Caução: eventual garantia reembolsável de uma obrigação identificada, não incluída na recomendação inicial.
+FLX-09 — Nos exemplos deste capítulo, a obra tem base de 40 000 € e a comissão base é 1 200 €. Os quadros omitem deliberadamente IVA e custos externos para mostrar a lógica dos movimentos; não representam o montante final a transferir numa operação real. Na app, cada pagamento inclui os impostos efetivamente aplicáveis e o quadro deve fechar pelos montantes brutos. Não se presume que a obra e a comissão tenham a mesma taxa de IVA.
+FLX-10 — Sendo B a base da obra, Iobra o seu imposto, F = máximo(150 €; 0,03 × B) e Ifee o imposto da comissão: o cliente financia B + Iobra; o pintor paga F + Ifee à plataforma. Na conclusão integral, o pintor recebe B + Iobra pelas tranches, sem nova dedução de F. Na base simplificada, recebe 40 000 € e já suportou 1 200 €; 38 800 € é a diferença antes de custos da obra, impostos próprios e encargos, não o lucro.
+FLX-11 — Os fundos da obra não são receita da app. A interface distingue “financiado”, “ainda sob controlo do parceiro”, “reservado para ordem pendente”, “pago ao pintor”, “reembolsado” e “em disputa”. Uma quantia reservada dentro do saldo não pode ser somada novamente como se fosse dinheiro adicional.
+FLX-12 — Proposta para o piloto: os custos de operação da plataforma são suportados pela sua receita, sem desconto oculto nas tranches. Antes do lançamento deve ser verificado se 3% suporta processamento de todo o valor da obra, apoio, verificação, IA, assinaturas e perdas. Caso seja necessário imputar um custo ao utilizador, exige decisão comercial e apresentação prévia; não se altera o valor recebido pelo pintor sem acordo.
+34.3 Preparação e qualificação antes de cobrar
+FLX-13 — A plataforma verifica privadamente a identidade e os meios de contacto de ambas as partes antes da seleção. Para o condomínio, verifica representante e evidência de autorização para avançar com aquela decisão. A informação pública continua anónima. “Verificado” deve especificar o que foi verificado; não significa solvência ou financiamento garantido.
+FLX-14 — O pedido deve reunir âmbito, áreas e origem das medições, volume representativo, acessos, riscos conhecidos, trabalhos pretendidos, zona aproximada e calendário. O cliente declara se dispõe de decisão interna e de orçamento para o valor selecionado. Um pedido destinado apenas a recolher preços preliminares é sinalizado e não é apresentado como intenção pronta para contratar.
+FLX-15 — O pintor confirma capacidade, agenda, validade do preço, condições de acesso, trabalhos incluídos, exclusões, produtos, tolerância de área proposta e plano de pagamentos. Dúvidas relevantes são tratadas no chat anónimo. A app impede que PDFs, imagens, assinaturas ou mensagens revelem contactos antes do momento permitido.
+FLX-16 — Se a informação não permitir proposta séria sem visita, o pedido volta a recolha de elementos ou a medição técnica independente previamente acordada. Não se força o pintor a pagar 3% por um orçamento que sabe não conseguir sustentar. Uma eventual inspeção independente teria preço e serviço próprios; não está incluída gratuitamente nesta versão.
+FLX-17 — Antes de solicitar o pagamento ao pintor, o cliente reconfirma que escolheu aquela proposta, o preço de referência, a janela de execução e a intenção de prosseguir após apresentação. A confirmação tem data, autor e versão. A ausência de reconfirmação impede a cobrança, reduzindo apresentações a clientes que entretanto perderam interesse.
+FLX-18 — Uma só seleção pode estar ativa por pedido nesta fase. As restantes propostas ficam disponíveis para eventual reabertura, sem cobrar aos outros pintores. Selecionar vários profissionais simultaneamente e cobrar-lhes uma comissão de obra exigiria outro produto comercial e outra informação prévia.
+34.4 Sequência principal e condições de passagem
+O quadro seguinte fixa a ordem funcional proposta. Cada passagem guarda o evento, o interveniente e a versão dos dados. A numeração refere-se ao percurso, não ao reconhecimento jurídico ou contabilístico da receita.
+
+Etapa
+ | Ação principal
+ | Dinheiro
+ | Identidades
+ | 1. Seleção
+ | Cliente escolhe proposta e reconfirma interesse.
+ | Sem cobrança.
+ | Ocultas entre as partes.
+ | 2. Aceitação
+ | Pintor reconfirma proposta, agenda e apresentação.
+ | Comissão calculada.
+ | Ocultas.
+ | 3. Pagamento
+ | Pintor paga; parceiro confirma recebimento.
+ | 1 200 € base à app.
+ | Ocultas até validação final.
+ | 4. Apresentação
+ | App disponibiliza contactos ao par correto.
+ | Serviço de apresentação registado.
+ | Reveladas às duas partes.
+ | 5. Contratação
+ | Visita/medição quando necessária; condições e assinaturas.
+ | Eventual acerto aprovado.
+ | Partes identificadas.
+ | 6. Financiamento
+ | Cliente coloca o total no circuito aprovado.
+ | 40 000 € base da obra.
+ | Sem ampliação a terceiros.
+ | 7. Execução
+ | Pedidos de tranche e autorização do cliente.
+ | Saídas conforme etapas.
+ | Acesso conforme função.
+ | 8. Fecho
+ | Aceitação, último pagamento e documentos.
+ | Saldo conciliado.
+ | Histórico com acesso autorizado.
+ | 
+FLX-19 — No passo de pagamento, o pintor vê: base da proposta; percentagem; mínimo, quando acionado; comissão antes de imposto; imposto; total; identificação da plataforma; política de cancelamento; consequência da apresentação; e ausência de garantia de contratação. O consentimento não se resume a uma caixa genérica com termos inacessíveis.
+FLX-20 — Uma autorização de cartão, uma transferência anunciada ou um comprovativo carregado não bastam para revelar contactos. O servidor recebe e valida o estado financeiro exigido ao parceiro, a moeda, o valor, o pagador e o pedido. A política de recebimento aceite por cada meio de pagamento deve ser formalizada com o parceiro; nenhum meio é descrito como absolutamente irreversível.
+FLX-21 — Pagamento confirmado e apresentação são eventos distintos. Depois de receber, o sistema volta a verificar seleção ativa, reconfirmação do cliente, validade da proposta e capacidade das contas. Se tudo estiver válido, concede acesso simultâneo às duas partes. Se o cliente retirou a seleção antes da apresentação ou existe impedimento relevante, não revela e inicia a regularização correspondente.
+FLX-22 — A apresentação regista um identificador próprio, as duas entidades, a proposta, a comissão associada, os dados disponibilizados e a hora em que ficaram acessíveis. O registo de entrega não depende apenas de o destinatário abrir um email. Não se cobram várias apresentações por reabrir o mesmo processo ou por repetir notificações.
+FLX-23 — Contactos e morada revelados não podem ser tornados desconhecidos depois de um cancelamento. O sistema pode restringir novos acessos e conserva o histórico adequado, mas nunca anuncia “anonimato reposto”. Uma nova apresentação ao mesmo par, na mesma obra, reutiliza a relação já registada e trata apenas acertos elegíveis, sem nova comissão integral automática.
+FLX-24 — Após apresentação, as partes podem visitar e confirmar medidas, acessos, produtos e condições. Só depois fecham e assinam a empreitada identificada. A minuta e as condições económicas podem estar preparadas antes, sem dados identificadores da contraparte, mas informação obrigatória e consentimentos devem existir no momento legalmente exigido.
+FLX-25 — Depois de celebrado o contrato, o cliente financia integralmente o valor acordado através do parceiro. O dinheiro é associado à obra certa e ao titular definido no modelo aprovado. A app só informa “obra financiada” depois de confirmação externa e conciliação do montante. Não se comunica saldo disponível com base num documento bancário não confirmado.
+FLX-26 — O início contratual da obra depende do financiamento confirmado e das restantes condições acordadas, como acessos e disponibilidade. A concessão de adiantamento exige uma autorização de libertação específica: financiar o total não equivale a entregar o total ao pintor.
+34.5 Cenário A — obra concluída normalmente
+FLX-27 — Exemplo de plano, apenas ilustrativo: 10% de adiantamento inicial, 10% após montagem dos andaimes, 30% após preparação e reparações previstas, 40% após execução da pintura definida e 10% no fecho. Os 100% não constituem recomendação técnica nem uma regra fixa para todas as obras. Cada etapa tem entrega objetiva, documentação e responsável por aprovar.
+
+Evento
+ | Financiado pelo cliente, acumulado
+ | Recebido pelo pintor, acumulado
+ | Saldo da obra
+ | Comissão paga à app
+ | Comissão antes de contactos
+ | 0 €
+ | 0 €
+ | 0 €
+ | 1 200 €
+ | Financiamento integral
+ | 40 000 €
+ | 0 €
+ | 40 000 €
+ | 1 200 €
+ | Adiantamento: 10%
+ | 40 000 €
+ | 4 000 €
+ | 36 000 €
+ | 1 200 €
+ | Andaimes: 10%
+ | 40 000 €
+ | 8 000 €
+ | 32 000 €
+ | 1 200 €
+ | Preparação: 30%
+ | 40 000 €
+ | 20 000 €
+ | 20 000 €
+ | 1 200 €
+ | Pintura: 40%
+ | 40 000 €
+ | 36 000 €
+ | 4 000 €
+ | 1 200 €
+ | Fecho: 10%
+ | 40 000 €
+ | 40 000 €
+ | 0 €
+ | 1 200 €
+ | 
+FLX-28 — A linha da comissão e a linha de financiamento são circuitos diferentes. A primeira tranche de 4 000 € chega integralmente ao pintor no exemplo; não é reduzida para 2 800 €, porque os 1 200 € da comissão já foram pagos. A app também não apresenta os 1 200 € como caução a devolver.
+FLX-29 — Para cada tranche, o pintor apresenta o pedido e as evidências previstas; o cliente aprova, pede correção, recusa fundamentadamente ou aprova parcialmente se o contrato o permitir. O ecrã mostra valor, parcela da obra, beneficiário, total já pago e saldo após a operação. A autorização fica ligada à versão do plano, sem poder ser reutilizada para um novo valor.
+FLX-30 — Texto funcional proposto na aprovação: “Vai autorizar o pagamento de 4 000 € ao prestador pela etapa identificada. Após execução, este montante deixa de estar disponível no saldo retido da obra. Confirme a entrega acordada antes de autorizar.” No adiantamento, substituir a referência à entrega pela condição de pagamento antecipado. Na operação real, os valores apresentados incluem o tratamento fiscal correto.
+FLX-31 — Depois da autorização, a app reserva a quantia para aquela ordem, envia-a ao parceiro e acompanha o resultado. “Aprovado”, “ordem enviada”, “transferência concluída” e “pagamento bancário concluído” podem ser estados diferentes conforme a integração. Uma ordem falhada liberta a reserva apenas após se confirmar que não foi executada; repetir a tentativa não cria outro pagamento.
+FLX-32 — A última tranche depende da aceitação prevista e trata as pendências acordadas. O fecho regista documentos, faturas, comprovativos de materiais, avaliação e obrigações que continuem em vigor. Marcar “concluída” não apaga direitos ou deveres posteriores e não converte a app em garante da pintura.
+34.6 Cenário B — o pintor desiste ou não avança
+FLX-33 — Antes de pagar: não houve apresentação nem comissão recebida. A seleção expira ou é cancelada, o cliente pode escolher outra proposta e não há contactos revelados. A razão fica registada para disponibilidade futura; uma impossibilidade justificada não é automaticamente fraude.
+FLX-34 — Depois de pagar, mas antes da apresentação efetiva: suspender a revelação e reembolsar a comissão ao pagador segundo a política proposta de serviço ainda não prestado. Uma transferência recebida depois de expirar a seleção entra igualmente em regularização; o atraso não autoriza apresentar um cliente já indisponível.
+FLX-35 — Depois de apresentação válida, antes da empreitada: proposta de manutenção da comissão, por ter sido prestado o serviço que remunera. O cliente não recebe nem perde essa comissão, pois não a pagou. Pode reabrir a procura. A plataforma não se compromete a suportar a diferença de preço de um substituto.
+FLX-36 — Depois do contrato e com 40 000 € ainda no circuito, sem tranches pagas: o pedido de desistência inicia a apuração das obrigações e bloqueia ordens incompatíveis. Havendo cancelamento acordado sem montantes devidos ao pintor, os 40 000 € são devolvidos ao cliente após execução pelo parceiro. A comissão segue a sua política própria. Alegações de despesas ou direitos do pintor exigem tratamento contratual; a app não transfere valores unilateralmente só porque uma parte os pede.
+FLX-37 — Depois de o pintor receber um adiantamento de 4 000 €: restam 36 000 € no circuito, admitindo ausência de outros movimentos. Estes 36 000 € podem ser objeto de acordo e devolução; os 4 000 € já pagos exigem restituição pelo pintor ou outro meio aplicável. A app não promete devolver 40 000 € com um saldo de apenas 36 000 €.
+FLX-38 — A substituição do prestador cria uma nova seleção e apresentação. O novo pintor paga a sua comissão sobre a nova proposta, nos termos vigentes. Não herda a comissão paga pelo anterior. Os fundos da primeira obra não mudam automaticamente de beneficiário: é necessário resolver a afetação anterior e obter a instrução e o contrato adequados para a nova.
+FLX-39 — Suspeita de cancelamento combinado: conservar evidências, suspender benefícios comerciais relacionados quando permitido, ouvir as partes e decidir restrições de conta de forma fundamentada. Uma exclusão não é a primeira nem a única defesa da comissão; a defesa principal é a apresentação validamente paga. A plataforma não oferece reembolso automático por o cliente declarar que o pintor desistiu.
+34.7 Cenário C — o cliente desiste
+FLX-40 — Antes da apresentação: retirar a seleção e travar a revelação. Se o pintor ainda não pagou, não cobrar. Se pagou mas não houve apresentação, reembolsar o serviço não prestado. O sistema deve resolver a corrida entre confirmação do pagamento e desistência pelo registo ordenado dos eventos, não pela ordem em que os ecrãs foram atualizados.
+FLX-41 — Depois da apresentação válida, antes do contrato da obra: a recomendação comercial é não devolver automaticamente a comissão ao pintor. Este é o risco assumido ao comprar a apresentação. Para tornar a proposta vendável, qualificar e reconfirmar o cliente antes de cobrar; medir a taxa de apresentações que chegam a contrato. Uma taxa elevada de desistência exige rever o produto, não apenas endurecer termos.
+FLX-42 — Se a apresentação falhou por contacto falso, cliente inexistente, falta de interesse anterior ao pagamento que a plataforma não detetou ou erro material imputável ao serviço da app, abrir reclamação sobre a própria apresentação. Quando confirmada, propor reembolso ao pintor. Um crédito só substitui o reembolso devido se for validamente aceite. A simples decisão posterior do cliente de escolher outro caminho é uma situação diferente.
+FLX-43 — Depois do contrato e antes de pagar qualquer tranche: apurar direitos de cancelamento e obrigações contratuais, separar montantes não contestados e contestados e executar a solução aplicável. Um cancelamento não prova, por si, que todos os fundos pertencem ao cliente ou ao pintor. A política operacional não cria uma penalização automática equivalente à comissão da app a cargo do cliente.
+FLX-44 — Depois de uma ou mais tranches: calcular o saldo efetivamente controlado, a obra prestada e os valores que as partes discutem. As quantias já entregues não são recuperadas por alterar o estado do projeto. O reembolso e a compensação por trabalhos ou despesas seguem contrato, acordo ou decisão aplicável, não uma percentagem escolhida pelo gestor.
+FLX-45 — Proposta para o piloto: não prometer crédito automático em comissão por desistência do cliente. Uma compensação comercial excecional ao pintor depende de decisão humana fundamentada, orçamento da plataforma e registo de emissão/utilização. Não é retirada do saldo do condomínio. Créditos amplos e automáticos podem permitir que as partes recuperem indiretamente a comissão após combinarem o cancelamento.
+FLX-46 — O mecanismo deve distinguir livre resolução, incumprimento e desistência comercial. Nos casos legalmente abrangidos, aplicam-se os direitos e condições de reembolso previstos no regime respetivo; a app não os substitui por crédito obrigatório nem pune o seu exercício. A comissão profissional de apresentação e a empreitada exigem análise separada, incluindo eventual relação entre contratos. Referência RFL-01.
+34.8 Cenário D — litígio após uma tranche paga
+FLX-47 — Exemplo: o cliente financiou 40 000 €, foi pago um adiantamento de 4 000 € e restam 36 000 € no circuito. A comissão de 1 200 € foi paga separadamente pelo pintor. Ao abrir disputa, o sistema mostra estes três valores e o estado de qualquer ordem pendente. Não agrega os 1 200 € aos fundos disponíveis para resolver a empreitada.
+FLX-48 — O pedido de disputa identifica assunto, factos alegados, montante contestado, solução pretendida e evidências. A abertura não prova culpa. O sistema suspende novas ordens incompatíveis com o litígio, segundo o contrato e os poderes efetivos do parceiro, conservando as autorizações e operações anteriores.
+FLX-49 — O bloqueio tem âmbito definido. Se apenas 6 000 € estão em discussão, a app distingue esse montante dos restantes 30 000 € ainda não pagos. Os 30 000 € não são automaticamente transferidos: a sua movimentação exige o fundamento e as aprovações aplicáveis. O processo não pode tratar todo o saldo como perdido nem como imediatamente disponível ao gestor.
+FLX-50 — Num acordo de 60% para o pintor e 40% para o cliente sobre o saldo remanescente de 36 000 €, o pintor recebe mais 21 600 € e o cliente recebe 14 400 €. O pintor terá recebido 25 600 € no total, somando os 4 000 € anteriores. O saldo final da obra fica a zero. Os 1 200 € da comissão não se alteram por esta repartição.
+FLX-51 — Se a intenção for o pintor receber 60% do valor total original de 40 000 €, o total devido seria 24 000 €. Como já recebeu 4 000 €, recebe mais 20 000 €; o cliente recebe os restantes 16 000 €. Esta solução é diferente da anterior. O formulário obriga a escolher a base da percentagem e mostra sempre o resultado acumulado por parte antes da assinatura.
+FLX-52 — O acordo identifica saldo existente, ordens pendentes, pagamentos anteriores, base de repartição, valores finais, obrigações de remoção de equipamentos ou entrega de documentos, tratamento de reclamações e eventual restituição adicional pelo pintor. Cada parte aceita a mesma versão. Qualquer alteração posterior invalida as aprovações anteriores.
+FLX-53 — Executar o acordo uma única vez. Se o pagamento ao pintor tiver sucesso e o reembolso ao cliente falhar, o caso permanece parcialmente executado; repete-se apenas a operação falhada após conciliação. Um clique em “acordo concluído” não substitui os resultados do parceiro.
+FLX-54 — Sem acordo, conservar o saldo que o mecanismo permita controlar e encaminhar o processo para o meio contratual/legal adequado. A app pode organizar prova, facilitar negociação e receber uma decisão; não decide automaticamente a responsabilidade técnica nem promete uma retenção ilimitada que o parceiro não tenha aceite.
+FLX-55 — Um acordo de restituição de dinheiro já pago ao pintor só produz saldo recuperado quando a entrada é confirmada. Uma obrigação de devolver 4 000 € pode ficar registada como pendente, mas não pode ser distribuída como dinheiro existente. A cobertura dessa falta com capital da plataforma não faz parte do modelo.
+34.9 Matriz proposta de cancelamentos e comissão
+A matriz concretiza uma proposta comercial para revisão. “Mantém” pressupõe apresentação válida e condições contratuais aplicáveis; não elimina correções, estornos ou direitos legalmente exigíveis. A decisão sobre a comissão não determina a decisão sobre o dinheiro da obra.
+
+Situação
+ | Comissão proposta
+ | Fundos da obra
+ | Ação da app
+ | Antes de apresentação, sem pagamento
+ | Não cobrar.
+ | Ainda não financiados.
+ | Cancelar seleção; manter anonimato.
+ | Pagou, mas não foi apresentado
+ | Reembolsar ao pintor.
+ | Circuito ainda não iniciado.
+ | Bloquear contactos; regularizar.
+ | Pintor desiste após apresentação válida
+ | Manter, salvo fundamento de regularização.
+ | Tratar separadamente conforme contrato e saldo.
+ | Registar causa; permitir nova procura.
+ | Cliente desiste após apresentação válida
+ | Sem reembolso automático.
+ | Tratar direitos e obrigações aplicáveis.
+ | Rever eventual falha da apresentação.
+ | Apresentação comprovadamente inválida
+ | Reembolsar; crédito só se validamente aceite.
+ | Sem compensações cruzadas automáticas.
+ | Corrigir serviço e causa da falha.
+ | Desistência depois de 4 000 € pagos
+ | Política da apresentação mantém-se.
+ | 36 000 € remanescentes; 4 000 € já entregues.
+ | Apurar acordo e eventual restituição.
+ | Litígio sobre execução
+ | Não decide, por si, destino da comissão.
+ | Bloqueio e repartição sobre saldo efetivo.
+ | Prova, negociação e execução autorizada.
+ | Falha/estorno do meio de pagamento
+ | Reconciliar e tratar obrigação financeira.
+ | Identificar impacto real por circuito.
+ | Procedimento próprio com parceiro.
+ | 
+FLX-56 — Não se devolve ao cliente a comissão paga pelo pintor. Reembolso de comissão, devolução de fundos da obra e eventual caução têm pagador, destinatário, obrigação e documento contabilístico próprios. A antiga ideia de crédito ao condomínio não é transposta para o novo modelo de comissão suportada pelo prestador.
+FLX-57 — Relação pré-existente entre as partes: permitir declaração privada e prova ao suporte, sem quebrar o anonimato do anúncio. Como o pintor pode só reconhecer o cliente depois da apresentação, a análise não pode exigir impossivelmente que o identifique antes. Proposta: reclamação até cinco dias úteis após apresentação, sem prejuízo de prazos legais, com evidência datada anterior ao pagamento. O simples conhecimento da existência do prédio não equivale a relação comercial previamente estabelecida.
+FLX-58 — Proposta de tratamento da relação pré-existente comprovada e efetivamente relativa à oportunidade apresentada: regularizar a comissão quando a apresentação não trouxe uma nova relação/oportunidade, segundo critérios expressos a validar. A exceção é decidida por revisão humana, não por declaração conjunta automática. O evento de revelação permanece no histórico mesmo quando a comissão é reembolsada.
+34.10 Área, alterações de preço e acerto da comissão
+FLX-59 — Proposta para PEN-01 e FIN-18: calcular a comissão inicial sobre a proposta selecionada e acertá-la, para cima ou para baixo, quando uma alteração real da empreitada for aprovada. A base acumulada inclui apenas alterações aceites, não pedidos de orçamento ou estimativas da IA. A regra não está confirmada pela promotora; até confirmação, o software não deve executar acertos automáticos.
+FLX-60 — Fórmula proposta de acerto: comissão-alvo = máximo(150 €; 0,03 × base contratual aprovada). Acerto = comissão-alvo menos comissão líquida já cobrada para esta apresentação, considerando regularizações anteriores. Um acerto positivo é cobrado ao pintor; um negativo é regularizado a seu favor. A comissão nunca é aplicada novamente à totalidade como se não existissem pagamentos anteriores.
+FLX-61 — Exemplo de medição: base inicial de 40 000 €, formada por 10 000 € de trabalhos fixos e 1 000 m² a 30 €/m² para as rubricas variáveis acordadas. Uma medição confirmada de 1 030 m² produz 40 900 €, se estiver dentro da tolerância x% que vier a ser aprovada. A comissão-alvo seria 1 227 €, com acerto de 27 €. Se fossem 970 m², a base seria 39 100 €, a comissão-alvo 1 173 € e a regularização 27 € a favor do pintor.
+FLX-62 — O exemplo não fixa x em 3% nem noutro valor. A diferença percentual é de 3%; a admissibilidade depende do x contratado e da definição de área. Para comparar superfícies diferentes, usar as rubricas e preços variáveis que as partes aceitaram. Andaimes e outros custos fixos não aumentam automaticamente na mesma proporção dos metros quadrados.
+FLX-63 — Acima da tolerância ou perante trabalho diferente, o sistema exige nova aceitação de âmbito, preço, prazo e tranches. Não impõe a execução da parte excedente pela simples aplicação de uma fórmula. A alteração tem versão, causa, evidência e aprovação; os originais da proposta ficam preservados.
+FLX-64 — Cancelar uma obra não equivale a aprovar uma nova base de zero euros: a política da apresentação válida continua a aplicar-se. Também não se usa uma pequena proposta fictícia para depois acrescentar o âmbito já conhecido. Reduções, substituições e aumentos anormais geram revisão, com direito a justificação.
+FLX-65 — Contactos já revelados não podem voltar a ser usados como garantia de cobrança de um acerto futuro. A proposta operacional é exigir pagamento do acerto positivo quando o aditamento é aceite e antes de financiar/executar a parcela acrescida, com o mecanismo contratual permitido. Esse acerto tem risco de cobrança próprio, a validar no piloto; não está protegido da mesma forma que a comissão inicial.
+FLX-66 — Um aumento da obra exige financiamento complementar confirmado pelo cliente antes da nova obrigação prevista. Uma redução liberta apenas excedente efetivamente disponível e elegível. Nem acertos da comissão nem custos internos da app são retirados desse financiamento adicional por defeito.
+34.11 Estados financeiros e consistência técnica
+FLX-67 — Manter dimensões de estado independentes: seleção da proposta; pagamento da comissão; apresentação; contrato; financiamento; execução; cada tranche; disputa. “Obra cancelada” não significa “comissão reembolsada”, “contrato terminado” ou “saldo devolvido”. Cada evento tem de ser demonstrável.
+FLX-68 — Comissão: por pagar → pagamento pendente → recebida → eventualmente em regularização → parcialmente ou totalmente regularizada. Apresentação: bloqueada → elegível → disponibilizada → eventualmente contestada. A contabilidade e o reconhecimento fiscal da receita são definidos separadamente; o nome do estado de produto não resolve esse tratamento.
+FLX-69 — Tranche: prevista → solicitada → em análise → autorizada → ordem reservada → enviada → confirmada ou falhada. Recusa, aprovação parcial e disputa são eventos com razões e valores. Depois da execução, uma devolução é novo movimento, não uma alteração retroativa do pagamento original.
+FLX-70 — Cada evento financeiro inclui identificador interno e externo, obra, obrigação, moeda, montante bruto, base e impostos quando aplicáveis, pagador, beneficiário, origem, estado, data, chave para evitar duplicação e ligação ao evento anterior. Atualizações recebidas fora de ordem não fazem regredir uma operação já conciliada.
+FLX-71 — Invariante do saldo da obra, na perspetiva operacional: entradas confirmadas mais recuperações confirmadas, menos pagamentos executados, reembolsos executados e saídas por estorno efetivamente ocorridas, igual ao saldo efetivamente controlado para a obra. Reservas internas são parte desse saldo, com disponibilidade reduzida; não são uma segunda entrada ou saída. Comissão e eventual caução pertencem a circuitos separados.
+FLX-72 — Um estorno bancário não é resolvido pela política de cancelamento da obra. Se ocorrer depois de libertar fundos, pode surgir uma obrigação de reposição perante o parceiro conforme o contrato. O sistema precisa de alertas, conciliação e responsáveis por esse risco. A ausência de garantia sobre a execução da pintura não elimina obrigações financeiras próprias da plataforma.
+FLX-73 — Antes de cada operação de saída: saldo elegível suficiente; autorização válida para montante e beneficiário; ausência de bloqueio incompatível; identidade e conta de destino verificadas; versão contratual correta; operação ainda não executada. Valores insuficientes impedem a ordem e explicam a causa; um administrador não pode ultrapassar o bloqueio editando um número.
+FLX-74 — A reconciliação compara movimentos internos com os do parceiro, identifica fundos sem correspondência e separa pendente de erro. A confirmação manual de recebimento por um gestor não substitui prova financeira verificável. Reembolsos e intervenções extraordinárias exigem motivo, evidência e separação de funções, sobretudo quando alterem beneficiário.
+FLX-75 — Os documentos financeiros identificam o emissor correto: comissão faturada pela plataforma ao pintor; obra faturada pelo prestador ao cliente, segundo o regime aplicável. O comprovativo de depósito no circuito não é automaticamente fatura da empreitada. A app pode facilitar emissão ou arquivo, sem atribuir a si a prestação da pintura.
+34.12 Parceiro de pagamentos e limites do modelo
+FLX-76 — O requisito comercial é conservar e libertar fundos de terceiros dentro da experiência da app. A implementação proposta usa parceiro autorizado com modelo de titularidade, segregação, autorizações, duração e resolução de disputas aceite por escrito. Não usar “fiel depositária” ou “escrow garantido” como promessa pública antes de confirmar o enquadramento e a capacidade contratual correspondente.
+FLX-77 — A documentação da Stripe distingue pagamentos manuais de escrow e indica prazo de 90 dias para países fora das exceções listadas. Isso não suporta, por si, a promessa de retenção por anos até decisão judicial. Referência RFL-02. A Mangopay descreve wallets capazes de conservar fundos e fluxos de repartição; a documentação pública não equivale à aprovação desta atividade e deste contrato. Referência RFL-03.
+FLX-78 — O dossier para o parceiro deve especificar: condomínios, particulares, profissionais e fornecedores; valores típicos e máximos operacionais esperados, sem confundir estes com teto de comissão; duração das obras e dos litígios; financiamento integral; tranches; reembolsos; destinatários; verificação de contas; meios de pagamento; comissões; risco de estornos; continuidade em caso de encerramento da plataforma.
+FLX-79 — Exigir resposta expressa sobre quem suporta saldos negativos e fraude, custos por entrada/saída/reembolso, reservas exigidas à plataforma, possibilidade e prazo de bloqueio em disputa, execução de acordos, tratamento de ordens judiciais e devolução de fundos quando um limite temporal for atingido. A reserva de risco exigida pelo parceiro à app não se confunde com caução cobrada ao pintor.
+FLX-80 — A plataforma não promete conclusão da obra, qualidade técnica, substituição gratuita ou reembolso de montantes já pagos ao prestador. Continua responsável pelas suas próprias prestações e obrigações aplicáveis: informação, tratamento de dados, cálculo, execução de instruções, registo e apoio contratados. Os textos dos ecrãs devem refletir esta fronteira sem ocultar o efeito de cada autorização.
+34.13 Operação pelos quatro backoffices
+FLX-81 — Cliente/condomínio: selecionar e reconfirmar a proposta; consultar contactos após apresentação; assinar a empreitada; financiar; ver o saldo e as tranches; aprovar, recusar ou pedir correções; apresentar disputa e aceitar acordo. A permissão para escolher pintor não implica automaticamente permissão para movimentar fundos. Empresas de administração podem ter dupla aprovação conforme o mandato e as regras configuradas.
+FLX-82 — Pintor: reconfirmar proposta e agenda; consultar cálculo e pagar comissão; receber contactos; confirmar medição; assinar; consultar confirmação do financiamento; pedir adiantamento ou tranche; apresentar prova; contestar recusa; aceitar acordo; consultar faturas e acertos. Não pode assinalar sozinho uma etapa como autorizada pelo cliente.
+FLX-83 — Fornecedor de tintas/material: confirmar produto, venda, fatura, quantidades e devoluções dentro do âmbito autorizado. Não aprova pagamentos da obra, não recebe acesso automático à morada ou ao contrato integral e não altera a comissão. A confirmação de compra pode integrar a evidência de uma etapa, mas não liberta uma tranche por si só.
+FLX-84 — Administradores/gestores da app: acompanhar exceções, verificar a apresentação, analisar pedidos de regularização, apoiar disputas, preparar movimentos permitidos e reconciliar resultados. Não escolhem unilateralmente a repartição de um litígio nem usam o saldo de uma obra para pagar obrigações de outra. Quem propõe uma regularização extraordinária não deve ser o único a aprová-la e executá-la.
+FLX-85 — Proposta de prazos operacionais do piloto: até dois dias úteis para o pintor reconfirmar/pagar depois de seleção válida; reconfirmação do cliente atualizada se a seleção ficar parada; até cinco dias úteis para confirmação técnica e plano de contratação, salvo visita agendada; financiamento na data acordada; três dias úteis como objetivo de resposta a pedido de tranche. Estes prazos são parâmetros propostos, não prazos legais nem autorização de pagamento por silêncio.
+FLX-86 — Se houver silêncio na tranche, enviar lembrete e encaminhar para apoio e para o mecanismo contratual de resolução. Não libertar automaticamente fundos por expirar um contador. A data-limite para financiar, o início previsto e as consequências de atraso devem constar do compromisso da obra, com possibilidade de reprogramação aceite.
+34.14 Decisões propostas para fechar antes dos ecrãs finais
+
+Tema
+ | Recomendação para trabalhar
+ | Estado / referência
+ | Base da comissão
+ | Valor aprovado da obra sem IVA; imposto da comissão separado.
+ | PROPOSTO — PEN-01/02.
+ | Caução e reserva
+ | Sem segunda caução ao pintor e sem reserva do cliente antes da apresentação.
+ | PROPOSTO — PEN-03/04/05.
+ | Momento da vinculação
+ | Seleção para apresentação; contrato de empreitada depois de identificar partes.
+ | PROPOSTO / A VALIDAR — PEN-07.
+ | Cancelamentos
+ | Serviço não prestado ou inválido: regularizar; apresentação válida: sem reembolso automático.
+ | PROPOSTO / A VALIDAR — PEN-06.
+ | Variação da base
+ | Acerto simétrico em alterações reais aprovadas; cancelamento não torna a base zero.
+ | PROPOSTO — FIN-18 e FLX-59/66.
+ | Tranches
+ | Financiamento integral; autorização expressa; sem libertação por silêncio.
+ | PROPOSTO — PEN-08/18.
+ | Tolerância de área
+ | Manter x por decidir; custos fixos separados das rubricas variáveis.
+ | A VALIDAR — PEN-09/10.
+ | Custódia e disputas
+ | Parceiro autorizado que aceite retenção, repartição e responsabilidades concretas.
+ | A VALIDAR — PEN-08/19.
+ | 
+FLX-87 — Esta versão permite avançar para desenhos de ecrãs com as hipóteses sinalizadas. Antes de ativar cobrança real, devem estar fechados o regime da apresentação, a base e imposto da comissão, os acertos, cancelamentos, informação anterior à vinculação, modelo do parceiro e poderes de movimentação. Nenhum texto de proposta deste capítulo autoriza cobrar dinheiro real.
+FLX-88 — Para o piloto comercial, medir especialmente: seleções que chegam a pagamento de comissão; pagamentos que chegam a apresentação; apresentações que chegam a contrato; motivos de desistência por parte; tempo até financiar; reclamações de apresentação inválida; custo de pagamentos por obra; apoio por disputa; margem efetiva da app. Os dados devem separar apresentação falhada de empreitada que não se concluiu.
+FLX-89 — A validação com pintores deve testar expressamente a disposição para pagar 1 200 € antes de conhecer o cliente numa obra de 40 000 €, com o risco de não haver contrato. Uma resposta positiva à pergunta genérica “aceita pagar 3%?” não valida este momento de cobrança. No cliente, testar disponibilidade para financiar a totalidade antes de começar e entendimento da diferença entre saldo retido e dinheiro já pago.
+34.15 Critérios de aceitação deste percurso
+TFX-01 — Selecionar uma proposta de 40 000 € produz comissão base de 1 200 €, a cargo do pintor. Propostas de 2 000 €, 5 000 € e 100 000 € produzem, respetivamente, 150 €, 150 € e 3 000 €. O imposto da comissão aparece à parte e nenhum valor sofre teto.
+TFX-02 — Com comissão apenas autorizada ou pendente, a API, documentos, notificações e ficheiros não revelam identidade ou contactos. O recebimento confirmado só permite apresentação se a seleção e os restantes requisitos continuarem válidos.
+TFX-03 — Se o cliente retirar a seleção antes da apresentação e o pagamento chegar depois, o sistema regulariza sem revelar. Se a apresentação já ocorreu validamente, conserva esse facto e aplica a política correspondente, sem inventar anonimato.
+TFX-04 — Repetir a confirmação de recebimento não cobra outra comissão nem cria outra apresentação. Retomar a mesma obra com o mesmo par não dispara novo mínimo de 150 € por um simples reinício do processo.
+TFX-05 — Após financiamento de 40 000 € e primeira tranche de 4 000 €, o saldo da obra é 36 000 €. A comissão permanece 1 200 € no circuito da app e o pintor recebe 4 000 € nessa tranche, sem dupla dedução.
+TFX-06 — Uma tranche de 4 000 € aprovada para uma versão contratual não autoriza uma tranche posterior de 5 000 €. Repetição de ordem, atraso de notificação ou falha de rede não duplica pagamento.
+TFX-07 — O cancelamento depois de 4 000 € pagos mostra 36 000 € ainda controlados e 4 000 € já entregues. A app não permite um reembolso de 40 000 € usando apenas esse saldo.
+TFX-08 — Repartir o saldo de 36 000 € em 60%/40% produz 21 600 €/14 400 €. Atribuir ao pintor 60% do total de 40 000 €, descontando 4 000 € recebidos, produz pagamentos finais de 20 000 €/16 000 €. O utilizador vê a diferença antes de aceitar.
+TFX-09 — Num acordo com duas saídas, sucesso de uma e falha da outra mantém o processo parcialmente executado. Só a operação pendente pode ser repetida; o saldo é conciliado antes da repetição.
+TFX-10 — Se a política de acertos for aprovada, aumento confirmado de 40 000 € para 40 900 € gera acerto de 27 €, não nova comissão de 1 227 €. Redução para 39 100 € gera regularização de 27 €. Cancelamento não recalcula automaticamente a base para zero.
+TFX-11 — Uma fatura de tinta confirmada pelo fornecedor não autoriza uma tranche. Um gestor sem poderes financeiros não executa reembolso. Um silêncio do cliente não é convertido em aprovação.
+TFX-12 — O extrato distingue financiamento, comissão, impostos, reservas internas, transferências, pagamentos bancários, devoluções e estornos. O saldo reproduz o resultado do parceiro; nenhuma caução adicional existe no percurso proposto sem decisão expressa.
+Estes são critérios para a futura implementação. Nesta revisão verificaram-se a coerência do documento e os cálculos dos exemplos; não existe ainda aplicação funcional nem foram executados testes de pagamentos reais.
+34.16 Fontes e passagem ao desenho dos ecrãs
+RFL-01 — DL n.º 24/2014, versão consolidada disponibilizada pela Procuradoria-Geral Distrital de Lisboa. Consultado em 17/10/2026. Apoio à dependência de informação pré-contratual e direitos nos casos abrangidos; não substitui análise da relação específica. https://pgdlisboa.pt/leis/lei_print_articulado.php?nid=2062&tabela=leis
+RFL-02 — Stripe, Using manual payouts. Consultado em 17/10/2026. Limitações da retenção por pagamentos manuais e distinção face a escrow. https://docs.stripe.com/connect/manual-payouts
+RFL-03 — Mangopay, E-wallet system. Consultado em 17/10/2026. Modelo de wallets, entradas, transferências e saídas; confirmação contratual deste caso de uso continua pendente. https://docs.mangopay.com/guides/e-wallet-system
+Continuidade aprovada: depois deste percurso, desenhar os ecrãs principais; construir um protótipo navegável com um prédio e três propostas fictícias; testar com administrações, pintores e fornecedores; fechar a primeira versão a desenvolver. A validação jurídica e do parceiro decorre em paralelo aos pontos que dela dependem.
+O capítulo 35 transforma este percurso em ecrãs, abrangendo seleção e reconfirmação, comissão, apresentação, confirmação técnica, assinatura, financiamento, etapas, tranches, cancelamentos, disputas e operação interna. Os ecrãs de pedido, medição, proposta e comparação ligam-se aos capítulos funcionais anteriores.
+35. Mapa funcional dos ecrãs e navegação — desenvolvimento v0.3
+Esta revisão desenvolve o segundo passo da sequência aceite: transformar requisitos e percursos em ecrãs concretos. Define menus, conteúdo, ações, permissões, estados e esquemas de disposição para os quatro backoffices. Trata-se de especificação funcional com esquemas de baixa fidelidade; ainda não existe protótipo navegável, aplicação operacional ou identidade visual aprovada.
+As regras novas do capítulo 34 continuam identificadas como propostas ou dependências de validação. O desenho usa essas hipóteses para avançar, sem as converter em condições comerciais aprovadas. Exemplos de edifício, profissionais, avaliações, valores e produtos neste capítulo são fictícios.
+35.1 Estrutura comum e princípios dos ecrãs
+UX-01 — No computador, usar navegação lateral por função, cabeçalho com organização ativa e uma zona central de trabalho. No telemóvel, dar prioridade às tarefas de captura, consulta, mensagens, acompanhamento e aprovação, com navegação compacta. A organização e a obra ativa permanecem visíveis em ações financeiras; mudar de organização não mantém silenciosamente permissões ou dados do contexto anterior.
+UX-02 — Uma pessoa pode ter várias funções, mediante autorização. Mudar entre condomínio, empresa de administração, pintor ou fornecedor exige escolher o contexto correto. As permissões pertencem à relação com a organização, não apenas ao endereço de email. Um gestor interno da app entra numa área própria, sem se fazer passar silenciosamente pelo utilizador.
+UX-03 — Cada ecrã tem título claro, estado atual, próxima ação e motivo de bloqueio quando exista. O botão principal descreve o efeito: “Publicar pedido”, “Enviar proposta”, “Pagar apresentação”, “Autorizar pagamento” ou “Aceitar acordo”. Evitar um “Confirmar” genérico para operações de natureza diferente.
+UX-04 — Guardar rascunhos e permitir retoma sem perder fotografias, medições ou textos. Uma ação financeira nunca fica em fila para ser executada automaticamente quando o telemóvel recuperar rede: exige estado atualizado e confirmação válida. Captura sem rede pode guardar elementos localmente de forma protegida e mostrar claramente o que ainda não foi enviado.
+UX-05 — Todas as quantias indicam se incluem impostos. Quando existirem taxas diferentes ou valores fiscais por apurar, não mostrar um total definitivo fictício. O estado “a calcular” impede cobrança. Estados não são identificados apenas pela cor; botões, formulários e documentos devem poder ser usados com teclado e tecnologias de apoio.
+UX-06 — O mesmo dossier de obra tem vistas diferentes por função. Informação privada não é descarregada para o dispositivo antes de estar autorizada. Ocultar um nome visualmente não basta se ele continuar em URLs, anexos, propriedades de ficheiros, textos alternativos ou dados enviados ao navegador.
+UX-07 — Antes da apresentação, identificar profissionais por alias do pedido. Mostrar competências, verificações e avaliações em formato que reduza identificação indevida, sem logos, contactos, NIF, links externos ou excertos de avaliações que revelem a empresa. A plataforma conhece as identidades para operar; o anonimato é entre as partes ainda não apresentadas.
+UX-08 — Documentos e decisões mostram a versão pertinente. Quando preço, âmbito, destinatário ou plano de pagamentos mudar, o ecrã sinaliza a diferença e pede nova aceitação quando necessária. Não apresentar como atual uma autorização dada sobre outra versão.
+UX-09 — Cada ecrã tem estados previstos para carregamento, ausência de dados, sucesso, erro, falta de permissão e informação desatualizada. Erros explicam o que fazer sem expor dados de terceiros. O utilizador consegue sair de uma etapa bloqueada guardando o seu trabalho.
+UX-10 — As notificações remetem para a ação dentro da app. Antes da apresentação, o assunto e a pré-visualização de emails/notificações não revelam local ou contraparte. Depois, divulgar apenas o necessário para o destinatário autorizado.
+35.2 Menus e inventário dos quatro backoffices
+Cliente/condomínio — menus propostos: Visão geral; Condomínios e imóveis; Pedidos; Propostas; Obras; Pagamentos; Documentos; Mensagens; Equipa. Um particular vê “Os meus imóveis” e não precisa de gerir assembleias ou múltiplos condomínios.
+
+Ecrã
+ | Conteúdo / finalidade
+ | Ação principal
+ | ECR-C01
+ | Carteira de imóveis, pedidos e pendências.
+ | Criar pedido / abrir obra.
+ | ECR-C02
+ | Dados e âmbito de uma nova pintura.
+ | Guardar e continuar.
+ | ECR-C03
+ | Captura de fachadas e pormenores.
+ | Registar / repetir imagem.
+ | ECR-C04
+ | Medição manual assistida e volume.
+ | Confirmar superfícies.
+ | ECR-C05
+ | Revisão do anúncio anónimo.
+ | Publicar pedido.
+ | ECR-C06
+ | Propostas e diferenças comparáveis.
+ | Analisar / escolher proposta.
+ | ECR-C07
+ | Seleção e reconfirmação de interesse.
+ | Pedir apresentação.
+ | ECR-C08
+ | Partes apresentadas e contactos.
+ | Agendar confirmação técnica.
+ | ECR-C09
+ | Condições finais e contrato.
+ | Rever / assinar.
+ | ECR-C10
+ | Financiamento integral da obra.
+ | Financiar valor acordado.
+ | ECR-C11
+ | Estado da obra, etapas e saldos.
+ | Consultar próxima ação.
+ | ECR-C12
+ | Pedido de tranche e consequências.
+ | Autorizar / pedir correção.
+ | ECR-C13
+ | Cancelamento e efeitos por fase.
+ | Submeter pedido.
+ | ECR-C14
+ | Disputa e propostas de acordo.
+ | Propor / aceitar solução.
+ | ECR-C15
+ | Entrega, pendências e fecho.
+ | Aceitar fecho.
+ | ECR-C16
+ | Avaliação da relação elegível.
+ | Publicar avaliação.
+ | 
+Pintor — menus propostos: Oportunidades; Propostas; Obras; Materiais; Pagamentos e comissões; Documentos; Mensagens; Perfil e equipa. O painel distingue dinheiro da obra, comissões da app e quaisquer regularizações.
+
+Ecrã
+ | Conteúdo / finalidade
+ | Ação principal
+ | ECR-P01
+ | Oportunidades por zona e especialidade.
+ | Abrir pedido.
+ | ECR-P02
+ | Obra anónima, 3D e esclarecimentos.
+ | Preparar proposta.
+ | ECR-P03
+ | Trabalhos, preço, condições e prazo.
+ | Submeter proposta.
+ | ECR-P04
+ | Ajuda técnica com fontes.
+ | Rever / incorporar sugestão.
+ | ECR-P05
+ | Produtos e fornecedores.
+ | Associar produto.
+ | ECR-P06
+ | Seleção e comissão detalhada.
+ | Reconfirmar e pagar.
+ | ECR-P07
+ | Acompanhamento do pagamento.
+ | Retomar operação elegível.
+ | ECR-P08
+ | Apresentação e contrato; vistas C08/C09.
+ | Confirmar e assinar.
+ | ECR-P09
+ | Execução, materiais e alterações.
+ | Atualizar obra.
+ | ECR-P10
+ | Etapa executada e evidências.
+ | Pedir tranche.
+ | ECR-P11
+ | Recebimentos, comissões e acertos.
+ | Consultar extrato.
+ | ECR-P12
+ | Empresa, equipa e verificações.
+ | Manter perfil e poderes.
+ | 
+Fornecedor de materiais — menus propostos: Painel; Catálogo; Fichas técnicas; Vendas associadas; Devoluções; Verificações; Equipa. Não se pressupõe uma loja com pagamento de materiais dentro da app nesta fase; o âmbito inicial é catálogo e evidência de aquisição.
+
+Ecrã
+ | Conteúdo / finalidade
+ | Ação principal
+ | ECR-F01
+ | Entidade e estatuto de verificação.
+ | Submeter documentação.
+ | ECR-F02
+ | Produtos, variantes e embalagens.
+ | Gerir catálogo.
+ | ECR-F03
+ | Fichas técnicas e respetivas versões.
+ | Atualizar fonte/documento.
+ | ECR-F04
+ | Venda a pintor e evidência de aquisição.
+ | Confirmar venda.
+ | ECR-F05
+ | Devoluções, notas de crédito e correções.
+ | Regularizar evidência.
+ | ECR-F06
+ | Histórico e associações autorizadas.
+ | Consultar / responder.
+ | 
+Administração da app — menus propostos: Operação; Utilizadores e verificações; Pedidos e privacidade; Pagamentos; Disputas; Regras; Avaliações; Indicadores; Auditoria. Perfis de apoio, financeiro, moderação e gestão têm acessos distintos.
+
+Ecrã
+ | Conteúdo / finalidade
+ | Ação principal
+ | ECR-A01
+ | Filas, responsáveis e pendências.
+ | Atribuir / tratar caso.
+ | ECR-A02
+ | Identidades, representação e poderes.
+ | Verificar / pedir elementos.
+ | ECR-A03
+ | Originais e publicação anónima.
+ | Rever e aprovar publicação.
+ | ECR-A04
+ | Movimentos e diferenças de conciliação.
+ | Tratar operação autorizada.
+ | ECR-A05
+ | Disputas, prova e acordos.
+ | Acompanhar resolução.
+ | ECR-A06
+ | Regras, versões, acessos e auditoria.
+ | Publicar configuração aprovada.
+ | ECR-A07
+ | Avaliações, denúncias e respostas.
+ | Moderar com fundamento.
+ | ECR-A08
+ | Conversão, qualidade, custos e margem.
+ | Analisar operação.
+ | 
+35.3 Criar pedido, fotografar e calcular áreas
+ECR-C02 — Novo pedido. Entrada pelo imóvel selecionado ou por “Adicionar imóvel”. Campos: tipo de obra, zonas a pintar, número de pisos, fachadas, varandas, calendário pretendido, acessos conhecidos, estado atual descrito, orçamento opcional e representante. A morada exata pertence à área privada; a localização publicável é escolhida separadamente e revista pela app.
+Disposição: passos curtos “Obra”, “Imagens”, “Áreas”, “Condições” e “Revisão”. A primeira escolha oferece “Indicar áreas manualmente” e “Usar ajuda de medição”. Não obrigar quem já tem medições a percorrer a captura fotográfica completa. Guardar rascunho em qualquer passo; publicar só depois da revisão.
+ECR-C03 — Captura orientada. Mostrar a zona a registar, instruções simples de enquadramento e uma lista das fachadas/detalhes já recolhidos. Para o exemplo de três pisos e varandas em duas fachadas, pedir vistas gerais e detalhes úteis de guardas, tetos de varanda, juntas, base e zonas degradadas. Não incentivar a subida a locais perigosos; permitir marcar uma zona inacessível.
+O ecrã apresenta qualidade suficiente/insuficiente para a finalidade, necessidade de escala ou medida de referência e aviso quando a geometria não pode ser estimada. A app não extrai metros quadrados exatos de qualquer fotografia sem referência. O utilizador pode recapturar, introduzir medida manual ou pedir revisão; um resultado em falta não é preenchido por invenção.
+ECR-C04 — Áreas e volume. À esquerda, lista de superfícies; ao centro, volume 3D simplificado ou esquema 2D quando o 3D não estiver disponível; à direita, cálculo da superfície selecionada. Campos: largura, altura, multiplicador, vãos descontados, unidade, origem da medida, observações e área final aceite. A edição de uma fachada não altera outras sem ação explícita.
+O volume inclui elementos relevantes para executar e orçamentar: varandas, reentrâncias, empenas e volumes contíguos simplificados. Permitir rodar, isolar uma fachada e selecionar um pormenor. Indicar zonas não modeladas. O pintor tem também lista e medidas: a informação essencial não depende exclusivamente da navegação em 3D.
+A ficha de área distingue “medido pelo utilizador”, “estimado a partir de imagens”, “confirmado por técnico” e “confirmado pelas partes”. Uma estimativa tem intervalo ou indicação qualitativa de incerteza quando justificável; não mostrar percentagem de confiança artificial. O total separa paredes, tetos, guardas, caixilharias e outras unidades de trabalho.
+ECR-C05 — Rever anúncio. Duas vistas: “Dados privados” e “O que os pintores vão ver”. A vista pública contém volume simplificado, superfícies, detalhes anonimizados, zona aproximada e condições. Imagens com matrículas, números, rostos, nomes ou elementos identificadores detetados ficam por rever antes de publicar.
+Ações: corrigir descrição; rever área; substituir detalhe; aceitar a versão publicável; publicar. A app conserva os originais em acesso restrito e o conjunto exato publicado. Uma revisão do anúncio depois de existirem propostas gera nova versão e permite aos pintores confirmar ou corrigir a sua proposta.
+35.4 Oportunidade, proposta e ajuda técnica do pintor
+ECR-P01 — Oportunidades. Filtros por zona, tipo de pintura, dimensão, disponibilidade e requisitos. Cada cartão mostra pedido anónimo, faixa de área quando adequada, complexidade conhecida e prazo para propor. A localização aproximada é suficientemente útil para deslocação, sem mapa que revele o edifício.
+ECR-P02 — Dossier anónimo. Separadores: Resumo; Volume e superfícies; Estado e detalhes; Condições; Perguntas. O pintor identifica lacunas e pede esclarecimentos à app/cliente pelo canal mediado. As respostas relevantes para comparar propostas devem ser disponibilizadas aos concorrentes de forma equivalente, sem divulgar preços ou informação privada de outro pintor.
+ECR-P03 — Construir proposta. Estrutura por superfície e trabalho: proteção, limpeza, remoção de revestimento, reparações, preparação, primário, acabamento, acessos/andaimes, resíduos e limpeza final. Cada rubrica admite incluído, excluído, opcional ou não aplicável. O pintor define preço global, discriminação necessária, produtos, demãos, quantidades, prazo, condições e validade.
+O editor combina uma lista de trabalhos com um resumo permanente: base sem imposto, imposto, preço final ao cliente, comissão prevista e montante após comissão antes dos demais custos. Alertar para rubricas essenciais sem indicação, opcionais misturados no total e divergências entre linhas e preço global. O sistema não força uma margem nem transforma um alerta em diagnóstico técnico.
+ECR-P04 — Assistente técnico. Abre no contexto de uma superfície ou problema, com a fotografia permitida e a descrição. Distingue hipótese observada, pergunta a esclarecer, trabalho sugerido e indicação documental de produto. A resposta identifica fabricante, ficha e versão quando se basear em aplicação de materiais; se não houver fonte adequada, indica a lacuna.
+As sugestões entram na proposta apenas por ação do pintor, com opção de editar e justificação quando relevante. O chat pode ajudar com consumo, sequência e compatibilidade, mas não assina a proposta nem certifica o suporte. O histórico guarda a resposta usada e a confirmação do profissional.
+ECR-P05 — Produtos. Pesquisar por categoria, fabricante, referência, utilização e fornecedor verificado. A ficha mostra designação exata, variante, embalagem, documentação, origem e data da informação. Uma sugestão patrocinada, se vier a existir, será identificada e não recebe automaticamente melhor pontuação técnica.
+“Adicionar à proposta” associa produto, superfície, finalidade, quantidade prevista e variante. Substituições posteriores pedem justificação e aceitação quando alterem o que foi contratado. A inclusão no orçamento aparece como “previsto”; só a prova de venda permite evoluir para “aquisição comprovada”.
+35.5 Comparar três propostas e escolher
+ECR-C06 — Comparador. Mostrar primeiro preço total, âmbito, principais diferenças, prazo, plano de pagamentos e avaliação com número de obras. Abrir depois as linhas detalhadas. O cliente alterna entre ordenar por preço, adequação ao pedido e critérios disponíveis; a ordenação explica os fatores e não usa um selo universal de “melhor” sem fundamento.
+Dados de demonstração: prédio de três pisos, varandas em duas fachadas e 1 000 m² de superfícies consideradas. Pintor A apresenta 37 000 € e exclui andaimes; B apresenta 40 000 € com andaimes; C apresenta 40 800 € com andaimes. A e B/C não são automaticamente equivalentes: falta conhecer e aceitar o custo de acesso de A. Todos os montantes desta demonstração são bases sem impostos, assinaladas como tal.
+
+Demonstração
+ | Pintor A
+ | Pintor B
+ | Pintor C
+ | Preço base
+ | 37 000 €
+ | 40 000 €
+ | 40 800 €
+ | Andaimes
+ | Excluídos; custo em falta.
+ | Incluídos.
+ | Incluídos.
+ | Preparação / reparações
+ | Consultar âmbito detalhado.
+ | Âmbito de referência incluído.
+ | Mesmo âmbito de referência.
+ | Materiais declarados
+ | Detalhe a confirmar.
+ | 3 000 €; produto B fictício.
+ | 4 200 €; produto C fictício.
+ | Avaliação fictícia
+ | 4,5 / 5 · 7 obras
+ | 4,6 / 5 · 12 obras
+ | 4,8 / 5 · 3 obras
+ | Prazo de demonstração
+ | 25 dias
+ | 30 dias
+ | 28 dias
+ | Leitura da app
+ | Preço ainda não comparável sem acessos.
+ | Referência comparável.
+ | +800 €; verificar diferenças.
+ | Ação
+ | Pedir esclarecimento
+ | Ver detalhes / selecionar
+ | Ver detalhes / selecionar
+ | 
+No exemplo comparável B/C, os materiais previstos são 3 000 € em B e 4 200 € em C. C custa globalmente mais 800 € (+2%), enquanto a diferença de materiais é 1 200 €, equivalente a 3% da base de B. As restantes rubricas totalizam menos 400 € em C. Isto descreve a decomposição declarada; não prova que C seja tecnicamente superior nem que tenha efetivamente aplicado os materiais.
+Quando faltarem preços ou quantidades comparáveis, apresentar “não foi possível isolar o efeito dos materiais”. Não inferir automaticamente custo real de aquisição a partir de preço público de catálogo. Distinguir valores declarados na proposta, estimativas da plataforma e vendas posteriormente comprovadas.
+ECR-C07 — Seleção e reconfirmação. Mostrar proposta e versão, preço, exclusões, calendário, condições de pagamento e o sentido da seleção para apresentação. O representante confirma poderes e intenção de prosseguir. Botão: “Selecionar proposta e pedir apresentação”. Se a política proposta do capítulo 34 for adotada, não há cobrança ao cliente neste ecrã.
+Depois da seleção, mostrar “A aguardar confirmação do pintor”. Permitir consultar, pedir apoio ou retirar a seleção antes do evento de apresentação, com o tratamento correspondente. As outras propostas não são apagadas e não desencadeiam comissões.
+35.6 Pagamento da apresentação e revelação dos contactos
+ECR-P06 — Proposta selecionada. O pintor vê confirmação recente do cliente, estado das verificações relevantes, valor, âmbito e agenda que está a reconfirmar. Não mostrar extratos bancários, morada ou identidade do cliente. Se o pedido não estiver suficientemente qualificado ou a proposta tiver expirado, resolver isso antes do pagamento.
+
+Pagar apresentação — esquema funcional
+ | Informação apresentada
+ | Obra
+ | Pedido anónimo · prédio de três pisos
+ | Proposta selecionada
+ | 40 000 € de base, na demonstração
+ | Comissão
+ | 3% = 1 200 €; mínimo de 150 € não acionado
+ | Imposto / total a pagar
+ | Apurar e mostrar antes de permitir pagamento
+ | O que recebe
+ | Apresentação das partes e acesso aos contactos autorizados
+ | Condição essencial
+ | A comissão remunera a apresentação; a empreitada será formalizada depois
+ | Ação final
+ | Pagar [total real] e receber apresentação
+ | Alternativa
+ | Pedir esclarecimento / comunicar indisponibilidade
+ | 
+O ecrã de cobrança mostra o imposto e o total real antes de permitir pagar. Os 1 200 € do esquema são a comissão base da demonstração. A ação final deve incluir o valor bruto real: “Pagar [total] e receber apresentação”. O texto explica que a comissão é pela apresentação e que a contratação da empreitada será formalizada depois.
+ECR-P07 — Estado do pagamento. Mostrar pendente, confirmado ou falhado, com possibilidade segura de retomar. Um pagamento pendente não apresenta novo botão de cobrança sem verificar a operação anterior. Enquanto faltarem condições para apresentação, o estado explica a pendência e mantém o acesso bloqueado.
+ECR-C08 — Apresentação das partes, vista comum ao cliente e pintor. Mostrar identidades e contactos autorizados, proposta que originou a relação, documentos de identificação/verificação estritamente necessários, morada da obra para o pintor e ações para agendar confirmação técnica ou preparar contrato. O evento financeiro não é exposto como fatura do cliente: foi pago pelo pintor.
+O ecrã permite comunicar um contacto inválido ou relação pré-existente ao suporte. Não tem um botão que apague a apresentação. Qualquer regularização mantém prova de quais os dados revelados e quando.
+35.7 Contrato, financiamento e acompanhamento da obra
+ECR-C09 — Confirmar condições e assinar. Separadores: Partes; Trabalhos; Áreas; Materiais; Prazo; Pagamentos; Cancelamentos; Documentos. Uma comparação entre proposta selecionada e contrato destaca mudanças de área, custo e condições. Campo de tolerância não pode ficar indefinido na versão final; o valor x é uma decisão ainda em aberto no produto.
+Antes de assinar, cada parte obtém uma versão completa e guardável. O sistema confirma representante, poderes e resultado da assinatura conforme a solução escolhida. A app não designa como assinatura qualificada uma mera imagem colada num PDF. A assinatura do contrato e a autorização de pagamentos posteriores são ações distintas.
+ECR-C10 — Financiar obra. Mostrar prestador identificado, contrato, preço bruto total, fundos já confirmados, valor ainda necessário, destinatário/circuito e meios aceites pelo parceiro. Não indicar uma conta bancária operacional da app como destino genérico de fundos de obras. Explicar que financiar não entrega automaticamente tudo ao pintor.
+Pagamento insuficiente, excessivo ou sem referência correta entra em tratamento específico. Uma quantia em processamento aparece separada do financiamento confirmado. O pintor vê o estado de financiamento necessário à obra, sem detalhes bancários privados do cliente.
+ECR-C11 / ECR-P09 — Painel da obra. Cabeçalho com estado, datas e próxima ação; cartões de financiamento confirmado, pago ao pintor e saldo; sequência de etapas com critérios e evidências; separadores de mensagens, documentos, materiais e alterações. No exemplo depois do adiantamento: financiado 40 000 €, pago 4 000 €, saldo 36 000 €, antes de impostos.
+O progresso físico e o progresso financeiro são indicadores diferentes. Receber um adiantamento de 10% não prova execução de 10% da pintura. O cliente vê a origem de cada atualização: declarada pelo pintor, confirmada por si, documentada por fornecedor ou analisada por técnico, quando exista.
+ECR-P10 — Pedir tranche. Selecionar etapa, indicar trabalhos efetuados, anexar evidência, confirmar valor previsto e submeter. Alterar o valor exige fluxo de alteração contratual quando ultrapasse o aprovado. A app não permite pedir duas vezes a mesma quantia ainda pendente como se fossem duas etapas.
+
+Autorizar tranche — esquema funcional
+ | Demonstração sem impostos
+ | Etapa
+ | Andaimes montados · 10% do valor base
+ | Pedido atual
+ | 4 000 € · prestador identificado
+ | Já pago / saldo antes
+ | 4 000 € / 36 000 €
+ | Evidências
+ | Documentos e imagens da etapa; observações
+ | Depois de executar
+ | Total pago: 8 000 € · saldo: 32 000 €
+ | Ação principal
+ | Autorizar pagamento [valor bruto real]
+ | Outras ações
+ | Pedir correção / recusar / discutir
+ | Consequência
+ | Montante pago deixa de estar disponível no saldo retido
+ | 
+ECR-C12 — Autorizar tranche. Ações distintas: autorizar; pedir correção; recusar com motivo; abrir discussão; aprovar parte se prevista. O resumo anterior ao último clique identifica valor bruto, destinatário, motivo, total já entregue e saldo após execução. Exige representante autorizado, versão atual e confirmação reforçada segundo a integração.
+Após aprovação, mostrar andamento real da ordem e eventual falha. Enquanto o parceiro não confirmar o resultado, não mostrar simultaneamente o valor como pago e como inteiramente disponível. A ausência de resposta do cliente gera lembretes e apoio, nunca aprovação tácita nesta proposta.
+35.8 Materiais, conclusão e avaliação
+ECR-F01 / ECR-F02 / ECR-F03 — Registo do fornecedor e catálogo. Recolher entidade, contactos, prova de atividade e relação com marcas quando alegada. Cada produto liga referência comercial, variante e ficha técnica identificada. Um selo de “fornecedor verificado pela app” não significa “revendedor autorizado da marca” sem prova específica.
+ECR-F04 — Associar venda. Entrada por convite do pintor ou referência de venda. Campos: comprador, número e data do documento, produtos, variantes, quantidades e eventual referência da obra. A associação à obra exige legitimidade e acesso autorizado. O fornecedor não recebe a lista completa de clientes do pintor.
+O documento original de compra pode conter dados comerciais e pessoais que não devem aparecer integralmente ao condomínio. A vista do cliente mostra o necessário para evidência do produto e quantidade, com origem e estado. O preço real de compra é uma política de visibilidade ainda por decidir; não o revelar por defeito no protótipo.
+ECR-F05 — Devolução ou correção. Associar nota de crédito/devolução à venda inicial e reduzir a quantidade líquida comprovada. Uma mesma unidade de material não pode comprovar compras ilimitadas em várias obras. Alertar o pintor para regularizar o dossier sem acusação automática de aplicação indevida.
+Estado mostrado ao cliente: “previsto na proposta”, “compra declarada pelo pintor”, “aquisição confirmada por fornecedor” e “devolução/correção registada”. Texto junto da confirmação: “Esta evidência comprova a aquisição indicada. Não confirma a aplicação nesta obra.” Fotografias de utilização podem complementar o dossier, sem se tornarem prova absoluta.
+ECR-C15 — Fechar obra. Lista de trabalhos e pendências, documentos finais, materiais declarados/comprovados, último pedido de pagamento e observações. Aceitar o fecho, aceitar com pendências acordadas ou recusar fundamentadamente são ações diferentes. A última autorização mostra o montante e o efeito financeiro como qualquer outra tranche.
+ECR-C16 — Avaliação. Dimensões propostas: qualidade percecionada, cumprimento do âmbito, comunicação, cumprimento de prazos e organização/limpeza, com comentário e evidência opcional. A escala e pesos mantêm-se por aprovar. A elegibilidade depende de relação real registada; cancelamentos são identificados separadamente de obras concluídas.
+O pintor pode responder e pedir revisão por conteúdo indevido. A moderação não remove uma avaliação apenas porque é negativa. A classificação exibida em futuras propostas mostra quantidade e contexto suficientes para não equiparar uma obra avaliada a dezenas de obras.
+35.9 Cancelamento, disputa e acordo
+ECR-C13 — Cancelar ou pedir cessação. Vista partilhada com o pintor, adaptada ao papel. Mostrar fase atual, se houve apresentação, valor financiado, dinheiro já pago e saldo disponível. Recolher motivo e documentação, apresentando consequências estimadas e o que exige análise. Não prometer reembolso integral por defeito.
+O formulário distingue quem inicia do motivo atribuído. Pedir ao cliente que carregue no botão não transforma automaticamente uma desistência do pintor em desistência do cliente. Uma declaração de cancelamento não apaga contrato, evidências ou movimentos financeiros.
+ECR-C14 — Disputa. Blocos: assunto e valores contestados; cronologia; documentos; posição de cada parte; propostas de solução; estado financeiro. A equipa da app vê a fila de ações e permissões; as partes veem os elementos necessários ao processo, sem notas internas ou dados de terceiros.
+
+Acordo de repartição — esquema funcional
+ | Demonstração sem impostos
+ | Financiado / já pago
+ | 40 000 € / 4 000 € ao pintor
+ | Saldo remanescente
+ | 36 000 €
+ | Base escolhida
+ | Saldo remanescente
+ | Repartição proposta
+ | 60% pintor / 40% cliente
+ | Novos movimentos
+ | 21 600 € para pintor / 14 400 € para cliente
+ | Resultado acumulado
+ | Pintor recebe 25 600 €; cliente recupera 14 400 €
+ | Comissão da app
+ | 1 200 €, separada; não alterada por esta repartição
+ | Ação
+ | Enviar proposta / aceitar versão recebida
+ | Execução
+ | Só após aceitação válida de ambas as partes
+ | 
+O construtor de acordo exige escolher “saldo ainda retido” ou “resultado final sobre o total da obra”, mostra pagamentos anteriores e calcula montantes adicionais. Ações: guardar proposta; enviar à contraparte; aceitar mesma versão; recusar; pedir alteração. Nenhuma proposta unilateral executa uma transferência.
+Acordo aceite mostra operações necessárias e estado individual de cada uma. Um acordo parcialmente executado permanece visível até conciliação. Sem acordo, o ecrã explica o encaminhamento aplicável sem atribuir ao gestor poder para decidir definitivamente o conflito.
+35.10 Ecrãs de administração e tratamento de exceções
+ECR-A01 — Central de operação. Filas por tipo de intervenção: pedido incompleto; imagem por rever; verificação pendente; pagamento sem correspondência; seleção expirada; tranche sem resposta; reclamação; disputa; devolução de material. Cada item tem prioridade, antiguidade, responsável e ligação ao dossier. Não usar uma lista única sem distinguir urgência financeira de apoio de utilização.
+ECR-A02 — Verificações. Consultar evidência e decidir aprovado, mais informação necessária ou recusado, com razão e validade. A verificação da entidade, a representação do condomínio e os poderes de autorizar pagamentos são campos separados. Dados sensíveis têm acesso restrito e histórico de consulta.
+ECR-A03 — Revisão de privacidade. Ver original e versão publicável em ambiente autorizado; marcar elementos; aplicar recorte/ocultação; rever volume e contexto; aprovar publicação. O original nunca entra no anúncio por um erro de seleção de ficheiro. Alterações deixam trilho de versão e responsável.
+ECR-A04 — Operações financeiras. Separadores de comissões, fundos de obras, ordens, reembolsos, estornos e diferenças de conciliação. Cada operação mostra origem, estado externo, obrigação e prova. Um gestor pode preparar uma ação permitida; a autorização depende do papel e do fundamento. Não existe campo livre “editar saldo”.
+ECR-A05 — Gestão de disputas. Dossier cronológico, posições das partes, montante bloqueado e fundamento, operações já executadas, acordos e prazos de revisão. O gestor facilita e executa o que esteja autorizado; não escolhe uma percentagem final sem acordo ou decisão aplicável.
+ECR-A06 — Regras e versões. Gerir parâmetros autorizados: comissão, mínimo, regras de arredondamento, documentos, prazos operacionais, permissões e textos. Mostrar valor atual, nova versão, data de efeito e âmbito. Não mudar a comissão de relações anteriores por editar o parâmetro de novas propostas. O campo de teto não deve existir como regra comercial ativa enquanto a decisão for ausência de máximo.
+ECR-A07 — Avaliações e moderação. Consultar avaliação, relação elegível, resposta, denúncia e decisão fundamentada. Manter histórico de alteração. Separar remoção de dados identificadores indevidos da alteração do conteúdo crítico legítimo.
+ECR-A08 — Indicadores. Apresentar funil de pedido a obra, desistências, conversão de apresentação em contrato, margem por obra, custo de apoio, incidentes, disputas e qualidade das propostas. O indicador de receita de comissão não soma o dinheiro de obras retido pelo parceiro.
+35.11 Ligações, prioridades e critérios para o protótipo
+NAV-01 — Percurso do cliente: C01 → C02 → C03/C04 → C05 → C06 → C07 → C08 → C09 → C10 → C11 → C12 → C15 → C16. C03 é opcional quando a informação necessária existe por outra via; C04 mantém a inserção manual. C13 e C14 são saídas de exceção a partir dos estados elegíveis.
+NAV-02 — Percurso do pintor: P01 → P02 → P03, com P04/P05 de apoio → P06 → P07 → C08/C09 na vista de prestador → P09 → P10 → P11. As identificações comuns C08/C09 referem-se ao mesmo componente funcional, com permissões próprias, não ao acesso ao backoffice privado do cliente.
+NAV-03 — Percurso do fornecedor: F01 → F02/F03 → F04 → F06; F05 corrige uma venda existente. A confirmação de venda atualiza o dossier de materiais da obra, mas não muda autorização de tranche nem o estado físico de execução.
+NAV-04 — As exceções chegam a A01 e seguem para A02 a A07 conforme a matéria. A operação permanece ligada à obra e à versão que a originou. O apoio não precisa de acesso irrestrito a todas as contas para tratar um pedido.
+PRT-01 — Primeiro protótipo navegável: um prédio fictício, três propostas, quatro perfis e um percurso completo. Priorizar criação com medição manual, captura demonstrativa, volume representativo, editor de proposta, comparação, comissão simulada, apresentação, contrato demonstrativo, financiamento simulado, tranche, prova de material e disputa. As simulações devem estar identificadas no ecrã.
+PRT-02 — No protótipo, o 3D e a deteção de defeitos podem usar resultados de demonstração previamente preparados; isso não valida reconstrução automática por fotografias. Pagamentos, assinaturas, fichas técnicas e verificações não devem produzir efeitos reais. Cada integração real terá prova técnica própria antes de entrar em produção.
+PRT-03 — Roteiro de avaliação: administração cria pedido e percebe diferenças entre propostas; pintor prepara preço e compreende o custo e momento de cobrança; cliente financia e distingue adiantamento de saldo retido; fornecedor confirma venda sem expor informação desnecessária; gestor resolve um pagamento falhado e um acordo parcial.
+PRT-04 — Aceitação do desenho: nenhum ecrã revela identidades antes do evento autorizado; a inserção manual de m² está acessível; uma rubrica excluída aparece no comparador; o total e o imposto são claros; uma compra confirmada não é rotulada como aplicação certificada; o saldo da obra fecha; nenhum botão cobra ou liberta dinheiro duas vezes.
+PRT-05 — Permanecem por escolher nome comercial, identidade visual, escala de avaliação, pesos de ranking, x% de tolerância e políticas comerciais pendentes. O protótipo deve permitir alterar estes parâmetros sem os apresentar como decisões aprovadas. Não se define nesta revisão orçamento, prazo de desenvolvimento ou fornecedor tecnológico definitivo.
+

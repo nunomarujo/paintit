@@ -13,6 +13,8 @@ vive neste repositório.
 
 ## Onde está o quê
 
+- **`docs/ESTADO.md` — ponto de situação. Ler primeiro em cada sessão nova; atualizar no fim de cada sessão.**
+- `docs/requisitos/` — Documento Mestre de Requisitos v0.3 (o `.txt` serve para pesquisar).
 - `docs/MODELO.md` — o modelo de contratação e dinheiro. Ler antes de mexer em `src/domain/engagement.ts`.
 - `docs/DECISOES.md` — decisões tomadas e em aberto, com data. Atualizar no mesmo commit que muda uma regra.
 - `docs/ROADMAP.md` — fases do produto e do negócio.
