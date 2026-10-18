@@ -40,7 +40,8 @@ Fontes:
 | 3–6 | Por fazer (`docs/ROADMAP.md`) |
 
 Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 4 migrações aplicadas, avisos de segurança a
-zero. Ainda sem contas criadas.
+zero. Primeira conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde
+18/10/2026. A app corre localmente (`npm run dev`); ainda não está alojada.
 
 ## Próximo passo
 
@@ -56,8 +57,7 @@ mensagens com filtro de contactos), usando `src/components/ListingPreview.tsx` c
 ## Pendente do promotor
 
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,
-alojamento) e, depois de entrar pela primeira vez na app, pedir para a sua conta ser acrescentada a
-`platform_admins`.
+alojamento).
 
 ## Como se trabalha aqui
 

@@ -38,7 +38,6 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | Supabase › Authentication › URL Configuration | Site URL e Redirect URLs, quando houver domínio | `https://<domínio>` e `https://<domínio>/auth/confirmar` |
 | Supabase › Authentication › SMTP | Envio de emails por um serviço próprio (o envio de origem tem limites baixos e cai no spam) | Por escolher |
 | Alojamento | Publicar a app (por exemplo Vercel, região UE) com as variáveis de `.env.example` | Por decidir |
-| App | Entrar pela primeira vez, para a conta ser acrescentada à equipa da plataforma (`platform_admins`) | Conta do promotor |
 
 ## Em aberto (com a proposta implementada por omissão)
 
