@@ -1,0 +1,6 @@
+// Destino depois de entrar: só caminhos internos da área reservada, para que um
+// link manipulado não leve o utilizador para fora do site.
+export function safeNext(value: string | null | undefined): string {
+  if (!value || !value.startsWith('/app') || value.startsWith('//')) return '/app';
+  return value;
+}

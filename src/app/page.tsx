@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { FeeSimulator } from '@/components/FeeSimulator';
 import { BRAND } from '@/config/brand';
 
@@ -53,6 +54,9 @@ export default function Home() {
             <a href="#como-funciona">Como funciona</a>
             <a href="#simulador">Simulador</a>
             <a href="#perguntas">Perguntas</a>
+            <Link href="/entrar" className="font-semibold text-tinta-700">
+              Entrar
+            </Link>
           </nav>
         </div>
       </header>

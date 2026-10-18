@@ -1,0 +1,226 @@
+import { isValidNif, normalizeNif } from './nif';
+
+// Organizações e prédios: tipos e validação partilhados pela interface e pelo
+// servidor. A base de dados repete as restrições essenciais (NIF, código
+// postal) para que um pedido que contorne a interface também seja recusado.
+
+export const ORG_KINDS = ['condominio', 'administradora', 'particular', 'pintor', 'fornecedor'] as const;
+export type OrgKind = (typeof ORG_KINDS)[number];
+
+export const ORG_KIND_LABELS: Record<OrgKind, string> = {
+  condominio: 'Condomínio',
+  administradora: 'Empresa de administração de condomínios',
+  particular: 'Particular',
+  pintor: 'Pintor ou empresa de pintura',
+  fornecedor: 'Fornecedor de tintas e materiais',
+};
+
+export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'leitor'] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+export const BUILDING_KINDS = ['edificio_habitacao', 'edificio_misto', 'moradia', 'apartamento', 'comercial'] as const;
+export type BuildingKind = (typeof BUILDING_KINDS)[number];
+
+export const BUILDING_KIND_LABELS: Record<BuildingKind, string> = {
+  edificio_habitacao: 'Edifício de habitação',
+  edificio_misto: 'Edifício misto (habitação e comércio)',
+  moradia: 'Moradia',
+  apartamento: 'Apartamento',
+  comercial: 'Edifício comercial ou de serviços',
+};
+
+export const DOC_KINDS = [
+  'certidao_permanente',
+  'ata_nomeacao_administrador',
+  'ata_aprovacao_obra',
+  'alvara_impic',
+  'certificado_impic',
+  'seguro_acidentes_trabalho',
+  'seguro_responsabilidade_civil',
+  'declaracao_nao_divida_at',
+  'declaracao_nao_divida_ss',
+  'autorizacao_marca',
+  'outro',
+] as const;
+export type DocKind = (typeof DOC_KINDS)[number];
+
+export const DOC_KIND_LABELS: Record<DocKind, string> = {
+  certidao_permanente: 'Certidão permanente (registo comercial)',
+  ata_nomeacao_administrador: 'Ata de nomeação do administrador',
+  ata_aprovacao_obra: 'Ata da assembleia que aprova a obra',
+  alvara_impic: 'Alvará de construção (IMPIC)',
+  certificado_impic: 'Certificado de empreiteiro (IMPIC)',
+  seguro_acidentes_trabalho: 'Seguro de acidentes de trabalho',
+  seguro_responsabilidade_civil: 'Seguro de responsabilidade civil',
+  declaracao_nao_divida_at: 'Declaração de não dívida às Finanças',
+  declaracao_nao_divida_ss: 'Declaração de não dívida à Segurança Social',
+  autorizacao_marca: 'Autorização de revenda de marca',
+  outro: 'Outro documento',
+};
+
+/**
+ * Documentos que cada tipo de entidade deve submeter para ser verificada.
+ * Para o pintor, basta um de alvará ou certificado do IMPIC (consoante o valor
+ * das obras); a exigência exata está por validar (questão E4).
+ */
+export const EXPECTED_DOCS: Record<OrgKind, DocKind[][]> = {
+  condominio: [['ata_nomeacao_administrador']],
+  administradora: [['certidao_permanente']],
+  particular: [],
+  pintor: [
+    ['alvara_impic', 'certificado_impic'],
+    ['seguro_acidentes_trabalho'],
+    ['seguro_responsabilidade_civil'],
+    ['declaracao_nao_divida_at'],
+    ['declaracao_nao_divida_ss'],
+  ],
+  fornecedor: [['certidao_permanente']],
+};
+
+/** Grupos de documentos ainda em falta, contando os submetidos e os aprovados. */
+export function missingDocs(kind: OrgKind, submitted: { kind: DocKind; status: string }[]): DocKind[][] {
+  const usable = new Set(submitted.filter((d) => d.status !== 'rejeitado' && d.status !== 'expirado').map((d) => d.kind));
+  return EXPECTED_DOCS[kind].filter((group) => !group.some((k) => usable.has(k)));
+}
+
+export type FieldErrors = Record<string, string>;
+
+export interface OrganizationInput {
+  kind: OrgKind;
+  nome: string;
+  nif: string | null;
+  moradaFiscal: string | null;
+  codigoPostal: string | null;
+  localidade: string | null;
+  emailContacto: string | null;
+  telefone: string | null;
+  atendimentoPublico: string | null;
+  geridaPor: string | null;
+}
+
+export interface BuildingInput {
+  nomeInterno: string;
+  tipo: BuildingKind;
+  morada: string;
+  codigoPostal: string;
+  localidade: string;
+  concelho: string;
+  artigoMatricial: string | null;
+  pisos: number | null;
+  fracoes: number | null;
+  fachadas: number | null;
+  anoConstrucao: number | null;
+  temVarandas: boolean;
+  temElevador: boolean;
+  acessos: string | null;
+}
+
+const POSTAL_CODE = /^\d{4}-\d{3}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function text(value: FormDataEntryValue | null): string | null {
+  const s = typeof value === 'string' ? value.trim() : '';
+  return s === '' ? null : s;
+}
+
+function int(value: FormDataEntryValue | null): number | null | 'invalid' {
+  const s = text(value);
+  if (s === null) return null;
+  return /^\d+$/.test(s) ? Number(s) : 'invalid';
+}
+
+// O NIF é obrigatório para quem contrata ou fatura; um particular pode
+// registar-se sem ele e só o indica quando contratar.
+const NIF_REQUIRED: OrgKind[] = ['condominio', 'administradora', 'pintor', 'fornecedor'];
+
+export function parseOrganization(form: FormData): { value?: OrganizationInput; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const kind = text(form.get('kind'));
+  if (!kind || !(ORG_KINDS as readonly string[]).includes(kind)) errors.kind = 'Escolha o tipo de entidade.';
+
+  const nome = text(form.get('nome'));
+  if (!nome) errors.nome = 'Indique o nome ou a denominação.';
+
+  const rawNif = text(form.get('nif'));
+  const nif = rawNif ? normalizeNif(rawNif) : null;
+  if (nif && !isValidNif(nif)) errors.nif = 'NIF inválido: confirme os 9 algarismos.';
+  if (!nif && kind && NIF_REQUIRED.includes(kind as OrgKind)) errors.nif = 'O NIF é obrigatório para esta entidade.';
+
+  const codigoPostal = text(form.get('codigoPostal'));
+  if (codigoPostal && !POSTAL_CODE.test(codigoPostal)) errors.codigoPostal = 'Use o formato 0000-000.';
+
+  const emailContacto = text(form.get('emailContacto'));
+  if (emailContacto && !EMAIL.test(emailContacto)) errors.emailContacto = 'Email inválido.';
+
+  const geridaPor = text(form.get('geridaPor'));
+  if (geridaPor && kind !== 'condominio') errors.geridaPor = 'Só um condomínio pode ser gerido por uma administradora.';
+
+  if (Object.keys(errors).length > 0) return { errors };
+  return {
+    errors,
+    value: {
+      kind: kind as OrgKind,
+      nome: nome!,
+      nif,
+      moradaFiscal: text(form.get('moradaFiscal')),
+      codigoPostal,
+      localidade: text(form.get('localidade')),
+      emailContacto,
+      telefone: text(form.get('telefone')),
+      atendimentoPublico: text(form.get('atendimentoPublico')),
+      geridaPor,
+    },
+  };
+}
+
+export function parseBuilding(form: FormData): { value?: BuildingInput; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const nomeInterno = text(form.get('nomeInterno'));
+  if (!nomeInterno) errors.nomeInterno = 'Dê um nome ao prédio (por exemplo, a rua e o número).';
+
+  const tipo = text(form.get('tipo'));
+  if (!tipo || !(BUILDING_KINDS as readonly string[]).includes(tipo)) errors.tipo = 'Escolha o tipo de imóvel.';
+
+  const morada = text(form.get('morada'));
+  if (!morada) errors.morada = 'Indique a morada.';
+  const codigoPostal = text(form.get('codigoPostal'));
+  if (!codigoPostal || !POSTAL_CODE.test(codigoPostal)) errors.codigoPostal = 'Use o formato 0000-000.';
+  const localidade = text(form.get('localidade'));
+  if (!localidade) errors.localidade = 'Indique a localidade.';
+  const concelho = text(form.get('concelho'));
+  if (!concelho) errors.concelho = 'Indique o concelho: é a única localização mostrada aos pintores.';
+
+  const ranges: [string, number, number][] = [
+    ['pisos', 0, 100],
+    ['fracoes', 0, 2000],
+    ['fachadas', 0, 8],
+    ['anoConstrucao', 1500, 2100],
+  ];
+  const numbers: Record<string, number | null> = {};
+  for (const [field, min, max] of ranges) {
+    const n = int(form.get(field));
+    if (n === 'invalid' || (n !== null && (n < min || n > max))) errors[field] = `Valor entre ${min} e ${max}.`;
+    else numbers[field] = n;
+  }
+
+  if (Object.keys(errors).length > 0) return { errors };
+  return {
+    errors,
+    value: {
+      nomeInterno: nomeInterno!,
+      tipo: tipo as BuildingKind,
+      morada: morada!,
+      codigoPostal: codigoPostal!,
+      localidade: localidade!,
+      concelho: concelho!,
+      artigoMatricial: text(form.get('artigoMatricial')),
+      pisos: numbers.pisos ?? null,
+      fracoes: numbers.fracoes ?? null,
+      fachadas: numbers.fachadas ?? null,
+      anoConstrucao: numbers.anoConstrucao ?? null,
+      temVarandas: form.get('temVarandas') === 'on',
+      temElevador: form.get('temElevador') === 'on',
+      acessos: text(form.get('acessos')),
+    },
+  };
+}

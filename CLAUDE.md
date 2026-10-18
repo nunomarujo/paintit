@@ -20,8 +20,19 @@ vive neste repositório.
 
 ## Stack
 
-Next.js 15 (App Router), TypeScript estrito, Tailwind 3, Vitest. Base de dados prevista: Postgres na UE com
-RLS (projeto próprio, ainda não criado). Pagamentos: instituição de pagamento autorizada, ainda por escolher.
+Next.js 15 (App Router), TypeScript estrito, Tailwind 3, Vitest. Pagamentos: instituição de pagamento autorizada,
+ainda por escolher.
+
+**Base de dados: só o projeto Supabase "Paint it"** (`phkfrabrjqbpnmocrrvj`, organização `mar-nordico`, região
+eu-west-1). A organização tem outros projetos: nunca os ler nem alterar.
+
+- Migrações em `supabase/migrations/`, com o nome igual à versão registada no Supabase.
+- Antes de aplicar: `npm test` corre as migrações numa base Postgres em memória (`supabase/tests/`) e verifica as
+  regras de acesso utilizador a utilizador. Uma tabela nova traz políticas RLS e testes no mesmo commit.
+- Depois de aplicar: avisos de segurança e desempenho a zero (ou explicados), e `src/lib/database.types.ts`
+  atualizado.
+- `drop` e outras operações destrutivas pedem confirmação manual no Supabase: preferir migrações aditivas.
+- Variáveis: `.env.example` (valores públicos). A chave secreta (service role) nunca entra no repositório.
 
 ```bash
 npm install
