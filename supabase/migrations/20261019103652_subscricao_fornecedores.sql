@@ -38,8 +38,7 @@ revoke all on function private.supplier_has_plan(uuid, text) from public, anon;
 grant execute on function private.supplier_has_plan(uuid, text) to authenticated;
 
 -- Produtos e descontos só com o plano de catálogo ativo.
-drop policy products_insert on public.products;
-create policy products_insert on public.products for insert to authenticated
+alter policy products_insert on public.products
   with check (private.can_manage_org(org_id) and private.is_supplier_org(org_id)
     and private.supplier_has_plan(org_id, 'catalogo') and created_by = (select auth.uid()));
 
@@ -47,11 +46,9 @@ create policy products_insert on public.products for insert to authenticated
 alter table public.supplier_discounts add column painter_org_id uuid references public.organizations (id) on delete cascade;
 create index supplier_discounts_painter_idx on public.supplier_discounts (painter_org_id);
 
-drop policy supplier_discounts_select on public.supplier_discounts;
-create policy supplier_discounts_select on public.supplier_discounts for select to authenticated
+alter policy supplier_discounts_select on public.supplier_discounts
   using (painter_org_id is null or private.can_access_org(painter_org_id) or private.can_access_org(org_id));
-drop policy supplier_discounts_insert on public.supplier_discounts;
-create policy supplier_discounts_insert on public.supplier_discounts for insert to authenticated
+alter policy supplier_discounts_insert on public.supplier_discounts
   with check (private.can_manage_org(org_id) and private.is_supplier_org(org_id)
     and private.supplier_has_plan(org_id, 'catalogo') and created_by = (select auth.uid()));
 
