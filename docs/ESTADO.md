@@ -1,6 +1,6 @@
 # Ponto de situação — ler primeiro numa sessão nova
 
-Atualizado a 18/10/2026. Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
+Atualizado a 19/10/2026. Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
 deve lê-lo, junto com `CLAUDE.md`, antes de qualquer trabalho. Atualizar no fim de cada sessão.
 
 ## O projeto
@@ -37,23 +37,38 @@ Fontes:
 | 0. Fundações: domínio do dinheiro testado, site público com simulador | Feito |
 | 1. Contas, entidades, prédios, equipa e convites, documentos, validação | Feito |
 | 2. Pedidos: superfícies e áreas, pré-visualização, publicação anónima, volume 3D, fotografias | Feito |
-| 3–6 | Por fazer (`docs/ROADMAP.md`) |
+| 3. Marketplace: oportunidades, propostas com linhas, comparador anónimo, mensagens, escolha | Feito |
+| 4. Contratação: acontecimentos, minuta, assinaturas, prazos, desvios, apresentação | Feito (falta ligar parceiro de pagamentos e CMD) |
+| 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
+| 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 5 migrações aplicadas, avisos de segurança a
-zero (fora o aviso da proteção de palavras-passe divulgadas, que não se aplica: a entrada é por link). Primeira
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 12 migrações aplicadas, avisos de segurança a
+zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
+e `resolve_listing_report`, que corre com direitos de dono e verifica que quem chama é da equipa da plataforma. Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
 condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 
 ## Próximo passo
 
-**Fase 3 — marketplace**: oportunidades e convites para pintores, propostas discriminadas, comparador, mensagens
-com filtro de contactos. A vista do anúncio é `src/components/ListingPreview.tsx` (já inclui o volume 3D de
-`src/domain/volume.ts` e os pormenores aprovados).
+As seis fases do produto estão feitas. O que falta para lançar depende de escolhas do promotor:
 
-Fase 2B (feita a 18/10/2026): `request_photos` e armazenamento privado `fotos` (caminho `<pedido>/<ficheiro>`).
-Gerais ficam privadas; pormenores entram como `pendente` e só a equipa da plataforma os aprova, em
-`/app/validacao`. Os pintores só veem pormenores aprovados de anúncios abertos. Os metadados das imagens são
-retirados no servidor (`src/domain/photo.ts`) antes de guardar.
+1. **Parceiro de pagamentos** (questão A1): ligar depósitos, comissões e instruções de `/app/backoffice/conciliacao`
+   à API do parceiro. Até lá, a equipa da plataforma confirma cada recebimento à mão em `/app/contratacoes/[id]`.
+2. **Assinatura com Chave Móvel Digital**: contratar o serviço e substituir a aceitação registada (com resumo
+   SHA-256 da minuta) pela assinatura qualificada.
+3. **Advogado**: rever o texto da minuta (`contractDraft` em `src/domain/contracting.ts`) e o documento de questões.
+4. **Email transacional**: avisos de convites, propostas novas, prazos de comissão e assinatura.
+5. **Alojamento** e domínio; depois um piloto numa região.
+
+Ficaram para depois, por decisão de âmbito: convites da equipa da plataforma a pintores, avaliações (CLI-28),
+confirmação de compras de materiais (FOR-10), histórico de versões das propostas revistas.
+
+## Como funciona a contratação
+
+A base de dados guarda só acontecimentos (`engagement_events`), cada tipo registável só por quem o pode fazer; o
+estado é reconstruído em `src/domain/contracting.ts` a partir de `engagement.ts`, aplicando os prazos até agora.
+A apresentação acontece quando a comissão entra dentro do prazo: a partir daí as partes veem-se (nome, NIF,
+contactos, morada da obra e fotografias), só para essa obra.
 
 ## Pendente do promotor
 
