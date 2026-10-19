@@ -100,7 +100,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <dt className="text-slate-500">Valor da obra sem IVA</dt>
           <dd className="font-semibold sm:text-right">{formatEuros(e.base)}</dd>
-          <dt className="text-slate-500">Garantia do cliente (3%)</dt>
+          <dt className="text-slate-500">Caução do cliente (3%)</dt>
           <dd className="sm:text-right">{formatEuros(e.guarantee)}</dd>
           <dt className="text-slate-500">Adiantamento de adjudicação</dt>
           <dd className="sm:text-right">{e.advance > 0 ? formatEuros(e.advance) : 'Nenhum'}</dd>
@@ -134,7 +134,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           <h2 className="font-semibold">Depósito a fazer</h2>
           <p className="mt-2 text-sm">
             Deposite <strong>{formatEuros(due)}</strong> com a referência <strong>{reference}</strong>. O dinheiro fica no
-            parceiro de pagamentos autorizado, nunca na plataforma. A garantia é-lhe devolvida quando as duas partes
+            parceiro de pagamentos autorizado, nunca na plataforma. A caução é-lhe devolvida quando as duas partes
             assinarem; o adiantamento passa para o pintor nesse momento.
           </p>
           <p className="mt-2 text-xs text-slate-600">
@@ -201,7 +201,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             {canCarry && (
               <div className="space-y-3 rounded-xl border border-slate-200 p-4 text-sm">
                 <p>
-                  O pintor não cumpriu. Pode passar para outra proposta: a garantia e o adiantamento já depositados transitam
+                  O pintor não cumpriu. Pode passar para outra proposta: a caução e o adiantamento já depositados transitam
                   para ela.
                 </p>
                 {(others ?? []).map((o, i) =>
@@ -242,7 +242,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
       {side === 'cliente' && (orders ?? []).length > 0 && (
         <section className={card}>
-          <h2 className="font-semibold">Materiais certificados</h2>
+          <h2 className="font-semibold">Materiais comprometidos</h2>
           <ul className="mt-3 space-y-1 text-sm">
             {(orders ?? []).map((o) => (
               <li key={o.id}>

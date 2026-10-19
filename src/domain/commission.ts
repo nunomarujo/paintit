@@ -20,7 +20,7 @@ export function painterFee(base: Cents, rules: CommercialRules): FeeBreakdown {
   return { net, vat, gross: net + vat };
 }
 
-/** Garantia que o cliente deposita ao escolher a proposta. */
+/** Caução que o cliente deposita ao escolher a proposta. */
 export function clientGuarantee(base: Cents, rules: CommercialRules): Cents {
   assertCents(base, 'valor da proposta');
   return Math.max(rules.guaranteeMinCents, percentOf(base, rules.guaranteeBp));

@@ -14,7 +14,7 @@ const steps = [
   },
   {
     title: 'O cliente compara e escolhe',
-    text: 'Com a aprovação da assembleia, deposita uma garantia de 3% e assina a minuta do contrato, gerada pela plataforma.',
+    text: 'Com a aprovação da assembleia, deposita uma caução de 3% e assina a minuta do contrato, gerada pela plataforma.',
   },
   {
     title: 'O pintor confirma',
@@ -22,14 +22,14 @@ const steps = [
   },
   {
     title: 'Contrato assinado',
-    text: 'A garantia volta ao cliente e o adiantamento fica disponível para o pintor. Daqui em diante, a obra é entre as partes.',
+    text: 'A caução volta ao cliente e o adiantamento fica disponível para o pintor. Daqui em diante, a obra é entre as partes.',
   },
 ];
 
 const faqs = [
   {
     q: 'Quem paga a plataforma?',
-    a: 'O pintor, com uma comissão de 3% do valor sem IVA, mínimo de 150 €. O cliente só paga se desistir depois de escolher: nesse caso perde a garantia de 3%.',
+    a: 'O pintor, com uma comissão de 3% do valor sem IVA, mínimo de 150 €. O cliente só paga se desistir depois de escolher: nesse caso perde a caução de 3%.',
   },
   {
     q: 'Porque é que a morada e os contactos estão escondidos?',
@@ -89,7 +89,7 @@ export default function Home() {
             <h2 className="font-semibold">Para pintores</h2>
             <p className="mt-2 text-sm text-slate-700">
               Oportunidades na sua zona e convites para orçamentar. Só paga quando o cliente já escolheu a sua proposta
-              e depositou a garantia.
+              e depositou a caução.
             </p>
           </div>
         </div>

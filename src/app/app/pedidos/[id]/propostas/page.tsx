@@ -117,8 +117,8 @@ export default async function ProposalsPage({
                     {r.alias.replace('Pintor ', '')}
                   </span>
                   <span className="flex flex-wrap justify-end gap-1">
-                    {p.pintor_verificado && <span className="badge badge-green">Verificado</span>}
-                    {r.materiaisCertificados > 0 && <span className="badge badge-green">Material certificado</span>}
+                    {p.pintor_verificado && <span className="badge badge-green">Documentos validados</span>}
+                    {r.materiaisCertificados > 0 && <span className="badge badge-green">Material comprometido</span>}
                     {p.request_version !== req.version && <span className="badge badge-amber">Versão anterior</span>}
                   </span>
                 </div>
@@ -219,7 +219,7 @@ export default async function ProposalsPage({
                   cells={sorted.map((r) => (r.temCondicionados ? <span key={r.id} className="text-amber-800">Sim, ver detalhe</span> : 'Não'))}
                 />
                 <Row
-                  label="Materiais certificados"
+                  label="Materiais comprometidos"
                   cells={sorted.map((r) =>
                     r.materiaisCertificados > 0 ? (
                       <span key={r.id} className="font-medium text-tinta-700">
@@ -244,7 +244,7 @@ export default async function ProposalsPage({
                 <Row label="Válida até" cells={sorted.map((r) => pt(byId.get(r.id)!.validade))} />
                 <Row
                   label="Documentos do pintor"
-                  cells={sorted.map((r) => (byId.get(r.id)!.pintor_verificado ? 'Verificados pela plataforma' : 'Ainda por verificar'))}
+                  cells={sorted.map((r) => (byId.get(r.id)!.pintor_verificado ? 'Validados pela plataforma à data da proposta' : 'Ainda não validados'))}
                 />
                 <Row
                   label="Versão do pedido"
@@ -295,9 +295,9 @@ export default async function ProposalsPage({
                   requestId={id}
                   summary={[
                     'O pedido deixa de receber propostas e as outras ficam como não escolhidas.',
-                    `Deposita no parceiro de pagamentos a garantia de ${formatEuros(guarantee)} (3% sem IVA)${
+                    `Deposita no parceiro de pagamentos a caução de ${formatEuros(guarantee)} (3% sem IVA)${
                       advance > 0 ? ` e o adiantamento de ${formatEuros(advance)}` : ''
-                    }. A garantia é-lhe devolvida quando as duas partes assinarem.`,
+                    }. A caução é-lhe devolvida quando as duas partes assinarem.`,
                     'Assina a minuta do contrato com Chave Móvel Digital.',
                     'O pintor tem 8 dias para pagar a comissão à plataforma; só então assina e as identidades são reveladas.',
                     'Num condomínio, confirme que a escolha foi aprovada em assembleia (vai precisar da ata).',

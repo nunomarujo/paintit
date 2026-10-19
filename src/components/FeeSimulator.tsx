@@ -53,7 +53,7 @@ export function FeeSimulator() {
             <dt className="text-sm font-semibold text-slate-900">Cliente deposita ao escolher</dt>
             <dd className="mt-1 text-2xl font-semibold">{formatEuros(guarantee + advanceCents)}</dd>
             <dd className="mt-1 text-sm text-slate-600">
-              Garantia de {formatEuros(guarantee)}, devolvida quando o contrato é assinado
+              Caução de {formatEuros(guarantee)}, devolvida quando o contrato é assinado
               {advanceCents > 0 ? `, mais ${formatEuros(advanceCents)} de adiantamento para o pintor` : ''}.
             </dd>
           </div>

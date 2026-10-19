@@ -122,7 +122,7 @@ describe('resumo em linguagem simples', () => {
     const e = replay(rec, [], new Date('2026-10-19T12:00:00Z')).engagement;
     const s = plainSummary(e, { duracao: 'Duração de 20 dias.', materiais: 1 }).join(' ');
     expect(s).toMatch(/100\s000,00\s€ mais IVA/);
-    expect(s).toMatch(/3\s000,00\s€ de garantia e 10\s000,00\s€ de adiantamento/);
+    expect(s).toMatch(/3\s000,00\s€ de caução e 10\s000,00\s€ de adiantamento/);
     expect(s).toMatch(/3\s690,00\s€ de comissão/);
     expect(s).toMatch(/o produto indicado/);
   });

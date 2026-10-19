@@ -108,7 +108,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             Catálogo, descontos e entregas →
           </Link>
           <Link href="/app/encomendas" className="hover:underline">
-            Encomendas certificadas →
+            Encomendas com confirmação →
           </Link>
         </div>
       )}

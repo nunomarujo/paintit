@@ -109,8 +109,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
 
       {listing?.aberto && (
         <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
-          <strong>Dica:</strong> ao escolher materiais de um fornecedor certificado na plataforma, o fornecedor confirma a
-          compra e a entrega e o produto fica no contrato com o cliente. A proposta mostra “Material certificado”, e os
+          <strong>Dica:</strong> ao escolher materiais de um fornecedor registado na plataforma, o fornecedor confirma a
+          compra e a entrega e o produto fica no contrato com o cliente. A proposta mostra “Material comprometido”, e os
           clientes tendem a preferir quem se compromete com o produto. Vê também os descontos que os fornecedores dão para
           esta obra.
         </p>

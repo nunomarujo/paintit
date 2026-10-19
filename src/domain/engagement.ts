@@ -137,7 +137,7 @@ export interface CreateInput {
   advance: Cents;
   rules: CommercialRules;
   at: Date;
-  /** Garantia e adiantamento que transitam de uma contratação anterior. */
+  /** Caução e adiantamento que transitam de uma contratação anterior. */
   carried?: { from: string; guarantee: Cents; advance: Cents };
 }
 
@@ -262,7 +262,7 @@ export function expire(e: Engagement, now: Date): Engagement {
   return e;
 }
 
-/** O cliente desiste antes de o pintor assinar: perde a garantia. */
+/** O cliente desiste antes de o pintor assinar: perde a caução. */
 export function clientWithdraw(e: Engagement, p: { at: Date }): Engagement {
   if (e.status === 'aguarda_deposito') {
     return { ...record(e, p.at, 'escolha cancelada antes do depósito'), status: 'cancelado' };
@@ -280,7 +280,7 @@ export function clientWithdraw(e: Engagement, p: { at: Date }): Engagement {
 
 /**
  * Litígio antes da assinatura do pintor (por exemplo, o pintor quer reajustar o
- * contrato). As garantias ficam retidas; o adiantamento volta ao cliente
+ * contrato). As cauções ficam retidas; o adiantamento volta ao cliente
  * (proposta ainda em aberto, docs/DECISOES.md).
  */
 export function openDispute(e: Engagement, p: { at: Date; reason: string }): Engagement {

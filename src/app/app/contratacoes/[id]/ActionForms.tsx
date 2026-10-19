@@ -36,18 +36,18 @@ const PARTY: Record<PartyKind, { label: string; style: string; confirm?: string;
   cliente_desistiu: {
     label: 'Desistir',
     style: danger,
-    warning: 'Se já depositou, perde a garantia de 3%; o adiantamento é-lhe devolvido e o pintor recupera a comissão.',
+    warning: 'Se já depositou, perde a caução de 3%; o adiantamento é-lhe devolvido e o pintor recupera a comissão.',
   },
   litigio_aberto: {
     label: 'Abrir litígio',
     style: danger,
     reason: true,
-    warning: 'As garantias ficam retidas até haver acordo ou decisão; o adiantamento volta ao cliente.',
+    warning: 'As cauções ficam retidas até haver acordo ou decisão; o adiantamento volta ao cliente.',
   },
   encerrar_sem_contrato: {
     label: 'Encerrar sem contrato',
     style: secondary,
-    warning: 'A garantia e o adiantamento são-lhe devolvidos por inteiro.',
+    warning: 'A caução e o adiantamento são-lhe devolvidos por inteiro.',
   },
 };
 
@@ -94,8 +94,8 @@ export function PlatformAction({ engagementId, kind, expected }: { engagementId:
           <option value="" disabled>
             Decisão…
           </option>
-          <option value="culpa_cliente">Culpa do cliente: perde a garantia, o pintor recupera a comissão</option>
-          <option value="culpa_pintor">Culpa do pintor: perde a comissão, o cliente recupera a garantia</option>
+          <option value="culpa_cliente">Culpa do cliente: perde a caução, o pintor recupera a comissão</option>
+          <option value="culpa_pintor">Culpa do pintor: perde a comissão, o cliente recupera a caução</option>
           <option value="retomar">Acordo: nova minuta para o cliente assinar</option>
         </select>
       ) : (

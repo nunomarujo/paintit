@@ -30,7 +30,7 @@ export default async function RequestsPage() {
         <div>
           <p className="eyebrow">Pedidos de orçamento</p>
           <h1 className="mt-2 text-[30px] font-semibold leading-tight">Os seus pedidos</h1>
-          <p className="mt-1 text-slate-500">Cada pedido é publicado sem morada nem nomes. Os pintores verificados respondem com propostas discriminadas.</p>
+          <p className="mt-1 text-slate-500">Cada pedido é publicado sem morada nem nomes. Pintores com documentos validados respondem com propostas discriminadas.</p>
         </div>
         {clientOrgs.length > 0 && (
           <Link href={`/app/organizacoes/${clientOrgs[0]!.id}/pedidos/novo`} className="btn-primary">

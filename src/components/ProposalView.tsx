@@ -47,7 +47,7 @@ export function ProposalView({
                   <td className="py-1.5 pr-2">
                     <span className="font-medium">{l.descricao}</span>
                     {l.productId && (
-                      <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material certificado</span>
+                      <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
                     )}
                     <span className="block text-xs text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria]}

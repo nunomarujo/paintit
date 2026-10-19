@@ -114,7 +114,7 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
       const { data: sups } = await supabase.from('organizations').select('id, nome').eq('kind', 'fornecedor');
       return certified.map((l) => ({
         produto: l.produto ?? 'produto do catálogo',
-        fornecedor: sups?.find((s) => s.id === prods?.find((p) => p.id === l.product_id)?.org_id)?.nome ?? 'fornecedor certificado',
+        fornecedor: sups?.find((s) => s.id === prods?.find((p) => p.id === l.product_id)?.org_id)?.nome ?? 'fornecedor registado',
         linha: l.descricao,
       }));
     })(),

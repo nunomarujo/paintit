@@ -159,13 +159,13 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       {section === 'materiais' && (
         <section className={`${card} space-y-6 text-sm`}>
           <p className="text-slate-600">
-            Materiais certificados do contrato. A quantidade sugerida usa a área da linha, as demãos e o rendimento do
+            Materiais comprometidos do contrato. A quantidade sugerida usa a área da linha, as demãos e o rendimento do
             produto. O fornecedor confirma a venda e a entrega, e o cliente vê essa confirmação.{' '}
             <Link href="/app/catalogo" className="text-tinta-700 hover:underline">
               Procurar outros produtos e preços
             </Link>
           </p>
-          {(lines ?? []).filter((l) => l.product_id).length === 0 && <p>Esta proposta não tem materiais certificados.</p>}
+          {(lines ?? []).filter((l) => l.product_id).length === 0 && <p>Esta proposta não tem materiais comprometidos.</p>}
           {(lines ?? [])
             .filter((l) => l.product_id)
             .map((l) => {

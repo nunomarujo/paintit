@@ -64,7 +64,7 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
   const l = parsed.value;
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
-  // Material certificado: produto do catálogo, com o desconto para a área desta obra.
+  // Material comprometido: produto do catálogo, com o desconto para a área desta obra.
   const productId = String(form.get('productId') ?? '').trim();
   let material: { product_id: string; preco_fornecedor_cents: number | null; desconto_bps: number; produto: string } | null = null;
   if (productId) {

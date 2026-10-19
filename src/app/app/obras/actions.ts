@@ -103,7 +103,7 @@ export async function deleteWorksiteRow(engagementId: string, table: (typeof WOR
   revalidatePath(path(engagementId));
 }
 
-// --- Encomendas certificadas e avaliações de fornecedores ------------------------------
+// --- Encomendas com confirmação e avaliações de fornecedores ------------------------------
 
 export async function orderMaterial(engagementId: string, productId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const n = Number(form.get('embalagens'));

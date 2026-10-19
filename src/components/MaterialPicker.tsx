@@ -6,7 +6,7 @@ import type { MaterialOption } from '@/lib/materials';
 
 /**
  * Escolha do material de uma linha: tipo, depois sugestões de produtos concretos
- * com detalhes. Facultativo; um produto do catálogo é "material certificado":
+ * com detalhes. Facultativo; um produto do catálogo é "material comprometido":
  * o fornecedor confirma a compra e a entrega e o produto entra no contrato.
  */
 export function MaterialPicker({ options }: { options: MaterialOption[] }) {
@@ -23,7 +23,7 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-tinta-50 p-3">
           <span>
             <span className="font-semibold">{chosen.label}</span>
-            <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material certificado</span>
+            <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
             <span className="block text-slate-600">
               {chosen.fornecedor.nome}
               {chosen.precoComDesconto ? ` · ${chosen.precoComDesconto} por embalagem` : ''}
@@ -122,7 +122,7 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
         </>
       )}
       <p className="text-xs text-slate-500">
-        Com um produto de um fornecedor certificado, o fornecedor confirma a compra e a entrega e o produto passa a fazer
+        Com um produto de um fornecedor registado na plataforma, o fornecedor confirma a compra e a entrega e o produto passa a fazer
         parte do contrato. Os clientes tendem a preferir propostas que se comprometem com o material.
       </p>
     </fieldset>

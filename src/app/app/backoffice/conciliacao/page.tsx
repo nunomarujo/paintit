@@ -44,7 +44,7 @@ export default async function ReconciliationPage() {
       <section className={card}>
         <h2 className="font-semibold">Totais</h2>
         <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-          <dt className="text-slate-500">Retido: garantias de clientes</dt>
+          <dt className="text-slate-500">Retido: cauções de clientes</dt>
           <dd className="sm:text-right">{formatEuros(l.retido.guarantee)}</dd>
           <dt className="text-slate-500">Retido: adiantamentos</dt>
           <dd className="sm:text-right">{formatEuros(l.retido.advance)}</dd>
@@ -54,10 +54,10 @@ export default async function ReconciliationPage() {
           <dd className="font-semibold sm:text-right">{formatEuros(l.receita.comissao)}</dd>
           <dt className="text-slate-500">IVA das comissões, a entregar ao Estado</dt>
           <dd className="sm:text-right">{formatEuros(l.receita.ivaComissao)}</dd>
-          <dt className="text-slate-500">Receita: garantias perdidas por clientes</dt>
+          <dt className="text-slate-500">Receita: cauções perdidas por clientes</dt>
           <dd className="sm:text-right">{formatEuros(l.receita.garantias)}</dd>
         </dl>
-        <p className="mt-3 text-xs text-slate-500">O tratamento fiscal da garantia perdida está por validar com o contabilista (bloco D).</p>
+        <p className="mt-3 text-xs text-slate-500">O tratamento fiscal da caução perdida está por validar com o contabilista (bloco D).</p>
       </section>
 
       <section className={card}>

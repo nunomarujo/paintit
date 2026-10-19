@@ -42,7 +42,7 @@ export interface ProposalLine {
   demaos: number | null;
   produto: string | null;
   inclusao: Inclusion;
-  /** Produto do catálogo de um fornecedor certificado (material certificado). */
+  /** Produto do catálogo de um fornecedor registado na plataforma (material comprometido). */
   productId?: string | null;
 }
 
@@ -52,7 +52,7 @@ export function lineTotal(l: Pick<ProposalLine, 'quantidade' | 'precoUnitario'>)
 }
 
 export interface ProposalTotals {
-  /** Base sem IVA: só linhas incluídas. É a base da comissão e da garantia. */
+  /** Base sem IVA: só linhas incluídas. É a base da comissão e da caução. */
   base: Cents;
   opcionais: Cents;
   condicionados: Cents;
@@ -128,7 +128,7 @@ export interface ComparisonRow {
   superficiesEmFalta: SurfaceKind[];
   temCondicionados: boolean;
   categorias: Record<LineCategory, Cents | null>;
-  /** Linhas incluídas com material certificado / linhas incluídas com algum produto. */
+  /** Linhas incluídas com material comprometido / linhas incluídas com algum produto. */
   materiaisCertificados: number;
 }
 

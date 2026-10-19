@@ -5,7 +5,7 @@ import { getUser } from '@/lib/supabase/server';
 const ORDER: Record<string, string> = { pedida: 'Pedida', confirmada: 'Venda confirmada', entregue: 'Entregue em obra', cancelada: 'Cancelada' };
 const dt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '—');
 
-// Encomendas certificadas recebidas pelo fornecedor: confirmar a venda e a entrega.
+// Encomendas com confirmação recebidas pelo fornecedor: confirmar a venda e a entrega.
 export default async function SupplierOrdersPage() {
   const { supabase, user } = await getUser();
   const { data: memberships } = await supabase
@@ -29,7 +29,7 @@ export default async function SupplierOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Encomendas certificadas</h1>
+        <h1 className="text-2xl font-semibold">Encomendas com confirmação</h1>
         <p className="mt-1 text-sm text-slate-600">
           Encomendas de pintores para obras contratadas na plataforma. Ao confirmar a venda e a entrega, certifica ao cliente
           que o material do contrato foi comprado e entregue.

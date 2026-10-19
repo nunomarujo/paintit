@@ -219,7 +219,7 @@ export interface DraftInput {
   ajusteM2: string;
   garantiaObra: string;
   exclusoes: string;
-  /** Materiais certificados que o empreiteiro se compromete a aplicar. */
+  /** Materiais comprometidos que o empreiteiro se compromete a aplicar. */
   materiais?: { produto: string; fornecedor: string; linha: string }[];
 }
 
@@ -271,7 +271,7 @@ export function contractDraft(d: DraftInput): Draft {
             {
               heading: '2-A. Materiais',
               paragraphs: [
-                'O empreiteiro compromete-se a aplicar os produtos seguintes, comprados a fornecedores certificados na plataforma, que confirmam a venda e a entrega em obra:',
+                'O empreiteiro compromete-se a aplicar os produtos seguintes, comprados a fornecedores registados na plataforma, que confirmam a venda e a entrega em obra:',
                 ...d.materiais.map((m) => `${m.produto}, fornecido por ${m.fornecedor} — ${m.linha}.`),
                 'A substituição de um produto só é admitida com acordo escrito do dono da obra e por produto equivalente ou superior.',
               ],
@@ -313,17 +313,17 @@ export function draftText(d: Draft): string {
 
 /** Instruções ao parceiro de pagamentos que resultam dos movimentos (o que tem de executar). */
 export const PARTNER_INSTRUCTIONS: Partial<Record<MovementKind, string>> = {
-  devolucao_garantia: 'Devolver garantia ao cliente',
+  devolucao_garantia: 'Devolver caução ao cliente',
   devolucao_adiantamento: 'Devolver adiantamento ao cliente',
   devolucao_fee: 'Devolver comissão ao pintor',
   libertacao_adiantamento: 'Transferir adiantamento para o pintor',
   retencao_fee: 'Transferir comissão para a plataforma',
-  retencao_garantia: 'Transferir garantia perdida para a plataforma',
+  retencao_garantia: 'Transferir caução perdida para a plataforma',
 };
 
 export interface LedgerTotals {
   retido: { guarantee: Cents; advance: Cents; fee: Cents };
-  /** O que a plataforma recebeu: comissões (com o IVA à parte) e garantias perdidas. */
+  /** O que a plataforma recebeu: comissões (com o IVA à parte) e cauções perdidas. */
   receita: { comissao: Cents; ivaComissao: Cents; garantias: Cents };
   porTipo: Record<string, Cents>;
 }
@@ -358,10 +358,10 @@ export function plainSummary(e: Engagement, extra: { duracao: string; materiais:
     new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(c / 100);
   return [
     `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
-    `O cliente deposita ${eur(e.guarantee)} de garantia${e.advance > 0 ? ` e ${eur(e.advance)} de adiantamento` : ''} num parceiro de pagamentos, não na plataforma.`,
+    `O cliente deposita ${eur(e.guarantee)} de caução${e.advance > 0 ? ` e ${eur(e.advance)} de adiantamento` : ''} num parceiro de pagamentos, não na plataforma.`,
     `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para pagar ${eur(e.fee.gross)} de comissão. Só então as partes ficam a saber quem é a outra.`,
-    `Quando o pintor assina, a garantia volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}. O resto da obra paga-se diretamente ao pintor.`,
-    'Se o cliente desistir antes de o pintor assinar, perde a garantia. Se o pintor pagar e não assinar no prazo, perde a comissão.',
+    `Quando o pintor assina, a caução volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}. O resto da obra paga-se diretamente ao pintor.`,
+    'Se o cliente desistir antes de o pintor assinar, perde a caução. Se o pintor pagar e não assinar no prazo, perde a comissão.',
     ...(extra.materiais > 0
       ? [`O pintor compromete-se a aplicar ${extra.materiais === 1 ? 'o produto indicado' : `os ${extra.materiais} produtos indicados`}, e o fornecedor confirma a compra e a entrega.`]
       : []),

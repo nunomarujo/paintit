@@ -9,9 +9,9 @@ export interface CommercialRules {
   /** Comissão do pintor, em pontos-base sobre o valor sem IVA. */
   commissionBp: number;
   commissionMinCents: Cents;
-  /** Garantia do cliente, em pontos-base sobre o valor sem IVA. */
+  /** Caução do cliente, em pontos-base sobre o valor sem IVA. */
   guaranteeBp: number;
-  /** Em aberto: o promotor ainda não decidiu se o mínimo se aplica à garantia. */
+  /** Em aberto: o promotor ainda não decidiu se o mínimo se aplica à caução. */
   guaranteeMinCents: Cents;
   /** IVA que acresce à comissão (taxa normal do continente). */
   commissionVatBp: number;
