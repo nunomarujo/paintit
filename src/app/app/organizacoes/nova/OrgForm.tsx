@@ -26,9 +26,11 @@ interface Props {
   initial?: OrgInitial;
   initialKind?: OrgKind;
   initialGeridaPor?: string;
+  /** Tipos permitidos a esta conta (um perfil por conta). */
+  kinds?: OrgKind[];
 }
 
-export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor }: Props) {
+export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor, kinds }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const [kind, setKind] = useState<OrgKind | ''>(initial?.kind ?? initialKind ?? '');
   const e = state.errors;
@@ -56,7 +58,7 @@ export function OrgForm({ action: submit, administradoras, initial, initialKind,
             <option value="" disabled>
               Escolha…
             </option>
-            {ORG_KINDS.map((k) => (
+            {(kinds ?? ORG_KINDS).map((k) => (
               <option key={k} value={k}>
                 {ORG_KIND_LABELS[k]}
               </option>

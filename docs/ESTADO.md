@@ -60,6 +60,9 @@ de nova versão do pedido), dossiê do pedido para imprimir.
 certificados assinalados a vermelho sem bloquear), códigos promocionais dos fornecedores no backoffice, Stripe
 Connect escolhido (ver `docs/DECISOES.md`).
 
+**Por aplicar no Supabase:** `supabase/migrations/20261020030000_um_perfil_por_conta.sql` (aditiva; o acesso do
+Claude ao Supabase falhou com "permission"). Aplicar e renomear para a versão registada.
+
 A seguir, sem depender do promotor:
 
 1. Teste completo no browser pela sessão de teste (com `PERMITIR_ACEITACAO_SIMPLES=1`).

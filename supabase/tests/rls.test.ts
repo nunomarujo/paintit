@@ -1089,3 +1089,10 @@ describe('descontos por perfil de compra', () => {
     ).rejects.toThrow(/check/);
   });
 });
+
+describe('um perfil por conta', () => {
+  it('quem já é cliente não cria uma empresa de pintura nem de fornecimento', async () => {
+    await expect(createOrg(A, 'pintor', 'Pinturas do Cliente', '507722280')).rejects.toThrow(/outro perfil/);
+    await expect(createOrg(A, 'fornecedor', 'Tintas do Cliente', '508140510')).rejects.toThrow(/outro perfil/);
+  });
+});

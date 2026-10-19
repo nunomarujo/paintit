@@ -15,6 +15,26 @@ export const ORG_KIND_LABELS: Record<OrgKind, string> = {
   fornecedor: 'Fornecedor de tintas e materiais',
 };
 
+/**
+ * Uma conta tem um só perfil (decisão de 20/10/2026): cliente (condomínios, administradoras,
+ * particulares), pintor ou fornecedor. Não pode pertencer a entidades de perfis diferentes.
+ */
+export type AccountProfile = 'cliente' | 'pintor' | 'fornecedor';
+export const ACCOUNT_PROFILE_LABELS: Record<AccountProfile, string> = {
+  cliente: 'Cliente (condomínio, administração ou particular)',
+  pintor: 'Pintor',
+  fornecedor: 'Fornecedor de tintas e materiais',
+};
+export function accountProfile(kind: OrgKind): AccountProfile {
+  return kind === 'pintor' ? 'pintor' : kind === 'fornecedor' ? 'fornecedor' : 'cliente';
+}
+/** Tipos de entidade que a conta ainda pode criar, dado o que já tem. */
+export function allowedOrgKinds(existing: OrgKind[]): OrgKind[] {
+  if (existing.length === 0) return [...ORG_KINDS];
+  const profile = accountProfile(existing[0]);
+  return ORG_KINDS.filter((k) => accountProfile(k) === profile);
+}
+
 export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'leitor'] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 

@@ -121,3 +121,10 @@ sem IVA. O fornecedor subscreve na página de produtos (Stripe Checkout, com có
 cupão). O plano só fica ativo quando o webhook `/api/stripe/webhook` recebe `checkout.session.completed`;
 alterações e cancelamentos chegam por `customer.subscription.*`. Variáveis no alojamento: `STRIPE_SECRET_KEY`,
 `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SECRET_KEY`, opcional `STRIPE_TAX_RATE_IVA`.
+
+## 20/10/2026 — um perfil por conta
+
+Cada conta é só de **cliente** (condomínio, administradora ou particular), **pintor** ou **fornecedor**. A
+interface só oferece os tipos de entidade do perfil da conta; a base de dados recusa juntar a mesma conta a
+entidades de perfis diferentes (migração `um_perfil_por_conta`, trigger em `org_members`). Contas de teste
+anteriores com vários perfis mantêm-se.
