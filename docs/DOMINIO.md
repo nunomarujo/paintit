@@ -59,3 +59,5 @@ verificados; aliases nm, info, suporte. Supabase Site URL e webhook do Stripe j�
 ## 6. Emails da app (Resend + Supabase)
 
 Remetente `avisos@quempinta.pt` pelo SMTP do Resend; modelos em português em `supabase/templates/`.
+
+**20/10/2026:** emails da app a sair por avisos@quempinta.pt (Resend verificado, SMTP no Supabase, modelos em português). Testado com a confirmação de conta.
