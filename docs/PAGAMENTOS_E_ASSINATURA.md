@@ -40,3 +40,16 @@ verificação dos bytes e da assinatura já impede que se troque o texto.
 
 Como o contrato é gerado pela plataforma, também mostramos ao lado o **texto do contrato em linguagem simples**
 (o que cada cláusula quer dizer), gerado a partir dos mesmos dados.
+
+## Implementado (19/10/2026)
+
+- `src/lib/contractPdf.ts`: PDF do contrato determinístico (sem identidades, para servir às duas partes).
+- `src/domain/signature.ts`: verificações estruturais (contém o documento esperado; uma assinatura nova que
+  cobre o ficheiro inteiro).
+- `src/lib/pades.ts`: verificação criptográfica da assinatura CMS e leitura do nome e número do titular.
+- Percurso: o cliente assina o PDF gerado; o pintor assina o PDF já assinado pelo cliente. Os PDF ficam no
+  armazenamento `contratos`, sem possibilidade de alteração.
+- Falta: validar a cadeia de confiança do certificado (emitido pelo Estado português e não revogado) com o
+  serviço DSS ou a lista de confiança.
+- Para testes sem Chave Móvel Digital: `PERMITIR_ACEITACAO_SIMPLES=1` no ambiente volta a mostrar a aceitação
+  com caixa de confirmação. Nunca em produção.

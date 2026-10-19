@@ -68,7 +68,16 @@ export interface EngagementEvent {
   id: string;
   kind: EventKind;
   amount: Cents | null;
-  payload: { reason?: string; outcome?: DisputeOutcome; to?: string; documentHash?: string };
+  payload: {
+    reason?: string;
+    outcome?: DisputeOutcome;
+    to?: string;
+    documentHash?: string;
+    /** Como assinou: PDF com Chave Móvel Digital/Cartão de Cidadão, ou aceitação simples (só em testes). */
+    metodo?: 'cmd_pdf' | 'aceitacao';
+    signatario?: string | null;
+    identificacao?: string | null;
+  };
   at: string;
 }
 

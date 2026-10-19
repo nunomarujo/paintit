@@ -194,6 +194,11 @@ A plataforma preenche os campos entre parênteses retos. Cláusulas condicionais
 - E2. A verificação descrita na secção 5 (o PDF assinado contém exatamente o documento gerado) é prova suficiente
   do teor acordado?
 - E3. Durante quanto tempo a plataforma deve conservar o contrato e as provas?
+- E4. Por causa do anonimato, o cliente assina antes de saber quem é o pintor. O PDF assinado identifica as
+  partes pelo papel e pela referência da proposta; os nomes e números de identificação constam dos
+  certificados das assinaturas qualificadas, e os restantes dados (NIF, sede, morada da obra) ficam registados
+  na plataforma depois da apresentação. É suficiente, ou é preciso um anexo de identificação assinado pelas
+  duas partes depois da apresentação?
 
 **F. Plataforma**
 

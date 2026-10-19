@@ -42,7 +42,7 @@ Fontes:
 | 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
 | 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 16 migrações aplicadas, avisos de segurança a
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 17 migrações aplicadas, avisos de segurança a
 zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
 e `resolve_listing_report` e `painter_rating`, que correm com direitos de dono por desenho (ver `DECISOES.md`). Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
@@ -61,10 +61,10 @@ Documentos para o promotor: `docs/advogado/Pedido_minuta_contrato.docx` (para en
 
 A seguir:
 
-1. **Design das páginas** (o promotor só testa depois disto): aproximar ou melhorar o design do protótipo
-   `docs/referencia/prototipo_v05.zip`.
-2. **Assinatura com PDF da Autenticação.gov**: gerar o PDF, receber o PDF assinado, confirmar os bytes e a
-   assinatura.
+1. Feito: design do protótipo v05 em toda a app (paleta, Inter, barra lateral, cartões de propostas, passos) e
+   assinatura com PDF da Autenticação.gov (ver `docs/PAGAMENTOS_E_ASSINATURA.md`). Para testar sem Chave Móvel
+   Digital: `PERMITIR_ACEITACAO_SIMPLES=1`.
+2. Validar a cadeia de confiança dos certificados (DSS).
 3. **Parceiro de pagamentos**, quando escolhido; **email e domínio**, quando o promotor os indicar.
 4. Teste completo no browser pela sessão de teste do Paint it.
 

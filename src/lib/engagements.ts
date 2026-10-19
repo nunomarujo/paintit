@@ -4,6 +4,7 @@ import { contractDraft, replay, type EngagementEvent, type EngagementRecord, typ
 import { formatEuros, percentOf } from '@/domain/money';
 import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
+import { contractPdf } from '@/lib/contractPdf';
 import { toLine, toTerms } from '@/lib/proposals';
 
 type Client = SupabaseClient<Database>;
@@ -53,7 +54,13 @@ export async function loadReplay(
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : null);
 
 /** Dados da minuta. Os dados identificativos só entram quando a base de dados os deixa ver. */
-export async function loadDraft(supabase: Client, row: EngagementRow) {
+/**
+ * Dados da minuta. Com `anonymous`, usa só o que as duas partes veem desde a
+ * escolha (anúncio e proposta), sem identidades nem morada: é a versão que se
+ * assina em PDF e que tem de dar os mesmos bytes para o cliente e para o pintor.
+ * As identidades ficam nos certificados das assinaturas e na página da contratação.
+ */
+export async function loadDraft(supabase: Client, row: EngagementRow, opts: { anonymous?: boolean } = {}) {
   const [{ data: proposal }, { data: lines }, { data: listing }, { data: request }, { data: client }, { data: painter }] =
     await Promise.all([
       supabase.from('proposals').select('*').eq('id', row.proposal_id).single(),
@@ -71,14 +78,15 @@ export async function loadDraft(supabase: Client, row: EngagementRow) {
   const t = proposalTotals(ls, terms.ivaBps);
   const address = (o: { morada_fiscal: string | null; codigo_postal: string | null; localidade: string | null } | null) =>
     o?.morada_fiscal ? `${o.morada_fiscal}, ${o.codigo_postal ?? ''} ${o.localidade ?? ''}`.trim() : null;
+  const anon = opts.anonymous === true;
   return contractDraft({
     ref: listing?.ref ?? request?.ref ?? '',
-    cliente: client ? { nome: client.nome, nif: client.nif, morada: address(client) } : null,
-    pintor: painter ? { nome: painter.nome, nif: painter.nif, morada: address(painter) } : null,
+    cliente: !anon && client ? { nome: client.nome, nif: client.nif, morada: address(client) } : null,
+    pintor: !anon && painter ? { nome: painter.nome, nif: painter.nif, morada: address(painter) } : null,
     obra: {
-      morada: building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null,
-      concelho: building?.concelho ?? listing?.concelho ?? '',
-      descricao: request?.descricao ?? listing?.descricao ?? '',
+      morada: !anon && building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null,
+      concelho: anon ? (listing?.concelho ?? '') : (building?.concelho ?? listing?.concelho ?? ''),
+      descricao: anon ? (listing?.descricao ?? '') : (request?.descricao ?? listing?.descricao ?? ''),
     },
     linhas: ls.map((l) => ({
       descricao: l.descricao,
@@ -113,4 +121,15 @@ export async function loadDraft(supabase: Client, row: EngagementRow) {
     garantiaObra: terms.garantiaAnos !== null ? `${terms.garantiaAnos} anos sobre os trabalhos executados.` : 'Nos termos da lei.',
     exclusoes: terms.exclusoes,
   });
+}
+
+/** PDF do contrato para assinar: versão sem identidades, sempre com os mesmos bytes. */
+export async function contractPdfFor(supabase: Client, row: EngagementRow): Promise<Uint8Array> {
+  return contractPdf(await loadDraft(supabase, row, { anonymous: true }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
+}
+
+/** PDF já assinado por uma das partes, se existir. */
+export async function signedPdf(supabase: Client, engagementId: string, side: 'cliente' | 'pintor'): Promise<Uint8Array | null> {
+  const { data } = await supabase.storage.from('contratos').download(`${engagementId}/${side}.pdf`);
+  return data ? new Uint8Array(await data.arrayBuffer()) : null;
 }

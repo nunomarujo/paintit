@@ -12,6 +12,7 @@ import { AnswerForm, ReviewForm } from '@/components/ExtrasForms';
 import { Steps } from '@/components/Steps';
 import { PartyAction, PlatformAction } from './ActionForms';
 import { CarryForm } from './CarryForm';
+import { PdfSign } from './PdfSign';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -81,6 +82,11 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
             Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
           </Link>
+          {events.some((v) => v.kind === 'pintor_assinou' && (v.payload as { metodo?: string }).metodo === 'cmd_pdf') && (
+            <a href={`/app/contratacoes/${id}/pdf?v=pintor`} className="text-tinta-700 hover:underline">
+              Descarregar contrato assinado (PDF)
+            </a>
+          )}
           {side === 'pintor' && e.status === 'assinado' && (
             <Link href={`/app/obras/${id}`} className="text-slate-600 hover:underline">
               Ferramentas de obra
@@ -180,8 +186,11 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 expected={k === 'deposito_confirmado' ? euros(due) : k === 'fee_recebido' ? euros(e.fee.gross) : undefined}
               />
             ))}
+            {partyActions.includes('cliente_assinou') && <PdfSign engagementId={id} side="cliente" />}
+            {partyActions.includes('pintor_assinou') && <PdfSign engagementId={id} side="pintor" />}
             {partyActions
               .filter((k) => k !== 'transitar')
+              .filter((k) => process.env.PERMITIR_ACEITACAO_SIMPLES === '1' || (k !== 'cliente_assinou' && k !== 'pintor_assinou'))
               .map((k) => (
                 <PartyAction
                   key={k}
@@ -294,7 +303,10 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               .filter((v) => (v.payload as { documentHash?: string } | null)?.documentHash)
               .map((v) => (
                 <p key={v.id} className="break-all">
-                  {EVENT_LABELS[v.kind]}: SHA-256 {(v.payload as { documentHash: string }).documentHash}
+                  {EVENT_LABELS[v.kind]}
+                  {(v.payload as { signatario?: string }).signatario ? ` por ${(v.payload as { signatario?: string }).signatario}` : ''}
+                  {(v.payload as { metodo?: string }).metodo === 'cmd_pdf' ? ' (assinatura qualificada em PDF)' : ''}: SHA-256{' '}
+                  {(v.payload as { documentHash: string }).documentHash}
                 </p>
               ))}
           </div>

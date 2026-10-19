@@ -11,7 +11,10 @@ import { parseHundredths } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { isPlatformAdmin } from '@/lib/access';
-import { loadDraft, loadReplay } from '@/lib/engagements';
+import { contractPdfFor, loadDraft, loadReplay, signedPdf } from '@/lib/engagements';
+import { verifyLastSignature } from '@/lib/pades';
+import { availableActions } from '@/domain/contracting';
+import { checkSignedPdf } from '@/domain/signature';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -57,8 +60,13 @@ async function record(
 }
 
 export async function partyAction(engagementId: string, kind: PartyKind, _prev: FormState, form: FormData): Promise<FormState> {
-  if ((kind === 'cliente_assinou' || kind === 'pintor_assinou') && form.get('confirmo') !== 'sim') {
-    return { errors: { confirmo: 'Confirme que leu e aceita a minuta.' } };
+  if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
+    // A assinatura exige o PDF assinado com Chave Móvel Digital. A aceitação simples
+    // só existe para testes, com PERMITIR_ACEITACAO_SIMPLES=1 no ambiente.
+    if (process.env.PERMITIR_ACEITACAO_SIMPLES !== '1') {
+      return { errors: {}, message: 'Assine o PDF do contrato com a Chave Móvel Digital e carregue-o.' };
+    }
+    if (form.get('confirmo') !== 'sim') return { errors: { confirmo: 'Confirme que leu e aceita a minuta.' } };
   }
   const reason = String(form.get('motivo') ?? '').trim();
   if (kind === 'litigio_aberto' && reason.length < 10) return { errors: { motivo: 'Explique o motivo do litígio.' } };
@@ -71,6 +79,7 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
     const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
     if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
     payload.documentHash = createHash('sha256').update(draftText(await loadDraft(supabase, row))).digest('hex');
+    payload.metodo = 'aceitacao';
   }
   const r = await record(engagementId, kind, { payload });
   return { errors: r.errors, ok: r.ok, message: r.message };
@@ -117,4 +126,48 @@ export async function platformAction(
     ok: r.ok,
     message: r.revealed ? 'Registado. As partes foram apresentadas: já se veem uma à outra.' : r.message,
   };
+}
+
+const MAX_PDF = 20 * 1024 * 1024;
+
+/**
+ * Assinatura com Chave Móvel Digital: a parte carrega o PDF que assinou na
+ * Autenticação.gov. Confirma-se que contém o documento esperado sem alterações
+ * (o PDF gerado, para o cliente; o PDF já assinado pelo cliente, para o pintor),
+ * que acrescenta uma assinatura sobre o ficheiro inteiro e que ela é válida.
+ */
+export async function signWithPdf(engagementId: string, side: 'cliente' | 'pintor', _prev: FormState, form: FormData): Promise<FormState> {
+  const file = form.get('pdf');
+  if (!(file instanceof File) || file.size === 0) return { errors: { pdf: 'Escolha o PDF assinado.' } };
+  if (file.size > MAX_PDF) return { errors: { pdf: 'O PDF tem mais de 20 MB.' } };
+  const uploaded = new Uint8Array(await file.arrayBuffer());
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
+  if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+  const kind = side === 'cliente' ? 'cliente_assinou' : 'pintor_assinou';
+  const current = (await loadReplay(supabase, row)).replay.engagement;
+  if (!availableActions(current, side).includes(kind)) return { errors: {}, message: 'Este passo não está disponível agora.' };
+
+  const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, engagementId, 'cliente');
+  if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
+  const check = checkSignedPdf(uploaded, expected);
+  if (!check.ok) return { errors: { pdf: check.reason } };
+  const signer = await verifyLastSignature(uploaded);
+  if (!signer.valid) return { errors: { pdf: `A assinatura não é válida${signer.reason ? ` (${signer.reason})` : ''}.` } };
+
+  const up = await supabase.storage.from('contratos').upload(`${engagementId}/${side}.pdf`, uploaded, { contentType: 'application/pdf' });
+  if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado (já tinha sido carregado?).' };
+
+  const r = await record(engagementId, kind, {
+    payload: {
+      documentHash: createHash('sha256').update(uploaded).digest('hex'),
+      metodo: 'cmd_pdf',
+      signatario: signer.name,
+      identificacao: signer.serialNumber,
+    },
+  });
+  if (!r.ok) return { errors: r.errors, message: r.message };
+  return { errors: {}, ok: true, message: `Assinado por ${signer.name ?? 'titular do certificado'}.` };
 }

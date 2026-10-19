@@ -34,5 +34,5 @@ marca, piloto) avança em paralelo e condiciona o lançamento.
 | Materiais certificados no orçamento, descontos por escalão e entregas dos fornecedores | Feito |
 | Encomendas certificadas e avaliações de fornecedores | Feito |
 | Ferramentas de obra (separador discreto para o pintor) | Feito |
-| Assinatura com PDF da Autenticação.gov | Por fazer |
-| Design das páginas | Por fazer |
+| Assinatura com PDF da Autenticação.gov | Feito (falta validar a cadeia de confiança do certificado) |
+| Design das páginas | Feito: linguagem do protótipo v05 em toda a app |

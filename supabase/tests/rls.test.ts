@@ -948,3 +948,21 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     ).rejects.toThrow(/row-level security/);
   });
 });
+
+describe('contratos assinados', () => {
+  it('cada parte só carrega o seu PDF; o pintor lê o anúncio fechado da sua contratação', async () => {
+    const e = await one<{ id: string; painter_org_id: string; request_id: string }>(
+      `select e.id, e.painter_org_id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
+    );
+    const owner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario'`, [e.painter_org_id])).user_id;
+    const put = (user: string, file: string) => as(user, () => db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${file}`]));
+    await expect(put(owner, 'cliente.pdf')).rejects.toThrow(/row-level security/);
+    await expect(put(A, 'pintor.pdf')).rejects.toThrow(/row-level security/);
+    await expect(put(B, 'cliente.pdf')).rejects.toThrow(/row-level security/);
+    await put(A, 'cliente.pdf');
+    await put(owner, 'pintor.pdf');
+    expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(2);
+    expect(await as(B, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toEqual([]);
+    expect(await as(owner, async () => (await db.query('select ref from public.request_listings where request_id = $1', [e.request_id])).rows)).toHaveLength(1);
+  });
+});
