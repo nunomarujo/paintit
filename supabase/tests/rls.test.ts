@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
+import { CURRENT_RULES } from '../../src/domain/rules';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
 // Supabase simulado (papéis, auth.uid(), storage), e verifica as regras de
@@ -565,5 +566,112 @@ describe('propostas e escolha', () => {
     const req = await one<{ status: string }>('select status from public.work_requests where id = $1', [requestId]);
     expect(req.status).toBe('encerrado');
     await expect(as(A, () => db.query('select public.select_proposal($1)', [other]))).rejects.toThrow(/submetida/);
+  });
+});
+
+describe('contratação', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // pintor escolhido
+  const P2 = '00000000-0000-4000-8000-0000000000e2'; // pintor não escolhido
+  let engagementId: string;
+  let requestId: string;
+  const event = (user: string, kind: string, extra: { amount?: number; reveal?: boolean; at?: string } = {}) =>
+    as(user, () =>
+      db.query(
+        `insert into public.engagement_events (engagement_id, kind, amount_cents, reveal, at)
+         values ($1, $2, $3, $4, coalesce($5::timestamptz, now()))`,
+        [engagementId, kind, extra.amount ?? null, extra.reveal ?? false, extra.at ?? null],
+      ),
+    );
+
+  beforeAll(async () => {
+    const e = await one<{ id: string; request_id: string }>(
+      `select e.id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
+    );
+    engagementId = e.id;
+    requestId = e.request_id;
+  });
+
+  it('a escolha cria a contratação com a versão das regras em vigor e o adiantamento', async () => {
+    const e = await one<{ rules_version: string; base_cents: string; advance_cents: string }>(
+      'select rules_version, base_cents, advance_cents from public.engagements where id = $1',
+      [engagementId],
+    );
+    expect(e.rules_version).toBe(CURRENT_RULES.version);
+    expect([Number(e.base_cents), Number(e.advance_cents)]).toEqual([137275, 0]);
+  });
+
+  it('cada lado vê a contratação; o pintor não escolhido não', async () => {
+    for (const u of [A, P]) {
+      const rows = await as(u, async () => (await db.query('select id from public.engagements')).rows);
+      expect(rows).toHaveLength(1);
+    }
+    expect(await as(P2, async () => (await db.query('select id from public.engagements')).rows)).toEqual([]);
+  });
+
+  it('ninguém cria contratações à mão', async () => {
+    await expect(
+      as(A, () => db.query(`insert into public.engagements (proposal_id, request_id, client_org_id, painter_org_id, base_cents, advance_cents, rules_version)
+        select proposal_id, request_id, client_org_id, painter_org_id, 1, 0, 'x' from public.engagements limit 1`)),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it('só a plataforma confirma dinheiro; cada parte só regista o que lhe cabe', async () => {
+    await expect(event(A, 'deposito_confirmado', { amount: 15000 })).rejects.toThrow(/row-level security/);
+    await expect(event(P, 'cliente_assinou')).rejects.toThrow(/row-level security/);
+    await expect(event(A, 'pintor_assinou')).rejects.toThrow(/row-level security/);
+    await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(/row-level security/);
+    await event(ADMIN, 'deposito_confirmado', { amount: 15000 });
+    await event(A, 'cliente_assinou');
+  });
+
+  it('as partes não escolhem a hora; a plataforma pode indicar uma hora passada', async () => {
+    await event(A, 'litigio_aberto', { at: '2020-01-01T00:00:00Z' });
+    await event(ADMIN, 'fee_recebido', { amount: 18450, at: '2020-01-01T00:00:00Z' });
+    const rows = await db.query<{ kind: string; year: number }>(
+      `select kind, extract(year from at)::int as year from public.engagement_events where engagement_id = $1 and kind in ('litigio_aberto', 'fee_recebido')`,
+      [engagementId],
+    );
+    expect(Object.fromEntries(rows.rows.map((r) => [r.kind, r.year]))).toEqual({ litigio_aberto: new Date().getUTCFullYear(), fee_recebido: 2020 });
+    await db.query(`delete from public.engagement_events where engagement_id = $1 and kind in ('litigio_aberto', 'fee_recebido')`, [engagementId]);
+  });
+
+  it('os acontecimentos não se alteram', async () => {
+    await expect(as(A, () => db.query(`update public.engagement_events set kind = 'pintor_assinou'`))).rejects.toThrow(/permission denied/);
+  });
+
+  it('antes da apresentação, o pintor não vê o cliente, o pedido nem o prédio', async () => {
+    const rows = await as(P, async () => [
+      ...(await db.query('select id from public.organizations where id = $1', [condo])).rows,
+      ...(await db.query('select id from public.work_requests where id = $1', [requestId])).rows,
+      ...(await db.query('select b.id from public.buildings b')).rows,
+    ]);
+    expect(rows).toEqual([]);
+  });
+
+  it('com a comissão confirmada, as partes veem-se; o outro pintor e os outros condomínios não', async () => {
+    await event(ADMIN, 'fee_recebido', { amount: 18450, reveal: true });
+    const painterSees = await as(P, async () => ({
+      orgs: (await db.query<{ id: string }>('select id from public.organizations')).rows.map((r) => r.id),
+      req: (await db.query('select morada from public.buildings')).rows.length,
+      request: (await db.query('select id from public.work_requests')).rows.map((r) => (r as { id: string }).id),
+    }));
+    expect(painterSees.orgs).toContain(condo);
+    expect(painterSees.orgs).not.toContain(adminOrg);
+    expect(painterSees.req).toBe(1);
+    expect(painterSees.request).toEqual([requestId]);
+    const painterOrg = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [engagementId])).painter_org_id;
+    const clientSees = await as(A, async () => (await db.query('select id from public.organizations where id = $1', [painterOrg])).rows);
+    expect(clientSees).toHaveLength(1);
+    const rival = await as(P2, async () => (await db.query('select id from public.organizations where id = $1', [condo])).rows);
+    expect(rival).toEqual([]);
+  });
+
+  it('a falhada só com valores a transitar; depois escolhe-se outra e a nova contratação herda-os', async () => {
+    const other = (await one<{ id: string }>(`select id from public.proposals where request_id = $1 and status = 'nao_selecionada'`, [requestId])).id;
+    await expect(as(A, () => db.query('select public.reselect_proposal($1)', [other]))).rejects.toThrow(/falhou/);
+    await event(A, 'transitar');
+    await as(A, () => db.query('select public.reselect_proposal($1)', [other]));
+    const next = await one<{ carried_from: string }>('select carried_from from public.engagements where proposal_id = $1', [other]);
+    expect(next.carried_from).toBe(engagementId);
   });
 });

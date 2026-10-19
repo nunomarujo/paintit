@@ -1,0 +1,105 @@
+import 'server-only';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { contractDraft, replay, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { formatEuros, percentOf } from '@/domain/money';
+import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
+import type { Database } from '@/lib/database.types';
+import { toLine, toTerms } from '@/lib/proposals';
+
+type Client = SupabaseClient<Database>;
+type EventRow = Database['public']['Tables']['engagement_events']['Row'];
+type EngagementRow = Database['public']['Tables']['engagements']['Row'];
+
+export const toEvent = (r: EventRow): EngagementEvent => ({
+  id: r.id,
+  kind: r.kind,
+  amount: r.amount_cents,
+  payload: (r.payload ?? {}) as EngagementEvent['payload'],
+  at: r.at,
+});
+
+async function eventsOf(supabase: Client, engagementId: string) {
+  const { data } = await supabase.from('engagement_events').select('*').eq('engagement_id', engagementId).order('at');
+  return data ?? [];
+}
+
+/** Reconstrói a contratação, incluindo os valores transitados de uma anterior. */
+export async function loadReplay(
+  supabase: Client,
+  row: EngagementRow,
+  now = new Date(),
+  extra: EngagementEvent[] = [],
+): Promise<{ replay: Replay; events: EventRow[]; record: EngagementRecord }> {
+  let carried: EngagementRecord['carried'];
+  if (row.carried_from) {
+    const { data: prev } = await supabase.from('engagements').select('*').eq('id', row.carried_from).maybeSingle();
+    if (prev) {
+      const prevReplay = (await loadReplay(supabase, prev, now)).replay;
+      carried = prevReplay.carriedOut;
+    }
+  }
+  const events = await eventsOf(supabase, row.id);
+  const record: EngagementRecord = {
+    id: row.id,
+    base: row.base_cents,
+    advance: row.advance_cents,
+    rulesVersion: row.rules_version,
+    createdAt: row.created_at,
+    carried,
+  };
+  return { replay: replay(record, [...events.map(toEvent), ...extra], now), events, record };
+}
+
+const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : null);
+
+/** Dados da minuta. Os dados identificativos só entram quando a base de dados os deixa ver. */
+export async function loadDraft(supabase: Client, row: EngagementRow) {
+  const [{ data: proposal }, { data: lines }, { data: listing }, { data: request }, { data: client }, { data: painter }] =
+    await Promise.all([
+      supabase.from('proposals').select('*').eq('id', row.proposal_id).single(),
+      supabase.from('proposal_lines').select('*').eq('proposal_id', row.proposal_id).order('created_at'),
+      supabase.from('request_listings').select('ref, concelho, descricao').eq('request_id', row.request_id).maybeSingle(),
+      supabase.from('work_requests').select('ref, descricao, building_id').eq('id', row.request_id).maybeSingle(),
+      supabase.from('organizations').select('nome, nif, morada_fiscal, codigo_postal, localidade').eq('id', row.client_org_id).maybeSingle(),
+      supabase.from('organizations').select('nome, nif, morada_fiscal, codigo_postal, localidade').eq('id', row.painter_org_id).maybeSingle(),
+    ]);
+  const { data: building } = request
+    ? await supabase.from('buildings').select('morada, codigo_postal, localidade, concelho').eq('id', request.building_id).maybeSingle()
+    : { data: null };
+  const terms = toTerms(proposal!);
+  const ls = (lines ?? []).map(toLine);
+  const t = proposalTotals(ls, terms.ivaBps);
+  const address = (o: { morada_fiscal: string | null; codigo_postal: string | null; localidade: string | null } | null) =>
+    o?.morada_fiscal ? `${o.morada_fiscal}, ${o.codigo_postal ?? ''} ${o.localidade ?? ''}`.trim() : null;
+  return contractDraft({
+    ref: listing?.ref ?? request?.ref ?? '',
+    cliente: client ? { nome: client.nome, nif: client.nif, morada: address(client) } : null,
+    pintor: painter ? { nome: painter.nome, nif: painter.nif, morada: address(painter) } : null,
+    obra: {
+      morada: building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null,
+      concelho: building?.concelho ?? listing?.concelho ?? '',
+      descricao: request?.descricao ?? listing?.descricao ?? '',
+    },
+    linhas: ls.map((l) => ({
+      descricao: l.descricao,
+      quantidade: `${(l.quantidade / 100).toLocaleString('pt-PT')} ${UNIT_LABELS[l.unidade]}`,
+      total: formatEuros(lineTotal(l)),
+      inclusao: l.inclusao === 'incluido' ? '' : INCLUSION_LABELS[l.inclusao],
+    })),
+    precoSemIva: formatEuros(t.base),
+    iva: formatEuros(t.iva),
+    totalComIva: formatEuros(t.totalComIva),
+    prazo: `Duração estimada de ${terms.duracaoDias ?? '—'} dias${
+      terms.inicioPossivel ? `, com início possível a ${pt(terms.inicioPossivel)}` : ''
+    }, sujeita às condições meteorológicas.`,
+    adiantamento:
+      terms.adiantamentoBps > 0
+        ? `Adiantamento de adjudicação de ${terms.adiantamentoBps / 100}% (${formatEuros(
+            percentOf(t.base, terms.adiantamentoBps),
+          )}), depositado no parceiro de pagamentos e libertado ao empreiteiro na assinatura.`
+        : 'Sem adiantamento de adjudicação.',
+    ajusteM2: terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'preço por m² a acordar',
+    garantiaObra: terms.garantiaAnos !== null ? `${terms.garantiaAnos} anos sobre os trabalhos executados.` : 'Nos termos da lei.',
+    exclusoes: terms.exclusoes,
+  });
+}

@@ -27,3 +27,27 @@ export function deadlineFrom(start: Date, days: number, timeZone: string): IsoDa
 export function isWithin(instant: Date, lastDay: IsoDate, timeZone: string): boolean {
   return localDate(instant, timeZone) <= lastDay;
 }
+
+/** "AAAA-MM-DDTHH:MM" lido como hora local de `timeZone` (ex.: um campo datetime-local) → instante. */
+export function fromLocalDateTime(value: string, timeZone: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number) as [number, number, number, number, number];
+  const guess = Date.UTC(y, mo - 1, d, h, mi);
+  // Diferença entre o relógio local e UTC nesse momento (muda com a hora de verão).
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .formatToParts(new Date(guess))
+      .map((p) => [p.type, p.value]),
+  );
+  const local = Date.UTC(+parts.year!, +parts.month! - 1, +parts.day!, +parts.hour!, +parts.minute!);
+  return new Date(guess - (local - guess));
+}

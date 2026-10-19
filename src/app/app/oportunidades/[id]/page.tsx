@@ -23,6 +23,7 @@ const STATUS: Record<string, string> = {
   retirada: 'Retirada.',
   selecionada: 'Escolhida pelo cliente. Segue-se a apresentação e a contratação.',
   nao_selecionada: 'O cliente escolheu outra proposta.',
+  falhada: 'Foi escolhida, mas a contratação não avançou.',
 };
 
 export default async function OpportunityPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,6 +64,10 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         })
       : [];
   const path = `/app/oportunidades/${id}`;
+  const { data: engagement } =
+    proposal && ['selecionada', 'falhada'].includes(proposal.status)
+      ? await supabase.from('engagements').select('id').eq('proposal_id', proposal.id).maybeSingle()
+      : { data: null };
 
   return (
     <div className="space-y-8">
@@ -117,6 +122,14 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               </h2>
               <span className="text-sm text-slate-600">{STATUS[proposal.status]}</span>
             </div>
+            {engagement && (
+              <Link
+                href={`/app/contratacoes/${engagement.id}`}
+                className="mt-3 block rounded-xl bg-tinta-50 p-3 text-sm font-semibold text-tinta-900 hover:bg-tinta-100"
+              >
+                Ir para a contratação (comissão, contrato e assinatura) →
+              </Link>
+            )}
             {proposal.status === 'submetida' && listing && proposal.request_version !== null && proposal.request_version < (listing.version ?? 0) && (
               <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm">
                 O cliente alterou o pedido depois da sua submissão. Reveja a proposta para continuar a concorrer.

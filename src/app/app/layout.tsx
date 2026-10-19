@@ -28,6 +28,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/app/oportunidades" className="hover:underline">
               Oportunidades
             </Link>
+            <Link href="/app/contratacoes" className="hover:underline">
+              Contratações
+            </Link>
             {admin && (
               <Link href="/app/validacao" className="font-medium text-tinta-700 hover:underline">
                 Validação

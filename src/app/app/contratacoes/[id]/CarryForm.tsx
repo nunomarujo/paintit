@@ -1,0 +1,24 @@
+'use client';
+
+import { useActionState } from 'react';
+import type { FormState } from '@/app/app/actions';
+import { carryToProposal } from '@/app/app/contratacoes/actions';
+
+export function CarryForm({ engagementId, requestId, proposalId, label }: { engagementId: string; requestId: string; proposalId: string; label: string }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(
+    carryToProposal.bind(null, engagementId, requestId, proposalId),
+    { errors: {} },
+  );
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+      >
+        {pending ? 'A passar…' : label}
+      </button>
+      {state.message && <span className="text-sm text-red-700">{state.message}</span>}
+    </form>
+  );
+}

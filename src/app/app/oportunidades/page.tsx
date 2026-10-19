@@ -9,6 +9,7 @@ const PROPOSAL_LABEL: Record<string, string> = {
   retirada: 'Proposta retirada',
   selecionada: 'Escolhida',
   nao_selecionada: 'Não escolhida',
+  falhada: 'Escolhida, sem contrato',
 };
 
 // Oportunidades para pintores: anúncios abertos, anónimos (PIN-05).

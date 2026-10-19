@@ -36,7 +36,17 @@ type SurfaceKind =
 type AreaSource = 'estimativa' | 'medicao_cliente' | 'planta';
 type PhotoKind = 'geral' | 'pormenor';
 type PhotoReview = 'pendente' | 'aprovada' | 'rejeitada';
-type ProposalStatus = 'rascunho' | 'submetida' | 'retirada' | 'selecionada' | 'nao_selecionada';
+type ProposalStatus = 'rascunho' | 'submetida' | 'retirada' | 'selecionada' | 'nao_selecionada' | 'falhada';
+type EngagementEventKind =
+  | 'deposito_confirmado'
+  | 'cliente_assinou'
+  | 'fee_recebido'
+  | 'pintor_assinou'
+  | 'cliente_desistiu'
+  | 'litigio_aberto'
+  | 'litigio_resolvido'
+  | 'transitar'
+  | 'encerrar_sem_contrato';
 type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'outro';
 type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
 type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
@@ -299,6 +309,55 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'buildings';
             referencedColumns: ['id', 'org_id'];
+          },
+        ];
+      };
+      engagements: {
+        Row: {
+          advance_cents: number;
+          base_cents: number;
+          carried_from: string | null;
+          client_org_id: string;
+          created_at: string;
+          id: string;
+          painter_org_id: string;
+          proposal_id: string;
+          request_id: string;
+          rules_version: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      engagement_events: {
+        Row: {
+          actor: string;
+          amount_cents: number | null;
+          at: string;
+          created_at: string;
+          engagement_id: string;
+          id: string;
+          kind: EngagementEventKind;
+          payload: Json;
+          reveal: boolean;
+        };
+        Insert: {
+          actor?: string;
+          amount_cents?: number | null;
+          at?: string;
+          engagement_id: string;
+          kind: EngagementEventKind;
+          payload?: Json;
+          reveal?: boolean;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'engagement_events_engagement_id_fkey';
+            columns: ['engagement_id'];
+            isOneToOne: false;
+            referencedRelation: 'engagements';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -571,6 +630,7 @@ export type Database = {
     Views: { [_ in never]: never };
     Functions: {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
     };
     Enums: {
       building_kind: BuildingKind;
@@ -589,6 +649,7 @@ export type Database = {
       line_unit: LineUnit;
       line_inclusion: LineInclusion;
       message_side: MessageSide;
+      engagement_event_kind: EngagementEventKind;
     };
     CompositeTypes: { [_ in never]: never };
   };

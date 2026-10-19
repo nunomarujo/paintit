@@ -49,4 +49,7 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | Adiantamento durante um litígio | Devolvido logo ao cliente | `openDispute` |
 | Mínimo de 150 € na garantia do cliente | Aplica-se | `rules.ts`, `guaranteeMinCents` |
 | Nome e marca | "Paint it", provisório | `src/config/brand.ts` |
-| Parceiro de pagamentos | Por escolher (questão A1) | — |
+| Parceiro de pagamentos | Por escolher (questão A1). Até lá, a equipa da plataforma regista à mão cada confirmação do parceiro (depósito e comissão), com a hora de receção | `/app/contratacoes/[id]` |
+| Assinatura com Chave Móvel Digital | Por contratar o serviço. Até lá, a assinatura na plataforma regista a aceitação, a hora e o resumo SHA-256 do texto aceite | `src/app/app/contratacoes/actions.ts` |
+| Momento da apresentação | Quando a comissão do pintor é confirmada dentro do prazo: as partes passam a ver-se, só para essa obra | `isRevealed` em `contracting.ts` |
+| Texto da minuta | Gerado da proposta e da ficha da obra; deve ser revisto por um advogado | `contractDraft` em `contracting.ts` |

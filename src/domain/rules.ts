@@ -35,3 +35,8 @@ export const RULES_2026_10: CommercialRules = {
 };
 
 export const CURRENT_RULES = RULES_2026_10;
+
+/** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
+export const RULES_BY_VERSION: Record<string, CommercialRules> = {
+  [RULES_2026_10.version]: RULES_2026_10,
+};

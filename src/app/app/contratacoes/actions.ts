@@ -1,0 +1,120 @@
+'use server';
+
+import { createHash } from 'node:crypto';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import type { FormState } from '@/app/app/actions';
+import { draftText, isRevealed, type EngagementEvent, type EventKind } from '@/domain/contracting';
+import { fromLocalDateTime } from '@/domain/deadline';
+import type { DisputeOutcome } from '@/domain/engagement';
+import { parseHundredths } from '@/domain/request';
+import { CURRENT_RULES } from '@/domain/rules';
+import type { Json } from '@/lib/database.types';
+import { isPlatformAdmin } from '@/lib/access';
+import { loadDraft, loadReplay } from '@/lib/engagements';
+import { getUser } from '@/lib/supabase/server';
+
+const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+
+type PartyKind = Extract<EventKind, 'cliente_assinou' | 'cliente_desistiu' | 'pintor_assinou' | 'litigio_aberto' | 'encerrar_sem_contrato'>;
+
+/**
+ * Regista um acontecimento depois de confirmar, com as regras de engagement.ts,
+ * que é válido agora. A base de dados volta a verificar quem o pode registar.
+ */
+async function record(
+  engagementId: string,
+  kind: EventKind,
+  opts: { amount?: number | null; at?: Date; payload?: EngagementEvent['payload']; admin?: boolean } = {},
+): Promise<FormState & { revealed?: boolean }> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
+  if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+  if (opts.admin && !(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+
+  const at = opts.at ?? new Date();
+  const candidate: EngagementEvent = { id: 'novo', kind, amount: opts.amount ?? null, payload: opts.payload ?? {}, at: at.toISOString() };
+  const before = (await loadReplay(supabase, row, at)).replay.engagement;
+  const { replay: after } = await loadReplay(supabase, row, at, [candidate]);
+  const refused = after.rejected.find((r) => r.event.id === 'novo');
+  if (refused) return { errors: {}, message: refused.reason };
+
+  // A apresentação acontece quando o fee entra dentro do prazo (o fee tardio é devolvido).
+  const reveal = kind === 'fee_recebido' && !isRevealed(before) && isRevealed(after.engagement);
+  const { error } = await supabase.from('engagement_events').insert({
+    engagement_id: engagementId,
+    kind,
+    amount_cents: opts.amount ?? null,
+    payload: (opts.payload ?? {}) as Json,
+    reveal,
+    actor: user.id,
+    ...(opts.at ? { at: opts.at.toISOString() } : {}),
+  });
+  if (error) return { errors: {}, message: 'Não foi possível registar. Confirme que tem permissão para este passo.' };
+  revalidatePath(`/app/contratacoes/${engagementId}`);
+  return { errors: {}, ok: true, message: 'Registado.', revealed: reveal };
+}
+
+export async function partyAction(engagementId: string, kind: PartyKind, _prev: FormState, form: FormData): Promise<FormState> {
+  if ((kind === 'cliente_assinou' || kind === 'pintor_assinou') && form.get('confirmo') !== 'sim') {
+    return { errors: { confirmo: 'Confirme que leu e aceita a minuta.' } };
+  }
+  const reason = String(form.get('motivo') ?? '').trim();
+  if (kind === 'litigio_aberto' && reason.length < 10) return { errors: { motivo: 'Explique o motivo do litígio.' } };
+
+  const payload: EngagementEvent['payload'] = {};
+  if (kind === 'litigio_aberto') payload.reason = reason.slice(0, 1000);
+  if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
+    // Prova do que foi assinado: resumo SHA-256 do texto da minuta tal como a parte o viu.
+    const { supabase } = await getUser();
+    const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
+    if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+    payload.documentHash = createHash('sha256').update(draftText(await loadDraft(supabase, row))).digest('hex');
+  }
+  const r = await record(engagementId, kind, { payload });
+  return { errors: r.errors, ok: r.ok, message: r.message };
+}
+
+export async function carryToProposal(engagementId: string, requestId: string, nextProposalId: string): Promise<FormState> {
+  const r = await record(engagementId, 'transitar', { payload: { to: nextProposalId } });
+  if (!r.ok) return r;
+  const { supabase } = await getUser();
+  const { error } = await supabase.rpc('reselect_proposal', { p_proposal: nextProposalId });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`/app/pedidos/${requestId}/propostas`);
+  const { data: next } = await supabase.from('engagements').select('id').eq('proposal_id', nextProposalId).maybeSingle();
+  redirect(next ? `/app/contratacoes/${next.id}` : `/app/pedidos/${requestId}/propostas`);
+}
+
+const OUTCOMES: DisputeOutcome[] = ['culpa_cliente', 'culpa_pintor', 'retomar'];
+
+/** Confirmações do parceiro de pagamentos e decisões de litígio: só a equipa da plataforma. */
+export async function platformAction(
+  engagementId: string,
+  kind: Extract<EventKind, 'deposito_confirmado' | 'fee_recebido' | 'litigio_resolvido'>,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  let amount: number | null = null;
+  if (kind !== 'litigio_resolvido') {
+    amount = parseHundredths(form.get('montante'));
+    if (amount === null || Number.isNaN(amount)) return { errors: { montante: 'Montante recebido, em euros.' } };
+  }
+  const outcome = String(form.get('decisao') ?? '') as DisputeOutcome;
+  if (kind === 'litigio_resolvido' && !OUTCOMES.includes(outcome)) return { errors: { decisao: 'Escolha a decisão.' } };
+  const when = String(form.get('quando') ?? '').trim();
+  const at = when ? (fromLocalDateTime(when, CURRENT_RULES.timeZone) ?? undefined) : undefined;
+  if (when && (!at || at > new Date())) return { errors: { quando: 'Data e hora no passado (hora de Lisboa).' } };
+  const r = await record(engagementId, kind, {
+    amount,
+    at,
+    admin: true,
+    payload: kind === 'litigio_resolvido' ? { outcome } : {},
+  });
+  return {
+    errors: r.errors,
+    ok: r.ok,
+    message: r.revealed ? 'Registado. As partes foram apresentadas: já se veem uma à outra.' : r.message,
+  };
+}

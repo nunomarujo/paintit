@@ -19,6 +19,7 @@ const STATUS: Record<string, string> = {
   retirada: 'Retirada pelo pintor',
   selecionada: 'Escolhida',
   nao_selecionada: 'Não escolhida',
+  falhada: 'Escolhida, mas o pintor não cumpriu',
 };
 
 // Comparador do cliente (CLI-14, CLI-15): propostas lado a lado, sem identificar os pintores.
@@ -69,6 +70,9 @@ export default async function ProposalsPage({
   const chosen = list.find((p) => p.status === 'selecionada');
   const threadsWithoutProposal = [...new Set((messages ?? []).map((m) => m.proposal_id))].filter((pid) => !byId.has(pid));
   const path = `/app/pedidos/${id}/propostas`;
+  const { data: engagement } = chosen
+    ? await supabase.from('engagements').select('id').eq('proposal_id', chosen.id).maybeSingle()
+    : { data: null };
 
   return (
     <div className="space-y-8">
@@ -82,6 +86,15 @@ export default async function ProposalsPage({
           depois da escolha, quando o pintor confirmar. Área do pedido: {formatArea(areaTotal)}.
         </p>
       </div>
+
+      {engagement && (
+        <Link
+          href={`/app/contratacoes/${engagement.id}`}
+          className={`${card} block border-tinta-100 bg-tinta-50 font-semibold text-tinta-900 hover:bg-tinta-100`}
+        >
+          Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura) →
+        </Link>
+      )}
 
       {active.length === 0 ? (
         <p className={`${card} text-sm text-slate-600`}>Ainda não há propostas submetidas.</p>

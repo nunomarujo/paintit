@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, deadlineFrom, isWithin, localDate } from './deadline';
+import { addDays, deadlineFrom, fromLocalDateTime, isWithin, localDate } from './deadline';
 
 const tz = 'Europe/Lisbon';
 
@@ -23,5 +23,13 @@ describe('prazos em dias corridos (Lisboa)', () => {
   it('atravessa mudanças de mês e de hora', () => {
     expect(addDays('2026-03-28', 8)).toBe('2026-04-05');
     expect(addDays('2026-12-28', 8)).toBe('2027-01-05');
+  });
+});
+
+describe('hora local de Lisboa', () => {
+  it('converte com a hora de verão e de inverno', () => {
+    expect(fromLocalDateTime('2026-07-01T10:00', 'Europe/Lisbon')?.toISOString()).toBe('2026-07-01T09:00:00.000Z');
+    expect(fromLocalDateTime('2026-12-01T10:00', 'Europe/Lisbon')?.toISOString()).toBe('2026-12-01T10:00:00.000Z');
+    expect(fromLocalDateTime('ontem', 'Europe/Lisbon')).toBeNull();
   });
 });

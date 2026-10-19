@@ -1,0 +1,283 @@
+import {
+  carryToNext,
+  clientDepositDue,
+  clientSign,
+  clientWithdraw,
+  closeWithoutContract,
+  confirmClientDeposit,
+  createEngagement,
+  EngagementError,
+  expire,
+  openDispute,
+  painterFeeReceived,
+  painterSign,
+  resolveDispute,
+  type DisputeOutcome,
+  type Engagement,
+  type EngagementStatus,
+} from './engagement';
+import type { Cents } from './money';
+import { RULES_BY_VERSION } from './rules';
+
+// Persistência da contratação: a base de dados guarda só os acontecimentos
+// (quem fez o quê e quando, com o montante confirmado pelo parceiro de
+// pagamentos). O estado é sempre reconstruído aqui, a partir de engagement.ts,
+// para que as regras de dinheiro existam num único sítio.
+
+export const EVENT_KINDS = [
+  'deposito_confirmado',
+  'cliente_assinou',
+  'fee_recebido',
+  'pintor_assinou',
+  'cliente_desistiu',
+  'litigio_aberto',
+  'litigio_resolvido',
+  'transitar',
+  'encerrar_sem_contrato',
+] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+export const EVENT_LABELS: Record<EventKind, string> = {
+  deposito_confirmado: 'Depósito do cliente confirmado pelo parceiro de pagamentos',
+  cliente_assinou: 'O cliente assinou a minuta',
+  fee_recebido: 'Comissão do pintor recebida pelo parceiro de pagamentos',
+  pintor_assinou: 'O pintor assinou: contrato celebrado',
+  cliente_desistiu: 'O cliente desistiu',
+  litigio_aberto: 'Litígio aberto',
+  litigio_resolvido: 'Litígio resolvido',
+  transitar: 'Valores transitam para outra proposta',
+  encerrar_sem_contrato: 'Encerrado sem contrato',
+};
+
+/** Quem pode registar cada acontecimento (a base de dados aplica a mesma regra). */
+export const EVENT_ACTOR: Record<EventKind, 'cliente' | 'pintor' | 'plataforma' | 'partes'> = {
+  deposito_confirmado: 'plataforma',
+  cliente_assinou: 'cliente',
+  fee_recebido: 'plataforma',
+  pintor_assinou: 'pintor',
+  cliente_desistiu: 'cliente',
+  litigio_aberto: 'partes',
+  litigio_resolvido: 'plataforma',
+  transitar: 'cliente',
+  encerrar_sem_contrato: 'cliente',
+};
+
+export interface EngagementEvent {
+  id: string;
+  kind: EventKind;
+  amount: Cents | null;
+  payload: { reason?: string; outcome?: DisputeOutcome; to?: string; documentHash?: string };
+  at: string;
+}
+
+export interface EngagementRecord {
+  id: string;
+  base: Cents;
+  advance: Cents;
+  rulesVersion: string;
+  createdAt: string;
+  carried?: { from: string; guarantee: Cents; advance: Cents };
+}
+
+export interface Replay {
+  engagement: Engagement;
+  /** Acontecimentos que as regras recusaram (ficam registados, sem efeito). */
+  rejected: { event: EngagementEvent; reason: string }[];
+  carriedOut?: { from: string; guarantee: Cents; advance: Cents };
+}
+
+function apply(e: Engagement, ev: EngagementEvent): { e: Engagement; carried?: Replay['carriedOut'] } {
+  const at = new Date(ev.at);
+  switch (ev.kind) {
+    case 'deposito_confirmado':
+      return { e: confirmClientDeposit(e, { amount: ev.amount ?? 0, at }) };
+    case 'cliente_assinou':
+      return { e: clientSign(e, { at }) };
+    case 'fee_recebido':
+      return { e: painterFeeReceived(e, { amount: ev.amount ?? 0, at }) };
+    case 'pintor_assinou':
+      return { e: painterSign(e, { at }) };
+    case 'cliente_desistiu':
+      return { e: clientWithdraw(e, { at }) };
+    case 'litigio_aberto':
+      return { e: openDispute(e, { at, reason: ev.payload.reason ?? 'sem motivo indicado' }) };
+    case 'litigio_resolvido':
+      if (!ev.payload.outcome) throw new EngagementError('sem_decisao', 'Falta a decisão do litígio.');
+      return { e: resolveDispute(e, { at, outcome: ev.payload.outcome }) };
+    case 'transitar': {
+      const r = carryToNext(e, { at, to: ev.payload.to ?? 'outra proposta' });
+      return { e: r.engagement, carried: r.carried };
+    }
+    case 'encerrar_sem_contrato':
+      return { e: closeWithoutContract(e, { at }) };
+  }
+}
+
+/** Reconstrói a contratação a partir dos acontecimentos, por ordem, e aplica os prazos até `now`. */
+export function replay(rec: EngagementRecord, events: EngagementEvent[], now: Date): Replay {
+  const rules = RULES_BY_VERSION[rec.rulesVersion];
+  if (!rules) throw new EngagementError('regras_desconhecidas', `Versão de regras desconhecida: ${rec.rulesVersion}.`);
+  let e = createEngagement({
+    id: rec.id,
+    base: rec.base,
+    advance: rec.advance,
+    rules,
+    at: new Date(rec.createdAt),
+    carried: rec.carried,
+  });
+  const rejected: Replay['rejected'] = [];
+  let carriedOut: Replay['carriedOut'];
+  for (const ev of [...events].sort((a, b) => a.at.localeCompare(b.at))) {
+    try {
+      const r = apply(e, ev);
+      e = r.e;
+      carriedOut = r.carried ?? carriedOut;
+    } catch (err) {
+      if (!(err instanceof EngagementError)) throw err;
+      rejected.push({ event: ev, reason: err.message });
+    }
+  }
+  return { engagement: expire(e, now), rejected, carriedOut };
+}
+
+/** A identidade e os contactos são revelados quando o fee entra (CLI-19); depois disso não se desfaz. */
+export const isRevealed = (e: Engagement) => e.feePaid;
+
+export const STATUS_LABELS: Record<EngagementStatus, string> = {
+  aguarda_deposito: 'À espera do depósito do cliente',
+  aguarda_assinatura_cliente: 'À espera da assinatura do cliente',
+  aguarda_fee: 'À espera da comissão do pintor',
+  aguarda_assinatura_pintor: 'À espera da assinatura do pintor',
+  assinado: 'Contrato assinado pelas duas partes',
+  pintor_nao_pagou: 'O pintor não pagou a comissão no prazo',
+  pintor_nao_assinou: 'O pintor não assinou no prazo',
+  cliente_desistiu: 'O cliente desistiu',
+  em_litigio: 'Em litígio',
+  litigio_culpa_cliente: 'Litígio resolvido: culpa do cliente',
+  litigio_culpa_pintor: 'Litígio resolvido: culpa do pintor',
+  transitado: 'Valores transitaram para outra proposta',
+  encerrado_sem_contrato: 'Encerrado sem contrato',
+  cancelado: 'Escolha cancelada',
+};
+
+export type Side = 'cliente' | 'pintor' | 'plataforma';
+
+/** O que cada lado pode fazer agora. A base de dados volta a verificar quem é quem. */
+export function availableActions(e: Engagement, side: Side): EventKind[] {
+  const s = e.status;
+  if (side === 'plataforma') {
+    const out: EventKind[] = [];
+    if (s === 'aguarda_deposito') out.push('deposito_confirmado');
+    // Um fee que chegue fora de prazo também se regista: é devolvido automaticamente.
+    if (s === 'aguarda_fee' || s === 'pintor_nao_pagou') out.push('fee_recebido');
+    if (s === 'em_litigio') out.push('litigio_resolvido');
+    return out;
+  }
+  if (side === 'cliente') {
+    const out: EventKind[] = [];
+    if (s === 'aguarda_assinatura_cliente') out.push('cliente_assinou');
+    if (['aguarda_deposito', 'aguarda_assinatura_cliente', 'aguarda_fee', 'aguarda_assinatura_pintor'].includes(s)) {
+      out.push('cliente_desistiu');
+    }
+    if (s === 'aguarda_assinatura_pintor') out.push('litigio_aberto');
+    if (s === 'pintor_nao_pagou' || s === 'pintor_nao_assinou') out.push('transitar', 'encerrar_sem_contrato');
+    return out;
+  }
+  const out: EventKind[] = [];
+  if (s === 'aguarda_assinatura_pintor') out.push('pintor_assinou', 'litigio_aberto');
+  return out;
+}
+
+export { clientDepositDue };
+
+// --- Minuta ----------------------------------------------------------------------
+
+export interface DraftInput {
+  ref: string;
+  cliente: { nome: string; nif: string | null; morada: string | null } | null;
+  pintor: { nome: string; nif: string | null; morada: string | null } | null;
+  obra: { morada: string | null; concelho: string; descricao: string };
+  linhas: { descricao: string; quantidade: string; total: string; inclusao: string }[];
+  precoSemIva: string;
+  iva: string;
+  totalComIva: string;
+  prazo: string;
+  adiantamento: string;
+  ajusteM2: string;
+  garantiaObra: string;
+  exclusoes: string;
+}
+
+export interface Draft {
+  title: string;
+  sections: { heading: string; paragraphs: string[] }[];
+}
+
+const party = (p: DraftInput['cliente'], fallback: string) =>
+  p ? `${p.nome}${p.nif ? `, NIF ${p.nif}` : ''}${p.morada ? `, com sede em ${p.morada}` : ''}` : fallback;
+
+/**
+ * Minuta do contrato de empreitada, gerada da proposta escolhida e da ficha da
+ * obra. Antes da apresentação, as partes aparecem por papel; os dados
+ * identificativos entram quando são revelados. O texto final deve ser validado
+ * por um advogado (questões jurídicas em aberto em docs/DECISOES.md).
+ */
+export function contractDraft(d: DraftInput): Draft {
+  return {
+    title: `Contrato de empreitada — pedido ${d.ref}`,
+    sections: [
+      {
+        heading: 'Partes',
+        paragraphs: [
+          `Dono da obra: ${party(d.cliente, 'o cliente identificado no pedido (dados revelados na apresentação)')}.`,
+          `Empreiteiro: ${party(d.pintor, 'o pintor autor da proposta escolhida (dados revelados na apresentação)')}.`,
+        ],
+      },
+      {
+        heading: '1. Objeto',
+        paragraphs: [
+          `Execução dos trabalhos de pintura descritos na proposta escolhida, no imóvel ${
+            d.obra.morada ? `sito em ${d.obra.morada}` : `localizado no concelho de ${d.obra.concelho}`
+          }.`,
+          d.obra.descricao,
+        ],
+      },
+      {
+        heading: '2. Trabalhos e preço',
+        paragraphs: [
+          ...d.linhas.map((l) => `${l.descricao} — ${l.quantidade} — ${l.total}${l.inclusao ? ` (${l.inclusao})` : ''}.`),
+          `Preço global: ${d.precoSemIva}, acrescido de IVA de ${d.iva}, no total de ${d.totalComIva}.`,
+          `Correções de área: a área executada que difira da prevista é faturada ou descontada a ${d.ajusteM2} por m².`,
+          d.exclusoes ? `Exclusões: ${d.exclusoes}` : 'Exclusões: as indicadas na proposta.',
+        ],
+      },
+      {
+        heading: '3. Prazo',
+        paragraphs: [d.prazo],
+      },
+      {
+        heading: '4. Pagamentos',
+        paragraphs: [
+          d.adiantamento,
+          'As restantes tranches são acordadas entre as partes e pagas diretamente ao empreiteiro.',
+        ],
+      },
+      {
+        heading: '5. Garantia da obra',
+        paragraphs: [d.garantiaObra],
+      },
+      {
+        heading: '6. Papel da plataforma',
+        paragraphs: [
+          'A plataforma apresentou as partes e conserva a prova deste contrato. Não é parte na empreitada e não responde pela sua execução.',
+          'A execução, as tranches seguintes, os aditamentos e eventuais incumprimentos depois da assinatura são matéria entre as partes.',
+        ],
+      },
+    ],
+  };
+}
+
+/** Texto canónico da minuta: é este texto que se resume (SHA-256) e fica como prova da assinatura. */
+export function draftText(d: Draft): string {
+  return [d.title, ...d.sections.flatMap((s) => [s.heading, ...s.paragraphs])].join('\n');
+}
