@@ -1,16 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { publishRequest } from '@/app/app/pedidos/actions';
 
 export function PublishButton({ requestId, blockers }: { requestId: string; blockers: string[] }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(publishRequest.bind(null, requestId), {
+  const { state, pending, formProps } = useFormAction<FormState>(publishRequest.bind(null, requestId), {
     errors: {},
   });
 
   return (
-    <form action={action} className="space-y-3">
+    <form {...formProps} className="space-y-3">
       {blockers.length > 0 && (
         <div className="rounded-xl bg-amber-50 p-4 text-sm">
           <p className="font-medium">Antes de publicar:</p>

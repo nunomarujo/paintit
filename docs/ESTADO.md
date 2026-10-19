@@ -42,7 +42,7 @@ Fontes:
 | 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
 | 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 12 migrações aplicadas, avisos de segurança a
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 14 migrações aplicadas, avisos de segurança a
 zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
 e `resolve_listing_report`, que corre com direitos de dono e verifica que quem chama é da equipa da plataforma. Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
@@ -60,8 +60,9 @@ As seis fases do produto estão feitas. O que falta para lançar depende de esco
 4. **Email transacional**: avisos de convites, propostas novas, prazos de comissão e assinatura.
 5. **Alojamento** e domínio; depois um piloto numa região.
 
-Ficaram para depois, por decisão de âmbito: convites da equipa da plataforma a pintores, avaliações (CLI-28),
-confirmação de compras de materiais (FOR-10), histórico de versões das propostas revistas.
+Feito a 19/10/2026: versões das propostas, convites da equipa a pintores, avaliações depois da assinatura (com
+resposta do pintor) e avisos na aplicação. Fica para depois: confirmação de compras de materiais (FOR-10) e
+envio dos avisos por email (precisa do serviço de email).
 
 ## Como funciona a contratação
 

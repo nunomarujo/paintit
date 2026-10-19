@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { acceptInvitation } from '@/app/app/actions';
+import { markNotificationsRead } from '@/app/app/extras-actions';
 import { MEMBER_ROLE_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
 import { STATUS_LABELS, availableActions } from '@/domain/contracting';
 import { loadReplay } from '@/lib/engagements';
@@ -52,6 +53,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ? await supabase.from('request_listings').select('request_id', { count: 'exact', head: true }).eq('aberto', true)
     : { count: 0 };
 
+  const { data: notes } = await supabase.from('notifications').select('*').is('lida_em', null).order('created_at', { ascending: false }).limit(20);
+
   return (
     <div className="space-y-6">
       {convite === 'invalido' && (
@@ -76,6 +79,29 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     Aceitar
                   </button>
                 </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {notes && notes.length > 0 && (
+        <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-5 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Avisos</h2>
+            <form action={markNotificationsRead}>
+              <button type="submit" className="text-tinta-700 hover:underline">
+                Marcar todos como lidos
+              </button>
+            </form>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {notes.map((n) => (
+              <li key={n.id} className="flex flex-wrap justify-between gap-2">
+                <Link href={n.link} className="text-tinta-900 hover:underline">
+                  {n.texto}
+                </Link>
+                <span className="text-slate-500">{new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}</span>
               </li>
             ))}
           </ul>

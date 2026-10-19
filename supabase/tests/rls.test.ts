@@ -796,3 +796,64 @@ describe('catálogo de fornecedores', () => {
     ).rejects.toThrow(/row-level security/);
   });
 });
+
+describe('complementos: versões, convites, avaliações e avisos', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1';
+  const P2 = '00000000-0000-4000-8000-0000000000e2';
+
+  it('cada submissão guarda uma versão que o cliente pode ver', async () => {
+    const v = await as(A, async () => (await db.query<{ version: number; snapshot: { lines: unknown[] } }>('select version, snapshot from public.proposal_versions')).rows);
+    expect(v.length).toBeGreaterThan(0);
+    expect(v[0]!.snapshot.lines.length).toBeGreaterThan(0);
+    await expect(as(A, () => db.query('delete from public.proposal_versions'))).rejects.toThrow(/permission denied/);
+  });
+
+  it('só a plataforma convida pintores, para anúncios abertos', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const req = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'escadas', 'zonas_comuns', $3, current_date + 10) returning id`,
+          [condo, buildingId, 'Pintura das escadas e do átrio do prédio, três pisos.'],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'escadas_atrio', 9000)`, [req]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [req]));
+    const painter2 = (await one<{ id: string }>(`select id from public.organizations where nome = 'Pinturas Dois'`)).id;
+    await expect(as(A, () => db.query('insert into public.listing_invites (request_id, painter_org_id) values ($1, $2)', [req, painter2]))).rejects.toThrow(
+      /row-level security/,
+    );
+    await as(ADMIN, () => db.query('insert into public.listing_invites (request_id, painter_org_id) values ($1, $2)', [req, painter2]));
+    expect(await as(P2, async () => (await db.query('select id from public.listing_invites')).rows)).toHaveLength(1);
+    expect(await as(P, async () => (await db.query('select id from public.listing_invites')).rows)).toEqual([]);
+    const notes = await as(P2, async () => (await db.query<{ texto: string }>('select texto from public.notifications')).rows.map((r) => r.texto));
+    expect(notes).toContain('Foi convidado a orçamentar um pedido.');
+  });
+
+  it('avaliação só depois da assinatura; o pintor responde mas não altera', async () => {
+    const e = await one<{ id: string }>(`select e.id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`);
+    const review = (user: string) =>
+      as(user, () => db.query(`insert into public.reviews (engagement_id, qualidade, prazo, comunicacao, comentario) values ($1, 5, 4, 5, 'Bom trabalho.')`, [e.id]));
+    await expect(review(A)).rejects.toThrow(/row-level security/);
+    await db.query(`insert into public.engagement_events (engagement_id, kind, actor) values ($1, 'pintor_assinou', $2)`, [e.id, ADMIN]);
+    await expect(review(P2)).rejects.toThrow(/row-level security/);
+    await review(A);
+    const painter = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [e.id])).painter_org_id;
+    const owner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario'`, [painter])).user_id;
+    await expect(as(owner, () => db.query(`update public.reviews set qualidade = 1 where engagement_id = $1`, [e.id]))).rejects.toThrow(/não altera/);
+    await as(owner, () => db.query(`update public.reviews set resposta = 'Obrigado.' where engagement_id = $1`, [e.id]));
+    const r = await one<{ qualidade: number; resposta: string }>('select qualidade, resposta from public.reviews where engagement_id = $1', [e.id]);
+    expect(r).toEqual({ qualidade: 5, resposta: 'Obrigado.' });
+    await expect(as(A, () => db.query('delete from public.reviews'))).rejects.toThrow(/permission denied/);
+  });
+
+  it('avisos: só os membros veem e só marcam como lidos', async () => {
+    const mine = await as(A, async () => (await db.query<{ id: string }>('select id from public.notifications')).rows);
+    expect(mine.length).toBeGreaterThan(0);
+    await expect(as(A, () => db.query(`update public.notifications set texto = 'x'`))).rejects.toThrow(/permission denied/);
+    await as(A, () => db.query('update public.notifications set lida_em = now()'));
+    expect(await as(B, async () => (await db.query('select id from public.notifications')).rows)).toEqual([]);
+  });
+});

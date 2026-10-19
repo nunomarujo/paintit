@@ -41,10 +41,13 @@ export default async function OpportunitiesPage({
   let query = supabase.from('request_listings').select('*').eq('aberto', true).order('prazo_propostas');
   if (tipo && (WORK_TYPES as readonly string[]).includes(tipo)) query = query.eq('tipo_obra', tipo as WorkType);
   if (zona === 'minha' && zonas.length > 0) query = query.in('concelho', zonas);
-  const [{ data: listings }, { data: mine }] = await Promise.all([
+  const [{ data: listings }, { data: mine }, { data: invites }] = await Promise.all([
     query,
     supabase.from('proposals').select('request_id, status').in('painter_org_id', orgs.map((o) => o.id)),
+    supabase.from('listing_invites').select('request_id').in('painter_org_id', orgs.map((o) => o.id)),
   ]);
+  const invited = new Set((invites ?? []).map((i) => i.request_id));
+  const sortedListings = [...(listings ?? [])].sort((a, b) => Number(invited.has(b.request_id)) - Number(invited.has(a.request_id)));
   const status = new Map((mine ?? []).map((p) => [p.request_id, p.status]));
 
   return (
@@ -87,13 +90,16 @@ export default async function OpportunitiesPage({
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Não há pedidos abertos com estes filtros.</p>
       ) : (
         <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-          {listings.map((l) => (
+          {sortedListings.map((l) => (
             <li key={l.request_id}>
               <Link href={`/app/oportunidades/${l.request_id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
                 <span>
                   <span className="font-semibold">
                     {WORK_TYPE_LABELS[l.tipo_obra]} · {l.concelho}
                   </span>
+                  {invited.has(l.request_id) && (
+                    <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Convidado</span>
+                  )}
                   <span className="block text-sm text-slate-600">
                     Pedido {l.ref} · {formatArea(l.area_total_cm2)}
                     {l.pisos !== null ? ` · ${l.pisos} pisos` : ''}

@@ -1,16 +1,14 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { carryToProposal } from '@/app/app/contratacoes/actions';
 
 export function CarryForm({ engagementId, requestId, proposalId, label }: { engagementId: string; requestId: string; proposalId: string; label: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(
-    carryToProposal.bind(null, engagementId, requestId, proposalId),
-    { errors: {} },
-  );
+  const { state, pending, formProps } = useFormAction<FormState>(carryToProposal.bind(null, engagementId, requestId, proposalId),
+    { errors: {} },);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-3">
+    <form {...formProps} className="flex flex-wrap items-center gap-3">
       <button
         type="submit"
         disabled={pending}

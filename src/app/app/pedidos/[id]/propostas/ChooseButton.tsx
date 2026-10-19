@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { chooseProposal } from '@/app/app/oportunidades/actions';
 
 export function ChooseButton({ proposalId, requestId, summary }: { proposalId: string; requestId: string; summary: string[] }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(chooseProposal.bind(null, proposalId, requestId), {
+  const { state, pending, formProps } = useFormAction<FormState>(chooseProposal.bind(null, proposalId, requestId), {
     errors: {},
   });
   return (
@@ -23,7 +23,7 @@ export function ChooseButton({ proposalId, requestId, summary }: { proposalId: s
             {state.message}
           </p>
         )}
-        <form action={action}>
+        <form {...formProps}>
           <button
             type="submit"
             disabled={pending}

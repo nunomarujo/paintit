@@ -1,15 +1,15 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { reviewPhoto } from '@/app/app/pedidos/actions';
 
 export function PhotoReviewForm({ photoId }: { photoId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(reviewPhoto.bind(null, photoId), { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(reviewPhoto.bind(null, photoId), { errors: {} });
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
 
   return (
-    <form action={action} className="mt-3 space-y-2">
+    <form {...formProps} className="mt-3 space-y-2">
       <textarea
         name="notas"
         rows={2}

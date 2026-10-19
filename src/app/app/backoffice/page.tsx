@@ -4,6 +4,8 @@ import { availableActions } from '@/domain/contracting';
 import { isPlatformAdmin } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { getUser } from '@/lib/supabase/server';
+import { InvitePainter } from '@/components/ExtrasForms';
+import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
@@ -25,6 +27,15 @@ export default async function BackofficePage() {
   const listings = reports?.length
     ? (await supabase.from('request_listings').select('request_id, ref, concelho, descricao').in('request_id', reports.map((r) => r.request_id))).data ?? []
     : [];
+
+  // ADM-07: pedidos abertos com poucas propostas, para convidar pintores.
+  const [{ data: open }, { data: painterList }, { data: submitted }] = await Promise.all([
+    supabase.from('request_listings').select('request_id, ref, concelho, area_total_cm2, prazo_propostas').eq('aberto', true).order('prazo_propostas'),
+    supabase.from('organizations').select('id, nome').eq('kind', 'pintor').order('nome'),
+    supabase.from('proposals').select('request_id').eq('status', 'submetida'),
+  ]);
+  const proposalsFor = (rid: string) => (submitted ?? []).filter((p) => p.request_id === rid).length;
+  const needing = (open ?? []).filter((l) => proposalsFor(l.request_id) < 3);
 
   const tiles = [
     { href: '/app/validacao', label: 'Documentos e fotografias por rever', n: (docs.count ?? 0) + (photos.count ?? 0) },
@@ -60,6 +71,30 @@ export default async function BackofficePage() {
           Auditoria
         </Link>
       </div>
+
+      <section className={card}>
+        <h2 className="font-semibold">Pedidos com menos de três propostas</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Convide pintores verificados. O convite não garante propostas nem apresenta pintores relacionados como independentes.
+        </p>
+        {needing.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">Nenhum.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {needing.map((l) => (
+              <li key={l.request_id} className="text-sm">
+                <p>
+                  <span className="font-medium">Pedido {l.ref}</span> · {l.concelho} · {formatArea(l.area_total_cm2)} ·{' '}
+                  {proposalsFor(l.request_id)} proposta(s) · até {l.prazo_propostas.split('-').reverse().join('/')}
+                </p>
+                <div className="mt-2">
+                  <InvitePainter requestId={l.request_id} painters={painterList ?? []} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section id="denuncias" className={card}>
         <h2 className="font-semibold">Denúncias de anúncios</h2>

@@ -8,6 +8,7 @@ import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { toLine } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
+import { AnswerForm, ReviewForm } from '@/components/ExtrasForms';
 import { PartyAction, PlatformAction } from './ActionForms';
 import { CarryForm } from './CarryForm';
 
@@ -52,6 +53,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   const { data: otherLines } = canCarry && others?.length
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', others.map((o) => o.id))
     : { data: [] };
+
+  const { data: review } = e.status === 'assinado' ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
   return (
     <div className="space-y-8">
@@ -208,6 +211,39 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             <dt className="text-slate-500">Plataforma recebeu</dt>
             <dd className="sm:text-right">{formatEuros(s.plataforma.recebeu)}</dd>
           </dl>
+        </section>
+      )}
+
+      {e.status === 'assinado' && side !== 'plataforma' && (
+        <section className={card}>
+          <h2 className="font-semibold">Avaliação</h2>
+          {review && (
+            <div className="mt-3 text-sm">
+              <p>
+                Qualidade {review.qualidade}/5 · Prazo {review.prazo}/5 · Comunicação {review.comunicacao}/5
+              </p>
+              {review.comentario && <p className="mt-1 whitespace-pre-line">{review.comentario}</p>}
+              {review.resposta && (
+                <p className="mt-2 rounded-lg bg-slate-50 p-2">
+                  <span className="text-slate-500">Resposta do pintor: </span>
+                  {review.resposta}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="mt-4">
+            {side === 'cliente' && manager && (
+              <ReviewForm
+                engagementId={id}
+                initial={review ? { qualidade: review.qualidade, prazo: review.prazo, comunicacao: review.comunicacao, comentario: review.comentario } : null}
+              />
+            )}
+            {side === 'pintor' && manager && review && <AnswerForm engagementId={id} initial={review.resposta} />}
+            {side === 'pintor' && !review && <p className="text-sm text-slate-600">O cliente ainda não avaliou.</p>}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            A avaliação entra no histórico do pintor e aparece, sem o nome do cliente, quando o pintor faz novas propostas.
+          </p>
         </section>
       )}
 

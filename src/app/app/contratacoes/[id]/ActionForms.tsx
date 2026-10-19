@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { partyAction, platformAction } from '@/app/app/contratacoes/actions';
 
@@ -52,10 +52,10 @@ const PARTY: Record<PartyKind, { label: string; style: string; confirm?: string;
 };
 
 export function PartyAction({ engagementId, kind }: { engagementId: string; kind: PartyKind }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(partyAction.bind(null, engagementId, kind), { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(partyAction.bind(null, engagementId, kind), { errors: {} });
   const c = PARTY[kind];
   return (
-    <form action={action} className="space-y-2 rounded-xl border border-slate-200 p-4">
+    <form {...formProps} className="space-y-2 rounded-xl border border-slate-200 p-4">
       {c.warning && <p className="text-sm text-slate-600">{c.warning}</p>}
       {c.confirm && (
         <label className="flex items-start gap-2 text-sm">
@@ -83,11 +83,11 @@ const PLATFORM: Record<PlatformKind, string> = {
 };
 
 export function PlatformAction({ engagementId, kind, expected }: { engagementId: string; kind: PlatformKind; expected?: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(platformAction.bind(null, engagementId, kind), {
+  const { state, pending, formProps } = useFormAction<FormState>(platformAction.bind(null, engagementId, kind), {
     errors: {},
   });
   return (
-    <form action={action} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+    <form {...formProps} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
       <p className="font-semibold">{PLATFORM[kind]}</p>
       {kind === 'litigio_resolvido' ? (
         <select name="decisao" defaultValue="" className="block rounded-lg border border-slate-300 bg-white px-3 py-2">

@@ -1,22 +1,17 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { uploadPhoto } from '@/app/app/pedidos/actions';
 import { Field, selectClass } from '@/components/Field';
 import { PHOTO_KINDS, PHOTO_KIND_LABELS } from '@/domain/photo';
 
 export function PhotoUpload({ requestId }: { requestId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(uploadPhoto.bind(null, requestId), { errors: {} });
-  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, formProps } = useFormAction<FormState>(uploadPhoto.bind(null, requestId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
 
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
-
   return (
-    <form ref={formRef} action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Acrescentar fotografia</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="kind" label="Tipo" required error={e.kind}>

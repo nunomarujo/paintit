@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { addLine, saveTerms, submitProposal } from '@/app/app/oportunidades/actions';
 import { Field, selectClass } from '@/components/Field';
@@ -27,12 +27,10 @@ const button =
 const hundredths = (n: number | null) => (n === null ? '' : (n / 100).toString().replace('.', ','));
 
 export function TermsForm({ proposalId, requestId, terms }: { proposalId: string; requestId: string; terms: ProposalTerms }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(saveTerms.bind(null, proposalId, requestId), {
-    errors: {},
-  });
+  const { state, pending, formProps } = useFormAction<FormState>(saveTerms.bind(null, proposalId, requestId), { errors: {} });
   const e = state.errors;
   return (
-    <form action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="ivaBps" label="IVA" error={e.ivaBps}>
           <select name="ivaBps" defaultValue={String(terms.ivaBps)} className={selectClass}>
@@ -101,16 +99,12 @@ export function LineForm({
   surfaces: SurfaceKind[];
   products: string[];
 }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(addLine.bind(null, proposalId, requestId), {
+  const { state, pending, formProps } = useFormAction<FormState>(addLine.bind(null, proposalId, requestId), {
     errors: {},
-  });
-  const formRef = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  }, { resetOnSuccess: true });
   const e = state.errors;
   return (
-    <form ref={formRef} action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Acrescentar linha</h3>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="categoria" label="Categoria" required error={e.categoria}>
@@ -174,11 +168,9 @@ export function LineForm({
 }
 
 export function SubmitProposal({ proposalId, requestId, blockers }: { proposalId: string; requestId: string; blockers: string[] }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(submitProposal.bind(null, proposalId, requestId), {
-    errors: {},
-  });
+  const { state, pending, formProps } = useFormAction<FormState>(submitProposal.bind(null, proposalId, requestId), { errors: {} });
   return (
-    <form action={action} className="space-y-3">
+    <form {...formProps} className="space-y-3">
       {blockers.length > 0 && (
         <div className="rounded-xl bg-amber-50 p-4 text-sm">
           <p className="font-medium">Antes de submeter:</p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { sendMessage } from '@/app/app/oportunidades/actions';
 
@@ -27,13 +27,9 @@ export function MessageThread({
   canWrite: boolean;
   otherLabel: string;
 }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(sendMessage.bind(null, proposalId, side, path), {
+  const { state, pending, formProps } = useFormAction<FormState>(sendMessage.bind(null, proposalId, side, path), {
     errors: {},
-  });
-  const formRef = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  }, { resetOnSuccess: true });
 
   return (
     <div className="space-y-3 text-sm">
@@ -57,7 +53,7 @@ export function MessageThread({
         </ul>
       )}
       {canWrite && (
-        <form ref={formRef} action={action} className="space-y-2">
+        <form {...formProps} className="space-y-2">
           <textarea
             name="texto"
             rows={2}

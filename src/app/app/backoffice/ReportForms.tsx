@@ -1,16 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { reportListing, resolveReport } from '@/app/app/backoffice/actions';
 
 export function ReportListing({ requestId }: { requestId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(reportListing.bind(null, requestId), { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(reportListing.bind(null, requestId), { errors: {} });
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
   return (
     <details className="text-sm">
       <summary className="cursor-pointer text-slate-600">Este anúncio identifica o cliente ou a morada? Denunciar</summary>
-      <form action={action} className="mt-2 space-y-2">
+      <form {...formProps} className="mt-2 space-y-2">
         <textarea
           name="motivo"
           rows={2}
@@ -27,10 +27,10 @@ export function ReportListing({ requestId }: { requestId: string }) {
 }
 
 export function ResolveReport({ reportId }: { reportId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(resolveReport.bind(null, reportId), { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(resolveReport.bind(null, reportId), { errors: {} });
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
   return (
-    <form action={action} className="mt-3 space-y-2 text-sm">
+    <form {...formProps} className="mt-3 space-y-2 text-sm">
       <textarea
         name="resolucao"
         rows={2}

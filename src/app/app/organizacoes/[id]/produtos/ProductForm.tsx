@@ -1,20 +1,16 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { addProduct } from '@/app/app/catalogo/actions';
 import { Field, selectClass } from '@/components/Field';
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 
 export function ProductForm({ orgId }: { orgId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(addProduct.bind(null, orgId), { errors: {} });
-  const formRef = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+  const { state, pending, formProps } = useFormAction<FormState>(addProduct.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
   return (
-    <form ref={formRef} action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <h2 className="font-semibold">Acrescentar produto</h2>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="marca" label="Marca" required error={e.marca} />

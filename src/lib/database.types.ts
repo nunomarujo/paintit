@@ -428,6 +428,50 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['products']['Insert']>;
         Relationships: [];
       };
+      proposal_versions: {
+        Row: { id: string; proposal_id: string; snapshot: Json; submitted_at: string; version: number };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      listing_invites: {
+        Row: { created_at: string; id: string; invited_by: string; painter_org_id: string; request_id: string };
+        Insert: { invited_by?: string; painter_org_id: string; request_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      reviews: {
+        Row: {
+          comentario: string;
+          comunicacao: number;
+          created_at: string;
+          created_by: string;
+          engagement_id: string;
+          id: string;
+          painter_org_id: string;
+          prazo: number;
+          qualidade: number;
+          resposta: string | null;
+          resposta_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          comentario?: string;
+          comunicacao: number;
+          created_by?: string;
+          engagement_id: string;
+          prazo: number;
+          qualidade: number;
+        };
+        Update: { comentario?: string; comunicacao?: number; prazo?: number; qualidade?: number; resposta?: string | null };
+        Relationships: [];
+      };
+      notifications: {
+        Row: { created_at: string; id: string; lida_em: string | null; link: string; org_id: string; texto: string };
+        Insert: never;
+        Update: { lida_em?: string | null };
+        Relationships: [];
+      };
       proposals: {
         Row: {
           adiantamento_bps: number;
@@ -698,6 +742,7 @@ export type Database = {
     Functions: {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
     };
     Enums: {

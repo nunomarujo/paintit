@@ -51,6 +51,12 @@ export default async function ProposalsPage({
   const { data: lines } = ids.length
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', ids).order('created_at')
     : { data: [] };
+  const [ratings, { data: versions }] = await Promise.all([
+    Promise.all(ids.map(async (pid) => [pid, (await supabase.rpc('painter_rating', { p_proposal: pid })).data?.[0] ?? null] as const)),
+    ids.length ? supabase.from('proposal_versions').select('proposal_id, version').in('proposal_id', ids) : Promise.resolve({ data: [] }),
+  ]);
+  const ratingOf = new Map(ratings);
+  const versionsOf = (pid: string) => (versions ?? []).filter((v) => v.proposal_id === pid).length;
   const linesOf = (pid: string) => (lines ?? []).filter((l) => l.proposal_id === pid).map((l) => ({ id: l.id, ...toLine(l) }));
   const areaTotal = (surfaces ?? []).reduce((n, s) => n + s.area_cm2, 0);
   const rows = compareProposals(
@@ -183,7 +189,21 @@ export default async function ProposalsPage({
                     return v === req.version ? 'Atual' : <span key={r.id} className="text-amber-800">Versão {v} (anterior)</span>;
                   })}
                 />
-                <Row label="Avaliações" cells={sorted.map((r) => <span key={r.id} className="text-slate-500">Histórico insuficiente</span>)} />
+                <Row
+                  label="Avaliações do pintor"
+                  cells={sorted.map((r) => {
+                    const x = ratingOf.get(r.id);
+                    // CMP-10: com poucas avaliações, dizer isso, e não mostrar uma média enganadora.
+                    return x && x.n >= 3 ? (
+                      `${String(x.media).replace('.', ',')}/5 (${x.n} obras)`
+                    ) : (
+                      <span key={r.id} className="text-slate-500">
+                        Histórico insuficiente{x && x.n > 0 ? ` (${x.n} obra${x.n > 1 ? 's' : ''})` : ''}
+                      </span>
+                    );
+                  })}
+                />
+                <Row label="Revisões da proposta" cells={sorted.map((r) => (versionsOf(r.id) > 1 ? `${versionsOf(r.id)} versões` : 'Nenhuma'))} />
               </tbody>
             </table>
           </div>
