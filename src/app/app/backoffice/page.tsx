@@ -21,6 +21,11 @@ export default async function BackofficePage() {
     supabase.from('listing_reports').select('*').eq('status', 'pendente').order('created_at'),
     supabase.from('engagements').select('*'),
   ]);
+  const { data: unverified } = await supabase
+    .from('engagement_events')
+    .select('id, engagement_id, kind, payload, at')
+    .eq('payload->>metodo', 'cmd_pdf')
+    .eq('payload->>cadeiaConfiavel', 'false');
   const pendingEngagements = (
     await Promise.all((engagements ?? []).map(async (r) => availableActions((await loadReplay(supabase, r)).replay.engagement, 'plataforma').length > 0))
   ).filter(Boolean).length;
@@ -41,6 +46,7 @@ export default async function BackofficePage() {
     { href: '/app/validacao', label: 'Documentos e fotografias por rever', n: (docs.count ?? 0) + (photos.count ?? 0) },
     { href: '/app/contratacoes', label: 'Contratações à espera da plataforma', n: pendingEngagements },
     { href: '#denuncias', label: 'Denúncias de anúncios', n: reports?.length ?? 0 },
+    { href: '#assinaturas', label: 'Assinaturas com certificado por confirmar', n: unverified?.length ?? 0 },
   ];
 
   return (
@@ -52,7 +58,7 @@ export default async function BackofficePage() {
         </p>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-3">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
           <li key={t.label}>
             <Link href={t.href} className={`${card} block hover:bg-slate-50`}>
@@ -95,6 +101,26 @@ export default async function BackofficePage() {
           </ul>
         )}
       </section>
+
+      {(unverified ?? []).length > 0 && (
+        <section id="assinaturas" className={card}>
+          <h2 className="font-semibold">Assinaturas com certificado por confirmar</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            A assinatura é válida, mas o certificado não encadeou numa entidade “Cartão de Cidadão” conhecida. Abra o PDF e
+            confirme o certificado na aplicação Autenticação.gov ou no validador da UE.
+          </p>
+          <ul className="mt-3 space-y-1 text-sm">
+            {(unverified ?? []).map((v) => (
+              <li key={v.id}>
+                <Link href={`/app/contratacoes/${v.engagement_id}`} className="text-tinta-700 hover:underline">
+                  {v.engagement_id.slice(0, 8).toUpperCase()}
+                </Link>{' '}
+                · {(v.payload as { signatario?: string }).signatario ?? 'signatário'} · {v.at.slice(0, 10).split('-').reverse().join('/')}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section id="denuncias" className={card}>
         <h2 className="font-semibold">Denúncias de anúncios</h2>

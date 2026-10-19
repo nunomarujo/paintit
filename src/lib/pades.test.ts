@@ -2,7 +2,7 @@ import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
 import { describe, expect, it } from 'vitest';
 import { checkSignedPdf, findSignatures } from '@/domain/signature';
-import { verifyLastSignature } from './pades';
+import { validateChain, verifyLastSignature } from './pades';
 
 // Constrói um PDF "assinado" como a Autenticação.gov faz: acrescenta ao fim um
 // dicionário de assinatura com /ByteRange e /Contents, e põe em /Contents uma
@@ -26,6 +26,8 @@ async function testCertificate(name: string) {
   }
   cert.notBefore.value = new Date('2026-01-01');
   cert.notAfter.value = new Date('2030-01-01');
+  const bc = new pkijs.BasicConstraints({ cA: true });
+  cert.extensions = [new pkijs.Extension({ extnID: '2.5.29.19', critical: true, extnValue: bc.toSchema().toBER(false), parsedValue: bc })];
   await cert.subjectPublicKeyInfo.importKey(keys.publicKey);
   await cert.sign(keys.privateKey, 'SHA-256');
   return { cert, key: keys.privateKey };
@@ -150,4 +152,28 @@ describe('PDF do contrato', () => {
   it('substitui caracteres que o PDF não desenha', () => {
     expect(pdfSafe('1 372,75 € → ≥')).toBe('1 372,75 € -> ?');
   });
+});
+
+describe('cadeia de confiança', () => {
+  it('confia num certificado emitido por uma âncora; não num autoassinado qualquer', async () => {
+    const ca = await testCertificate('EC TESTE');
+    const leafKeys = (await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify'],
+    )) as CryptoKeyPair;
+    const leaf = new pkijs.Certificate();
+    leaf.version = 2;
+    leaf.serialNumber = new asn1js.Integer({ value: 2 });
+    leaf.issuer = ca.cert.subject;
+    leaf.subject.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.3', value: new asn1js.Utf8String({ value: 'MARIA' }) }));
+    leaf.notBefore.value = new Date('2026-01-01');
+    leaf.notAfter.value = new Date('2029-01-01');
+    await leaf.subjectPublicKeyInfo.importKey(leafKeys.publicKey);
+    await leaf.sign(ca.key, 'SHA-256');
+    const at = new Date('2026-10-19');
+    expect((await validateChain(leaf, [], at, [ca.cert])).trusted).toBe(true);
+    expect((await validateChain(leaf, [], at)).trusted).toBe(false);
+    expect((await validateChain(leaf, [], new Date('2031-01-01'), [ca.cert])).trusted).toBe(false);
+  }, 30_000);
 });

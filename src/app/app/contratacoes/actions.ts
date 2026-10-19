@@ -166,8 +166,15 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
       metodo: 'cmd_pdf',
       signatario: signer.name,
       identificacao: signer.serialNumber,
+      cadeiaConfiavel: signer.trusted,
     },
   });
   if (!r.ok) return { errors: r.errors, message: r.message };
-  return { errors: {}, ok: true, message: `Assinado por ${signer.name ?? 'titular do certificado'}.` };
+  return {
+    errors: {},
+    ok: true,
+    message: signer.trusted
+      ? `Assinado por ${signer.name ?? 'titular do certificado'}, com certificado do Estado português.`
+      : `Assinado por ${signer.name ?? 'titular do certificado'}. A equipa da plataforma vai confirmar a origem do certificado.`,
+  };
 }

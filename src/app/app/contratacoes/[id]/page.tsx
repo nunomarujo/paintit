@@ -305,7 +305,12 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 <p key={v.id} className="break-all">
                   {EVENT_LABELS[v.kind]}
                   {(v.payload as { signatario?: string }).signatario ? ` por ${(v.payload as { signatario?: string }).signatario}` : ''}
-                  {(v.payload as { metodo?: string }).metodo === 'cmd_pdf' ? ' (assinatura qualificada em PDF)' : ''}: SHA-256{' '}
+                  {(v.payload as { metodo?: string }).metodo === 'cmd_pdf'
+                    ? (v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel
+                      ? ' (assinatura em PDF, certificado do Estado)'
+                      : ' (assinatura em PDF, origem do certificado por confirmar)'
+                    : ' (aceitação simples, só em testes)'}
+                  : SHA-256{' '}
                   {(v.payload as { documentHash: string }).documentHash}
                 </p>
               ))}

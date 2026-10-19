@@ -77,6 +77,8 @@ export interface EngagementEvent {
     metodo?: 'cmd_pdf' | 'aceitacao';
     signatario?: string | null;
     identificacao?: string | null;
+    /** O certificado encadeia numa entidade "Cartão de Cidadão" do Estado. */
+    cadeiaConfiavel?: boolean;
   };
   at: string;
 }

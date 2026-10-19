@@ -49,7 +49,9 @@ Como o contrato é gerado pela plataforma, também mostramos ao lado o **texto d
 - `src/lib/pades.ts`: verificação criptográfica da assinatura CMS e leitura do nome e número do titular.
 - Percurso: o cliente assina o PDF gerado; o pintor assina o PDF já assinado pelo cliente. Os PDF ficam no
   armazenamento `contratos`, sem possibilidade de alteração.
-- Falta: validar a cadeia de confiança do certificado (emitido pelo Estado português e não revogado) com o
-  serviço DSS ou a lista de confiança.
+- Cadeia de confiança: o certificado do signatário tem de encadear numa das entidades "Cartão de Cidadão
+  001–007" do Estado (`src/lib/trust/anchors.ts`, descarregadas do site oficial); a cadeia completa-se pelo
+  endereço do emissor (AIA) quando não vem no PDF. Se não encadear, a assinatura válida é aceite mas fica
+  marcada "por confirmar" no backoffice. Falta: consultar a revogação (OCSP/CRL).
 - Para testes sem Chave Móvel Digital: `PERMITIR_ACEITACAO_SIMPLES=1` no ambiente volta a mostrar a aceitação
   com caixa de confirmação. Nunca em produção.
