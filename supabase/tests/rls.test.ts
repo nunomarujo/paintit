@@ -920,6 +920,8 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     await as(F, () => db.query(`update public.material_orders set estado = 'entregue' where id = $1`, [orderId]));
     const seen = await as(A, async () => (await db.query<{ estado: string }>('select estado from public.material_orders')).rows);
     expect(seen).toEqual([{ estado: 'entregue' }]);
+    const painterOrg = (await one<{ painter_org_id: string }>('select painter_org_id from public.material_orders where id = $1', [orderId])).painter_org_id;
+    expect(await as(F, async () => (await db.query('select id from public.organizations where id = $1', [painterOrg])).rows)).toHaveLength(1);
   });
 
   it('só avalia o fornecedor quem lhe comprou', async () => {

@@ -103,14 +103,24 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
       </div>
 
       {org.kind === 'fornecedor' && (
-        <Link href={`/app/organizacoes/${org.id}/produtos`} className={`${card} block font-semibold text-tinta-700 hover:bg-slate-50`}>
-          Catálogo de produtos e fichas técnicas →
-        </Link>
+        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
+          <Link href={`/app/organizacoes/${org.id}/produtos`} className="hover:underline">
+            Catálogo, descontos e entregas →
+          </Link>
+          <Link href="/app/encomendas" className="hover:underline">
+            Encomendas certificadas →
+          </Link>
+        </div>
       )}
       {org.kind === 'pintor' && (
-        <Link href="/app/oportunidades" className={`${card} block font-semibold text-tinta-700 hover:bg-slate-50`}>
-          Ver oportunidades de obra →
-        </Link>
+        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
+          <Link href="/app/oportunidades" className="hover:underline">
+            Ver oportunidades de obra →
+          </Link>
+          <Link href="/app/obras" className="font-normal text-slate-600 hover:underline">
+            Ferramentas de obra
+          </Link>
+        </div>
       )}
 
       <section className={card}>

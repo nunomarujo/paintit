@@ -54,6 +54,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', others.map((o) => o.id))
     : { data: [] };
 
+  const { data: orders } = e.status === 'assinado' ? await supabase.from('material_orders').select('*').eq('engagement_id', id).neq('estado', 'cancelada') : { data: [] };
   const { data: review } = e.status === 'assinado' ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
   return (
@@ -67,9 +68,16 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Contratação {reference}</h1>
         <p className="mt-1 text-sm font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
-        <Link href={`/app/contratacoes/${id}/minuta`} className="mt-2 inline-block text-sm text-tinta-700 hover:underline">
-          Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
-        </Link>
+        <div className="mt-2 flex flex-wrap gap-4 text-sm">
+          <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
+            Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
+          </Link>
+          {side === 'pintor' && e.status === 'assinado' && (
+            <Link href={`/app/obras/${id}`} className="text-slate-600 hover:underline">
+              Ferramentas de obra
+            </Link>
+          )}
+        </div>
       </div>
 
       <section className={card}>
@@ -211,6 +219,20 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             <dt className="text-slate-500">Plataforma recebeu</dt>
             <dd className="sm:text-right">{formatEuros(s.plataforma.recebeu)}</dd>
           </dl>
+        </section>
+      )}
+
+      {side === 'cliente' && (orders ?? []).length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Materiais certificados</h2>
+          <ul className="mt-3 space-y-1 text-sm">
+            {(orders ?? []).map((o) => (
+              <li key={o.id}>
+                {o.embalagens} embalagens · {o.estado === 'entregue' ? 'compra e entrega em obra confirmadas pelo fornecedor' : o.estado === 'confirmada' ? 'compra confirmada pelo fornecedor' : 'encomendado ao fornecedor'}
+                {o.delivered_at ? ` (${dt(o.delivered_at)})` : ''}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

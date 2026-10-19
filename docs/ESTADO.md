@@ -1,6 +1,6 @@
 # Ponto de situação — ler primeiro numa sessão nova
 
-Atualizado a 19/10/2026. Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
+Atualizado a 19/10/2026 (fim do dia). Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
 deve lê-lo, junto com `CLAUDE.md`, antes de qualquer trabalho. Atualizar no fim de cada sessão.
 
 ## O projeto
@@ -42,27 +42,31 @@ Fontes:
 | 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
 | 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 14 migrações aplicadas, avisos de segurança a
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 16 migrações aplicadas, avisos de segurança a
 zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
-e `resolve_listing_report`, que corre com direitos de dono e verifica que quem chama é da equipa da plataforma. Primeira
+e `resolve_listing_report` e `painter_rating`, que correm com direitos de dono por desenho (ver `DECISOES.md`). Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
 condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 
 ## Próximo passo
 
-As seis fases do produto estão feitas. O que falta para lançar depende de escolhas do promotor:
+Feito a 19/10/2026, além das seis fases: materiais certificados no orçamento (tipo → produto, sugestões com
+desconto da obra, ficha, preços, entrega e contactos), descontos por escalão e entregas dos fornecedores,
+encomendas certificadas (o fornecedor confirma venda e entrega, o cliente vê), avaliações de fornecedores,
+"Ferramentas de obra" (`/app/obras/[id]`: materiais, equipa e horas, cronograma, custos e tranches), contrato em
+linguagem simples ao lado da minuta.
 
-1. **Parceiro de pagamentos** (questão A1): ligar depósitos, comissões e instruções de `/app/backoffice/conciliacao`
-   à API do parceiro. Até lá, a equipa da plataforma confirma cada recebimento à mão em `/app/contratacoes/[id]`.
-2. **Assinatura com Chave Móvel Digital**: contratar o serviço e substituir a aceitação registada (com resumo
-   SHA-256 da minuta) pela assinatura qualificada.
-3. **Advogado**: rever o texto da minuta (`contractDraft` em `src/domain/contracting.ts`) e o documento de questões.
-4. **Email transacional**: avisos de convites, propostas novas, prazos de comissão e assinatura.
-5. **Alojamento** e domínio; depois um piloto numa região.
+Documentos para o promotor: `docs/advogado/Pedido_minuta_contrato.docx` (para enviar ao advogado) e
+`docs/PAGAMENTOS_E_ASSINATURA.md` (Stripe/Mangopay e assinatura com a Autenticação.gov).
 
-Feito a 19/10/2026: versões das propostas, convites da equipa a pintores, avaliações depois da assinatura (com
-resposta do pintor) e avisos na aplicação. Fica para depois: confirmação de compras de materiais (FOR-10) e
-envio dos avisos por email (precisa do serviço de email).
+A seguir:
+
+1. **Design das páginas** (o promotor só testa depois disto): aproximar ou melhorar o design do protótipo
+   `docs/referencia/prototipo_v05.zip`.
+2. **Assinatura com PDF da Autenticação.gov**: gerar o PDF, receber o PDF assinado, confirmar os bytes e a
+   assinatura.
+3. **Parceiro de pagamentos**, quando escolhido; **email e domínio**, quando o promotor os indicar.
+4. Teste completo no browser pela sessão de teste do Paint it.
 
 ## Como funciona a contratação
 

@@ -26,3 +26,13 @@ marca, piloto) avança em paralelo e condiciona o lançamento.
 | Infraestrutura | Criar projeto de base de dados próprio, na UE; alojamento; email transacional |
 | Piloto | Uma região, 15–20 pintores verificados, algumas administradoras de condomínio |
 | Marketing | Site público, conteúdos práticos para administradoras, captação de pintores |
+
+## Complementos (19/10/2026)
+
+| Tema | Estado |
+| --- | --- |
+| Materiais certificados no orçamento, descontos por escalão e entregas dos fornecedores | Feito |
+| Encomendas certificadas e avaliações de fornecedores | Feito |
+| Ferramentas de obra (separador discreto para o pintor) | Feito |
+| Assinatura com PDF da Autenticação.gov | Por fazer |
+| Design das páginas | Por fazer |

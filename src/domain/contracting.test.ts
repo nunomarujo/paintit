@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availableActions, contractDraft, draftText, isRevealed, ledger, replay, type EngagementEvent, type EngagementRecord } from './contracting';
+import { availableActions, contractDraft, draftText, isRevealed, ledger, plainSummary, replay, type EngagementEvent, type EngagementRecord } from './contracting';
 import { held } from './engagement';
 import { euros } from './money';
 
@@ -114,5 +114,16 @@ describe('conciliação', () => {
     expect(l.retido).toEqual({ guarantee: euros(3_000), advance: euros(10_000), fee: 0 });
     expect(l.receita).toEqual({ comissao: euros(3_000), ivaComissao: euros(690), garantias: 0 });
     expect(l.porTipo.libertacao_adiantamento).toBe(euros(10_000));
+  });
+});
+
+describe('resumo em linguagem simples', () => {
+  it('usa os valores da contratação', () => {
+    const e = replay(rec, [], new Date('2026-10-19T12:00:00Z')).engagement;
+    const s = plainSummary(e, { duracao: 'Duração de 20 dias.', materiais: 1 }).join(' ');
+    expect(s).toMatch(/100\s000,00\s€ mais IVA/);
+    expect(s).toMatch(/3\s000,00\s€ de garantia e 10\s000,00\s€ de adiantamento/);
+    expect(s).toMatch(/3\s690,00\s€ de comissão/);
+    expect(s).toMatch(/o produto indicado/);
   });
 });

@@ -340,3 +340,20 @@ export function ledger(engagements: Engagement[]): LedgerTotals {
   }
   return out;
 }
+
+/** O contrato e as regras de dinheiro em linguagem simples, gerados dos mesmos dados da minuta. */
+export function plainSummary(e: Engagement, extra: { duracao: string; materiais: number }): string[] {
+  const eur = (c: Cents) =>
+    new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(c / 100);
+  return [
+    `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
+    `O cliente deposita ${eur(e.guarantee)} de garantia${e.advance > 0 ? ` e ${eur(e.advance)} de adiantamento` : ''} num parceiro de pagamentos, não na plataforma.`,
+    `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para pagar ${eur(e.fee.gross)} de comissão. Só então as partes ficam a saber quem é a outra.`,
+    `Quando o pintor assina, a garantia volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}. O resto da obra paga-se diretamente ao pintor.`,
+    'Se o cliente desistir antes de o pintor assinar, perde a garantia. Se o pintor pagar e não assinar no prazo, perde a comissão.',
+    ...(extra.materiais > 0
+      ? [`O pintor compromete-se a aplicar ${extra.materiais === 1 ? 'o produto indicado' : `os ${extra.materiais} produtos indicados`}, e o fornecedor confirma a compra e a entrega.`]
+      : []),
+    'Depois da assinatura, a plataforma não intervém na obra: só guarda o contrato.',
+  ];
+}
