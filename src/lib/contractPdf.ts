@@ -1,3 +1,4 @@
+import { BRAND } from '@/config/brand';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { Draft } from '@/domain/contracting';
 
@@ -19,9 +20,9 @@ export function pdfSafe(text: string): string {
 export async function contractPdf(draft: Draft, fixedDate: Date, reference: string): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(pdfSafe(draft.title));
-  doc.setAuthor('Paint it');
-  doc.setCreator('Paint it');
-  doc.setProducer('Paint it');
+  doc.setAuthor(BRAND.name);
+  doc.setCreator(BRAND.name);
+  doc.setProducer(BRAND.name);
   doc.setCreationDate(fixedDate);
   doc.setModificationDate(fixedDate);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
