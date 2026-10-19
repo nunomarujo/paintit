@@ -244,7 +244,14 @@ export default async function ProposalsPage({
                 <Row label="Válida até" cells={sorted.map((r) => pt(byId.get(r.id)!.validade))} />
                 <Row
                   label="Documentos do pintor"
-                  cells={sorted.map((r) => (byId.get(r.id)!.pintor_verificado ? 'Validados pela plataforma à data da proposta' : 'Ainda não validados'))}
+                  cells={sorted.map((r) => {
+                    const p = byId.get(r.id)!;
+                    return p.habilitacao_ok
+                      ? 'Habilitação IMPIC para este valor e documentos validados à data da proposta'
+                      : p.pintor_verificado
+                        ? 'Documentos validados à data da proposta'
+                        : 'Ainda não validados';
+                  })}
                 />
                 <Row
                   label="Versão do pedido"

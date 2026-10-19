@@ -42,7 +42,7 @@ Fontes:
 | 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
 | 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 18 migrações aplicadas, avisos de segurança a
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 19 migrações aplicadas, avisos de segurança a
 zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
 e `resolve_listing_report` e `painter_rating`, que correm com direitos de dono por desenho (ver `DECISOES.md`). Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
@@ -62,6 +62,10 @@ A seguir, sem depender do promotor:
 2. Consulta de revogação (OCSP) dos certificados das assinaturas.
 
 ### Decisões e questões para o promotor
+
+0. **Parecer jurídico de 19/10/2026:** ver `docs/advogado/Parecer_2026-10-19.md`, secção "Depende de decisão do
+   promotor" (nova ordem da apresentação, mínimo da caução, contrato cliente–plataforma, conservação,
+   não evasão, transparência).
 
 1. **Parceiro de pagamentos:** Stripe Connect ou Mangopay (recomendação em `docs/PAGAMENTOS_E_ASSINATURA.md`).
 2. **Email transacional e domínio:** escolher o serviço (ex.: Resend, Postmark, Amazon SES na UE) para os avisos

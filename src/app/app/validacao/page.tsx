@@ -12,7 +12,7 @@ export default async function ValidationPage() {
 
   const { data: docs } = await supabase
     .from('org_documents')
-    .select('id, kind, nome_ficheiro, valido_ate, created_at, organizations(nome, kind, nif)')
+    .select('id, kind, nome_ficheiro, valido_ate, classe, created_at, organizations(nome, kind, nif)')
     .in('status', ['submetido', 'em_validacao'])
     .order('created_at');
 
@@ -54,6 +54,7 @@ export default async function ValidationPage() {
                   {d.nome_ficheiro}
                 </a>
                 {d.valido_ate ? ` · válido até ${d.valido_ate.split('-').reverse().join('/')}` : ''}
+                {d.classe ? ` · classe ${d.classe} (confirme no portal do IMPIC)` : ''}
               </p>
               <ReviewForm documentId={d.id} />
             </li>

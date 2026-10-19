@@ -136,6 +136,7 @@ export type Database = {
           validated_at: string | null;
           validated_by: string | null;
           valido_ate: string | null;
+          classe: number | null;
         };
         Insert: {
           building_id?: string | null;
@@ -151,6 +152,7 @@ export type Database = {
           validated_at?: string | null;
           validated_by?: string | null;
           valido_ate?: string | null;
+          classe?: number | null;
         };
         Update: Partial<Database['public']['Tables']['org_documents']['Insert']>;
         Relationships: [
@@ -699,6 +701,7 @@ export type Database = {
           updated_at: string;
           validade: string | null;
           version: number;
+          habilitacao_ok: boolean | null;
         };
         Insert: {
           adiantamento_bps?: number;

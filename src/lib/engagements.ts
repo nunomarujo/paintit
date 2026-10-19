@@ -118,7 +118,10 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
         linha: l.descricao,
       }));
     })(),
-    garantiaObra: terms.garantiaAnos !== null ? `${terms.garantiaAnos} anos sobre os trabalhos executados.` : 'Nos termos da lei.',
+    garantiaObra:
+      terms.garantiaAnos !== null
+        ? `O empreiteiro garante os trabalhos executados durante ${terms.garantiaAnos} anos a contar da receção da obra.`
+        : 'O empreiteiro garante os trabalhos executados nos termos da lei.',
     exclusoes: terms.exclusoes,
   });
 }
@@ -132,4 +135,24 @@ export async function contractPdfFor(supabase: Client, row: EngagementRow): Prom
 export async function signedPdf(supabase: Client, engagementId: string, side: 'cliente' | 'pintor'): Promise<Uint8Array | null> {
   const { data } = await supabase.storage.from('contratos').download(`${engagementId}/${side}.pdf`);
   return data ? new Uint8Array(await data.arrayBuffer()) : null;
+}
+
+/**
+ * Documentos que um condomínio tem de ter validados antes de assinar (parecer D1):
+ * ata de nomeação do administrador e ata que aprova a obra (deste prédio, ou geral).
+ * Devolve o que falta; vazio = pode assinar. Para outros clientes, nada.
+ */
+export async function missingCondoDocs(supabase: Client, row: EngagementRow): Promise<string[]> {
+  const { data: org } = await supabase.from('organizations').select('kind').eq('id', row.client_org_id).maybeSingle();
+  if (org?.kind !== 'condominio') return [];
+  const [{ data: req }, { data: docs }] = await Promise.all([
+    supabase.from('work_requests').select('building_id').eq('id', row.request_id).maybeSingle(),
+    supabase.from('org_documents').select('kind, building_id').eq('org_id', row.client_org_id).eq('status', 'aprovado'),
+  ]);
+  const has = (kind: string, building?: string | null) =>
+    (docs ?? []).some((d) => d.kind === kind && (building === undefined || d.building_id === null || d.building_id === building));
+  const out: string[] = [];
+  if (!has('ata_nomeacao_administrador')) out.push('ata de nomeação do administrador');
+  if (!has('ata_aprovacao_obra', req?.building_id)) out.push('ata da assembleia que aprova a obra e o empreiteiro');
+  return out;
 }

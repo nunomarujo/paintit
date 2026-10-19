@@ -205,6 +205,9 @@ export { clientDepositDue };
 
 // --- Minuta ----------------------------------------------------------------------
 
+/** Diferença de área acima da qual o novo preço tem de ser aprovado antes (acordado, não legal). */
+export const AREA_TOLERANCE_PCT = 10;
+
 export interface DraftInput {
   ref: string;
   cliente: { nome: string; nif: string | null; morada: string | null } | null;
@@ -262,7 +265,7 @@ export function contractDraft(d: DraftInput): Draft {
         paragraphs: [
           ...d.linhas.map((l) => `${l.descricao} — ${l.quantidade} — ${l.total}${l.inclusao ? ` (${l.inclusao})` : ''}.`),
           `Preço global: ${d.precoSemIva}, acrescido de IVA de ${d.iva}, no total de ${d.totalComIva}.`,
-          `Correções de área: a área executada que difira da prevista é faturada ou descontada a ${d.ajusteM2} por m².`,
+          `Correções de área: a área executada que difira da prevista é faturada ou descontada a ${d.ajusteM2} por m². A medição é feita pelo empreiteiro, na presença do dono da obra ou de quem este indicar, e os vãos descontam-se como no pedido. Uma diferença superior a ${AREA_TOLERANCE_PCT}% exige aprovação escrita do novo preço pelo dono da obra antes de os trabalhos adicionais começarem.`,
           d.exclusoes ? `Exclusões: ${d.exclusoes}` : 'Exclusões: as indicadas na proposta.',
         ],
       },
@@ -291,7 +294,16 @@ export function contractDraft(d: DraftInput): Draft {
       },
       {
         heading: '5. Garantia da obra',
-        paragraphs: [d.garantiaObra],
+        paragraphs: [
+          d.garantiaObra,
+          'Esta garantia não reduz os direitos nem os prazos que a lei confere ao dono da obra, nomeadamente o prazo de cinco anos previsto no artigo 1225.º do Código Civil, quando aplicável.',
+        ],
+      },
+      {
+        heading: '5-A. Licenças e via pública',
+        paragraphs: [
+          'O empreiteiro prepara e acompanha os pedidos de licença de ocupação da via pública necessários aos andaimes e equipamentos, com a colaboração do dono da obra. As taxas são suportadas por quem a proposta indicar; na falta de indicação, pelo dono da obra. Esta distribuição não afasta obrigações que a lei atribua diretamente ao dono da obra.',
+        ],
       },
       {
         heading: '6. Papel da plataforma',

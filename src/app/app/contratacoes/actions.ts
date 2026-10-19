@@ -11,7 +11,7 @@ import { parseHundredths } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { isPlatformAdmin } from '@/lib/access';
-import { contractPdfFor, loadDraft, loadReplay, signedPdf } from '@/lib/engagements';
+import { contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
 import { verifySignature } from '@/lib/pades';
 import { findSignatures } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
@@ -71,6 +71,12 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
       return { errors: {}, message: 'Assine o PDF do contrato com a Chave Móvel Digital e carregue-o.' };
     }
     if (form.get('confirmo') !== 'sim') return { errors: { confirmo: 'Confirme que leu e aceita a minuta.' } };
+    if (kind === 'cliente_assinou') {
+      const { supabase } = await getUser();
+      const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
+      const missing = row ? await missingCondoDocs(supabase, row) : [];
+      if (missing.length > 0) return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
+    }
   }
   const reason = String(form.get('motivo') ?? '').trim();
   if (kind === 'litigio_aberto' && reason.length < 10) return { errors: { motivo: 'Explique o motivo do litígio.' } };
@@ -156,6 +162,12 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
   const current = (await loadReplay(supabase, row)).replay.engagement;
   if (!availableActions(current, side).includes(kind)) return { errors: {}, message: 'Este passo não está disponível agora.' };
 
+  if (side === 'cliente') {
+    const missing = await missingCondoDocs(supabase, row);
+    if (missing.length > 0) {
+      return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
+    }
+  }
   const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, engagementId, 'cliente');
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
   const check = checkSignedPdf(uploaded, expected);

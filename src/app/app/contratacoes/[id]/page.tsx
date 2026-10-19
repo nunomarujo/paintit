@@ -5,7 +5,7 @@ import { held, settlement } from '@/domain/engagement';
 import { formatEuros } from '@/domain/money';
 import { alias, proposalTotals } from '@/domain/proposal';
 import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
-import { loadReplay } from '@/lib/engagements';
+import { loadReplay, missingCondoDocs } from '@/lib/engagements';
 import { toLine } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
 import { AnswerForm, ReviewForm } from '@/components/ExtrasForms';
@@ -56,6 +56,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', others.map((o) => o.id))
     : { data: [] };
 
+  const condoMissing = side === 'cliente' && partyActions.includes('cliente_assinou') ? await missingCondoDocs(supabase, row) : [];
   const { data: orders } = e.status === 'assinado' ? await supabase.from('material_orders').select('*').eq('engagement_id', id).neq('estado', 'cancelada') : { data: [] };
   const { data: review } = e.status === 'assinado' ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
@@ -186,7 +187,19 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 expected={k === 'deposito_confirmado' ? euros(due) : k === 'fee_recebido' ? euros(e.fee.gross) : undefined}
               />
             ))}
-            {partyActions.includes('cliente_assinou') && <PdfSign engagementId={id} side="cliente" />}
+            {condoMissing.length > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+                <p className="font-semibold">Antes de assinar em nome do condomínio</p>
+                <p className="mt-1">
+                  Envie na página do condomínio, e aguarde a validação: {condoMissing.join('; ')}. Quem assina tem de ter poderes
+                  para obrigar o condomínio.
+                </p>
+                <Link href={`/app/organizacoes/${row.client_org_id}`} className="mt-2 inline-block font-semibold text-tinta-700 hover:underline">
+                  Ir para os documentos do condomínio →
+                </Link>
+              </div>
+            )}
+            {partyActions.includes('cliente_assinou') && condoMissing.length === 0 && <PdfSign engagementId={id} side="cliente" />}
             {partyActions.includes('pintor_assinou') && <PdfSign engagementId={id} side="pintor" />}
             {partyActions
               .filter((k) => k !== 'transitar')

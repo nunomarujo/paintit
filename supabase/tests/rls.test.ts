@@ -539,6 +539,16 @@ describe('propostas e escolha', () => {
     expect(rows).toEqual([]);
   });
 
+  it('não submete sem habilitação validada', async () => {
+    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/habilitação/);
+    for (const org of [painterOrg, painter2Org]) {
+      await db.query(
+        `insert into public.org_documents (org_id, kind, storage_path, nome_ficheiro, status, submitted_by) values ($1, 'certificado_impic', 'c/x.pdf', 'x.pdf', 'aprovado', $2)`,
+        [org, A],
+      );
+    }
+  });
+
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
     await expect(setStatus(P2, other, 'submetida')).rejects.toThrow(/pelo menos uma linha/);
     await setStatus(P, mine, 'submetida');
@@ -546,7 +556,7 @@ describe('propostas e escolha', () => {
       'select base_cents, iva_cents, request_version, pintor_verificado from public.proposals where id = $1',
       [mine],
     );
-    expect([Number(r.base_cents), Number(r.iva_cents), r.request_version, r.pintor_verificado]).toEqual([137275, 31573, 1, false]);
+    expect([Number(r.base_cents), Number(r.iva_cents), r.request_version, r.pintor_verificado]).toEqual([137275, 31573, 1, true]);
     await expect(as(P, () => db.query(`update public.proposals set notas = 'x' where id = $1`, [mine]))).rejects.toThrow(/não pode ser alterada/);
     await expect(addLine(P, mine, 1)).rejects.toThrow(/row-level security/);
     await addLine(P2, other, 900);
@@ -986,5 +996,21 @@ describe('manutenção diária e avisos de versão', () => {
 
   it('ninguém corre a manutenção pela API', async () => {
     await expect(as(A, () => db.query('select private.daily_maintenance()'))).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('habilitação pelo valor', () => {
+  it('a base de dados usa os mesmos limites que o domínio', async () => {
+    const { requiredLicense } = await import('../../src/domain/license');
+    const org = (await one<{ id: string }>(`select id from public.organizations where nome = 'Pinturas Dois'`)).id;
+    await db.query(
+      `insert into public.org_documents (org_id, kind, storage_path, nome_ficheiro, status, classe, submitted_by) values ($1, 'alvara_impic', 'a/x.pdf', 'x.pdf', 'aprovado', 2, $2)`,
+      [org, A],
+    );
+    for (const base of [4_000_000, 4_000_001, 20_000_000, 40_000_000, 40_000_001, 90_000_000]) {
+      const need = requiredLicense(base);
+      const ok = (await one<{ ok: boolean }>('select private.license_ok($1, $2) ok', [org, base])).ok;
+      expect(ok).toBe(need.kind === 'certificado' || need.classe <= 2);
+    }
   });
 });

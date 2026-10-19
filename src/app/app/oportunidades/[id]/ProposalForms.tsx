@@ -73,6 +73,7 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
           label="Garantia da obra (anos)"
           inputMode="numeric"
           error={e.garantiaAnos}
+          hint="Garantia comercial. Não reduz os prazos legais (5 anos para defeitos em imóveis, quando aplicável)."
           defaultValue={terms.garantiaAnos?.toString() ?? ''}
         />
       </div>

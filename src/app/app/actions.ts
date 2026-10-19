@@ -237,6 +237,11 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
   else if (file.size > MAX_BYTES) errors.ficheiro = 'O ficheiro tem mais de 10 MB.';
   else if (!ALLOWED_TYPES.includes(file.type)) errors.ficheiro = 'Só PDF, JPG ou PNG.';
   if (validoAte && !/^\d{4}-\d{2}-\d{2}$/.test(validoAte)) errors.validoAte = 'Data inválida.';
+  const classeRaw = String(form.get('classe') ?? '').trim();
+  const classe = kind === 'alvara_impic' && classeRaw ? Number(classeRaw) : null;
+  if (kind === 'alvara_impic' && (!classe || !Number.isInteger(classe) || classe < 1 || classe > 9)) {
+    errors.classe = 'Indique a classe do alvará (1 a 9).';
+  }
   if (Object.keys(errors).length > 0) return { errors };
 
   const { supabase, user } = await getUser();
@@ -254,6 +259,7 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
     storage_path: path,
     nome_ficheiro: f.name.slice(0, 200),
     valido_ate: validoAte,
+    classe,
     submitted_by: user.id,
   });
   if (error) return { errors: {}, message: 'O ficheiro foi carregado mas não ficou registado. Tente de novo.' };

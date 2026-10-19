@@ -26,6 +26,7 @@ export function DocumentUpload({ orgId }: { orgId: string }) {
           </select>
         </Field>
         <Field name="validoAte" label="Válido até" type="date" error={e.validoAte} hint="Se o documento tiver validade." />
+        <Field name="classe" label="Classe do alvará" inputMode="numeric" error={e.classe} hint="Só para alvará IMPIC: define o valor máximo das obras." />
       </div>
       <Field name="ficheiro" label="Ficheiro" required error={e.ficheiro} hint="PDF, JPG ou PNG, até 10 MB.">
         <input name="ficheiro" type="file" required accept="application/pdf,image/jpeg,image/png" className="mt-1 block w-full text-sm" />

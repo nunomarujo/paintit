@@ -6,6 +6,7 @@ import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
 import { painterFee } from '@/domain/commission';
+import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
@@ -56,14 +57,28 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
   const fee = totals && totals.base > 0 ? painterFee(totals.base, CURRENT_RULES) : null;
+  const { data: licenses } = proposal
+    ? await supabase
+        .from('org_documents')
+        .select('kind, classe, valido_ate')
+        .eq('org_id', org.id)
+        .eq('status', 'aprovado')
+        .in('kind', ['certificado_impic', 'alvara_impic'])
+    : { data: [] };
+  const todayIso = localDate(new Date(), CURRENT_RULES.timeZone);
+  const held = (licenses ?? [])
+    .filter((d) => !d.valido_ate || d.valido_ate >= todayIso)
+    .map((d) => ({ kind: d.kind === 'alvara_impic' ? ('alvara' as const) : ('certificado' as const), classe: d.classe }));
   const blockers =
     proposal && terms
-      ? submitBlockers({
-          terms,
-          lines: domainLines,
-          today: localDate(new Date(), CURRENT_RULES.timeZone),
-          requestOpen: listing?.aberto ?? false,
-        })
+      ? [
+          ...submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false }),
+          ...(totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
+            ? [
+                `Para uma obra deste valor precisa de ${licenseLabel(requiredLicense(totals.base))}, enviado e validado na página da sua empresa.`,
+              ]
+            : []),
+        ]
       : [];
   const path = `/app/oportunidades/${id}`;
   const materials =
