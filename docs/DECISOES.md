@@ -52,4 +52,5 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | Parceiro de pagamentos | Por escolher (questão A1). Até lá, a equipa da plataforma regista à mão cada confirmação do parceiro (depósito e comissão), com a hora de receção | `/app/contratacoes/[id]` |
 | Assinatura com Chave Móvel Digital | Por contratar o serviço. Até lá, a assinatura na plataforma regista a aceitação, a hora e o resumo SHA-256 do texto aceite | `src/app/app/contratacoes/actions.ts` |
 | Momento da apresentação | Quando a comissão do pintor é confirmada dentro do prazo: as partes passam a ver-se, só para essa obra | `isRevealed` em `contracting.ts` |
+| Função `resolve_listing_report` | Corre com direitos de dono (o aviso do Supabase é esperado): verifica que quem chama é da equipa da plataforma antes de suspender | migração `backoffice` |
 | Texto da minuta | Gerado da proposta e da ficha da obra; deve ser revisto por um advogado | `contractDraft` em `contracting.ts` |

@@ -12,7 +12,7 @@ marca, piloto) avança em paralelo e condiciona o lançamento.
 | 2. Prédios e pedidos | Feito: pedido de orçamento sobre um prédio, superfícies com área direta ou largura × altura − vãos, pré-visualização do anúncio, publicação com verificação de anonimato e anúncio anónimo para pintores, volume 3D genérico a partir dos dados do prédio, fotografias privadas sem metadados e fotografias de pormenor revistas pela equipa da plataforma antes de chegarem ao anúncio | Feito |
 | 3. Marketplace | Feito: oportunidades para pintores (filtro por tipo e zonas de serviço), propostas com linhas técnicas (incluído, opcional, condicionado), condições, versões, comparador anónimo lado a lado, mensagens com filtro de contactos, escolha pelo cliente. Fica para depois: convites da equipa da plataforma a pintores e avaliações | Feito |
 | 4. Contratação | Feito: contratação criada na escolha, acontecimentos registados por quem os pode fazer e estado reconstruído de `engagement.ts`; depósito e comissão confirmados pela equipa da plataforma; minuta gerada com resumo SHA-256; assinatura das partes; prazos; desistência, litígio, transição para outra proposta; apresentação (identidades e morada) quando a comissão entra. Falta ligar: parceiro de pagamentos e assinatura com CMD | Feito |
-| 5. Backoffice | Validação de contas e documentos, revisão de anúncios, litígios, conciliação, auditoria | |
+| 5. Backoffice | Feito: painel com filas (documentos, fotografias, contratações, denúncias), denúncias de anúncios e suspensão, decisões de litígio, conciliação com instruções ao parceiro e CSV, auditoria das decisões da equipa | Feito |
 | 6. Fornecedores | Catálogo de produtos e fichas técnicas para os pintores orçamentarem | |
 
 ## Negócio

@@ -39,6 +39,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
     supabase.from('proposals').select('id', { count: 'exact', head: true }).eq('request_id', id).neq('status', 'rascunho'),
   ]);
+  const { data: suspensions } = await supabase
+    .from('listing_reports')
+    .select('id, resolucao, resolved_at')
+    .eq('request_id', id)
+    .eq('status', 'suspenso')
+    .order('resolved_at', { ascending: false });
   if (!org || !building) notFound();
 
   const manager = canManage(await myRole(supabase, user!.id, org));
@@ -67,6 +73,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </div>
         <p className="mt-1 text-sm text-slate-600">Referência pública: {req.ref}</p>
       </div>
+
+      {draft && (suspensions ?? []).length > 0 && (
+        <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm">
+          <h2 className="font-semibold text-red-900">O anúncio foi suspenso pela equipa da plataforma</h2>
+          <p className="mt-1">{suspensions![0]!.resolucao}</p>
+          <p className="mt-1 text-red-900">Corrija o pedido e publique de novo: os pintores veem a nova versão.</p>
+        </section>
+      )}
 
       {req.status !== 'rascunho' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>

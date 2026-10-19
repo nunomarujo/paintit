@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availableActions, contractDraft, draftText, isRevealed, replay, type EngagementEvent, type EngagementRecord } from './contracting';
+import { availableActions, contractDraft, draftText, isRevealed, ledger, replay, type EngagementEvent, type EngagementRecord } from './contracting';
 import { held } from './engagement';
 import { euros } from './money';
 
@@ -92,5 +92,25 @@ describe('contratação reconstruída a partir dos acontecimentos', () => {
     expect(text).toMatch(/concelho de Lisboa/);
     expect(text).toMatch(/revelados na apresentação/);
     expect(draftText(d)).toBe(text);
+  });
+});
+
+describe('conciliação', () => {
+  it('soma retidos e receita, com o IVA da comissão à parte', () => {
+    const signed = replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+        ev('pintor_assinou', '2026-10-23T10:00:00Z'),
+      ],
+      new Date('2026-10-24T00:00:00Z'),
+    ).engagement;
+    const waiting = replay({ ...rec, id: 'E9' }, [ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000))], new Date('2026-10-19T12:00:00Z')).engagement;
+    const l = ledger([signed, waiting]);
+    expect(l.retido).toEqual({ guarantee: euros(3_000), advance: euros(10_000), fee: 0 });
+    expect(l.receita).toEqual({ comissao: euros(3_000), ivaComissao: euros(690), garantias: 0 });
+    expect(l.porTipo.libertacao_adiantamento).toBe(euros(10_000));
   });
 });

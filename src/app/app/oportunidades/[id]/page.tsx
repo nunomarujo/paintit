@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/oportunidades/actions';
+import { ReportListing } from '@/app/app/backoffice/ReportForms';
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
@@ -96,6 +97,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           }}
         />
       )}
+
+      {listing?.aberto && <ReportListing requestId={id} />}
 
       {!proposal ? (
         <section className={card}>

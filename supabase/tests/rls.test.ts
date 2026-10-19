@@ -675,3 +675,53 @@ describe('contratação', () => {
     expect(next.carried_from).toBe(engagementId);
   });
 });
+
+describe('denúncias de anúncios', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1';
+  let requestId: string;
+  let reportId: string;
+
+  beforeAll(async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'muro', 'muros', $3, current_date + 10) returning id`,
+          [condo, buildingId, 'Pintura do muro de vedação com 40 metros lineares.'],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'muro', 8000)`, [requestId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+  });
+
+  it('só um pintor denuncia um anúncio aberto, e não decide a denúncia', async () => {
+    await expect(
+      as(B, () => db.query(`insert into public.listing_reports (request_id, motivo) values ($1, 'O texto tem o nome do prédio.')`, [requestId])),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(P, () =>
+        db.query(`insert into public.listing_reports (request_id, motivo, status) values ($1, 'O texto tem o nome do prédio.', 'suspenso')`, [requestId]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    reportId = (
+      await as(P, () =>
+        one<{ id: string }>(`insert into public.listing_reports (request_id, motivo) values ($1, 'O texto tem o nome do prédio.') returning id`, [requestId]),
+      )
+    ).id;
+  });
+
+  it('o cliente não vê denúncias pendentes nem quem denunciou', async () => {
+    expect(await as(A, async () => (await db.query('select id from public.listing_reports')).rows)).toEqual([]);
+  });
+
+  it('só a plataforma decide; suspender devolve o pedido a rascunho e o cliente vê o motivo', async () => {
+    await expect(as(A, () => db.query('select public.resolve_listing_report($1, true, $2)', [reportId, 'x']))).rejects.toThrow(/Sem permissão/);
+    await as(ADMIN, () => db.query('select public.resolve_listing_report($1, true, $2)', [reportId, 'Retire o nome do prédio do texto.']));
+    const req = await one<{ status: string; version: number }>('select status, version from public.work_requests where id = $1', [requestId]);
+    expect(req).toEqual({ status: 'rascunho', version: 2 });
+    const seen = await as(A, async () => (await db.query<{ resolucao: string }>('select resolucao from public.listing_reports')).rows);
+    expect(seen).toEqual([{ resolucao: 'Retire o nome do prédio do texto.' }]);
+  });
+});

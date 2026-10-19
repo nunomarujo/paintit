@@ -15,6 +15,8 @@ import {
   type DisputeOutcome,
   type Engagement,
   type EngagementStatus,
+  type MovementKind,
+  held,
 } from './engagement';
 import type { Cents } from './money';
 import { RULES_BY_VERSION } from './rules';
@@ -280,4 +282,47 @@ export function contractDraft(d: DraftInput): Draft {
 /** Texto canónico da minuta: é este texto que se resume (SHA-256) e fica como prova da assinatura. */
 export function draftText(d: Draft): string {
   return [d.title, ...d.sections.flatMap((s) => [s.heading, ...s.paragraphs])].join('\n');
+}
+
+// --- Conciliação ----------------------------------------------------------------
+
+/** Instruções ao parceiro de pagamentos que resultam dos movimentos (o que tem de executar). */
+export const PARTNER_INSTRUCTIONS: Partial<Record<MovementKind, string>> = {
+  devolucao_garantia: 'Devolver garantia ao cliente',
+  devolucao_adiantamento: 'Devolver adiantamento ao cliente',
+  devolucao_fee: 'Devolver comissão ao pintor',
+  libertacao_adiantamento: 'Transferir adiantamento para o pintor',
+  retencao_fee: 'Transferir comissão para a plataforma',
+  retencao_garantia: 'Transferir garantia perdida para a plataforma',
+};
+
+export interface LedgerTotals {
+  retido: { guarantee: Cents; advance: Cents; fee: Cents };
+  /** O que a plataforma recebeu: comissões (com o IVA à parte) e garantias perdidas. */
+  receita: { comissao: Cents; ivaComissao: Cents; garantias: Cents };
+  porTipo: Record<string, Cents>;
+}
+
+/** Soma de todas as contratações, para conciliar com os extratos do parceiro. */
+export function ledger(engagements: Engagement[]): LedgerTotals {
+  const out: LedgerTotals = {
+    retido: { guarantee: 0, advance: 0, fee: 0 },
+    receita: { comissao: 0, ivaComissao: 0, garantias: 0 },
+    porTipo: {},
+  };
+  for (const e of engagements) {
+    const h = held(e);
+    out.retido.guarantee += h.guarantee;
+    out.retido.advance += h.advance;
+    out.retido.fee += h.fee;
+    for (const m of e.movements) out.porTipo[m.kind] = (out.porTipo[m.kind] ?? 0) + m.amount;
+    const fees = e.movements.filter((m) => m.kind === 'retencao_fee').reduce((n, m) => n + m.amount, 0);
+    // A comissão retida é sempre a comissão inteira (líquido + IVA) desta contratação.
+    if (fees > 0) {
+      out.receita.comissao += e.fee.net;
+      out.receita.ivaComissao += e.fee.vat;
+    }
+    out.receita.garantias += e.movements.filter((m) => m.kind === 'retencao_garantia').reduce((n, m) => n + m.amount, 0);
+  }
+  return out;
 }

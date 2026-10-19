@@ -32,8 +32,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               Contratações
             </Link>
             {admin && (
-              <Link href="/app/validacao" className="font-medium text-tinta-700 hover:underline">
-                Validação
+              <Link href="/app/backoffice" className="font-medium text-tinta-700 hover:underline">
+                Backoffice
               </Link>
             )}
             <Link href="/app/perfil" className="truncate hover:underline">

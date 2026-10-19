@@ -51,6 +51,7 @@ type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'outro'
 type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
 type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
 type MessageSide = 'cliente' | 'pintor';
+type ReportStatus = 'pendente' | 'suspenso' | 'sem_fundamento';
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
@@ -361,6 +362,26 @@ export type Database = {
           },
         ];
       };
+      listing_reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          motivo: string;
+          reporter: string;
+          request_id: string;
+          resolucao: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: ReportStatus;
+        };
+        Insert: {
+          motivo: string;
+          reporter?: string;
+          request_id: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       proposals: {
         Row: {
           adiantamento_bps: number;
@@ -631,6 +652,7 @@ export type Database = {
     Functions: {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
     };
     Enums: {
       building_kind: BuildingKind;
@@ -650,6 +672,7 @@ export type Database = {
       line_inclusion: LineInclusion;
       message_side: MessageSide;
       engagement_event_kind: EngagementEventKind;
+      report_status: ReportStatus;
     };
     CompositeTypes: { [_ in never]: never };
   };
