@@ -4,6 +4,10 @@ Domínio comprado em dominios.pt (20/10/2026). Contacto provisório: quempinta.p
 
 ## 1. Alojamento da app (antes do DNS)
 
+Feito a 20/10/2026: projeto Vercel `paintit` (equipa quempintapt-8835), a partir de `nunomarujo/paintit`,
+endereço provisório **https://paintit-one.vercel.app** (o `paintit.vercel.app` é de outra pessoa). Variáveis
+secretas colocadas pelo promotor; webhook do Stripe e URLs do Supabase apontam para este endereço.
+
 Recomendação: **Vercel** (Next.js nativo, região de Frankfurt/Paris). Criar o projeto a partir do repositório,
 com as variáveis de `.env.example`. A chave secreta do Supabase só entra nas variáveis da Vercel, nunca no
 repositório.
