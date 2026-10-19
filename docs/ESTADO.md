@@ -42,7 +42,7 @@ Fontes:
 | 5. Backoffice: filas, denúncias, litígios, conciliação, auditoria | Feito |
 | 6. Fornecedores: catálogo, fichas técnicas, estimativa de consumo | Feito |
 
-Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 17 migrações aplicadas, avisos de segurança a
+Base de dados: projeto Supabase "Paint it" (`phkfrabrjqbpnmocrrvj`), 18 migrações aplicadas, avisos de segurança a
 zero, com duas exceções explicadas: a proteção de palavras-passe divulgadas (não se aplica: a entrada é por link)
 e `resolve_listing_report` e `painter_rating`, que correm com direitos de dono por desenho (ver `DECISOES.md`). Primeira
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
@@ -50,23 +50,29 @@ condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 
 ## Próximo passo
 
-Feito a 19/10/2026, além das seis fases: materiais certificados no orçamento (tipo → produto, sugestões com
-desconto da obra, ficha, preços, entrega e contactos), descontos por escalão e entregas dos fornecedores,
-encomendas certificadas (o fornecedor confirma venda e entrega, o cliente vê), avaliações de fornecedores,
-"Ferramentas de obra" (`/app/obras/[id]`: materiais, equipa e horas, cronograma, custos e tranches), contrato em
-linguagem simples ao lado da minuta.
+Feito até 19/10/2026 (além das seis fases): materiais certificados, descontos e entregas dos fornecedores,
+encomendas certificadas, avaliações de fornecedores, ferramentas de obra, contrato em linguagem simples, design
+do protótipo v05, assinatura com PDF da Autenticação.gov (com cadeia de confiança nas entidades "Cartão de
+Cidadão" do Estado), manutenção diária com pg_cron (documentos expirados, fecho de anúncios fora de prazo, avisos
+de nova versão do pedido), dossiê do pedido para imprimir.
 
-Documentos para o promotor: `docs/advogado/Pedido_minuta_contrato.docx` (para enviar ao advogado) e
-`docs/PAGAMENTOS_E_ASSINATURA.md` (Stripe/Mangopay e assinatura com a Autenticação.gov).
+A seguir, sem depender do promotor:
 
-A seguir:
+1. Teste completo no browser pela sessão de teste (com `PERMITIR_ACEITACAO_SIMPLES=1`).
+2. Consulta de revogação (OCSP) dos certificados das assinaturas.
 
-1. Feito: design do protótipo v05 em toda a app (paleta, Inter, barra lateral, cartões de propostas, passos) e
-   assinatura com PDF da Autenticação.gov (ver `docs/PAGAMENTOS_E_ASSINATURA.md`). Para testar sem Chave Móvel
-   Digital: `PERMITIR_ACEITACAO_SIMPLES=1`.
-2. Validar a cadeia de confiança dos certificados (DSS).
-3. **Parceiro de pagamentos**, quando escolhido; **email e domínio**, quando o promotor os indicar.
-4. Teste completo no browser pela sessão de teste do Paint it.
+### Decisões e questões para o promotor
+
+1. **Parceiro de pagamentos:** Stripe Connect ou Mangopay (recomendação em `docs/PAGAMENTOS_E_ASSINATURA.md`).
+2. **Email transacional e domínio:** escolher o serviço (ex.: Resend, Postmark, Amazon SES na UE) para os avisos
+   também seguirem por email.
+3. **Certificado por confirmar:** hoje uma assinatura válida cujo certificado não encadeia nas entidades
+   "Cartão de Cidadão" é aceite e marcada para a equipa confirmar. Prefere recusá-la logo?
+4. **Pintores sem documentos aprovados:** hoje podem fazer propostas, com "documentos ainda por verificar" no
+   comparador. Prefere só deixar propor pintores verificados?
+5. **Percentagem dos 57%:** não foi usada na app por falta de fonte; se tiver o estudo, pode entrar no texto.
+6. **Identidades no PDF assinado** (pergunta E4 ao advogado): o PDF não tem nomes, por causa do anonimato.
+7. **Advogado:** enviar `docs/advogado/Pedido_minuta_contrato.docx` com o seu contacto preenchido.
 
 ## Como funciona a contratação
 
