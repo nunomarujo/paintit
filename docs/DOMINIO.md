@@ -55,3 +55,7 @@ O contacto público no site é suporte@quempinta.pt (`BRAND.email`).
 **Estado a 20/10/2026:** https://quempinta.pt ativo (Vercel, A 216.198.79.1; www → apex). MX e SPF do ImprovMX
 verificados; aliases nm, info, suporte. Supabase Site URL e webhook do Stripe já usam quempinta.pt. Falta o
 "Enviar como" no Gmail (promotor).
+
+## 6. Emails da app (Resend + Supabase)
+
+Remetente `avisos@quempinta.pt` pelo SMTP do Resend; modelos em português em `supabase/templates/`.
