@@ -143,6 +143,9 @@ export default function Home() {
             © {new Date().getFullYear()} {BRAND.name}
           </span>
           {/* Páginas legais por redigir e validar com o advogado (docs/ROADMAP.md). */}
+          <a href={`mailto:${BRAND.email}`} className="hover:underline">
+            {BRAND.email}
+          </a>
           <Link href="/transparencia" className="hover:underline">
             Transparência
           </Link>

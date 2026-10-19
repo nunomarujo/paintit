@@ -40,3 +40,14 @@ DKIM a acrescentar ao DNS. Sem isto, os emails do Supabase têm limite baixo e c
 ## 4. Supabase
 
 Authentication → URL Configuration: *Site URL* `https://quempinta.pt` e *Redirect URLs* `https://quempinta.pt/**`.
+
+## 5. Endereços @quempinta.pt (20/10/2026)
+
+Caixas pedidas: nm@, info@ e suporte@quempinta.pt, todas entregues em quempinta.pt@gmail.com.
+O contacto público no site é suporte@quempinta.pt (`BRAND.email`).
+
+- **Receber:** ImprovMX (grátis) — registos MX `mx1.improvmx.com` (prioridade 10) e `mx2.improvmx.com` (20) e
+  aliases nm, info, suporte → quempinta.pt@gmail.com.
+- **SPF (TXT em @):** `v=spf1 include:_spf.google.com include:spf.improvmx.com ~all` (um só registo SPF).
+- **Enviar:** Gmail → Definições → Contas → "Enviar email como", servidor smtp.gmail.com, porta 587, utilizador
+  quempinta.pt@gmail.com e uma palavra-passe de aplicação.

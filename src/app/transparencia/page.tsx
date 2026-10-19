@@ -68,6 +68,9 @@ export default function TransparencyPage() {
           vermelho; as partes podem continuar, assumindo a responsabilidade.
         </p>
       </section>
+      <p className="text-slate-600">
+        Dúvidas: <a href={`mailto:${BRAND.email}`} className="text-tinta-700 hover:underline">{BRAND.email}</a>
+      </p>
     </main>
   );
 }
