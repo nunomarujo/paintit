@@ -239,6 +239,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             execucaoDesde: req.execucao_desde,
             execucaoAte: req.execucao_ate,
             surfaces: list.map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
+            ocupacaoViaPublica: req.ocupacao_via_publica,
             photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
           }}
         />

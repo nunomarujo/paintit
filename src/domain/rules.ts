@@ -20,6 +20,8 @@ export interface CommercialRules {
   /** Em aberto (proposta): dias corridos para o pintor assinar depois de pagar. */
   signDeadlineDays: number;
   timeZone: string;
+  /** Percurso: v1 (cliente assina antes da apresentação) ou v2 (apresentação antes das assinaturas). */
+  flow?: 'v1' | 'v2';
 }
 
 export const RULES_2026_10: CommercialRules = {
@@ -34,9 +36,17 @@ export const RULES_2026_10: CommercialRules = {
   timeZone: 'Europe/Lisbon',
 };
 
-export const CURRENT_RULES = RULES_2026_10;
+/**
+ * 19/10/2026: percurso v2, decidido pelo promotor depois do parecer jurídico. A
+ * caução é garantia de interesse, depositada antes da apresentação e devolvida na
+ * assinatura. Os valores mantêm-se.
+ */
+export const RULES_2026_10_19: CommercialRules = { ...RULES_2026_10, version: '2026-10-19', flow: 'v2' };
+
+export const CURRENT_RULES = RULES_2026_10_19;
 
 /** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
 export const RULES_BY_VERSION: Record<string, CommercialRules> = {
   [RULES_2026_10.version]: RULES_2026_10,
+  [RULES_2026_10_19.version]: RULES_2026_10_19,
 };

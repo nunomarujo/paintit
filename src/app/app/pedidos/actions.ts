@@ -24,6 +24,7 @@ function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>
     prazo_propostas: v.prazoPropostas,
     execucao_desde: v.execucaoDesde,
     execucao_ate: v.execucaoAte,
+    ocupacao_via_publica: v.ocupacaoViaPublica,
   };
 }
 

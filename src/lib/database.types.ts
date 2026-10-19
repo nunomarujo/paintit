@@ -36,6 +36,7 @@ type SurfaceKind =
 type AreaSource = 'estimativa' | 'medicao_cliente' | 'planta';
 type PhotoKind = 'geral' | 'pormenor';
 type PhotoReview = 'pendente' | 'aprovada' | 'rejeitada';
+type ViaPublica = 'sim' | 'nao' | 'a_avaliar';
 type ProposalStatus = 'rascunho' | 'submetida' | 'retirada' | 'selecionada' | 'nao_selecionada' | 'falhada';
 type EngagementEventKind =
   | 'deposito_confirmado'
@@ -47,7 +48,7 @@ type EngagementEventKind =
   | 'litigio_resolvido'
   | 'transitar'
   | 'encerrar_sem_contrato';
-type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'outro';
+type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
 type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
 type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
 type MessageSide = 'cliente' | 'pintor';
@@ -288,6 +289,7 @@ export type Database = {
           trabalhos: string[];
           updated_at: string;
           version: number;
+          ocupacao_via_publica: ViaPublica;
         };
         Insert: {
           building_id: string;
@@ -308,6 +310,7 @@ export type Database = {
           trabalhos?: string[];
           updated_at?: string;
           version?: number;
+          ocupacao_via_publica?: ViaPublica;
         };
         Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
         Relationships: [
@@ -901,6 +904,7 @@ export type Database = {
           tipo_obra: WorkType;
           trabalhos: string[];
           version: number;
+          ocupacao_via_publica: ViaPublica;
         };
         // Escrita só pelo gatilho de publicação (a base de dados recusa o resto).
         Insert: Partial<Database['public']['Tables']['request_listings']['Row']>;

@@ -4,6 +4,7 @@ import { contractDraft, replay, type EngagementEvent, type EngagementRecord, typ
 import { formatEuros, percentOf } from '@/domain/money';
 import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
+import { RULES_BY_VERSION } from '@/domain/rules';
 import { contractPdf } from '@/lib/contractPdf';
 import { toLine, toTerms } from '@/lib/proposals';
 
@@ -128,7 +129,9 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
 
 /** PDF do contrato para assinar: versão sem identidades, sempre com os mesmos bytes. */
 export async function contractPdfFor(supabase: Client, row: EngagementRow): Promise<Uint8Array> {
-  return contractPdf(await loadDraft(supabase, row, { anonymous: true }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
+  // v1: o cliente assinava antes da apresentação, por isso sem identidades; v2: já se conhecem.
+  const anonymous = RULES_BY_VERSION[row.rules_version]?.flow !== 'v2';
+  return contractPdf(await loadDraft(supabase, row, { anonymous }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
 }
 
 /** PDF já assinado por uma das partes, se existir. */

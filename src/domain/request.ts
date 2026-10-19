@@ -207,6 +207,14 @@ export function publishBlockers(input: PublishCheckInput): string[] {
 
 // --- Formulário do pedido ----------------------------------------------------------
 
+export const VIA_PUBLICA = ['sim', 'nao', 'a_avaliar'] as const;
+export type ViaPublica = (typeof VIA_PUBLICA)[number];
+export const VIA_PUBLICA_LABELS: Record<ViaPublica, string> = {
+  sim: 'Sim, prevê ocupação da via pública (andaime ou equipamento no passeio ou na rua)',
+  nao: 'Não',
+  a_avaliar: 'A avaliar pelo pintor',
+};
+
 export interface RequestInput {
   buildingId: string;
   titulo: string;
@@ -217,6 +225,7 @@ export interface RequestInput {
   prazoPropostas: string | null;
   execucaoDesde: string | null;
   execucaoAte: string | null;
+  ocupacaoViaPublica: ViaPublica;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -238,6 +247,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
     if (v && !DATE.test(v)) errors[k] = 'Data inválida.';
     dates[k] = v || null;
   }
+  const via = get('ocupacaoViaPublica') || 'a_avaliar';
+  if (!(VIA_PUBLICA as readonly string[]).includes(via)) errors.ocupacaoViaPublica = 'Escolha uma opção.';
   if (dates.execucaoDesde && dates.execucaoAte && dates.execucaoAte < dates.execucaoDesde) {
     errors.execucaoAte = 'Tem de ser depois do início.';
   }
@@ -254,6 +265,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
       prazoPropostas: dates.prazoPropostas ?? null,
       execucaoDesde: dates.execucaoDesde ?? null,
       execucaoAte: dates.execucaoAte ?? null,
+      ocupacaoViaPublica: via as ViaPublica,
     },
   };
 }

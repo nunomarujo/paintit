@@ -72,7 +72,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const blockers =
     proposal && terms
       ? [
-          ...submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false }),
+          ...submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false, viaPublica: listing?.ocupacao_via_publica }),
           ...(totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
             ? [
                 `Para uma obra deste valor precisa de ${licenseLabel(requiredLicense(totals.base))}, enviado e validado na página da sua empresa.`,
@@ -117,6 +117,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             execucaoDesde: listing.execucao_desde,
             execucaoAte: listing.execucao_ate,
             surfaces: (surfaces ?? []).map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
+            ocupacaoViaPublica: listing.ocupacao_via_publica,
             photos: photos ?? [],
           }}
         />

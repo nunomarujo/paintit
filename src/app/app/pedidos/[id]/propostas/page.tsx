@@ -301,13 +301,13 @@ export default async function ProposalsPage({
                   proposalId={p.id}
                   requestId={id}
                   summary={[
-                    'O pedido deixa de receber propostas e as outras ficam como não escolhidas.',
-                    `Deposita no parceiro de pagamentos a caução de ${formatEuros(guarantee)} (3% sem IVA)${
-                      advance > 0 ? ` e o adiantamento de ${formatEuros(advance)}` : ''
-                    }. A caução é-lhe devolvida quando as duas partes assinarem.`,
-                    'Assina a minuta do contrato com Chave Móvel Digital.',
-                    'O pintor tem 8 dias para pagar a comissão à plataforma; só então assina e as identidades são reveladas.',
-                    'Num condomínio, confirme que a escolha foi aprovada em assembleia (vai precisar da ata).',
+                    'É uma escolha preliminar: o pedido deixa de receber propostas e as outras ficam em espera.',
+                    `Deposita no parceiro de pagamentos uma caução de ${formatEuros(guarantee)} (3% sem IVA), como garantia de interesse. É-lhe devolvida quando as duas partes assinarem.`,
+                    'O pintor tem 8 dias para pagar a comissão à plataforma. Se não pagar, escolhe outra proposta e a caução passa para ela, ou é-lhe devolvida.',
+                    'Quando o pintor paga, ficam a conhecer-se: nome, NIF, habilitação e contactos.',
+                    `${advance > 0 ? `Deposita o adiantamento de ${formatEuros(advance)} e as` : 'As'} duas partes assinam o contrato completo com Chave Móvel Digital.`,
+                    'Antes de conhecer o pintor pode desistir sem perder nada. Depois de o conhecer, se desistir ou não assinar no prazo, perde a caução.',
+                    'Num condomínio, precisa da ata de nomeação do administrador e da ata que aprova a obra.',
                   ]}
                 />
               </div>

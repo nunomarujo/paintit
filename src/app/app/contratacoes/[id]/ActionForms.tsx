@@ -36,7 +36,8 @@ const PARTY: Record<PartyKind, { label: string; style: string; confirm?: string;
   cliente_desistiu: {
     label: 'Desistir',
     style: danger,
-    warning: 'Se já depositou, perde a caução de 3%; o adiantamento é-lhe devolvido e o pintor recupera a comissão.',
+    warning:
+      'Antes de conhecer o pintor, desiste sem perder nada. Depois de o conhecer, perde a caução de 3%; o adiantamento é-lhe devolvido e o pintor recupera a comissão.',
   },
   litigio_aberto: {
     label: 'Abrir litígio',

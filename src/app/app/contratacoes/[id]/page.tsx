@@ -46,6 +46,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   const due = clientDepositDue(e);
   const counterpart = side === 'pintor' ? clientOrg : side === 'cliente' ? painterOrg : null;
   const reference = row.id.slice(0, 8).toUpperCase();
+  const v2 = e.rules.flow === 'v2';
 
   // Alternativas para transitar: as outras propostas do pedido que ficaram de fora.
   const canCarry = partyActions.includes('transitar');
@@ -71,14 +72,28 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Contratação {reference}</h1>
         <p className="mt-1 text-sm font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
-        <Steps
-          steps={['Depósito do cliente', 'Assinatura do cliente', 'Comissão do pintor', 'Assinatura do pintor']}
-          done={
-            ({ aguarda_deposito: 0, aguarda_assinatura_cliente: 1, aguarda_fee: 2, aguarda_assinatura_pintor: 3, em_litigio: 3, assinado: 4 } as Record<string, number>)[
-              e.status
-            ] ?? 0
-          }
-        />
+        {v2 ? (
+          <Steps
+            steps={['Caução do cliente', 'Comissão do pintor', 'Adiantamento', 'Assinatura do cliente', 'Assinatura do pintor']}
+            done={
+              (
+                { aguarda_deposito: 0, aguarda_fee: 1, aguarda_adiantamento: 2, aguarda_assinatura_cliente: 3, aguarda_assinatura_pintor: 4, em_litigio: 3, assinado: 5 } as Record<
+                  string,
+                  number
+                >
+              )[e.status] ?? 0
+            }
+          />
+        ) : (
+          <Steps
+            steps={['Depósito do cliente', 'Assinatura do cliente', 'Comissão do pintor', 'Assinatura do pintor']}
+            done={
+              ({ aguarda_deposito: 0, aguarda_assinatura_cliente: 1, aguarda_fee: 2, aguarda_assinatura_pintor: 3, em_litigio: 3, assinado: 4 } as Record<string, number>)[
+                e.status
+              ] ?? 0
+            }
+          />
+        )}
         <div className="mt-2 flex flex-wrap gap-4 text-sm">
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
             Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
@@ -130,13 +145,17 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         )}
       </section>
 
-      {e.status === 'aguarda_deposito' && side === 'cliente' && (
+      {(e.status === 'aguarda_deposito' || e.status === 'aguarda_adiantamento') && side === 'cliente' && (
         <section className={`${card} border-tinta-100 bg-tinta-50`}>
-          <h2 className="font-semibold">Depósito a fazer</h2>
+          <h2 className="font-semibold">{e.status === 'aguarda_adiantamento' ? 'Adiantamento a depositar' : 'Depósito a fazer'}</h2>
           <p className="mt-2 text-sm">
             Deposite <strong>{formatEuros(due)}</strong> com a referência <strong>{reference}</strong>. O dinheiro fica no
-            parceiro de pagamentos autorizado, nunca na plataforma. A caução é-lhe devolvida quando as duas partes
-            assinarem; o adiantamento passa para o pintor nesse momento.
+            parceiro de pagamentos autorizado, nunca na plataforma.{' '}
+            {v2
+              ? e.status === 'aguarda_deposito'
+                ? 'É a caução, uma garantia de interesse: é-lhe devolvida quando as duas partes assinarem. Se desistir antes de conhecer o pintor, também lhe é devolvida.'
+                : `O adiantamento passa para o pintor quando as duas partes assinarem. Prazo para depositar e assinar: ${pt(e.clientDue)}.`
+              : 'A caução é-lhe devolvida quando as duas partes assinarem; o adiantamento passa para o pintor nesse momento.'}
           </p>
           <p className="mt-2 text-xs text-slate-600">
             O parceiro de pagamentos ainda está a ser escolhido: os dados bancários serão indicados aqui. Até lá, a equipa da
@@ -146,9 +165,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       )}
       {e.status === 'aguarda_fee' && side === 'pintor' && (
         <section className={`${card} border-tinta-100 bg-tinta-50`}>
-          <h2 className="font-semibold">Ganhou esta obra</h2>
+          <h2 className="font-semibold">{v2 ? 'A sua proposta foi escolhida' : 'Ganhou esta obra'}</h2>
           <p className="mt-2 text-sm">
-            O cliente já assinou. Pague <strong>{formatEuros(e.fee.gross)}</strong> com a referência <strong>{reference}</strong>{' '}
+            {v2 ? 'O cliente depositou a caução.' : 'O cliente já assinou.'} Pague <strong>{formatEuros(e.fee.gross)}</strong> com a referência <strong>{reference}</strong>{' '}
             até <strong>{pt(e.feeDue)}</strong>. Quando o pagamento for confirmado, vê a identidade do cliente e a morada, e
             pode assinar. {e.advance > 0 && `O adiantamento de ${formatEuros(e.advance)} está reservado para si e é libertado quando assinar.`}
           </p>

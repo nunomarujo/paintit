@@ -2,7 +2,7 @@
 
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
-import { DESIRED_WORKS, DESIRED_WORK_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
+import { DESIRED_WORKS, DESIRED_WORK_LABELS, VIA_PUBLICA, VIA_PUBLICA_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
 
 export interface RequestInitial {
@@ -15,6 +15,7 @@ export interface RequestInitial {
   prazo_propostas: string | null;
   execucao_desde: string | null;
   execucao_ate: string | null;
+  ocupacao_via_publica?: string;
 }
 
 interface Props {
@@ -94,6 +95,21 @@ export function RequestForm({ action: submit, buildings, initial, disabled }: Pr
           error={e.corAcabamento}
           hint="Por exemplo: manter as cores atuais, acabamento mate. Pode deixar em aberto."
         />
+
+        <Field
+          name="ocupacaoViaPublica"
+          label="A obra prevê ocupação da via pública?"
+          error={e.ocupacaoViaPublica}
+          hint="As licenças camarárias dos trabalhos (incluindo a via pública) são obtidas pelo pintor. Licenciamento especial, como alterar janelas ou a fachada, é da responsabilidade do cliente."
+        >
+          <select name="ocupacaoViaPublica" defaultValue={initial?.ocupacao_via_publica ?? 'a_avaliar'} className={selectClass}>
+            {VIA_PUBLICA.map((v) => (
+              <option key={v} value={v}>
+                {VIA_PUBLICA_LABELS[v]}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         <div className="grid gap-5 sm:grid-cols-3">
           <Field

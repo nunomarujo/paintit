@@ -25,6 +25,7 @@ export interface ListingView {
   execucaoDesde: string | null;
   execucaoAte: string | null;
   surfaces: { kind: SurfaceKind; descricao: string | null; area: number }[];
+  ocupacaoViaPublica?: 'sim' | 'nao' | 'a_avaliar';
   /** Só fotografias de pormenor aprovadas pela equipa da plataforma. */
   photos: { id: string; legenda: string | null }[];
 }
@@ -89,6 +90,12 @@ export function ListingPreview({ l }: { l: ListingView }) {
         <p className="mt-3">
           <span className="text-slate-500">Trabalhos pretendidos: </span>
           {l.trabalhos.map((t) => DESIRED_WORK_LABELS[t as DesiredWork] ?? t).join(', ')}
+        </p>
+      )}
+      {l.ocupacaoViaPublica && (
+        <p className="mt-1">
+          <span className="text-slate-500">Ocupação da via pública: </span>
+          {l.ocupacaoViaPublica === 'sim' ? 'prevista (licenças a obter pelo pintor)' : l.ocupacaoViaPublica === 'nao' ? 'não prevista' : 'a avaliar pelo pintor'}
         </p>
       )}
       {l.corAcabamento && (

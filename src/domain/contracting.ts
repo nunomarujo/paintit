@@ -158,6 +158,7 @@ export const isRevealed = (e: Engagement) => e.feePaid;
 
 export const STATUS_LABELS: Record<EngagementStatus, string> = {
   aguarda_deposito: 'À espera do depósito do cliente',
+  aguarda_adiantamento: 'Partes apresentadas: à espera do adiantamento do cliente',
   aguarda_assinatura_cliente: 'À espera da assinatura do cliente',
   aguarda_fee: 'À espera da comissão do pintor',
   aguarda_assinatura_pintor: 'À espera da assinatura do pintor',
@@ -178,6 +179,28 @@ export type Side = 'cliente' | 'pintor' | 'plataforma';
 /** O que cada lado pode fazer agora. A base de dados volta a verificar quem é quem. */
 export function availableActions(e: Engagement, side: Side): EventKind[] {
   const s = e.status;
+  if (e.rules.flow === 'v2') {
+    const afterReveal = ['aguarda_adiantamento', 'aguarda_assinatura_cliente', 'aguarda_assinatura_pintor'].includes(s);
+    if (side === 'plataforma') {
+      const out: EventKind[] = [];
+      if (s === 'aguarda_deposito' || s === 'aguarda_adiantamento') out.push('deposito_confirmado');
+      if (s === 'aguarda_fee' || s === 'pintor_nao_pagou') out.push('fee_recebido');
+      if (s === 'em_litigio') out.push('litigio_resolvido');
+      return out;
+    }
+    if (side === 'cliente') {
+      const out: EventKind[] = [];
+      if (s === 'aguarda_assinatura_cliente') out.push('cliente_assinou');
+      if (s === 'aguarda_deposito' || s === 'aguarda_fee' || afterReveal) out.push('cliente_desistiu');
+      if (afterReveal) out.push('litigio_aberto');
+      if (s === 'pintor_nao_pagou' || s === 'pintor_nao_assinou') out.push('transitar', 'encerrar_sem_contrato');
+      return out;
+    }
+    const out: EventKind[] = [];
+    if (s === 'aguarda_assinatura_pintor') out.push('pintor_assinou');
+    if (afterReveal) out.push('litigio_aberto');
+    return out;
+  }
   if (side === 'plataforma') {
     const out: EventKind[] = [];
     if (s === 'aguarda_deposito') out.push('deposito_confirmado');
@@ -302,7 +325,9 @@ export function contractDraft(d: DraftInput): Draft {
       {
         heading: '5-A. Licenças e via pública',
         paragraphs: [
-          'O empreiteiro prepara e acompanha os pedidos de licença de ocupação da via pública necessários aos andaimes e equipamentos, com a colaboração do dono da obra. As taxas são suportadas por quem a proposta indicar; na falta de indicação, pelo dono da obra. Esta distribuição não afasta obrigações que a lei atribua diretamente ao dono da obra.',
+          'O empreiteiro obtém as licenças camarárias necessárias à execução dos trabalhos, incluindo a ocupação da via pública por andaimes e equipamentos, com a colaboração do dono da obra. As taxas estão incluídas no preço quando a proposta tiver uma linha de licenças; caso contrário, são suportadas por quem a proposta indicar.',
+          'O licenciamento especial que os trabalhos não exigem por si, como alterações de vãos ou da fachada, cabe ao dono da obra.',
+          'Esta distribuição não afasta obrigações que a lei atribua diretamente ao dono da obra.',
         ],
       },
       {
@@ -368,15 +393,29 @@ export function ledger(engagements: Engagement[]): LedgerTotals {
 export function plainSummary(e: Engagement, extra: { duracao: string; materiais: number }): string[] {
   const eur = (c: Cents) =>
     new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(c / 100);
+  const materiais =
+    extra.materiais > 0
+      ? [`O pintor compromete-se a aplicar ${extra.materiais === 1 ? 'o produto indicado' : `os ${extra.materiais} produtos indicados`}; o fornecedor confirma a venda e a entrega (não a aplicação).`]
+      : [];
+  if (e.rules.flow === 'v2') {
+    return [
+      `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
+      `O cliente deposita ${eur(e.guarantee)} de caução, como garantia de interesse, num parceiro de pagamentos, não na plataforma.`,
+      `O pintor paga ${eur(e.fee.gross)} de comissão à plataforma em ${e.rules.feeDeadlineDays} dias; nessa altura as partes ficam a conhecer-se.`,
+      `${e.advance > 0 ? `O cliente deposita ${eur(e.advance)} de adiantamento e as` : 'As'} duas partes assinam este contrato. Na assinatura, a caução volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}.`,
+      'Se o cliente desistir depois de conhecer o pintor, perde a caução e o pintor recupera a comissão. Se o pintor não assinar no prazo, perde a comissão.',
+      ...materiais,
+      'O pintor obtém as licenças camarárias dos trabalhos, incluindo a ocupação da via pública; o licenciamento especial (vãos, fachada) é do cliente.',
+      'Depois da assinatura, a plataforma não intervém na obra: só guarda o contrato.',
+    ];
+  }
   return [
     `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
     `O cliente deposita ${eur(e.guarantee)} de caução${e.advance > 0 ? ` e ${eur(e.advance)} de adiantamento` : ''} num parceiro de pagamentos, não na plataforma.`,
     `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para pagar ${eur(e.fee.gross)} de comissão. Só então as partes ficam a saber quem é a outra.`,
     `Quando o pintor assina, a caução volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}. O resto da obra paga-se diretamente ao pintor.`,
     'Se o cliente desistir antes de o pintor assinar, perde a caução. Se o pintor pagar e não assinar no prazo, perde a comissão.',
-    ...(extra.materiais > 0
-      ? [`O pintor compromete-se a aplicar ${extra.materiais === 1 ? 'o produto indicado' : `os ${extra.materiais} produtos indicados`}, e o fornecedor confirma a compra e a entrega.`]
-      : []),
+    ...materiais,
     'Depois da assinatura, a plataforma não intervém na obra: só guarda o contrato.',
   ];
 }

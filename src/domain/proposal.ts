@@ -7,13 +7,14 @@ import { parseHundredths, revealingContent, type AreaCm2, type SurfaceKind, SURF
 // (PRO-06). O cliente compara propostas sem saber quem as fez; o pintor nunca
 // vê as dos concorrentes (PRO-09).
 
-export const LINE_CATEGORIES = ['preparacao', 'reparacao', 'pintura', 'acessos', 'outro'] as const;
+export const LINE_CATEGORIES = ['preparacao', 'reparacao', 'pintura', 'acessos', 'licencas', 'outro'] as const;
 export type LineCategory = (typeof LINE_CATEGORIES)[number];
 export const LINE_CATEGORY_LABELS: Record<LineCategory, string> = {
   preparacao: 'Preparação (lavagem, raspagem, primário)',
   reparacao: 'Reparações',
   pintura: 'Pintura',
   acessos: 'Acessos (andaimes, plataforma)',
+  licencas: 'Licenças camarárias (ocupação da via pública)',
   outro: 'Outro',
 };
 
@@ -87,6 +88,8 @@ export interface SubmitCheckInput {
   lines: ProposalLine[];
   today: string;
   requestOpen: boolean;
+  /** O anúncio prevê ocupação da via pública: a proposta tem de prever as licenças. */
+  viaPublica?: 'sim' | 'nao' | 'a_avaliar';
 }
 
 /** O que impede a submissão (PIN-17). Vazio = pode ser submetida. */
@@ -99,6 +102,9 @@ export function submitBlockers(input: SubmitCheckInput): string[] {
   else if (terms.validade < input.today) out.push('A validade já passou.');
   if (!terms.duracaoDias) out.push('Indique a duração estimada da obra.');
   if (terms.adiantamentoBps > MAX_ADVANCE_BPS) out.push('O adiantamento de adjudicação não pode passar de 30%.');
+  if (input.viaPublica === 'sim' && !lines.some((l) => l.categoria === 'licencas' && l.inclusao !== 'opcional')) {
+    out.push('A obra prevê ocupação da via pública: acrescente uma linha de licenças camarárias (incluída ou só depois de observar).');
+  }
   const texts = [terms.exclusoes, terms.notas, ...lines.flatMap((l) => [l.descricao, l.produto ?? ''])];
   const revealing = [...new Set(texts.flatMap(revealingContent))];
   if (revealing.length > 0) {

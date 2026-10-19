@@ -105,7 +105,7 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
   const [{ data: p }, { data: lines }, { data: listing }] = await Promise.all([
     supabase.from('proposals').select('*').eq('id', proposalId).maybeSingle(),
     supabase.from('proposal_lines').select('*').eq('proposal_id', proposalId),
-    supabase.from('request_listings').select('aberto').eq('request_id', requestId).maybeSingle(),
+    supabase.from('request_listings').select('aberto, ocupacao_via_publica').eq('request_id', requestId).maybeSingle(),
   ]);
   if (!p || p.status !== 'rascunho') return { errors: {}, message: 'Só um rascunho pode ser submetido.' };
   const blockers = submitBlockers({
@@ -113,6 +113,7 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
     lines: (lines ?? []).map(toLine),
     today: today(),
     requestOpen: listing?.aberto ?? false,
+    viaPublica: listing?.ocupacao_via_publica,
   });
   if (blockers.length > 0) return { errors: {}, message: blockers.join(' ') };
   // A base de dados repete as verificações e fixa a base, a versão do pedido e a verificação.

@@ -10,6 +10,7 @@ import type { CommercialRules } from './rules';
 
 export type EngagementStatus =
   | 'aguarda_deposito'
+  | 'aguarda_adiantamento'
   | 'aguarda_assinatura_cliente'
   | 'aguarda_fee'
   | 'aguarda_assinatura_pintor'
@@ -56,6 +57,8 @@ export interface Engagement {
   status: EngagementStatus;
   feeDue?: IsoDate;
   signDue?: IsoDate;
+  /** v2: prazo para o cliente depositar o adiantamento e assinar, depois da apresentação. */
+  clientDue?: IsoDate;
   feePaid: boolean;
   /** Valores que transitaram de uma contratação anterior do mesmo pedido. */
   carriedFrom?: string;
@@ -170,13 +173,28 @@ export function createEngagement(input: CreateInput): Engagement {
   return e;
 }
 
-/** Quanto o cliente ainda tem de depositar (descontando valores transitados). */
+/**
+ * Percurso v2 (regras de 19/10/2026, decisão do promotor): a escolha é preliminar;
+ * o cliente deposita primeiro só a caução (garantia de interesse), o pintor paga
+ * a comissão, as partes são apresentadas, o cliente deposita o adiantamento e as
+ * duas partes assinam o contrato completo. A caução volta ao cliente na assinatura.
+ * Quem desiste depois de conhecer a outra parte perde o seu valor; antes da
+ * apresentação, o cliente pode desistir sem penalização (parecer B3).
+ */
+const isV2 = (e: Engagement) => e.rules.flow === 'v2';
+
+/** Quanto o cliente ainda tem de depositar agora (descontando valores transitados). */
 export function clientDepositDue(e: Engagement): Cents {
   const h = held(e);
+  if (isV2(e)) {
+    if (e.status === 'aguarda_adiantamento') return Math.max(0, e.advance - h.advance);
+    return Math.max(0, e.guarantee - h.guarantee);
+  }
   return Math.max(0, e.guarantee - h.guarantee) + Math.max(0, e.advance - h.advance);
 }
 
 export function confirmClientDeposit(e: Engagement, p: { amount: Cents; at: Date }): Engagement {
+  if (isV2(e)) return confirmClientDepositV2(e, p);
   expectStatus(e, ['aguarda_deposito'], 'Confirmar o depósito do cliente');
   const due = clientDepositDue(e);
   if (p.amount !== due) {
@@ -197,8 +215,36 @@ export function confirmClientDeposit(e: Engagement, p: { amount: Cents; at: Date
   return { ...next, status: 'aguarda_assinatura_cliente' };
 }
 
+function confirmClientDepositV2(e: Engagement, p: { amount: Cents; at: Date }): Engagement {
+  const current = expire(e, p.at);
+  expectStatus(current, ['aguarda_deposito', 'aguarda_adiantamento'], 'Confirmar o depósito do cliente');
+  const due = clientDepositDue(current);
+  if (p.amount !== due) fail('montante_divergente', `Esperado ${due} cêntimos, recebido ${p.amount}.`);
+  if (current.status === 'aguarda_adiantamento') {
+    const next = record(current, p.at, 'adiantamento do cliente confirmado; contrato pronto a assinar', [
+      { kind: 'deposito_adiantamento', amount: p.amount },
+    ]);
+    return { ...next, status: 'aguarda_assinatura_cliente' };
+  }
+  const h = held(current);
+  // Um crédito transitado acima da caução volta ao cliente.
+  const excess = Math.max(0, h.guarantee - current.guarantee);
+  const next = record(current, p.at, 'caução do cliente confirmada; pintor avisado para pagar a comissão', [
+    { kind: 'deposito_garantia', amount: p.amount },
+    { kind: 'devolucao_garantia', amount: excess, note: 'excesso transitado' },
+  ]);
+  const feeDue = deadlineFrom(p.at, current.rules.feeDeadlineDays, current.rules.timeZone);
+  return { ...next, status: 'aguarda_fee', feeDue };
+}
+
 /** O cliente assina a minuta; o pintor é avisado de que ganhou a obra. */
 export function clientSign(e: Engagement, p: { at: Date }): Engagement {
+  if (isV2(e)) {
+    const current = expire(e, p.at);
+    expectStatus(current, ['aguarda_assinatura_cliente'], 'A assinatura do cliente');
+    const signDue = deadlineFrom(p.at, current.rules.signDeadlineDays, current.rules.timeZone);
+    return { ...record(current, p.at, 'cliente assinou; falta o pintor'), status: 'aguarda_assinatura_pintor', signDue, clientDue: undefined };
+  }
   expectStatus(e, ['aguarda_assinatura_cliente'], 'A assinatura do cliente');
   if (e.feePaid) {
     // Retoma depois de um litígio: o fee já está pago, falta só o pintor assinar.
@@ -224,6 +270,13 @@ export function painterFeeReceived(e: Engagement, p: { amount: Cents; at: Date }
   }
   if (p.amount !== e.fee.gross) {
     fail('montante_divergente', `Esperado ${e.fee.gross} cêntimos, recebido ${p.amount}.`);
+  }
+  if (isV2(e)) {
+    // Apresentação: as partes passam a ver-se; o cliente tem o prazo para o adiantamento e a assinatura.
+    const clientDue = deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone);
+    current = record(current, p.at, 'comissão do pintor recebida; partes apresentadas', [{ kind: 'pagamento_fee', amount: p.amount }]);
+    const status = current.advance - held(current).advance > 0 ? 'aguarda_adiantamento' : 'aguarda_assinatura_cliente';
+    return { ...current, status, feePaid: true, clientDue };
   }
   const signDue = deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone);
   current = record(current, p.at, 'fee do pintor recebido; contrato disponível para assinar', [
@@ -259,11 +312,46 @@ export function expire(e: Engagement, now: Date): Engagement {
     ]);
     return { ...next, status: 'pintor_nao_assinou' };
   }
+  if (
+    isV2(e) &&
+    (e.status === 'aguarda_adiantamento' || e.status === 'aguarda_assinatura_cliente') &&
+    e.clientDue &&
+    !isWithin(now, e.clientDue, tz)
+  ) {
+    // Depois da apresentação, o cliente não avançou no prazo: como uma desistência.
+    const h = held(e);
+    const next = record(e, now, `cliente não assinou até ${e.clientDue}; caução retida, comissão devolvida ao pintor`, [
+      { kind: 'retencao_garantia', amount: h.guarantee },
+      { kind: 'devolucao_fee', amount: h.fee },
+      { kind: 'devolucao_adiantamento', amount: h.advance },
+    ]);
+    return { ...next, status: 'cliente_desistiu' };
+  }
   return e;
 }
 
 /** O cliente desiste antes de o pintor assinar: perde a caução. */
 export function clientWithdraw(e: Engagement, p: { at: Date }): Engagement {
+  if (isV2(e)) {
+    const current = expire(e, p.at);
+    if (current.status === 'aguarda_deposito' || current.status === 'aguarda_fee') {
+      // Antes da apresentação o cliente ainda não conhece o pintor: desiste sem penalização.
+      const h = held(current);
+      const next = record(current, p.at, 'escolha preliminar cancelada antes da apresentação; caução devolvida', [
+        { kind: 'devolucao_garantia', amount: h.guarantee },
+        { kind: 'devolucao_adiantamento', amount: h.advance },
+      ]);
+      return { ...next, status: 'cancelado' };
+    }
+    expectStatus(current, ['aguarda_adiantamento', 'aguarda_assinatura_cliente', 'aguarda_assinatura_pintor'], 'A desistência do cliente');
+    const h = held(current);
+    const next = record(current, p.at, 'cliente desistiu depois da apresentação', [
+      { kind: 'retencao_garantia', amount: h.guarantee },
+      { kind: 'devolucao_fee', amount: h.fee },
+      { kind: 'devolucao_adiantamento', amount: h.advance },
+    ]);
+    return { ...next, status: 'cliente_desistiu' };
+  }
   if (e.status === 'aguarda_deposito') {
     return { ...record(e, p.at, 'escolha cancelada antes do depósito'), status: 'cancelado' };
   }
@@ -285,12 +373,16 @@ export function clientWithdraw(e: Engagement, p: { at: Date }): Engagement {
  */
 export function openDispute(e: Engagement, p: { at: Date; reason: string }): Engagement {
   const current = expire(e, p.at);
-  expectStatus(current, ['aguarda_assinatura_pintor'], 'Abrir um litígio');
+  expectStatus(
+    current,
+    isV2(e) ? ['aguarda_adiantamento', 'aguarda_assinatura_cliente', 'aguarda_assinatura_pintor'] : ['aguarda_assinatura_pintor'],
+    'Abrir um litígio',
+  );
   const h = held(current);
   const next = record(current, p.at, `litígio aberto: ${p.reason}`, [
     { kind: 'devolucao_adiantamento', amount: h.advance, note: 'litígio' },
   ]);
-  return { ...next, status: 'em_litigio', signDue: undefined };
+  return { ...next, status: 'em_litigio', signDue: undefined, clientDue: undefined };
 }
 
 export type DisputeOutcome = 'culpa_cliente' | 'culpa_pintor' | 'retomar';
@@ -313,7 +405,8 @@ export function resolveDispute(e: Engagement, p: { at: Date; outcome: DisputeOut
     ]);
     return { ...next, status: 'litigio_culpa_pintor' };
   }
-  return { ...record(e, p.at, 'acordo: nova minuta para o cliente assinar'), status: 'aguarda_assinatura_cliente' };
+  const clientDue = isV2(e) ? deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone) : undefined;
+  return { ...record(e, p.at, 'acordo: nova minuta para o cliente assinar'), status: 'aguarda_assinatura_cliente', clientDue };
 }
 
 const AFTER_PAINTER_FAILURE: EngagementStatus[] = ['pintor_nao_pagou', 'pintor_nao_assinou'];

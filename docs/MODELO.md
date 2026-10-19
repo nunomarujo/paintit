@@ -1,5 +1,8 @@
 # Modelo de contratação e dinheiro
 
+> **Em vigor desde 19/10/2026: percurso v2** (secção no fim). As contratações iniciadas antes mantêm o
+> percurso v1 descrito a seguir, com as regras que aplicaram.
+
 Estado: decidido pelo promotor a 18/10/2026, com quatro pontos em aberto (ver `DECISOES.md`).
 Implementação: `src/domain/engagement.ts`; testes: `src/domain/engagement.test.ts`.
 
@@ -46,3 +49,26 @@ proposta o previr, o adiantamento de adjudicação.
 
 Execução da obra, tranches seguintes, aditamentos e incumprimentos depois da assinatura são matéria entre as
 partes. A plataforma pode arquivar aditamentos, mas não valida o seu teor.
+
+## Percurso v2 (19/10/2026, decisão do promotor depois do parecer jurídico)
+
+1. **Escolha preliminar** do cliente, ainda anónima.
+2. **Caução do cliente** (3%, garantia de interesse) depositada no parceiro de pagamentos.
+3. **Comissão do pintor** (3% + IVA) em 8 dias corridos a contar da confirmação da caução.
+4. **Apresentação:** com a comissão confirmada, as partes ficam a conhecer-se (identidade, NIF, habilitação,
+   contactos, morada da obra).
+5. **Adiantamento** do cliente, se a proposta o previr.
+6. **Assinaturas** do contrato completo, já com identidades: primeiro o cliente, depois o pintor (8 dias cada).
+7. Com as duas assinaturas, a **caução volta ao cliente**, o adiantamento passa para o pintor e a comissão fica.
+
+| Desfecho | Caução do cliente | Comissão do pintor | Adiantamento | Plataforma recebe |
+| --- | --- | --- | --- | --- |
+| Ambos assinam | Devolvida | Fica | Libertado ao pintor | Comissão |
+| Cliente desiste antes da apresentação | Devolvida | Devolvida (se paga) | — | Nada |
+| Cliente desiste ou não assina no prazo depois da apresentação | Perdida | Devolvida | Devolvido | Caução |
+| Pintor não paga em 8 dias | Transita ou devolvida | — | — | Nada |
+| Pintor não assina no prazo | Transita ou devolvida | Perdida | Devolvido | Comissão |
+
+A caução protege contra o cliente que, depois de conhecer o pintor, contrata com ele por fora: nesse caso a
+plataforma devolve a comissão ao pintor (que não teve culpa) e fica com a caução. Implementação:
+`src/domain/engagement.ts` (ramos `isV2`), regras `RULES_2026_10_19` em `src/domain/rules.ts`.

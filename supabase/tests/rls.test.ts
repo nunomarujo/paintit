@@ -1014,3 +1014,21 @@ describe('habilitação pelo valor', () => {
     }
   });
 });
+
+describe('licenças no anúncio', () => {
+  it('a ocupação da via pública passa do pedido para o anúncio', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const id = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas, ocupacao_via_publica)
+           values ($1, $2, 'fachada rua', 'fachadas', $3, current_date + 10, 'sim') returning id`,
+          [condo, buildingId, 'Pintura da fachada principal, com andaime no passeio.'],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 9000)`, [id]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [id]));
+    expect((await one<{ v: string }>('select ocupacao_via_publica v from public.request_listings where request_id = $1', [id])).v).toBe('sim');
+  });
+});
