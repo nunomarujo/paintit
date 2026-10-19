@@ -18,6 +18,21 @@ export const ORG_KIND_LABELS: Record<OrgKind, string> = {
 export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'leitor'] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
+/** Descrição do papel adaptada ao tipo de entidade (um fornecedor não gere prédios). */
+export function roleDescription(kind: OrgKind, role: MemberRole): string {
+  const byKind: Partial<Record<OrgKind, Partial<Record<MemberRole, string>>>> = {
+    fornecedor: {
+      gestor: 'Gere produtos, descontos, entregas e encomendas.',
+      financeiro: 'Acompanha a subscrição e as encomendas.',
+    },
+    pintor: {
+      gestor: 'Gere propostas, obras e documentos.',
+      financeiro: 'Envia documentos e acompanha comissões e pagamentos.',
+    },
+  };
+  return byKind[kind]?.[role] ?? MEMBER_ROLE_LABELS[role].description;
+}
+
 export const MEMBER_ROLE_LABELS: Record<MemberRole, { label: string; description: string }> = {
   proprietario: { label: 'Proprietário', description: 'Gere tudo, incluindo a equipa.' },
   gestor: { label: 'Gestor', description: 'Gere prédios, pedidos e documentos.' },
@@ -73,6 +88,39 @@ export const DOC_KIND_LABELS: Record<DocKind, string> = {
   declaracao_nao_divida_ss: 'Declaração de não dívida à Segurança Social',
   autorizacao_marca: 'Autorização de revenda de marca',
   outro: 'Outro documento',
+};
+
+/** Documentos que fazem sentido para cada tipo de entidade (só estes aparecem para enviar). */
+export const ALLOWED_DOCS: Record<OrgKind, DocKind[]> = {
+  condominio: ['ata_nomeacao_administrador', 'ata_aprovacao_obra', 'outro'],
+  administradora: ['certidao_permanente', 'ata_nomeacao_administrador', 'ata_aprovacao_obra', 'outro'],
+  particular: ['outro'],
+  pintor: [
+    'alvara_impic',
+    'certificado_impic',
+    'seguro_acidentes_trabalho',
+    'seguro_responsabilidade_civil',
+    'declaracao_nao_divida_at',
+    'declaracao_nao_divida_ss',
+    'certidao_permanente',
+    'outro',
+  ],
+  fornecedor: ['certidao_permanente', 'autorizacao_marca', 'outro'],
+};
+
+/** Porque é que a plataforma pede cada documento, em linguagem simples. */
+export const DOC_KIND_WHY: Record<DocKind, string> = {
+  certidao_permanente: 'Confirma que a empresa existe e quem a pode obrigar.',
+  ata_nomeacao_administrador: 'Prova que quem assina representa o condomínio.',
+  ata_aprovacao_obra: 'Prova que a assembleia aprovou a obra; sem ela o condomínio não assina.',
+  alvara_impic: 'Obrigatório por lei para obras acima de 40 000 €; a classe define o valor máximo.',
+  certificado_impic: 'Habilita para obras até 40 000 €.',
+  seguro_acidentes_trabalho: 'Obrigatório para quem tem trabalhadores em obra.',
+  seguro_responsabilidade_civil: 'Cobre danos a terceiros e ao prédio durante a obra.',
+  declaracao_nao_divida_at: 'Mostra ao cliente que a empresa tem a situação fiscal regularizada.',
+  declaracao_nao_divida_ss: 'Mostra ao cliente que a empresa paga as contribuições.',
+  autorizacao_marca: 'Confirma que vende a marca como revendedor autorizado.',
+  outro: 'Qualquer outro documento útil. Não substitui os anteriores.',
 };
 
 /**

@@ -1,5 +1,6 @@
 import { getUser } from '@/lib/supabase/server';
 import { ProfileForm } from './ProfileForm';
+import { PasswordForm } from './PasswordForm';
 
 export default async function ProfilePage() {
   const { supabase, user } = await getUser();
@@ -14,6 +15,9 @@ export default async function ProfilePage() {
       </p>
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <ProfileForm nome={profile?.nome ?? ''} telefone={profile?.telefone ?? null} />
+      </div>
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <PasswordForm />
       </div>
     </div>
   );

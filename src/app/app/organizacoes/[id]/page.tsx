@@ -105,7 +105,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
       {org.kind === 'fornecedor' && (
         <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
           <Link href={`/app/organizacoes/${org.id}/produtos`} className="hover:underline">
-            Catálogo, descontos e entregas →
+            Subscrição (Stripe), catálogo, descontos e entregas →
           </Link>
           <Link href="/app/encomendas" className="hover:underline">
             Encomendas com confirmação →
@@ -298,7 +298,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
         {owner && (
           <div className="mt-6 border-t border-slate-100 pt-6">
-            <InviteForm orgId={org.id} />
+            <InviteForm orgId={org.id} orgKind={org.kind} />
           </div>
         )}
       </section>
@@ -347,7 +347,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
         {role && role !== 'leitor' && (
           <div className="mt-6 border-t border-slate-100 pt-6">
-            <DocumentUpload orgId={org.id} />
+            <DocumentUpload orgId={org.id} orgKind={org.kind} />
           </div>
         )}
       </section>

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
+  ALLOWED_DOCS,
   DOC_KINDS,
   parseBuilding,
   parseInvite,
@@ -12,6 +13,7 @@ import {
   type DocKind,
   type FieldErrors,
   type OrganizationInput,
+  type OrgKind,
 } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
@@ -246,6 +248,9 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
 
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  // O tipo de documento vem do navegador: confirmar que faz sentido para esta entidade.
+  const { data: owner } = await supabase.from('organizations').select('kind').eq('id', orgId).maybeSingle();
+  if (!owner || !ALLOWED_DOCS[owner.kind as OrgKind].includes(kind as DocKind)) return { errors: { kind: 'Este documento não se aplica a esta entidade.' } };
   const f = file as File;
   const ext = f.type === 'application/pdf' ? 'pdf' : f.type === 'image/png' ? 'png' : 'jpg';
   const path = `${orgId}/${randomUUID()}.${ext}`;

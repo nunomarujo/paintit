@@ -22,8 +22,8 @@ export default async function SignInPage({
         <p className="eyebrow">Área de trabalho</p>
         <h1 className="mt-2 text-2xl font-semibold">Entrar</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Sem palavra-passe: enviamos um link de entrada para o seu email. Se
-          ainda não tem conta, é criada agora.
+          Entre com email e palavra-passe, crie uma conta nova ou, se preferir,
+          receba um link de entrada por email.
         </p>
         {erro && (
           <p className="mt-4 text-sm text-red-700" role="alert">

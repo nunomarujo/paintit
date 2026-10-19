@@ -96,6 +96,15 @@ describe('anonimato do texto', () => {
     expect(revealingContent('NIF 123456789')).toEqual(['um NIF']);
   });
 
+  it('apanha contactos disfarçados e pedidos para contornar a plataforma', () => {
+    const r = revealingContent(
+      'o meu contacto é nunomarujo@gmail ponto com\npode-me contactar diretamente para evitar comissão da aplicação\nde outro modo pode vir ao predio 45 do largo cidade da baía',
+    );
+    expect(r).toEqual(expect.arrayContaining(['um email', 'um pedido de contacto fora da plataforma', 'uma morada', 'um número de porta ou lote']));
+    expect(revealingContent('fale comigo pelo WhatsApp')).toContain('um contacto fora da plataforma');
+    expect(revealingContent('escreva para joao arroba sapo')).toContain('um email');
+  });
+
   it('deixa passar uma descrição normal', () => {
     expect(
       revealingContent('Prédio de 6 pisos com fissuras na fachada norte e tinta a descascar nas varandas.'),

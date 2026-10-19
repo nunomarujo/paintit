@@ -2,10 +2,10 @@
 
 import { inviteMember, type FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
-import { MEMBER_ROLES, MEMBER_ROLE_LABELS } from '@/domain/organization';
+import { MEMBER_ROLES, MEMBER_ROLE_LABELS, roleDescription, type OrgKind } from '@/domain/organization';
 import { useFormAction } from '@/components/useFormAction';
 
-export function InviteForm({ orgId }: { orgId: string }) {
+export function InviteForm({ orgId, orgKind }: { orgId: string; orgKind: OrgKind }) {
   const { state, pending, formProps } = useFormAction<FormState>(inviteMember.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
 
@@ -18,7 +18,7 @@ export function InviteForm({ orgId }: { orgId: string }) {
           <select name="role" required defaultValue="gestor" className={selectClass}>
             {MEMBER_ROLES.map((r) => (
               <option key={r} value={r}>
-                {MEMBER_ROLE_LABELS[r].label} — {MEMBER_ROLE_LABELS[r].description}
+                {MEMBER_ROLE_LABELS[r].label} — {roleDescription(orgKind, r)}
               </option>
             ))}
           </select>

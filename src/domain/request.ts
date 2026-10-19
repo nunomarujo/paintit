@@ -147,11 +147,15 @@ export function parseSurface(form: FormData): { value?: SurfaceInput; errors: Fi
 
 const CONTACT_PATTERNS: [RegExp, string][] = [
   [/[^\s@]+@[^\s@]+\.[a-z]{2,}/i, 'um email'],
+  // Emails disfarçados: "nome@gmail ponto com", "nome arroba gmail", "gmail.com".
+  [/\S+\s*(@|\barroba\b)\s*\S+|\b(gmail|hotmail|outlook|sapo|yahoo|icloud|live)\b|\bponto\s+(com|pt)\b/i, 'um email'],
+  [/\b(whats\s?app|telegram|signal|messenger|instagram|facebook|linkedin)\b/i, 'um contacto fora da plataforma'],
+  [/\b(contact\w*|ligu\w*|liga[rm]?|fal(e|ar)|venha|vir)\b.{0,40}\b(diretamente|direto|por fora|fora da (plataforma|aplicação|app))\b|\b(evitar|sem|fugir|poupar)\b.{0,20}\b(comiss\w*|plataforma|aplicação|app)\b/i, 'um pedido de contacto fora da plataforma'],
   [/(https?:\/\/|www\.)\S+/i, 'um endereço web'],
   [/(\+?351[\s.-]?)?\b[29]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b/, 'um número de telefone'],
   [/\b\d{4}-\d{3}\b/, 'um código postal'],
   [/\b(rua|r\.|avenida|av\.|travessa|tv\.|largo|praça|pç\.|estrada|beco|calçada|alameda)\s+\S+/i, 'uma morada'],
-  [/\b(lote|n\.?º|número|nº)\s*\d+/i, 'um número de porta ou lote'],
+  [/\b(lote|n\.?º|número|nº|prédio|predio|edifício|edificio|porta|andar)\s*\d+/i, 'um número de porta ou lote'],
   [/\bNIF\b|\b\d{9}\b/i, 'um NIF'],
 ];
 

@@ -2,10 +2,12 @@
 
 import { uploadDocument, type FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
-import { DOC_KINDS, DOC_KIND_LABELS } from '@/domain/organization';
+import { useState } from 'react';
+import { ALLOWED_DOCS, DOC_KIND_LABELS, DOC_KIND_WHY, type DocKind, type OrgKind } from '@/domain/organization';
 import { useFormAction } from '@/components/useFormAction';
 
-export function DocumentUpload({ orgId }: { orgId: string }) {
+export function DocumentUpload({ orgId, orgKind }: { orgId: string; orgKind: OrgKind }) {
+  const [kind, setKind] = useState<DocKind | ''>('');
   const { state, pending, formProps } = useFormAction<FormState>(uploadDocument.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
 
@@ -14,11 +16,11 @@ export function DocumentUpload({ orgId }: { orgId: string }) {
       <h3 className="text-sm font-semibold">Enviar documento</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="kind" label="Tipo" required error={e.kind}>
-          <select name="kind" required defaultValue="" className={selectClass}>
+          <select name="kind" required value={kind} onChange={(ev) => setKind(ev.target.value as DocKind)} className={selectClass}>
             <option value="" disabled>
               Escolha…
             </option>
-            {DOC_KINDS.map((k) => (
+            {ALLOWED_DOCS[orgKind].map((k) => (
               <option key={k} value={k}>
                 {DOC_KIND_LABELS[k]}
               </option>
@@ -26,8 +28,11 @@ export function DocumentUpload({ orgId }: { orgId: string }) {
           </select>
         </Field>
         <Field name="validoAte" label="Válido até" type="date" error={e.validoAte} hint="Se o documento tiver validade." />
-        <Field name="classe" label="Classe do alvará" inputMode="numeric" error={e.classe} hint="Só para alvará IMPIC: define o valor máximo das obras." />
+        {kind === 'alvara_impic' && (
+          <Field name="classe" label="Classe do alvará (1 a 9)" inputMode="numeric" required error={e.classe} hint="Define o valor máximo das obras." />
+        )}
       </div>
+      {kind && <p className="text-xs text-slate-600">{DOC_KIND_WHY[kind]}</p>}
       <Field name="ficheiro" label="Ficheiro" required error={e.ficheiro} hint="PDF, JPG ou PNG, até 10 MB.">
         <input name="ficheiro" type="file" required accept="application/pdf,image/jpeg,image/png" className="mt-1 block w-full text-sm" />
       </Field>
