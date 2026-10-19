@@ -539,14 +539,11 @@ describe('propostas e escolha', () => {
     expect(rows).toEqual([]);
   });
 
-  it('não submete sem habilitação validada', async () => {
-    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/habilitação/);
-    for (const org of [painterOrg, painter2Org]) {
-      await db.query(
-        `insert into public.org_documents (org_id, kind, storage_path, nome_ficheiro, status, submitted_by) values ($1, 'certificado_impic', 'c/x.pdf', 'x.pdf', 'aprovado', $2)`,
-        [org, A],
-      );
-    }
+  it('a habilitação validada fica registada na proposta, sem bloquear', async () => {
+    await db.query(
+      `insert into public.org_documents (org_id, kind, storage_path, nome_ficheiro, status, submitted_by) values ($1, 'certificado_impic', 'c/x.pdf', 'x.pdf', 'aprovado', $2)`,
+      [painterOrg, A],
+    );
   });
 
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
@@ -561,6 +558,8 @@ describe('propostas e escolha', () => {
     await expect(addLine(P, mine, 1)).rejects.toThrow(/row-level security/);
     await addLine(P2, other, 900);
     await setStatus(P2, other, 'submetida');
+    const ok = async (id: string) => (await one<{ habilitacao_ok: boolean }>('select habilitacao_ok from public.proposals where id = $1', [id])).habilitacao_ok;
+    expect([await ok(mine), await ok(other)]).toEqual([true, false]);
   });
 
   it('o cliente vê as propostas submetidas, mas não a entidade que as fez', async () => {

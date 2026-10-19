@@ -400,9 +400,9 @@ export function plainSummary(e: Engagement, extra: { duracao: string; materiais:
   if (e.rules.flow === 'v2') {
     return [
       `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
-      `O cliente deposita ${eur(e.guarantee)} de caução, como garantia de interesse, num parceiro de pagamentos, não na plataforma.`,
+      `O cliente deposita ${eur(e.guarantee)} de caução, quando quiser, como garantia de interesse, num parceiro de pagamentos, não na plataforma. É esse depósito que torna a escolha efetiva.`,
       `O pintor paga ${eur(e.fee.gross)} de comissão à plataforma em ${e.rules.feeDeadlineDays} dias; nessa altura as partes ficam a conhecer-se.`,
-      `${e.advance > 0 ? `O cliente deposita ${eur(e.advance)} de adiantamento e as` : 'As'} duas partes assinam este contrato. Na assinatura, a caução volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}.`,
+      'O cliente assina e depois o pintor. Com as duas assinaturas, a caução volta ao cliente. O adiantamento, se houver, paga-se diretamente ao pintor depois da assinatura, como diz o contrato.',
       'Se o cliente desistir depois de conhecer o pintor, perde a caução e o pintor recupera a comissão. Se o pintor não assinar no prazo, perde a comissão.',
       ...materiais,
       'O pintor obtém as licenças camarárias dos trabalhos, incluindo a ocupação da via pública; o licenciamento especial (vãos, fachada) é do cliente.',

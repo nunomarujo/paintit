@@ -105,7 +105,11 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
       terms.adiantamentoBps > 0
         ? `Adiantamento de adjudicação de ${terms.adiantamentoBps / 100}% (${formatEuros(
             percentOf(t.base, terms.adiantamentoBps),
-          )}), depositado no parceiro de pagamentos e libertado ao empreiteiro na assinatura.`
+          )}), ${
+            RULES_BY_VERSION[row.rules_version]?.flow === 'v2'
+              ? 'pago pelo dono da obra diretamente ao empreiteiro depois da assinatura deste contrato.'
+              : 'depositado no parceiro de pagamentos e libertado ao empreiteiro na assinatura.'
+          }`
         : 'Sem adiantamento de adjudicação.',
     ajusteM2: terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'preço por m² a acordar',
     materiais: await (async () => {

@@ -71,15 +71,12 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
     .map((d) => ({ kind: d.kind === 'alvara_impic' ? ('alvara' as const) : ('certificado' as const), classe: d.classe }));
   const blockers =
     proposal && terms
-      ? [
-          ...submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false, viaPublica: listing?.ocupacao_via_publica }),
-          ...(totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
-            ? [
-                `Para uma obra deste valor precisa de ${licenseLabel(requiredLicense(totals.base))}, enviado e validado na página da sua empresa.`,
-              ]
-            : []),
-        ]
+      ? submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false, viaPublica: listing?.ocupacao_via_publica })
       : [];
+  const licenseWarning =
+    proposal && totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
+      ? `Para uma obra deste valor é exigido ${licenseLabel(requiredLicense(totals.base))}, e não há nenhum validado na página da sua empresa. Pode submeter: o cliente verá a falta assinalada a vermelho e quem continuar assume a responsabilidade.`
+      : null;
   const path = `/app/oportunidades/${id}`;
   const materials =
     draft && listing
@@ -227,6 +224,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                 </div>
               </section>
               <section className={card}>
+                {licenseWarning && <p className="mb-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{licenseWarning}</p>}
                 <SubmitProposal proposalId={proposal.id} requestId={id} blockers={blockers} />
               </section>
             </>

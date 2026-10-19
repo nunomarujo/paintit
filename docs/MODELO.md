@@ -53,21 +53,23 @@ partes. A plataforma pode arquivar aditamentos, mas não valida o seu teor.
 ## Percurso v2 (19/10/2026, decisão do promotor depois do parecer jurídico)
 
 1. **Escolha preliminar** do cliente, ainda anónima.
-2. **Caução do cliente** (3%, garantia de interesse) depositada no parceiro de pagamentos.
+2. **Caução do cliente** (3%, garantia de interesse) depositada no parceiro de pagamentos, quando o cliente
+   quiser (sem prazo). É este depósito que torna a escolha efetiva e avisa o pintor.
 3. **Comissão do pintor** (3% + IVA) em 8 dias corridos a contar da confirmação da caução.
 4. **Apresentação:** com a comissão confirmada, as partes ficam a conhecer-se (identidade, NIF, habilitação,
    contactos, morada da obra).
-5. **Adiantamento** do cliente, se a proposta o previr.
-6. **Assinaturas** do contrato completo, já com identidades: primeiro o cliente, depois o pintor (8 dias cada).
-7. Com as duas assinaturas, a **caução volta ao cliente**, o adiantamento passa para o pintor e a comissão fica.
+5. **Assinaturas** do contrato completo, já com identidades: primeiro o cliente, depois o pintor (8 dias cada).
+6. Com as duas assinaturas, a **caução volta ao cliente** e a comissão fica.
+7. O **adiantamento**, se a proposta o previr, paga-se diretamente ao pintor depois da assinatura, como diz o
+   contrato. Não passa pela plataforma.
 
 | Desfecho | Caução do cliente | Comissão do pintor | Adiantamento | Plataforma recebe |
 | --- | --- | --- | --- | --- |
-| Ambos assinam | Devolvida | Fica | Libertado ao pintor | Comissão |
+| Ambos assinam | Devolvida | Fica | Pago fora da plataforma | Comissão |
 | Cliente desiste antes da apresentação | Devolvida | Devolvida (se paga) | — | Nada |
-| Cliente desiste ou não assina no prazo depois da apresentação | Perdida | Devolvida | Devolvido | Caução |
+| Cliente desiste ou não assina no prazo depois da apresentação | Perdida | Devolvida | — | Caução |
 | Pintor não paga em 8 dias | Transita ou devolvida | — | — | Nada |
-| Pintor não assina no prazo | Transita ou devolvida | Perdida | Devolvido | Comissão |
+| Pintor não assina no prazo | Transita ou devolvida | Perdida | — | Comissão |
 
 A caução protege contra o cliente que, depois de conhecer o pintor, contrata com ele por fora: nesse caso a
 plataforma devolve a comissão ao pintor (que não teve culpa) e fica com a caução. Implementação:

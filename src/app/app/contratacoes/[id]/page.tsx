@@ -329,6 +329,12 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             </li>
           ))}
         </ol>
+        {events.some((v) => (v.payload as { metodo?: string; cadeiaConfiavel?: boolean } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel) && (
+          <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+            Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A plataforma
+            não o confirma; se continuarem, as partes assumem a responsabilidade.
+          </p>
+        )}
         {events.some((v) => (v.payload as { documentHash?: string } | null)?.documentHash) && (
           <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
             {events

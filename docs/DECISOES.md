@@ -64,3 +64,13 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 | Função `painter_rating` | Corre com direitos de dono (aviso do Supabase esperado): devolve só a média e o número de avaliações do autor de uma proposta que quem chama pode ver, sem identificar o pintor | migração `extras` |
 | Avaliações no comparador | Só se mostra a média com 3 ou mais obras avaliadas; abaixo disso, "histórico insuficiente" (CMP-10) | `pedidos/[id]/propostas` |
 | Texto da minuta | Gerado da proposta e da ficha da obra; deve ser revisto por um advogado | `contractDraft` em `contracting.ts` |
+
+## 19/10/2026 — percurso v2 afinado (decisão do promotor)
+
+- A escolha é preliminar; torna-se efetiva quando o cliente deposita a caução, **sem prazo**. O pintor só é
+  avisado nesse momento e tem 8 dias para pagar a comissão; depois as partes ficam a conhecer-se.
+- O cliente assina, depois o pintor. Com as duas assinaturas a caução volta ao cliente.
+- **O adiantamento não passa pela plataforma:** paga-se diretamente ao pintor depois da assinatura, como diz o
+  contrato ("excede as nossas competências").
+- Habilitação IMPIC em falta ou certificado de assinatura não confirmado **não bloqueiam**: a app assinala a
+  vermelho às partes; quem continua assume a responsabilidade (migração `habilitacao_aviso`).

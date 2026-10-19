@@ -146,7 +146,9 @@ export interface CreateInput {
 
 export function createEngagement(input: CreateInput): Engagement {
   const base = assertCents(input.base, 'valor da proposta');
-  const advance = assertCents(input.advance, 'adiantamento');
+  // v2: o adiantamento é pago diretamente ao pintor depois da assinatura, nos termos do
+  // contrato; a plataforma não o retém (decisão do promotor de 19/10/2026).
+  const advance = input.rules.flow === 'v2' ? 0 : assertCents(input.advance, 'adiantamento');
   if (advance > base) fail('adiantamento_invalido', 'O adiantamento não pode exceder o valor da obra.');
   let e: Engagement = {
     id: input.id,
@@ -174,10 +176,11 @@ export function createEngagement(input: CreateInput): Engagement {
 }
 
 /**
- * Percurso v2 (regras de 19/10/2026, decisão do promotor): a escolha é preliminar;
- * o cliente deposita primeiro só a caução (garantia de interesse), o pintor paga
- * a comissão, as partes são apresentadas, o cliente deposita o adiantamento e as
- * duas partes assinam o contrato completo. A caução volta ao cliente na assinatura.
+ * Percurso v2 (regras de 19/10/2026, decisão do promotor): a escolha torna-se
+ * efetiva quando o cliente deposita a caução (garantia de interesse, sem prazo);
+ * o pintor paga a comissão em 8 dias, as partes são apresentadas e assinam o
+ * contrato completo. A caução volta ao cliente na assinatura. O adiantamento, se
+ * houver, é pago diretamente ao pintor depois da assinatura (fora da plataforma).
  * Quem desiste depois de conhecer a outra parte perde o seu valor; antes da
  * apresentação, o cliente pode desistir sem penalização (parecer B3).
  */
