@@ -65,6 +65,11 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
                         <span className="block font-semibold text-tinta-700">−{o.descontoPct.toLocaleString('pt-PT')}% nesta obra</span>
                       )}
                       {o.precoComDesconto && <span className="block">{o.precoComDesconto} / embalagem</span>}
+                      {o.ofertas.map((t) => (
+                        <span key={t} className="block text-xs text-slate-600">
+                          {t}
+                        </span>
+                      ))}
                     </span>
                   </div>
                   {o.caracteristicas.length > 0 && <p className="mt-1 text-slate-600">{o.caracteristicas.slice(0, 2).join(' · ')}</p>}

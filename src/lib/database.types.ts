@@ -509,6 +509,9 @@ export type Database = {
           min_area_cm2: number | null;
           org_id: string;
           painter_org_id: string | null;
+          pagamento: 'pronto' | 'diferido' | null;
+          min_quantidade: number | null;
+          perfil: 'primeira_compra' | 'cliente_frequente' | null;
           product_id: string | null;
           tipo: ProductType | null;
           valido_ate: string | null;
@@ -520,6 +523,9 @@ export type Database = {
           min_area_cm2?: number | null;
           org_id: string;
           painter_org_id?: string | null;
+          pagamento?: 'pronto' | 'diferido' | null;
+          min_quantidade?: number | null;
+          perfil?: 'primeira_compra' | 'cliente_frequente' | null;
           product_id?: string | null;
           tipo?: ProductType | null;
           valido_ate?: string | null;

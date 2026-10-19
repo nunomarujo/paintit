@@ -3,7 +3,16 @@
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
-import { PRODUCT_TYPES, parsePercent, parseProduct, type ProductType } from '@/domain/catalog';
+import {
+  BUYER_PROFILES,
+  PAYMENT_TERMS,
+  PRODUCT_TYPES,
+  parsePercent,
+  parseProduct,
+  type BuyerProfile,
+  type PaymentTerms,
+  type ProductType,
+} from '@/domain/catalog';
 import { parseHundredths } from '@/domain/request';
 import { getUser } from '@/lib/supabase/server';
 
@@ -76,14 +85,17 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
   if (tipo && !(PRODUCT_TYPES as readonly string[]).includes(tipo)) return { errors: { alvo: 'Tipo inválido.' } };
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
-  // O cliente vem do navegador: confirmar que é um pintor.
-  const cliente = get('cliente') || null;
-  if (cliente) {
-    const { data: painter } = await supabase.from('organizations').select('id').eq('id', cliente).eq('kind', 'pintor').maybeSingle();
-    if (!painter) return { errors: { cliente: 'Cliente inválido.' } };
-  }
+  const pagamento = get('pagamento') || null;
+  if (pagamento && !(PAYMENT_TERMS as readonly string[]).includes(pagamento)) return { errors: { pagamento: 'Forma de pagamento inválida.' } };
+  const perfil = get('perfil') || null;
+  if (perfil && !(BUYER_PROFILES as readonly string[]).includes(perfil)) return { errors: { perfil: 'Perfil inválido.' } };
+  const qRaw = get('minQuantidade');
+  const minQuantidade = qRaw ? Number(qRaw) : null;
+  if (minQuantidade !== null && !(Number.isInteger(minQuantidade) && minQuantidade > 0)) return { errors: { minQuantidade: 'Número inteiro de embalagens.' } };
   const { error } = await supabase.from('supplier_discounts').insert({
-    painter_org_id: cliente,
+    pagamento: pagamento as PaymentTerms | null,
+    perfil: perfil as BuyerProfile | null,
+    min_quantidade: minQuantidade,
     org_id: orgId,
     product_id: alvo.startsWith('produto:') ? alvo.slice(8) : null,
     tipo: tipo as ProductType | null,

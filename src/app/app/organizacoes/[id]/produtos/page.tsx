@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { deleteDelivery, deleteDiscount, setProductActive } from '@/app/app/catalogo/actions';
-import { PRODUCT_TYPE_LABELS, productLabel } from '@/domain/catalog';
+import { BUYER_PROFILE_LABELS, PAYMENT_TERMS_LABELS, PRODUCT_TYPE_LABELS, productLabel } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { formatArea } from '@/domain/request';
 import { ProductCard } from '@/components/ProductCard';
@@ -17,16 +17,15 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: sub }, { data: painters }] = await Promise.all([
+  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: sub }] = await Promise.all([
     supabase.from('products').select('*').eq('org_id', id).order('marca').order('nome'),
     supabase.from('supplier_discounts').select('*').eq('org_id', id).order('created_at'),
     supabase.from('supplier_delivery').select('*').eq('org_id', id).order('created_at'),
     supabase.from('supplier_subscriptions').select('*').eq('org_id', id).maybeSingle(),
-    supabase.from('organizations').select('id, nome').eq('kind', 'pintor').order('nome'),
   ]);
   const plan = sub?.status === 'ativa' ? sub.plan : null;
   const catalogo = planAllows(plan, 'catalogo');
-  const painterName = (pid: string) => (painters ?? []).find((p) => p.id === pid)?.nome ?? 'cliente';
+
   const productName = (pid: string | null) => {
     const p = (products ?? []).find((x) => x.id === pid);
     return p ? productLabel(p) : '';
@@ -90,7 +89,9 @@ export default async function SupplierProductsPage({ params }: { params: Promise
                   {d.min_area_cm2 !== null ? ` · a partir de ${formatArea(d.min_area_cm2)}` : ''}
                   {d.max_area_cm2 !== null ? ` · até ${formatArea(d.max_area_cm2)}` : ''}
                   {d.valido_ate ? ` · até ${d.valido_ate.split('-').reverse().join('/')}` : ''}
-                  {d.painter_org_id ? ` · só para ${painterName(d.painter_org_id)}` : ''}
+                  {d.perfil ? ` · ${BUYER_PROFILE_LABELS[d.perfil]}` : ''}
+                  {d.pagamento ? ` · ${PAYMENT_TERMS_LABELS[d.pagamento]}` : ''}
+                  {d.min_quantidade ? ` · a partir de ${d.min_quantidade} embalagens` : ''}
                 </span>
                 {manager && (
                   <form action={deleteDiscount.bind(null, id, d.id)}>
@@ -108,7 +109,6 @@ export default async function SupplierProductsPage({ params }: { params: Promise
             <DiscountForm
               orgId={id}
               products={(products ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, label: productLabel(p) }))}
-              painters={painters ?? []}
             />
           </div>
         )}

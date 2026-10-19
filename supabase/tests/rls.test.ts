@@ -1076,3 +1076,16 @@ describe('subscrições e descontos por cliente', () => {
     expect(seen).toHaveLength(0);
   });
 });
+
+describe('descontos por perfil de compra', () => {
+  it('aceita pagamento, quantidade e perfil válidos e recusa outros', async () => {
+    const supplier = (await one<{ id: string }>(`select id from public.organizations where nome = 'Tintas Exemplo'`)).id;
+    const F = '00000000-0000-4000-8000-0000000000f1';
+    await as(F, () =>
+      db.query(`insert into public.supplier_discounts (org_id, desconto_bps, pagamento, min_quantidade, perfil) values ($1, 2000, 'pronto', 20, 'primeira_compra')`, [supplier]),
+    );
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_discounts (org_id, desconto_bps, pagamento) values ($1, 2000, 'fiado')`, [supplier])),
+    ).rejects.toThrow(/check/);
+  });
+});

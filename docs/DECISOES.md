@@ -94,3 +94,11 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 - Sem plano de catálogo ativo, o fornecedor não cria produtos nem descontos e os produtos deixam de ser sugeridos
   (continuam legíveis nas propostas antigas). Até o Stripe estar ligado, a equipa ativa o plano no backoffice,
   com código promocional opcional. Migração `subscricao_fornecedores`.
+
+## 20/10/2026 — descontos por perfil de compra
+
+O desconto é dado pelo interesse da compra, não pela pessoa. O fornecedor combina: produto ou tipo, dimensão da
+obra, forma de pagamento (pronto ou diferido/crédito), quantidade mínima de embalagens, primeira compra (para
+atrair pintores) e cliente frequente (3 ou mais encomendas entregues). Vale para todos os pintores. Ao orçamentar,
+o pintor vê o melhor desconto garantido e, à parte, os que dependem do pagamento ou da quantidade. (A coluna
+`painter_org_id` fica na base mas a interface já não a usa.)

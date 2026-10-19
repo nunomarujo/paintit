@@ -4,7 +4,15 @@ import type { FormState } from '@/app/app/actions';
 import { addDelivery, addDiscount } from '@/app/app/catalogo/actions';
 import { Field, selectClass } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
-import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
+import {
+  BUYER_PROFILES,
+  BUYER_PROFILE_LABELS,
+  PAYMENT_TERMS,
+  PAYMENT_TERMS_LABELS,
+  PRODUCT_TYPES,
+  PRODUCT_TYPE_LABELS,
+  FREQUENT_MIN_ORDERS,
+} from '@/domain/catalog';
 
 const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
 const msg = (s: FormState) => {
@@ -12,15 +20,7 @@ const msg = (s: FormState) => {
   return m ? <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 };
 
-export function DiscountForm({
-  orgId,
-  products,
-  painters,
-}: {
-  orgId: string;
-  products: { id: string; label: string }[];
-  painters: { id: string; nome: string }[];
-}) {
+export function DiscountForm({ orgId, products }: { orgId: string; products: { id: string; label: string }[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(addDiscount.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
   return (
@@ -50,20 +50,32 @@ export function DiscountForm({
         <Field name="validoAte" label="Válido até" type="date" error={e.validoAte} />
         <Field name="minArea" label="Obras a partir de (m²)" error={e.minArea} hint="Vazio = sem mínimo." />
         <Field name="maxArea" label="Obras até (m²)" error={e.maxArea} hint="Vazio = sem máximo." />
-        <Field name="cliente" label="Só para o cliente" error={e.cliente} hint="Pintores que já lhe encomendaram. Vazio = todos.">
-          <select name="cliente" defaultValue="" className={selectClass}>
-            <option value="">Todos os pintores</option>
-            {painters.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
+        <Field name="perfil" label="Perfil do comprador" error={e.perfil}>
+          <select name="perfil" defaultValue="" className={selectClass}>
+            <option value="">Qualquer pintor</option>
+            {BUYER_PROFILES.map((p) => (
+              <option key={p} value={p}>
+                {BUYER_PROFILE_LABELS[p]}
               </option>
             ))}
           </select>
         </Field>
+        <Field name="pagamento" label="Forma de pagamento" error={e.pagamento}>
+          <select name="pagamento" defaultValue="" className={selectClass}>
+            <option value="">Qualquer</option>
+            {PAYMENT_TERMS.map((p) => (
+              <option key={p} value={p}>
+                {PAYMENT_TERMS_LABELS[p]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field name="minQuantidade" label="A partir de (embalagens)" error={e.minQuantidade} hint="Vazio = qualquer quantidade." />
       </div>
       <p className="text-xs text-slate-500">
-        Crie escalões com várias regras (ex.: até 1000 m² 10%, acima de 1000 m² 15%). O pintor vê o melhor desconto para a
-        área que está a orçamentar.
+        Combine regras: dimensão da obra (ex.: até 1000 m² 10%, acima 15%), primeira compra para atrair novos pintores,
+        cliente frequente ({FREQUENT_MIN_ORDERS} ou mais encomendas entregues), pronto pagamento ou quantidade. O pintor vê o
+        melhor desconto garantido e, à parte, os que dependem do pagamento ou da quantidade.
       </p>
       {msg(state)}
       <button type="submit" disabled={pending} className={button}>

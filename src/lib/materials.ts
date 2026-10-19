@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   APPLICATION_LABELS,
   bestDiscount,
+  conditionalOffers,
   deliveryFor,
   discounted,
   productLabel,
@@ -23,6 +24,8 @@ export interface MaterialOption {
   precoMercado: string | null;
   precoFornecedor: string | null;
   descontoPct: number | null;
+  /** Descontos maiores, sujeitos a condições (ex.: "−25% com pronto pagamento"). */
+  ofertas: string[];
   precoComDesconto: string | null;
   entrega: string;
 }
@@ -44,6 +47,10 @@ export async function materialOptions(
     supabase.from('organizations').select('id, nome, email_contacto, telefone').eq('kind', 'fornecedor'),
     supabase.from('supplier_reviews').select('supplier_org_id, produto, entrega, atendimento'),
   ]);
+  const { data: orders } = obra.painterOrgId
+    ? await supabase.from('material_orders').select('supplier_org_id').eq('painter_org_id', obra.painterOrgId).eq('estado', 'entregue')
+    : { data: [] };
+  const delivered = (supplier: string) => (orders ?? []).filter((o) => o.supplier_org_id === supplier).length;
   const withPlan = new Set(active ?? []);
   const options = (products ?? []).filter((p) => withPlan.has(p.org_id)).map((p): [number, MaterialOption] => {
     const rules: DiscountRule[] = (discounts ?? [])
@@ -57,8 +64,15 @@ export async function materialOptions(
         bps: d.desconto_bps,
         validUntil: d.valido_ate,
         painterOrgId: d.painter_org_id,
+        pagamento: d.pagamento,
+        minQuantidade: d.min_quantidade,
+        perfil: d.perfil,
       }));
-    const d = bestDiscount(p, obra.area, obra.today, rules, obra.painterOrgId ?? null);
+    const ctx = { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: delivered(p.org_id) };
+    const d = bestDiscount(p, obra.area, obra.today, rules, ctx);
+    const ofertas = conditionalOffers(p, obra.area, obra.today, rules, ctx).map(
+      (o) => `−${(o.bps / 100).toLocaleString('pt-PT')}% com ${o.condicoes.join(' e ')}`,
+    );
     const preco = p.preco_fornecedor_cents;
     const final = preco !== null ? discounted(preco, d?.bps ?? 0) : null;
     const q = deliveryFor(
@@ -95,6 +109,7 @@ export async function materialOptions(
       precoMercado: p.preco_referencia_cents !== null ? `${formatEuros(p.preco_referencia_cents)} (${p.preco_data?.split('-').reverse().join('/')})` : null,
       precoFornecedor: preco !== null ? formatEuros(preco) : null,
       descontoPct: d ? d.bps / 100 : null,
+      ofertas,
       precoComDesconto: final !== null ? formatEuros(final) : null,
       entrega:
         q.kind === 'incluida'
@@ -116,6 +131,14 @@ export async function pricedProduct(
   const { data: p } = await supabase.from('products').select('*').eq('id', productId).eq('ativo', true).maybeSingle();
   if (!p) return null;
   const { data: discounts } = await supabase.from('supplier_discounts').select('*').eq('org_id', p.org_id);
+  const { count: deliveredCount } = obra.painterOrgId
+    ? await supabase
+        .from('material_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('painter_org_id', obra.painterOrgId)
+        .eq('supplier_org_id', p.org_id)
+        .eq('estado', 'entregue')
+    : { count: undefined };
   const d = bestDiscount(
     p,
     obra.area,
@@ -129,8 +152,11 @@ export async function pricedProduct(
       bps: x.desconto_bps,
       validUntil: x.valido_ate,
       painterOrgId: x.painter_org_id,
+      pagamento: x.pagamento,
+      minQuantidade: x.min_quantidade,
+      perfil: x.perfil,
     })),
-    obra.painterOrgId ?? null,
+    { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: deliveredCount ?? undefined },
   );
   return { label: productLabel(p), precoFornecedor: p.preco_fornecedor_cents, descontoBps: d?.bps ?? 0 };
 }

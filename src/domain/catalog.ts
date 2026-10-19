@@ -161,6 +161,21 @@ export type Finish = (typeof FINISHES)[number];
 // produto ou para todo o catálogo, com escalões de área da obra. A app mostra ao
 // pintor o melhor desconto aplicável à área que está a orçamentar.
 
+export const PAYMENT_TERMS = ['pronto', 'diferido'] as const;
+export type PaymentTerms = (typeof PAYMENT_TERMS)[number];
+export const PAYMENT_TERMS_LABELS: Record<PaymentTerms, string> = {
+  pronto: 'pronto pagamento',
+  diferido: 'pagamento diferido (crédito)',
+};
+export const BUYER_PROFILES = ['primeira_compra', 'cliente_frequente'] as const;
+export type BuyerProfile = (typeof BUYER_PROFILES)[number];
+export const BUYER_PROFILE_LABELS: Record<BuyerProfile, string> = {
+  primeira_compra: 'primeira compra a este fornecedor',
+  cliente_frequente: 'cliente frequente',
+};
+/** Encomendas entregues a partir das quais o pintor é cliente frequente de um fornecedor. */
+export const FREQUENT_MIN_ORDERS = 3;
+
 export interface DiscountRule {
   id: string;
   /** Produto concreto; ou null para um tipo ou todo o catálogo. */
@@ -173,6 +188,40 @@ export interface DiscountRule {
   validUntil: string | null; // AAAA-MM-DD
   /** Desconto só para este cliente (pintor); null para todos. */
   painterOrgId?: string | null;
+  /** Só com esta condição de pagamento. */
+  pagamento?: PaymentTerms | null;
+  /** Só a partir desta quantidade de embalagens. */
+  minQuantidade?: number | null;
+  /** Só para este perfil de comprador. */
+  perfil?: BuyerProfile | null;
+}
+
+/** O que se sabe do comprador e da compra. O que não se sabe fica por definir. */
+export interface BuyerContext {
+  painterOrgId?: string | null;
+  /** Encomendas entregues deste pintor a este fornecedor. */
+  deliveredOrders?: number;
+  pagamento?: PaymentTerms;
+  quantidade?: number;
+}
+
+const baseMatch = (r: DiscountRule, product: { id: string; tipo: ProductType }, area: AreaCm2, today: string, ctx: BuyerContext) =>
+  (!r.painterOrgId || r.painterOrgId === ctx.painterOrgId) &&
+  (r.productId === null || r.productId === product.id) &&
+  (r.tipo === null || r.tipo === product.tipo) &&
+  (r.minArea === null || area >= r.minArea) &&
+  (r.maxArea === null || area <= r.maxArea) &&
+  (r.validUntil === null || r.validUntil >= today) &&
+  (!r.perfil ||
+    (r.perfil === 'primeira_compra' && ctx.deliveredOrders === 0) ||
+    (r.perfil === 'cliente_frequente' && (ctx.deliveredOrders ?? 0) >= FREQUENT_MIN_ORDERS));
+
+/** Condições de compra que a regra exige e o contexto ainda não confirma. */
+function pending(r: DiscountRule, ctx: BuyerContext): string[] {
+  const out: string[] = [];
+  if (r.pagamento && ctx.pagamento !== r.pagamento) out.push(PAYMENT_TERMS_LABELS[r.pagamento]);
+  if (r.minQuantidade && (ctx.quantidade ?? 0) < r.minQuantidade) out.push(`a partir de ${r.minQuantidade} embalagens`);
+  return out;
 }
 
 export function bestDiscount(
@@ -180,18 +229,26 @@ export function bestDiscount(
   area: AreaCm2,
   today: string,
   rules: DiscountRule[],
-  painterOrgId: string | null = null,
+  ctx: BuyerContext = {},
 ): DiscountRule | null {
-  const applicable = rules.filter(
-    (r) =>
-      (!r.painterOrgId || r.painterOrgId === painterOrgId) &&
-      (r.productId === null || r.productId === product.id) &&
-      (r.tipo === null || r.tipo === product.tipo) &&
-      (r.minArea === null || area >= r.minArea) &&
-      (r.maxArea === null || area <= r.maxArea) &&
-      (r.validUntil === null || r.validUntil >= today),
-  );
+  const applicable = rules.filter((r) => baseMatch(r, product, area, today, ctx) && pending(r, ctx).length === 0);
   return applicable.reduce<DiscountRule | null>((best, r) => (best === null || r.bps > best.bps ? r : best), null);
+}
+
+/** Descontos maiores que o garantido, que dependem da forma de pagamento ou da quantidade. */
+export function conditionalOffers(
+  product: { id: string; tipo: ProductType },
+  area: AreaCm2,
+  today: string,
+  rules: DiscountRule[],
+  ctx: BuyerContext = {},
+): { bps: number; condicoes: string[] }[] {
+  const base = bestDiscount(product, area, today, rules, ctx)?.bps ?? 0;
+  return rules
+    .filter((r) => r.bps > base && baseMatch(r, product, area, today, ctx))
+    .map((r) => ({ bps: r.bps, condicoes: pending(r, ctx) }))
+    .filter((o) => o.condicoes.length > 0)
+    .sort((a, b) => b.bps - a.bps);
 }
 
 /** Preço com desconto, arredondado ao cêntimo. */

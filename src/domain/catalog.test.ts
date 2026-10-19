@@ -25,7 +25,7 @@ describe('catálogo', () => {
   });
 });
 
-import { bestDiscount, deliveryFor, discounted, type DiscountRule } from './catalog';
+import { bestDiscount, conditionalOffers, deliveryFor, discounted, type DiscountRule } from './catalog';
 
 const rule = (o: Partial<DiscountRule>): DiscountRule => ({
   id: 'r',
@@ -56,9 +56,28 @@ describe('descontos e entregas dos fornecedores', () => {
 
   it('um desconto por cliente só vale para esse pintor', () => {
     const vip = [...rules, rule({ id: 'v', tipo: 'tinta_exterior', bps: 2500, painterOrgId: 'P1' })];
-    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, 'P1')?.id).toBe('v');
-    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, 'P2')?.id).toBe('a');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, { painterOrgId: 'P1' })?.id).toBe('v');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, { painterOrgId: 'P2' })?.id).toBe('a');
     expect(bestDiscount(tinta, 50000, '2026-10-19', vip)?.id).toBe('a');
+  });
+
+  it('perfil de compra: primeira compra, cliente frequente, pagamento e quantidade', () => {
+    const r = [
+      ...rules,
+      rule({ id: 'novo', bps: 2000, perfil: 'primeira_compra' }),
+      rule({ id: 'freq', bps: 1800, perfil: 'cliente_frequente' }),
+      rule({ id: 'pp', tipo: 'tinta_exterior', bps: 2500, pagamento: 'pronto' }),
+      rule({ id: 'qt', tipo: 'tinta_exterior', bps: 3000, minQuantidade: 20 }),
+    ];
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 0 })?.id).toBe('novo');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 1 })?.id).toBe('a');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 5 })?.id).toBe('freq');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 1, pagamento: 'pronto' })?.id).toBe('pp');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 1, quantidade: 20 })?.id).toBe('qt');
+    expect(conditionalOffers(tinta, 50000, '2026-10-19', r, { deliveredOrders: 1 })).toEqual([
+      { bps: 3000, condicoes: ['a partir de 20 embalagens'] },
+      { bps: 2500, condicoes: ['pronto pagamento'] },
+    ]);
   });
 
   it('desconto ao cêntimo', () => {
