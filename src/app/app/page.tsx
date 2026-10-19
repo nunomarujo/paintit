@@ -16,7 +16,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     // A política só devolve convites dirigidos ao email desta conta (ou da entidade, ao proprietário).
     supabase
       .from('org_invitations')
-      .select('id, role, expires_at, org_id')
+      .select('id, role, expires_at, org_id, org_nome, org_kind')
       .eq('email', email)
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString()),
@@ -52,7 +52,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ? await supabase.from('request_listings').select('request_id', { count: 'exact', head: true }).eq('aberto', true)
     : { count: 0 };
 
-  // O convidado ainda não vê a organização: mostra-se só o papel e a data.
   return (
     <div className="space-y-6">
       {convite === 'invalido' && (
@@ -68,7 +67,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             {invites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  Papel: <strong>{MEMBER_ROLE_LABELS[i.role].label}</strong> · válido até{' '}
+                  <strong>{i.org_nome}</strong>
+                  {i.org_kind && <> ({ORG_KIND_LABELS[i.org_kind]})</>} · papel: {MEMBER_ROLE_LABELS[i.role].label} · válido até{' '}
                   {i.expires_at.slice(0, 10).split('-').reverse().join('/')}
                 </span>
                 <form action={acceptInvitation.bind(null, i.id)}>

@@ -91,6 +91,11 @@ describe('anonimato do texto', () => {
     expect(revealingContent(text)).toContain(reason);
   });
 
+  it('um telemóvel conta só como telefone, não também como NIF', () => {
+    expect(revealingContent('Contacte o 912345678.')).toEqual(['um número de telefone']);
+    expect(revealingContent('NIF 123456789')).toEqual(['um NIF']);
+  });
+
   it('deixa passar uma descrição normal', () => {
     expect(
       revealingContent('Prédio de 6 pisos com fissuras na fachada norte e tinta a descascar nas varandas.'),

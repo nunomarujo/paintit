@@ -1,9 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import { DESIRED_WORKS, DESIRED_WORK_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
+import { useFormAction } from '@/components/useFormAction';
 
 export interface RequestInitial {
   building_id: string;
@@ -25,11 +25,11 @@ interface Props {
 }
 
 export function RequestForm({ action: submit, buildings, initial, disabled }: Props) {
-  const [state, action, pending] = useActionState<FormState, FormData>(submit, { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
 
   return (
-    <form action={action} className="space-y-5">
+    <form {...formProps} className="space-y-5">
       <fieldset disabled={disabled} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field name="buildingId" label="Prédio" required error={e.buildingId}>

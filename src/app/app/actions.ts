@@ -220,7 +220,7 @@ export async function reviewDocument(documentId: string, _prev: FormState, form:
     .eq('id', documentId)
     .select('id');
   if (error || !data || data.length === 0) return { errors: {}, message: 'Não foi possível registar a decisão.' };
-  revalidatePath('/admin/documentos');
+  revalidatePath('/app/validacao');
   return { errors: {}, ok: true, message: decision === 'aprovado' ? 'Aprovado.' : 'Rejeitado.' };
 }
 

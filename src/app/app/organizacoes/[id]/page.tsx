@@ -298,7 +298,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         {missing.length > 0 ? (
           <div className="mt-3 rounded-xl bg-amber-50 p-4 text-sm">
             <p className="font-medium">
-              Faltam {missing.length === 1 ? 'um documento' : `${missing.length} documentos`} para a verificação:
+              {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
             </p>
             <ul className="mt-2 list-disc pl-5">
               {missing.map((group) => (

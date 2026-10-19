@@ -1,22 +1,21 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { addSurface } from '@/app/app/pedidos/actions';
 import { Field, selectClass } from '@/components/Field';
 import { AREA_SOURCES, AREA_SOURCE_LABELS, SURFACE_KINDS, SURFACE_KIND_LABELS } from '@/domain/request';
+import { useFormAction } from '@/components/useFormAction';
 
 export function SurfaceForm({ requestId }: { requestId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(addSurface.bind(null, requestId), { errors: {} });
-  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, formProps } = useFormAction<FormState>(
+    addSurface.bind(null, requestId),
+    { errors: {} },
+    { resetOnSuccess: true },
+  );
   const e = state.errors;
 
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
-
   return (
-    <form ref={formRef} action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Acrescentar superfície</h3>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="kind" label="Superfície" required error={e.kind}>

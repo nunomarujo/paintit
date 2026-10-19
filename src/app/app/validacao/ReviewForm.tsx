@@ -1,16 +1,14 @@
 'use client';
 
-import { useActionState } from 'react';
 import { reviewDocument, type FormState } from '@/app/app/actions';
+import { useFormAction } from '@/components/useFormAction';
 
 export function ReviewForm({ documentId }: { documentId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(reviewDocument.bind(null, documentId), {
-    errors: {},
-  });
+  const { state, pending, formProps } = useFormAction<FormState>(reviewDocument.bind(null, documentId), { errors: {} });
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
 
   return (
-    <form action={action} className="mt-3 space-y-2">
+    <form {...formProps} className="mt-3 space-y-2">
       <textarea
         name="notas"
         rows={2}

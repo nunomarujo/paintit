@@ -1,18 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
 import { uploadDocument, type FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import { DOC_KINDS, DOC_KIND_LABELS } from '@/domain/organization';
+import { useFormAction } from '@/components/useFormAction';
 
 export function DocumentUpload({ orgId }: { orgId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(uploadDocument.bind(null, orgId), {
-    errors: {},
-  });
+  const { state, pending, formProps } = useFormAction<FormState>(uploadDocument.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
 
   return (
-    <form action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Enviar documento</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="kind" label="Tipo" required error={e.kind}>

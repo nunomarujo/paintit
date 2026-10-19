@@ -238,6 +238,8 @@ export type Database = {
           id: string;
           invited_by: string;
           org_id: string;
+          org_kind: OrgKind | null;
+          org_nome: string | null;
           role: MemberRole;
         };
         Insert: {

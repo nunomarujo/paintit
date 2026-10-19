@@ -157,7 +157,15 @@ const CONTACT_PATTERNS: [RegExp, string][] = [
 
 /** Motivos pelos quais um texto pode revelar quem é ou onde fica. Vazio = pode ser publicado. */
 export function revealingContent(text: string): string[] {
-  return CONTACT_PATTERNS.filter(([re]) => re.test(text)).map(([, reason]) => reason);
+  // Cada achado é retirado antes do padrão seguinte: um telemóvel não conta também como NIF.
+  const found: string[] = [];
+  let rest = text;
+  for (const [re, reason] of CONTACT_PATTERNS) {
+    if (!re.test(rest)) continue;
+    found.push(reason);
+    rest = rest.replace(new RegExp(re.source, re.flags + 'g'), ' ');
+  }
+  return found;
 }
 
 // --- Publicação ------------------------------------------------------------------

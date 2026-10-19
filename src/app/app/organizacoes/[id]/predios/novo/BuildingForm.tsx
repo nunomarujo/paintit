@@ -1,10 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import { BUILDING_KINDS, BUILDING_KIND_LABELS } from '@/domain/organization';
 import type { Database } from '@/lib/database.types';
+import { useFormAction } from '@/components/useFormAction';
 
 type Building = Database['public']['Tables']['buildings']['Row'];
 
@@ -18,11 +18,11 @@ interface Props {
 const str = (n: number | null | undefined) => (n === null || n === undefined ? undefined : String(n));
 
 export function BuildingForm({ action: submit, defaultKind, initial }: Props) {
-  const [state, action, pending] = useActionState<FormState, FormData>(submit, { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
 
   return (
-    <form action={action} className="space-y-5">
+    <form {...formProps} className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
           name="nomeInterno"

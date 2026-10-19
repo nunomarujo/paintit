@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import { ORG_KINDS, ORG_KIND_LABELS, type OrgKind } from '@/domain/organization';
+import { useFormAction } from '@/components/useFormAction';
 
 export interface OrgInitial {
   kind: OrgKind;
@@ -28,14 +29,14 @@ interface Props {
 }
 
 export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor }: Props) {
-  const [state, action, pending] = useActionState<FormState, FormData>(submit, { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const [kind, setKind] = useState<OrgKind | ''>(initial?.kind ?? initialKind ?? '');
   const e = state.errors;
   const hasShop = kind === 'pintor' || kind === 'fornecedor';
   const v = (field: keyof OrgInitial) => initial?.[field] ?? undefined;
 
   return (
-    <form action={action} className="space-y-5">
+    <form {...formProps} className="space-y-5">
       {initial ? (
         <>
           <input type="hidden" name="kind" value={initial.kind} />

@@ -1,13 +1,13 @@
 'use client';
 
-import { useActionState } from 'react';
 import { updateProfile, type FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
+import { useFormAction } from '@/components/useFormAction';
 
 export function ProfileForm({ nome, telefone }: { nome: string; telefone: string | null }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(updateProfile, { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState>(updateProfile, { errors: {} });
   return (
-    <form action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <Field name="nome" label="Nome" required defaultValue={nome} error={state.errors.nome} />
       <Field name="telefone" label="Telefone" type="tel" defaultValue={telefone ?? undefined} />
       {state.message && (

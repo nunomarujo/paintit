@@ -214,6 +214,24 @@ describe('convites', () => {
     expect(stranger).toEqual([]);
   });
 
+  it('o convite diz a entidade, mesmo que quem convida tente outro nome', async () => {
+    const inv = await as(A, () =>
+      one<{ id: string }>(
+        `insert into public.org_invitations (org_id, email, role, org_nome) values ($1, $2, 'leitor', 'Outra coisa') returning id`,
+        [condo, email(B)],
+      ),
+    );
+    const seen = await as(B, () =>
+      one<{ org_nome: string; org_kind: string }>('select org_nome, org_kind from public.org_invitations where id = $1', [inv.id]),
+    );
+    const real = await as(A, () => one<{ nome: string }>('select nome from public.organizations where id = $1', [condo]));
+    expect(seen).toEqual({ org_nome: real.nome, org_kind: 'condominio' });
+    await expect(as(B, () => db.query(`update public.org_invitations set org_nome = 'x' where id = $1`, [inv.id]))).rejects.toThrow(
+      /permission denied/,
+    );
+    await as(A, () => db.query('delete from public.org_invitations where id = $1', [inv.id]));
+  });
+
   it('a convidada não pode mudar o papel do convite', async () => {
     await expect(as(D, () => db.query(`update public.org_invitations set role = 'proprietario'`))).rejects.toThrow(
       /permission denied/,

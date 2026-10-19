@@ -1,10 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
 import { sendSignInLink, type SignInState } from './actions';
+import { useFormAction } from '@/components/useFormAction';
 
 export function SignInForm({ next }: { next: string }) {
-  const [state, action, pending] = useActionState<SignInState, FormData>(sendSignInLink, { status: 'idle' });
+  const { state, pending, formProps } = useFormAction<SignInState>(sendSignInLink, { status: 'idle' });
 
   if (state.status === 'sent') {
     return (
@@ -16,7 +16,7 @@ export function SignInForm({ next }: { next: string }) {
   }
 
   return (
-    <form action={action} className="space-y-4">
+    <form {...formProps} className="space-y-4">
       <input type="hidden" name="seguinte" value={next} />
       <label className="block text-sm font-medium text-slate-700">
         Email
