@@ -38,6 +38,17 @@ export interface ProductInput {
   embalagemMl: number | null;
   precoReferencia: Cents | null;
   precoData: string | null;
+  unidade?: 'L' | 'kg';
+  descricao?: string | null;
+  modosAplicacao?: string[];
+  acabamento?: string | null;
+  uso?: string | null;
+  base?: string | null;
+  secagemHoras?: number | null;
+  diluicao?: string | null;
+  demaosRecomendadas?: number | null;
+  /** Preço de tabela para pintores, antes dos descontos. */
+  precoFornecedor?: Cents | null;
 }
 
 export interface Consumption {
@@ -80,10 +91,39 @@ export function parseProduct(form: FormData): { value?: ProductInput; errors: Fi
   const precoData = get('precoData') || null;
   if (precoData && !DATE.test(precoData)) errors.precoData = 'Data inválida.';
   if (preco !== null && !Number.isNaN(preco) && !precoData) errors.precoData = 'Indique a data do preço.';
+  const unidade = get('unidade') || 'L';
+  if (unidade !== 'L' && unidade !== 'kg') errors.unidade = 'Litros ou quilos.';
+  const modos = form.getAll('modos').map(String).filter((m) => (APPLICATION_METHODS as readonly string[]).includes(m));
+  const acabamento = get('acabamento') || null;
+  if (acabamento && !(FINISHES as readonly string[]).includes(acabamento)) errors.acabamento = 'Acabamento inválido.';
+  const uso = get('uso') || null;
+  if (uso && !['interior', 'exterior', 'ambos'].includes(uso)) errors.uso = 'Uso inválido.';
+  const base = get('base') || null;
+  if (base && !['aquosa', 'solvente'].includes(base)) errors.base = 'Base inválida.';
+  const secagemRaw = get('secagem');
+  const secagemHoras = secagemRaw ? Number(secagemRaw) : null;
+  if (secagemHoras !== null && (!Number.isInteger(secagemHoras) || secagemHoras < 0 || secagemHoras > 720)) errors.secagem = 'Horas, de 0 a 720.';
+  const demaosRaw = get('demaos');
+  const demaosRecomendadas = demaosRaw ? Number(demaosRaw) : null;
+  if (demaosRecomendadas !== null && (!Number.isInteger(demaosRecomendadas) || demaosRecomendadas < 1 || demaosRecomendadas > 5)) {
+    errors.demaos = 'De 1 a 5.';
+  }
+  const precoFornecedor = parseHundredths(form.get('precoFornecedor'));
+  if (Number.isNaN(precoFornecedor)) errors.precoFornecedor = 'Preço em euros.';
   if (Object.keys(errors).length > 0) return { errors };
   return {
     errors,
     value: {
+      unidade: unidade as 'L' | 'kg',
+      descricao: get('descricao') || null,
+      modosAplicacao: modos,
+      acabamento,
+      uso,
+      base,
+      secagemHoras,
+      diluicao: get('diluicao') || null,
+      demaosRecomendadas,
+      precoFornecedor,
       nome,
       marca,
       referencia: get('referencia') || null,
@@ -95,4 +135,98 @@ export function parseProduct(form: FormData): { value?: ProductInput; errors: Fi
       precoData,
     },
   };
+}
+
+// --- Características gerais ------------------------------------------------------
+
+export const SALE_UNITS = ['L', 'kg'] as const;
+export type SaleUnit = (typeof SALE_UNITS)[number];
+
+export const APPLICATION_METHODS = ['rolo', 'trincha', 'pistola_airless', 'pistola_convencional', 'talocha', 'espatula'] as const;
+export type ApplicationMethod = (typeof APPLICATION_METHODS)[number];
+export const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
+  rolo: 'Rolo',
+  trincha: 'Trincha',
+  pistola_airless: 'Pistola airless',
+  pistola_convencional: 'Pistola convencional',
+  talocha: 'Talocha',
+  espatula: 'Espátula',
+};
+
+export const FINISHES = ['mate', 'acetinado', 'semibrilho', 'brilhante', 'texturado'] as const;
+export type Finish = (typeof FINISHES)[number];
+
+// --- Descontos dos fornecedores -------------------------------------------------
+// Regras definidas antecipadamente pelo fornecedor, por produto, por tipo de
+// produto ou para todo o catálogo, com escalões de área da obra. A app mostra ao
+// pintor o melhor desconto aplicável à área que está a orçamentar.
+
+export interface DiscountRule {
+  id: string;
+  /** Produto concreto; ou null para um tipo ou todo o catálogo. */
+  productId: string | null;
+  tipo: ProductType | null;
+  /** Escalão de área da obra, em centésimos de m² (inclusivo). */
+  minArea: AreaCm2 | null;
+  maxArea: AreaCm2 | null;
+  bps: number;
+  validUntil: string | null; // AAAA-MM-DD
+}
+
+export function bestDiscount(
+  product: { id: string; tipo: ProductType },
+  area: AreaCm2,
+  today: string,
+  rules: DiscountRule[],
+): DiscountRule | null {
+  const applicable = rules.filter(
+    (r) =>
+      (r.productId === null || r.productId === product.id) &&
+      (r.tipo === null || r.tipo === product.tipo) &&
+      (r.minArea === null || area >= r.minArea) &&
+      (r.maxArea === null || area <= r.maxArea) &&
+      (r.validUntil === null || r.validUntil >= today),
+  );
+  return applicable.reduce<DiscountRule | null>((best, r) => (best === null || r.bps > best.bps ? r : best), null);
+}
+
+/** Preço com desconto, arredondado ao cêntimo. */
+export function discounted(price: Cents, bps: number): Cents {
+  return price - Math.floor((price * bps + 5000) / 10000);
+}
+
+// --- Entrega em obra ---------------------------------------------------------------
+
+export interface DeliveryRule {
+  /** Concelhos servidos; vazio = todo o país. */
+  concelhos: string[];
+  incluida: boolean;
+  custo: Cents | null;
+  /** Encomenda mínima para a entrega incluída. */
+  minimo: Cents | null;
+  condicoes: string;
+}
+
+export type DeliveryQuote =
+  | { kind: 'incluida' }
+  | { kind: 'paga'; custo: Cents | null; condicoes: string }
+  | { kind: 'sem_entrega' };
+
+const norm = (s: string) => s.trim().toLocaleLowerCase('pt-PT').normalize('NFD').replace(/\p{Diacritic}/gu, '');
+
+/** Condições de entrega numa obra no `concelho`, para uma encomenda de `valor`. */
+export function deliveryFor(rules: DeliveryRule[], concelho: string, valor: Cents): DeliveryQuote {
+  const here = rules.filter((r) => r.concelhos.length === 0 || r.concelhos.some((c) => norm(c) === norm(concelho)));
+  if (here.length === 0) return { kind: 'sem_entrega' };
+  if (here.some((r) => r.incluida && (r.minimo === null || valor >= r.minimo))) return { kind: 'incluida' };
+  const paid = here.filter((r) => !r.incluida || r.custo !== null);
+  const cheapest = paid.reduce<DeliveryRule | null>((b, r) => (b === null || (r.custo ?? Infinity) < (b.custo ?? Infinity) ? r : b), null);
+  return { kind: 'paga', custo: cheapest?.custo ?? null, condicoes: cheapest?.condicoes ?? here[0]!.condicoes };
+}
+
+/** "10,5" (%) → pontos-base; null se vazio; NaN se inválido ou fora de 0–100%. */
+export function parsePercent(v: FormDataEntryValue | null): number | null {
+  const h = parseHundredths(v);
+  if (h === null) return null;
+  return Number.isNaN(h) || h > 10000 ? Number.NaN : h;
 }

@@ -17,6 +17,7 @@ export function toLine(l: Row<'proposal_lines'>): ProposalLine {
     demaos: l.demaos,
     produto: l.produto,
     inclusao: l.inclusao,
+    productId: l.product_id,
   };
 }
 

@@ -87,11 +87,13 @@ describe('contratação reconstruída a partir dos acontecimentos', () => {
       ajusteM2: '8,50 €',
       garantiaObra: '2 anos.',
       exclusoes: '',
+      materiais: [{ produto: 'Marca X Acrílica', fornecedor: 'Tintas Exemplo', linha: 'Pintura' }],
     });
     const text = draftText(d);
     expect(text).toMatch(/concelho de Lisboa/);
     expect(text).toMatch(/revelados na apresentação/);
     expect(draftText(d)).toBe(text);
+    expect(text).toMatch(/Marca X Acrílica, fornecido por Tintas Exemplo/);
   });
 });
 

@@ -52,6 +52,8 @@ type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
 type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
 type MessageSide = 'cliente' | 'pintor';
 type ReportStatus = 'pendente' | 'suspenso' | 'sem_fundamento';
+type OrderStatus = 'pedida' | 'confirmada' | 'entregue' | 'cancelada';
+type WorksiteEntryKind = 'custo' | 'tranche' | 'horas';
 type ProductType =
   | 'tinta_exterior'
   | 'tinta_interior'
@@ -409,6 +411,16 @@ export type Database = {
           rendimento: number | null;
           tipo: ProductType;
           updated_at: string;
+          unidade: 'L' | 'kg';
+          descricao: string | null;
+          modos_aplicacao: string[];
+          acabamento: string | null;
+          uso: string | null;
+          base: string | null;
+          secagem_horas: number | null;
+          diluicao: string | null;
+          demaos_recomendadas: number | null;
+          preco_fornecedor_cents: number | null;
         };
         Insert: {
           ativo?: boolean;
@@ -424,6 +436,16 @@ export type Database = {
           referencia?: string | null;
           rendimento?: number | null;
           tipo: ProductType;
+          unidade?: 'L' | 'kg';
+          descricao?: string | null;
+          modos_aplicacao?: string[];
+          acabamento?: string | null;
+          uso?: string | null;
+          base?: string | null;
+          secagem_horas?: number | null;
+          diluicao?: string | null;
+          demaos_recomendadas?: number | null;
+          preco_fornecedor_cents?: number | null;
         };
         Update: Partial<Database['public']['Tables']['products']['Insert']>;
         Relationships: [];
@@ -470,6 +492,186 @@ export type Database = {
         Row: { created_at: string; id: string; lida_em: string | null; link: string; org_id: string; texto: string };
         Insert: never;
         Update: { lida_em?: string | null };
+        Relationships: [];
+      };
+      supplier_discounts: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          desconto_bps: number;
+          id: string;
+          max_area_cm2: number | null;
+          min_area_cm2: number | null;
+          org_id: string;
+          product_id: string | null;
+          tipo: ProductType | null;
+          valido_ate: string | null;
+        };
+        Insert: {
+          created_by?: string;
+          desconto_bps: number;
+          max_area_cm2?: number | null;
+          min_area_cm2?: number | null;
+          org_id: string;
+          product_id?: string | null;
+          tipo?: ProductType | null;
+          valido_ate?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['supplier_discounts']['Insert']>;
+        Relationships: [];
+      };
+      supplier_delivery: {
+        Row: {
+          concelhos: string[];
+          condicoes: string;
+          created_at: string;
+          custo_cents: number | null;
+          id: string;
+          incluida: boolean;
+          minimo_cents: number | null;
+          org_id: string;
+        };
+        Insert: {
+          concelhos?: string[];
+          condicoes?: string;
+          custo_cents?: number | null;
+          incluida?: boolean;
+          minimo_cents?: number | null;
+          org_id: string;
+        };
+        Update: Partial<Database['public']['Tables']['supplier_delivery']['Insert']>;
+        Relationships: [];
+      };
+      material_orders: {
+        Row: {
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          created_at: string;
+          created_by: string;
+          delivered_at: string | null;
+          embalagens: number;
+          engagement_id: string;
+          estado: OrderStatus;
+          id: string;
+          nota: string | null;
+          painter_org_id: string;
+          product_id: string;
+          supplier_org_id: string;
+        };
+        Insert: {
+          created_by?: string;
+          embalagens: number;
+          engagement_id: string;
+          nota?: string | null;
+          product_id: string;
+        };
+        Update: { estado?: OrderStatus };
+        Relationships: [
+          {
+            foreignKeyName: 'material_orders_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      supplier_reviews: {
+        Row: {
+          atendimento: number;
+          comentario: string;
+          created_at: string;
+          created_by: string;
+          entrega: number;
+          id: string;
+          painter_org_id: string;
+          produto: number;
+          supplier_org_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          atendimento: number;
+          comentario?: string;
+          created_by?: string;
+          entrega: number;
+          painter_org_id: string;
+          produto: number;
+          supplier_org_id: string;
+        };
+        Update: { atendimento?: number; comentario?: string; entrega?: number; produto?: number };
+        Relationships: [];
+      };
+      worksite_members: {
+        Row: {
+          ativo: boolean;
+          created_at: string;
+          custo_hora_cents: number | null;
+          engagement_id: string;
+          funcao: string;
+          id: string;
+          nome: string;
+          painter_org_id: string;
+          telefone: string | null;
+        };
+        Insert: {
+          ativo?: boolean;
+          custo_hora_cents?: number | null;
+          engagement_id: string;
+          funcao: string;
+          nome: string;
+          painter_org_id?: string;
+          telefone?: string | null;
+        };
+        Update: { ativo?: boolean; custo_hora_cents?: number | null; funcao?: string; nome?: string; telefone?: string | null };
+        Relationships: [];
+      };
+      worksite_phases: {
+        Row: {
+          created_at: string;
+          engagement_id: string;
+          estado: string;
+          fim: string | null;
+          id: string;
+          inicio: string | null;
+          nome: string;
+          painter_org_id: string;
+        };
+        Insert: { engagement_id: string; estado?: string; fim?: string | null; inicio?: string | null; nome: string; painter_org_id?: string };
+        Update: { estado?: string; fim?: string | null; inicio?: string | null; nome?: string };
+        Relationships: [];
+      };
+      worksite_entries: {
+        Row: {
+          categoria: string | null;
+          created_at: string;
+          data: string;
+          descricao: string;
+          engagement_id: string;
+          horas: number | null;
+          id: string;
+          meio: string | null;
+          member_id: string | null;
+          painter_org_id: string;
+          prevista: string | null;
+          recebida_em: string | null;
+          tipo: WorksiteEntryKind;
+          valor_cents: number | null;
+        };
+        Insert: {
+          categoria?: string | null;
+          data?: string;
+          descricao?: string;
+          engagement_id: string;
+          horas?: number | null;
+          meio?: string | null;
+          member_id?: string | null;
+          painter_org_id?: string;
+          prevista?: string | null;
+          recebida_em?: string | null;
+          tipo: WorksiteEntryKind;
+          valor_cents?: number | null;
+        };
+        Update: { recebida_em?: string | null; meio?: string | null };
         Relationships: [];
       };
       proposals: {
@@ -540,6 +742,9 @@ export type Database = {
           superficie: SurfaceKind | null;
           total_cents: number;
           unidade: LineUnit;
+          product_id: string | null;
+          preco_fornecedor_cents: number | null;
+          desconto_bps: number | null;
         };
         Insert: {
           categoria: LineCategory;
@@ -553,6 +758,9 @@ export type Database = {
           quantidade: number;
           superficie?: SurfaceKind | null;
           unidade?: LineUnit;
+          product_id?: string | null;
+          preco_fornecedor_cents?: number | null;
+          desconto_bps?: number | null;
         };
         Update: Partial<Database['public']['Tables']['proposal_lines']['Insert']>;
         Relationships: [

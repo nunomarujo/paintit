@@ -24,3 +24,48 @@ describe('catálogo', () => {
     expect(parseProduct(form({ tipo: 'nada' })).errors).toMatchObject({ nome: expect.any(String), marca: expect.any(String), tipo: expect.any(String) });
   });
 });
+
+import { bestDiscount, deliveryFor, discounted, type DiscountRule } from './catalog';
+
+const rule = (o: Partial<DiscountRule>): DiscountRule => ({
+  id: 'r',
+  productId: null,
+  tipo: null,
+  minArea: null,
+  maxArea: null,
+  bps: 0,
+  validUntil: null,
+  ...o,
+});
+
+describe('descontos e entregas dos fornecedores', () => {
+  const tinta = { id: 'p1', tipo: 'tinta_exterior' as const };
+  const rules = [
+    rule({ id: 'a', tipo: 'tinta_exterior', maxArea: 100000, bps: 1000 }), // até 1000 m²: 10%
+    rule({ id: 'b', tipo: 'tinta_exterior', minArea: 100001, bps: 1500 }), // acima: 15%
+    rule({ id: 'c', productId: 'p2', bps: 3000 }),
+    rule({ id: 'd', bps: 1200, validUntil: '2026-01-01' }),
+  ];
+
+  it('escolhe o escalão da área orçamentada', () => {
+    expect(bestDiscount(tinta, 50000, '2026-10-19', rules)?.id).toBe('a');
+    expect(bestDiscount(tinta, 200000, '2026-10-19', rules)?.id).toBe('b');
+    expect(bestDiscount({ id: 'p3', tipo: 'primario' }, 50000, '2026-10-19', rules)).toBeNull();
+    expect(bestDiscount({ id: 'p3', tipo: 'primario' }, 50000, '2025-12-01', rules)?.id).toBe('d');
+  });
+
+  it('desconto ao cêntimo', () => {
+    expect(discounted(8990, 1000)).toBe(8091);
+    expect(discounted(8990, 0)).toBe(8990);
+  });
+
+  it('entrega por concelho, incluída acima do mínimo', () => {
+    const d = [
+      { concelhos: ['Lisboa', 'Oeiras'], incluida: true, custo: null, minimo: 50000, condicoes: '' },
+      { concelhos: [], incluida: false, custo: 4000, minimo: null, condicoes: 'Restante país, 48 h' },
+    ];
+    expect(deliveryFor(d, 'lisboa', 60000)).toEqual({ kind: 'incluida' });
+    expect(deliveryFor(d, 'Lisboa', 10000)).toEqual({ kind: 'paga', custo: 4000, condicoes: 'Restante país, 48 h' });
+    expect(deliveryFor(d.slice(0, 1), 'Porto', 60000)).toEqual({ kind: 'sem_entrega' });
+  });
+});

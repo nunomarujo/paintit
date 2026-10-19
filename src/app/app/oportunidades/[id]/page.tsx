@@ -5,13 +5,13 @@ import { ReportListing } from '@/app/app/backoffice/ReportForms';
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
-import { productLabel } from '@/domain/catalog';
 import { painterFee } from '@/domain/commission';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
+import { materialOptions } from '@/lib/materials';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
@@ -66,7 +66,14 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         })
       : [];
   const path = `/app/oportunidades/${id}`;
-  const { data: catalog } = draft ? await supabase.from('products').select('marca, nome, referencia').eq('ativo', true).limit(500) : { data: [] };
+  const materials =
+    draft && listing
+      ? await materialOptions(supabase, {
+          area: listing.area_total_cm2,
+          concelho: listing.concelho,
+          today: localDate(new Date(), CURRENT_RULES.timeZone),
+        })
+      : [];
   const { data: engagement } =
     proposal && ['selecionada', 'falhada'].includes(proposal.status)
       ? await supabase.from('engagements').select('id').eq('proposal_id', proposal.id).maybeSingle()
@@ -100,6 +107,14 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         />
       )}
 
+      {listing?.aberto && (
+        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
+          <strong>Dica:</strong> ao escolher materiais de um fornecedor certificado na plataforma, o fornecedor confirma a
+          compra e a entrega e o produto fica no contrato com o cliente. A proposta mostra “Material certificado”, e os
+          clientes tendem a preferir quem se compromete com o produto. Vê também os descontos que os fornecedores dão para
+          esta obra.
+        </p>
+      )}
       {listing?.aberto && <ReportListing requestId={id} />}
 
       {!proposal ? (
@@ -186,7 +201,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                   proposalId={proposal.id}
                   requestId={id}
                   surfaces={(surfaces ?? []).map((s) => s.kind)}
-                  products={(catalog ?? []).map(productLabel)}
+                  materials={materials}
                 />
               </section>
               <section className={card}>

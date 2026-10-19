@@ -166,6 +166,18 @@ export default async function ProposalsPage({
                   label="Preços condicionados"
                   cells={sorted.map((r) => (r.temCondicionados ? <span key={r.id} className="text-amber-800">Sim, ver detalhe</span> : 'Não'))}
                 />
+                <Row
+                  label="Materiais certificados"
+                  cells={sorted.map((r) =>
+                    r.materiaisCertificados > 0 ? (
+                      <span key={r.id} className="font-medium text-tinta-700">
+                        Sim, em {r.materiaisCertificados} linha{r.materiaisCertificados > 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      'Não'
+                    ),
+                  )}
+                />
                 <Row label="Opcionais" cells={sorted.map((r) => (r.totals.opcionais > 0 ? formatEuros(r.totals.opcionais) : '—'))} />
                 <Row label="Duração" cells={sorted.map((r) => byId.get(r.id)!.duracao_dias ? `${byId.get(r.id)!.duracao_dias} dias` : <Missing key={r.id} />)} />
                 <Row label="Início possível" cells={sorted.map((r) => pt(byId.get(r.id)!.inicio_possivel))} />

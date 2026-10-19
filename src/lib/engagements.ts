@@ -99,6 +99,17 @@ export async function loadDraft(supabase: Client, row: EngagementRow) {
           )}), depositado no parceiro de pagamentos e libertado ao empreiteiro na assinatura.`
         : 'Sem adiantamento de adjudicação.',
     ajusteM2: terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'preço por m² a acordar',
+    materiais: await (async () => {
+      const certified = (lines ?? []).filter((l) => l.product_id && l.inclusao === 'incluido');
+      if (certified.length === 0) return [];
+      const { data: prods } = await supabase.from('products').select('id, org_id').in('id', certified.map((l) => l.product_id!));
+      const { data: sups } = await supabase.from('organizations').select('id, nome').eq('kind', 'fornecedor');
+      return certified.map((l) => ({
+        produto: l.produto ?? 'produto do catálogo',
+        fornecedor: sups?.find((s) => s.id === prods?.find((p) => p.id === l.product_id)?.org_id)?.nome ?? 'fornecedor certificado',
+        linha: l.descricao,
+      }));
+    })(),
     garantiaObra: terms.garantiaAnos !== null ? `${terms.garantiaAnos} anos sobre os trabalhos executados.` : 'Nos termos da lei.',
     exclusoes: terms.exclusoes,
   });

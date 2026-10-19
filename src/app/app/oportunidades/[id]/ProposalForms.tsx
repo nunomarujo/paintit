@@ -15,6 +15,8 @@ import {
   type ProposalTerms,
 } from '@/domain/proposal';
 import { SURFACE_KIND_LABELS, type SurfaceKind } from '@/domain/request';
+import type { MaterialOption } from '@/lib/materials';
+import { MaterialPicker } from '@/components/MaterialPicker';
 
 const status = (s: FormState) =>
   s.message && (
@@ -92,12 +94,12 @@ export function LineForm({
   proposalId,
   requestId,
   surfaces,
-  products,
+  materials,
 }: {
   proposalId: string;
   requestId: string;
   surfaces: SurfaceKind[];
-  products: string[];
+  materials: MaterialOption[];
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(addLine.bind(null, proposalId, requestId), {
     errors: {},
@@ -151,14 +153,7 @@ export function LineForm({
         <Field name="preco" label="Preço unitário (€)" required error={e.preco} />
         <Field name="demaos" label="Demãos" inputMode="numeric" error={e.demaos} />
       </div>
-      <Field name="produto" label="Produto" error={e.produto} hint="Opcional. Escolha do catálogo ou escreva marca e referência.">
-        <input name="produto" list="catalogo-produtos" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
-      </Field>
-      <datalist id="catalogo-produtos">
-        {products.map((p) => (
-          <option key={p} value={p} />
-        ))}
-      </datalist>
+      <MaterialPicker key={String(state.ok) + (state.message ?? '')} options={materials} />
       {status(state)}
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A acrescentar…' : 'Acrescentar linha'}

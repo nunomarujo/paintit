@@ -7,6 +7,7 @@ import { localDate } from '@/domain/deadline';
 import { parseLine, parseTerms, submitBlockers } from '@/domain/proposal';
 import { revealingContent } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
+import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
 
@@ -63,6 +64,15 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
   const l = parsed.value;
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  // Material certificado: produto do catálogo, com o desconto para a área desta obra.
+  const productId = String(form.get('productId') ?? '').trim();
+  let material: { product_id: string; preco_fornecedor_cents: number | null; desconto_bps: number; produto: string } | null = null;
+  if (productId) {
+    const { data: listing } = await supabase.from('request_listings').select('area_total_cm2').eq('request_id', requestId).maybeSingle();
+    const priced = await pricedProduct(supabase, productId, { area: listing?.area_total_cm2 ?? 0, today: today() });
+    if (!priced) return { errors: {}, message: 'Esse produto já não está no catálogo.' };
+    material = { product_id: productId, preco_fornecedor_cents: priced.precoFornecedor, desconto_bps: priced.descontoBps, produto: priced.label };
+  }
   const { error } = await supabase.from('proposal_lines').insert({
     proposal_id: proposalId,
     categoria: l.categoria,
@@ -72,8 +82,11 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
     unidade: l.unidade,
     preco_unitario_cents: l.precoUnitario,
     demaos: l.demaos,
-    produto: l.produto,
+    produto: material?.produto ?? l.produto,
     inclusao: l.inclusao,
+    product_id: material?.product_id ?? null,
+    preco_fornecedor_cents: material?.preco_fornecedor_cents ?? null,
+    desconto_bps: material?.desconto_bps ?? null,
   });
   if (error) return { errors: {}, message: 'Não foi possível acrescentar a linha.' };
   revalidatePath(`/app/oportunidades/${requestId}`);

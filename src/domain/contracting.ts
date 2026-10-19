@@ -208,6 +208,8 @@ export interface DraftInput {
   ajusteM2: string;
   garantiaObra: string;
   exclusoes: string;
+  /** Materiais certificados que o empreiteiro se compromete a aplicar. */
+  materiais?: { produto: string; fornecedor: string; linha: string }[];
 }
 
 export interface Draft {
@@ -253,6 +255,18 @@ export function contractDraft(d: DraftInput): Draft {
           d.exclusoes ? `Exclusões: ${d.exclusoes}` : 'Exclusões: as indicadas na proposta.',
         ],
       },
+      ...(d.materiais && d.materiais.length > 0
+        ? [
+            {
+              heading: '2-A. Materiais',
+              paragraphs: [
+                'O empreiteiro compromete-se a aplicar os produtos seguintes, comprados a fornecedores certificados na plataforma, que confirmam a venda e a entrega em obra:',
+                ...d.materiais.map((m) => `${m.produto}, fornecido por ${m.fornecedor} — ${m.linha}.`),
+                'A substituição de um produto só é admitida com acordo escrito do dono da obra e por produto equivalente ou superior.',
+              ],
+            },
+          ]
+        : []),
       {
         heading: '3. Prazo',
         paragraphs: [d.prazo],

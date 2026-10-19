@@ -42,6 +42,8 @@ export interface ProposalLine {
   demaos: number | null;
   produto: string | null;
   inclusao: Inclusion;
+  /** Produto do catálogo de um fornecedor certificado (material certificado). */
+  productId?: string | null;
 }
 
 /** Total de uma linha em cêntimos, arredondado ao cêntimo. */
@@ -126,6 +128,8 @@ export interface ComparisonRow {
   superficiesEmFalta: SurfaceKind[];
   temCondicionados: boolean;
   categorias: Record<LineCategory, Cents | null>;
+  /** Linhas incluídas com material certificado / linhas incluídas com algum produto. */
+  materiaisCertificados: number;
 }
 
 export const alias = (index: number) =>
@@ -153,6 +157,7 @@ export function compareProposals(
       superficiesEmFalta: [...new Set(request.superficies)].filter((s) => !covered.has(s)),
       temCondicionados: p.lines.some((l) => l.inclusao === 'condicionado'),
       categorias,
+      materiaisCertificados: included.filter((l) => l.productId).length,
     };
   });
 }

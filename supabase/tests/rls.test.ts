@@ -857,3 +857,92 @@ describe('complementos: versões, convites, avaliações e avisos', () => {
     expect(await as(B, async () => (await db.query('select id from public.notifications')).rows)).toEqual([]);
   });
 });
+
+describe('materiais certificados, encomendas e ferramentas de obra', () => {
+  const F = '00000000-0000-4000-8000-0000000000f1'; // fornecedor criado acima
+  let supplier: string;
+  let productId: string;
+  let engagementId: string;
+  let painterOwner: string;
+  let orderId: string;
+
+  beforeAll(async () => {
+    supplier = (await one<{ id: string }>(`select id from public.organizations where kind = 'fornecedor' limit 1`)).id;
+    productId = (
+      await as(F, () =>
+        one<{ id: string }>(
+          `insert into public.products (org_id, nome, marca, tipo, unidade, preco_fornecedor_cents) values ($1, 'Primário Fixador', 'Marca X', 'primario', 'L', 5000) returning id`,
+          [supplier],
+        ),
+      )
+    ).id;
+    const e = await one<{ id: string; painter_org_id: string }>(
+      `select e.id, e.painter_org_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
+    );
+    engagementId = e.id;
+    painterOwner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario'`, [e.painter_org_id])).user_id;
+  });
+
+  it('qualquer conta vê o fornecedor e os contactos; descontos só pelo fornecedor', async () => {
+    expect(await as(B, async () => (await db.query('select id from public.organizations where id = $1', [supplier])).rows)).toHaveLength(1);
+    await expect(
+      as(B, () => db.query(`insert into public.supplier_discounts (org_id, tipo, desconto_bps) values ($1, 'primario', 1000)`, [supplier])),
+    ).rejects.toThrow(/row-level security/);
+    await as(F, () => db.query(`insert into public.supplier_discounts (org_id, tipo, max_area_cm2, desconto_bps) values ($1, 'primario', 100000, 1000)`, [supplier]));
+    await as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida, minimo_cents) values ($1, '{Lisboa}', true, 50000)`, [supplier]));
+    expect(await as(B, async () => (await db.query('select id from public.supplier_discounts')).rows)).toHaveLength(1);
+  });
+
+  it('o desconto de um produto tem de ser do próprio fornecedor', async () => {
+    const other = (await createOrg(F, 'fornecedor', 'Tintas Dois', '504426290')).id;
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_discounts (org_id, product_id, desconto_bps) values ($1, $2, 500)`, [other, productId])),
+    ).rejects.toThrow(/foreign key/);
+  });
+
+  it('o pintor encomenda; só o fornecedor confirma e entrega; o cliente vê', async () => {
+    await expect(
+      as(A, () => db.query('insert into public.material_orders (engagement_id, product_id, embalagens) values ($1, $2, 3)', [engagementId, productId])),
+    ).rejects.toThrow(/row-level security/);
+    orderId = (
+      await as(painterOwner, () =>
+        one<{ id: string; estado: string }>(
+          `insert into public.material_orders (engagement_id, product_id, embalagens, estado) values ($1, $2, 3, 'entregue') returning id, estado`,
+          [engagementId, productId],
+        ),
+      )
+    ).id;
+    expect((await one<{ estado: string }>('select estado from public.material_orders where id = $1', [orderId])).estado).toBe('pedida');
+    await expect(as(painterOwner, () => db.query(`update public.material_orders set estado = 'confirmada' where id = $1`, [orderId]))).rejects.toThrow(
+      /Só o fornecedor/,
+    );
+    await as(F, () => db.query(`update public.material_orders set estado = 'confirmada' where id = $1`, [orderId]));
+    await as(F, () => db.query(`update public.material_orders set estado = 'entregue' where id = $1`, [orderId]));
+    const seen = await as(A, async () => (await db.query<{ estado: string }>('select estado from public.material_orders')).rows);
+    expect(seen).toEqual([{ estado: 'entregue' }]);
+  });
+
+  it('só avalia o fornecedor quem lhe comprou', async () => {
+    await expect(
+      as(B, () => db.query(`insert into public.supplier_reviews (supplier_org_id, painter_org_id, produto, entrega, atendimento) values ($1, $1, 5, 5, 5)`, [supplier])),
+    ).rejects.toThrow(/row-level security/);
+    const painterOrg = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [engagementId])).painter_org_id;
+    await as(painterOwner, () =>
+      db.query(`insert into public.supplier_reviews (supplier_org_id, painter_org_id, produto, entrega, atendimento) values ($1, $2, 5, 4, 5)`, [supplier, painterOrg]),
+    );
+    await as(painterOwner, () => db.query(`update public.supplier_reviews set entrega = 5 where supplier_org_id = $1`, [supplier]));
+  });
+
+  it('ferramentas de obra: só a equipa do pintor', async () => {
+    await as(painterOwner, () =>
+      db.query(`insert into public.worksite_entries (engagement_id, painter_org_id, tipo, valor_cents, categoria) values ($1, $1, 'custo', 15000, 'material')`, [engagementId]),
+    );
+    const painterOrg = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [engagementId])).painter_org_id;
+    expect((await one<{ painter_org_id: string }>('select painter_org_id from public.worksite_entries limit 1')).painter_org_id).toBe(painterOrg);
+    expect(await as(A, async () => (await db.query('select id from public.worksite_entries')).rows)).toEqual([]);
+    expect(await as(ADMIN, async () => (await db.query('select id from public.worksite_entries')).rows)).toEqual([]);
+    await expect(
+      as(A, () => db.query(`insert into public.worksite_phases (engagement_id, painter_org_id, nome) values ($1, $1, 'x')`, [engagementId])),
+    ).rejects.toThrow(/row-level security/);
+  });
+});

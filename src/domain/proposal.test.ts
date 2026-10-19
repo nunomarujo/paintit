@@ -94,6 +94,7 @@ describe('propostas', () => {
     expect(rows[0]!.precoM2).toBe(850);
     expect(rows[0]!.categorias.reparacao).toBeNull();
     expect(rows[1]!.categorias.reparacao).toBe(20000);
+    expect(rows[0]!.materiaisCertificados).toBe(0);
     expect(sortRows(rows, 'preco', {}).map((r) => r.id)).toEqual(['x', 'y']);
     expect(sortRows(rows, 'prazo', { x: 30, y: 20 }).map((r) => r.id)).toEqual(['y', 'x']);
     expect(sortRows(rows, 'completude', {}).map((r) => r.id)).toEqual(['y', 'x']);
