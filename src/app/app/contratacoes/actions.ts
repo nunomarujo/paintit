@@ -17,6 +17,7 @@ import { findSignatures } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { checkSignedPdf } from '@/domain/signature';
 import { getUser } from '@/lib/supabase/server';
+import { settleRefunds } from '@/lib/payments';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
@@ -56,6 +57,8 @@ async function record(
     ...(opts.at ? { at: opts.at.toISOString() } : {}),
   });
   if (error) return { errors: {}, message: 'Não foi possível registar. Confirme que tem permissão para este passo.' };
+  // Devoluções que este passo torne devidas (ex.: caução na assinatura) seguem logo para o Stripe.
+  await settleRefunds(engagementId).catch(() => undefined);
   revalidatePath(`/app/contratacoes/${engagementId}`);
   return { errors: {}, ok: true, message: 'Registado.', revealed: reveal };
 }

@@ -533,6 +533,12 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['supplier_discounts']['Insert']>;
         Relationships: [];
       };
+      stripe_payments: {
+        Row: { amount_cents: number; created_at: string; engagement_id: string; id: string; kind: string; payment_intent: string; refunded_cents: number };
+        Insert: { amount_cents: number; created_at?: string; engagement_id: string; id?: string; kind: string; payment_intent: string; refunded_cents?: number };
+        Update: Partial<Database['public']['Tables']['stripe_payments']['Insert']>;
+        Relationships: [];
+      };
       supplier_subscriptions: {
         Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
         Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };

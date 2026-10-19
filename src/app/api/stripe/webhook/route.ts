@@ -2,6 +2,7 @@ import type Stripe from 'stripe';
 import { fromStripeStatus, isSupplierPlan, monthlyPrice } from '@/domain/subscription';
 import { stripe } from '@/lib/stripe';
 import { adminClient } from '@/lib/supabase/admin';
+import { recordStripePayment } from '@/lib/payments';
 
 // Avisos do Stripe. A assinatura (STRIPE_WEBHOOK_SECRET) prova que vêm do Stripe; só depois
 // se escreve na base, com a chave secreta do Supabase.
@@ -19,7 +20,19 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const s = event.data.object;
     const m = s.metadata ?? {};
-    if (s.mode === 'subscription' && m.org_id && isSupplierPlan(m.plan)) {
+    if (s.mode === 'payment' && s.payment_status === 'paid' && m.engagement_id && (m.kind === 'caucao' || m.kind === 'comissao') && m.user_id) {
+      const pi = typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent?.id;
+      if (!pi || !s.amount_total) return new Response('Sem pagamento', { status: 400 });
+      const r = await recordStripePayment({
+        engagementId: m.engagement_id,
+        kind: m.kind,
+        amount: s.amount_total,
+        paymentIntent: pi,
+        actor: m.user_id,
+        at: new Date(event.created * 1000),
+      });
+      if (!r.ok) return new Response(r.reason ?? 'Erro', { status: 500 });
+    } else if (s.mode === 'subscription' && m.org_id && isSupplierPlan(m.plan)) {
       const bps = Number(m.discount_bps) || 0;
       const { data: promo } = m.promo_code
         ? await db.from('promo_codes').select('id, uses').eq('code', m.promo_code).maybeSingle()

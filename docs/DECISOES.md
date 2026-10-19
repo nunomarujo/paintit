@@ -128,3 +128,13 @@ Cada conta é só de **cliente** (condomínio, administradora ou particular), **
 interface só oferece os tipos de entidade do perfil da conta; a base de dados recusa juntar a mesma conta a
 entidades de perfis diferentes (migração `um_perfil_por_conta`, trigger em `org_members`). Contas de teste
 anteriores com vários perfis mantêm-se.
+
+## 20/10/2026 — caução e comissão pelo Stripe (modo de teste)
+
+O cliente paga a caução e o pintor a comissão no Stripe Checkout, a partir da página da contratação. O valor vem
+sempre das regras (`onlinePaymentDue`). O webhook regista o acontecimento (`deposito_confirmado` /
+`fee_recebido`, com o pagador como autor) e guarda o pagamento em `stripe_payments`. As devoluções que as regras
+mandam fazer (`devolucao_garantia`, `devolucao_fee`) são executadas no Stripe depois de cada passo e, uma vez por
+dia, pelo cron `/api/cron/devolucoes` (variável `CRON_SECRET`). Um pagamento recusado pelas regras (ex.: comissão
+fora de prazo) é devolvido logo. Caução transitada para outra proposta continua a ser devolvida a partir do
+pagamento original só por intervenção manual (caso raro, a tratar).

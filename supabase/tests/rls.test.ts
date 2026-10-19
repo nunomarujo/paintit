@@ -1096,3 +1096,12 @@ describe('um perfil por conta', () => {
     await expect(createOrg(A, 'fornecedor', 'Tintas do Cliente', '508140510')).rejects.toThrow(/outro perfil/);
   });
 });
+
+describe('pagamentos Stripe', () => {
+  it('ninguém escreve pela API; só leitura', async () => {
+    const eng = (await one<{ id: string }>('select id from public.engagements limit 1')).id;
+    await expect(
+      as(A, () => db.query(`insert into public.stripe_payments (engagement_id, kind, amount_cents, payment_intent) values ($1, 'caucao', 100, 'pi_x')`, [eng])),
+    ).rejects.toThrow(/row-level security|permission/);
+  });
+});

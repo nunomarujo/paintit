@@ -13,6 +13,8 @@ import { Steps } from '@/components/Steps';
 import { PartyAction, PlatformAction } from './ActionForms';
 import { CarryForm } from './CarryForm';
 import { PdfSign } from './PdfSign';
+import { PayButton } from './PayButton';
+import { stripeConfigured } from '@/lib/stripe';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -157,10 +159,17 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 : `O adiantamento passa para o pintor quando as duas partes assinarem. Prazo para depositar e assinar: ${pt(e.clientDue)}.`
               : 'A caução é-lhe devolvida quando as duas partes assinarem; o adiantamento passa para o pintor nesse momento.'}
           </p>
-          <p className="mt-2 text-xs text-slate-600">
-            O parceiro de pagamentos ainda está a ser escolhido: os dados bancários serão indicados aqui. Até lá, a equipa da
-            plataforma combina o depósito consigo.
-          </p>
+          {stripeConfigured && e.status === 'aguarda_deposito' && manager ? (
+            <>
+              <PayButton engagementId={id} side="cliente" label={`Pagar a caução de ${formatEuros(due)}`} />
+              <p className="mt-2 text-xs text-slate-600">
+                Pagamento seguro no Stripe (instituição de pagamento autorizada). A devolução é automática quando as duas partes
+                assinarem, ou se desistir antes de conhecer o pintor.
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-slate-600">A equipa da plataforma combina o depósito consigo.</p>
+          )}
         </section>
       )}
       {e.status === 'aguarda_fee' && side === 'pintor' && (
@@ -171,6 +180,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             até <strong>{pt(e.feeDue)}</strong>. Quando o pagamento for confirmado, vê a identidade do cliente e a morada, e
             pode assinar. {e.advance > 0 && `O adiantamento de ${formatEuros(e.advance)} está reservado para si e é libertado quando assinar.`}
           </p>
+          {stripeConfigured && manager && (
+            <PayButton engagementId={id} side="pintor" label={`Pagar a comissão de ${formatEuros(e.fee.gross)}`} />
+          )}
         </section>
       )}
 
