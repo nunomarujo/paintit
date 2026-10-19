@@ -1,6 +1,6 @@
 import { BRAND } from '@/config/brand';
 
-/** Marca: prédio de traço simples, como no protótipo, com o nome provisório. */
+/** Marca: prédio de traço simples, como no protótipo, com o nome da marca. */
 export function BrandMark({ size = 'md' }: { size?: 'md' | 'lg' }) {
   return (
     <span className={`flex items-center gap-2 whitespace-nowrap font-bold tracking-tight text-tinta-600 ${size === 'lg' ? 'text-3xl' : 'text-2xl'}`}>

@@ -1,6 +1,6 @@
-// Nome provisório: a marca ainda não foi pesquisada no INPI/EUIPO (docs/DECISOES.md).
+// Marca decidida a 20/10/2026 (domínio quempinta.pt). Registo no INPI/EUIPO por confirmar (docs/DECISOES.md).
 export const BRAND = {
-  name: 'Paint it',
+  name: 'Quem Pinta',
   domain: 'quempinta.pt',
   url: 'https://quempinta.pt',
   /** Contacto público, até o email @quempinta.pt estar configurado (docs/DOMINIO.md). */

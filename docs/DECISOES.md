@@ -102,3 +102,8 @@ obra, forma de pagamento (pronto ou diferido/crédito), quantidade mínima de em
 atrair pintores) e cliente frequente (3 ou mais encomendas entregues). Vale para todos os pintores. Ao orçamentar,
 o pintor vê o melhor desconto garantido e, à parte, os que dependem do pagamento ou da quantidade. (A coluna
 `painter_org_id` fica na base mas a interface já não a usa.)
+
+## 20/10/2026 — marca
+
+A marca passa a **Quem Pinta** (domínio quempinta.pt). "Paint it" fica só como nome do repositório e do projeto
+Supabase. Falta confirmar o registo da marca no INPI/EUIPO.

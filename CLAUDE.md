@@ -1,6 +1,6 @@
-# Paint it — orientação para Claude Code
+# Quem Pinta (antes "Paint it") — orientação para Claude Code
 
-Paint it (nome provisório) é um marketplace de orçamentação e contratação de empreitadas de pintura em
+Quem Pinta (quempinta.pt; nome de trabalho anterior "Paint it") é um marketplace de orçamentação e contratação de empreitadas de pintura em
 Portugal: condomínios e particulares descrevem a obra, pintores verificados orçamentam, o cliente escolhe e as
 duas partes assinam o contrato na plataforma. Promotor: Nuno. Idioma do produto: português de Portugal.
 
