@@ -71,7 +71,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${status.className}`}>{status.label}</span>
           {req.version > 1 && <span className="text-xs text-slate-500">versão {req.version}</span>}
         </div>
-        <p className="mt-1 text-sm text-slate-600">Referência pública: {req.ref}</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Referência pública: {req.ref} ·{' '}
+          <Link href={`/app/pedidos/${req.id}/dossie`} className="text-tinta-700 hover:underline">
+            Dossiê para imprimir
+          </Link>
+        </p>
       </div>
 
       {draft && (suspensions ?? []).length > 0 && (

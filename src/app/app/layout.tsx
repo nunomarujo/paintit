@@ -40,8 +40,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)]">
-      <aside className="border-b border-slate-200 bg-white px-4 py-4 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-7">
+    <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)] print:block">
+      <aside className="print:hidden border-b border-slate-200 bg-white px-4 py-4 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-7">
         <Link href="/app" className="block px-1 md:px-3">
           <BrandMark />
         </Link>
@@ -62,7 +62,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
+        <header className="print:hidden sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
           <span className="flex items-center gap-2 text-[11px] text-slate-500">
             <i className="inline-block h-[7px] w-[7px] rounded-full bg-[#648d75]" />
             Versão de teste · pagamentos e assinaturas ainda não ligados
