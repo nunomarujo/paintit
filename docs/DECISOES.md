@@ -107,3 +107,8 @@ o pintor vê o melhor desconto garantido e, à parte, os que dependem do pagamen
 
 A marca passa a **Quem Pinta** (domínio quempinta.pt). "Paint it" fica só como nome do repositório e do projeto
 Supabase. Falta confirmar o registo da marca no INPI/EUIPO.
+
+## 20/10/2026 — Stripe
+
+Conta Stripe criada (modo de teste), id `acct_1USIiAFGpN3v1aBO`. Falta: ativar o Connect e ligar o conector do
+Stripe ao Claude numa sessão nova; as chaves secretas vão só para as variáveis do alojamento.
