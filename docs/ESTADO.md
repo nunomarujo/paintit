@@ -60,8 +60,9 @@ de nova versão do pedido), dossiê do pedido para imprimir.
 certificados assinalados a vermelho sem bloquear), códigos promocionais dos fornecedores no backoffice, Stripe
 Connect escolhido (ver `docs/DECISOES.md`).
 
-**Por aplicar no Supabase:** `supabase/migrations/20261020030000_um_perfil_por_conta.sql` (aditiva; o acesso do
-Claude ao Supabase falhou com "permission"). Aplicar e renomear para a versão registada.
+**Nota:** `supabase/migrations/20261020030000_um_perfil_por_conta.sql` foi aplicada à mão no SQL Editor
+(20/10/2026), por isso não aparece em `list_migrations`. Quando o acesso do Claude ao Supabase voltar, registar a
+versão (ou deixar como está e não a voltar a aplicar).
 
 A seguir, sem depender do promotor:
 
