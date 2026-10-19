@@ -82,5 +82,6 @@ alojamento).
   de saída 0.
 - Migrações: testadas primeiro em `supabase/tests/rls.test.ts` (Postgres em memória), aplicadas depois, avisos
   consultados, tipos atualizados, verificação na base real numa transação revertida (ver `CLAUDE.md`).
-- `.claude/settings.json` autoriza as ferramentas do Supabase e os comandos habituais, para não pedir confirmação.
-  Quando houver dados reais de clientes, retirar `execute_sql` e `apply_migration` dessa lista.
+- `.claude/settings.json` autoriza todos os comandos e as ferramentas do Supabase (pedido do promotor, 19/10/2026),
+  exceto apagar/pausar projetos e `push --force`. Quando houver dados reais de clientes, voltar a pedir
+  confirmação para `execute_sql` e `apply_migration`.
