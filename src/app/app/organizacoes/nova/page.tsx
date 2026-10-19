@@ -30,10 +30,10 @@ export default async function NewOrganizationPage({
         Estes dados servem para o contrato e para a verificação da conta. Só são revelados à outra parte depois da
         apresentação.
       </p>
-      {existing.length > 0 && (
+      {existing[0] && (
         <p className="mt-3 rounded-xl bg-tinta-50 p-3 text-sm">
-          Esta conta é de <strong>{ACCOUNT_PROFILE_LABELS[accountProfile(existing[0])].toLowerCase()}</strong>. Cada conta tem um
-          só perfil: para atuar também como {accountProfile(existing[0]) === 'cliente' ? 'pintor ou fornecedor' : 'outro perfil'}, crie
+          Esta conta é de <strong>{ACCOUNT_PROFILE_LABELS[accountProfile(existing[0]!)].toLowerCase()}</strong>. Cada conta tem um
+          só perfil: para atuar também como {accountProfile(existing[0]!) === 'cliente' ? 'pintor ou fornecedor' : 'outro perfil'}, crie
           outra conta com outro email.
         </p>
       )}

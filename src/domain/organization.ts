@@ -30,8 +30,9 @@ export function accountProfile(kind: OrgKind): AccountProfile {
 }
 /** Tipos de entidade que a conta ainda pode criar, dado o que já tem. */
 export function allowedOrgKinds(existing: OrgKind[]): OrgKind[] {
-  if (existing.length === 0) return [...ORG_KINDS];
-  const profile = accountProfile(existing[0]);
+  const first = existing[0];
+  if (!first) return [...ORG_KINDS];
+  const profile = accountProfile(first);
   return ORG_KINDS.filter((k) => accountProfile(k) === profile);
 }
 
