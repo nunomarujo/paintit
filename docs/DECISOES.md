@@ -88,7 +88,7 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 
 ## 20/10/2026 — planos dos fornecedores
 
-- **Listagem de vendedores:** 44 €/mês + IVA.
+- **Listagem de vendedores:** 39 €/mês + IVA.
 - **Catálogo de produtos:** 49 €/mês + IVA. Inclui a listagem, produtos editáveis um a um e descontos por perfil
   de compra (produto ou tipo, área da obra, e por cliente: só pintores que já encomendaram ao fornecedor).
 - Sem plano de catálogo ativo, o fornecedor não cria produtos nem descontos e os produtos deixam de ser sugeridos

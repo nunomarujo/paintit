@@ -776,7 +776,7 @@ describe('catálogo de fornecedores', () => {
     await expect(
       as(F, () => db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'catalogo', 4900)`, [supplier])),
     ).rejects.toThrow(/row-level security/);
-    await as(ADMIN, () => db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'vendedores', 4400)`, [supplier]));
+    await as(ADMIN, () => db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'vendedores', 3900)`, [supplier]));
     await expect(product(F, supplier)).rejects.toThrow(/row-level security/);
     await as(ADMIN, () => db.query(`update public.supplier_subscriptions set plan = 'catalogo', price_cents = 4900 where org_id = $1`, [supplier]));
     expect((await as(F, () => db.query('select plan from public.supplier_subscriptions'))).rows).toEqual([{ plan: 'catalogo' }]);

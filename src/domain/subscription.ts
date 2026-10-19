@@ -11,7 +11,7 @@ export type SupplierPlan = (typeof SUPPLIER_PLANS)[number];
 export const PLAN_INFO: Record<SupplierPlan, { label: string; monthlyCents: Cents; features: string[] }> = {
   vendedores: {
     label: 'Listagem de vendedores',
-    monthlyCents: 4_400,
+    monthlyCents: 3_900,
     features: ['Presença na listagem de vendedores, com contactos e condições de entrega.'],
   },
   catalogo: {

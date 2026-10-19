@@ -1,5 +1,5 @@
 -- Subscrição dos fornecedores (decisão de 20/10/2026), preços em src/domain/subscription.ts:
---   vendedores: 44 €/mês + IVA, presença na listagem de vendedores;
+--   vendedores: 39 €/mês + IVA, presença na listagem de vendedores;
 --   catalogo:   49 €/mês + IVA, também produtos (editáveis um a um) e descontos por perfil de compra.
 -- A cobrança será feita pelo Stripe (Billing); até lá a equipa da plataforma ativa o plano no backoffice.
 create table public.supplier_subscriptions (

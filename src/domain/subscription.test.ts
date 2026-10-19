@@ -3,7 +3,7 @@ import { monthlyPrice, planAllows, withVat } from './subscription';
 
 describe('subscrição dos fornecedores', () => {
   it('preços mensais, IVA e códigos promocionais', () => {
-    expect(monthlyPrice('vendedores')).toBe(4_400);
+    expect(monthlyPrice('vendedores')).toBe(3_900);
     expect(monthlyPrice('catalogo')).toBe(4_900);
     expect(withVat(4_900)).toBe(6_027);
     expect(monthlyPrice('catalogo', 5_000)).toBe(2_450);

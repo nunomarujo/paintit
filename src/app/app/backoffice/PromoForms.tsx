@@ -63,7 +63,7 @@ export function SupplierPlanForm({ suppliers }: { suppliers: { id: string; nome:
       <label className="block text-sm">
         Plano
         <select name="plano" className={input} defaultValue="catalogo">
-          <option value="vendedores">Listagem de vendedores (44 €)</option>
+          <option value="vendedores">Listagem de vendedores (39 €)</option>
           <option value="catalogo">Catálogo de produtos (49 €)</option>
           <option value="cancelar">Cancelar subscrição</option>
         </select>
