@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { passwordAuth, sendSignInLink, type SignInState } from './actions';
 import { useFormAction } from '@/components/useFormAction';
+import { PasswordInput } from '@/components/PasswordInput';
 
 type Mode = 'entrar' | 'criar' | 'link';
 const input = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base';
@@ -76,15 +77,15 @@ export function SignInForm({ next }: { next: string }) {
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Palavra-passe
-            <input
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete={mode === 'criar' ? 'new-password' : 'current-password'}
-              className={input}
-            />
+            <PasswordInput name="password" autoComplete={mode === 'criar' ? 'new-password' : 'current-password'} className={input} />
           </label>
+          {mode === 'criar' && (
+            <label className="block text-sm font-medium text-slate-700">
+              Repetir palavra-passe
+              <PasswordInput name="confirmar" autoComplete="new-password" className={input} />
+              <span className="mt-1 block text-xs font-normal text-slate-500">Pelo menos 8 caracteres.</span>
+            </label>
+          )}
           {pw.state.status === 'error' && (
             <p className="text-sm text-red-700" role="alert">
               {pw.state.message}

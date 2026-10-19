@@ -25,11 +25,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (kinds.has('pintor')) work.push({ href: '/app/oportunidades', label: 'Oportunidades' });
   if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
-  const more: NavItem[] = [{ href: '/app/catalogo', label: 'Catálogo de materiais' }];
+  const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
   if (kinds.has('pintor')) more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
   const groups = [
     { title: 'Área de trabalho', items: work },
-    { title: 'Recursos', items: more },
+    ...(more.length ? [{ title: 'Recursos', items: more }] : []),
     ...(admin ? [{ title: 'Plataforma', items: [{ href: '/app/backoffice', label: 'Backoffice' }] }] : []),
   ];
 
@@ -65,7 +65,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <header className="print:hidden sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
           <span className="flex items-center gap-2 text-[11px] text-slate-500">
             <i className="inline-block h-[7px] w-[7px] rounded-full bg-[#648d75]" />
-            Versão de teste · pagamentos e assinaturas ainda não ligados
+            Versão de teste · pagamentos em modo de teste
           </span>
           <span className="flex items-center gap-3 md:hidden">
             <Link href="/app/perfil" className="text-[12px] text-slate-600">

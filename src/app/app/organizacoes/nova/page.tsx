@@ -8,15 +8,16 @@ import { OrgForm } from './OrgForm';
 export default async function NewOrganizationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string; gerida_por?: string }>;
+  searchParams: Promise<{ tipo?: string; gerida_por?: string; perfil?: string }>;
 }) {
-  const { tipo, gerida_por } = await searchParams;
+  const { tipo, gerida_por, perfil } = await searchParams;
   const { supabase, user } = await getUser();
 
   const administradoras = await managedAdministradoras(supabase, user!.id);
   const { data: mine } = await supabase.from('org_members').select('organizations(kind)').eq('user_id', user!.id);
   const existing = (mine ?? []).map((m) => (m.organizations as { kind: OrgKind } | null)?.kind).filter((k): k is OrgKind => Boolean(k));
-  const kinds = allowedOrgKinds(existing);
+  const allowed = allowedOrgKinds(existing);
+  const kinds = perfil === 'cliente' && existing.length === 0 ? allowed.filter((k) => accountProfile(k) === 'cliente') : allowed;
 
   const initialKind = (ORG_KINDS as readonly string[]).includes(tipo ?? '') && kinds.includes(tipo as OrgKind) ? (tipo as OrgKind) : undefined;
 

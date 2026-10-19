@@ -45,6 +45,7 @@ export async function passwordAuth(_prev: SignInState, form: FormData): Promise<
   const next = safeNext(String(form.get('seguinte') ?? ''));
   const supabase = await createClient();
   if (mode === 'criar') {
+    if (password !== String(form.get('confirmar') ?? '')) return { status: 'error', message: 'As duas palavras-passe não coincidem.', email };
     const h = await headers();
     const origin = h.get('origin') ?? `https://${h.get('host')}`;
     const { data, error } = await supabase.auth.signUp({

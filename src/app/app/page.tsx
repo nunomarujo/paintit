@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { acceptInvitation } from '@/app/app/actions';
 import { markNotificationsRead } from '@/app/app/extras-actions';
 import { MEMBER_ROLE_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
@@ -22,6 +23,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       .is('accepted_at', null)
       .gt('expires_at', new Date().toISOString()),
   ]);
+
+  // Conta nova, sem entidades nem convites: primeiro escolhe o perfil.
+  const { count: memberCount } = await supabase.from('org_members').select('org_id', { count: 'exact', head: true }).eq('user_id', user!.id);
+  if (!memberCount && !(invites ?? []).length) redirect('/app/comecar');
 
   // Painel: o que espera por esta conta (CLI-01, PIN-01).
   // Só as entidades de que é membro (ou geridas por elas): a equipa da plataforma vê todas, mas não são suas.
