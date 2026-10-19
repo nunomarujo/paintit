@@ -9,6 +9,7 @@ import { loadReplay } from '@/lib/engagements';
 import { toLine } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
 import { AnswerForm, ReviewForm } from '@/components/ExtrasForms';
+import { Steps } from '@/components/Steps';
 import { PartyAction, PlatformAction } from './ActionForms';
 import { CarryForm } from './CarryForm';
 
@@ -68,6 +69,14 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Contratação {reference}</h1>
         <p className="mt-1 text-sm font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
+        <Steps
+          steps={['Depósito do cliente', 'Assinatura do cliente', 'Comissão do pintor', 'Assinatura do pintor']}
+          done={
+            ({ aguarda_deposito: 0, aguarda_assinatura_cliente: 1, aguarda_fee: 2, aguarda_assinatura_pintor: 3, em_litigio: 3, assinado: 4 } as Record<string, number>)[
+              e.status
+            ] ?? 0
+          }
+        />
         <div className="mt-2 flex flex-wrap gap-4 text-sm">
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
             Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →

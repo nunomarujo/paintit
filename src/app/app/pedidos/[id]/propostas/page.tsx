@@ -102,12 +102,64 @@ export default async function ProposalsPage({
         </Link>
       )}
 
+      {sorted.length > 0 && (
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {sorted.map((r) => {
+            const p = byId.get(r.id)!;
+            const rating = ratingOf.get(r.id);
+            return (
+              <li
+                key={r.id}
+                className={`flex flex-col rounded-2xl bg-white p-6 ${p.status === 'selecionada' ? 'border-2 border-tinta-600' : 'border border-slate-200'}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[11px] bg-sage text-xs font-bold text-tinta-600">
+                    {r.alias.replace('Pintor ', '')}
+                  </span>
+                  <span className="flex flex-wrap justify-end gap-1">
+                    {p.pintor_verificado && <span className="badge badge-green">Verificado</span>}
+                    {r.materiaisCertificados > 0 && <span className="badge badge-green">Material certificado</span>}
+                    {p.request_version !== req.version && <span className="badge badge-amber">Versão anterior</span>}
+                  </span>
+                </div>
+                <h3 className="mt-4 font-semibold">{r.alias}</h3>
+                <p className="text-[30px] font-semibold leading-tight tracking-tight">{formatEuros(r.totals.base)}</p>
+                <p className="text-[11px] text-slate-500">sem IVA · {formatEuros(r.totals.totalComIva)} com IVA</p>
+                <div className="my-4 divide-y divide-slate-200 border-y border-slate-200 text-[12px]">
+                  {[
+                    ['Preço por m²', r.precoM2 !== null ? formatEuros(r.precoM2) : '—'],
+                    ['Duração', p.duracao_dias ? `${p.duracao_dias} dias` : 'Não indicada'],
+                    ['Adiantamento', p.adiantamento_bps > 0 ? `${p.adiantamento_bps / 100}%` : 'Nenhum'],
+                    ['Garantia da obra', p.garantia_anos !== null ? `${p.garantia_anos} anos` : 'Não indicada'],
+                    ['Avaliações', rating && rating.n >= 3 ? `${String(rating.media).replace('.', ',')}/5` : 'Histórico insuficiente'],
+                  ].map(([k, v]) => (
+                    <span key={k} className="flex justify-between gap-3 py-2 text-slate-500">
+                      {k}
+                      <b className="text-right font-medium text-slate-900">{v}</b>
+                    </span>
+                  ))}
+                  <span className="flex justify-between gap-3 py-2 text-slate-500">
+                    Superfícies
+                    <b className={`text-right font-medium ${r.superficiesEmFalta.length ? 'text-amber-700' : 'text-slate-900'}`}>
+                      {r.superficiesEmFalta.length ? `Falta ${r.superficiesEmFalta.map((x) => SURFACE_KIND_LABELS[x]).join(', ')}` : 'Todas com preço'}
+                    </b>
+                  </span>
+                </div>
+                <a href={`#${r.id}`} className="btn-secondary mt-auto">
+                  Ver proposta e mensagens
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       {active.length === 0 ? (
         <p className={`${card} text-sm text-slate-600`}>Ainda não há propostas submetidas.</p>
       ) : (
         <section className={card}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Comparação</h2>
+            <h2 className="font-semibold">Comparação detalhada</h2>
             <form className="flex items-center gap-2 text-sm">
               <label htmlFor="ordem">Ordenar por</label>
               <select id="ordem" name="ordem" defaultValue={sortKey} className="rounded-lg border border-slate-300 bg-white px-2 py-1">

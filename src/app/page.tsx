@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { FeeSimulator } from '@/components/FeeSimulator';
+import { BrandMark } from '@/components/BrandMark';
 import { BRAND } from '@/config/brand';
 
 const steps = [
@@ -49,11 +50,17 @@ export default function Home() {
     <main>
       <header className="border-b border-slate-200">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <span className="text-lg font-semibold text-tinta-700">{BRAND.name}</span>
-          <nav className="flex gap-4 text-sm text-slate-600">
-            <a href="#como-funciona">Como funciona</a>
-            <a href="#simulador">Simulador</a>
-            <a href="#perguntas">Perguntas</a>
+          <BrandMark />
+          <nav className="flex items-center gap-4 text-sm text-slate-600">
+            <a href="#como-funciona" className="hidden sm:inline">
+              Como funciona
+            </a>
+            <a href="#simulador" className="hidden sm:inline">
+              Simulador
+            </a>
+            <a href="#perguntas" className="hidden sm:inline">
+              Perguntas
+            </a>
             <Link href="/entrar" className="font-semibold text-tinta-700">
               Entrar
             </Link>
@@ -78,7 +85,7 @@ export default function Home() {
               Móvel Digital.
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50 p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="font-semibold">Para pintores</h2>
             <p className="mt-2 text-sm text-slate-700">
               Oportunidades na sua zona e convites para orçamentar. Só paga quando o cliente já escolheu a sua proposta

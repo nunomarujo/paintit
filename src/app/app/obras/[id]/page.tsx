@@ -322,9 +322,18 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'cronograma' && (
         <section className={`${card} space-y-6 text-sm`}>
-          <ol className="space-y-2">
-            {(phases ?? []).map((ph) => (
-              <li key={ph.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 p-3">
+          <ol>
+            {(phases ?? []).map((ph, i, all) => (
+              <li key={ph.id} className="relative flex flex-wrap items-start justify-between gap-2 pb-6 pl-12">
+                {i < all.length - 1 && <span className="absolute bottom-0 left-[15px] top-8 w-px bg-slate-200" aria-hidden="true" />}
+                <span
+                  className={`absolute left-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] ${
+                    ph.estado === 'concluida' ? 'border-tinta-600 bg-tinta-600 text-white' : ph.estado === 'em_curso' ? 'border-tinta-600 bg-sage' : 'border-slate-200 bg-slate-100'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {ph.estado === 'concluida' ? '✓' : i + 1}
+                </span>
                 <span>
                   <span className="font-medium">{ph.nome}</span> · {pt(ph.inicio)} a {pt(ph.fim)} · {PHASE[ph.estado]}
                   {ph.estado !== 'concluida' && ph.fim && ph.fim < today && <span className="ml-2 text-red-700">atrasada</span>}
