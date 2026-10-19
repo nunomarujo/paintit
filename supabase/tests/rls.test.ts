@@ -1031,3 +1031,20 @@ describe('licenças no anúncio', () => {
     expect((await one<{ v: string }>('select ocupacao_via_publica v from public.request_listings where request_id = $1', [id])).v).toBe('sim');
   });
 });
+
+describe('códigos promocionais dos fornecedores', () => {
+  const F = '00000000-0000-4000-8000-0000000000f1'; // fornecedor criado acima
+  it('só a equipa da plataforma cria e vê; o fornecedor confirma um código válido', async () => {
+    await expect(as(A, () => db.query(`insert into public.promo_codes (code, discount_bps, created_by) values ('NAO-PODE', 1000, $1)`, [A]))).rejects.toThrow(
+      /row-level security/,
+    );
+    await as(ADMIN, () => db.query(`insert into public.promo_codes (code, discount_bps, max_uses) values ('ARRANQUE', 5000, 1)`));
+    await expect(as(ADMIN, () => db.query(`insert into public.promo_codes (code, discount_bps) values ('ZERO', 50)`))).rejects.toThrow(/check/);
+    expect((await as(A, () => db.query('select * from public.promo_codes'))).rows).toHaveLength(0);
+    const check = (u: string) => as(u, async () => (await one<{ d: number | null }>(`select public.check_promo_code(' arranque ') d`)).d);
+    expect(await check(F)).toBe(5000);
+    expect(await check(A)).toBeNull();
+    await db.query(`update public.promo_codes set uses = 1 where code = 'ARRANQUE'`);
+    expect(await check(F)).toBeNull();
+  });
+});

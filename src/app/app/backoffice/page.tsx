@@ -7,6 +7,7 @@ import { getUser } from '@/lib/supabase/server';
 import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
+import { CreatePromoCode, TogglePromo } from './PromoForms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 
@@ -26,6 +27,7 @@ export default async function BackofficePage() {
     .select('id, engagement_id, kind, payload, at')
     .eq('payload->>metodo', 'cmd_pdf')
     .eq('payload->>cadeiaConfiavel', 'false');
+  const { data: promos } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
   const pendingEngagements = (
     await Promise.all((engagements ?? []).map(async (r) => availableActions((await loadReplay(supabase, r)).replay.engagement, 'plataforma').length > 0))
   ).filter(Boolean).length;
@@ -145,6 +147,48 @@ export default async function BackofficePage() {
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section id="promocoes" className={card}>
+        <h2 className="font-semibold">Códigos promocionais dos fornecedores</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Desconto de 1% a 100% na subscrição do catálogo. A plataforma não recebe nada dos fornecedores pelas
+          transações, só a subscrição.
+        </p>
+        <div className="mt-4">
+          <CreatePromoCode />
+        </div>
+        {(promos ?? []).length > 0 && (
+          <table className="mt-6 w-full text-left text-sm">
+            <thead className="text-slate-500">
+              <tr>
+                <th className="py-1">Código</th>
+                <th>Desconto</th>
+                <th>Válido até</th>
+                <th>Usos</th>
+                <th>Notas</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {promos!.map((p) => (
+                <tr key={p.id} className={`border-t border-slate-100 ${p.active ? '' : 'text-slate-400'}`}>
+                  <td className="py-2 font-mono">{p.code}</td>
+                  <td>{(p.discount_bps / 100).toLocaleString('pt-PT')}%</td>
+                  <td>{p.valid_until ?? '—'}</td>
+                  <td>
+                    {p.uses}
+                    {p.max_uses !== null ? ` / ${p.max_uses}` : ''}
+                  </td>
+                  <td>{p.notas ?? ''}</td>
+                  <td className="text-right">
+                    <TogglePromo id={p.id} active={p.active} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>

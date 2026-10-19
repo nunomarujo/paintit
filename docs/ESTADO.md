@@ -56,6 +56,10 @@ do protótipo v05, assinatura com PDF da Autenticação.gov (com cadeia de confi
 Cidadão" do Estado), manutenção diária com pg_cron (documentos expirados, fecho de anúncios fora de prazo, avisos
 de nova versão do pedido), dossiê do pedido para imprimir.
 
+20/10/2026: percurso v2 afinado (caução sem prazo nem mínimo, adiantamento fora da plataforma, habilitação e
+certificados assinalados a vermelho sem bloquear), códigos promocionais dos fornecedores no backoffice, Stripe
+Connect escolhido (ver `docs/DECISOES.md`).
+
 A seguir, sem depender do promotor:
 
 1. Teste completo no browser pela sessão de teste (com `PERMITIR_ACEITACAO_SIMPLES=1`).
@@ -67,7 +71,7 @@ A seguir, sem depender do promotor:
    promotor" (nova ordem da apresentação, mínimo da caução, contrato cliente–plataforma, conservação,
    não evasão, transparência).
 
-1. **Parceiro de pagamentos:** Stripe Connect ou Mangopay (recomendação em `docs/PAGAMENTOS_E_ASSINATURA.md`).
+1. ~~Parceiro de pagamentos~~: Stripe Connect (20/10/2026). Falta: preço da subscrição dos fornecedores; domínio e email.
 2. **Email transacional e domínio:** escolher o serviço (ex.: Resend, Postmark, Amazon SES na UE) para os avisos
    também seguirem por email.
 3. **Certificado por confirmar:** hoje uma assinatura válida cujo certificado não encadeia nas entidades

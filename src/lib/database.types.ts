@@ -919,6 +919,12 @@ export type Database = {
           },
         ];
       };
+      promo_codes: {
+        Row: { active: boolean; code: string; created_at: string; created_by: string; discount_bps: number; id: string; max_uses: number | null; notas: string | null; uses: number; valid_until: string | null };
+        Insert: { active?: boolean; code: string; created_at?: string; created_by?: string; discount_bps: number; id?: string; max_uses?: number | null; notas?: string | null; uses?: number; valid_until?: string | null };
+        Update: { active?: boolean; code?: string; created_at?: string; created_by?: string; discount_bps?: number; id?: string; max_uses?: number | null; notas?: string | null; uses?: number; valid_until?: string | null };
+        Relationships: [];
+      };
       platform_admins: {
         Row: { created_at: string; user_id: string };
         Insert: { created_at?: string; user_id: string };
@@ -957,6 +963,7 @@ export type Database = {
     Functions: {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
     };

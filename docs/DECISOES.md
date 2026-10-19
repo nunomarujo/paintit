@@ -74,3 +74,15 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
   contrato ("excede as nossas competências").
 - Habilitação IMPIC em falta ou certificado de assinatura não confirmado **não bloqueiam**: a app assinala a
   vermelho às partes; quem continua assume a responsabilidade (migração `habilitacao_aviso`).
+
+## 20/10/2026 — pagamentos, caução e fornecedores (decisão do promotor)
+
+- **Parceiro de pagamentos: Stripe Connect.**
+- **Caução do cliente: 3% sem mínimo** (regras `2026-10-20`). O mínimo de 150 € fica só na comissão do pintor.
+- **Prazo de 8 dias** para o cliente assinar depois da apresentação: confirmado.
+- **Fornecedores:** a plataforma não recebe nada pelas transações. Os fornecedores pagam uma subscrição para
+  estarem no catálogo. O backoffice cria códigos promocionais de 1% a 100% de desconto (`promo_codes`). O
+  fornecedor confirma um código por `check_promo_code` (é `security definer` de propósito: só devolve o
+  desconto de um código válido a quem pertence a um fornecedor). O preço da subscrição e a cobrança (Stripe
+  Billing) ficam por definir.
+- Domínio e email: o promotor indica mais tarde.

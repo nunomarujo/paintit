@@ -11,7 +11,7 @@ export interface CommercialRules {
   commissionMinCents: Cents;
   /** Caução do cliente, em pontos-base sobre o valor sem IVA. */
   guaranteeBp: number;
-  /** Em aberto: o promotor ainda não decidiu se o mínimo se aplica à caução. */
+  /** Mínimo da caução (0 desde a versão 2026-10-20). */
   guaranteeMinCents: Cents;
   /** IVA que acresce à comissão (taxa normal do continente). */
   commissionVatBp: number;
@@ -43,10 +43,14 @@ export const RULES_2026_10: CommercialRules = {
  */
 export const RULES_2026_10_19: CommercialRules = { ...RULES_2026_10, version: '2026-10-19', flow: 'v2' };
 
-export const CURRENT_RULES = RULES_2026_10_19;
+/** 20/10/2026: o mínimo de 150 € fica só na comissão do pintor; a caução do cliente é 3% sem mínimo (parecer B2). */
+export const RULES_2026_10_20: CommercialRules = { ...RULES_2026_10_19, version: '2026-10-20', guaranteeMinCents: 0 };
+
+export const CURRENT_RULES = RULES_2026_10_20;
 
 /** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
 export const RULES_BY_VERSION: Record<string, CommercialRules> = {
   [RULES_2026_10.version]: RULES_2026_10,
   [RULES_2026_10_19.version]: RULES_2026_10_19,
+  [RULES_2026_10_20.version]: RULES_2026_10_20,
 };
