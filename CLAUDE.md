@@ -64,3 +64,5 @@ npm run build
    `npm test > /tmp/t.log 2>&1; echo "EXIT=$?"`. Nunca concluir verde a partir de texto filtrado do output.
 8. **Antes de declarar trabalho feito:** `git status --porcelain` vazio e as verificações corridas sobre o que
    foi enviado para o repositório remoto.
+9. **Formulários com `useFormAction`** (`src/components/useFormAction.ts`), nunca `<form action={…}>` com
+   `useActionState`: o React 19 apaga todos os campos depois de cada envio, mesmo quando a resposta é um erro.
