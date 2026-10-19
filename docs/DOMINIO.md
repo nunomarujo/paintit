@@ -51,3 +51,7 @@ O contacto público no site é suporte@quempinta.pt (`BRAND.email`).
 - **SPF (TXT em @):** `v=spf1 include:_spf.google.com include:spf.improvmx.com ~all` (um só registo SPF).
 - **Enviar:** Gmail → Definições → Contas → "Enviar email como", servidor smtp.gmail.com, porta 587, utilizador
   quempinta.pt@gmail.com e uma palavra-passe de aplicação.
+
+**Estado a 20/10/2026:** https://quempinta.pt ativo (Vercel, A 216.198.79.1; www → apex). MX e SPF do ImprovMX
+verificados; aliases nm, info, suporte. Supabase Site URL e webhook do Stripe já usam quempinta.pt. Falta o
+"Enviar como" no Gmail (promotor).
