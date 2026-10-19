@@ -5,6 +5,7 @@ import { ReportListing } from '@/app/app/backoffice/ReportForms';
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
+import { productLabel } from '@/domain/catalog';
 import { painterFee } from '@/domain/commission';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
@@ -65,6 +66,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         })
       : [];
   const path = `/app/oportunidades/${id}`;
+  const { data: catalog } = draft ? await supabase.from('products').select('marca, nome, referencia').eq('ativo', true).limit(500) : { data: [] };
   const { data: engagement } =
     proposal && ['selecionada', 'falhada'].includes(proposal.status)
       ? await supabase.from('engagements').select('id').eq('proposal_id', proposal.id).maybeSingle()
@@ -180,7 +182,12 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           {draft && org.manager && (
             <>
               <section className={card}>
-                <LineForm proposalId={proposal.id} requestId={id} surfaces={(surfaces ?? []).map((s) => s.kind)} />
+                <LineForm
+                  proposalId={proposal.id}
+                  requestId={id}
+                  surfaces={(surfaces ?? []).map((s) => s.kind)}
+                  products={(catalog ?? []).map(productLabel)}
+                />
               </section>
               <section className={card}>
                 <h2 className="font-semibold">Condições</h2>

@@ -725,3 +725,56 @@ describe('denúncias de anúncios', () => {
     expect(seen).toEqual([{ resolucao: 'Retire o nome do prédio do texto.' }]);
   });
 });
+
+describe('catálogo de fornecedores', () => {
+  const F = '00000000-0000-4000-8000-0000000000f1'; // fornecedor
+  let supplier: string;
+  let productId: string;
+  const product = (user: string, org: string) =>
+    as(user, () =>
+      one<{ id: string }>(
+        `insert into public.products (org_id, nome, marca, tipo, rendimento, preco_referencia_cents, preco_data)
+         values ($1, 'Acrílica Mate', 'Marca X', 'tinta_exterior', 1200, 8990, current_date) returning id`,
+        [org],
+      ),
+    );
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [F, email(F)]);
+    supplier = (await createOrg(F, 'fornecedor', 'Tintas Exemplo', '503004642')).id;
+  });
+
+  it('só um fornecedor cria produtos, e só para si', async () => {
+    await expect(product(A, condo)).rejects.toThrow(/row-level security/);
+    await expect(product(B, supplier)).rejects.toThrow(/row-level security/);
+    productId = (await product(F, supplier)).id;
+  });
+
+  it('um preço sem data é recusado', async () => {
+    await expect(
+      as(F, () =>
+        db.query(`insert into public.products (org_id, nome, marca, tipo, preco_referencia_cents) values ($1, 'x', 'y', 'outro', 100)`, [supplier]),
+      ),
+    ).rejects.toThrow(/products_price_dated/);
+  });
+
+  it('qualquer conta vê produtos ativos; desativado, só o fornecedor', async () => {
+    expect(await as(B, async () => (await db.query('select id from public.products')).rows)).toHaveLength(1);
+    await as(F, () => db.query('update public.products set ativo = false where id = $1', [productId]));
+    expect(await as(B, async () => (await db.query('select id from public.products')).rows)).toEqual([]);
+    expect(await as(F, async () => (await db.query('select id from public.products')).rows)).toHaveLength(1);
+  });
+
+  it('não se apaga nem se altera por terceiros', async () => {
+    await expect(as(F, () => db.query('delete from public.products where id = $1', [productId]))).rejects.toThrow(/permission denied/);
+    const rows = await as(B, async () => (await db.query(`update public.products set nome = 'x' where id = $1 returning id`, [productId])).rows);
+    expect(rows).toEqual([]);
+  });
+
+  it('a ficha técnica só entra na pasta do fornecedor', async () => {
+    await as(F, () => db.query(`insert into storage.objects (bucket_id, name) values ('fichas', $1)`, [`${supplier}/ficha.pdf`]));
+    await expect(
+      as(A, () => db.query(`insert into storage.objects (bucket_id, name) values ('fichas', $1)`, [`${condo}/ficha.pdf`])),
+    ).rejects.toThrow(/row-level security/);
+  });
+});

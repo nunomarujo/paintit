@@ -52,6 +52,14 @@ type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
 type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
 type MessageSide = 'cliente' | 'pintor';
 type ReportStatus = 'pendente' | 'suspenso' | 'sem_fundamento';
+type ProductType =
+  | 'tinta_exterior'
+  | 'tinta_interior'
+  | 'primario'
+  | 'impermeabilizante'
+  | 'esmalte'
+  | 'massa_reparacao'
+  | 'outro';
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
@@ -382,6 +390,42 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      products: {
+        Row: {
+          ativo: boolean;
+          created_at: string;
+          created_by: string;
+          embalagem_ml: number | null;
+          ficha_path: string | null;
+          id: string;
+          marca: string;
+          nome: string;
+          org_id: string;
+          preco_data: string | null;
+          preco_referencia_cents: number | null;
+          referencia: string | null;
+          rendimento: number | null;
+          tipo: ProductType;
+          updated_at: string;
+        };
+        Insert: {
+          ativo?: boolean;
+          created_by?: string;
+          embalagem_ml?: number | null;
+          ficha_path?: string | null;
+          id?: string;
+          marca: string;
+          nome: string;
+          org_id: string;
+          preco_data?: string | null;
+          preco_referencia_cents?: number | null;
+          referencia?: string | null;
+          rendimento?: number | null;
+          tipo: ProductType;
+        };
+        Update: Partial<Database['public']['Tables']['products']['Insert']>;
+        Relationships: [];
+      };
       proposals: {
         Row: {
           adiantamento_bps: number;
@@ -673,6 +717,7 @@ export type Database = {
       message_side: MessageSide;
       engagement_event_kind: EngagementEventKind;
       report_status: ReportStatus;
+      product_type: ProductType;
     };
     CompositeTypes: { [_ in never]: never };
   };

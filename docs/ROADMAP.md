@@ -13,7 +13,7 @@ marca, piloto) avança em paralelo e condiciona o lançamento.
 | 3. Marketplace | Feito: oportunidades para pintores (filtro por tipo e zonas de serviço), propostas com linhas técnicas (incluído, opcional, condicionado), condições, versões, comparador anónimo lado a lado, mensagens com filtro de contactos, escolha pelo cliente. Fica para depois: convites da equipa da plataforma a pintores e avaliações | Feito |
 | 4. Contratação | Feito: contratação criada na escolha, acontecimentos registados por quem os pode fazer e estado reconstruído de `engagement.ts`; depósito e comissão confirmados pela equipa da plataforma; minuta gerada com resumo SHA-256; assinatura das partes; prazos; desistência, litígio, transição para outra proposta; apresentação (identidades e morada) quando a comissão entra. Falta ligar: parceiro de pagamentos e assinatura com CMD | Feito |
 | 5. Backoffice | Feito: painel com filas (documentos, fotografias, contratações, denúncias), denúncias de anúncios e suspensão, decisões de litígio, conciliação com instruções ao parceiro e CSV, auditoria das decisões da equipa | Feito |
-| 6. Fornecedores | Catálogo de produtos e fichas técnicas para os pintores orçamentarem | |
+| 6. Fornecedores | Feito: catálogo com fichas técnicas (PDF), rendimento e preço de referência datado; desativar em vez de apagar; pesquisa e estimativa de consumo; produtos sugeridos nas linhas das propostas. Fica para depois: confirmação de compras de materiais (FOR-10) | Feito |
 
 ## Negócio
 

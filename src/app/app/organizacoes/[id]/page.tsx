@@ -102,6 +102,17 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
+      {org.kind === 'fornecedor' && (
+        <Link href={`/app/organizacoes/${org.id}/produtos`} className={`${card} block font-semibold text-tinta-700 hover:bg-slate-50`}>
+          Catálogo de produtos e fichas técnicas →
+        </Link>
+      )}
+      {org.kind === 'pintor' && (
+        <Link href="/app/oportunidades" className={`${card} block font-semibold text-tinta-700 hover:bg-slate-50`}>
+          Ver oportunidades de obra →
+        </Link>
+      )}
+
       <section className={card}>
         <h2 className="font-semibold">Dados da entidade</h2>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">

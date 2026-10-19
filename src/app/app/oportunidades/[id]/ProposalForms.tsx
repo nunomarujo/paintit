@@ -90,7 +90,17 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
   );
 }
 
-export function LineForm({ proposalId, requestId, surfaces }: { proposalId: string; requestId: string; surfaces: SurfaceKind[] }) {
+export function LineForm({
+  proposalId,
+  requestId,
+  surfaces,
+  products,
+}: {
+  proposalId: string;
+  requestId: string;
+  surfaces: SurfaceKind[];
+  products: string[];
+}) {
   const [state, action, pending] = useActionState<FormState, FormData>(addLine.bind(null, proposalId, requestId), {
     errors: {},
   });
@@ -147,7 +157,14 @@ export function LineForm({ proposalId, requestId, surfaces }: { proposalId: stri
         <Field name="preco" label="Preço unitário (€)" required error={e.preco} />
         <Field name="demaos" label="Demãos" inputMode="numeric" error={e.demaos} />
       </div>
-      <Field name="produto" label="Produto" error={e.produto} hint="Opcional. Marca e referência." />
+      <Field name="produto" label="Produto" error={e.produto} hint="Opcional. Escolha do catálogo ou escreva marca e referência.">
+        <input name="produto" list="catalogo-produtos" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
+      </Field>
+      <datalist id="catalogo-produtos">
+        {products.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
       {status(state)}
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A acrescentar…' : 'Acrescentar linha'}
