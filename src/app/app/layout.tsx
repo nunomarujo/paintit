@@ -25,6 +25,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {BRAND.name}
           </Link>
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <Link href="/app/oportunidades" className="hover:underline">
+              Oportunidades
+            </Link>
             {admin && (
               <Link href="/app/validacao" className="font-medium text-tinta-700 hover:underline">
                 Validação

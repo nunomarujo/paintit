@@ -30,12 +30,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: req } = await supabase.from('work_requests').select('*').eq('id', id).maybeSingle();
   if (!req) notFound();
 
-  const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }] = await Promise.all([
+  const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }, { count: proposalCount }] =
+    await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
     supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
     supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
+    supabase.from('proposals').select('id', { count: 'exact', head: true }).eq('request_id', id).neq('status', 'rascunho'),
   ]);
   if (!org || !building) notFound();
 
@@ -65,6 +67,21 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </div>
         <p className="mt-1 text-sm text-slate-600">Referência pública: {req.ref}</p>
       </div>
+
+      {req.status !== 'rascunho' && (
+        <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
+          <p className="text-sm">
+            <span className="font-semibold">{proposalCount ?? 0}</span>{' '}
+            {proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
+          </p>
+          <Link
+            href={`/app/pedidos/${req.id}/propostas`}
+            className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+          >
+            Comparar propostas e mensagens
+          </Link>
+        </section>
+      )}
 
       {manager && req.status === 'publicado' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>

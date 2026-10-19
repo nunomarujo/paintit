@@ -36,6 +36,11 @@ type SurfaceKind =
 type AreaSource = 'estimativa' | 'medicao_cliente' | 'planta';
 type PhotoKind = 'geral' | 'pormenor';
 type PhotoReview = 'pendente' | 'aprovada' | 'rejeitada';
+type ProposalStatus = 'rascunho' | 'submetida' | 'retirada' | 'selecionada' | 'nao_selecionada';
+type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'outro';
+type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
+type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
+type MessageSide = 'cliente' | 'pintor';
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '14.18' };
@@ -297,6 +302,127 @@ export type Database = {
           },
         ];
       };
+      proposals: {
+        Row: {
+          adiantamento_bps: number;
+          base_cents: number | null;
+          created_at: string;
+          created_by: string;
+          duracao_dias: number | null;
+          exclusoes: string;
+          garantia_anos: number | null;
+          id: string;
+          inicio_possivel: string | null;
+          iva_bps: number;
+          iva_cents: number | null;
+          notas: string;
+          painter_org_id: string;
+          pintor_verificado: boolean | null;
+          preco_ajuste_m2_cents: number | null;
+          request_id: string;
+          request_version: number | null;
+          selected_at: string | null;
+          status: ProposalStatus;
+          submitted_at: string | null;
+          updated_at: string;
+          validade: string | null;
+          version: number;
+        };
+        Insert: {
+          adiantamento_bps?: number;
+          created_by?: string;
+          duracao_dias?: number | null;
+          exclusoes?: string;
+          garantia_anos?: number | null;
+          id?: string;
+          inicio_possivel?: string | null;
+          iva_bps?: number;
+          notas?: string;
+          painter_org_id: string;
+          preco_ajuste_m2_cents?: number | null;
+          request_id: string;
+          status?: ProposalStatus;
+          validade?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['proposals']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'proposals_request_id_fkey';
+            columns: ['request_id'];
+            isOneToOne: false;
+            referencedRelation: 'work_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      proposal_lines: {
+        Row: {
+          categoria: LineCategory;
+          created_at: string;
+          demaos: number | null;
+          descricao: string;
+          id: string;
+          inclusao: LineInclusion;
+          preco_unitario_cents: number;
+          produto: string | null;
+          proposal_id: string;
+          quantidade: number;
+          superficie: SurfaceKind | null;
+          total_cents: number;
+          unidade: LineUnit;
+        };
+        Insert: {
+          categoria: LineCategory;
+          demaos?: number | null;
+          descricao: string;
+          id?: string;
+          inclusao?: LineInclusion;
+          preco_unitario_cents: number;
+          produto?: string | null;
+          proposal_id: string;
+          quantidade: number;
+          superficie?: SurfaceKind | null;
+          unidade?: LineUnit;
+        };
+        Update: Partial<Database['public']['Tables']['proposal_lines']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'proposal_lines_proposal_id_fkey';
+            columns: ['proposal_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposals';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      proposal_messages: {
+        Row: {
+          autor: string;
+          created_at: string;
+          id: string;
+          lado: MessageSide;
+          proposal_id: string;
+          request_id: string;
+          texto: string;
+        };
+        Insert: {
+          autor?: string;
+          id?: string;
+          lado: MessageSide;
+          proposal_id: string;
+          texto: string;
+        };
+        Update: Partial<Database['public']['Tables']['proposal_messages']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'proposal_messages_proposal_id_fkey';
+            columns: ['proposal_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposals';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       request_photos: {
         Row: {
           created_at: string;
@@ -443,7 +569,9 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      select_proposal: { Args: { p_proposal: string }; Returns: undefined };
+    };
     Enums: {
       building_kind: BuildingKind;
       doc_kind: DocKind;
@@ -456,6 +584,11 @@ export type Database = {
       area_source: AreaSource;
       photo_kind: PhotoKind;
       photo_review: PhotoReview;
+      proposal_status: ProposalStatus;
+      line_category: LineCategory;
+      line_unit: LineUnit;
+      line_inclusion: LineInclusion;
+      message_side: MessageSide;
     };
     CompositeTypes: { [_ in never]: never };
   };

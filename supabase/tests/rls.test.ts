@@ -439,3 +439,131 @@ describe('fotografias do pedido', () => {
     expect(await painterSees()).toEqual({ rows: [], files: [] });
   });
 });
+
+describe('propostas e escolha', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
+  const P2 = '00000000-0000-4000-8000-0000000000e2'; // segundo pintor
+  let requestId: string;
+  let painterOrg: string;
+  let painter2Org: string;
+  let mine: string;
+  let other: string;
+
+  const proposal = (user: string, org: string) =>
+    as(user, () =>
+      one<{ id: string }>(
+        `insert into public.proposals (request_id, painter_org_id, validade, duracao_dias)
+         values ($1, $2, current_date + 30, 20) returning id`,
+        [requestId, org],
+      ),
+    );
+  const addLine = (user: string, id: string, preco: number, inclusao = 'incluido') =>
+    as(user, () =>
+      db.query(
+        `insert into public.proposal_lines (proposal_id, categoria, descricao, superficie, quantidade, preco_unitario_cents, inclusao)
+         values ($1, 'pintura', 'Pintura da fachada', 'fachada', 16150, $2, $3)`,
+        [id, preco, inclusao],
+      ),
+    );
+  const setStatus = (user: string, id: string, status: string) =>
+    as(user, () => db.query('update public.proposals set status = $2 where id = $1', [id, status]));
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [P2, email(P2)]);
+    painterOrg = (await one<{ id: string }>(`select id from public.organizations where kind = 'pintor' limit 1`)).id;
+    painter2Org = (await createOrg(P2, 'pintor', 'Pinturas Dois', '502011378')).id;
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — empena', 'fachadas', $3, current_date + 10) returning id`,
+          [condo, buildingId, 'Pintura da empena norte, com lavagem prévia e primário.'],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 16150)`, [requestId]));
+  });
+
+  it('não se propõe a um pedido que não está publicado', async () => {
+    await expect(proposal(P, painterOrg)).rejects.toThrow(/row-level security/);
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+  });
+
+  it('só uma entidade de pintura propõe, e só pela sua', async () => {
+    await expect(proposal(A, condo)).rejects.toThrow(/row-level security/);
+    await expect(proposal(P2, painterOrg)).rejects.toThrow(/row-level security/);
+    mine = (await proposal(P, painterOrg)).id;
+    other = (await proposal(P2, painter2Org)).id;
+  });
+
+  it('o total da linha na base de dados é igual ao do domínio', async () => {
+    await addLine(P, mine, 850);
+    await addLine(P, mine, 100, 'opcional');
+    const r = await one<{ total_cents: string }>('select total_cents from public.proposal_lines where proposal_id = $1 and inclusao = $2', [mine, 'incluido']);
+    expect(Number(r.total_cents)).toBe(137275); // o mesmo vetor de src/domain/proposal.test.ts
+  });
+
+  it('o cliente não vê rascunhos; o concorrente nunca vê', async () => {
+    const client = await as(A, async () => (await db.query('select id from public.proposals')).rows);
+    expect(client).toEqual([]);
+    const rival = await as(P2, async () => (await db.query('select id from public.proposals where id = $1', [mine])).rows);
+    expect(rival).toEqual([]);
+    const lines = await as(P2, async () => (await db.query('select id from public.proposal_lines where proposal_id = $1', [mine])).rows);
+    expect(lines).toEqual([]);
+  });
+
+  it('o cliente não mexe num rascunho do pintor', async () => {
+    const rows = await as(A, async () =>
+      (await db.query(`update public.proposals set notas = 'x' where id = $1 returning id`, [mine])).rows,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
+    await expect(setStatus(P2, other, 'submetida')).rejects.toThrow(/pelo menos uma linha/);
+    await setStatus(P, mine, 'submetida');
+    const r = await one<{ base_cents: string; iva_cents: string; request_version: number; pintor_verificado: boolean }>(
+      'select base_cents, iva_cents, request_version, pintor_verificado from public.proposals where id = $1',
+      [mine],
+    );
+    expect([Number(r.base_cents), Number(r.iva_cents), r.request_version, r.pintor_verificado]).toEqual([137275, 31573, 1, false]);
+    await expect(as(P, () => db.query(`update public.proposals set notas = 'x' where id = $1`, [mine]))).rejects.toThrow(/não pode ser alterada/);
+    await expect(addLine(P, mine, 1)).rejects.toThrow(/row-level security/);
+    await addLine(P2, other, 900);
+    await setStatus(P2, other, 'submetida');
+  });
+
+  it('o cliente vê as propostas submetidas, mas não a entidade que as fez', async () => {
+    const rows = await as(A, async () => (await db.query('select id from public.proposals order by submitted_at')).rows);
+    expect(rows).toHaveLength(2);
+    const orgs = await as(A, async () => (await db.query('select id from public.organizations where id = $1', [painterOrg])).rows);
+    expect(orgs).toEqual([]);
+  });
+
+  it('mensagens: cada lado escreve pelo seu, estranhos não leem', async () => {
+    await as(P, () => db.query(`insert into public.proposal_messages (proposal_id, lado, texto) values ($1, 'pintor', 'Há acesso para andaime?')`, [mine]));
+    await as(A, () => db.query(`insert into public.proposal_messages (proposal_id, lado, texto) values ($1, 'cliente', 'Sim, pelo pátio.')`, [mine]));
+    await expect(
+      as(P, () => db.query(`insert into public.proposal_messages (proposal_id, lado, texto) values ($1, 'cliente', 'falso')`, [mine])),
+    ).rejects.toThrow(/row-level security/);
+    const rival = await as(P2, async () => (await db.query('select id from public.proposal_messages where proposal_id = $1', [mine])).rows);
+    expect(rival).toEqual([]);
+    const client = await as(A, async () => (await db.query('select id from public.proposal_messages where request_id = $1', [requestId])).rows);
+    expect(client).toHaveLength(2);
+  });
+
+  it('o pintor não se escolhe a si próprio', async () => {
+    await expect(setStatus(P, mine, 'selecionada')).rejects.toThrow(/Só o cliente/);
+    await expect(as(P, () => db.query('select public.select_proposal($1)', [mine]))).rejects.toThrow(/não encontrada/);
+  });
+
+  it('o cliente escolhe uma: as outras ficam não selecionadas e o pedido fecha', async () => {
+    await as(A, () => db.query('select public.select_proposal($1)', [mine]));
+    const rows = await db.query<{ id: string; status: string }>('select id, status from public.proposals where request_id = $1', [requestId]);
+    expect(Object.fromEntries(rows.rows.map((r) => [r.id, r.status]))).toEqual({ [mine]: 'selecionada', [other]: 'nao_selecionada' });
+    const req = await one<{ status: string }>('select status from public.work_requests where id = $1', [requestId]);
+    expect(req.status).toBe('encerrado');
+    await expect(as(A, () => db.query('select public.select_proposal($1)', [other]))).rejects.toThrow(/submetida/);
+  });
+});

@@ -1,0 +1,152 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import type { FormState } from '@/app/app/actions';
+import { localDate } from '@/domain/deadline';
+import { parseLine, parseTerms, submitBlockers } from '@/domain/proposal';
+import { revealingContent } from '@/domain/request';
+import { CURRENT_RULES } from '@/domain/rules';
+import { toLine, toTerms } from '@/lib/proposals';
+import { getUser } from '@/lib/supabase/server';
+
+const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+const today = () => localDate(new Date(), CURRENT_RULES.timeZone);
+
+export async function createProposal(requestId: string, painterOrgId: string) {
+  const { supabase, user } = await getUser();
+  if (!user) redirect('/entrar');
+  // Validade e duração por omissão; o pintor ajusta antes de submeter.
+  const validade = new Date();
+  validade.setUTCDate(validade.getUTCDate() + 30);
+  await supabase.from('proposals').insert({
+    request_id: requestId,
+    painter_org_id: painterOrgId,
+    created_by: user.id,
+    validade: validade.toISOString().slice(0, 10),
+  });
+  revalidatePath(`/app/oportunidades/${requestId}`);
+}
+
+export async function saveTerms(proposalId: string, requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseTerms(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const v = parsed.value;
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data, error } = await supabase
+    .from('proposals')
+    .update({
+      iva_bps: v.ivaBps,
+      validade: v.validade,
+      inicio_possivel: v.inicioPossivel,
+      duracao_dias: v.duracaoDias,
+      adiantamento_bps: v.adiantamentoBps,
+      preco_ajuste_m2_cents: v.precoAjusteM2,
+      garantia_anos: v.garantiaAnos,
+      exclusoes: v.exclusoes,
+      notas: v.notas,
+    })
+    .eq('id', proposalId)
+    .eq('status', 'rascunho')
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar. Uma proposta submetida tem de voltar a rascunho para ser alterada.' };
+  }
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  return { errors: {}, ok: true, message: 'Guardado.' };
+}
+
+export async function addLine(proposalId: string, requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseLine(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const l = parsed.value;
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.from('proposal_lines').insert({
+    proposal_id: proposalId,
+    categoria: l.categoria,
+    descricao: l.descricao,
+    superficie: l.superficie,
+    quantidade: l.quantidade,
+    unidade: l.unidade,
+    preco_unitario_cents: l.precoUnitario,
+    demaos: l.demaos,
+    produto: l.produto,
+    inclusao: l.inclusao,
+  });
+  if (error) return { errors: {}, message: 'Não foi possível acrescentar a linha.' };
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  return { errors: {}, ok: true, message: 'Linha acrescentada.' };
+}
+
+export async function deleteLine(requestId: string, lineId: string) {
+  const { supabase } = await getUser();
+  await supabase.from('proposal_lines').delete().eq('id', lineId);
+  revalidatePath(`/app/oportunidades/${requestId}`);
+}
+
+export async function submitProposal(proposalId: string, requestId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const [{ data: p }, { data: lines }, { data: listing }] = await Promise.all([
+    supabase.from('proposals').select('*').eq('id', proposalId).maybeSingle(),
+    supabase.from('proposal_lines').select('*').eq('proposal_id', proposalId),
+    supabase.from('request_listings').select('aberto').eq('request_id', requestId).maybeSingle(),
+  ]);
+  if (!p || p.status !== 'rascunho') return { errors: {}, message: 'Só um rascunho pode ser submetido.' };
+  const blockers = submitBlockers({
+    terms: toTerms(p),
+    lines: (lines ?? []).map(toLine),
+    today: today(),
+    requestOpen: listing?.aberto ?? false,
+  });
+  if (blockers.length > 0) return { errors: {}, message: blockers.join(' ') };
+  // A base de dados repete as verificações e fixa a base, a versão do pedido e a verificação.
+  const { error } = await supabase.from('proposals').update({ status: 'submetida' }).eq('id', proposalId);
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  return { errors: {}, ok: true, message: 'Proposta submetida. O cliente vê-a sem saber quem a fez.' };
+}
+
+export async function changeProposalStatus(proposalId: string, requestId: string, status: 'retirada' | 'rascunho') {
+  const { supabase } = await getUser();
+  await supabase.from('proposals').update({ status }).eq('id', proposalId);
+  revalidatePath(`/app/oportunidades/${requestId}`);
+}
+
+export async function sendMessage(
+  proposalId: string,
+  lado: 'cliente' | 'pintor',
+  path: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const texto = String(form.get('texto') ?? '').trim();
+  if (!texto) return { errors: { texto: 'Escreva a mensagem.' } };
+  if (texto.length > 2000) return { errors: { texto: 'No máximo 2000 caracteres.' } };
+  // COM-02: contactos e localização ficam de fora até à apresentação.
+  const revealing = revealingContent(texto);
+  if (revealing.length > 0) {
+    return {
+      errors: {
+        texto: `A mensagem parece conter ${revealing.join(', ')}. Os contactos só são trocados depois da apresentação.`,
+      },
+    };
+  }
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.from('proposal_messages').insert({ proposal_id: proposalId, lado, texto, autor: user.id });
+  if (error) return { errors: {}, message: 'Não foi possível enviar.' };
+  revalidatePath(path);
+  return { errors: {}, ok: true };
+}
+
+export async function chooseProposal(proposalId: string, requestId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.rpc('select_proposal', { p_proposal: proposalId });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`/app/pedidos/${requestId}`);
+  redirect(`/app/pedidos/${requestId}/propostas`);
+}
