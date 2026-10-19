@@ -7,7 +7,9 @@ import { getUser } from '@/lib/supabase/server';
 import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
-import { CreatePromoCode, TogglePromo } from './PromoForms';
+import { CreatePromoCode, SupplierPlanForm, TogglePromo } from './PromoForms';
+import { PLAN_INFO } from '@/domain/subscription';
+import { formatEuros } from '@/domain/money';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 
@@ -27,7 +29,11 @@ export default async function BackofficePage() {
     .select('id, engagement_id, kind, payload, at')
     .eq('payload->>metodo', 'cmd_pdf')
     .eq('payload->>cadeiaConfiavel', 'false');
-  const { data: promos } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+  const [{ data: promos }, { data: suppliers }, { data: subs }] = await Promise.all([
+    supabase.from('promo_codes').select('*').order('created_at', { ascending: false }),
+    supabase.from('organizations').select('id, nome').eq('kind', 'fornecedor').order('nome'),
+    supabase.from('supplier_subscriptions').select('*'),
+  ]);
   const pendingEngagements = (
     await Promise.all((engagements ?? []).map(async (r) => availableActions((await loadReplay(supabase, r)).replay.engagement, 'plataforma').length > 0))
   ).filter(Boolean).length;
@@ -148,6 +154,27 @@ export default async function BackofficePage() {
             })}
           </ul>
         )}
+      </section>
+
+      <section id="subscricoes" className={card}>
+        <h2 className="font-semibold">Subscrições dos fornecedores</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Enquanto o Stripe não está ligado, a equipa ativa o plano aqui depois de receber o pagamento.
+        </p>
+        <ul className="mt-3 space-y-1 text-sm">
+          {(suppliers ?? []).map((s) => {
+            const sub = (subs ?? []).find((x) => x.org_id === s.id);
+            return (
+              <li key={s.id}>
+                <strong>{s.nome}</strong>:{' '}
+                {sub ? `${PLAN_INFO[sub.plan].label} · ${sub.status} · ${formatEuros(sub.price_cents)}/mês + IVA` : 'sem subscrição'}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-4">
+          <SupplierPlanForm suppliers={suppliers ?? []} />
+        </div>
       </section>
 
       <section id="promocoes" className={card}>

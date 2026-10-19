@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
-import { normalizeCode, parseDiscountPercent } from '@/domain/promo';
+import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
+import { SUPPLIER_PLANS, monthlyPrice, type SupplierPlan } from '@/domain/subscription';
 
 export async function reportListing(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const motivo = String(form.get('motivo') ?? '').trim();
@@ -65,4 +66,44 @@ export async function setPromoActive(id: string, active: boolean, ...[]: [FormSt
   if (error) return { errors: {}, message: 'Não foi possível alterar o código.' };
   revalidatePath('/app/backoffice');
   return { errors: {}, ok: true };
+}
+
+export async function setSupplierPlan(_prev: FormState, form: FormData): Promise<FormState> {
+  const orgId = String(form.get('fornecedor') ?? '');
+  const plan = String(form.get('plano') ?? '');
+  const code = String(form.get('codigo') ?? '').trim();
+  if (!orgId) return { errors: { fornecedor: 'Escolha o fornecedor.' } };
+  const { supabase } = await getUser();
+  if (plan === 'cancelar') {
+    const { error } = await supabase.from('supplier_subscriptions').update({ status: 'cancelada', updated_at: new Date().toISOString() }).eq('org_id', orgId);
+    if (error) return { errors: {}, message: 'Não foi possível cancelar.' };
+    revalidatePath('/app/backoffice');
+    return { errors: {}, ok: true, message: 'Subscrição cancelada.' };
+  }
+  if (!(SUPPLIER_PLANS as readonly string[]).includes(plan)) return { errors: { plano: 'Plano inválido.' } };
+  let promo: { id: string; discount_bps: number; uses: number } | null = null;
+  if (code) {
+    const normalized = normalizeCode(code);
+    const { data } = normalized ? await supabase.from('promo_codes').select('*').eq('code', normalized).maybeSingle() : { data: null };
+    const today = new Date().toISOString().slice(0, 10);
+    const blocker = data
+      ? promoBlocker({ code: data.code, discountBps: data.discount_bps, validUntil: data.valid_until, maxUses: data.max_uses, uses: data.uses, active: data.active }, today)
+      : 'Código inexistente.';
+    if (blocker) return { errors: { codigo: blocker } };
+    promo = data!;
+  }
+  const p = plan as SupplierPlan;
+  const { error } = await supabase.from('supplier_subscriptions').upsert({
+    org_id: orgId,
+    plan: p,
+    status: 'ativa',
+    price_cents: monthlyPrice(p, promo?.discount_bps ?? 0),
+    promo_code_id: promo?.id ?? null,
+    discount_bps: promo?.discount_bps ?? 0,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { errors: {}, message: 'Não foi possível ativar o plano.' };
+  if (promo) await supabase.from('promo_codes').update({ uses: promo.uses + 1 }).eq('id', promo.id);
+  revalidatePath('/app/backoffice');
+  return { errors: {}, ok: true, message: 'Plano ativo.' };
 }

@@ -54,6 +54,13 @@ describe('descontos e entregas dos fornecedores', () => {
     expect(bestDiscount({ id: 'p3', tipo: 'primario' }, 50000, '2025-12-01', rules)?.id).toBe('d');
   });
 
+  it('um desconto por cliente só vale para esse pintor', () => {
+    const vip = [...rules, rule({ id: 'v', tipo: 'tinta_exterior', bps: 2500, painterOrgId: 'P1' })];
+    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, 'P1')?.id).toBe('v');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', vip, 'P2')?.id).toBe('a');
+    expect(bestDiscount(tinta, 50000, '2026-10-19', vip)?.id).toBe('a');
+  });
+
   it('desconto ao cêntimo', () => {
     expect(discounted(8990, 1000)).toBe(8091);
     expect(discounted(8990, 0)).toBe(8990);

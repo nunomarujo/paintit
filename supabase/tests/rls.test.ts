@@ -771,6 +771,17 @@ describe('catálogo de fornecedores', () => {
     supplier = (await createOrg(F, 'fornecedor', 'Tintas Exemplo', '503004642')).id;
   });
 
+  it('sem plano de catálogo ativo, o fornecedor não cria produtos', async () => {
+    await expect(product(F, supplier)).rejects.toThrow(/row-level security/);
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'catalogo', 4900)`, [supplier])),
+    ).rejects.toThrow(/row-level security/);
+    await as(ADMIN, () => db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'vendedores', 4400)`, [supplier]));
+    await expect(product(F, supplier)).rejects.toThrow(/row-level security/);
+    await as(ADMIN, () => db.query(`update public.supplier_subscriptions set plan = 'catalogo', price_cents = 4900 where org_id = $1`, [supplier]));
+    expect((await as(F, () => db.query('select plan from public.supplier_subscriptions'))).rows).toEqual([{ plan: 'catalogo' }]);
+  });
+
   it('só um fornecedor cria produtos, e só para si', async () => {
     await expect(product(A, condo)).rejects.toThrow(/row-level security/);
     await expect(product(B, supplier)).rejects.toThrow(/row-level security/);
@@ -904,6 +915,7 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
 
   it('o desconto de um produto tem de ser do próprio fornecedor', async () => {
     const other = (await createOrg(F, 'fornecedor', 'Tintas Dois', '504426290')).id;
+    await db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'catalogo', 4900)`, [other]);
     await expect(
       as(F, () => db.query(`insert into public.supplier_discounts (org_id, product_id, desconto_bps) values ($1, $2, 500)`, [other, productId])),
     ).rejects.toThrow(/foreign key/);
@@ -1046,5 +1058,21 @@ describe('códigos promocionais dos fornecedores', () => {
     expect(await check(A)).toBeNull();
     await db.query(`update public.promo_codes set uses = 1 where code = 'ARRANQUE'`);
     expect(await check(F)).toBeNull();
+  });
+});
+
+describe('subscrições e descontos por cliente', () => {
+  it('lista de fornecedores ativos e desconto visível só ao cliente escolhido', async () => {
+    const supplier = (await one<{ id: string }>(`select id from public.organizations where nome = 'Tintas Exemplo'`)).id;
+    const active = await as(A, async () => (await db.query<{ s: string }>(`select public.active_suppliers('catalogo') s`)).rows.map((r) => r.s));
+    expect(active).toContain(supplier);
+    const painter = (await one<{ id: string }>(`select id from public.organizations where kind = 'pintor' order by created_at limit 1`)).id;
+    await db.query(`insert into public.supplier_discounts (org_id, painter_org_id, desconto_bps, created_by) values ($1, $2, 2500, $3)`, [
+      supplier,
+      painter,
+      '00000000-0000-4000-8000-0000000000f1',
+    ]);
+    const seen = await as(A, async () => (await db.query(`select id from public.supplier_discounts where painter_org_id is not null`)).rows);
+    expect(seen).toHaveLength(0);
   });
 });

@@ -12,7 +12,15 @@ const msg = (s: FormState) => {
   return m ? <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 };
 
-export function DiscountForm({ orgId, products }: { orgId: string; products: { id: string; label: string }[] }) {
+export function DiscountForm({
+  orgId,
+  products,
+  painters,
+}: {
+  orgId: string;
+  products: { id: string; label: string }[];
+  painters: { id: string; nome: string }[];
+}) {
   const { state, pending, formProps } = useFormAction<FormState>(addDiscount.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
   return (
@@ -42,6 +50,16 @@ export function DiscountForm({ orgId, products }: { orgId: string; products: { i
         <Field name="validoAte" label="Válido até" type="date" error={e.validoAte} />
         <Field name="minArea" label="Obras a partir de (m²)" error={e.minArea} hint="Vazio = sem mínimo." />
         <Field name="maxArea" label="Obras até (m²)" error={e.maxArea} hint="Vazio = sem máximo." />
+        <Field name="cliente" label="Só para o cliente" error={e.cliente} hint="Pintores que já lhe encomendaram. Vazio = todos.">
+          <select name="cliente" defaultValue="" className={selectClass}>
+            <option value="">Todos os pintores</option>
+            {painters.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
       <p className="text-xs text-slate-500">
         Crie escalões com várias regras (ex.: até 1000 m² 10%, acima de 1000 m² 15%). O pintor vê o melhor desconto para a

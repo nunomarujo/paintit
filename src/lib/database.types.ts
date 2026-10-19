@@ -508,6 +508,7 @@ export type Database = {
           max_area_cm2: number | null;
           min_area_cm2: number | null;
           org_id: string;
+          painter_org_id: string | null;
           product_id: string | null;
           tipo: ProductType | null;
           valido_ate: string | null;
@@ -518,11 +519,18 @@ export type Database = {
           max_area_cm2?: number | null;
           min_area_cm2?: number | null;
           org_id: string;
+          painter_org_id?: string | null;
           product_id?: string | null;
           tipo?: ProductType | null;
           valido_ate?: string | null;
         };
         Update: Partial<Database['public']['Tables']['supplier_discounts']['Insert']>;
+        Relationships: [];
+      };
+      supplier_subscriptions: {
+        Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
+        Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };
+        Update: Partial<Database['public']['Tables']['supplier_subscriptions']['Insert']>;
         Relationships: [];
       };
       supplier_delivery: {
@@ -963,6 +971,7 @@ export type Database = {
     Functions: {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      active_suppliers: { Args: { p_plan: string }; Returns: string[] };
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };

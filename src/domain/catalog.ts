@@ -171,6 +171,8 @@ export interface DiscountRule {
   maxArea: AreaCm2 | null;
   bps: number;
   validUntil: string | null; // AAAA-MM-DD
+  /** Desconto só para este cliente (pintor); null para todos. */
+  painterOrgId?: string | null;
 }
 
 export function bestDiscount(
@@ -178,9 +180,11 @@ export function bestDiscount(
   area: AreaCm2,
   today: string,
   rules: DiscountRule[],
+  painterOrgId: string | null = null,
 ): DiscountRule | null {
   const applicable = rules.filter(
     (r) =>
+      (!r.painterOrgId || r.painterOrgId === painterOrgId) &&
       (r.productId === null || r.productId === product.id) &&
       (r.tipo === null || r.tipo === product.tipo) &&
       (r.minArea === null || area >= r.minArea) &&

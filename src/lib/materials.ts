@@ -34,16 +34,18 @@ export interface MaterialOption {
  */
 export async function materialOptions(
   supabase: SupabaseClient<Database>,
-  obra: { area: number; concelho: string; today: string },
+  obra: { area: number; concelho: string; today: string; painterOrgId?: string | null },
 ): Promise<MaterialOption[]> {
-  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: suppliers }, { data: reviews }] = await Promise.all([
+  const [{ data: products }, { data: active }, { data: discounts }, { data: deliveries }, { data: suppliers }, { data: reviews }] = await Promise.all([
     supabase.from('products').select('*').eq('ativo', true).limit(500),
+    supabase.rpc('active_suppliers', { p_plan: 'catalogo' }),
     supabase.from('supplier_discounts').select('*'),
     supabase.from('supplier_delivery').select('*'),
     supabase.from('organizations').select('id, nome, email_contacto, telefone').eq('kind', 'fornecedor'),
     supabase.from('supplier_reviews').select('supplier_org_id, produto, entrega, atendimento'),
   ]);
-  const options = (products ?? []).map((p): [number, MaterialOption] => {
+  const withPlan = new Set(active ?? []);
+  const options = (products ?? []).filter((p) => withPlan.has(p.org_id)).map((p): [number, MaterialOption] => {
     const rules: DiscountRule[] = (discounts ?? [])
       .filter((d) => d.org_id === p.org_id)
       .map((d) => ({
@@ -54,8 +56,9 @@ export async function materialOptions(
         maxArea: d.max_area_cm2,
         bps: d.desconto_bps,
         validUntil: d.valido_ate,
+        painterOrgId: d.painter_org_id,
       }));
-    const d = bestDiscount(p, obra.area, obra.today, rules);
+    const d = bestDiscount(p, obra.area, obra.today, rules, obra.painterOrgId ?? null);
     const preco = p.preco_fornecedor_cents;
     const final = preco !== null ? discounted(preco, d?.bps ?? 0) : null;
     const q = deliveryFor(
@@ -105,7 +108,11 @@ export async function materialOptions(
 }
 
 /** Desconto e preço fixados numa linha, recalculados no servidor (nunca confiar no navegador). */
-export async function pricedProduct(supabase: SupabaseClient<Database>, productId: string, obra: { area: number; today: string }) {
+export async function pricedProduct(
+  supabase: SupabaseClient<Database>,
+  productId: string,
+  obra: { area: number; today: string; painterOrgId?: string | null },
+) {
   const { data: p } = await supabase.from('products').select('*').eq('id', productId).eq('ativo', true).maybeSingle();
   if (!p) return null;
   const { data: discounts } = await supabase.from('supplier_discounts').select('*').eq('org_id', p.org_id);
@@ -121,7 +128,9 @@ export async function pricedProduct(supabase: SupabaseClient<Database>, productI
       maxArea: x.max_area_cm2,
       bps: x.desconto_bps,
       validUntil: x.valido_ate,
+      painterOrgId: x.painter_org_id,
     })),
+    obra.painterOrgId ?? null,
   );
   return { label: productLabel(p), precoFornecedor: p.preco_fornecedor_cents, descontoBps: d?.bps ?? 0 };
 }

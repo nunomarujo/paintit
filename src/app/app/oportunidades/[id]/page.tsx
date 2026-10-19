@@ -84,6 +84,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           area: listing.area_total_cm2,
           concelho: listing.concelho,
           today: localDate(new Date(), CURRENT_RULES.timeZone),
+          painterOrgId: org.id,
         })
       : [];
   const { data: engagement } =

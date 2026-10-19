@@ -69,7 +69,12 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
   let material: { product_id: string; preco_fornecedor_cents: number | null; desconto_bps: number; produto: string } | null = null;
   if (productId) {
     const { data: listing } = await supabase.from('request_listings').select('area_total_cm2').eq('request_id', requestId).maybeSingle();
-    const priced = await pricedProduct(supabase, productId, { area: listing?.area_total_cm2 ?? 0, today: today() });
+    const { data: own } = await supabase.from('proposals').select('painter_org_id').eq('id', proposalId).maybeSingle();
+    const priced = await pricedProduct(supabase, productId, {
+      area: listing?.area_total_cm2 ?? 0,
+      today: today(),
+      painterOrgId: own?.painter_org_id ?? null,
+    });
     if (!priced) return { errors: {}, message: 'Esse produto já não está no catálogo.' };
     material = { product_id: productId, preco_fornecedor_cents: priced.precoFornecedor, desconto_bps: priced.descontoBps, produto: priced.label };
   }

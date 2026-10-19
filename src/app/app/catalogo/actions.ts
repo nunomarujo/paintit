@@ -76,7 +76,14 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
   if (tipo && !(PRODUCT_TYPES as readonly string[]).includes(tipo)) return { errors: { alvo: 'Tipo inválido.' } };
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
+  // O cliente vem do navegador: confirmar que é um pintor.
+  const cliente = get('cliente') || null;
+  if (cliente) {
+    const { data: painter } = await supabase.from('organizations').select('id').eq('id', cliente).eq('kind', 'pintor').maybeSingle();
+    if (!painter) return { errors: { cliente: 'Cliente inválido.' } };
+  }
   const { error } = await supabase.from('supplier_discounts').insert({
+    painter_org_id: cliente,
     org_id: orgId,
     product_id: alvo.startsWith('produto:') ? alvo.slice(8) : null,
     tipo: tipo as ProductType | null,
@@ -86,7 +93,7 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
     valido_ate: get('validoAte') || null,
     created_by: user.id,
   });
-  if (error) return { errors: {}, message: 'Não foi possível guardar o desconto.' };
+  if (error) return { errors: {}, message: 'Não foi possível guardar o desconto. Os descontos precisam do plano de catálogo ativo.' };
   revalidatePath(`/app/organizacoes/${orgId}/produtos`);
   return { errors: {}, ok: true, message: 'Desconto criado.' };
 }

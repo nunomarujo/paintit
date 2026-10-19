@@ -78,11 +78,19 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 ## 20/10/2026 — pagamentos, caução e fornecedores (decisão do promotor)
 
 - **Parceiro de pagamentos: Stripe Connect.**
-- **Caução do cliente: 3% sem mínimo** (regras `2026-10-20`). O mínimo de 150 € fica só na comissão do pintor.
+- **Caução do cliente: 3% com mínimo de 150 €**, como a comissão (corrigido pelo promotor no mesmo dia: a caução garante contra a desistência fraudulenta e o contorno da plataforma). A versão `2026-10-20` tem os mesmos valores da de 19/10.
 - **Prazo de 8 dias** para o cliente assinar depois da apresentação: confirmado.
 - **Fornecedores:** a plataforma não recebe nada pelas transações. Os fornecedores pagam uma subscrição para
   estarem no catálogo. O backoffice cria códigos promocionais de 1% a 100% de desconto (`promo_codes`). O
   fornecedor confirma um código por `check_promo_code` (é `security definer` de propósito: só devolve o
-  desconto de um código válido a quem pertence a um fornecedor). O preço da subscrição e a cobrança (Stripe
-  Billing) ficam por definir.
+  desconto de um código válido a quem pertence a um fornecedor). Cobrança pelo Stripe Billing, ainda por ligar.
 - Domínio e email: o promotor indica mais tarde.
+
+## 20/10/2026 — planos dos fornecedores
+
+- **Listagem de vendedores:** 44 €/mês + IVA.
+- **Catálogo de produtos:** 49 €/mês + IVA. Inclui a listagem, produtos editáveis um a um e descontos por perfil
+  de compra (produto ou tipo, área da obra, e por cliente: só pintores que já encomendaram ao fornecedor).
+- Sem plano de catálogo ativo, o fornecedor não cria produtos nem descontos e os produtos deixam de ser sugeridos
+  (continuam legíveis nas propostas antigas). Até o Stripe estar ligado, a equipa ativa o plano no backoffice,
+  com código promocional opcional. Migração `subscricao_fornecedores`.

@@ -9,6 +9,7 @@ import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
 import { DeliveryForm, DiscountForm } from './SupplierRules';
+import { PLAN_INFO, planAllows, withVat } from '@/domain/subscription';
 
 export default async function SupplierProductsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,11 +17,16 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const [{ data: products }, { data: discounts }, { data: deliveries }] = await Promise.all([
+  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: sub }, { data: painters }] = await Promise.all([
     supabase.from('products').select('*').eq('org_id', id).order('marca').order('nome'),
     supabase.from('supplier_discounts').select('*').eq('org_id', id).order('created_at'),
     supabase.from('supplier_delivery').select('*').eq('org_id', id).order('created_at'),
+    supabase.from('supplier_subscriptions').select('*').eq('org_id', id).maybeSingle(),
+    supabase.from('organizations').select('id, nome').eq('kind', 'pintor').order('nome'),
   ]);
+  const plan = sub?.status === 'ativa' ? sub.plan : null;
+  const catalogo = planAllows(plan, 'catalogo');
+  const painterName = (pid: string) => (painters ?? []).find((p) => p.id === pid)?.nome ?? 'cliente';
   const productName = (pid: string | null) => {
     const p = (products ?? []).find((x) => x.id === pid);
     return p ? productLabel(p) : '';
@@ -39,7 +45,33 @@ export default async function SupplierProductsPage({ params }: { params: Promise
           desative-o.
         </p>
       </div>
-      {manager && (
+      <section className={`rounded-2xl border p-6 text-sm ${plan ? 'border-slate-200 bg-white' : 'border-amber-300 bg-amber-50'}`}>
+        <h2 className="font-semibold">Subscrição</h2>
+        <p className="mt-1">
+          {plan
+            ? `Plano ativo: ${PLAN_INFO[plan].label}, ${formatEuros(sub!.price_cents)} por mês mais IVA (${formatEuros(withVat(sub!.price_cents))}).`
+            : 'Sem plano ativo: a empresa não aparece aos pintores.'}
+        </p>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+          {(['vendedores', 'catalogo'] as const).map((p) => (
+            <li key={p} className={`rounded-xl border p-4 ${plan === p ? 'border-tinta-600' : 'border-slate-200'}`}>
+              <p className="font-semibold">
+                {PLAN_INFO[p].label} · {formatEuros(PLAN_INFO[p].monthlyCents)}/mês + IVA
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-slate-600">
+                {PLAN_INFO[p].features.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-slate-500">
+          A plataforma não recebe nada dos fornecedores pelas vendas; só esta mensalidade. Para ativar ou mudar de plano
+          (com código promocional, se tiver), contacte a equipa da plataforma enquanto o pagamento online não está ligado.
+        </p>
+      </section>
+      {manager && catalogo && (
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <ProductForm orgId={id} />
         </section>
@@ -58,6 +90,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
                   {d.min_area_cm2 !== null ? ` · a partir de ${formatArea(d.min_area_cm2)}` : ''}
                   {d.max_area_cm2 !== null ? ` · até ${formatArea(d.max_area_cm2)}` : ''}
                   {d.valido_ate ? ` · até ${d.valido_ate.split('-').reverse().join('/')}` : ''}
+                  {d.painter_org_id ? ` · só para ${painterName(d.painter_org_id)}` : ''}
                 </span>
                 {manager && (
                   <form action={deleteDiscount.bind(null, id, d.id)}>
@@ -70,9 +103,13 @@ export default async function SupplierProductsPage({ params }: { params: Promise
             ))}
           </ul>
         )}
-        {manager && (
+        {manager && catalogo && (
           <div className="mt-6 border-t border-slate-100 pt-6">
-            <DiscountForm orgId={id} products={(products ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, label: productLabel(p) }))} />
+            <DiscountForm
+              orgId={id}
+              products={(products ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, label: productLabel(p) }))}
+              painters={painters ?? []}
+            />
           </div>
         )}
       </section>

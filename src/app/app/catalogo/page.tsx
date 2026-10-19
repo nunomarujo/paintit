@@ -16,7 +16,9 @@ export default async function CatalogPage({
   if (tipo && (PRODUCT_TYPES as readonly string[]).includes(tipo)) query = query.eq('tipo', tipo as ProductType);
   const term = (q ?? '').trim().replace(/[%,()]/g, '');
   if (term) query = query.or(`nome.ilike.%${term}%,marca.ilike.%${term}%,referencia.ilike.%${term}%`);
-  const { data: products } = await query;
+  const [{ data: all }, { data: active }] = await Promise.all([query, supabase.rpc('active_suppliers', { p_plan: 'catalogo' })]);
+  const withPlan = new Set(active ?? []);
+  const products = (all ?? []).filter((p) => withPlan.has(p.org_id));
   const areaCm2 = parseHundredths(area ?? null);
   const coats = Math.max(1, Math.min(5, Number(demaos) || 2));
   const field = 'mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2';
