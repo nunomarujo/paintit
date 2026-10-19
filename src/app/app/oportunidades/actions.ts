@@ -123,6 +123,8 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
 }
 
 export async function changeProposalStatus(proposalId: string, requestId: string, status: 'retirada' | 'rascunho') {
+  // Submeter passa sempre por submitProposal (filtro de contactos).
+  if (status !== 'retirada' && status !== 'rascunho') return;
   const { supabase } = await getUser();
   await supabase.from('proposals').update({ status }).eq('id', proposalId);
   revalidatePath(`/app/oportunidades/${requestId}`);

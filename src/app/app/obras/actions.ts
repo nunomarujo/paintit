@@ -55,6 +55,7 @@ export async function setPhaseState(engagementId: string, phaseId: string, estad
 }
 
 export async function addEntry(engagementId: string, tipo: 'custo' | 'tranche' | 'horas', _prev: FormState, form: FormData): Promise<FormState> {
+  if (!['custo', 'tranche', 'horas'].includes(tipo)) return { errors: {}, message: 'Tipo inválido.' };
   const descricao = String(form.get('descricao') ?? '').trim().slice(0, 500);
   const data = date(form.get('data')) ?? new Date().toISOString().slice(0, 10);
   const { supabase } = await getUser();
@@ -92,7 +93,11 @@ export async function markTrancheReceived(engagementId: string, entryId: string)
   revalidatePath(path(engagementId));
 }
 
-export async function deleteWorksiteRow(engagementId: string, table: 'worksite_members' | 'worksite_phases' | 'worksite_entries', id: string) {
+const WORKSITE_TABLES = ['worksite_members', 'worksite_phases', 'worksite_entries'] as const;
+
+export async function deleteWorksiteRow(engagementId: string, table: (typeof WORKSITE_TABLES)[number], id: string) {
+  // Os argumentos ligados (.bind) vêm do navegador: confirmar a tabela no servidor.
+  if (!(WORKSITE_TABLES as readonly string[]).includes(table)) return;
   const { supabase } = await getUser();
   await supabase.from(table).delete().eq('id', id);
   revalidatePath(path(engagementId));
@@ -116,6 +121,7 @@ export async function orderMaterial(engagementId: string, productId: string, _pr
 }
 
 export async function setOrderState(orderId: string, estado: 'confirmada' | 'entregue' | 'cancelada', back: string) {
+  if (!['confirmada', 'entregue', 'cancelada'].includes(estado) || !back.startsWith('/app/')) return;
   const { supabase } = await getUser();
   await supabase.from('material_orders').update({ estado }).eq('id', orderId);
   revalidatePath(back);

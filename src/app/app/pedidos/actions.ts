@@ -117,6 +117,8 @@ export async function publishRequest(requestId: string): Promise<FormState> {
 }
 
 export async function changeRequestStatus(requestId: string, status: 'rascunho' | 'encerrado' | 'cancelado') {
+  // Os argumentos ligados vêm do navegador; publicar passa sempre por publishRequest.
+  if (!['rascunho', 'encerrado', 'cancelado'].includes(status)) return;
   const { supabase } = await getUser();
   await supabase.from('work_requests').update({ status }).eq('id', requestId);
   revalidatePath(`/app/pedidos/${requestId}`);

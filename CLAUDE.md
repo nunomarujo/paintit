@@ -66,3 +66,5 @@ npm run build
    foi enviado para o repositório remoto.
 9. **Formulários com `useFormAction`** (`src/components/useFormAction.ts`), nunca `<form action={…}>` com
    `useActionState`: o React 19 apaga todos os campos depois de cada envio, mesmo quando a resposta é um erro.
+10. **Argumentos ligados (`.bind`) das server actions vêm do navegador** e podem ser alterados: valide no servidor
+    qualquer estado, tipo ou nome de tabela que chegue assim. Identificadores ficam protegidos pelas políticas RLS.

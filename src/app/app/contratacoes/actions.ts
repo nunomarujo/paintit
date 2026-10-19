@@ -60,6 +60,9 @@ async function record(
 }
 
 export async function partyAction(engagementId: string, kind: PartyKind, _prev: FormState, form: FormData): Promise<FormState> {
+  if (!['cliente_assinou', 'cliente_desistiu', 'pintor_assinou', 'litigio_aberto', 'encerrar_sem_contrato'].includes(kind)) {
+    return { errors: {}, message: 'Ação inválida.' };
+  }
   if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
     // A assinatura exige o PDF assinado com Chave Móvel Digital. A aceitação simples
     // só existe para testes, com PERMITIR_ACEITACAO_SIMPLES=1 no ambiente.
@@ -105,6 +108,7 @@ export async function platformAction(
   _prev: FormState,
   form: FormData,
 ): Promise<FormState> {
+  if (!['deposito_confirmado', 'fee_recebido', 'litigio_resolvido'].includes(kind)) return { errors: {}, message: 'Ação inválida.' };
   let amount: number | null = null;
   if (kind !== 'litigio_resolvido') {
     amount = parseHundredths(form.get('montante'));
@@ -137,6 +141,7 @@ const MAX_PDF = 20 * 1024 * 1024;
  * que acrescenta uma assinatura sobre o ficheiro inteiro e que ela é válida.
  */
 export async function signWithPdf(engagementId: string, side: 'cliente' | 'pintor', _prev: FormState, form: FormData): Promise<FormState> {
+  if (side !== 'cliente' && side !== 'pintor') return { errors: {}, message: 'Ação inválida.' };
   const file = form.get('pdf');
   if (!(file instanceof File) || file.size === 0) return { errors: { pdf: 'Escolha o PDF assinado.' } };
   if (file.size > MAX_PDF) return { errors: { pdf: 'O PDF tem mais de 20 MB.' } };
