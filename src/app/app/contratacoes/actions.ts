@@ -12,7 +12,8 @@ import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { isPlatformAdmin } from '@/lib/access';
 import { contractPdfFor, loadDraft, loadReplay, signedPdf } from '@/lib/engagements';
-import { verifyLastSignature } from '@/lib/pades';
+import { verifySignature } from '@/lib/pades';
+import { findSignatures } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { checkSignedPdf } from '@/domain/signature';
 import { getUser } from '@/lib/supabase/server';
@@ -159,8 +160,18 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
   const check = checkSignedPdf(uploaded, expected);
   if (!check.ok) return { errors: { pdf: check.reason } };
-  const signer = await verifyLastSignature(uploaded);
-  if (!signer.valid) return { errors: { pdf: `A assinatura não é válida${signer.reason ? ` (${signer.reason})` : ''}.` } };
+  // Todas as assinaturas acrescentadas (uma pessoa, ou vários representantes que obrigam em conjunto).
+  const total = findSignatures(uploaded).length;
+  const signers = await Promise.all(
+    Array.from({ length: check.newSignatures }, (_, i) => verifySignature(uploaded, total - check.newSignatures + i)),
+  );
+  const invalid = signers.find((x) => !x.valid);
+  if (invalid) return { errors: { pdf: `Uma assinatura não é válida${invalid.reason ? ` (${invalid.reason})` : ''}.` } };
+  const signer = {
+    name: signers.map((x) => x.name ?? 'titular do certificado').join(' e '),
+    serialNumber: signers.map((x) => x.serialNumber ?? '—').join(', '),
+    trusted: signers.every((x) => x.trusted),
+  };
 
   const up = await supabase.storage.from('contratos').upload(`${engagementId}/${side}.pdf`, uploaded, { contentType: 'application/pdf' });
   if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado (já tinha sido carregado?).' };

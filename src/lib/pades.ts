@@ -29,8 +29,13 @@ const attr = (name: pkijs.RelativeDistinguishedNames, oid: string) =>
   (name.typesAndValues.find((t) => t.type === oid)?.value.valueBlock as { value?: string } | undefined)?.value ?? null;
 
 export async function verifyLastSignature(pdf: Uint8Array): Promise<SignerInfo> {
+  return verifySignature(pdf, findSignatures(pdf).length - 1);
+}
+
+/** Verifica a assinatura n.º `index` (pela ordem no ficheiro). */
+export async function verifySignature(pdf: Uint8Array, index: number): Promise<SignerInfo> {
   const sigs = findSignatures(pdf);
-  const sig = sigs[sigs.length - 1];
+  const sig = sigs[index];
   if (!sig) return { valid: false, trusted: false, name: null, serialNumber: null, issuer: null, signedAt: null, reason: 'Sem assinatura.' };
   try {
     const der = hexToBytes(sig.contentsHex);

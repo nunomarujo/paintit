@@ -1,7 +1,7 @@
 import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
 import { describe, expect, it } from 'vitest';
-import { checkSignedPdf, findSignatures } from '@/domain/signature';
+import { checkIncrement, checkSignedPdf, findSignatures } from '@/domain/signature';
 import { validateChain, verifyLastSignature } from './pades';
 
 // Constrói um PDF "assinado" como a Autenticação.gov faz: acrescenta ao fim um
@@ -93,6 +93,8 @@ describe('PDF assinado (PAdES)', () => {
     const client = await testCertificate('MARIA SILVA');
     const signed = await signPdf(ORIGINAL, client);
     expect(checkSignedPdf(signed, ORIGINAL)).toEqual({ ok: true, newSignatures: 1 });
+    const two = await signPdf(signed, await testCertificate('JOSE GERENTE'));
+    expect(checkSignedPdf(two, ORIGINAL)).toEqual({ ok: true, newSignatures: 2 });
     const v = await verifyLastSignature(signed);
     expect(v).toMatchObject({ valid: true, name: 'MARIA SILVA', serialNumber: 'BI12345678', signedAt: '2026-10-19T10:00:00.000Z' });
   }, 30_000);
@@ -176,4 +178,25 @@ describe('cadeia de confiança', () => {
     expect((await validateChain(leaf, [], at)).trusted).toBe(false);
     expect((await validateChain(leaf, [], new Date('2031-01-01'), [ca.cert])).trusted).toBe(false);
   }, 30_000);
+});
+
+describe('o que a assinatura acrescenta ao PDF', () => {
+  const page = '\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n';
+  const base = enc.encode('%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj' + page + 'trailer\n%%EOF\n');
+  const add = (s: string) => new Uint8Array([...base, ...enc.encode(s)]);
+
+  it('aceita o widget e a aparência da assinatura', () => {
+    const ok = add('\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Annots [10 0 R] >>\nendobj\n10 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Sig /V 9 0 R /Rect [0 0 0 0] >>\nendobj\n11 0 obj\n<< /Type /XObject /Subtype /Form /Length 0 >>\nstream\n\nendstream\nendobj\n');
+    expect(checkIncrement(base, ok)).toEqual({ ok: true });
+  });
+
+  it('recusa novo conteúdo de página, páginas novas, anotações, campos e JavaScript', () => {
+    expect(checkIncrement(base, add('\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 12 0 R >>\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n13 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n14 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [0 0 9 9] /Contents (preço: 1 €) >>\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n15 0 obj\n<< /FT /Tx /V (outro valor) /Rect [0 0 9 9] >>\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction << /S /JavaScript /JS (x) >> >>\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n16 0 obj\n<< /Type /ObjStm /N 1 /First 4 >>\nstream\nx\nendstream\nendobj\n')).ok).toBe(false);
+    expect(checkIncrement(base, add('\n2 0 obj\n<< /Type /Pages /Kids [3 0 R 13 0 R] /Count 2 >>\nendobj\n')).ok).toBe(false);
+  });
 });

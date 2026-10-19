@@ -66,7 +66,7 @@ export function hexToBytes(hex: string): Uint8Array {
 }
 
 export type SignatureCheck =
-  | { ok: true; newSignatures: number }
+  | { ok: true; /** Assinaturas acrescentadas (ex.: dois gerentes que obrigam a sociedade). */ newSignatures: number }
   | { ok: false; reason: string };
 
 /**
@@ -82,9 +82,74 @@ export function checkSignedPdf(signed: Uint8Array, expected: Uint8Array): Signat
   const after = findSignatures(signed);
   const added = after.length - before;
   if (added < 1) return { ok: false, reason: 'O PDF não tem uma assinatura nova. Assine-o na aplicação Autenticação.gov.' };
-  if (added > 1) return { ok: false, reason: 'O PDF tem mais do que uma assinatura nova.' };
   if (!coversWholeFile(after[after.length - 1]!, signed.length)) {
     return { ok: false, reason: 'A assinatura não cobre o documento inteiro.' };
   }
+  const increment = checkIncrement(expected, signed);
+  if (!increment.ok) return increment;
   return { ok: true, newSignatures: added };
+}
+
+// --- O que a assinatura acrescentou ----------------------------------------------
+// Uma atualização incremental pode, além da assinatura, mudar o que o PDF mostra
+// (outro conteúdo de página, anotações, campos de formulário, JavaScript). O
+// acrescento só é aceite se contiver o que uma assinatura precisa: o dicionário
+// de assinatura, o campo e o widget da assinatura, a aparência do widget, o
+// catálogo/AcroForm atualizados, dados de validação (DSS) e as tabelas xref.
+
+interface PdfObject {
+  id: string; // "12 0"
+  body: string;
+}
+
+function objects(text: string): PdfObject[] {
+  const out: PdfObject[] = [];
+  const re = /(\d+)\s+(\d+)\s+obj\b([\s\S]*?)\bendobj/g;
+  for (let m = re.exec(text); m; m = re.exec(text)) out.push({ id: `${m[1]} ${m[2]}`, body: m[3]! });
+  return out;
+}
+
+/** Última definição de cada objeto (as atualizações incrementais redefinem objetos). */
+function latest(text: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const o of objects(text)) map.set(o.id, o.body);
+  return map;
+}
+
+const dictOnly = (body: string) => body.split(/\bstream\b/)[0]!;
+const contentsRef = (body: string) => /\/Contents\s*(\[[^\]]*\]|\d+\s+\d+\s+R)/.exec(dictOnly(body))?.[1]?.replace(/\s+/g, ' ') ?? null;
+const pagesRef = (body: string) => /\/Pages\s+(\d+\s+\d+\s+R)/.exec(dictOnly(body))?.[1] ?? null;
+
+export function checkIncrement(original: Uint8Array, signed: Uint8Array): { ok: true } | { ok: false; reason: string } {
+  const before = latest(latin1(original));
+  const added = objects(latin1(signed.subarray(original.length)));
+  for (const o of added) {
+    const d = dictOnly(o.body);
+    const prev = before.get(o.id);
+    if (/\/Type\s*\/ObjStm\b/.test(d)) {
+      // Objetos comprimidos não se conseguem inspecionar aqui: recusar até haver um caso real a validar.
+      return { ok: false, reason: 'O PDF assinado usa objetos comprimidos que não conseguimos verificar. Contacte a equipa da plataforma.' };
+    }
+    if (/\/(JavaScript|JS|OpenAction|AA|Launch|EmbeddedFile)\b/.test(d)) {
+      return { ok: false, reason: 'O PDF assinado acrescenta ações ou ficheiros que não são permitidos.' };
+    }
+    if (/\/Type\s*\/Page\b/.test(d)) {
+      if (!prev) return { ok: false, reason: 'O PDF assinado acrescenta páginas ao contrato.' };
+      if (contentsRef(d) !== contentsRef(prev)) return { ok: false, reason: 'O PDF assinado altera o conteúdo de uma página.' };
+      continue;
+    }
+    if (/\/Type\s*\/Catalog\b/.test(d) && prev && pagesRef(d) !== pagesRef(prev)) {
+      return { ok: false, reason: 'O PDF assinado altera a estrutura de páginas.' };
+    }
+    if (/\/Type\s*\/Pages\b/.test(d) && prev && d.replace(/\s+/g, ' ') !== dictOnly(prev).replace(/\s+/g, ' ')) {
+      return { ok: false, reason: 'O PDF assinado altera a estrutura de páginas.' };
+    }
+    if (/\/Subtype\s*\/(?!Widget\b|Form\b|Image\b)\w+/.test(d) && /\/Type\s*\/Annot\b|\/Annots|\/Rect/.test(d) && !/\/FT\s*\/Sig\b/.test(d)) {
+      return { ok: false, reason: 'O PDF assinado acrescenta anotações ao contrato.' };
+    }
+    if (/\/FT\s*\/(Tx|Ch|Btn)\b/.test(d)) {
+      return { ok: false, reason: 'O PDF assinado acrescenta campos de formulário.' };
+    }
+  }
+  return { ok: true };
 }
