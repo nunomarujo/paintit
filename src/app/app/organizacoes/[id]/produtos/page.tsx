@@ -10,6 +10,8 @@ import { getUser } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
 import { DeliveryForm, DiscountForm } from './SupplierRules';
 import { PLAN_INFO, planAllows, withVat } from '@/domain/subscription';
+import { stripeConfigured } from '@/lib/stripe';
+import { SubscribeButton } from './SubscribeButton';
 
 export default async function SupplierProductsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,12 +64,13 @@ export default async function SupplierProductsPage({ params }: { params: Promise
                   <li key={f}>{f}</li>
                 ))}
               </ul>
+              {manager && stripeConfigured && plan !== p && <SubscribeButton orgId={id} plan={p} />}
             </li>
           ))}
         </ul>
         <p className="mt-3 text-xs text-slate-500">
-          A plataforma não recebe nada dos fornecedores pelas vendas; só esta mensalidade. Para ativar ou mudar de plano
-          (com código promocional, se tiver), contacte a equipa da plataforma enquanto o pagamento online não está ligado.
+          A plataforma não recebe nada dos fornecedores pelas vendas; só esta mensalidade. O pagamento é feito no Stripe e o
+          plano fica ativo quando o Stripe o confirma.
         </p>
       </section>
       {manager && catalogo && (

@@ -41,3 +41,22 @@ export function withVat(net: Cents): Cents {
 export function planAllows(plan: SupplierPlan | null, needed: SupplierPlan): boolean {
   return plan === 'catalogo' || (plan !== null && plan === needed);
 }
+
+/** Preços no Stripe (modo de teste, conta acct_1USIiAFGpN3v1aBO). Os IDs não são secretos. */
+export const STRIPE_TEST_PRICES: Record<SupplierPlan, string> = {
+  vendedores: 'price_1USKbMFGpN3v1aBOO9dJFUps',
+  catalogo: 'price_1USKbtFGpN3v1aBOvyB2ExdN',
+};
+
+export type LocalSubscriptionStatus = 'ativa' | 'suspensa' | 'cancelada';
+
+/** Estado da subscrição no Stripe → estado na app. */
+export function fromStripeStatus(status: string): LocalSubscriptionStatus {
+  if (status === 'active' || status === 'trialing') return 'ativa';
+  if (status === 'canceled' || status === 'incomplete_expired') return 'cancelada';
+  return 'suspensa'; // past_due, unpaid, incomplete, paused
+}
+
+export function isSupplierPlan(x: unknown): x is SupplierPlan {
+  return typeof x === 'string' && (SUPPLIER_PLANS as readonly string[]).includes(x);
+}

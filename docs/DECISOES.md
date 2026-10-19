@@ -112,3 +112,12 @@ Supabase. Falta confirmar o registo da marca no INPI/EUIPO.
 
 Conta Stripe criada (modo de teste), id `acct_1USIiAFGpN3v1aBO`. Falta: ativar o Connect e ligar o conector do
 Stripe ao Claude numa sessão nova; as chaves secretas vão só para as variáveis do alojamento.
+
+## 20/10/2026 — mensalidades dos fornecedores no Stripe (modo de teste)
+
+Connect configurado como marketplace (contas Express, a plataforma paga as taxas do Stripe). Preços:
+listagem de vendedores `price_1USKbMFGpN3v1aBOO9dJFUps` (39 €), catálogo `price_1USKbtFGpN3v1aBOvyB2ExdN` (49 €),
+sem IVA. O fornecedor subscreve na página de produtos (Stripe Checkout, com código promocional convertido em
+cupão). O plano só fica ativo quando o webhook `/api/stripe/webhook` recebe `checkout.session.completed`;
+alterações e cancelamentos chegam por `customer.subscription.*`. Variáveis no alojamento: `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`, `SUPABASE_SECRET_KEY`, opcional `STRIPE_TAX_RATE_IVA`.

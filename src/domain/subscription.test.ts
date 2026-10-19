@@ -15,3 +15,17 @@ describe('subscrição dos fornecedores', () => {
     expect(planAllows(null, 'vendedores')).toBe(false);
   });
 });
+
+import { fromStripeStatus, isSupplierPlan } from './subscription';
+
+describe('estado da subscrição vindo do Stripe', () => {
+  it('converte os estados', () => {
+    expect(fromStripeStatus('active')).toBe('ativa');
+    expect(fromStripeStatus('trialing')).toBe('ativa');
+    expect(fromStripeStatus('past_due')).toBe('suspensa');
+    expect(fromStripeStatus('unpaid')).toBe('suspensa');
+    expect(fromStripeStatus('canceled')).toBe('cancelada');
+    expect(isSupplierPlan('catalogo')).toBe(true);
+    expect(isSupplierPlan('x')).toBe(false);
+  });
+});
