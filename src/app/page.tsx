@@ -143,6 +143,9 @@ export default function Home() {
             © {new Date().getFullYear()} {BRAND.name}
           </span>
           {/* Páginas legais por redigir e validar com o advogado (docs/ROADMAP.md). */}
+          <Link href="/transparencia" className="hover:underline">
+            Transparência
+          </Link>
           <span>Termos, privacidade e Livro de Reclamações: em preparação</span>
         </div>
       </footer>
