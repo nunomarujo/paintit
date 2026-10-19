@@ -966,3 +966,25 @@ describe('contratos assinados', () => {
     expect(await as(owner, async () => (await db.query('select ref from public.request_listings where request_id = $1', [e.request_id])).rows)).toHaveLength(1);
   });
 });
+
+describe('manutenção diária e avisos de versão', () => {
+  it('expira documentos, fecha anúncios fora de prazo e avisa', async () => {
+    const doc = await one<{ id: string; org_id: string }>(
+      `insert into public.org_documents (org_id, kind, storage_path, nome_ficheiro, status, valido_ate, submitted_by)
+       values ($1, 'outro', 'x/y.pdf', 'y.pdf', 'aprovado', current_date - 1, $2) returning id, org_id`,
+      [condo, A],
+    );
+    const open = await one<{ request_id: string }>('select request_id from public.request_listings where aberto limit 1');
+    await db.query('update public.request_listings set prazo_propostas = current_date - 1 where request_id = $1', [open.request_id]);
+    await db.query('select private.daily_maintenance()');
+    expect((await one<{ status: string }>('select status from public.org_documents where id = $1', [doc.id])).status).toBe('expirado');
+    expect((await one<{ aberto: boolean }>('select aberto from public.request_listings where request_id = $1', [open.request_id])).aberto).toBe(false);
+    const notes = await as(A, async () => (await db.query<{ texto: string }>('select texto from public.notifications')).rows.map((r) => r.texto));
+    expect(notes).toContain('Um documento de verificação expirou: envie a versão atual.');
+    expect(notes).toContain('Terminou o prazo de propostas: compare e escolha.');
+  });
+
+  it('ninguém corre a manutenção pela API', async () => {
+    await expect(as(A, () => db.query('select private.daily_maintenance()'))).rejects.toThrow(/permission denied/);
+  });
+});
