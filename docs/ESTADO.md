@@ -100,6 +100,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 ## Pendente do promotor
 
+- **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
+
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,
 alojamento).
 
