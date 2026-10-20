@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { BrandMark } from '@/components/BrandMark';
-import { FeeSimulator } from '@/components/FeeSimulator';
 import { BRAND } from '@/config/brand';
 import { FacadeIllustration, HouseIllustration, RoomIllustration, StairsIllustration } from '@/components/landing/Illustrations';
 
@@ -197,17 +196,6 @@ export default function Home() {
             </Link>
           </div>
           <FacadeIllustration className="w-full rounded-2xl" />
-        </div>
-      </section>
-
-      <section id="simulador" className="mx-auto max-w-6xl px-4 py-14">
-        <h2 className={`${serif} text-3xl font-semibold text-tinta-900`}>Quanto custa</h2>
-        <p className="mt-2 max-w-2xl text-slate-600">
-          Simular uma obra. Os valores são calculados com as regras em vigor; o IVA da obra é tratado entre cliente e
-          pintor.
-        </p>
-        <div className="mt-6">
-          <FeeSimulator />
         </div>
       </section>
 
