@@ -33,6 +33,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const { data: memberships } = await supabase.from('org_members').select('org_id').eq('user_id', user!.id);
   const direct = new Set((memberships ?? []).map((m) => m.org_id));
   const myOrgIds = new Set((orgs ?? []).filter((o) => direct.has(o.id) || (o.gerida_por && direct.has(o.gerida_por))).map((o) => o.id));
+  // Fornecedores são visíveis a todos (catálogo), mas só os seus aparecem na lista.
+  const mine = (orgs ?? []).filter((o) => myOrgIds.has(o.id));
   const [{ data: requests }, { data: engagementRows }, painters] = await Promise.all([
     supabase.from('work_requests').select('id, titulo, status').in('org_id', [...myOrgIds]).in('status', ['rascunho', 'publicado']).order('updated_at', { ascending: false }).limit(10),
     supabase.from('engagements').select('*').order('created_at', { ascending: false }).limit(20),
@@ -169,7 +171,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </Link>
       </div>
 
-      {!orgs || orgs.length === 0 ? (
+      {mine.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="font-semibold">Comece por registar a sua entidade</h2>
           <p className="mt-2 text-sm text-slate-600">
@@ -179,7 +181,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </div>
       ) : (
         <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-          {orgs.map((o) => (
+          {mine.map((o) => (
             <li key={o.id}>
               <Link href={`/app/organizacoes/${o.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
                 <span>
