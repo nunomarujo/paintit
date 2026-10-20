@@ -1119,3 +1119,11 @@ describe('eliminar entidade', () => {
     await expect(as(owner, () => db.query('select public.delete_organization($1)', [busy]))).rejects.toThrow(/histórico/);
   });
 });
+
+describe('catálogo de referência', () => {
+  it('todos leem; só a equipa da plataforma altera', async () => {
+    const n = await as(A, async () => Number((await one<{ n: string }>('select count(*) n from public.reference_products')).n));
+    expect(n).toBeGreaterThan(30);
+    await expect(as(A, () => db.query(`insert into public.reference_products (marca, nome, tipo) values ('X', 'Y', 'outro')`))).rejects.toThrow(/row-level security/);
+  });
+});

@@ -271,6 +271,7 @@ export type Database = {
       };
       work_requests: {
         Row: {
+          produtos_preferidos: Json;
           building_id: string;
           cor_acabamento: string | null;
           created_at: string;
@@ -292,6 +293,7 @@ export type Database = {
           ocupacao_via_publica: ViaPublica;
         };
         Insert: {
+          produtos_preferidos?: Json;
           building_id: string;
           cor_acabamento?: string | null;
           created_at?: string;
@@ -401,6 +403,7 @@ export type Database = {
       };
       products: {
         Row: {
+          reference_product_id: string | null;
           ativo: boolean;
           created_at: string;
           created_by: string;
@@ -428,6 +431,7 @@ export type Database = {
           preco_fornecedor_cents: number | null;
         };
         Insert: {
+          reference_product_id?: string | null;
           ativo?: boolean;
           created_by?: string;
           embalagem_ml?: number | null;
@@ -531,6 +535,18 @@ export type Database = {
           valido_ate?: string | null;
         };
         Update: Partial<Database['public']['Tables']['supplier_discounts']['Insert']>;
+        Relationships: [];
+      };
+      reference_products: {
+        Row: {
+          acabamento: string | null; base_aquosa: boolean | null; complementares: string[]; cores: string | null; created_at: string;
+          demaos: string | null; descricao: string | null; diluicao: string | null; embalagens_l: number[]; foto_path: string | null;
+          id: string; marca: string; nome: string; nota: string | null; preco_data: string | null; preco_embalagem_l: number | null;
+          preco_fonte: string | null; preco_referencia_cents: number | null; rendimento_m2_l: number | null; secagem_horas: number | null;
+          tipo: ProductType; url_ficha_tecnica: string | null; url_produto: string | null; uso: string | null;
+        };
+        Insert: { marca: string; nome: string; tipo: ProductType; [k: string]: unknown };
+        Update: { [k: string]: unknown };
         Relationships: [];
       };
       stripe_payments: {
@@ -906,6 +922,7 @@ export type Database = {
       };
       request_listings: {
         Row: {
+          produtos_preferidos: Json;
           aberto: boolean;
           area_total_cm2: number;
           concelho: string;
@@ -941,7 +958,8 @@ export type Database = {
       };
       promo_codes: {
         Row: { active: boolean; code: string; created_at: string; created_by: string; discount_bps: number; id: string; max_uses: number | null; notas: string | null; uses: number; valid_until: string | null };
-        Insert: { active?: boolean; code: string; created_at?: string; created_by?: string; discount_bps: number; id?: string; max_uses?: number | null; notas?: string | null; uses?: number; valid_until?: string | null };
+        Insert: {
+          produtos_preferidos?: Json; active?: boolean; code: string; created_at?: string; created_by?: string; discount_bps: number; id?: string; max_uses?: number | null; notas?: string | null; uses?: number; valid_until?: string | null };
         Update: { active?: boolean; code?: string; created_at?: string; created_by?: string; discount_bps?: number; id?: string; max_uses?: number | null; notas?: string | null; uses?: number; valid_until?: string | null };
         Relationships: [];
       };
