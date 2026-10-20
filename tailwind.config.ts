@@ -8,6 +8,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
         sans: ['var(--font-inter)', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       colors: {
@@ -39,6 +40,7 @@ const config: Config = {
           800: '#775b2c',
         },
         sage: '#e9eee8',
+        terracota: '#c4572f',
         paper: '#f6f5f0',
       },
       borderRadius: {

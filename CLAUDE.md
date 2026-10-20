@@ -71,3 +71,7 @@ npm run build
 11. **Ver não é pertencer.** As políticas RLS deixam ver entidades alheias (fornecedores no catálogo, a outra parte
     depois da apresentação). Listas de "as suas entidades", menus e ações filtram sempre por `org_members` do
     utilizador, nunca pelo que a consulta a `organizations` devolve.
+12. **Tratamento do leitor: impessoal.** Texto dirigido ao utilizador evita "tu" e "você" e usa o infinitivo
+    ("Descrever o trabalho", "Comparar propostas") ou frases sem sujeito. Onde o imperativo for inevitável
+    (botões, erros), a forma de cortesia: "Registe", "Indique". Aplica-se à página inicial e, ao tocar em ecrãs
+    existentes, aos restantes.
