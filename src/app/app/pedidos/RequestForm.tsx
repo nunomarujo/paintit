@@ -4,6 +4,8 @@ import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import { DESIRED_WORKS, DESIRED_WORK_LABELS, VIA_PUBLICA, VIA_PUBLICA_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
+import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
+import type { Preference } from '@/domain/reference';
 
 export interface RequestInitial {
   building_id: string;
@@ -16,6 +18,7 @@ export interface RequestInitial {
   execucao_desde: string | null;
   execucao_ate: string | null;
   ocupacao_via_publica?: string;
+  produtos_preferidos?: Preference[];
 }
 
 interface Props {
@@ -23,9 +26,10 @@ interface Props {
   buildings: { id: string; nome_interno: string }[];
   initial?: RequestInitial;
   disabled?: boolean;
+  references?: { id: string; marca: string; nome: string; tipo: ProductType }[];
 }
 
-export function RequestForm({ action: submit, buildings, initial, disabled }: Props) {
+export function RequestForm({ action: submit, buildings, initial, disabled, references = [] }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
 
@@ -95,6 +99,43 @@ export function RequestForm({ action: submit, buildings, initial, disabled }: Pr
           error={e.corAcabamento}
           hint="Por exemplo: manter as cores atuais, acabamento mate. Pode deixar em aberto."
         />
+
+        {references.length > 0 && (
+          <details className="rounded-xl bg-slate-50 p-4" open={(initial?.produtos_preferidos?.length ?? 0) > 0}>
+            <summary className="cursor-pointer text-sm font-medium text-slate-700">
+              Produtos preferidos (opcional)
+            </summary>
+            <p className="mt-2 text-xs text-slate-600">
+              Indique os produtos que gostaria que fossem usados. Marque “fixo” se o pintor não os pode trocar; sem “fixo”,
+              pode propor outro e a comparação mostra se é mais caro ou mais barato. Veja as fichas no catálogo.
+            </p>
+            {(Object.keys(PRODUCT_TYPE_LABELS) as ProductType[])
+              .filter((t) => references.some((r) => r.tipo === t))
+              .map((t) => (
+                <fieldset key={t} className="mt-3">
+                  <legend className="text-xs font-semibold uppercase text-slate-500">{PRODUCT_TYPE_LABELS[t]}</legend>
+                  <ul className="mt-1 grid gap-1 text-sm sm:grid-cols-2">
+                    {references
+                      .filter((r) => r.tipo === t)
+                      .map((r) => {
+                        const pref = initial?.produtos_preferidos?.find((x) => x.id === r.id);
+                        return (
+                          <li key={r.id} className="flex items-center justify-between gap-2">
+                            <label className="flex items-center gap-2">
+                              <input type="checkbox" name="preferido" value={r.id} defaultChecked={!!pref} />
+                              {r.marca} {r.nome}
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-slate-600">
+                              <input type="checkbox" name="fixo" value={r.id} defaultChecked={pref?.fixo} /> fixo
+                            </label>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </fieldset>
+              ))}
+          </details>
+        )}
 
         <Field
           name="ocupacaoViaPublica"

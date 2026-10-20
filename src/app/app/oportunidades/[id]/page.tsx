@@ -14,6 +14,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions } from '@/lib/materials';
 import { painterOrgs } from '@/lib/queries';
+import { preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 
@@ -116,6 +117,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             execucaoAte: listing.execucao_ate,
             surfaces: (surfaces ?? []).map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
             ocupacaoViaPublica: listing.ocupacao_via_publica,
+            preferidos: await preferredView(supabase, listing.produtos_preferidos),
             photos: photos ?? [],
           }}
         />

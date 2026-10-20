@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeRequestStatus, deletePhoto, deleteSurface, updateRequest } from '@/app/app/pedidos/actions';
+import { parsePreferences } from '@/domain/reference';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
@@ -8,6 +9,7 @@ import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
+import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
 import { PublishButton } from './PublishButton';
@@ -128,8 +130,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <RequestForm
             action={updateRequest.bind(null, req.id)}
             buildings={buildings ?? []}
-            initial={req}
+            initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
             disabled={!manager || !draft}
+            references={await loadReferences(supabase)}
           />
         </div>
       </section>
@@ -240,6 +243,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             execucaoAte: req.execucao_ate,
             surfaces: list.map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
             ocupacaoViaPublica: req.ocupacao_via_publica,
+            preferidos: await preferredView(supabase, req.produtos_preferidos),
             photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
           }}
         />

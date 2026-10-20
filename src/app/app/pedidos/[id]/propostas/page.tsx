@@ -9,6 +9,8 @@ import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { toLine, toTerms } from '@/lib/proposals';
+import { adherence, parsePreferences } from '@/domain/reference';
+import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
 
@@ -71,6 +73,13 @@ export default async function ProposalsPage({
     { areaTotal, superficies: (surfaces ?? []).map((s) => s.kind) },
   );
   const byId = new Map(list.map((p) => [p.id, p]));
+  const prefs = parsePreferences(req.produtos_preferidos);
+  const prefRefs = await loadReferences(supabase, prefs.map((p) => p.id));
+  const allRefs = prefs.length ? await loadReferences(supabase) : [];
+  const used = prefs.length ? await usedProducts(supabase, lines ?? [], allRefs) : new Map();
+  const refInfo = new Map(prefRefs.map((r) => [r.id, { tipo: r.tipo, perLitre: refPerLitre(r) }]));
+  const refName = new Map(prefRefs.map((r) => [r.id, `${r.marca} ${r.nome}`]));
+  const adherenceOf = (pid: string) => adherence(prefs, refInfo, used.get(pid) ?? []);
   const active = rows.filter((r) => byId.get(r.id)!.status !== 'retirada');
   const sorted = sortRows(active, sortKey, Object.fromEntries(list.map((p) => [p.id, p.duracao_dias])));
   const chosen = list.find((p) => p.status === 'selecionada');
@@ -195,6 +204,28 @@ export default async function ProposalsPage({
                 <Row label="Preço sem IVA" cells={sorted.map((r) => <strong key={r.id}>{formatEuros(r.totals.base)}</strong>)} />
                 <Row label="Total com IVA" cells={sorted.map((r) => formatEuros(r.totals.totalComIva))} />
                 <Row label="Preço por m²" cells={sorted.map((r) => (r.precoM2 !== null ? formatEuros(r.precoM2) : '—'))} />
+                {prefs.map((pref, i) => (
+                  <Row
+                    key={pref.id}
+                    label={`${refName.get(pref.id) ?? 'Produto pedido'}${pref.fixo ? ' (fixo)' : ''}`}
+                    cells={sorted.map((r) => {
+                      const a = adherenceOf(r.id)[i]!.result;
+                      if (a.kind === 'segue') return <span key={r.id} className="text-tinta-700">Segue o pedido</span>;
+                      if (a.kind === 'sem_indicacao') return <span key={r.id} className="text-slate-500">Não indica o produto</span>;
+                      return (
+                        <span key={r.id} className={pref.fixo ? 'text-red-700' : 'text-amber-700'}>
+                          {pref.fixo ? 'Substitui, apesar de fixo: ' : 'Substitui por '}
+                          {a.por}
+                          {a.diffPct !== null && (
+                            <span className="block text-xs">
+                              {a.diffPct === 0 ? 'mesmo preço por litro' : `${Math.abs(a.diffPct)}% ${a.diffPct > 0 ? 'mais caro' : 'mais barato'} por litro`} (referência de mercado)
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  />
+                ))}
                 {LINE_CATEGORIES.map((c) => (
                   <Row
                     key={c}

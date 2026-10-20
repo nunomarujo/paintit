@@ -6,6 +6,7 @@ import { formatEuros } from '@/domain/money';
 import { formatArea } from '@/domain/request';
 import { ProductCard } from '@/components/ProductCard';
 import { canManage, myRole } from '@/lib/access';
+import { loadReferences } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
 import { DeliveryForm, DiscountForm } from './SupplierRules';
@@ -75,7 +76,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
       </section>
       {manager && catalogo && (
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <ProductForm orgId={id} />
+          <ProductForm orgId={id} references={(await loadReferences(supabase)).map((r) => ({ id: r.id, label: `${r.marca} ${r.nome}` }))} />
         </section>
       )}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">

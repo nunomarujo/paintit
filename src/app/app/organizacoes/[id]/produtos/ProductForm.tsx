@@ -6,7 +6,7 @@ import { addProduct } from '@/app/app/catalogo/actions';
 import { Field, selectClass } from '@/components/Field';
 import { APPLICATION_LABELS, APPLICATION_METHODS, FINISHES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 
-export function ProductForm({ orgId }: { orgId: string }) {
+export function ProductForm({ orgId, references = [] }: { orgId: string; references?: { id: string; label: string }[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(addProduct.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
   return (
@@ -16,6 +16,21 @@ export function ProductForm({ orgId }: { orgId: string }) {
         <Field name="marca" label="Marca" required error={e.marca} />
         <Field name="nome" label="Nome" required error={e.nome} />
         <Field name="referencia" label="Referência" error={e.referencia} />
+        <Field
+          name="referenceProductId"
+          label="Corresponde ao produto de referência"
+          error={e.referenceProductId}
+          hint="Liga o seu produto à ficha do catálogo: aparece como vendedor e entra na comparação das propostas."
+        >
+          <select name="referenceProductId" defaultValue="" className={selectClass}>
+            <option value="">Nenhum</option>
+            {references.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field name="tipo" label="Tipo" required error={e.tipo}>
           <select name="tipo" defaultValue="tinta_exterior" className={selectClass}>
             {PRODUCT_TYPES.map((t) => (

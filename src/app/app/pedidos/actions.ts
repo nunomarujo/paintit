@@ -3,18 +3,21 @@
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import type { Json } from '@/lib/database.types';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
 import { parseRequest, parseSurface, publishBlockers, revealingContent } from '@/domain/request';
+import { preferencesFromForm } from '@/domain/reference';
 import { CURRENT_RULES } from '@/domain/rules';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
-function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>) {
+function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>, form: FormData) {
   return {
+    produtos_preferidos: preferencesFromForm(form).map((p) => ({ id: p.id, fixo: p.fixo })) as Json,
     building_id: v.buildingId,
     titulo: v.titulo,
     tipo_obra: v.tipoObra,
@@ -36,7 +39,7 @@ export async function createRequest(orgId: string, _prev: FormState, form: FormD
 
   const { data, error } = await supabase
     .from('work_requests')
-    .insert({ org_id: orgId, ...requestColumns(parsed.value), created_by: user.id })
+    .insert({ org_id: orgId, ...requestColumns(parsed.value, form), created_by: user.id })
     .select('id')
     .single();
   if (error || !data) return { errors: {}, message: 'Não foi possível criar o pedido. Só gestores da entidade o podem fazer.' };
@@ -51,7 +54,7 @@ export async function updateRequest(requestId: string, _prev: FormState, form: F
 
   const { data, error } = await supabase
     .from('work_requests')
-    .update(requestColumns(parsed.value))
+    .update(requestColumns(parsed.value, form))
     .eq('id', requestId)
     .eq('status', 'rascunho')
     .select('id');

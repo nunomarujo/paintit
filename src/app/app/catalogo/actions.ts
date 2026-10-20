@@ -60,6 +60,7 @@ export async function addProduct(orgId: string, _prev: FormState, form: FormData
     diluicao: v.diluicao ?? null,
     demaos_recomendadas: v.demaosRecomendadas ?? null,
     preco_fornecedor_cents: v.precoFornecedor ?? null,
+    reference_product_id: /^[0-9a-f-]{36}$/i.test(String(form.get('referenceProductId') ?? '')) ? String(form.get('referenceProductId')) : null,
   });
   if (error) return { errors: {}, message: 'Não foi possível guardar o produto. Só gestores de um fornecedor o podem fazer.' };
   revalidatePath(`/app/organizacoes/${orgId}/produtos`);

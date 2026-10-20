@@ -2,7 +2,10 @@ import { ProductCard } from '@/components/ProductCard';
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS, consumption, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { parseHundredths } from '@/domain/request';
+import { loadReferences, refPerLitre } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
+import Link from 'next/link';
+import { TinIcon } from '@/components/TinIcon';
 
 // Catálogo de todos os fornecedores, com uma estimativa de consumo (CMP-06).
 export default async function CatalogPage({
@@ -18,6 +21,11 @@ export default async function CatalogPage({
   if (term) query = query.or(`nome.ilike.%${term}%,marca.ilike.%${term}%,referencia.ilike.%${term}%`);
   const [{ data: all }, { data: active }] = await Promise.all([query, supabase.rpc('active_suppliers', { p_plan: 'catalogo' })]);
   const withPlan = new Set(active ?? []);
+  const refs = (await loadReferences(supabase)).filter(
+    (r) =>
+      (!tipo || r.tipo === tipo) &&
+      (!term || `${r.marca} ${r.nome}`.toLowerCase().includes(term.toLowerCase())),
+  );
   const products = (all ?? []).filter((p) => withPlan.has(p.org_id));
   const areaCm2 = parseHundredths(area ?? null);
   const coats = Math.max(1, Math.min(5, Number(demaos) || 2));
@@ -60,6 +68,41 @@ export default async function CatalogPage({
           Aplicar
         </button>
       </form>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Produtos de referência do mercado</h2>
+        <p className="text-sm text-slate-600">
+          Fichas públicas dos fabricantes, para comparar e indicar no pedido. O preço de referência é de tabela, sem
+          descontos nem entrega; quando não há fonte pública fica “não indicado”.
+        </p>
+        {refs.length === 0 ? (
+          <p className="text-sm text-slate-600">Sem produtos de referência com estes filtros.</p>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {refs.map((r) => {
+              const pl = refPerLitre(r);
+              return (
+                <li key={r.id}>
+                  <Link
+                    href={`/app/catalogo/referencia/${r.id}`}
+                    className="flex h-full gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm hover:border-tinta-600"
+                  >
+                    <TinIcon />
+                    <span>
+                      <span className="block font-semibold">{r.marca} {r.nome}</span>
+                      <span className="block text-slate-600">{PRODUCT_TYPE_LABELS[r.tipo]}{r.acabamento ? ` · ${r.acabamento}` : ''}</span>
+                      <span className="mt-1 block text-xs text-slate-500">
+                        {r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Embalagens não indicadas'}
+                        {pl !== null ? ` · ${formatEuros(pl)}/L` : ''}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+      <h2 className="text-lg font-semibold">Produtos dos fornecedores</h2>
       {!products || products.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem produtos com estes filtros.</p>
       ) : (
@@ -88,3 +131,4 @@ export default async function CatalogPage({
     </div>
   );
 }
+

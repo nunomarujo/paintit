@@ -48,6 +48,9 @@ e `resolve_listing_report` e `painter_rating`, que correm com direitos de dono p
 conta: nunomarujo@gmail.com (promotor), na equipa da plataforma (`platform_admins`) desde 18/10/2026; já criou um
 condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 
+- Catálogo de referência (`/app/catalogo`, `/app/catalogo/referencia/[id]`), produtos preferidos no pedido e
+  linha de aderência no comparador. Migração `20261020060000_catalogo_referencia.sql` por aplicar no Supabase.
+
 ## Próximo passo
 
 Feito até 19/10/2026 (além das seis fases): materiais certificados, descontos e entregas dos fornecedores,

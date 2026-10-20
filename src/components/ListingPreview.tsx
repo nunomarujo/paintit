@@ -26,6 +26,8 @@ export interface ListingView {
   execucaoAte: string | null;
   surfaces: { kind: SurfaceKind; descricao: string | null; area: number }[];
   ocupacaoViaPublica?: 'sim' | 'nao' | 'a_avaliar';
+  /** Produtos de referência pedidos pelo cliente; fixo = não substituir. */
+  preferidos?: { id: string; label: string; fixo: boolean }[];
   /** Só fotografias de pormenor aprovadas pela equipa da plataforma. */
   photos: { id: string; legenda: string | null }[];
 }
@@ -103,6 +105,21 @@ export function ListingPreview({ l }: { l: ListingView }) {
           <span className="text-slate-500">Cor e acabamento: </span>
           {l.corAcabamento}
         </p>
+      )}
+      {l.preferidos && l.preferidos.length > 0 && (
+        <div className="mt-1">
+          <span className="text-slate-500">Produtos preferidos pelo cliente:</span>
+          <ul className="mt-1 flex flex-wrap gap-1">
+            {l.preferidos.map((p) => (
+              <li key={p.id}>
+                <a href={`/app/catalogo/referencia/${p.id}`} className={`badge ${p.fixo ? 'badge-amber' : 'badge-green'} hover:underline`}>
+                  {p.label}
+                  {p.fixo ? ' · fixo, não substituir' : ' · pode propor outro'}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {l.surfaces.length > 0 && (

@@ -148,3 +148,12 @@ pagamento original só por intervenção manual (caso raro, a tratar).
   certidão permanente validada pela equipa.
 - Eliminar entidade: só o proprietário, com janela que obriga a escrever uma palavra ao acaso, e só sem histórico
   com terceiros (migração `eliminar_entidade`).
+
+## 20/10/2026 — catálogo de referência e produtos preferidos no pedido
+
+- 39 produtos de mercado (CIN, Robbialac, Barbot, Dyrup, Sika…) a partir das fichas públicas dos fabricantes, sem
+  fotografias das marcas (direitos de autor): ícone genérico. Preço de referência só quando há fonte pública datada.
+- O cliente indica produtos preferidos no pedido; “fixo” quer dizer que o pintor não os deve substituir.
+- O comparador mostra, por produto pedido, se cada proposta segue, substitui (por qual, e a diferença por litro face
+  ao preço de referência sem descontos nem entrega) ou não indica. Substituir um produto fixo aparece a vermelho.
+- O fornecedor liga os seus produtos a uma ficha de referência; passa a aparecer em “Onde comprar”, com filtro por concelho.
