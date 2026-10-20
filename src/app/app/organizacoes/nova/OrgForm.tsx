@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
+import { AddressFields } from '@/components/AddressFields';
 import { Field, selectClass } from '@/components/Field';
 import { ORG_KINDS, ORG_KIND_LABELS, type OrgKind } from '@/domain/organization';
 import { useFormAction } from '@/components/useFormAction';
@@ -87,16 +88,13 @@ export function OrgForm({ action: submit, administradoras, initial, initialKind,
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field name="moradaFiscal" label="Morada fiscal" defaultValue={v('morada_fiscal')} error={e.moradaFiscal} />
-        <div className="grid grid-cols-2 gap-3">
-          <Field
-            name="codigoPostal"
-            label="Código postal"
-            placeholder="0000-000"
-            defaultValue={v('codigo_postal')}
-            error={e.codigoPostal}
+        <div className="sm:col-span-2">
+          <AddressFields
+            moradaName="moradaFiscal"
+            moradaLabel="Morada fiscal"
+            initial={{ morada: v('morada_fiscal'), codigoPostal: v('codigo_postal'), localidade: v('localidade') }}
+            errors={e}
           />
-          <Field name="localidade" label="Localidade" defaultValue={v('localidade')} error={e.localidade} />
         </div>
         <Field
           name="emailContacto"

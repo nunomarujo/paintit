@@ -12,6 +12,7 @@ import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { DocumentUpload } from './DocumentUpload';
 import { InviteForm } from './InviteForm';
+import { DeleteOrg } from './DeleteOrg';
 
 const STATUS_LABELS: Record<string, string> = {
   submetido: 'Submetido',
@@ -95,9 +96,12 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             </p>
           </div>
           {manager && (
-            <Link href={`/app/organizacoes/${org.id}/editar`} className={smallButton}>
-              Editar dados
-            </Link>
+            <div className="flex flex-col items-end gap-2">
+              <Link href={`/app/organizacoes/${org.id}/editar`} className={smallButton}>
+                Editar dados
+              </Link>
+              {role === 'proprietario' && <DeleteOrg orgId={org.id} nome={org.nome} />}
+            </div>
           )}
         </div>
       </div>

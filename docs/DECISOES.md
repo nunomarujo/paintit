@@ -138,3 +138,13 @@ mandam fazer (`devolucao_garantia`, `devolucao_fee`) são executadas no Stripe d
 dia, pelo cron `/api/cron/devolucoes` (variável `CRON_SECRET`). Um pagamento recusado pelas regras (ex.: comissão
 fora de prazo) é devolvido logo. Caução transitada para outra proposta continua a ser devolvida a partir do
 pagamento original só por intervenção manual (caso raro, a tratar).
+
+## 20/10/2026 — moradas reais e eliminar entidades
+
+- Moradas (prédios e morada fiscal): o código postal tem de existir e a rua tem de ser uma das ruas desse
+  código (base dos CTT via geoapi.pt). O formulário preenche localidade e concelho e sugere as ruas; o servidor
+  volta a validar. Se o serviço não responder, não se bloqueia.
+- NIPC ↔ nome: por fazer; precisa de uma chave da API do nif.pt (ou equivalente). Até lá: dígito de controlo e
+  certidão permanente validada pela equipa.
+- Eliminar entidade: só o proprietário, com janela que obriga a escrever uma palavra ao acaso, e só sem histórico
+  com terceiros (migração `eliminar_entidade`).

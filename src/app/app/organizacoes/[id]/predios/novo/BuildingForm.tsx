@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormState } from '@/app/app/actions';
+import { AddressFields } from '@/components/AddressFields';
 import { Field, selectClass } from '@/components/Field';
 import { BUILDING_KINDS, BUILDING_KIND_LABELS } from '@/domain/organization';
 import type { Database } from '@/lib/database.types';
@@ -46,19 +47,14 @@ export function BuildingForm({ action: submit, defaultKind, initial }: Props) {
       <fieldset className="space-y-4 rounded-xl bg-slate-50 p-4">
         <legend className="px-1 text-sm font-semibold">Localização</legend>
         <p className="text-xs text-slate-600">A morada fica privada até à apresentação. Os pintores só veem o concelho.</p>
-        <Field name="morada" label="Morada" required defaultValue={initial?.morada} error={e.morada} />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field
-            name="codigoPostal"
-            label="Código postal"
-            required
-            placeholder="0000-000"
-            defaultValue={initial?.codigo_postal}
-            error={e.codigoPostal}
-          />
-          <Field name="localidade" label="Localidade" required defaultValue={initial?.localidade} error={e.localidade} />
-          <Field name="concelho" label="Concelho" required defaultValue={initial?.concelho} error={e.concelho} />
-        </div>
+        <AddressFields
+          moradaName="morada"
+          moradaLabel="Morada"
+          required
+          withConcelho
+          initial={{ morada: initial?.morada, codigoPostal: initial?.codigo_postal, localidade: initial?.localidade, concelho: initial?.concelho }}
+          errors={e}
+        />
         <Field
           name="artigoMatricial"
           label="Artigo matricial"

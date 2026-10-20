@@ -16,6 +16,8 @@ import {
   type OrgKind,
 } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
+import { addressProblem } from '@/domain/address';
+import { lookupPostalCode } from '@/lib/postalCodes';
 import { getUser } from '@/lib/supabase/server';
 
 function orgColumns(v: OrganizationInput) {
@@ -53,11 +55,23 @@ function buildingColumns(v: BuildingInput) {
 
 export type FormState = { errors: FieldErrors; message?: string; ok?: boolean };
 
+/** A morada tem de existir: rua do código postal indicado (base dos CTT). */
+async function addressErrors(morada: string | null, cp: string | null, moradaField: string): Promise<FieldErrors> {
+  if (!cp) return {};
+  const info = await lookupPostalCode(cp);
+  if (info === 'indisponivel') return {};
+  const problem = addressProblem(morada ?? '', cp, info);
+  if (!problem) return {};
+  return info ? { [moradaField]: problem } : { codigoPostal: problem };
+}
+
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
 export async function createOrganization(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
+  const addrErr = await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal');
+  if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
@@ -76,6 +90,8 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
 export async function createBuilding(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseBuilding(form);
   if (!parsed.value) return { errors: parsed.errors };
+  const addrErr = await addressErrors(parsed.value.morada, parsed.value.codigoPostal, 'morada');
+  if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
@@ -91,6 +107,8 @@ export async function createBuilding(orgId: string, _prev: FormState, form: Form
 export async function updateOrganization(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
+  const addrErr = await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal');
+  if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
@@ -111,6 +129,8 @@ export async function updateBuilding(
 ): Promise<FormState> {
   const parsed = parseBuilding(form);
   if (!parsed.value) return { errors: parsed.errors };
+  const addrErr = await addressErrors(parsed.value.morada, parsed.value.codigoPostal, 'morada');
+  if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
@@ -271,4 +291,14 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
 
   revalidatePath(`/app/organizacoes/${orgId}`);
   return { errors: {}, ok: true, message: 'Documento enviado para validação.' };
+}
+
+export async function deleteOrganization(orgId: string, ...[]: [FormState]): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  // A função na base confirma que é o proprietário e que a entidade não tem histórico.
+  const { error } = await supabase.rpc('delete_organization', { p_org: orgId });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app');
+  redirect('/app');
 }

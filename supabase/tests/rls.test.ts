@@ -1105,3 +1105,17 @@ describe('pagamentos Stripe', () => {
     ).rejects.toThrow(/row-level security|permission/);
   });
 });
+
+describe('eliminar entidade', () => {
+  it('só o proprietário, e só sem histórico', async () => {
+    const Z = '00000000-0000-4000-8000-00000000de11';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [Z, 'zz-test-del@exemplo.pt']);
+    const org = (await createOrg(Z, 'particular', 'Particular Apagável', null)).id;
+    await expect(as(A, () => db.query('select public.delete_organization($1)', [org]))).rejects.toThrow(/proprietário/);
+    await as(Z, () => db.query('select public.delete_organization($1)', [org]));
+    expect((await db.query('select 1 from public.organizations where id = $1', [org])).rows).toHaveLength(0);
+    const busy = (await one<{ client_org_id: string }>('select client_org_id from public.engagements limit 1')).client_org_id;
+    const owner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario' limit 1`, [busy])).user_id;
+    await expect(as(owner, () => db.query('select public.delete_organization($1)', [busy]))).rejects.toThrow(/histórico/);
+  });
+});

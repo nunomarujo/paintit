@@ -984,6 +984,7 @@ export type Database = {
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };
+      delete_organization: { Args: { p_org: string }; Returns: undefined };
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
