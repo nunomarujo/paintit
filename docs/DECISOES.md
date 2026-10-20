@@ -163,3 +163,14 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Uma conta de pintor ou de fornecedor é uma só empresa (um NIPC). Para outra empresa, outra conta; colegas entram
   por convite na equipa. A base de dados recusa (trigger `org_members_one_profile`).
 - Clientes podem ter várias entidades: uma administradora gere vários condomínios, cada um com o seu NIF.
+
+## 20/10/2026 — avisos por email (Resend)
+
+- Avisos transacionais, só a quem gere a entidade (proprietário e gestor; e a administradora que gere o condomínio):
+  nova proposta recebida; proposta escolhida e prazo da comissão; partes apresentadas e assinaturas; contrato
+  assinado; comissão ou assinatura fora de prazo; desistência; litígio.
+- O texto nunca identifica a outra parte antes da apresentação (testado em `src/domain/notifications.test.ts`).
+- Envio com `RESEND_API_KEY` (chave própria da Vercel, só envio) a partir de `suporte@quempinta.pt`. Falhas de envio
+  não interrompem a ação do utilizador.
+- Por fazer: lembretes de prazo (comissão a 2 dias do fim), aviso de nova oportunidade a pintores da zona,
+  mensagens do fio da proposta, e preferências de aviso por utilizador.

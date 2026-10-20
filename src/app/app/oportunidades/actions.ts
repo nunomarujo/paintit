@@ -9,6 +9,7 @@ import { revealingContent } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
+import { notifyProposalSubmitted } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -124,6 +125,7 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
   // A base de dados repete as verificações e fixa a base, a versão do pedido e a verificação.
   const { error } = await supabase.from('proposals').update({ status: 'submetida' }).eq('id', proposalId);
   if (error) return { errors: {}, message: error.message };
+  await notifyProposalSubmitted(requestId).catch(() => undefined);
   revalidatePath(`/app/oportunidades/${requestId}`);
   return { errors: {}, ok: true, message: 'Proposta submetida. O cliente vê-a sem saber quem a fez.' };
 }

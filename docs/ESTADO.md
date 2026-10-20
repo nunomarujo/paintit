@@ -51,6 +51,8 @@ condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
 - Catálogo de referência (`/app/catalogo`, `/app/catalogo/referencia/[id]`), produtos preferidos no pedido e
   linha de aderência no comparador. Migração `20261020060000_catalogo_referencia.sql` por aplicar no Supabase.
 
+- Avisos por email (`src/lib/notify.ts`): falta `RESEND_API_KEY` na Vercel (chave de envio, a colar pelo promotor).
+
 ## Próximo passo
 
 Feito até 19/10/2026 (além das seis fases): materiais certificados, descontos e entregas dos fornecedores,

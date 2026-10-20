@@ -2,6 +2,7 @@ import 'server-only';
 import { isRevealed } from '@/domain/contracting';
 import { allocateRefund, refundsDue, type PaymentKind } from '@/domain/payments';
 import { loadReplay } from '@/lib/engagements';
+import { notifyEngagementChange } from '@/lib/notify';
 import { stripe } from '@/lib/stripe';
 import { adminClient } from '@/lib/supabase/admin';
 
@@ -51,7 +52,10 @@ export async function recordStripePayment(p: {
   });
   if (error) return { ok: false, reason: error.message };
   if (refused) await refundPayment(p.paymentIntent, p.amount, 'recusado pelas regras: ' + refused.reason);
-  else await settleRefunds(p.engagementId);
+  else {
+    await settleRefunds(p.engagementId);
+    await notifyEngagementChange(p.engagementId, before.status, after.engagement.status).catch(() => undefined);
+  }
   return { ok: true };
 }
 
