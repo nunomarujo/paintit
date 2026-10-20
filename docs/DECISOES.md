@@ -157,3 +157,9 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - O comparador mostra, por produto pedido, se cada proposta segue, substitui (por qual, e a diferença por litro face
   ao preço de referência sem descontos nem entrega) ou não indica. Substituir um produto fixo aparece a vermelho.
 - O fornecedor liga os seus produtos a uma ficha de referência; passa a aparecer em “Onde comprar”, com filtro por concelho.
+
+## 20/10/2026 — uma empresa por conta de pintor ou fornecedor
+
+- Uma conta de pintor ou de fornecedor é uma só empresa (um NIPC). Para outra empresa, outra conta; colegas entram
+  por convite na equipa. A base de dados recusa (trigger `org_members_one_profile`).
+- Clientes podem ter várias entidades: uma administradora gere vários condomínios, cada um com o seu NIF.

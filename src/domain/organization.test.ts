@@ -114,9 +114,9 @@ import { accountProfile, allowedOrgKinds } from './organization';
 describe('um perfil por conta', () => {
   it('cliente, pintor ou fornecedor, nunca mais de um', () => {
     expect(allowedOrgKinds([])).toHaveLength(5);
+    expect(allowedOrgKinds(['pintor'])).toEqual([]);
+    expect(allowedOrgKinds(['fornecedor'])).toEqual([]);
     expect(allowedOrgKinds(['administradora'])).toEqual(['condominio', 'administradora', 'particular']);
-    expect(allowedOrgKinds(['pintor'])).toEqual(['pintor']);
-    expect(allowedOrgKinds(['fornecedor'])).toEqual(['fornecedor']);
     expect(accountProfile('condominio')).toBe('cliente');
   });
 });

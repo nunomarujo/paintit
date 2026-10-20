@@ -21,6 +21,20 @@ export default async function NewOrganizationPage({
 
   const initialKind = (ORG_KINDS as readonly string[]).includes(tipo ?? '') && kinds.includes(tipo as OrgKind) ? (tipo as OrgKind) : undefined;
 
+  if (kinds.length === 0) {
+    return (
+      <div className="max-w-2xl space-y-3">
+        <Link href="/app" className="text-sm text-slate-600 hover:underline">
+          ← As suas entidades
+        </Link>
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+          Uma conta de pintor ou de fornecedor corresponde a uma só empresa, que já está registada. Para outra empresa,
+          crie outra conta com outro email; para dar acesso a colegas, convide-os na equipa da sua entidade.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <Link href="/app" className="text-sm text-slate-600 hover:underline">

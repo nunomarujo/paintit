@@ -33,6 +33,8 @@ export function allowedOrgKinds(existing: OrgKind[]): OrgKind[] {
   const first = existing[0];
   if (!first) return [...ORG_KINDS];
   const profile = accountProfile(first);
+  // Pintor e fornecedor: a conta é uma só entidade. Clientes (administradora, condomínios) podem ter várias.
+  if (profile !== 'cliente') return [];
   return ORG_KINDS.filter((k) => accountProfile(k) === profile);
 }
 

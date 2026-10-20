@@ -163,12 +163,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">As suas entidades</h1>
-        <Link
-          href="/app/organizacoes/nova"
-          className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
-        >
-          Adicionar entidade
-        </Link>
+        {!mine.some((o) => o.kind === 'pintor' || o.kind === 'fornecedor') && (
+          <Link
+            href="/app/organizacoes/nova"
+            className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+          >
+            {mine.some((o) => o.kind === 'administradora') ? 'Adicionar condomínio ou entidade' : 'Adicionar entidade'}
+          </Link>
+        )}
       </div>
 
       {mine.length === 0 ? (

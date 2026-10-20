@@ -914,11 +914,14 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
   });
 
   it('o desconto de um produto tem de ser do próprio fornecedor', async () => {
-    const other = (await createOrg(F, 'fornecedor', 'Tintas Dois', '504426290')).id;
+    await expect(createOrg(F, 'fornecedor', 'Tintas Dois', '504426290')).rejects.toThrow(/uma só empresa/);
+    const F2 = '00000000-0000-4000-8000-0000000000f2';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [F2, email(F2)]);
+    const other = (await createOrg(F2, 'fornecedor', 'Tintas Dois', '504426290')).id;
     await db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'catalogo', 4900)`, [other]);
     await expect(
       as(F, () => db.query(`insert into public.supplier_discounts (org_id, product_id, desconto_bps) values ($1, $2, 500)`, [other, productId])),
-    ).rejects.toThrow(/foreign key/);
+    ).rejects.toThrow(/row-level security|foreign key/);
   });
 
   it('o pintor encomenda; só o fornecedor confirma e entrega; o cliente vê', async () => {
