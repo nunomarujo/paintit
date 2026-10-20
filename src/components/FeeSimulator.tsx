@@ -13,20 +13,17 @@ function parseEuros(text: string): number | null {
 
 export function FeeSimulator() {
   const [value, setValue] = useState('100000');
-  const [advance, setAdvance] = useState('10');
   const base = parseEuros(value);
-  const advancePct = parseEuros(advance);
-  const valid = base !== null && advancePct !== null && advancePct <= 100;
+  const valid = base !== null;
 
   const baseCents = valid ? euros(base) : 0;
-  const advanceCents = valid ? Math.round((baseCents * advancePct) / 100) : 0;
   const fee = painterFee(baseCents, CURRENT_RULES);
   const guarantee = clientGuarantee(baseCents, CURRENT_RULES);
   const rate = effectiveRate(baseCents, CURRENT_RULES);
 
   return (
     <div className="rounded-2xl border border-slate-200 p-6 shadow-sm">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="max-w-sm">
         <label className="block text-sm font-medium text-slate-700">
           Valor da obra, sem IVA (€)
           <input
@@ -36,25 +33,16 @@ export function FeeSimulator() {
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
-          Adiantamento de adjudicação (%)
-          <input
-            inputMode="decimal"
-            value={advance}
-            onChange={(e) => setAdvance(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
-          />
-        </label>
       </div>
 
       {valid ? (
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl bg-slate-50 p-4">
-            <dt className="text-sm font-semibold text-slate-900">Cliente deposita ao escolher</dt>
-            <dd className="mt-1 text-2xl font-semibold">{formatEuros(guarantee + advanceCents)}</dd>
+            <dt className="text-sm font-semibold text-slate-900">Cliente deposita a caução</dt>
+            <dd className="mt-1 text-2xl font-semibold">{formatEuros(guarantee)}</dd>
             <dd className="mt-1 text-sm text-slate-600">
-              Caução de {formatEuros(guarantee)}, devolvida quando o contrato é assinado
-              {advanceCents > 0 ? `, mais ${formatEuros(advanceCents)} de adiantamento para o pintor` : ''}.
+              Garantia de interesse, devolvida quando as duas partes assinam o contrato. Mínimo de{' '}
+              {formatEuros(CURRENT_RULES.guaranteeMinCents)}. O adiantamento, se houver, é combinado e pago entre as partes.
             </dd>
           </div>
           <div className="rounded-xl bg-tinta-50 p-4">
@@ -68,7 +56,7 @@ export function FeeSimulator() {
           </div>
         </dl>
       ) : (
-        <p className="mt-6 text-sm text-red-700">Indique um valor válido e uma percentagem entre 0 e 100.</p>
+        <p className="mt-6 text-sm text-red-700">Indique um valor válido.</p>
       )}
     </div>
   );
