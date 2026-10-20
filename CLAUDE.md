@@ -68,3 +68,6 @@ npm run build
    `useActionState`: o React 19 apaga todos os campos depois de cada envio, mesmo quando a resposta é um erro.
 10. **Argumentos ligados (`.bind`) das server actions vêm do navegador** e podem ser alterados: valide no servidor
     qualquer estado, tipo ou nome de tabela que chegue assim. Identificadores ficam protegidos pelas políticas RLS.
+11. **Ver não é pertencer.** As políticas RLS deixam ver entidades alheias (fornecedores no catálogo, a outra parte
+    depois da apresentação). Listas de "as suas entidades", menus e ações filtram sempre por `org_members` do
+    utilizador, nunca pelo que a consulta a `organizations` devolve.
