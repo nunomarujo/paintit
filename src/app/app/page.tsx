@@ -4,6 +4,7 @@ import { acceptInvitation } from '@/app/app/actions';
 import { markNotificationsRead } from '@/app/app/extras-actions';
 import { MEMBER_ROLE_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
 import { STATUS_LABELS, availableActions } from '@/domain/contracting';
+import { isPlatformAdmin } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
@@ -26,7 +27,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   // Conta nova, sem entidades nem convites: primeiro escolhe o perfil.
   const { count: memberCount } = await supabase.from('org_members').select('org_id', { count: 'exact', head: true }).eq('user_id', user!.id);
-  if (!memberCount && !(invites ?? []).length) redirect('/app/comecar');
+  // A equipa da plataforma não tem entidades: vai ao backoffice, não ao arranque de conta.
+  if (!memberCount && !(invites ?? []).length) redirect((await isPlatformAdmin(supabase, user!.id)) ? '/app/backoffice' : '/app/comecar');
 
   // Painel: o que espera por esta conta (CLI-01, PIN-01).
   // Só as entidades de que é membro (ou geridas por elas): a equipa da plataforma vê todas, mas não são suas.
