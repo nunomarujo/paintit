@@ -62,7 +62,7 @@ export default function Home() {
       <PaintedHero>
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Fachadas · Condomínios · Zonas comuns</p>
         <h1 className="mt-3 text-4xl font-bold leading-[1.05] text-tinta-900 sm:text-6xl">
-          A pintura do edifício começa aqui.
+          Orçamente a pintura do seu prédio.
         </h1>
         <p className="mt-4 max-w-md text-lg text-slate-600">
           Encontrar empresas de pintura e comparar propostas para a mesma obra.
