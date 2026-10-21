@@ -85,7 +85,7 @@ fiscal marcada com ◆ tem de ser confirmada por ele antes de ir para código.
 
 ## 8. Decisões do promotor (21/10/2026)
 
-- **Empresa dona:** RELEVANTEPLANETA UNIPESSOAL LDA. IVA **trimestral**. Banco: **EuroBic** (o IBAN fica na configuração, nunca no repositório). NIF a indicar.
+- **Empresa dona:** RELEVANTEPLANETA UNIPESSOAL LDA. IVA **trimestral**. Banco: **EuroBic** (o IBAN fica na configuração, nunca no repositório). NIF **517588676**, sede em Viana do Castelo, CAE 74900 (dados em `src/config/company.ts`).
 - **Contabilista:** Nuno Branco. Software de contabilidade dele: por apurar. Objetivo: automatizar o máximo (faturação e dados para as Finanças).
 - **Faturação:** **InvoiceXpress** ou outro mais barato, com API e certificação AT; a comunicação à AT é feita pelo próprio software (credenciais AT
   configuradas lá). A escolha final depende de preço e API: comparar InvoiceXpress, Moloni, Vendus e Billin.
@@ -130,3 +130,6 @@ Hoje cada comissão de adesão paga-se uma a uma, com a sua fatura. Passa a:
 4. Cada resgate junta várias comissões; o fornecedor vê o saldo, o histórico e o estado de cada resgate.
 
 Estados de cada comissão: obra adjudicada (a aguardar a comissão do pintor) → disponível → em resgate → paga (ou sem efeito).
+
+◆ **CAE:** a atividade registada é 74900 (outras atividades de consultoria técnicas). Pedir ao Nuno Branco que confirme se cobre a intermediação/portal e, se não,
+acrescentar o CAE adequado antes de faturar.
