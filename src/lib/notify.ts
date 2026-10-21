@@ -27,18 +27,27 @@ async function sendEmail(to: string[], subject: string, lines: string[], path: s
   const key = process.env.RESEND_API_KEY;
   if (!key || to.length === 0) return;
   const link = `${BRAND.url}${path}`;
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: `${BRAND.name} <${BRAND.email}>`,
-      to,
-      subject: `${BRAND.name} · ${subject}`,
-      html: html(subject, lines, link),
-      text: `${subject}\n\n${lines.join('\n')}\n\n${link}`,
-    }),
+  const body = JSON.stringify({
+    from: `${BRAND.name} <${BRAND.email}>`,
+    to,
+    subject: `${BRAND.name} · ${subject}`,
+    html: html(subject, lines, link),
+    text: `${subject}\n\n${lines.join('\n')}\n\n${link}`,
   });
-  if (!res.ok) console.error('Resend recusou o aviso:', res.status, await res.text().catch(() => ''));
+  // O Resend limita os pedidos por segundo (429): repete com uma pausa.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body,
+    });
+    if (res.ok) return;
+    if (res.status !== 429 || attempt === 2) {
+      console.error('Resend recusou o aviso:', res.status, await res.text().catch(() => ''));
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 1200));
+  }
 }
 
 /** Emails dos proprietários e gestores da entidade (e da administradora que a gere). */
@@ -61,11 +70,10 @@ export async function notifyEngagementChange(engagementId: string, before: Engag
   if (!db) return;
   const { data: e } = await db.from('engagements').select('client_org_id, painter_org_id').eq('id', engagementId).maybeSingle();
   if (!e) return;
-  await Promise.all(
-    notices.map(async (n) =>
-      sendEmail(await recipients(n.to === 'cliente' ? e.client_org_id : e.painter_org_id), n.subject, n.lines, `/app/contratacoes/${engagementId}`),
-    ),
-  );
+  // Um de cada vez: evita o limite de pedidos por segundo do Resend.
+  for (const n of notices) {
+    await sendEmail(await recipients(n.to === 'cliente' ? e.client_org_id : e.painter_org_id), n.subject, n.lines, `/app/contratacoes/${engagementId}`);
+  }
 }
 
 export async function notifyProposalSubmitted(requestId: string): Promise<void> {

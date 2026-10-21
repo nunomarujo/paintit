@@ -232,7 +232,7 @@ function confirmClientDepositV2(e: Engagement, p: { amount: Cents; at: Date }): 
   const h = held(current);
   // Um crédito transitado acima da caução volta ao cliente.
   const excess = Math.max(0, h.guarantee - current.guarantee);
-  const next = record(current, p.at, 'caução do cliente confirmada; pintor avisado para pagar a comissão', [
+  const next = record(current, p.at, 'caução do cliente confirmada; pintor avisado para confirmar a escolha', [
     { kind: 'deposito_garantia', amount: p.amount },
     { kind: 'devolucao_garantia', amount: excess, note: 'excesso transitado' },
   ]);
@@ -266,7 +266,7 @@ export function painterFeeReceived(e: Engagement, p: { amount: Cents; at: Date }
   assertCents(p.amount, 'fee');
   let current = expire(e, p.at);
   if (current.status !== 'aguarda_fee') {
-    return record(current, p.at, 'fee recebido fora do prazo ou sem contratação ativa; devolvido', [
+    return record(current, p.at, 'pagamento do pintor recebido fora do prazo ou sem contratação ativa; devolvido', [
       { kind: 'pagamento_fee', amount: p.amount },
       { kind: 'devolucao_fee', amount: p.amount, note: 'fora de prazo' },
     ]);
@@ -277,12 +277,12 @@ export function painterFeeReceived(e: Engagement, p: { amount: Cents; at: Date }
   if (isV2(e)) {
     // Apresentação: as partes passam a ver-se; o cliente tem o prazo para o adiantamento e a assinatura.
     const clientDue = deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone);
-    current = record(current, p.at, 'comissão do pintor recebida; partes apresentadas', [{ kind: 'pagamento_fee', amount: p.amount }]);
+    current = record(current, p.at, 'confirmação do pintor recebida; partes apresentadas', [{ kind: 'pagamento_fee', amount: p.amount }]);
     const status = current.advance - held(current).advance > 0 ? 'aguarda_adiantamento' : 'aguarda_assinatura_cliente';
     return { ...current, status, feePaid: true, clientDue };
   }
   const signDue = deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone);
-  current = record(current, p.at, 'fee do pintor recebido; contrato disponível para assinar', [
+  current = record(current, p.at, 'confirmação do pintor recebida; contrato disponível para assinar', [
     { kind: 'pagamento_fee', amount: p.amount },
   ]);
   return { ...current, status: 'aguarda_assinatura_pintor', feePaid: true, signDue };
@@ -305,7 +305,7 @@ export function painterSign(e: Engagement, p: { at: Date }): Engagement {
 export function expire(e: Engagement, now: Date): Engagement {
   const tz = e.rules.timeZone;
   if (e.status === 'aguarda_fee' && e.feeDue && !isWithin(now, e.feeDue, tz)) {
-    return { ...record(e, now, `fee não recebido até ${e.feeDue}; cliente informado`), status: 'pintor_nao_pagou' };
+    return { ...record(e, now, `confirmação do pintor não recebida até ${e.feeDue}; cliente informado`), status: 'pintor_nao_pagou' };
   }
   if (e.status === 'aguarda_assinatura_pintor' && e.signDue && !isWithin(now, e.signDue, tz)) {
     const h = held(e);

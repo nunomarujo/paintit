@@ -59,6 +59,7 @@ export default async function NewOrganizationPage({
           administradoras={administradoras}
           initialKind={initialKind}
           initialGeridaPor={gerida_por}
+          defaultEmail={user?.email ?? undefined}
         />
       </div>
     </div>

@@ -203,9 +203,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               {counterpart.morada_fiscal ? `${counterpart.morada_fiscal}, ${counterpart.codigo_postal ?? ''} ${counterpart.localidade ?? ''}` : '—'}
             </dd>
             <dt className="text-slate-500">Email</dt>
-            <dd>{counterpart.email_contacto ?? '—'}</dd>
+            <dd>{counterpart.email_contacto ?? 'Não indicado'}</dd>
             <dt className="text-slate-500">Telefone</dt>
-            <dd>{counterpart.telefone ?? '—'}</dd>
+            <dd>{counterpart.telefone ?? 'Não indicado'}</dd>
           </dl>
         </section>
       )}
@@ -278,12 +278,16 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               {formatEuros(s.cliente.entregou)} / {formatEuros(s.cliente.recebeu)}
               {s.cliente.transitou > 0 ? ` (transitou ${formatEuros(s.cliente.transitou)})` : ''}
             </dd>
-            <dt className="text-slate-500">Pintor entregou / recebeu</dt>
-            <dd className="sm:text-right">
-              {formatEuros(s.pintor.entregou)} / {formatEuros(s.pintor.recebeu)}
-            </dd>
-            <dt className="text-slate-500">Plataforma recebeu</dt>
-            <dd className="sm:text-right">{formatEuros(s.plataforma.recebeu)}</dd>
+            {side !== 'cliente' && (
+              <>
+                <dt className="text-slate-500">Pintor entregou / recebeu</dt>
+                <dd className="sm:text-right">
+                  {formatEuros(s.pintor.entregou)} / {formatEuros(s.pintor.recebeu)}
+                </dd>
+                <dt className="text-slate-500">Plataforma recebeu</dt>
+                <dd className="sm:text-right">{formatEuros(s.plataforma.recebeu)}</dd>
+              </>
+            )}
           </dl>
         </section>
       )}

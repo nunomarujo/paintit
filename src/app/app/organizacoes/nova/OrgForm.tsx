@@ -29,9 +29,11 @@ interface Props {
   initialGeridaPor?: string;
   /** Tipos permitidos a esta conta (um perfil por conta). */
   kinds?: OrgKind[];
+  /** Email da conta, sugerido como contacto da entidade nova. */
+  defaultEmail?: string;
 }
 
-export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor, kinds }: Props) {
+export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor, kinds, defaultEmail }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const [kind, setKind] = useState<OrgKind | ''>(initial?.kind ?? initialKind ?? '');
   const e = state.errors;
@@ -100,10 +102,18 @@ export function OrgForm({ action: submit, administradoras, initial, initialKind,
           name="emailContacto"
           label="Email de contacto"
           type="email"
-          defaultValue={v('email_contacto')}
+          defaultValue={v('email_contacto') ?? defaultEmail}
           error={e.emailContacto}
+          hint="Só é mostrado à outra parte depois da apresentação."
         />
-        <Field name="telefone" label="Telefone" type="tel" defaultValue={v('telefone')} error={e.telefone} />
+        <Field
+          name="telefone"
+          label="Telefone"
+          type="tel"
+          defaultValue={v('telefone')}
+          error={e.telefone}
+          hint="Só é mostrado à outra parte depois da apresentação."
+        />
       </div>
 
       {hasShop && (

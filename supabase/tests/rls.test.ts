@@ -1113,6 +1113,19 @@ describe('um perfil por conta', () => {
   });
 });
 
+describe('avisos ao cliente', () => {
+  it('nenhum aviso dirigido ao cliente fala em comissão', async () => {
+    const n = await one<{ n: string }>(
+      `select count(*) n from public.notifications x join public.engagements e on e.client_org_id = x.org_id where x.texto ilike '%comiss%'`,
+    );
+    expect(Number(n.n)).toBe(0);
+    const total = await one<{ n: string }>(
+      `select count(*) n from public.notifications x join public.engagements e on e.client_org_id = x.org_id`,
+    );
+    expect(Number(total.n)).toBeGreaterThan(0);
+  });
+});
+
 describe('pagamentos Stripe', () => {
   it('ninguém escreve pela API; só leitura', async () => {
     const eng = (await one<{ id: string }>('select id from public.engagements limit 1')).id;

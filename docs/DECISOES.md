@@ -203,3 +203,11 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 
 - Decidido a 21/10/2026: a página Transparência refere só que a plataforma cobra uma pequena comissão pelo sucesso ao prestador
   de serviço, sem percentagem nem mínimo (podem mudar). Os valores ficam no ecrã do pintor.
+
+## 21/10/2026 — correções do teste de ponta a ponta
+
+- Avisos dentro da aplicação, histórico e "Acerto final" do cliente deixam de falar em comissão (migração
+  `20261021010000_avisos_sem_comissao.sql` e notas neutras em `engagement.ts`). Teste novo na base de dados.
+- Emails: envio um de cada vez e com repetição em caso de limite do Resend (429): o aviso de "contrato assinado"
+  não chegou ao cliente por causa dele.
+- Contactos: o email da conta é sugerido como contacto da entidade nova; na revelação aparece "Não indicado" em vez de "—".
