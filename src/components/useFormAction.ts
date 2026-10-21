@@ -21,6 +21,12 @@ export function useFormAction<S extends object>(
     if (resetOnSuccess && ok) ref.current?.reset();
   }, [state, ok, resetOnSuccess]);
 
+  // Aviso por tentar partilhar contactos: o StrikeDialog (no layout da área reservada) mostra-o.
+  useEffect(() => {
+    const strike = (state as { strike?: unknown }).strike;
+    if (strike) window.dispatchEvent(new CustomEvent('qp:strike', { detail: strike }));
+  }, [state]);
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // O botão carregado conta (ex.: Aprovar ou Rejeitar).

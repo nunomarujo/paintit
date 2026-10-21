@@ -59,6 +59,7 @@ export async function passwordAuth(_prev: SignInState, form: FormData): Promise<
   }
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    if (error.code === 'user_banned' || /banned/i.test(error.message)) redirect('/conta-bloqueada');
     return {
       status: 'error',
       message: 'Email ou palavra-passe errados. Se entrava sempre por link, peça um link e defina a palavra-passe no seu perfil.',

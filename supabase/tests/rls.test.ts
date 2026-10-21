@@ -1128,6 +1128,20 @@ describe('um perfil por conta', () => {
   });
 });
 
+describe('avisos e bloqueio por contactos', () => {
+  it('o utilizador lê só as suas infrações e nunca escreve; um NIF bloqueado não se regista', async () => {
+    await db.query(`insert into public.contact_violations (user_id, onde, motivos, texto) values ($1, 'mensagem', array['um email'], 'x@y.pt'), ($2, 'mensagem', array['uma morada'], 'rua x')`, [A, B]);
+    const mine = await as(A, async () => (await db.query('select user_id from public.contact_violations')).rows);
+    expect(mine.map((r) => (r as { user_id: string }).user_id)).toEqual([A]);
+    await expect(as(A, () => db.query(`delete from public.contact_violations where user_id = $1`, [A]))).rejects.toThrow(/permission|row-level security/);
+    expect((await one<{ n: string }>('select count(*) n from public.contact_violations where user_id = $1', [A])).n).toBe(1);
+    await expect(as(A, () => db.query(`insert into public.blocked_users (user_id, motivo) values ($1, 'x')`, [A]))).rejects.toThrow(/permission|row-level security/);
+    await expect(as(A, () => db.query(`insert into public.contact_violations (user_id, onde, motivos, texto) values ($1, 'x', array['y'], 'z')`, [A]))).rejects.toThrow(/permission|row-level security/);
+    await db.query(`insert into public.blocked_identifiers (nif) values ('509999990')`);
+    await expect(createOrg(A, 'particular', 'Pessoa Bloqueada', '509999990')).rejects.toThrow(/NIF pertence a uma conta bloqueada/);
+  });
+});
+
 describe('avisos ao cliente', () => {
   it('nenhum aviso dirigido ao cliente fala em comissão', async () => {
     const n = await one<{ n: string }>(

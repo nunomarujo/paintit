@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { parseLine, parseTerms, submitBlockers } from '@/domain/proposal';
-import { revealingContent } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { notifyProposalSubmitted } from '@/lib/notify';
+import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -37,6 +37,8 @@ export async function saveTerms(proposalId: string, requestId: string, _prev: Fo
   const v = parsed.value;
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  const refused = await guardContact(supabase, user.id, 'condições da proposta', { exclusoes: v.exclusoes, notas: v.notas });
+  if (refused) return refused;
   const { data, error } = await supabase
     .from('proposals')
     .update({
@@ -70,6 +72,8 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
   const l = parsed.value;
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  const refusedLine = await guardContact(supabase, user.id, 'linha da proposta', { descricao: l.descricao, produto: l.produto, motivoDiferenca: l.motivoDiferenca });
+  if (refusedLine) return refusedLine;
   // Material comprometido: produto do catálogo, com o desconto para a área desta obra.
   const productId = String(form.get('productId') ?? '').trim();
   let material: { product_id: string; preco_fornecedor_cents: number | null; desconto_bps: number; produto: string } | null = null;
@@ -163,17 +167,11 @@ export async function sendMessage(
   const texto = String(form.get('texto') ?? '').trim();
   if (!texto) return { errors: { texto: 'Escreva a mensagem.' } };
   if (texto.length > 2000) return { errors: { texto: 'No máximo 2000 caracteres.' } };
-  // COM-02: contactos e localização ficam de fora até à apresentação.
-  const revealing = revealingContent(texto);
-  if (revealing.length > 0) {
-    return {
-      errors: {
-        texto: `A mensagem parece conter ${revealing.join(', ')}. Os contactos só são trocados depois da apresentação.`,
-      },
-    };
-  }
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  // COM-02: contactos e localização ficam de fora até à apresentação; tentar é um aviso (src/domain/strikes.ts).
+  const refused = await guardContact(supabase, user.id, 'mensagem', { texto });
+  if (refused) return refused;
   const { error } = await supabase.from('proposal_messages').insert({ proposal_id: proposalId, lado, texto, autor: user.id });
   if (error) return { errors: {}, message: 'Não foi possível enviar.' };
   revalidatePath(path);

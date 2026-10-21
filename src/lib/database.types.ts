@@ -551,6 +551,24 @@ export type Database = {
         Update: { [k: string]: unknown };
         Relationships: [];
       };
+      contact_violations: {
+        Row: { anulada_em: string | null; created_at: string; id: string; motivos: string[]; onde: string; texto: string; user_id: string };
+        Insert: { anulada_em?: string | null; created_at?: string; id?: string; motivos: string[]; onde: string; texto: string; user_id: string };
+        Update: Partial<Database['public']['Tables']['contact_violations']['Insert']>;
+        Relationships: [];
+      };
+      blocked_users: {
+        Row: { blocked_at: string; motivo: string; user_id: string };
+        Insert: { blocked_at?: string; motivo: string; user_id: string };
+        Update: Partial<Database['public']['Tables']['blocked_users']['Insert']>;
+        Relationships: [];
+      };
+      blocked_identifiers: {
+        Row: { created_at: string; nif: string; user_id: string | null };
+        Insert: { created_at?: string; nif: string; user_id?: string | null };
+        Update: Partial<Database['public']['Tables']['blocked_identifiers']['Insert']>;
+        Relationships: [];
+      };
       stripe_payments: {
         Row: { amount_cents: number; created_at: string; engagement_id: string; id: string; kind: string; payment_intent: string; refunded_cents: number };
         Insert: { amount_cents: number; created_at?: string; engagement_id: string; id?: string; kind: string; payment_intent: string; refunded_cents?: number };

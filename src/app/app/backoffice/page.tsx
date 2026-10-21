@@ -8,6 +8,8 @@ import { getUser } from '@/lib/supabase/server';
 import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
+import { unblockAccount } from './actions';
+import { adminClient } from '@/lib/supabase/admin';
 import { CreatePromoCode, SupplierPlanForm, TogglePromo } from './PromoForms';
 import { PLAN_INFO } from '@/domain/subscription';
 import { formatEuros } from '@/domain/money';
@@ -53,11 +55,25 @@ export default async function BackofficePage() {
 
   const checks = await serverChecks(engagements?.length ?? 0);
 
+  // Avisos por tentativas de partilhar contactos, por conta (src/domain/strikes.ts).
+  const [{ data: violations }, { data: blockedRows }] = await Promise.all([
+    supabase.from('contact_violations').select('id, user_id, onde, motivos, texto, created_at').is('anulada_em', null).order('created_at', { ascending: false }).limit(100),
+    supabase.from('blocked_users').select('user_id, blocked_at, motivo'),
+  ]);
+  const strikeUsers = [...new Set([...(violations ?? []).map((v) => v.user_id), ...(blockedRows ?? []).map((b) => b.user_id)])];
+  const admin = adminClient();
+  const emailOf = new Map<string, string>();
+  if (admin) {
+    await Promise.all(strikeUsers.map(async (id) => emailOf.set(id, (await admin.auth.admin.getUserById(id)).data.user?.email ?? id)));
+  }
+  const blockedSet = new Set((blockedRows ?? []).map((b) => b.user_id));
+
   const tiles = [
     { href: '/app/validacao', label: 'Documentos e fotografias por rever', n: (docs.count ?? 0) + (photos.count ?? 0) },
     { href: '/app/contratacoes', label: 'Contratações à espera da plataforma', n: pendingEngagements },
     { href: '#denuncias', label: 'Denúncias de anúncios', n: reports?.length ?? 0 },
     { href: '#assinaturas', label: 'Assinaturas com certificado por confirmar', n: unverified?.length ?? 0 },
+    { href: '#infracoes', label: 'Contas com avisos por contactos', n: strikeUsers.length },
   ];
 
   return (
@@ -148,6 +164,47 @@ export default async function BackofficePage() {
           </ul>
         </section>
       )}
+
+      <section id="infracoes" className={card}>
+        <h2 className="font-semibold">Tentativas de partilhar contactos</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          1.ª tentativa: aviso. 2.ª: último aviso. 3.ª: conta bloqueada e NIF das entidades impedido de se registar. Desbloquear anula os avisos.
+        </p>
+        {strikeUsers.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">Sem tentativas registadas.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {strikeUsers.map((uid) => {
+              const mine = (violations ?? []).filter((v) => v.user_id === uid);
+              return (
+                <li key={uid} className="py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      <b>{emailOf.get(uid) ?? uid}</b> · {mine.length} {mine.length === 1 ? 'aviso' : 'avisos'}
+                      {blockedSet.has(uid) && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Bloqueada</span>}
+                    </span>
+                    {blockedSet.has(uid) && (
+                      <form action={unblockAccount.bind(null, uid)}>
+                        <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1 text-sm font-semibold hover:bg-slate-50">
+                          Desbloquear
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                  <ul className="mt-1 space-y-1 text-slate-600">
+                    {mine.map((v) => (
+                      <li key={v.id}>
+                        {new Date(v.created_at).toLocaleString('pt-PT')} · {v.onde} · {v.motivos.join(', ')}
+                        <span className="block whitespace-pre-line rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{v.texto}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section id="denuncias" className={card}>
         <h2 className="font-semibold">Denúncias de anúncios</h2>

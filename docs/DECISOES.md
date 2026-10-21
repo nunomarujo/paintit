@@ -211,3 +211,13 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Emails: envio um de cada vez e com repetição em caso de limite do Resend (429): o aviso de "contrato assinado"
   não chegou ao cliente por causa dele.
 - Contactos: o email da conta é sugerido como contacto da entidade nova; na revelação aparece "Não indicado" em vez de "—".
+
+## 21/10/2026 — avisos e bloqueio por contactos (strikes)
+
+- Tentar enviar contactos, localização ou convites para sair da plataforma (mensagens, pedido, zonas, legendas, linhas e
+  condições da proposta, resposta a avaliações) é recusado e conta como aviso, com janela de aviso:
+  **1.ª tentativa: aviso; 2.ª: último aviso (a próxima bloqueia); 3.ª: conta bloqueada para sempre.**
+- O bloqueio proíbe o email (Supabase `ban`), impede registar de novo os NIF das entidades da conta (`blocked_identifiers`) e
+  a área reservada passa a mostrar só `/conta-bloqueada`. Sessões abertas noutros aparelhos caducam em cerca de 1 hora.
+- A equipa da plataforma vê as tentativas (com o texto) e pode desbloquear no backoffice; desbloquear anula os avisos.
+- Risco assumido: o filtro é por padrões e pode errar. Por isso há 2 avisos antes do bloqueio e desbloqueio manual.

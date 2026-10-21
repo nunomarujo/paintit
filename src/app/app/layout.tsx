@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { signOut } from '@/app/entrar/actions';
 import { AppNav, type NavItem } from '@/components/AppNav';
+import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
@@ -10,6 +11,12 @@ import { getUser } from '@/lib/supabase/server';
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { supabase, user } = await getUser();
   if (!user) redirect('/entrar');
+  // Conta bloqueada por tentativas de partilhar contactos: sai e não volta (src/domain/strikes.ts).
+  const { data: blocked } = await supabase.from('blocked_users').select('user_id').eq('user_id', user.id).maybeSingle();
+  if (blocked) {
+    await supabase.auth.signOut();
+    redirect('/conta-bloqueada');
+  }
 
   const [admin, { data: memberships }, { count: unread }] = await Promise.all([
     isPlatformAdmin(supabase, user.id),
@@ -79,6 +86,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </span>
         </header>
         <main className="mx-auto max-w-[1180px] px-4 py-8 md:px-9">{children}</main>
+        <StrikeDialog />
       </div>
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { isPlatformAdmin } from '@/lib/access';
+import { unblockUser } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
 import { SUPPLIER_PLANS, monthlyPrice, type SupplierPlan } from '@/domain/subscription';
@@ -106,4 +108,13 @@ export async function setSupplierPlan(_prev: FormState, form: FormData): Promise
   if (promo) await supabase.from('promo_codes').update({ uses: promo.uses + 1 }).eq('id', promo.id);
   revalidatePath('/app/backoffice');
   return { errors: {}, ok: true, message: 'Plano ativo.' };
+}
+
+/** Desbloqueia uma conta bloqueada por tentativas de partilhar contactos (só a equipa da plataforma). */
+export async function unblockAccount(userId: string): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user || !(await isPlatformAdmin(supabase, user.id))) return;
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return;
+  await unblockUser(userId);
+  revalidatePath('/app/backoffice');
 }

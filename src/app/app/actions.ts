@@ -17,6 +17,7 @@ import {
 } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
 import { addressProblem } from '@/domain/address';
+import type { StrikeInfo } from '@/domain/strikes';
 import { lookupPostalCode } from '@/lib/postalCodes';
 import { getUser } from '@/lib/supabase/server';
 
@@ -53,7 +54,7 @@ function buildingColumns(v: BuildingInput) {
   };
 }
 
-export type FormState = { errors: FieldErrors; message?: string; ok?: boolean };
+export type FormState = { errors: FieldErrors; message?: string; ok?: boolean; strike?: StrikeInfo };
 
 /** A morada tem de existir: rua do código postal indicado (base dos CTT). */
 async function addressErrors(morada: string | null, cp: string | null, moradaField: string): Promise<FieldErrors> {

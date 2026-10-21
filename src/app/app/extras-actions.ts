@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
-import { revealingContent } from '@/domain/request';
+import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
 // Convites, avaliações e avisos.
@@ -43,9 +43,10 @@ export async function saveReview(engagementId: string, _prev: FormState, form: F
 export async function answerReview(engagementId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const resposta = String(form.get('resposta') ?? '').trim().slice(0, 2000);
   if (!resposta) return { errors: { resposta: 'Escreva a resposta.' } };
-  const revealing = revealingContent(resposta);
-  if (revealing.length > 0) return { errors: { resposta: `A resposta é pública para o cliente; retire ${revealing.join(', ')}.` } };
-  const { supabase } = await getUser();
+  const { supabase, user } = await getUser();
+  if (!user) return { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+  const refused = await guardContact(supabase, user.id, 'resposta a avaliação', { resposta });
+  if (refused) return refused;
   const { error } = await supabase.from('reviews').update({ resposta }).eq('engagement_id', engagementId);
   if (error) return { errors: {}, message: 'Não foi possível guardar a resposta.' };
   revalidatePath(`/app/contratacoes/${engagementId}`);

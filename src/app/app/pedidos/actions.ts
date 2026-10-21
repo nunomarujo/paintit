@@ -7,10 +7,11 @@ import type { Json } from '@/lib/database.types';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
-import { parseRequest, parseSurface, publishBlockers, revealingContent } from '@/domain/request';
+import { parseRequest, parseSurface, publishBlockers } from '@/domain/request';
 import { preferencesFromForm } from '@/domain/reference';
 import { CURRENT_RULES } from '@/domain/rules';
 import { isPlatformAdmin } from '@/lib/access';
+import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -37,6 +38,8 @@ export async function createRequest(orgId: string, _prev: FormState, form: FormD
   if (!parsed.value) return { errors: parsed.errors };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  const refused = await guardContact(supabase, user.id, 'pedido', { descricao: parsed.value.descricao, corAcabamento: parsed.value.corAcabamento });
+  if (refused) return refused;
 
   const { data, error } = await supabase
     .from('work_requests')
@@ -52,6 +55,8 @@ export async function updateRequest(requestId: string, _prev: FormState, form: F
   if (!parsed.value) return { errors: parsed.errors };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  const refused = await guardContact(supabase, user.id, 'pedido', { descricao: parsed.value.descricao, corAcabamento: parsed.value.corAcabamento });
+  if (refused) return refused;
 
   const { data, error } = await supabase
     .from('work_requests')
@@ -73,6 +78,8 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
   if (!user) return NOT_SIGNED_IN;
 
   const v = parsed.value;
+  const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao: v.descricao });
+  if (refused) return refused;
   const { error } = await supabase.from('request_surfaces').insert({
     request_id: requestId,
     kind: v.kind,
@@ -138,8 +145,6 @@ export async function uploadPhoto(requestId: string, _prev: FormState, form: For
   const file = form.get('ficheiro');
   if (!(PHOTO_KINDS as readonly string[]).includes(kind)) return { errors: { kind: 'Escolha o tipo de fotografia.' } };
   if (!(file instanceof File)) return { errors: { ficheiro: 'Escolha uma fotografia.' } };
-  const revealing = legenda ? revealingContent(legenda) : [];
-  if (revealing.length > 0) return { errors: { legenda: `A legenda parece conter ${revealing.join(', ')}.` } };
 
   // Valida pelos bytes e retira os metadados (GPS, aparelho, data) antes de guardar.
   const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
@@ -147,6 +152,8 @@ export async function uploadPhoto(requestId: string, _prev: FormState, form: For
 
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
+  const refusedPhoto = await guardContact(supabase, user.id, 'legenda de fotografia', { legenda });
+  if (refusedPhoto) return refusedPhoto;
   const { count } = await supabase
     .from('request_photos')
     .select('id', { count: 'exact', head: true })
