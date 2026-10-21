@@ -273,3 +273,46 @@ export function itemsFromLines(rows: { trabalho: string | null; detalhes: unknow
   }
   return out.sort((a, b) => a.ordem - b.ordem).map((x) => x.item);
 }
+
+// --- Sugestões de produtos do catálogo de referência, só os que servem ao trabalho --------------
+
+export interface CatalogueProduct {
+  id: string;
+  marca: string;
+  nome: string;
+  tipo: string;
+  uso: string | null;
+  descricao: string | null;
+  acabamento: string | null;
+  rendimento_m2_l: number | null;
+  preco_referencia_cents: number | null;
+  preco_embalagem_l: number | null;
+}
+
+/**
+ * Produtos do catálogo adequados a um campo de produto de um trabalho. Respeita o uso (interior ou exterior)
+ * do pedido: numa fachada não se sugere uma tinta só de interior. Vazio = não há sugestões para este campo.
+ */
+export function productSuggestions(code: string, fieldKey: string, tipoObra: string | null, products: CatalogueProduct[]): CatalogueProduct[] {
+  const useOk = (p: CatalogueProduct) => {
+    if (tipoObra === 'interior') return p.uso === null || p.uso === 'interior' || p.uso === 'ambos';
+    if (tipoObra === 'fachadas' || tipoObra === 'moradia' || tipoObra === 'muros') return p.uso === null || p.uso === 'exterior' || p.uso === 'ambos';
+    return true;
+  };
+  const text = (p: CatalogueProduct) => `${p.nome} ${p.descricao ?? ''}`.toLowerCase();
+  const repair = (p: CatalogueProduct) => p.tipo === 'outro' || p.tipo === 'massa_reparacao';
+  const rules: Record<string, (p: CatalogueProduct) => boolean> = {
+    'primario/produto': (p) => p.tipo === 'primario',
+    'pintura_final/produto': (p) => p.tipo === 'tinta_exterior' || p.tipo === 'tinta_interior',
+    'impermeabilizacao/produto': (p) => p.tipo === 'impermeabilizante',
+    'humidade/produto': (p) => p.tipo === 'impermeabilizante' || /humidade|isolante|fungos/.test(text(p)),
+    'metais_madeiras/produto': (p) => p.tipo === 'esmalte' || (p.tipo === 'primario' && /metal|madeira/.test(text(p))),
+    'fissuras/produto': (p) => p.tipo === 'massa_reparacao' || /fissur/.test(text(p)),
+    'rebocos/produto': (p) => repair(p) && /argamassa|reboco|massa/.test(text(p)),
+    'rede_barramento/argamassa': (p) => repair(p) && /argamassa|barramento|massa/.test(text(p)),
+    'lavagem/produto': (p) => /fungos|algas|antifung/.test(text(p)),
+  };
+  const rule = rules[`${code}/${fieldKey}`];
+  if (!rule) return [];
+  return products.filter((p) => rule(p) && useOk(p));
+}

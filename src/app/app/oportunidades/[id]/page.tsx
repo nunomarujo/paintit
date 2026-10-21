@@ -12,14 +12,15 @@ import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
-import { budgetIssues, isComplete, itemsFromLines, type Zone } from '@/domain/works';
+import { budgetIssues, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
+import { parsePreferences } from '@/domain/reference';
 import type { DesiredWork } from '@/domain/request';
 import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions } from '@/lib/materials';
 import { painterOrgs } from '@/lib/queries';
-import { preferredView } from '@/lib/reference';
+import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 
@@ -118,6 +119,22 @@ export default async function OpportunityPage({ params, searchParams }: { params
     rever: false,
   };
   const legacyLines = domainLines.filter((l) => !l.trabalho);
+  // Sugestões de produtos só no passo dos trabalhos.
+  const catalogue: CatalogueProduct[] =
+    wizard && passo === 'trabalhos'
+      ? (await loadReferences(supabase)).map((r) => ({
+          id: r.id,
+          marca: r.marca,
+          nome: r.nome,
+          tipo: r.tipo,
+          uso: r.uso,
+          descricao: r.descricao,
+          acabamento: r.acabamento,
+          rendimento_m2_l: r.rendimento_m2_l,
+          preco_referencia_cents: r.preco_referencia_cents,
+          preco_embalagem_l: r.preco_embalagem_l,
+        }))
+      : [];
   const materials =
     draft && listing
       ? await materialOptions(supabase, {
@@ -274,7 +291,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <BudgetSteps basePath={path} current={passo} done={done} />
 
               {passo === 'trabalhos' && (
-                <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} basePath={path} />
+                <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} basePath={path} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
               )}
 
               {passo === 'precos' && (

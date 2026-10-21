@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, suggestedQuantity, workDef, type WorkItem, type Zone } from './works';
+import { productSuggestions, type CatalogueProduct, budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, suggestedQuantity, workDef, type WorkItem, type Zone } from './works';
 
 const zones: Zone[] = [
   { id: 'a', label: 'Fachada principal (420 m²)', area: 42000 },
@@ -67,5 +67,41 @@ describe('orçamento guiado', () => {
     const unjustified = budgetIssues({ items: [item({ code: 'lavagem', key: 'lavagem', estado: 'nao_incluido' })], prices: {}, globalMode: true, zones, requested: ['lavagem'] });
     expect(unjustified.join(' ')).toMatch(/justificar/);
     expect(budgetIssues({ items: [item()], prices: {}, globalMode: true, zones, requested: [] })).toEqual([]);
+  });
+});
+
+describe('sugestões do catálogo por trabalho', () => {
+  const p = (nome: string, tipo: string, uso: string | null, descricao = ''): CatalogueProduct => ({
+    id: nome, marca: 'M', nome, tipo, uso, descricao, acabamento: null, rendimento_m2_l: null, preco_referencia_cents: null, preco_embalagem_l: null,
+  });
+  const cat = [
+    p('Novaqua', 'tinta_exterior', 'exterior'),
+    p('Vinylmatt', 'tinta_interior', 'ambos'),
+    p('Viplad', 'tinta_interior', 'interior'),
+    p('Primário X', 'primario', 'ambos'),
+    p('Primário Metal', 'primario', 'ambos', 'para metais ferrosos'),
+    p('Imperflex', 'impermeabilizante', 'exterior'),
+    p('Sintecin', 'esmalte', 'ambos'),
+    p('Argamassa Tapa Fissuras', 'outro', 'exterior', 'argamassa para reparação de fissuras'),
+    p('Artibiose', 'outro', 'ambos', 'inibe fungos e algas'),
+  ];
+  const names = (code: string, field: string, obra: string | null) => productSuggestions(code, field, obra, cat).map((x) => x.nome);
+  it('impermeabilização só sugere impermeabilizantes', () => {
+    expect(names('impermeabilizacao', 'produto', 'fachadas')).toEqual(['Imperflex']);
+  });
+  it('pintura final respeita interior e exterior do pedido', () => {
+    expect(names('pintura_final', 'produto', 'fachadas')).toEqual(['Novaqua', 'Vinylmatt']);
+    expect(names('pintura_final', 'produto', 'interior')).toEqual(['Vinylmatt', 'Viplad']);
+  });
+  it('primário, metais, fissuras e lavagem', () => {
+    expect(names('primario', 'produto', 'fachadas')).toEqual(['Primário X', 'Primário Metal']);
+    expect(names('metais_madeiras', 'produto', 'fachadas')).toEqual(['Primário Metal', 'Sintecin']);
+    expect(names('fissuras', 'produto', 'fachadas')).toEqual(['Argamassa Tapa Fissuras']);
+    expect(names('lavagem', 'produto', 'fachadas')).toEqual(['Artibiose']);
+  });
+  it('campos sem catálogo não têm sugestões', () => {
+    expect(names('selagem_remates', 'material', 'fachadas')).toEqual([]);
+    expect(names('rede_barramento', 'rede', 'fachadas')).toEqual([]);
+    expect(names('acessos', 'meio', 'fachadas')).toEqual([]);
   });
 });

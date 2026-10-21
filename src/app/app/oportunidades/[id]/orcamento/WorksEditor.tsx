@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { saveWorks } from '@/app/app/oportunidades/orcamento-actions';
 import { useFormAction } from '@/components/useFormAction';
+import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
+import { formatEuros } from '@/domain/money';
+import { pricePerLitre, type Preference } from '@/domain/reference';
 import {
+  productSuggestions,
+  type CatalogueProduct,
   WORKS,
   WORK_STATES,
   WORK_STATE_LABELS,
@@ -20,18 +25,121 @@ import {
 
 const input = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base';
 
+function SuggestField({
+  id,
+  label,
+  required,
+  placeholder,
+  value,
+  onChange,
+  options,
+  preferred,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: CatalogueProduct[];
+  preferred: Preference[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+  const pref = new Map(preferred.map((p) => [p.id, p]));
+  const shown = options
+    .filter((o) => `${o.marca} ${o.nome}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .sort((a, b) => Number(pref.has(b.id)) - Number(pref.has(a.id)));
+  return (
+    <div ref={box} className="relative sm:col-span-2">
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+        {label}
+        {required && <span className="text-red-700"> *</span>}
+      </label>
+      <div className="mt-1 flex gap-2">
+        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={200} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base" />
+        <button type="button" aria-expanded={open} aria-controls={`${id}-lista`} onClick={() => setOpen((o) => !o)} className="shrink-0 rounded-lg border border-tinta-600 bg-white px-4 py-2.5 text-sm font-semibold text-tinta-700 hover:bg-tinta-50">
+          Sugestões
+        </button>
+      </div>
+      {open && (
+        <div id={`${id}-lista`} className="absolute right-0 z-20 mt-1 w-full max-w-xl rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por marca ou nome" aria-label="Filtrar sugestões" className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <p className="px-2 pb-1 text-xs text-slate-500">Produtos do catálogo adequados a este trabalho.</p>
+          <ul className="max-h-72 space-y-1 overflow-auto">
+            {shown.length === 0 && <li className="px-2 py-3 text-sm text-slate-600">Sem produtos com este filtro.</li>}
+            {shown.map((o) => {
+              const perLitre = pricePerLitre({ preco: o.preco_referencia_cents, litros: o.preco_embalagem_l });
+              const asked = pref.get(o.id);
+              return (
+                <li key={o.id} className="flex items-start gap-2 rounded-lg px-2 py-2 hover:bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(`${o.marca} ${o.nome}`);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <span className="block text-sm font-medium text-slate-900">
+                      {o.marca} {o.nome}
+                      {asked && <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${asked.fixo ? 'bg-amber-100 text-amber-800' : 'bg-tinta-50 text-tinta-700'}`}>{asked.fixo ? 'Pedido pelo cliente: não substituir' : 'Pedido pelo cliente'}</span>}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      {PRODUCT_TYPE_LABELS[o.tipo as ProductType] ?? o.tipo}
+                      {o.acabamento ? ` · ${o.acabamento}` : ''}
+                      {o.rendimento_m2_l ? ` · ${o.rendimento_m2_l.toLocaleString('pt-PT')} m²/L` : ''}
+                      {perLitre !== null ? ` · ref. ${formatEuros(perLitre)}/L` : ''}
+                    </span>
+                  </button>
+                  <a href={`/app/catalogo/referencia/${o.id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-semibold text-tinta-700 underline">
+                    Ficha ↗
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WorksEditor({
   proposalId,
   requestId,
   zones,
   initial,
   basePath,
+  catalogue = [],
+  tipoObra = null,
+  preferred = [],
 }: {
   proposalId: string;
   requestId: string;
   zones: Zone[];
   initial: WorkItem[];
   basePath: string;
+  /** Produtos de referência do catálogo, para as sugestões. */
+  catalogue?: CatalogueProduct[];
+  tipoObra?: string | null;
+  /** Produtos que o cliente pediu no pedido (aparecem primeiro nas sugestões). */
+  preferred?: Preference[];
 }) {
   const router = useRouter();
   const { state, pending, formProps } = useFormAction<FormState>(saveWorks.bind(null, proposalId, requestId), { errors: {} });
@@ -182,7 +290,24 @@ export function WorksEditor({
 
               {(item.estado === 'base' || item.estado === 'opcional') && (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {def.fields.map((f) => (
+                  {def.fields.map((f) => {
+                    const options = f.kind === 'text' ? productSuggestions(def.code, f.key, tipoObra, catalogue) : [];
+                    if (options.length > 0) {
+                      return (
+                        <SuggestField
+                          key={`${item.key}-${f.key}`}
+                          id={`${item.key}-${f.key}`}
+                          label={f.label}
+                          required={f.required}
+                          placeholder={f.placeholder}
+                          value={item.campos[f.key] ?? ''}
+                          onChange={(v) => patch(item.key, { campos: { ...item.campos, [f.key]: v } })}
+                          options={options}
+                          preferred={preferred}
+                        />
+                      );
+                    }
+                    return (
                     <label key={f.key} className={`block text-sm font-medium text-slate-700 ${f.kind === 'text' ? 'sm:col-span-2' : ''}`}>
                       {f.label}
                       {f.required && <span className="text-red-700"> *</span>}
@@ -209,7 +334,8 @@ export function WorksEditor({
                         </span>
                       )}
                     </label>
-                  ))}
+                    );
+                  })}
                   {def.qtyLabel && (
                     <label className="block text-sm font-medium text-slate-700">
                       {def.qtyLabel}
