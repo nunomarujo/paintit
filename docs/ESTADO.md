@@ -105,6 +105,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 - Migração `20261021070000_codigos_de_adesao.sql` aplicada e confirmada na base real (21/10/2026): 5 funções, bucket `faturas-adesao`, 7 políticas. Avisos novos esperados: 5 "SECURITY DEFINER executável por autenticados" (cada função verifica quem chama) e 7 "índice não usado" (tabelas vazias).
 
+- Contabilidade: desenho em `docs/CONTABILIDADE.md` (decisões de 21/10/2026 e plano de contas proposto). Falta: NIF da empresa, escolha do software de faturação, validação pelo contabilista Nuno Branco. Próximo: fase 1 (livro de movimentos) e o saldo/resgate das comissões dos fornecedores.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):

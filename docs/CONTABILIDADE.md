@@ -1,6 +1,6 @@
 # Contabilidade da plataforma
 
-Estado: **desenho para validação com o contabilista certificado** (21/10/2026). Nada disto está implementado. Cada decisão
+Estado: **desenho com as decisões do promotor de 21/10/2026 (§8), para validação com o contabilista certificado, Nuno Branco**. Nada disto está implementado. Cada decisão
 fiscal marcada com ◆ tem de ser confirmada por ele antes de ir para código.
 
 ## 1. Princípios
@@ -82,3 +82,51 @@ fiscal marcada com ◆ tem de ser confirmada por ele antes de ir para código.
 5. ◆ **Caução retida**: natureza e IVA. ◆ **Retenção na fonte** nas comissões aos fornecedores (empresas e empresários em nome individual).
 6. **Plano de contas** a usar.
 7. **Acesso** do contabilista à plataforma (perfil só de leitura) ou só por exportações.
+
+## 8. Decisões do promotor (21/10/2026)
+
+- **Empresa dona:** RELEVANTEPLANETA UNIPESSOAL LDA. IVA **trimestral**. Banco: **EuroBic** (o IBAN fica na configuração, nunca no repositório). NIF a indicar.
+- **Contabilista:** Nuno Branco. Software de contabilidade dele: por apurar. Objetivo: automatizar o máximo (faturação e dados para as Finanças).
+- **Faturação:** **InvoiceXpress** ou outro mais barato, com API e certificação AT; a comunicação à AT é feita pelo próprio software (credenciais AT
+  configuradas lá). A escolha final depende de preço e API: comparar InvoiceXpress, Moloni, Vendus e Billin.
+- **Momento da fatura:** decidido pela lógica de negócio: comissão do pintor, quando o dinheiro é recebido e a obra se contrata; subscrição, no pagamento.
+- **Caução retida:** é **sempre com IVA** (para garantir o IVA se o cliente falhar). O valor retido já é bruto: o IVA extrai-se dele (23/123); não se acrescenta ao cliente.
+- **Comissões a fornecedores acumulam em saldo.** O fornecedor resgata quando quiser, desde que tenha os dados de transferência e de faturação e declare o regime (IVA e
+  retenção na fonte). Só então a plataforma paga, líquido de retenção se aplicável. (Ver §10.)
+
+## 9. Plano de contas proposto (SNC, simplificado)
+
+Para o Nuno Branco validar ou ajustar. Os códigos seguem o SNC; as subcontas são nossas.
+
+| Conta | Nome | Para quê |
+| --- | --- | --- |
+| 12.1 | Depósitos à ordem: EuroBic | O banco da empresa |
+| 13.1 | Outros depósitos: saldo Stripe | Dinheiro já pago mas ainda não transferido para o banco |
+| 21.1 | Clientes: pintores | Comissões de sucesso por receber/recebidas |
+| 21.2 | Clientes: fornecedores | Subscrições |
+| 21.3 | Clientes: cauções retidas | Cauções que se tornam receita |
+| 22.1 | Fornecedores: tintas (comissões de adesão) | O que se deve aos fornecedores (o saldo deles) |
+| 22.2 | Fornecedores: Stripe e outros | Taxas e serviços |
+| 24.32 | IVA dedutível | IVA das faturas dos fornecedores e da Stripe |
+| 24.33 | IVA liquidado | IVA das nossas faturas |
+| 24.2 | Retenções na fonte (IRS/IRC) | Retido aos fornecedores no resgate |
+| 27.8.1 | Cauções de clientes (valores de terceiros) | A caução enquanto não é receita nem devolvida |
+| 62.2.1 | Comissões de adesão a fornecedores | Gasto |
+| 62.2.2 | Comissões e taxas de pagamento (Stripe) | Gasto |
+| 72.1 | Comissões de sucesso (pintores) | Rendimento |
+| 72.2 | Subscrições de fornecedores | Rendimento |
+| 72.3 | Cauções retidas | Rendimento |
+
+Regra de ouro: **cada lançamento fecha a zeros** e aponta para o que o originou.
+
+## 10. Saldo e resgate de comissões dos fornecedores (muda o fluxo atual)
+
+Hoje cada comissão de adesão paga-se uma a uma, com a sua fatura. Passa a:
+
+1. Quando a comissão do pintor entra na conta, a comissão do fornecedor passa a **saldo disponível** (e fica lançada a dívida em 22.1).
+2. O fornecedor pede **resgate** do saldo quando quiser, se tiver: IBAN e titular, NIF, **regime de IVA** (cobra IVA ou isento, com o artigo) e **regime de retenção**
+   (empresa; empresário em nome individual com ou sem retenção, a validar).
+3. A plataforma calcula **comissão + IVA − retenção = a pagar**; o fornecedor envia **uma fatura** pelo total resgatado; a equipa paga por transferência e regista a referência.
+4. Cada resgate junta várias comissões; o fornecedor vê o saldo, o histórico e o estado de cada resgate.
+
+Estados de cada comissão: obra adjudicada (a aguardar a comissão do pintor) → disponível → em resgate → paga (ou sem efeito).
