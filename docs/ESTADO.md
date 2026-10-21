@@ -106,7 +106,6 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
   evento `checkout.session.completed` falhado.
 - Criar `CRON_SECRET` (sequência aleatória de 32+ caracteres) na Vercel; redeploy.
 - Criar a chave `NIFPT_KEY` (nif.pt) e colá-la na Vercel, para validar NIPC e nome.
-- Decidir se a página Transparência continua a mostrar a comissão (ver DECISOES de 21/10/2026).
 - Fotografias de prédios (ou aprovar ilustrações) para a página inicial; ilustração em linha do prédio.
 - Parecer jurídico: termos, privacidade, garantia legal da obra, minuta do contrato, Livro de Reclamações.
 - Stripe em modo real (ativar a conta com os dados da empresa); registo da marca.

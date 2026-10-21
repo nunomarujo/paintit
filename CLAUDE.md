@@ -77,4 +77,4 @@ npm run build
     existentes, aos restantes.
 13. **O cliente nunca vê o que a plataforma cobra ao pintor** (comissão, % ou valores), em nenhum ecrã, email ou
     resumo: pode mudar e não é informação do utilizador final. Texto para o cliente fala em "confirmação do pintor".
-    A comissão aparece só ao pintor, à plataforma e na página pública Transparência (exigência do parecer jurídico).
+    Valores e percentagens aparecem só ao pintor e à plataforma. A página pública Transparência diz apenas, sem números, que a plataforma cobra uma pequena comissão pelo sucesso ao prestador de serviço (exigência do parecer jurídico).

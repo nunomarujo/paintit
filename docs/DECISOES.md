@@ -200,3 +200,6 @@ pagamento original só por intervenção manual (caso raro, a tratar).
   aviso de desistência, resumo em linguagem simples e aviso de comissão não paga. O cliente vê "confirmação do pintor".
 - Mantida: ecrãs do pintor, backoffice e página pública Transparência (por decisão a confirmar com o parecer jurídico,
   que pede para a plataforma explicar como ganha dinheiro).
+
+- Decidido a 21/10/2026: a página Transparência refere só que a plataforma cobra uma pequena comissão pelo sucesso ao prestador
+  de serviço, sem percentagem nem mínimo (podem mudar). Os valores ficam no ecrã do pintor.

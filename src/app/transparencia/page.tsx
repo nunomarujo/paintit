@@ -25,8 +25,8 @@ export default function TransparencyPage() {
         <h2 className="text-lg font-semibold">Como a plataforma é paga</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
-            O pintor escolhido paga uma comissão de apresentação de {pct(r.commissionBp)} do valor sem IVA, com o mínimo de{' '}
-            {formatEuros(r.commissionMinCents)}, mais IVA, em {r.feeDeadlineDays} dias.
+            A plataforma cobra apenas uma pequena comissão pelo sucesso, paga pelo prestador de serviço (a empresa de pintura),
+            e só quando a sua proposta é escolhida. Pedir orçamentos e comparar propostas não tem custo para o cliente.
           </li>
           <li>
             O cliente deposita uma caução de {pct(r.guaranteeBp)} (mínimo {formatEuros(r.guaranteeMinCents)}) num parceiro de
