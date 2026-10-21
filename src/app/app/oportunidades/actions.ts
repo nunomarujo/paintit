@@ -9,7 +9,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
-import { notifyProposalSubmitted } from '@/lib/notify';
+import { notifyProposalSubmitted, notifyReferralCandidacy, notifyReferralWon } from '@/lib/notify';
 import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
@@ -145,6 +145,7 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
   const { error } = await supabase.from('proposals').update({ status: 'submetida' }).eq('id', proposalId);
   if (error) return { errors: {}, message: error.message };
   await notifyProposalSubmitted(requestId).catch(() => undefined);
+  await notifyReferralCandidacy(proposalId).catch(() => undefined);
   revalidatePath(`/app/oportunidades/${requestId}`);
   return { errors: {}, ok: true, message: 'Proposta submetida. O cliente vê-a sem saber quem a fez.' };
 }
@@ -183,6 +184,7 @@ export async function chooseProposal(proposalId: string, requestId: string): Pro
   if (!user) return NOT_SIGNED_IN;
   const { error } = await supabase.rpc('select_proposal', { p_proposal: proposalId });
   if (error) return { errors: {}, message: error.message };
+  await notifyReferralWon(proposalId).catch(() => undefined);
   revalidatePath(`/app/pedidos/${requestId}`);
   redirect(`/app/pedidos/${requestId}/propostas`);
 }

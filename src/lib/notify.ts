@@ -1,7 +1,8 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { engagementNotices, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE } from '@/domain/notifications';
+import { engagementNotices, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES } from '@/domain/notifications';
+import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
 import { adminClient } from '@/lib/supabase/admin';
@@ -78,6 +79,7 @@ async function recipients(orgId: string, banned: Set<string> = new Set()): Promi
 
 export async function notifyEngagementChange(engagementId: string, before: EngagementStatus, after: EngagementStatus): Promise<void> {
   const notices = engagementNotices(before, after, CURRENT_RULES.feeDeadlineDays);
+  await notifyReferralProgress(engagementId).catch(() => undefined);
   if (notices.length === 0) return;
   const db = adminClient();
   if (!db) return;
@@ -128,4 +130,55 @@ export async function notifyNewRequest(requestId: string): Promise<void> {
       footer: 'Recebe este aviso por ter uma empresa de pintura registada. Para deixar de receber, responda a este email.',
     });
   }
+}
+
+const euro = (cents: number) => formatEuros(cents);
+const SUPPLIER_PATH = (orgId: string) => `/app/organizacoes/${orgId}/adesoes`;
+
+/** Quando uma proposta com código de adesão é submetida: o fornecedor sabe que houve candidatura. */
+export async function notifyReferralCandidacy(proposalId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: p } = await db.from('proposals').select('referral_code_id, painter_org_id, request_id').eq('id', proposalId).maybeSingle();
+  if (!p?.referral_code_id) return;
+  const [{ data: code }, { data: painter }, { data: listing }] = await Promise.all([
+    db.from('referral_codes').select('supplier_org_id').eq('id', p.referral_code_id).maybeSingle(),
+    db.from('organizations').select('nome').eq('id', p.painter_org_id).maybeSingle(),
+    db.from('request_listings').select('concelho').eq('request_id', p.request_id).maybeSingle(),
+  ]);
+  if (!code) return;
+  const n = REFERRAL_NOTICES.candidatura({ pintor: painter?.nome ?? 'Um pintor', concelho: listing?.concelho ?? 'Portugal' });
+  await sendEmail(await recipients(code.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(code.supplier_org_id));
+}
+
+/** Escolha da proposta: o fornecedor sabe que ganhou, e quanto. */
+export async function notifyReferralWon(proposalId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: pay } = await db.from('referral_payouts').select('supplier_org_id, amount_cents').eq('proposal_id', proposalId).maybeSingle();
+  if (!pay) return;
+  const { data: p } = await db.from('proposals').select('painter_org_id').eq('id', proposalId).maybeSingle();
+  const { data: painter } = p ? await db.from('organizations').select('nome').eq('id', p.painter_org_id).maybeSingle() : { data: null };
+  const n = REFERRAL_NOTICES.ganhou({ pintor: painter?.nome ?? 'O pintor', comissao: euro(pay.amount_cents) });
+  await sendEmail(await recipients(pay.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(pay.supplier_org_id));
+}
+
+/** Quando a plataforma recebe a comissão do pintor: pede-se a fatura e o IBAN (uma só vez). */
+export async function notifyReferralProgress(engagementId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: pay } = await db.from('referral_payouts').select('id, supplier_org_id, amount_cents, fee_recebido_em, fee_avisado').eq('engagement_id', engagementId).maybeSingle();
+  if (!pay?.fee_recebido_em || pay.fee_avisado) return;
+  await db.from('referral_payouts').update({ fee_avisado: true }).eq('id', pay.id);
+  const n = REFERRAL_NOTICES.feeRecebido({ comissao: euro(pay.amount_cents) });
+  await sendEmail(await recipients(pay.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(pay.supplier_org_id));
+}
+
+export async function notifyReferralPaid(payoutId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: pay } = await db.from('referral_payouts').select('supplier_org_id, amount_cents, referencia_pagamento').eq('id', payoutId).maybeSingle();
+  if (!pay) return;
+  const n = REFERRAL_NOTICES.paga({ comissao: euro(pay.amount_cents), referencia: pay.referencia_pagamento ?? '' });
+  await sendEmail(await recipients(pay.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(pay.supplier_org_id));
 }

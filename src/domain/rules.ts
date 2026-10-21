@@ -46,6 +46,12 @@ export const RULES_2026_10_19: CommercialRules = { ...RULES_2026_10, version: '2
 /** 20/10/2026: o promotor mantém o mínimo de 150 € também na caução (garante contra desistência fraudulenta e contorno da plataforma). Valores iguais aos de 19/10. */
 export const RULES_2026_10_20: CommercialRules = { ...RULES_2026_10_19, version: '2026-10-20', guaranteeMinCents: 15_000 };
 
+/**
+ * 21/10/2026: com código de adesão de um fornecedor aplicado à proposta e a obra ganha, a comissão do pintor desce
+ * 0,25 pontos (3% para 2,75%; o mínimo mantém-se). Versão usada só nessas contratações (ver src/domain/referral.ts).
+ */
+export const RULES_2026_10_20_REF: CommercialRules = { ...RULES_2026_10_20, version: `${RULES_2026_10_20.version}+ref`, commissionBp: RULES_2026_10_20.commissionBp - 25 };
+
 export const CURRENT_RULES = RULES_2026_10_20;
 
 /** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
@@ -53,4 +59,5 @@ export const RULES_BY_VERSION: Record<string, CommercialRules> = {
   [RULES_2026_10.version]: RULES_2026_10,
   [RULES_2026_10_19.version]: RULES_2026_10_19,
   [RULES_2026_10_20.version]: RULES_2026_10_20,
+  [RULES_2026_10_20_REF.version]: RULES_2026_10_20_REF,
 };

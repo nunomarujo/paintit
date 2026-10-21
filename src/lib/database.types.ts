@@ -563,6 +563,41 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['strike_appeals']['Insert']>;
         Relationships: [];
       };
+      referral_codes: {
+        Row: { active: boolean; code: string; created_at: string; created_by: string | null; id: string; max_wins: number; nota: string | null; painter_org_id: string | null; supplier_org_id: string };
+        Insert: { active?: boolean; code: string; created_at?: string; created_by?: string | null; id?: string; max_wins?: number; nota?: string | null; painter_org_id?: string | null; supplier_org_id: string };
+        Update: { active?: boolean; nota?: string | null };
+        Relationships: [];
+      };
+      supplier_payout_details: {
+        Row: { cobra_iva: boolean; iban: string; org_id: string; titular: string; updated_at: string };
+        Insert: { cobra_iva?: boolean; iban: string; org_id: string; titular: string; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['supplier_payout_details']['Insert']>;
+        Relationships: [];
+      };
+      referral_payouts: {
+        Row: {
+          amount_cents: number;
+          code_id: string;
+          created_at: string;
+          engagement_id: string;
+          estado: 'adjudicada' | 'fatura_recebida' | 'paga' | 'sem_efeito';
+          fee_avisado: boolean;
+          fee_recebido_em: string | null;
+          id: string;
+          invoice_em: string | null;
+          invoice_numero: string | null;
+          invoice_path: string | null;
+          motivo: string | null;
+          paga_em: string | null;
+          proposal_id: string;
+          referencia_pagamento: string | null;
+          supplier_org_id: string;
+        };
+        Insert: never;
+        Update: { fee_avisado?: boolean };
+        Relationships: [];
+      };
       work_templates: {
         Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
         Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };
@@ -775,6 +810,7 @@ export type Database = {
           habilitacao_ok: boolean | null;
           fases: Json;
           confirma_mao_obra: boolean;
+          referral_code_id: string | null;
           seguro_rc: string | null;
           seguro_at: string | null;
           modo_preco: string;
@@ -1052,6 +1088,27 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
+      referral_submit_invoice: { Args: { p_payout: string; p_numero: string; p_path: string }; Returns: undefined };
+      referral_activity: {
+        Args: { p_org: string };
+        Returns: {
+          code: string;
+          pintor: string;
+          concelho: string | null;
+          proposta_estado: string;
+          submetida_em: string | null;
+          payout_id: string | null;
+          amount_cents: number | null;
+          estado: 'adjudicada' | 'fatura_recebida' | 'paga' | 'sem_efeito' | null;
+          fee_recebido_em: string | null;
+          invoice_numero: string | null;
+          paga_em: string | null;
+          referencia_pagamento: string | null;
+        }[];
+      };
+      referral_mark_paid: { Args: { p_payout: string; p_ref: string }; Returns: undefined };
+      referral_void: { Args: { p_payout: string; p_motivo: string }; Returns: undefined };
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };

@@ -8,6 +8,8 @@ import { BudgetShell, type TemplateOption } from './orcamento/BudgetShell';
 import { STEP_IDS, type StepId } from './orcamento/steps';
 import { PricesEditor, type PriceRow } from './orcamento/PricesEditor';
 import { WorksEditor } from './orcamento/WorksEditor';
+import { ReferralField } from './orcamento/ReferralField';
+import { RULES_2026_10_20_REF } from '@/domain/referral';
 import { painterFee } from '@/domain/commission';
 import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
@@ -72,7 +74,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
-  const fee = totals && totals.base > 0 ? painterFee(totals.base, CURRENT_RULES) : null;
+  const referralApplied = !!proposal?.referral_code_id;
+  const fee = totals && totals.base > 0 ? painterFee(totals.base, referralApplied ? RULES_2026_10_20_REF : CURRENT_RULES) : null;
   const { data: licenses } = proposal
     ? await supabase
         .from('org_documents')
@@ -266,7 +269,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {fee && (
               <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
                 Se for escolhido, paga à plataforma {formatEuros(fee.gross)} ({formatEuros(fee.net)} de comissão +{' '}
-                {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço do cliente.
+                {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço do cliente.{referralApplied ? ' Inclui o desconto do código de fornecedor.' : ''}
               </p>
             )}
             {proposal.status === 'submetida' && org.manager && (
@@ -343,12 +346,15 @@ export default async function OpportunityPage({ params, searchParams }: { params
                     </>
                   ),
                   condicoes: (
-                    <section className={card}>
-                      <h3 className="font-semibold">Condições</h3>
-                      <div className="mt-4">
-                        <TermsForm proposalId={proposal.id} requestId={id} terms={terms} />
-                      </div>
-                    </section>
+                    <>
+                      <section className={card}>
+                        <h3 className="font-semibold">Condições</h3>
+                        <div className="mt-4">
+                          <TermsForm proposalId={proposal.id} requestId={id} terms={terms} />
+                        </div>
+                      </section>
+                      <ReferralField proposalId={proposal.id} requestId={id} applied={referralApplied} />
+                    </>
                   ),
                   rever: (
                     <>

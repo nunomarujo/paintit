@@ -120,6 +120,24 @@ o cliente vê um aviso a vermelho; (c) **plano de pagamentos por fases**, somand
 7. **Catálogo de referência** (marcas, fichas e preços públicos de fabricantes): uso de marcas e de informação
    pública; necessidade de aviso de que os preços são de tabela.
 
+# 6-A. Comissão de adesão paga a fornecedores de tintas
+
+**O que fizemos.** Um fornecedor de tintas pode dar um código a um pintor. Se o pintor o aplicar ao orçamento e ganhar a obra:
+(i) a comissão que paga à plataforma desce 0,25 pontos percentuais (de 3% para 2,75% do valor sem IVA); (ii) o fornecedor recebe
+da plataforma 0,25% do valor sem IVA da obra, mais IVA se o cobrar, depois de a plataforma receber a comissão do pintor e contra
+fatura do fornecedor, por transferência bancária. O cliente não vê nada disto.
+
+**Risco.** (a) O pintor pode ser levado a comprar ao fornecedor que lhe deu o código, e o cliente não sabe; os materiais
+sugeridos e o "material comprometido" têm de continuar neutros (F2/G2). (b) Natureza da remuneração (angariação de clientes, mediação, comissão
+de indicação) e deveres de informação. (c) Tratamento fiscal e de faturação. (d) O fornecedor sabe que o pintor concorreu a uma obra num concelho.
+
+**Perguntas.**
+
+1. Esta comissão exige divulgação ao cliente consumidor ou na página Transparência?
+2. Há conflito com a neutralidade das sugestões de produtos e do "material comprometido"? Que cautelas contratuais?
+3. Que condições gerais para fornecedores e pintores sobre os códigos (validade, uma obra por código, anulação)?
+4. Fiscal: IVA da comissão do fornecedor, e a retenção/faturação, a confirmar com contabilista.
+
 # 7. Assinatura
 
 1. Aceitação simples (clicar «aceito») foi usada só em testes; em produção exige Chave Móvel Digital. Confirmar que a

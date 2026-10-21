@@ -114,6 +114,9 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           <Link href="/app/encomendas" className="hover:underline">
             Encomendas com confirmação →
           </Link>
+          <Link href={`/app/organizacoes/${org.id}/adesoes`} className="hover:underline">
+            Descontos a novos aderentes →
+          </Link>
         </div>
       )}
       {org.kind === 'pintor' && (

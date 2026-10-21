@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
 import { decideAppeal, unblockUser } from '@/lib/strikes';
+import { notifyReferralPaid } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
 import { SUPPLIER_PLANS, monthlyPrice, type SupplierPlan } from '@/domain/subscription';
@@ -121,4 +122,24 @@ export async function decideAppealAction(appealId: string, _prev: FormState, for
   if (!done) return { errors: {}, message: 'O pedido já foi decidido ou não existe.' };
   revalidatePath('/app/backoffice');
   return { errors: {}, ok: true, message: decision === 'aceitar' ? 'Aceite: o segundo aviso foi anulado.' : 'Recusado: mantém-se o último aviso.' };
+}
+
+/** Comissões de adesão dos fornecedores: pagar (depois de recebida a fatura) ou anular. Só a equipa da plataforma. */
+export async function decideReferralPayout(payoutId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const decision = String(form.get('decision') ?? '');
+  const texto = String(form.get('texto') ?? '').trim();
+  if (!/^[0-9a-f-]{36}$/i.test(payoutId)) return { errors: {}, message: 'Comissão inválida.' };
+  if (decision !== 'paga' && decision !== 'anular') return { errors: {}, message: 'Escolha pagar ou anular.' };
+  if (decision === 'paga' && texto.length < 3) return { errors: { texto: 'Indique a referência da transferência.' } };
+  if (decision === 'anular' && texto.length < 10) return { errors: { texto: 'Explique porque se anula.' } };
+  const { supabase, user } = await getUser();
+  if (!user || !(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+  const { error } =
+    decision === 'paga'
+      ? await supabase.rpc('referral_mark_paid', { p_payout: payoutId, p_ref: texto })
+      : await supabase.rpc('referral_void', { p_payout: payoutId, p_motivo: texto });
+  if (error) return { errors: {}, message: error.message };
+  if (decision === 'paga') await notifyReferralPaid(payoutId).catch(() => undefined);
+  revalidatePath('/app/backoffice');
+  return { errors: {}, ok: true, message: decision === 'paga' ? 'Marcada como paga; o fornecedor foi avisado.' : 'Comissão anulada.' };
 }

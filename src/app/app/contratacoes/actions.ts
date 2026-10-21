@@ -17,7 +17,7 @@ import { findSignatures } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { checkSignedPdf } from '@/domain/signature';
 import { getUser } from '@/lib/supabase/server';
-import { notifyEngagementChange } from '@/lib/notify';
+import { notifyEngagementChange, notifyReferralWon } from '@/lib/notify';
 import { settleRefunds } from '@/lib/payments';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -106,6 +106,7 @@ export async function carryToProposal(engagementId: string, requestId: string, n
   const { supabase } = await getUser();
   const { error } = await supabase.rpc('reselect_proposal', { p_proposal: nextProposalId });
   if (error) return { errors: {}, message: error.message };
+  await notifyReferralWon(nextProposalId).catch(() => undefined);
   revalidatePath(`/app/pedidos/${requestId}/propostas`);
   const { data: next } = await supabase.from('engagements').select('id').eq('proposal_id', nextProposalId).maybeSingle();
   redirect(next ? `/app/contratacoes/${next.id}` : `/app/pedidos/${requestId}/propostas`);

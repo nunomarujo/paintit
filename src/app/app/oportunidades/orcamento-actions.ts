@@ -217,3 +217,16 @@ export async function deleteTemplate(requestId: string, templateId: string): Pro
   revalidatePath(`/app/oportunidades/${requestId}`);
   return { errors: {}, ok: true, message: 'Método apagado.' };
 }
+
+/** Código de adesão de um fornecedor: aplica-se (ou retira-se, com texto vazio) ao rascunho. A base de dados valida tudo. */
+export async function applyReferral(proposalId: string, requestId: string, code: string): Promise<FormState & { applied?: boolean }> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const text = String(code ?? '').replace(/[\s-]/g, '').toUpperCase();
+  if (text.length > 12) return { errors: {}, message: 'Código inválido ou desativado.' };
+  const { data, error } = await supabase.rpc('apply_referral_code', { p_proposal: proposalId, p_code: text || null });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  if (!text) return { errors: {}, ok: true, applied: false, message: 'Código retirado.' };
+  return { errors: {}, ok: true, applied: true, message: `Código aceite (${data ?? 'fornecedor'}). Se ganhar a obra, a comissão da plataforma desce 0,25 pontos.` };
+}

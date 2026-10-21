@@ -78,3 +78,27 @@ export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; praz
     'Abra o anúncio, veja as zonas e as áreas e prepare o orçamento por trabalhos, em poucos passos. O cliente compara as propostas sem saber quem as fez.',
   ],
 });
+
+// Avisos ao fornecedor sobre os códigos de adesão. Dizem só o que o fornecedor pode saber: a empresa que usou o código e o
+// concelho da obra; nunca o cliente, a morada nem o valor da obra (só a comissão a que tem direito).
+export const REFERRAL_NOTICES = {
+  candidatura: (p: { pintor: string; concelho: string }) => ({
+    subject: 'Um pintor candidatou-se com o seu código',
+    lines: [`${p.pintor} usou um código seu numa proposta para uma obra em ${p.concelho}.`, 'Se ganhar a obra, será informado do valor da sua comissão.'],
+  }),
+  ganhou: (p: { pintor: string; comissao: string }) => ({
+    subject: 'Ganhou uma comissão de adesão',
+    lines: [
+      `${p.pintor} ganhou a obra com um código seu. A sua comissão é de ${p.comissao} (0,25% do valor da obra, sem IVA; acresce IVA se o cobrar).`,
+      'Será paga depois de a plataforma receber a comissão do pintor. Avisamos nessa altura e pedimos a fatura e o IBAN.',
+    ],
+  }),
+  feeRecebido: (p: { comissao: string }) => ({
+    subject: 'Envie a fatura da sua comissão',
+    lines: [`A plataforma já recebeu a comissão do pintor. Para receber ${p.comissao}, indique o IBAN e envie a fatura na área do fornecedor.`],
+  }),
+  paga: (p: { comissao: string; referencia: string }) => ({
+    subject: 'Comissão de adesão paga',
+    lines: [`Foi paga a sua comissão de ${p.comissao}.${p.referencia ? ` Referência: ${p.referencia}.` : ''}`],
+  }),
+};
