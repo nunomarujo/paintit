@@ -35,7 +35,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         <p className="mt-1 max-w-3xl text-sm text-slate-600">
           Crie um código e entregue-o a um pintor que ainda não use a plataforma. Quando ele o aplicar ao orçamento e ganhar a obra, a comissão que paga à
           plataforma desce 0,25 pontos percentuais (de 3% para 2,75% do valor sem IVA) e a sua empresa recebe 0,25% desse valor, mais IVA se o cobrar.
-          É paga por transferência depois de a plataforma receber a comissão do pintor, contra a sua fatura.
+          O desconto do pintor só se nota em obras acima de 5 000 € (a comissão tem um mínimo de 150 €) e é pleno acima de 5 455 €; a sua comissão de 0,25% aplica-se sempre. Cada código vale uma obra ganha: se o pintor pedir outro, crie-lho. É paga por transferência depois de a plataforma receber a comissão do pintor, contra a sua fatura.
         </p>
       </div>
 
