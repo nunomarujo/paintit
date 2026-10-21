@@ -42,7 +42,7 @@ export type EventKind = (typeof EVENT_KINDS)[number];
 export const EVENT_LABELS: Record<EventKind, string> = {
   deposito_confirmado: 'Depósito do cliente confirmado pelo parceiro de pagamentos',
   cliente_assinou: 'O cliente assinou a minuta',
-  fee_recebido: 'Comissão do pintor recebida pelo parceiro de pagamentos',
+  fee_recebido: 'Confirmação do pintor registada: as partes ficam a conhecer-se',
   pintor_assinou: 'O pintor assinou: contrato celebrado',
   cliente_desistiu: 'O cliente desistiu',
   litigio_aberto: 'Litígio aberto',
@@ -160,10 +160,10 @@ export const STATUS_LABELS: Record<EngagementStatus, string> = {
   aguarda_deposito: 'À espera do depósito do cliente',
   aguarda_adiantamento: 'Partes apresentadas: à espera do adiantamento do cliente',
   aguarda_assinatura_cliente: 'À espera da assinatura do cliente',
-  aguarda_fee: 'À espera da comissão do pintor',
+  aguarda_fee: 'À espera da confirmação do pintor',
   aguarda_assinatura_pintor: 'À espera da assinatura do pintor',
   assinado: 'Contrato assinado pelas duas partes',
-  pintor_nao_pagou: 'O pintor não pagou a comissão no prazo',
+  pintor_nao_pagou: 'O pintor não confirmou no prazo',
   pintor_nao_assinou: 'O pintor não assinou no prazo',
   cliente_desistiu: 'O cliente desistiu',
   em_litigio: 'Em litígio',
@@ -390,7 +390,9 @@ export function ledger(engagements: Engagement[]): LedgerTotals {
 }
 
 /** O contrato e as regras de dinheiro em linguagem simples, gerados dos mesmos dados da minuta. */
-export function plainSummary(e: Engagement, extra: { duracao: string; materiais: number }): string[] {
+/** `side` 'cliente' não vê o que a plataforma cobra ao pintor; o pintor e a plataforma veem. */
+export function plainSummary(e: Engagement, extra: { duracao: string; materiais: number }, side: Side = 'plataforma'): string[] {
+  const client = side === 'cliente';
   const eur = (c: Cents) =>
     new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(c / 100);
   const materiais =
@@ -401,9 +403,13 @@ export function plainSummary(e: Engagement, extra: { duracao: string; materiais:
     return [
       `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
       `O cliente deposita ${eur(e.guarantee)} de caução, quando quiser, como garantia de interesse, num parceiro de pagamentos, não na plataforma. É esse depósito que torna a escolha efetiva.`,
-      `O pintor paga ${eur(e.fee.gross)} de comissão à plataforma em ${e.rules.feeDeadlineDays} dias; nessa altura as partes ficam a conhecer-se.`,
+      client
+        ? `O pintor tem ${e.rules.feeDeadlineDays} dias para confirmar a escolha; nessa altura as partes ficam a conhecer-se.`
+        : `O pintor paga ${eur(e.fee.gross)} de comissão à plataforma em ${e.rules.feeDeadlineDays} dias; nessa altura as partes ficam a conhecer-se.`,
       'O cliente assina e depois o pintor. Com as duas assinaturas, a caução volta ao cliente. O adiantamento, se houver, paga-se diretamente ao pintor depois da assinatura, como diz o contrato.',
-      'Se o cliente desistir depois de conhecer o pintor, perde a caução e o pintor recupera a comissão. Se o pintor não assinar no prazo, perde a comissão.',
+      client
+        ? 'Se o cliente desistir depois de conhecer o pintor, perde a caução. Se o pintor não assinar no prazo, a escolha fica sem efeito.'
+        : 'Se o cliente desistir depois de conhecer o pintor, perde a caução e o pintor recupera a comissão. Se o pintor não assinar no prazo, perde a comissão.',
       ...materiais,
       'O pintor obtém as licenças camarárias dos trabalhos, incluindo a ocupação da via pública; o licenciamento especial (vãos, fachada) é do cliente.',
       'Depois da assinatura, a plataforma não intervém na obra: só guarda o contrato.',
@@ -412,9 +418,13 @@ export function plainSummary(e: Engagement, extra: { duracao: string; materiais:
   return [
     `O pintor faz os trabalhos da proposta por ${eur(e.base)} mais IVA. ${extra.duracao}`,
     `O cliente deposita ${eur(e.guarantee)} de caução${e.advance > 0 ? ` e ${eur(e.advance)} de adiantamento` : ''} num parceiro de pagamentos, não na plataforma.`,
-    `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para pagar ${eur(e.fee.gross)} de comissão. Só então as partes ficam a saber quem é a outra.`,
+    client
+      ? `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para confirmar. Só então as partes ficam a saber quem é a outra.`
+      : `Depois de o cliente assinar, o pintor tem ${e.rules.feeDeadlineDays} dias para pagar ${eur(e.fee.gross)} de comissão. Só então as partes ficam a saber quem é a outra.`,
     `Quando o pintor assina, a caução volta ao cliente${e.advance > 0 ? ' e o adiantamento passa para o pintor' : ''}. O resto da obra paga-se diretamente ao pintor.`,
-    'Se o cliente desistir antes de o pintor assinar, perde a caução. Se o pintor pagar e não assinar no prazo, perde a comissão.',
+    client
+      ? 'Se o cliente desistir antes de o pintor assinar, perde a caução. Se o pintor não assinar no prazo, a escolha fica sem efeito.'
+      : 'Se o cliente desistir antes de o pintor assinar, perde a caução. Se o pintor pagar e não assinar no prazo, perde a comissão.',
     ...materiais,
     'Depois da assinatura, a plataforma não intervém na obra: só guarda o contrato.',
   ];

@@ -1,11 +1,12 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { contractDraft, replay, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { formatEuros, percentOf } from '@/domain/money';
 import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
 import { RULES_BY_VERSION } from '@/domain/rules';
 import { contractPdf } from '@/lib/contractPdf';
+import { isPlatformAdmin, myRole } from '@/lib/access';
 import { toLine, toTerms } from '@/lib/proposals';
 
 type Client = SupabaseClient<Database>;
@@ -19,6 +20,17 @@ export const toEvent = (r: EventRow): EngagementEvent => ({
   payload: (r.payload ?? {}) as EngagementEvent['payload'],
   at: r.at,
 });
+
+/** De que lado da contratação está o utilizador (o cliente nunca vê o que a plataforma cobra ao pintor). */
+export async function engagementSide(supabase: Client, userId: string, row: EngagementRow): Promise<Side | null> {
+  const [{ data: client }, { data: painter }] = await Promise.all([
+    supabase.from('organizations').select('id, gerida_por').eq('id', row.client_org_id).maybeSingle(),
+    supabase.from('organizations').select('id, gerida_por').eq('id', row.painter_org_id).maybeSingle(),
+  ]);
+  if (client && (await myRole(supabase, userId, client))) return 'cliente';
+  if (painter && (await myRole(supabase, userId, painter))) return 'pintor';
+  return (await isPlatformAdmin(supabase, userId)) ? 'plataforma' : null;
+}
 
 async function eventsOf(supabase: Client, engagementId: string) {
   const { data } = await supabase.from('engagement_events').select('*').eq('engagement_id', engagementId).order('at');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availableActions, contractDraft, draftText, isRevealed, ledger, plainSummary, replay, type EngagementEvent, type EngagementRecord } from './contracting';
+import { STATUS_LABELS, availableActions, contractDraft, draftText, isRevealed, ledger, plainSummary, replay, type EngagementEvent, type EngagementRecord } from './contracting';
 import { held } from './engagement';
 import { euros } from './money';
 
@@ -125,5 +125,14 @@ describe('resumo em linguagem simples', () => {
     expect(s).toMatch(/3\s000,00\s€ de caução e 10\s000,00\s€ de adiantamento/);
     expect(s).toMatch(/3\s690,00\s€ de comissão/);
     expect(s).toMatch(/o produto indicado/);
+  });
+
+  it('o cliente nunca vê o que a plataforma cobra ao pintor', () => {
+    const e = replay(rec, [], new Date('2026-10-19T12:00:00Z')).engagement;
+    const s = plainSummary(e, { duracao: 'Duração de 20 dias.', materiais: 0 }, 'cliente').join(' ');
+    expect(s).not.toMatch(/comiss/i);
+    expect(s).not.toMatch(/3\s690/);
+    expect(plainSummary(e, { duracao: '', materiais: 0 }, 'pintor').join(' ')).toMatch(/comissão/);
+    for (const label of Object.values(STATUS_LABELS)) expect(label).not.toMatch(/comiss/i);
   });
 });

@@ -193,3 +193,10 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - O Supabase está em eu-west-1 (Irlanda) e as funções da Vercel corriam por omissão em iad1 (EUA): cada consulta
   atravessava o Atlântico, e ações com muitas consultas (webhook do Stripe, escolha de proposta) demoravam 10 a 15 s.
   `vercel.json` fixa `regions: ["dub1"]`.
+
+## 21/10/2026 — o cliente não vê a comissão do pintor
+
+- Retirada dos ecrãs, resumos e emails do cliente: valores da contratação, passos, prazos, estados, "retido agora",
+  aviso de desistência, resumo em linguagem simples e aviso de comissão não paga. O cliente vê "confirmação do pintor".
+- Mantida: ecrãs do pintor, backoffice e página pública Transparência (por decisão a confirmar com o parecer jurídico,
+  que pede para a plataforma explicar como ganha dinheiro).

@@ -100,6 +100,19 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 ## Pendente do promotor
 
+Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):
+- Ver em `/app/backoffice` (conta `nm@quempinta.pt`) a caixa "Estado do servidor". Se a chave secreta do Supabase estiver a
+  vermelho: colar a chave **secret** (não a publishable) em `SUPABASE_SECRET_KEY` na Vercel, redeploy, e reenviar no Stripe o
+  evento `checkout.session.completed` falhado.
+- Criar `CRON_SECRET` (sequência aleatória de 32+ caracteres) na Vercel; redeploy.
+- Criar a chave `NIFPT_KEY` (nif.pt) e colá-la na Vercel, para validar NIPC e nome.
+- Decidir se a página Transparência continua a mostrar a comissão (ver DECISOES de 21/10/2026).
+- Fotografias de prédios (ou aprovar ilustrações) para a página inicial; ilustração em linha do prédio.
+- Parecer jurídico: termos, privacidade, garantia legal da obra, minuta do contrato, Livro de Reclamações.
+- Stripe em modo real (ativar a conta com os dados da empresa); registo da marca.
+- Limpeza das contas de teste e retirada de `nunomarujo@gmail.com` de `platform_admins` (o Claude prepara o SQL).
+- Convidar 5 a 10 pintores e 2 a 3 fornecedores de Viana do Castelo para testarem antes dos clientes.
+
 - **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
 
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,

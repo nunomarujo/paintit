@@ -336,8 +336,8 @@ export default async function ProposalsPage({
                   summary={[
                     'É uma escolha preliminar: o pedido deixa de receber propostas e as outras ficam em espera.',
                     `Quando quiser, deposita no parceiro de pagamentos uma caução de ${formatEuros(guarantee)} (3% sem IVA), como garantia de interesse. É esse depósito que torna a escolha efetiva e avisa o pintor; é-lhe devolvida quando as duas partes assinarem.`,
-                    'O pintor tem 8 dias para pagar a comissão à plataforma. Se não pagar, escolhe outra proposta e a caução passa para ela, ou é-lhe devolvida.',
-                    'Quando o pintor paga, ficam a conhecer-se: nome, NIF, habilitação e contactos.',
+                    'O pintor tem 8 dias para confirmar a escolha. Se não confirmar, escolhe outra proposta e a caução passa para ela, ou é-lhe devolvida.',
+                    'Quando o pintor confirma, ficam a conhecer-se: nome, NIF, habilitação e contactos.',
                     `Assina o contrato completo com Chave Móvel Digital e depois assina o pintor.${advance > 0 ? ` O adiantamento de ${formatEuros(advance)} paga-se diretamente ao pintor depois da assinatura.` : ''}`,
                     'Antes de conhecer o pintor pode desistir sem perder nada. Depois de o conhecer, se desistir ou não assinar no prazo, perde a caução.',
                     'Num condomínio, precisa da ata de nomeação do administrador e da ata que aprova a obra.',

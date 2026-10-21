@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { draftText, plainSummary } from '@/domain/contracting';
-import { loadDraft, loadReplay } from '@/lib/engagements';
+import { engagementSide, loadDraft, loadReplay } from '@/lib/engagements';
 import { getUser } from '@/lib/supabase/server';
 
 // Minuta do contrato, gerada da proposta escolhida. Para imprimir ou guardar em
 // PDF, use a impressão do navegador.
 export default async function DraftPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await getUser();
+  const { supabase, user } = await getUser();
   const { data: row } = await supabase.from('engagements').select('*').eq('id', id).maybeSingle();
   if (!row) notFound();
   const draft = await loadDraft(supabase, row);
@@ -17,7 +17,7 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
   const e = (await loadReplay(supabase, row)).replay.engagement;
   const prazo = draft.sections.find((x) => x.heading === '3. Prazo')?.paragraphs[0] ?? '';
   const materiais = draft.sections.find((x) => x.heading === '2-A. Materiais')?.paragraphs.length ?? 0;
-  const plain = plainSummary(e, { duracao: prazo, materiais: Math.max(0, materiais - 2) });
+  const plain = plainSummary(e, { duracao: prazo, materiais: Math.max(0, materiais - 2) }, (await engagementSide(supabase, user!.id, row)) ?? 'plataforma');
 
   return (
     <div className="space-y-6">

@@ -32,7 +32,7 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
         {
           to: 'cliente',
           subject: 'Partes apresentadas: falta assinar o contrato',
-          lines: ['A empresa de pintura pagou a comissão. Os contactos já estão visíveis.', 'Falta a assinatura do contrato, a fazer primeiro pelo cliente.'],
+          lines: ['A empresa de pintura confirmou a escolha. Os contactos já estão visíveis.', 'Falta a assinatura do contrato, a fazer primeiro pelo cliente.'],
         },
       ];
     case 'aguarda_assinatura_pintor':
@@ -49,7 +49,10 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
         'A caução do cliente é devolvida.',
       ]);
     case 'pintor_nao_pagou':
-      return both('A comissão não foi paga no prazo', ['A comissão não foi paga dentro do prazo, pelo que a escolha fica sem efeito.']);
+      return [
+        { to: 'cliente', subject: 'A empresa não confirmou no prazo', lines: ['A empresa de pintura não confirmou a escolha dentro do prazo, pelo que esta escolha fica sem efeito.', 'A caução é devolvida ou passa para outra proposta, à escolha do cliente.'] },
+        { to: 'pintor', subject: 'A comissão não foi paga no prazo', lines: ['A comissão não foi paga dentro do prazo, pelo que a escolha fica sem efeito.'] },
+      ];
     case 'pintor_nao_assinou':
       return both('O contrato não foi assinado no prazo', ['A empresa de pintura não assinou dentro do prazo.']);
     case 'cliente_desistiu':

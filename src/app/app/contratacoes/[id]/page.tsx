@@ -76,7 +76,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         <p className="mt-1 text-sm font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
         {v2 ? (
           <Steps
-            steps={['Caução do cliente', 'Comissão do pintor', 'Adiantamento', 'Assinatura do cliente', 'Assinatura do pintor']}
+            steps={['Caução do cliente', side === 'cliente' ? 'Confirmação do pintor' : 'Comissão do pintor', 'Adiantamento', 'Assinatura do cliente', 'Assinatura do pintor']}
             done={
               (
                 { aguarda_deposito: 0, aguarda_fee: 1, aguarda_adiantamento: 2, aguarda_assinatura_cliente: 3, aguarda_assinatura_pintor: 4, em_litigio: 3, assinado: 5 } as Record<
@@ -88,7 +88,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           />
         ) : (
           <Steps
-            steps={['Depósito do cliente', 'Assinatura do cliente', 'Comissão do pintor', 'Assinatura do pintor']}
+            steps={['Depósito do cliente', 'Assinatura do cliente', side === 'cliente' ? 'Confirmação do pintor' : 'Comissão do pintor', 'Assinatura do pintor']}
             done={
               ({ aguarda_deposito: 0, aguarda_assinatura_cliente: 1, aguarda_fee: 2, aguarda_assinatura_pintor: 3, em_litigio: 3, assinado: 4 } as Record<string, number>)[
                 e.status
@@ -122,10 +122,14 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           <dd className="sm:text-right">{formatEuros(e.guarantee)}</dd>
           <dt className="text-slate-500">Adiantamento de adjudicação</dt>
           <dd className="sm:text-right">{e.advance > 0 ? formatEuros(e.advance) : 'Nenhum'}</dd>
-          <dt className="text-slate-500">Comissão do pintor (3% + IVA)</dt>
-          <dd className="sm:text-right">
-            {formatEuros(e.fee.gross)} <span className="text-slate-500">({formatEuros(e.fee.net)} + {formatEuros(e.fee.vat)})</span>
-          </dd>
+          {side !== 'cliente' && (
+            <>
+              <dt className="text-slate-500">Comissão do pintor (3% + IVA)</dt>
+              <dd className="sm:text-right">
+                {formatEuros(e.fee.gross)} <span className="text-slate-500">({formatEuros(e.fee.net)} + {formatEuros(e.fee.vat)})</span>
+              </dd>
+            </>
+          )}
           {e.carriedCredit > 0 && (
             <>
               <dt className="text-slate-500">Transitado da contratação anterior</dt>
@@ -133,11 +137,11 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             </>
           )}
           <dt className="text-slate-500">Retido agora no parceiro de pagamentos</dt>
-          <dd className="sm:text-right">{formatEuros(h.guarantee + h.advance + h.fee)}</dd>
+          <dd className="sm:text-right">{formatEuros(h.guarantee + h.advance + (side === 'cliente' ? 0 : h.fee))}</dd>
         </dl>
         {e.feeDue && e.status === 'aguarda_fee' && (
           <p className="mt-3 text-sm">
-            Prazo para a comissão do pintor entrar: <strong>{pt(e.feeDue)}</strong>, até às 23:59 (Lisboa).
+            {side === 'cliente' ? 'Prazo para o pintor confirmar' : 'Prazo para a comissão do pintor entrar'}: <strong>{pt(e.feeDue)}</strong>, até às 23:59 (Lisboa).
           </p>
         )}
         {e.signDue && e.status === 'aguarda_assinatura_pintor' && (
