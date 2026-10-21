@@ -76,7 +76,7 @@ function SuggestField({
         {required && <span className="text-red-700"> *</span>}
       </label>
       <div className="mt-1 flex gap-2">
-        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={200} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base" />
+        <input id={id} autoComplete="off" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={200} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base" />
         <button type="button" aria-expanded={open} aria-controls={`${id}-lista`} onClick={() => setOpen((o) => !o)} className="shrink-0 rounded-lg border border-tinta-600 bg-white px-4 py-2.5 text-sm font-semibold text-tinta-700 hover:bg-tinta-50">
           Sugestões
         </button>
@@ -215,7 +215,7 @@ export function WorksEditor({
   const errorText = state.message ?? Object.values(state.errors)[0];
 
   return (
-    <form {...formProps} onSubmit={(e) => { sent.current = payload; formProps.onSubmit(e); }} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <form autoComplete="off" {...formProps} onSubmit={(e) => { sent.current = payload; formProps.onSubmit(e); }} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <input type="hidden" name="payload" value={payload} />
       <div className="grid md:grid-cols-[17rem_minmax(0,1fr)]">
         <nav aria-label="Trabalhos" className="border-b border-slate-200 bg-slate-50 p-3 md:border-b-0 md:border-r">

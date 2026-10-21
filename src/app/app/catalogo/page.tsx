@@ -40,7 +40,7 @@ export default async function CatalogPage({
           declarado; o preço por litro e a marca não dizem, por si, qual é o melhor sistema para o suporte.
         </p>
       </div>
-      <form className="flex flex-wrap items-end gap-3 text-sm">
+      <form autoComplete="off" className="flex flex-wrap items-end gap-3 text-sm">
         <label>
           Procurar
           <input name="q" defaultValue={q ?? ''} className={field} />
