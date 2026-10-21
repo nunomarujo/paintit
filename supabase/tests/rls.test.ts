@@ -1411,3 +1411,29 @@ describe('reconciliação com a Stripe', () => {
     await expect(as(B, () => db.query(`delete from public.stripe_bt`))).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('extrato bancário', () => {
+  it('só a equipa lê, importa e classifica; os dados do extrato não se alteram', async () => {
+    const imp = await as(ADMIN, () => one<{ id: string }>(`insert into public.bank_imports (ficheiro, formato, linhas, novas, duplicadas) values ('extrato.csv', 'csv', 1, 1, 0) returning id`));
+    await expect(as(B, () => db.query(`insert into public.bank_imports (ficheiro, formato, linhas, novas, duplicadas) values ('x.csv', 'csv', 1, 1, 0)`))).rejects.toThrow(/row-level security/);
+    const line = await as(ADMIN, () =>
+      one<{ id: string }>(`insert into public.bank_lines (import_id, chave, data, descricao, valor_cents) values ($1, 'k1', '2026-10-21', 'TRF STRIPE', 10000) returning id`, [imp.id]),
+    );
+    await expect(as(ADMIN, () => db.query(`insert into public.bank_lines (import_id, chave, data, descricao, valor_cents) values ($1, 'k1', '2026-10-21', 'repetida', 1)`, [imp.id]))).rejects.toThrow(/unique|duplicate/);
+    expect(await as(B, async () => (await db.query('select 1 from public.bank_lines')).rows)).toEqual([]);
+    await expect(as(ADMIN, () => db.query(`update public.bank_lines set valor_cents = 1 where id = $1`, [line.id]))).rejects.toThrow(/só a classificação/);
+    await expect(as(B, () => db.query(`update public.bank_lines set classificacao = 'outro' where id = $1`, [line.id]))).resolves.toBeDefined();
+    expect((await one<{ classificacao: string }>('select classificacao from public.bank_lines where id = $1', [line.id])).classificacao).toBe('por_classificar');
+    // A classificação tem de ser coerente com a ligação.
+    await expect(as(ADMIN, () => db.query(`update public.bank_lines set classificacao = 'stripe_payout' where id = $1`, [line.id]))).rejects.toThrow(/check/);
+    await as(ADMIN, () => db.query(`update public.bank_lines set classificacao = 'outro', notas = 'Taxa bancária' where id = $1`, [line.id]));
+    const c = await one<{ classificacao: string; classificada_por: string | null }>('select classificacao, classificada_por from public.bank_lines where id = $1', [line.id]);
+    expect([c.classificacao, c.classificada_por]).toEqual(['outro', ADMIN]);
+    await expect(as(ADMIN, () => db.query(`delete from public.bank_lines`))).rejects.toThrow(/permission denied/);
+    // Uma transferência da Stripe só casa com uma linha.
+    await db.query(`insert into public.stripe_payouts (id, amount_cents, status, currency, created_at) values ('po_b1', 10000, 'paid', 'eur', now()) on conflict do nothing`);
+    const other = await as(ADMIN, () => one<{ id: string }>(`insert into public.bank_lines (import_id, chave, data, descricao, valor_cents) values ($1, 'k2', '2026-10-21', 'TRF', 10000) returning id`, [imp.id]));
+    await as(ADMIN, () => db.query(`update public.bank_lines set classificacao = 'stripe_payout', stripe_payout_id = 'po_b1' where id = $1`, [line.id]));
+    await expect(as(ADMIN, () => db.query(`update public.bank_lines set classificacao = 'stripe_payout', stripe_payout_id = 'po_b1' where id = $1`, [other.id]))).rejects.toThrow(/unique|duplicate/);
+  });
+});

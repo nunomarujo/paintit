@@ -5,13 +5,14 @@ import { formatEuros } from '@/domain/money';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { reconcile } from '@/domain/accounting/reconcile';
-import { PeriodForms, RedemptionForm, RegimeForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
+import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RegimeForm, RematchButton, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const TABS = [
   ['painel', 'Painel'],
   ['movimentos', 'Movimentos'],
   ['reconciliacao', 'Reconciliação'],
+  ['banco', 'Banco'],
   ['pagar', 'A pagar'],
   ['periodos', 'Períodos'],
 ] as const;
@@ -64,6 +65,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       {tab === 'painel' && <Dashboard />}
       {tab === 'movimentos' && <Movements mes={q.mes} origem={q.origem} />}
       {tab === 'reconciliacao' && <Reconciliation />}
+      {tab === 'banco' && <Bank />}
       {tab === 'pagar' && <ToPay />}
       {tab === 'periodos' && <Periods />}
     </div>
@@ -473,6 +475,127 @@ async function Reconciliation() {
           </ul>
         )}
       </section>
+    </>
+  );
+}
+
+const CLASS_LABELS: Record<string, string> = { por_classificar: 'Por classificar', stripe_payout: 'Transferência da Stripe', resgate: 'Pagamento de resgate', outro: 'Outro movimento da empresa', ignorada: 'Ignorado' };
+
+async function Bank() {
+  const { supabase } = await getUser();
+  const [{ data: pending }, { data: done }, { data: imports }, { data: payouts }, { data: reds }, { data: linked }, { data: last }] = await Promise.all([
+    supabase.from('bank_lines').select('*').eq('classificacao', 'por_classificar').order('data', { ascending: false }).limit(200),
+    supabase.from('bank_lines').select('*').neq('classificacao', 'por_classificar').order('data', { ascending: false }).limit(30),
+    supabase.from('bank_imports').select('*').order('created_at', { ascending: false }).limit(5),
+    supabase.from('stripe_payouts').select('id, amount_cents, arrival_at, status').eq('currency', 'eur').eq('status', 'paid').order('arrival_at', { ascending: false }),
+    supabase.from('referral_redemptions').select('id, liquido_cents, paga_em, titular').eq('estado', 'paga').order('paga_em', { ascending: false }),
+    supabase.from('bank_lines').select('stripe_payout_id, redemption_id').or('stripe_payout_id.not.is.null,redemption_id.not.is.null'),
+    supabase.from('bank_lines').select('data, saldo_cents').not('saldo_cents', 'is', null).order('data', { ascending: false }).limit(1),
+  ]);
+  const usedPayouts = new Set((linked ?? []).flatMap((l) => (l.stripe_payout_id ? [l.stripe_payout_id] : [])));
+  const usedReds = new Set((linked ?? []).flatMap((l) => (l.redemption_id ? [l.redemption_id] : [])));
+  const missingPayouts = (payouts ?? []).filter((p) => !usedPayouts.has(p.id));
+  const missingReds = (reds ?? []).filter((r) => !usedReds.has(r.id));
+  const optionsFor = (valor: number) => [
+    ...missingPayouts.filter((p) => p.amount_cents === valor).map((p) => ({ value: `payout:${p.id}`, label: `Stripe ${p.id} (${ptDate(p.arrival_at)})` })),
+    ...missingReds.filter((r) => -r.liquido_cents === valor).map((r) => ({ value: `resgate:${r.id}`, label: `Resgate de ${r.titular} (${ptDate(r.paga_em)})` })),
+  ];
+  const nameOf = (l: { classificacao: string; stripe_payout_id: string | null; redemption_id: string | null; notas: string | null }) =>
+    `${CLASS_LABELS[l.classificacao]}${l.stripe_payout_id ? ` ${l.stripe_payout_id}` : ''}${l.notas ? `: ${l.notas}` : ''}`;
+  return (
+    <>
+      <section className={card}>
+        <h2 className="font-semibold">Importar extrato</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+          Exporte o extrato no Web Banking do EuroBic (CSV, ou CAMT.053 se o houver) e carregue-o aqui. O extrato é da conta da empresa inteira: casamos só o que é da plataforma (transferências da Stripe e pagamentos de resgates);
+          o resto classifica-se como «outro movimento» para o contabilista.
+        </p>
+        <div className="mt-4">
+          <BankImportForm />
+        </div>
+        {(imports ?? []).length > 0 && (
+          <ul className="mt-4 space-y-1 text-sm text-slate-600">
+            {(imports ?? []).map((i) => (
+              <li key={i.id}>
+                {ptDate(i.created_at)} · {i.ficheiro} ({i.formato === 'camt053' ? 'CAMT.053' : 'CSV'}) · {i.de ? `${ptDate(i.de)} a ${ptDate(i.ate)}` : ''} · {i.novas} novos, {i.duplicadas} repetidos
+              </li>
+            ))}
+          </ul>
+        )}
+        {last?.[0]?.saldo_cents != null && <p className="mt-2 text-sm text-slate-600">Último saldo do extrato: {formatEuros(last[0].saldo_cents)} ({ptDate(last[0].data)}).</p>}
+      </section>
+
+      <section className={card}>
+        <h2 className="font-semibold">Conferência com a plataforma</h2>
+        <p className="mt-1 text-sm text-slate-600">O que a plataforma diz que aconteceu e ainda não se viu no extrato.</p>
+        <div className="mt-3 grid gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-semibold">Transferências da Stripe chegadas ({missingPayouts.length} por ver no banco)</h3>
+            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+              {missingPayouts.slice(0, 12).map((p) => (
+                <li key={p.id}>
+                  {formatEuros(p.amount_cents)} · chegada {ptDate(p.arrival_at)} · <span className="font-mono text-xs">{p.id}</span>
+                </li>
+              ))}
+              {missingPayouts.length === 0 && <li>Todas conferidas.</li>}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Resgates pagos ({missingReds.length} por ver no banco)</h3>
+            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+              {missingReds.slice(0, 12).map((r) => (
+                <li key={r.id}>
+                  {formatEuros(r.liquido_cents)} · {r.titular} · pago {ptDate(r.paga_em)}
+                </li>
+              ))}
+              {missingReds.length === 0 && <li>Todos conferidos.</li>}
+            </ul>
+          </div>
+        </div>
+        <div className="mt-4">
+          <RematchButton />
+        </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="font-semibold">Movimentos por classificar ({(pending ?? []).length})</h2>
+        {(pending ?? []).length === 0 ? (
+          <p className="mt-2 text-sm text-slate-600">Nada por classificar.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {(pending ?? []).map((l) => (
+              <li key={l.id} className="py-3">
+                <p className="flex flex-wrap justify-between gap-2">
+                  <span>
+                    {ptDate(l.data)} · {l.descricao}
+                  </span>
+                  <span className={`font-semibold ${l.valor_cents < 0 ? 'text-red-700' : 'text-tinta-700'}`}>{formatEuros(l.valor_cents)}</span>
+                </p>
+                <BankLineForm lineId={l.id} options={optionsFor(l.valor_cents)} classified={false} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {(done ?? []).length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Últimos movimentos classificados</h2>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {(done ?? []).map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span>
+                  {ptDate(l.data)} · {l.descricao} · <span className="text-slate-600">{nameOf(l)}{l.automatica ? ' (automático)' : ''}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span>{formatEuros(l.valor_cents)}</span>
+                  <BankLineForm lineId={l.id} options={[]} classified />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

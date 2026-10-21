@@ -709,6 +709,41 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      bank_imports: {
+        Row: { created_at: string; created_by: string | null; de: string | null; ate: string | null; duplicadas: number; ficheiro: string; formato: 'csv' | 'camt053'; iban: string | null; id: string; linhas: number; novas: number };
+        Insert: { de?: string | null; ate?: string | null; duplicadas: number; ficheiro: string; formato: 'csv' | 'camt053'; iban?: string | null; id?: string; linhas: number; novas: number };
+        Update: never;
+        Relationships: [];
+      };
+      bank_lines: {
+        Row: {
+          automatica: boolean;
+          chave: string;
+          classificacao: 'por_classificar' | 'stripe_payout' | 'resgate' | 'outro' | 'ignorada';
+          classificada_em: string | null;
+          classificada_por: string | null;
+          created_at: string;
+          data: string;
+          data_valor: string | null;
+          descricao: string;
+          id: string;
+          import_id: string;
+          notas: string | null;
+          redemption_id: string | null;
+          saldo_cents: number | null;
+          stripe_payout_id: string | null;
+          valor_cents: number;
+        };
+        Insert: { chave: string; data: string; data_valor?: string | null; descricao: string; id?: string; import_id: string; saldo_cents?: number | null; valor_cents: number };
+        Update: {
+          automatica?: boolean;
+          classificacao?: 'por_classificar' | 'stripe_payout' | 'resgate' | 'outro' | 'ignorada';
+          notas?: string | null;
+          redemption_id?: string | null;
+          stripe_payout_id?: string | null;
+        };
+        Relationships: [];
+      };
       work_templates: {
         Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
         Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };

@@ -154,3 +154,14 @@ acrescentar o CAE adequado antes de faturar.
 - Separador **Reconciliação** do backoffice: um botão lê a Stripe, lança o que falta e mostra o estado. O cron diário faz o mesmo antes de lançar o livro.
 - ◆ **Por confirmar com o contabilista:** o IVA das faturas da Stripe (empresa irlandesa; provável autoliquidação) e se a taxa é gasto no momento da cobrança ou no da fatura mensal.
 - **Falta:** conferir as transferências com o extrato do banco (importação do extrato EuroBic).
+
+## 13. Importação do extrato bancário (feita em 21/10/2026)
+
+- Separador **Banco** do backoffice: carregar o extrato do EuroBic em **CSV** (separado por `;`, vírgula ou tabulação, com cabeçalho; débito/crédito ou valor com sinal) ou **CAMT.053** (XML).
+  Não vimos ainda um ficheiro real do EuroBic: se a leitura falhar, a mensagem mostra as primeiras linhas e ajusta-se o leitor (`src/domain/accounting/bank.ts`).
+- Cada movimento tem uma chave estável (data, valor, saldo, descrição e ordem): importar extratos que se sobrepõem não duplica.
+- O extrato é da **conta da empresa inteira**, por isso não comparamos o saldo do banco com a conta 12.1. Casamos só o que é da plataforma: as transferências da Stripe (entrada de igual valor, até 5 dias depois da chegada) e os pagamentos
+  de resgates (saída de igual valor, até 10 dias do pagamento). Só se casa automaticamente o inequívoco; o resto faz-se à mão (casar, «outro movimento da empresa» com nota, ignorar, desfazer).
+- A «Conferência» mostra as transferências chegadas e os resgates pagos que ainda não se viram no extrato.
+- Os dados do extrato não se alteram (trigger); só a classificação.
+- Falta: lançar no livro os movimentos «outros» (taxas bancárias, rendas, etc.): decide-se com o contabilista que contas usar.

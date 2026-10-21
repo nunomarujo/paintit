@@ -3,6 +3,7 @@
 import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
+import { classifyBankLineAction, importBankFileAction, rematchAction } from './bank-actions';
 import { closePeriodAction, decideRedemption, reopenPeriodAction, syncLedgerAction, syncStripeAction, validateRegimeAction, voidPayoutAction } from '../actions';
 
 const note = (s: FormState) => {
@@ -103,5 +104,81 @@ export function PeriodForms({ next, canClose, canReopen }: { next: string; canCl
         </form>
       )}
     </div>
+  );
+}
+
+export function BankImportForm() {
+  const { state, pending, formProps } = useFormAction<FormState>(importBankFileAction, { errors: {} }, { resetOnSuccess: true });
+  return (
+    <form {...formProps} className="space-y-3">
+      <Field name="ficheiro" label="Extrato do banco (CSV ou CAMT.053 em XML)" required error={state.errors.ficheiro} hint="Até 3 MB. Pode importar extratos que se sobrepõem: o que já existe não se repete.">
+        <input name="ficheiro" type="file" required accept=".csv,.txt,.xml,text/csv,text/plain,application/xml,text/xml" className="mt-1 block text-sm" />
+      </Field>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={pending} className="btn-primary">
+          {pending ? 'A importar…' : 'Importar extrato'}
+        </button>
+        {note(state)}
+      </div>
+    </form>
+  );
+}
+
+export function RematchButton() {
+  const { state, pending, formProps } = useFormAction<FormState>(async () => rematchAction(), { errors: {} });
+  return (
+    <form {...formProps} className="flex flex-wrap items-center gap-3">
+      <button type="submit" disabled={pending} className="btn-secondary">
+        {pending ? 'A casar…' : 'Casar de novo'}
+      </button>
+      {note(state)}
+    </form>
+  );
+}
+
+export interface BankOption {
+  value: string;
+  label: string;
+}
+
+export function BankLineForm({ lineId, options, classified }: { lineId: string; options: BankOption[]; classified: boolean }) {
+  const { state, pending, formProps } = useFormAction<FormState>(classifyBankLineAction.bind(null, lineId), { errors: {} });
+  if (classified) {
+    return (
+      <form {...formProps} className="inline">
+        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-sm text-slate-600 hover:underline">
+          Desfazer
+        </button>
+        {note(state)}
+      </form>
+    );
+  }
+  return (
+    <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-2 text-sm">
+      {options.length > 0 && (
+        <label className="font-medium">
+          Casar com
+          <select name="casar" defaultValue="" className="mt-1 block rounded-lg border border-slate-300 bg-white px-2 py-2">
+            <option value="">Escolher…</option>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <Field name="notas" label="Nota (obrigatória em «Outro»)" error={state.errors.notas} />
+      <button type="submit" disabled={pending} className="btn-secondary" title="Casar com a opção escolhida">
+        Casar
+      </button>
+      <button type="submit" name="decision" value="outro" disabled={pending} className="btn-secondary">
+        Outro movimento da empresa
+      </button>
+      <button type="submit" name="decision" value="ignorada" disabled={pending} className="text-slate-600 hover:underline">
+        Ignorar
+      </button>
+      <div className="basis-full">{note(state)}</div>
+    </form>
   );
 }
