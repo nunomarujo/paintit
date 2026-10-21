@@ -20,9 +20,17 @@ export async function recordStripePayment(p: {
 }): Promise<{ ok: boolean; reason?: string }> {
   const db = adminClient();
   if (!db) return { ok: false, reason: 'Sem chave do Supabase.' };
-  const { data: already, error: alreadyError } = await db.from('stripe_payments').select('id').eq('payment_intent', p.paymentIntent).maybeSingle();
+  const { data: already, error: alreadyError } = await db.from('stripe_payments').select('id, amount_cents, refunded_cents').eq('payment_intent', p.paymentIntent).maybeSingle();
   if (alreadyError) return { ok: false, reason: `Leitura dos pagamentos falhou: ${alreadyError.message}` };
-  if (already) return { ok: true };
+  if (already) {
+    // Um pagamento registado mas nunca aceite pelas regras e ainda por devolver (o reembolso falhou na primeira vez e o
+    // Stripe repetiu o aviso): conclui-se a devolução, em vez de o dinheiro ficar retido.
+    if (already.refunded_cents < already.amount_cents) {
+      const { data: events } = await db.from('engagement_events').select('id').eq('engagement_id', p.engagementId).contains('payload', { payment_intent: p.paymentIntent }).limit(1);
+      if (!events?.length) await refundPayment(p.paymentIntent, already.amount_cents - already.refunded_cents, 'pagamento não aceite pelas regras: devolução em falta');
+    }
+    return { ok: true };
+  }
   const { data: row, error: rowError } = await db.from('engagements').select('*').eq('id', p.engagementId).maybeSingle();
   if (rowError) return { ok: false, reason: `Leitura da contratação falhou: ${rowError.message}` };
   if (!row) {
