@@ -31,7 +31,7 @@ export function strikeLevel(n: number): StrikeInfo {
       level: 'ultimo',
       titulo: 'Último aviso',
       texto:
-        'Voltou a tentar partilhar contactos ou a contornar a plataforma. Se tentar de novo, a conta será bloqueada de forma permanente e não poderá voltar à plataforma.',
+        'Voltou a tentar partilhar contactos ou a contornar a plataforma. Se tentar de novo, a conta será bloqueada de forma permanente e não poderá voltar à plataforma. Se considera que este aviso foi um engano, pode pedir uma revisão (só agora, uma vez).',
     };
   }
   return {
@@ -42,4 +42,19 @@ export function strikeLevel(n: number): StrikeInfo {
     texto:
       'A mensagem tem dados de contacto, localização ou um pedido para tratar do negócio fora da plataforma. Estes dados só são trocados depois da apresentação. Não foi enviada. Repetir a tentativa tem consequências, até ao bloqueio da conta.',
   };
+}
+
+export const APPEAL_MIN = 20;
+export const APPEAL_MAX = 1000;
+
+/**
+ * O pedido de revisão só existe no 2.º aviso: nem antes, nem depois do bloqueio, e uma vez só.
+ * `activeStrikes` conta os avisos não anulados; `appealedSecond` diz se o 2.º já teve pedido.
+ */
+export function appealEligibility(p: { activeStrikes: number; blocked: boolean; appealedSecond: boolean }): { allowed: boolean; reason: string | null } {
+  if (p.blocked) return { allowed: false, reason: 'A conta está bloqueada: já não há pedido de revisão.' };
+  if (p.activeStrikes < 2) return { allowed: false, reason: 'O pedido de revisão só existe no segundo aviso.' };
+  if (p.activeStrikes > 2) return { allowed: false, reason: 'O pedido de revisão só existe no segundo aviso.' };
+  if (p.appealedSecond) return { allowed: false, reason: 'O segundo aviso já teve um pedido de revisão.' };
+  return { allowed: true, reason: null };
 }

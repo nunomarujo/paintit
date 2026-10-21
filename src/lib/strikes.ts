@@ -2,7 +2,8 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FormState } from '@/app/app/actions';
 import { revealingContent } from '@/domain/request';
-import { strikeLevel, type StrikeInfo } from '@/domain/strikes';
+import { appealEligibility, strikeLevel, type StrikeInfo } from '@/domain/strikes';
+import { sendEmail } from '@/lib/notify';
 import type { Database } from '@/lib/database.types';
 import { adminClient } from '@/lib/supabase/admin';
 
@@ -25,6 +26,12 @@ export async function registerContactAttempt(p: { userId: string; onde: string; 
 
 async function blockUser(db: Admin, userId: string, motivo: string) {
   await db.from('blocked_users').upsert({ user_id: userId, motivo });
+  // Um pedido de revisão pendente fica prejudicado pela nova infração.
+  await db
+    .from('strike_appeals')
+    .update({ estado: 'recusada', decisao: 'Prejudicado: houve nova tentativa de partilhar contactos.', decided_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('estado', 'pendente');
   // Os NIF das entidades da conta ficam impedidos de se registar de novo.
   const { data: orgs } = await db.from('org_members').select('organizations(nif)').eq('user_id', userId);
   const nifs = [...new Set((orgs ?? []).map((o) => (o.organizations as { nif: string | null } | null)?.nif).filter((n): n is string => !!n))];
@@ -84,4 +91,74 @@ export async function guardContact(
   }
   if (motivos.size === 0) return null;
   return contactAttemptState(supabase, userId, onde, texts.join('\n---\n'), [...motivos], errors);
+}
+
+export interface AppealView {
+  strikes: number;
+  blocked: boolean;
+  /** O 2.º aviso (o único que se pode contestar), se existir. */
+  second: { id: string; texto: string; created_at: string } | null;
+  appeal: { estado: 'pendente' | 'aceite' | 'recusada'; decisao: string | null; texto: string } | null;
+  eligible: boolean;
+  reason: string | null;
+}
+
+/** Em que ponto está esta conta: avisos ativos, 2.º aviso, pedido de revisão e se o pode fazer. */
+export async function appealView(supabase: SupabaseClient<Database>, userId: string): Promise<AppealView> {
+  const [{ data: violations }, { data: blocked }, { data: appeals }] = await Promise.all([
+    supabase.from('contact_violations').select('id, texto, created_at').eq('user_id', userId).is('anulada_em', null).order('created_at'),
+    supabase.from('blocked_users').select('user_id').eq('user_id', userId).maybeSingle(),
+    supabase.from('strike_appeals').select('violation_id, estado, decisao, texto').eq('user_id', userId),
+  ]);
+  const list = violations ?? [];
+  const second = list[1] ?? null;
+  const appeal = second ? ((appeals ?? []).find((a) => a.violation_id === second.id) ?? null) : null;
+  const e = appealEligibility({ activeStrikes: list.length, blocked: !!blocked, appealedSecond: !!appeal });
+  return {
+    strikes: list.length,
+    blocked: !!blocked,
+    second,
+    appeal: appeal ? { estado: appeal.estado, decisao: appeal.decisao, texto: appeal.texto } : null,
+    eligible: e.allowed,
+    reason: e.reason,
+  };
+}
+
+/** Regista o pedido de revisão do 2.º aviso, depois de confirmar que é permitido (nunca pelo que vem do navegador). */
+export async function requestAppeal(supabase: SupabaseClient<Database>, userId: string, texto: string): Promise<{ ok: boolean; message: string }> {
+  const db = adminClient();
+  if (!db) return { ok: false, message: 'Indisponível neste momento.' };
+  const view = await appealView(supabase, userId);
+  if (!view.eligible || !view.second) return { ok: false, message: view.reason ?? 'Não é possível pedir revisão.' };
+  const { error } = await db.from('strike_appeals').insert({ user_id: userId, violation_id: view.second.id, texto });
+  if (error) return { ok: false, message: 'Não foi possível registar o pedido.' };
+  return { ok: true, message: 'Pedido de revisão enviado. A equipa da plataforma responde por email.' };
+}
+
+/**
+ * Decisão da equipa da plataforma. Aceitar anula o 2.º aviso (a conta volta a 1 aviso);
+ * recusar mantém o último aviso. Em ambos os casos a pessoa recebe a decisão por email.
+ */
+export async function decideAppeal(appealId: string, accept: boolean, motivo: string, adminId: string): Promise<boolean> {
+  const db = adminClient();
+  if (!db) return false;
+  const { data: a } = await db.from('strike_appeals').select('*').eq('id', appealId).maybeSingle();
+  if (!a || a.estado !== 'pendente') return false;
+  await db
+    .from('strike_appeals')
+    .update({ estado: accept ? 'aceite' : 'recusada', decisao: motivo, decided_by: adminId, decided_at: new Date().toISOString() })
+    .eq('id', appealId);
+  if (accept) await db.from('contact_violations').update({ anulada_em: new Date().toISOString() }).eq('id', a.violation_id);
+  const email = (await db.auth.admin.getUserById(a.user_id)).data.user?.email;
+  if (email) {
+    await sendEmail(
+      [email],
+      accept ? 'Pedido de revisão aceite' : 'Pedido de revisão recusado',
+      accept
+        ? ['O segundo aviso foi anulado. A conta fica com um aviso: se voltar a acontecer, conta como segundo aviso.', motivo]
+        : ['O segundo aviso mantém-se. A conta continua no último aviso: uma nova tentativa de partilhar contactos bloqueia-a de forma permanente.', motivo],
+      '/app',
+    ).catch(() => undefined);
+  }
+  return true;
 }

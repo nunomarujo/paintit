@@ -36,7 +36,12 @@ export function StrikeDialog() {
         <p id="strike-text" className="mt-3 text-sm text-slate-700">
           {info.texto}
         </p>
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
+          {info.level === 'ultimo' && (
+            <a href="/app/revisao" className="text-sm font-semibold text-tinta-700 underline underline-offset-4">
+              Pedir revisão
+            </a>
+          )}
           {blocked ? (
             <a href="/conta-bloqueada" className="btn-primary">
               Continuar

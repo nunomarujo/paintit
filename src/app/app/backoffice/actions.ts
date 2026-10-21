@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
-import { unblockUser } from '@/lib/strikes';
+import { decideAppeal, unblockUser } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
 import { SUPPLIER_PLANS, monthlyPrice, type SupplierPlan } from '@/domain/subscription';
@@ -117,4 +117,19 @@ export async function unblockAccount(userId: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(userId)) return;
   await unblockUser(userId);
   revalidatePath('/app/backoffice');
+}
+
+/** Decisão sobre um pedido de revisão do 2.º aviso por contactos (src/domain/strikes.ts). */
+export async function decideAppealAction(appealId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const decision = String(form.get('decision') ?? '');
+  const motivo = String(form.get('motivo') ?? '').trim();
+  if (decision !== 'aceitar' && decision !== 'recusar') return { errors: {}, message: 'Escolha aceitar ou recusar.' };
+  if (motivo.length < 10) return { errors: { motivo: 'Explique a decisão: a pessoa recebe-a por email.' } };
+  if (!/^[0-9a-f-]{36}$/i.test(appealId)) return { errors: {}, message: 'Pedido inválido.' };
+  const { supabase, user } = await getUser();
+  if (!user || !(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+  const done = await decideAppeal(appealId, decision === 'aceitar', motivo.slice(0, 1000), user.id);
+  if (!done) return { errors: {}, message: 'O pedido já foi decidido ou não existe.' };
+  revalidatePath('/app/backoffice');
+  return { errors: {}, ok: true, message: decision === 'aceitar' ? 'Aceite: o segundo aviso foi anulado.' : 'Recusado: mantém-se o último aviso.' };
 }

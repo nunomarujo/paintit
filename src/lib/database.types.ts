@@ -557,6 +557,12 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['contact_violations']['Insert']>;
         Relationships: [];
       };
+      strike_appeals: {
+        Row: { created_at: string; decided_at: string | null; decided_by: string | null; decisao: string | null; estado: 'pendente' | 'aceite' | 'recusada'; id: string; texto: string; user_id: string; violation_id: string };
+        Insert: { created_at?: string; decided_at?: string | null; decided_by?: string | null; decisao?: string | null; estado?: 'pendente' | 'aceite' | 'recusada'; id?: string; texto: string; user_id: string; violation_id: string };
+        Update: Partial<Database['public']['Tables']['strike_appeals']['Insert']>;
+        Relationships: [];
+      };
       blocked_users: {
         Row: { blocked_at: string; motivo: string; user_id: string };
         Insert: { blocked_at?: string; motivo: string; user_id: string };

@@ -1142,6 +1142,20 @@ describe('avisos e bloqueio por contactos', () => {
   });
 });
 
+describe('pedido de revisão do segundo aviso', () => {
+  it('cada utilizador lê só os seus pedidos, não escreve, e há um pedido por aviso', async () => {
+    const va = (await one<{ id: string }>('select id from public.contact_violations where user_id = $1 limit 1', [A])).id;
+    const vb = (await one<{ id: string }>('select id from public.contact_violations where user_id = $1 limit 1', [B])).id;
+    const texto = 'Foi um engano: falava de um café como referência técnica.';
+    await db.query('insert into public.strike_appeals (user_id, violation_id, texto) values ($1, $2, $3), ($4, $5, $3)', [A, va, texto, B, vb]);
+    const mine = await as(A, async () => (await db.query('select user_id from public.strike_appeals')).rows);
+    expect(mine.map((r) => (r as { user_id: string }).user_id)).toEqual([A]);
+    await expect(as(A, () => db.query(`update public.strike_appeals set estado = 'aceite' where user_id = $1`, [A]))).rejects.toThrow(/permission|row-level security/);
+    await expect(db.query('insert into public.strike_appeals (user_id, violation_id, texto) values ($1, $2, $3)', [A, va, texto])).rejects.toThrow(/duplicate|unique/);
+    await expect(db.query('insert into public.strike_appeals (user_id, violation_id, texto) values ($1, $2, $3)', [A, vb, 'curto'])).rejects.toThrow(/check/);
+  });
+});
+
 describe('avisos ao cliente', () => {
   it('nenhum aviso dirigido ao cliente fala em comissão', async () => {
     const n = await one<{ n: string }>(

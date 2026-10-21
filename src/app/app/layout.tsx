@@ -6,6 +6,7 @@ import { AppNav, type NavItem } from '@/components/AppNav';
 import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
 import { isPlatformAdmin } from '@/lib/access';
+import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -18,6 +19,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect('/conta-bloqueada');
   }
 
+  const { count: strikes } = await supabase.from('contact_violations').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('anulada_em', null);
+  const lastWarning = strikes === 2 ? await appealView(supabase, user.id) : null;
   const [admin, { data: memberships }, { count: unread }] = await Promise.all([
     isPlatformAdmin(supabase, user.id),
     supabase.from('org_members').select('organizations!inner(kind)').eq('user_id', user.id),
@@ -85,7 +88,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </form>
           </span>
         </header>
-        <main className="mx-auto max-w-[1180px] px-4 py-8 md:px-9">{children}</main>
+        <main className="mx-auto max-w-[1180px] px-4 py-8 md:px-9">
+          {lastWarning && (
+            <p className="mb-6 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="status">
+              <b>Último aviso:</b> a conta tentou partilhar contactos ou contornar a plataforma. Uma nova tentativa bloqueia-a de forma
+              permanente.{' '}
+              {lastWarning.eligible ? (
+                <Link href="/app/revisao" className="font-semibold underline">
+                  Se foi um engano, pedir revisão do segundo aviso
+                </Link>
+              ) : lastWarning.appeal ? (
+                <Link href="/app/revisao" className="font-semibold underline">
+                  Ver o pedido de revisão ({lastWarning.appeal.estado === 'pendente' ? 'em análise' : lastWarning.appeal.estado === 'aceite' ? 'aceite' : 'recusado'})
+                </Link>
+              ) : null}
+            </p>
+          )}
+          {children}
+        </main>
         <StrikeDialog />
       </div>
     </div>

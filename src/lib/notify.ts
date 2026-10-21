@@ -23,7 +23,7 @@ ${lines.map((l) => `<p style="margin:0 0 10px;line-height:1.5">${escapeHtml(l)}<
 </div></body></html>`;
 }
 
-async function sendEmail(to: string[], subject: string, lines: string[], path: string): Promise<void> {
+export async function sendEmail(to: string[], subject: string, lines: string[], path: string): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key || to.length === 0) return;
   const link = `${BRAND.url}${path}`;

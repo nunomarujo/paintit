@@ -9,6 +9,7 @@ import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
 import { unblockAccount } from './actions';
+import { AppealForm } from './AppealForm';
 import { adminClient } from '@/lib/supabase/admin';
 import { CreatePromoCode, SupplierPlanForm, TogglePromo } from './PromoForms';
 import { PLAN_INFO } from '@/domain/subscription';
@@ -60,7 +61,8 @@ export default async function BackofficePage() {
     supabase.from('contact_violations').select('id, user_id, onde, motivos, texto, created_at').is('anulada_em', null).order('created_at', { ascending: false }).limit(100),
     supabase.from('blocked_users').select('user_id, blocked_at, motivo'),
   ]);
-  const strikeUsers = [...new Set([...(violations ?? []).map((v) => v.user_id), ...(blockedRows ?? []).map((b) => b.user_id)])];
+  const { data: appeals } = await supabase.from('strike_appeals').select('id, user_id, violation_id, texto, created_at').eq('estado', 'pendente').order('created_at');
+  const strikeUsers = [...new Set([...(violations ?? []).map((v) => v.user_id), ...(blockedRows ?? []).map((b) => b.user_id), ...(appeals ?? []).map((a) => a.user_id)])];
   const admin = adminClient();
   const emailOf = new Map<string, string>();
   if (admin) {
@@ -74,6 +76,7 @@ export default async function BackofficePage() {
     { href: '#denuncias', label: 'Denúncias de anúncios', n: reports?.length ?? 0 },
     { href: '#assinaturas', label: 'Assinaturas com certificado por confirmar', n: unverified?.length ?? 0 },
     { href: '#infracoes', label: 'Contas com avisos por contactos', n: strikeUsers.length },
+    { href: '#revisoes', label: 'Pedidos de revisão por decidir', n: appeals?.length ?? 0 },
   ];
 
   return (
@@ -164,6 +167,35 @@ export default async function BackofficePage() {
           </ul>
         </section>
       )}
+
+      <section id="revisoes" className={card}>
+        <h2 className="font-semibold">Pedidos de revisão do segundo aviso</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Aceitar anula o 2.º aviso (a conta volta a 1 aviso). Recusar mantém o último aviso: uma nova tentativa bloqueia a conta. Só se pode pedir
+          revisão do 2.º aviso, uma vez.
+        </p>
+        {(appeals ?? []).length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">Sem pedidos por decidir.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {(appeals ?? []).map((a) => {
+              const second = (violations ?? []).find((v) => v.id === a.violation_id);
+              return (
+                <li key={a.id} className="py-3">
+                  <b>{emailOf.get(a.user_id) ?? a.user_id}</b> · {new Date(a.created_at).toLocaleString('pt-PT')}
+                  <p className="mt-1 whitespace-pre-line rounded bg-slate-50 px-2 py-1">{a.texto}</p>
+                  {second && (
+                    <p className="mt-1 text-xs text-slate-600">
+                      Texto do 2.º aviso ({second.onde}, {second.motivos.join(', ')}): <span className="whitespace-pre-line">{second.texto}</span>
+                    </p>
+                  )}
+                  <AppealForm appealId={a.id} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section id="infracoes" className={card}>
         <h2 className="font-semibold">Tentativas de partilhar contactos</h2>
