@@ -36,7 +36,8 @@ export default function TransparencyPage() {
           <li>
             Os fornecedores pagam uma mensalidade para estarem presentes:{' '}
             {SUPPLIER_PLANS.map((p) => `${PLAN_INFO[p].label} ${formatEuros(PLAN_INFO[p].monthlyCents)}`).join('; ')} (mais IVA). A
-            plataforma não recebe nada dos fornecedores pelas vendas.
+            plataforma não recebe nada dos fornecedores pelas vendas. Um fornecedor pode dar a um pintor um código de adesão: se o pintor ganhar a obra, o fornecedor recebe uma comissão paga
+            pela plataforma. Isto não altera a ordem em que os produtos aparecem.
           </li>
           <li>A plataforma não guarda dinheiro: cada movimento é feito pelo parceiro de pagamentos.</li>
         </ul>

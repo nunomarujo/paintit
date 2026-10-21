@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BrandMark } from '@/components/BrandMark';
+import { LegalLinks } from '@/components/LegalPage';
 import { PaintedHero } from '@/components/landing/PaintedHero';
 import { BRAND } from '@/config/brand';
 
@@ -155,9 +156,7 @@ export default function Home() {
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="hover:underline">{BRAND.email}</a>
-          <Link href="/transparencia" className="hover:underline">Transparência</Link>
-          {/* Páginas legais por redigir e validar com o advogado (docs/ROADMAP.md). */}
-          <span>Termos, privacidade e Livro de Reclamações: em preparação</span>
+          <LegalLinks />
         </div>
       </footer>
     </main>

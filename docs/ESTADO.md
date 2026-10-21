@@ -107,6 +107,9 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 - Contabilidade: desenho em `docs/CONTABILIDADE.md` (decisões de 21/10/2026 e plano de contas proposto). Falta: NIF da empresa, escolha do software de faturação, validação pelo contabilista Nuno Branco. Próximo: fase 1 (livro de movimentos) e o saldo/resgate das comissões dos fornecedores.
 
+- Páginas legais provisórias publicadas (termos, privacidade e cookies, aviso legal com IA e RSD, Livro de Reclamações): a rever por advogado. Falta registar a empresa no Livro de Reclamações Eletrónico (livroreclamacoes.pt), indicar a entidade de resolução alternativa de litígios e completar registo comercial e capital social no aviso legal.
+- Perguntas para o contabilista: `docs/contabilista/Perguntas_2026-10-21.md`.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):
