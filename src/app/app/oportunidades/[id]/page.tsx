@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/oportunidades/actions';
-import { ReportListing } from '@/app/app/backoffice/ReportForms';
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
@@ -138,7 +137,15 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           esta obra.
         </p>
       )}
-      {listing?.aberto && <ReportListing requestId={id} />}
+      {listing?.aberto && (
+        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+          <span aria-hidden className="font-bold">(!)</span>
+          <span>
+            <b>É proibida a identificação das partes</b> (nomes ou moradas). Não forneça contactos: tentar fazê-lo conta como aviso e pode levar ao
+            bloqueio da conta.
+          </span>
+        </p>
+      )}
 
       {!proposal ? (
         <section className={card}>

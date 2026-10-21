@@ -8,17 +8,6 @@ import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
 import { SUPPLIER_PLANS, monthlyPrice, type SupplierPlan } from '@/domain/subscription';
 
-export async function reportListing(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
-  const motivo = String(form.get('motivo') ?? '').trim();
-  // IMG-10: descrever sem reproduzir o dado identificativo.
-  if (motivo.length < 10) return { errors: { motivo: 'Descreva o problema sem copiar o dado que identifica o cliente.' } };
-  const { supabase, user } = await getUser();
-  if (!user) return { errors: {}, message: 'A sessão expirou.' };
-  const { error } = await supabase.from('listing_reports').insert({ request_id: requestId, motivo: motivo.slice(0, 1000), reporter: user.id });
-  if (error) return { errors: {}, message: 'Não foi possível enviar a denúncia.' };
-  return { errors: {}, ok: true, message: 'Obrigado. A equipa da plataforma vai rever o anúncio.' };
-}
-
 export async function resolveReport(reportId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const decision = String(form.get('decision') ?? '');
   const resolucao = String(form.get('resolucao') ?? '').trim();
