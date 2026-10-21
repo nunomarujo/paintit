@@ -3,7 +3,8 @@
 import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
-import { createReferralCode, savePayoutDetails, submitReferralInvoice } from './actions';
+import { useState } from 'react';
+import { createReferralCode, requestRedemption, savePayoutDetails, submitRedemptionInvoice } from './actions';
 
 const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
 const msg = (s: FormState) => {
@@ -30,8 +31,15 @@ export function NewCodeForm({ orgId }: { orgId: string }) {
   );
 }
 
-export function PayoutDetailsForm({ orgId, initial }: { orgId: string; initial: { iban: string; titular: string; cobraIva: boolean } | null }) {
+export function PayoutDetailsForm({
+  orgId,
+  initial,
+}: {
+  orgId: string;
+  initial: { iban: string; titular: string; cobraIva: boolean; isencao: string; retencao: string; validado: boolean; retencaoBps: number } | null;
+}) {
   const { state, pending, formProps } = useFormAction<FormState>(savePayoutDetails.bind(null, orgId), { errors: {} });
+  const [iva, setIva] = useState(initial?.cobraIva === false ? 'isento' : 'normal');
   const e = state.errors;
   return (
     <form {...formProps} autoComplete="off" className="space-y-4">
@@ -39,10 +47,30 @@ export function PayoutDetailsForm({ orgId, initial }: { orgId: string; initial: 
         <Field name="iban" label="IBAN" required error={e.iban} defaultValue={initial?.iban ?? ''} placeholder="PT50 0000 0000 0000 0000 0000 0" />
         <Field name="titular" label="Titular da conta" required error={e.titular} defaultValue={initial?.titular ?? ''} />
       </div>
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="cobraIva" value="sim" defaultChecked={initial?.cobraIva ?? true} className="mt-1" />
-        <span>A minha empresa liquida IVA na fatura desta comissão (a comissão acresce de IVA à taxa normal).</span>
-      </label>
+      <fieldset className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+        <legend className="px-1 font-semibold">Regime da sua empresa</legend>
+        <label className="flex items-center gap-2">
+          <input type="radio" name="iva" value="normal" checked={iva === 'normal'} onChange={() => setIva('normal')} /> Liquida IVA na fatura (taxa normal)
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="radio" name="iva" value="isento" checked={iva === 'isento'} onChange={() => setIva('isento')} /> Isenta de IVA
+        </label>
+        {iva === 'isento' && <Field name="isencao" label="Fundamento da isenção" required error={e.isencao} defaultValue={initial?.isencao ?? ''} />}
+        <Field name="retencao" label="Retenção na fonte" required error={e.retencao}>
+          <select name="retencao" defaultValue={initial?.retencao ?? ''} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base">
+            <option value="" disabled>
+              Escolher…
+            </option>
+            <option value="nao_sujeito">Não sujeito a retenção (por exemplo, empresa)</option>
+            <option value="sujeito">Sujeito a retenção</option>
+            <option value="dispensa">Dispensado de retenção (declaração de dispensa)</option>
+          </select>
+        </Field>
+        <p className="text-xs text-slate-600">
+          A plataforma valida o regime antes do primeiro resgate e define a taxa de retenção, se houver.{' '}
+          {initial ? (initial.validado ? `Regime validado${initial.retencaoBps ? ` (retenção ${initial.retencaoBps / 100}%)` : ''}.` : 'Regime por validar.') : ''}
+        </p>
+      </fieldset>
       {msg(state)}
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A guardar…' : 'Guardar dados de pagamento'}
@@ -51,8 +79,20 @@ export function PayoutDetailsForm({ orgId, initial }: { orgId: string; initial: 
   );
 }
 
-export function InvoiceForm({ orgId, payoutId }: { orgId: string; payoutId: string }) {
-  const { state, pending, formProps } = useFormAction<FormState>(submitReferralInvoice.bind(null, orgId, payoutId), { errors: {} });
+export function RedeemButton({ orgId, disabled }: { orgId: string; disabled: boolean }) {
+  const { state, pending, formProps } = useFormAction<FormState>(async () => requestRedemption(orgId), { errors: {} });
+  return (
+    <form {...formProps} className="flex flex-wrap items-center gap-3">
+      <button type="submit" disabled={pending || disabled} className="btn-primary">
+        {pending ? 'A pedir…' : 'Resgatar saldo'}
+      </button>
+      {msg(state)}
+    </form>
+  );
+}
+
+export function InvoiceForm({ orgId, redemptionId }: { orgId: string; redemptionId: string }) {
+  const { state, pending, formProps } = useFormAction<FormState>(submitRedemptionInvoice.bind(null, orgId, redemptionId), { errors: {} });
   const e = state.errors;
   return (
     <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-3 rounded-xl bg-amber-50 p-3">

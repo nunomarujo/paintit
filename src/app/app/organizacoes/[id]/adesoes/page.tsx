@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
-import { payoutStatus, supplierCommissionVat } from '@/domain/referral';
+import { payoutStatus, supplierBalance } from '@/domain/referral';
 import { canManage, myRole } from '@/lib/access';
+import { COMPANY } from '@/config/company';
 import { getUser } from '@/lib/supabase/server';
-import { setReferralActive } from './actions';
-import { InvoiceForm, NewCodeForm, PayoutDetailsForm } from './Forms';
+
+const COMPANY_NAME = COMPANY.name;
+const COMPANY_NIF = COMPANY.nif;
+import { cancelRedemption, setReferralActive } from './actions';
+import { InvoiceForm, NewCodeForm, PayoutDetailsForm, RedeemButton } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const ptDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
@@ -16,14 +20,26 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const [{ data: codes }, { data: details }, { data: activity }] = await Promise.all([
+  const [{ data: codes }, { data: details }, { data: activity }, { data: payouts }, { data: redemptions }] = await Promise.all([
     supabase.from('referral_codes').select('id, code, nota, active, painter_org_id, created_at').eq('supplier_org_id', id).order('created_at', { ascending: false }),
-    supabase.from('supplier_payout_details').select('iban, titular, cobra_iva').eq('org_id', id).maybeSingle(),
+    supabase.from('supplier_payout_details').select('iban, titular, cobra_iva, isencao_iva, declaracao_retencao, regime_validado, retencao_bps').eq('org_id', id).maybeSingle(),
     supabase.rpc('referral_activity', { p_org: id }),
+    supabase.from('referral_payouts').select('id, amount_cents, estado, fee_recebido_em, redemption_id').eq('supplier_org_id', id),
+    supabase.from('referral_redemptions').select('*').eq('supplier_org_id', id).order('created_at', { ascending: false }),
   ]);
   const used = new Set((activity ?? []).filter((a) => a.estado && a.estado !== 'sem_efeito').map((a) => a.code));
-  const toReceive = (activity ?? []).filter((a) => a.estado === 'adjudicada' || a.estado === 'fatura_recebida').reduce((n, a) => n + (a.amount_cents ?? 0), 0);
-  const paid = (activity ?? []).filter((a) => a.estado === 'paga').reduce((n, a) => n + (a.amount_cents ?? 0), 0);
+  const balance = supplierBalance((payouts ?? []).map((p) => ({ estado: p.estado, feeRecebidoEm: p.fee_recebido_em, redemptionId: p.redemption_id, amount: p.amount_cents })));
+  const openRedemption = (redemptions ?? []).some((r) => r.estado === 'pedido' || r.estado === 'fatura_recebida');
+  const canRedeem = !!details && details.regime_validado && balance.disponivel > 0 && !openRedemption;
+  const why = !details
+    ? 'Indique primeiro os dados de pagamento.'
+    : !details.regime_validado
+      ? 'O regime declarado aguarda validação da plataforma.'
+      : openRedemption
+        ? 'Já tem um resgate em curso.'
+        : balance.disponivel <= 0
+          ? 'Ainda não há saldo disponível.'
+          : null;
 
   return (
     <div className="space-y-8">
@@ -34,16 +50,17 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         <h1 className="mt-3 text-2xl font-semibold">Descontos a novos aderentes</h1>
         <p className="mt-1 max-w-3xl text-sm text-slate-600">
           Crie um código e entregue-o a um pintor que ainda não use a plataforma. Quando ele o aplicar ao orçamento e ganhar a obra, a comissão que paga à
-          plataforma desce 0,25 pontos percentuais (de 3% para 2,75% do valor sem IVA) e a sua empresa recebe 0,25% desse valor, mais IVA se o cobrar.
-          O desconto do pintor só se nota em obras acima de 5 000 € (a comissão tem um mínimo de 150 €) e é pleno acima de 5 455 €; a sua comissão de 0,25% aplica-se sempre. Cada código vale uma obra ganha: se o pintor pedir outro, crie-lho. É paga por transferência depois de a plataforma receber a comissão do pintor, contra a sua fatura.
+          plataforma desce 0,25 pontos percentuais (de 3% para 2,75% do valor sem IVA) e a sua empresa recebe 0,25% desse valor, mais IVA se o cobrar, em saldo que pode resgatar quando quiser.
+          O desconto do pintor só se nota em obras acima de 5 000 € (a comissão tem um mínimo de 150 €) e é pleno acima de 5 455 €; a sua comissão de 0,25% aplica-se sempre. Cada código vale uma obra ganha: se o pintor pedir outro, crie-lho. 
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Candidaturas', String((activity ?? []).length)],
-          ['A receber', formatEuros(toReceive)],
-          ['Já recebido', formatEuros(paid)],
+          ['Saldo disponível', formatEuros(balance.disponivel)],
+          ['A aguardar o pintor', formatEuros(balance.adjudicada)],
+          ['Em resgate', formatEuros(balance.em_resgate)],
+          ['Já recebido', formatEuros(balance.paga)],
         ].map(([k, v]) => (
           <div key={k} className={card}>
             <p className="text-sm text-slate-600">{k}</p>
@@ -53,11 +70,69 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
       </section>
 
       <section className={card}>
+        <h2 className="font-semibold">Resgatar o saldo</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+          As comissões acumulam no saldo quando a plataforma recebe a comissão do pintor. Pode resgatá-lo quando quiser: indicamos o valor a faturar (comissão, mais IVA se liquida,
+          menos retenção, se houver), envia uma só fatura e a plataforma paga por transferência.
+        </p>
+        {manager && (
+          <div className="mt-4">
+            <RedeemButton orgId={id} disabled={!canRedeem} />
+            {why && <p className="mt-2 text-sm text-slate-600">{why}</p>}
+          </div>
+        )}
+        {(redemptions ?? []).length > 0 && (
+          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            {(redemptions ?? []).map((r) => (
+              <li key={r.id} className="py-3">
+                <p className="font-medium">
+                  Resgate de {ptDate(r.created_at)}:{' '}
+                  {r.estado === 'pedido' ? 'a aguardar a sua fatura' : r.estado === 'fatura_recebida' ? 'fatura recebida, a aguardar pagamento' : r.estado === 'paga' ? `pago em ${ptDate(r.paga_em)}${r.referencia_pagamento ? ` (${r.referencia_pagamento})` : ''}` : 'anulado'}
+                </p>
+                <p className="text-slate-600">
+                  Comissão {formatEuros(r.comissao_cents)}
+                  {r.iva_cents > 0 ? ` + IVA ${formatEuros(r.iva_cents)}` : r.cobra_iva ? '' : ` (isento${r.isencao_iva ? `: ${r.isencao_iva}` : ''})`}
+                  {r.retencao_cents > 0 ? ` − retenção ${formatEuros(r.retencao_cents)} (${r.retencao_bps / 100}%)` : ''} = <strong>{formatEuros(r.liquido_cents)}</strong> a receber.
+                  {r.estado === 'pedido' || r.estado === 'fatura_recebida' ? ` A fatura deve ser de ${formatEuros(r.comissao_cents + r.iva_cents)} (comissão${r.iva_cents > 0 ? ' mais IVA' : ''}), emitida à ${COMPANY_NAME}, NIF ${COMPANY_NIF}.` : ''}
+                  {r.invoice_numero ? ` Fatura ${r.invoice_numero}.` : ''}
+                </p>
+                {manager && r.estado === 'pedido' && (
+                  <>
+                    <InvoiceForm orgId={id} redemptionId={r.id} />
+                    <form action={cancelRedemption.bind(null, id, r.id)} className="mt-2">
+                      <button type="submit" className="text-sm text-slate-600 hover:underline">
+                        Cancelar este resgate
+                      </button>
+                    </form>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className={card}>
         <h2 className="font-semibold">Dados para receber</h2>
         <p className="mt-1 text-sm text-slate-600">Necessários para lhe pagarmos. Sem IBAN não é possível enviar a fatura.</p>
         <div className="mt-4">
           {manager ? (
-            <PayoutDetailsForm orgId={id} initial={details ? { iban: details.iban, titular: details.titular, cobraIva: details.cobra_iva } : null} />
+            <PayoutDetailsForm
+              orgId={id}
+              initial={
+                details
+                  ? {
+                      iban: details.iban,
+                      titular: details.titular,
+                      cobraIva: details.cobra_iva,
+                      isencao: details.isencao_iva ?? '',
+                      retencao: details.declaracao_retencao ?? '',
+                      validado: details.regime_validado,
+                      retencaoBps: details.retencao_bps,
+                    }
+                  : null
+              }
+            />
           ) : (
             <p className="text-sm">{details ? `${details.titular}, ${details.iban}` : 'Por indicar.'}</p>
           )}
@@ -116,23 +191,16 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         ) : (
           <ul className="mt-4 divide-y divide-slate-100">
             {(activity ?? []).map((a, i) => {
-              const status = a.estado ? payoutStatus({ estado: a.estado, feeRecebidoEm: a.fee_recebido_em }) : null;
-              const vat = a.amount_cents ? supplierCommissionVat(a.amount_cents, details?.cobra_iva ?? true) : 0;
+              const status = a.estado ? payoutStatus({ estado: a.estado, feeRecebidoEm: a.fee_recebido_em, redemptionId: (payouts ?? []).find((p) => p.id === a.payout_id)?.redemption_id ?? null }) : null;
               return (
                 <li key={`${a.code}-${i}`} className="py-3 text-sm">
                   <p className="font-medium">
                     {a.pintor} <span className="font-normal text-slate-600">· código {a.code} · obra em {a.concelho ?? '—'} · {ptDate(a.submetida_em)}</span>
                   </p>
                   {status && a.amount_cents !== null ? (
-                    <>
-                      <p>
-                        Ganhou a obra. Comissão: <strong>{formatEuros(a.amount_cents)}</strong>
-                        {vat > 0 ? ` + IVA ${formatEuros(vat)} = ${formatEuros(a.amount_cents + vat)}` : ''}. {status.label}.
-                        {a.estado === 'paga' && a.paga_em ? ` Paga em ${ptDate(a.paga_em)}${a.referencia_pagamento ? ` (${a.referencia_pagamento})` : ''}.` : ''}
-                      </p>
-                      {status.action && <p className="mt-1 font-medium text-amber-900">{status.action}</p>}
-                      {manager && a.estado === 'adjudicada' && a.fee_recebido_em && a.payout_id && <InvoiceForm orgId={id} payoutId={a.payout_id} />}
-                    </>
+                    <p>
+                      Ganhou a obra. Comissão <strong>{formatEuros(a.amount_cents)}</strong> (sem IVA). {status.label}.
+                    </p>
                   ) : (
                     <p className="text-slate-600">
                       {a.proposta_estado === 'submetida' ? 'Candidatura em avaliação pelo cliente.' : a.proposta_estado === 'nao_selecionada' ? 'Não foi escolhido.' : a.proposta_estado === 'retirada' ? 'Proposta retirada.' : 'Em curso.'}

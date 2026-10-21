@@ -174,11 +174,11 @@ export async function notifyReferralProgress(engagementId: string): Promise<void
   await sendEmail(await recipients(pay.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(pay.supplier_org_id));
 }
 
-export async function notifyReferralPaid(payoutId: string): Promise<void> {
+export async function notifyReferralPaid(redemptionId: string): Promise<void> {
   const db = adminClient();
   if (!db) return;
-  const { data: pay } = await db.from('referral_payouts').select('supplier_org_id, amount_cents, referencia_pagamento').eq('id', payoutId).maybeSingle();
-  if (!pay) return;
-  const n = REFERRAL_NOTICES.paga({ comissao: euro(pay.amount_cents), referencia: pay.referencia_pagamento ?? '' });
-  await sendEmail(await recipients(pay.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(pay.supplier_org_id));
+  const { data: r } = await db.from('referral_redemptions').select('supplier_org_id, liquido_cents, referencia_pagamento').eq('id', redemptionId).maybeSingle();
+  if (!r) return;
+  const n = REFERRAL_NOTICES.paga({ comissao: euro(r.liquido_cents), referencia: r.referencia_pagamento ?? '' });
+  await sendEmail(await recipients(r.supplier_org_id), n.subject, n.lines, SUPPLIER_PATH(r.supplier_org_id));
 }

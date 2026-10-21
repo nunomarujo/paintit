@@ -10,8 +10,6 @@ import { formatArea } from '@/domain/request';
 import { ResolveReport } from './ReportForms';
 import { unblockAccount } from './actions';
 import { AppealForm } from './AppealForm';
-import { ReferralPayoutForm } from './ReferralPayoutForm';
-import { supplierCommissionVat } from '@/domain/referral';
 import { adminClient } from '@/lib/supabase/admin';
 import { CreatePromoCode, SupplierPlanForm, TogglePromo } from './PromoForms';
 import { PLAN_INFO } from '@/domain/subscription';
@@ -70,25 +68,8 @@ export default async function BackofficePage() {
   if (admin) {
     await Promise.all(strikeUsers.map(async (id) => emailOf.set(id, (await admin.auth.admin.getUserById(id)).data.user?.email ?? id)));
   }
-  // Comissões de adesão dos fornecedores por pagar (src/domain/referral.ts).
-  const { data: payouts } = await supabase
-    .from('referral_payouts')
-    .select('id, supplier_org_id, amount_cents, estado, fee_recebido_em, invoice_numero, invoice_path')
-    .in('estado', ['adjudicada', 'fatura_recebida'])
-    .order('created_at');
-  const payoutOrgs = [...new Set((payouts ?? []).map((p) => p.supplier_org_id))];
-  const [{ data: payoutNames }, { data: payoutDetails }] = payoutOrgs.length
-    ? await Promise.all([
-        supabase.from('organizations').select('id, nome').in('id', payoutOrgs),
-        supabase.from('supplier_payout_details').select('org_id, iban, titular, cobra_iva').in('org_id', payoutOrgs),
-      ])
-    : [{ data: [] }, { data: [] }];
-  const invoiceLinks = new Map<string, string>();
-  for (const p of payouts ?? []) {
-    if (!p.invoice_path) continue;
-    const { data: signed } = await supabase.storage.from('faturas-adesao').createSignedUrl(p.invoice_path, 600);
-    if (signed?.signedUrl) invoiceLinks.set(p.id, signed.signedUrl);
-  }
+  // Resgates dos fornecedores à espera de pagamento (a gestão está em /app/backoffice/contabilidade).
+  const { count: redemptionsToPay } = await supabase.from('referral_redemptions').select('id', { count: 'exact', head: true }).eq('estado', 'fatura_recebida');
   const blockedSet = new Set((blockedRows ?? []).map((b) => b.user_id));
 
   const tiles = [
@@ -98,7 +79,7 @@ export default async function BackofficePage() {
     { href: '#assinaturas', label: 'Assinaturas com certificado por confirmar', n: unverified?.length ?? 0 },
     { href: '#infracoes', label: 'Contas com avisos por contactos', n: strikeUsers.length },
     { href: '#revisoes', label: 'Pedidos de revisão por decidir', n: appeals?.length ?? 0 },
-    { href: '#comissoes', label: 'Comissões de fornecedores por pagar', n: (payouts ?? []).filter((p) => p.estado === 'fatura_recebida').length },
+    { href: '/app/backoffice/contabilidade?v=pagar', label: 'Resgates de fornecedores por pagar', n: redemptionsToPay ?? 0 },
   ];
 
   return (
@@ -138,6 +119,9 @@ export default async function BackofficePage() {
       </ul>
 
       <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/app/backoffice/contabilidade" className="rounded-lg bg-tinta-600 px-4 py-2 font-semibold text-white hover:bg-tinta-700">
+          Contabilidade
+        </Link>
         <Link href="/app/backoffice/conciliacao" className="rounded-lg border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50">
           Conciliação de pagamentos
         </Link>
@@ -212,43 +196,6 @@ export default async function BackofficePage() {
                     </p>
                   )}
                   <AppealForm appealId={a.id} />
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section id="comissoes" className={card}>
-        <h2 className="font-semibold">Comissões de adesão dos fornecedores</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Paga-se por transferência bancária quando a comissão do pintor já entrou na conta e a fatura do fornecedor foi recebida. Marcar como paga avisa o fornecedor.
-        </p>
-        {(payouts ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Nada por pagar.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
-            {(payouts ?? []).map((p) => {
-              const d = (payoutDetails ?? []).find((x) => x.org_id === p.supplier_org_id);
-              const vat = supplierCommissionVat(p.amount_cents, d?.cobra_iva ?? true);
-              return (
-                <li key={p.id} className="py-3">
-                  <b>{(payoutNames ?? []).find((n) => n.id === p.supplier_org_id)?.nome ?? p.supplier_org_id}</b> · {formatEuros(p.amount_cents)}
-                  {vat > 0 ? ` + IVA ${formatEuros(vat)} = ${formatEuros(p.amount_cents + vat)}` : ''} ·{' '}
-                  {p.estado === 'fatura_recebida' ? 'fatura recebida' : p.fee_recebido_em ? 'comissão do pintor recebida, falta a fatura' : 'a aguardar a comissão do pintor'}
-                  <p className="text-xs text-slate-600">
-                    {d ? `${d.titular} · ${d.iban}` : 'IBAN por indicar'}
-                    {p.invoice_numero ? ` · fatura ${p.invoice_numero}` : ''}
-                    {invoiceLinks.get(p.id) && (
-                      <>
-                        {' '}
-                        <a href={invoiceLinks.get(p.id)} target="_blank" rel="noopener noreferrer" className="text-tinta-700 underline">
-                          Abrir PDF
-                        </a>
-                      </>
-                    )}
-                  </p>
-                  <ReferralPayoutForm payoutId={p.id} canPay={p.estado === 'fatura_recebida'} />
                 </li>
               );
             })}

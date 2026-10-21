@@ -570,8 +570,8 @@ export type Database = {
         Relationships: [];
       };
       supplier_payout_details: {
-        Row: { cobra_iva: boolean; iban: string; org_id: string; titular: string; updated_at: string };
-        Insert: { cobra_iva?: boolean; iban: string; org_id: string; titular: string; updated_at?: string };
+        Row: { cobra_iva: boolean; declaracao_retencao: 'nao_sujeito' | 'sujeito' | 'dispensa' | null; iban: string; isencao_iva: string | null; org_id: string; regime_validado: boolean; retencao_bps: number; titular: string; updated_at: string };
+        Insert: { cobra_iva?: boolean; declaracao_retencao?: 'nao_sujeito' | 'sujeito' | 'dispensa' | null; iban: string; isencao_iva?: string | null; org_id: string; titular: string; updated_at?: string };
         Update: Partial<Database['public']['Tables']['supplier_payout_details']['Insert']>;
         Relationships: [];
       };
@@ -591,11 +591,75 @@ export type Database = {
           motivo: string | null;
           paga_em: string | null;
           proposal_id: string;
+          redemption_id: string | null;
           referencia_pagamento: string | null;
           supplier_org_id: string;
         };
         Insert: never;
         Update: { fee_avisado?: boolean };
+        Relationships: [];
+      };
+      referral_redemptions: {
+        Row: {
+          cobra_iva: boolean;
+          comissao_cents: number;
+          created_at: string;
+          created_by: string | null;
+          estado: 'pedido' | 'fatura_recebida' | 'paga' | 'anulado';
+          iban: string;
+          id: string;
+          invoice_em: string | null;
+          invoice_numero: string | null;
+          invoice_path: string | null;
+          isencao_iva: string | null;
+          iva_cents: number;
+          liquido_cents: number;
+          motivo: string | null;
+          paga_em: string | null;
+          referencia_pagamento: string | null;
+          retencao_bps: number;
+          retencao_cents: number;
+          supplier_org_id: string;
+          titular: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      acc_accounts: {
+        Row: { ativa: boolean; codigo: string; natureza: 'devedora' | 'credora'; nome: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      acc_periods: {
+        Row: { atualizado_em: string; atualizado_por: string | null; fechado: boolean; mes: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      acc_period_log: {
+        Row: { acao: 'fechar' | 'reabrir'; em: string; id: string; mes: string; por: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      acc_entries: {
+        Row: { created_at: string; data: string; descricao: string; id: string; origem: string; origem_id: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      acc_lines: {
+        Row: { conta: string; credito_cents: number; debito_cents: number; entry_id: string; id: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      subscription_payments: {
+        Row: { amount_cents: number; created_at: string; id: string; org_id: string | null; paid_at: string; stripe_invoice_id: string; vat_cents: number | null };
+        Insert: { amount_cents: number; org_id?: string | null; paid_at?: string; stripe_invoice_id: string; vat_cents?: number | null };
+        Update: never;
         Relationships: [];
       };
       work_templates: {
@@ -1086,7 +1150,10 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: { [_ in never]: never };
+    Views: {
+      acc_balancete: { Row: { conta: string; credito_cents: number; debito_cents: number; natureza: 'devedora' | 'credora'; nome: string }; Relationships: [] };
+      acc_balancete_mensal: { Row: { conta: string; credito_cents: number; debito_cents: number; mes: string }; Relationships: [] };
+    };
     Functions: {
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
       referral_submit_invoice: { Args: { p_payout: string; p_numero: string; p_path: string }; Returns: undefined };
@@ -1109,6 +1176,14 @@ export type Database = {
       };
       referral_mark_paid: { Args: { p_payout: string; p_ref: string }; Returns: undefined };
       referral_void: { Args: { p_payout: string; p_motivo: string }; Returns: undefined };
+      acc_post: { Args: { p_data: string; p_descricao: string; p_origem: string; p_origem_id: string; p_lines: Json }; Returns: string };
+      acc_close_period: { Args: { p_mes: string }; Returns: undefined };
+      acc_reopen_period: { Args: Record<string, never>; Returns: undefined };
+      referral_request_redemption: { Args: { p_org: string }; Returns: string };
+      referral_redemption_invoice: { Args: { p_redemption: string; p_numero: string; p_path: string }; Returns: undefined };
+      referral_redemption_cancel: { Args: { p_redemption: string; p_motivo: string }; Returns: undefined };
+      referral_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };
+      referral_validate_regime: { Args: { p_org: string; p_bps: number; p_validado: boolean }; Returns: undefined };
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };

@@ -133,3 +133,14 @@ Estados de cada comissão: obra adjudicada (a aguardar a comissão do pintor) �
 
 ◆ **CAE:** a atividade registada é 74900 (outras atividades de consultoria técnicas). Pedir ao Nuno Branco que confirme se cobre a intermediação/portal e, se não,
 acrescentar o CAE adequado antes de faturar.
+
+## 11. Estado da implementação (21/10/2026)
+
+- **Feito (fase 1):** plano de contas, lançamentos em partidas dobradas e imutáveis (trigger recusa alterar/apagar; equilíbrio verificado no fim de cada transação),
+  estornos, períodos que se fecham por ordem (um lançamento tardio entra no primeiro mês aberto), balancete e balancete mensal, e o separador
+  **Contabilidade** do backoffice (painel, movimentos, a pagar, períodos). Os lançamentos fazem-se sozinhos todos os dias (`/api/cron/contabilidade`) e por «Sincronizar agora».
+- **O que já se lança:** comissão do pintor (com IVA), caução recebida/devolvida/retida (retida = rendimento com IVA), reembolsos, mensalidades de fornecedores (webhook `invoice.paid`),
+  comissões de adesão (gasto quando a comissão do pintor entra), IVA da fatura do fornecedor no resgate e o pagamento líquido de retenção.
+- **Saldo e resgate:** feito (migração `saldo_e_resgate`). O fornecedor declara IBAN, regime de IVA e de retenção; a equipa valida e fixa a taxa de retenção; o resgate junta o saldo disponível numa só fatura.
+- **Falta:** taxas e transferências (payouts) da Stripe, faturação certificada (fase 2), importação do extrato (fase 4), IVA trimestral e fecho (fase 5), acesso do contabilista (fase 6).
+- **Stripe:** o webhook tem de receber também o evento `invoice.paid` (Developers > Webhooks > editar o endpoint).

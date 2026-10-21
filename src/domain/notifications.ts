@@ -90,15 +90,15 @@ export const REFERRAL_NOTICES = {
     subject: 'Ganhou uma comissão de adesão',
     lines: [
       `${p.pintor} ganhou a obra com um código seu. A sua comissão é de ${p.comissao} (0,25% do valor da obra, sem IVA; acresce IVA se o cobrar).`,
-      'Será paga depois de a plataforma receber a comissão do pintor. Avisamos nessa altura e pedimos a fatura e o IBAN.',
+      'Fica no seu saldo quando a plataforma receber a comissão do pintor. Avisamos nessa altura; depois pode resgatar o saldo quando quiser.',
     ],
   }),
   feeRecebido: (p: { comissao: string }) => ({
-    subject: 'Envie a fatura da sua comissão',
-    lines: [`A plataforma já recebeu a comissão do pintor. Para receber ${p.comissao}, indique o IBAN e envie a fatura na área do fornecedor.`],
+    subject: 'Tem saldo para resgatar',
+    lines: [`A plataforma já recebeu a comissão do pintor: ${p.comissao} passaram para o seu saldo. Quando quiser, resgate o saldo na área do fornecedor (precisa dos dados de pagamento e do regime validado) e envie a fatura.`],
   }),
   paga: (p: { comissao: string; referencia: string }) => ({
     subject: 'Comissão de adesão paga',
-    lines: [`Foi paga a sua comissão de ${p.comissao}.${p.referencia ? ` Referência: ${p.referencia}.` : ''}`],
+    lines: [`Foi pago o seu resgate: ${p.comissao} transferidos.${p.referencia ? ` Referência: ${p.referencia}.` : ''}`],
   }),
 };

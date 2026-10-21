@@ -22,13 +22,30 @@ export const supplierCommissionVat = (net: Cents, chargesVat: boolean, vatBp = R
 export const REFERRAL_STATES = ['adjudicada', 'fatura_recebida', 'paga', 'sem_efeito'] as const;
 export type ReferralState = (typeof REFERRAL_STATES)[number];
 
-/** Estado visto pelo fornecedor, e o que lhe cabe fazer. */
-export function payoutStatus(p: { estado: ReferralState; feeRecebidoEm: string | null }): { label: string; action: string | null } {
-  if (p.estado === 'paga') return { label: 'Paga', action: null };
-  if (p.estado === 'sem_efeito') return { label: 'Sem efeito', action: null };
-  if (p.estado === 'fatura_recebida') return { label: 'Fatura recebida, a aguardar pagamento', action: null };
-  if (p.feeRecebidoEm) return { label: 'Comissão da plataforma recebida', action: 'Enviar a fatura (e indicar o IBAN, se ainda não o fez).' };
-  return { label: 'Obra adjudicada, a aguardar a comissão do pintor', action: null };
+/** Estado de uma comissão vista pelo fornecedor: adjudicada → disponível (saldo) → em resgate → paga. */
+export function payoutStatus(p: { estado: ReferralState; feeRecebidoEm: string | null; redemptionId?: string | null }): { key: 'sem_efeito' | 'paga' | 'em_resgate' | 'disponivel' | 'adjudicada'; label: string } {
+  if (p.estado === 'sem_efeito') return { key: 'sem_efeito', label: 'Sem efeito' };
+  if (p.estado === 'paga') return { key: 'paga', label: 'Paga' };
+  if (p.redemptionId) return { key: 'em_resgate', label: 'Em resgate' };
+  if (p.feeRecebidoEm) return { key: 'disponivel', label: 'No saldo, disponível para resgatar' };
+  return { key: 'adjudicada', label: 'Obra adjudicada, a aguardar a comissão do pintor' };
+}
+
+/** Saldo de um fornecedor, em cêntimos. */
+export function supplierBalance(payouts: { estado: ReferralState; feeRecebidoEm: string | null; redemptionId: string | null; amount: number }[]) {
+  const by = { disponivel: 0, adjudicada: 0, em_resgate: 0, paga: 0 };
+  for (const p of payouts) {
+    const k = payoutStatus(p).key;
+    if (k !== 'sem_efeito') by[k] += p.amount;
+  }
+  return by;
+}
+
+/** Valores de um resgate: comissão + IVA (se cobra) − retenção. Igual à função da base de dados (referral_request_redemption). */
+export function redemptionAmounts(total: Cents, cobraIva: boolean, retencaoBps: number, vatBp = RULES_2026_10_20.commissionVatBp) {
+  const iva = cobraIva ? percentOf(total, vatBp) : 0;
+  const retencao = percentOf(total, retencaoBps);
+  return { iva, retencao, liquido: total + iva - retencao };
 }
 
 /** Código novo: 8 caracteres sem os ambíguos (0, O, 1, I). */

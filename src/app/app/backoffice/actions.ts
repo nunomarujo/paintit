@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
 import { decideAppeal, unblockUser } from '@/lib/strikes';
+import { syncLedger } from '@/lib/accounting';
 import { notifyReferralPaid } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
@@ -124,22 +125,85 @@ export async function decideAppealAction(appealId: string, _prev: FormState, for
   return { errors: {}, ok: true, message: decision === 'aceitar' ? 'Aceite: o segundo aviso foi anulado.' : 'Recusado: mantém-se o último aviso.' };
 }
 
-/** Comissões de adesão dos fornecedores: pagar (depois de recebida a fatura) ou anular. Só a equipa da plataforma. */
-export async function decideReferralPayout(payoutId: string, _prev: FormState, form: FormData): Promise<FormState> {
+const UUID = /^[0-9a-f-]{36}$/i;
+
+async function adminOnly() {
+  const { supabase, user } = await getUser();
+  if (!user || !(await isPlatformAdmin(supabase, user.id))) return null;
+  return supabase;
+}
+
+/** Resgates de comissões dos fornecedores: pagar (com fatura recebida) ou anular. Só a equipa da plataforma. */
+export async function decideRedemption(redemptionId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const decision = String(form.get('decision') ?? '');
   const texto = String(form.get('texto') ?? '').trim();
-  if (!/^[0-9a-f-]{36}$/i.test(payoutId)) return { errors: {}, message: 'Comissão inválida.' };
+  if (!UUID.test(redemptionId)) return { errors: {}, message: 'Resgate inválido.' };
   if (decision !== 'paga' && decision !== 'anular') return { errors: {}, message: 'Escolha pagar ou anular.' };
   if (decision === 'paga' && texto.length < 3) return { errors: { texto: 'Indique a referência da transferência.' } };
   if (decision === 'anular' && texto.length < 10) return { errors: { texto: 'Explique porque se anula.' } };
-  const { supabase, user } = await getUser();
-  if (!user || !(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
   const { error } =
     decision === 'paga'
-      ? await supabase.rpc('referral_mark_paid', { p_payout: payoutId, p_ref: texto })
-      : await supabase.rpc('referral_void', { p_payout: payoutId, p_motivo: texto });
+      ? await supabase.rpc('referral_redemption_pay', { p_redemption: redemptionId, p_ref: texto })
+      : await supabase.rpc('referral_redemption_cancel', { p_redemption: redemptionId, p_motivo: texto });
   if (error) return { errors: {}, message: error.message };
-  if (decision === 'paga') await notifyReferralPaid(payoutId).catch(() => undefined);
-  revalidatePath('/app/backoffice');
-  return { errors: {}, ok: true, message: decision === 'paga' ? 'Marcada como paga; o fornecedor foi avisado.' : 'Comissão anulada.' };
+  if (decision === 'paga') await notifyReferralPaid(redemptionId).catch(() => undefined);
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: decision === 'paga' ? 'Marcado como pago; o fornecedor foi avisado.' : 'Resgate anulado; o saldo volta ao fornecedor.' };
+}
+
+/** Uma comissão sem efeito (a obra caiu e a comissão do pintor foi devolvida). */
+export async function voidPayoutAction(payoutId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const texto = String(form.get('texto') ?? '').trim();
+  if (!UUID.test(payoutId)) return { errors: {}, message: 'Comissão inválida.' };
+  if (texto.length < 10) return { errors: { texto: 'Explique porque fica sem efeito.' } };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = await supabase.rpc('referral_void', { p_payout: payoutId, p_motivo: texto });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: 'Comissão sem efeito.' };
+}
+
+/** Regime de IVA e retenção declarado pelo fornecedor: a equipa valida e fixa a taxa de retenção. */
+export async function validateRegimeAction(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  if (!UUID.test(orgId)) return { errors: {}, message: 'Fornecedor inválido.' };
+  const pct = Number(String(form.get('retencao') ?? '0').replace(',', '.'));
+  if (!Number.isFinite(pct) || pct < 0 || pct > 30) return { errors: { retencao: 'Retenção entre 0% e 30%.' } };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = await supabase.rpc('referral_validate_regime', { p_org: orgId, p_bps: Math.round(pct * 100), p_validado: true });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: 'Regime validado.' };
+}
+
+/** Lança no livro de movimentos o que ainda não está lançado (também corre todos os dias). */
+export async function syncLedgerAction(): Promise<FormState> {
+  if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
+  const r = await syncLedger();
+  revalidatePath('/app/backoffice/contabilidade');
+  if (r.errors.length) return { errors: {}, message: `${r.posted} lançados; ${r.errors.length} erros: ${r.errors.slice(0, 3).join(' | ')}` };
+  return { errors: {}, ok: true, message: `${r.posted} novos lançamentos (${r.already} já estavam lançados).` };
+}
+
+export async function closePeriodAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const mes = String(form.get('mes') ?? '');
+  if (!/^\d{4}-\d{2}$/.test(mes)) return { errors: {}, message: 'Mês inválido.' };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = await supabase.rpc('acc_close_period', { p_mes: `${mes}-01` });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: `Mês ${mes} fechado.` };
+}
+
+export async function reopenPeriodAction(): Promise<FormState> {
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = await supabase.rpc('acc_reopen_period');
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: 'Último mês reaberto.' };
 }

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/devolucoes",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/contabilidade",
+      "schedule": "45 6 * * *"
     }
   ],
   "regions": [

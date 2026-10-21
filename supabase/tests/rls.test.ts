@@ -672,8 +672,8 @@ describe('propostas e escolha', () => {
     const S = '00000000-0000-4000-8000-0000000000f5';
     expect(await as(S, async () => (await db.query('select 1 from public.referral_payouts')).rows)).toHaveLength(1);
     expect(await as(P2, async () => (await db.query('select 1 from public.referral_payouts')).rows)).toEqual([]);
-    // Só depois de a plataforma receber a comissão se envia a fatura.
-    await expect(as(S, () => db.query(`select public.referral_submit_invoice($1, 'FT 1', $2)`, [pay.id, `${pay.supplier_org_id}/x.pdf`]))).rejects.toThrow(/receber a comissão/);
+    // Sem dados de pagamento nem saldo (a comissão do pintor ainda não entrou), não há resgate.
+    await expect(as(S, () => db.query(`select public.referral_request_redemption($1)`, [pay.supplier_org_id]))).rejects.toThrow(/IBAN/);
   });
 });
 
@@ -775,34 +775,65 @@ describe('contratação', () => {
     expect(rival).toEqual([]);
   });
 
-  it('comissão do fornecedor: com a comissão recebida, IBAN, fatura e pagamento pela equipa', async () => {
+  it('saldo e resgate: regime validado pela equipa, uma fatura por resgate, pagamento líquido de retenção', async () => {
     const S = '00000000-0000-4000-8000-0000000000f5';
-    const pay = await one<{ id: string; supplier_org_id: string; fee_recebido_em: string | null }>(
-      'select id, supplier_org_id, fee_recebido_em from public.referral_payouts where engagement_id = $1',
+    const pay = await one<{ id: string; supplier_org_id: string; fee_recebido_em: string | null; amount_cents: number }>(
+      'select id, supplier_org_id, fee_recebido_em, amount_cents from public.referral_payouts where engagement_id = $1',
       [engagementId],
     );
     expect(pay.fee_recebido_em).not.toBeNull();
-    const activity = (user: string) => as(user, async () => (await db.query('select code, pintor, estado from public.referral_activity($1)', [pay.supplier_org_id])).rows);
+    const org = pay.supplier_org_id;
+    const activity = (user: string) => as(user, async () => (await db.query('select code, pintor, estado from public.referral_activity($1)', [org])).rows);
     expect(await activity(S)).toEqual([{ code: 'ABCD1234', pintor: expect.any(String), estado: 'adjudicada' }]);
     await expect(activity(P)).rejects.toThrow(/Fornecedor não encontrado/);
-    const invoice = (user: string, path = `${pay.supplier_org_id}/${pay.id}.pdf`) =>
-      as(user, () => db.query(`select public.referral_submit_invoice($1, 'FT 2026/1', $2)`, [pay.id, path]));
-    await expect(invoice(S)).rejects.toThrow(/IBAN/);
+    const request = (user: string) => as(user, () => one<{ referral_request_redemption: string }>(`select public.referral_request_redemption($1)`, [org]));
+    await expect(request(S)).rejects.toThrow(/IBAN/);
     await expect(
-      as(S, () => db.query(`insert into public.supplier_payout_details (org_id, iban, titular) values ($1, 'PT50123', 'Tintas Aderentes Lda')`, [pay.supplier_org_id])),
+      as(S, () => db.query(`insert into public.supplier_payout_details (org_id, iban, titular) values ($1, 'PT50123', 'Tintas Aderentes Lda')`, [org])),
     ).rejects.toThrow(/check/);
+    // O fornecedor declara; não escolhe a retenção nem valida o próprio regime.
     await as(S, () =>
-      db.query(`insert into public.supplier_payout_details (org_id, iban, titular) values ($1, 'PT50000201231234567890154', 'Tintas Aderentes Lda')`, [pay.supplier_org_id]),
+      db.query(
+        `insert into public.supplier_payout_details (org_id, iban, titular, cobra_iva, declaracao_retencao, retencao_bps, regime_validado) values ($1, 'PT50000201231234567890154', 'Tintas Aderentes Lda', true, 'sujeito', 2500, true)`,
+        [org],
+      ),
     );
+    const d = await one<{ retencao_bps: number; regime_validado: boolean }>('select retencao_bps, regime_validado from public.supplier_payout_details where org_id = $1', [org]);
+    expect([d.retencao_bps, d.regime_validado]).toEqual([0, false]);
     expect(await as(P, async () => (await db.query('select 1 from public.supplier_payout_details')).rows)).toEqual([]);
-    await expect(invoice(P)).rejects.toThrow(/não encontrada/);
+    await expect(request(S)).rejects.toThrow(/validado/);
+    await expect(as(S, () => db.query(`select public.referral_validate_regime($1, 2500, true)`, [org]))).rejects.toThrow(/Só a equipa/);
+    await as(ADMIN, () => db.query(`select public.referral_validate_regime($1, 2500, true)`, [org]));
+    // Mudar o regime depois de validado exige nova validação e repõe a retenção a zero.
+    await as(S, () => db.query(`update public.supplier_payout_details set cobra_iva = false where org_id = $1`, [org]));
+    expect((await one<{ regime_validado: boolean }>('select regime_validado from public.supplier_payout_details where org_id = $1', [org])).regime_validado).toBe(false);
+    await as(S, () => db.query(`update public.supplier_payout_details set cobra_iva = true where org_id = $1`, [org]));
+    await as(ADMIN, () => db.query(`select public.referral_validate_regime($1, 2500, true)`, [org]));
+    await expect(request(P)).rejects.toThrow(/não encontrado/);
+    const rid = (await request(S)).referral_request_redemption;
+    // 343 + IVA 79 (23%) - retenção 86 (25% de 343) = 336.
+    const r = await one<{ comissao_cents: number; iva_cents: number; retencao_cents: number; liquido_cents: number; estado: string }>(
+      'select comissao_cents, iva_cents, retencao_cents, liquido_cents, estado from public.referral_redemptions where id = $1',
+      [rid],
+    );
+    expect([r.comissao_cents, r.iva_cents, r.retencao_cents, r.liquido_cents, r.estado]).toEqual([pay.amount_cents, 79, 86, 336, 'pedido']);
+    await expect(request(S)).rejects.toThrow(/em curso/);
+    const invoice = (user: string, path = `${org}/${rid}.pdf`) =>
+      as(user, () => db.query(`select public.referral_redemption_invoice($1, 'FT 2026/1', $2)`, [rid, path]));
+    await expect(invoice(P)).rejects.toThrow(/não encontrado/);
     await expect(invoice(S, `${condo}/x.pdf`)).rejects.toThrow(/inválida/);
+    await expect(as(S, () => db.query(`select public.referral_redemption_pay($1, 'x')`, [rid]))).rejects.toThrow(/Só a equipa/);
+    await expect(as(ADMIN, () => db.query(`select public.referral_redemption_pay($1, 'transf. 1')`, [rid]))).rejects.toThrow(/fatura recebida/);
     await invoice(S);
-    await expect(as(S, () => db.query(`select public.referral_mark_paid($1, 'transf. 1')`, [pay.id]))).rejects.toThrow(/Só a equipa/);
-    await as(ADMIN, () => db.query(`select public.referral_mark_paid($1, 'transf. 1')`, [pay.id]));
-    const done = await one<{ estado: string; invoice_numero: string }>('select estado, invoice_numero from public.referral_payouts where id = $1', [pay.id]);
-    expect([done.estado, done.invoice_numero]).toEqual(['paga', 'FT 2026/1']);
+    await expect(as(S, () => db.query(`select public.referral_redemption_cancel($1, 'x')`, [rid]))).rejects.toThrow(/Não se pode anular/);
     await expect(as(ADMIN, () => db.query(`select public.referral_void($1, 'x')`, [pay.id]))).rejects.toThrow(/Não se pode anular/);
+    await as(ADMIN, () => db.query(`select public.referral_redemption_pay($1, 'transf. 1')`, [rid]));
+    const done = await one<{ estado: string; paga: string }>(
+      `select r.estado, p.estado as paga from public.referral_redemptions r join public.referral_payouts p on p.redemption_id = r.id where r.id = $1`,
+      [rid],
+    );
+    expect([done.estado, done.paga]).toEqual(['paga', 'paga']);
+    await expect(request(S)).rejects.toThrow(/saldo/);
   });
 
   it('a falhada só com valores a transitar; depois escolhe-se outra e a nova contratação herda-os', async () => {
@@ -1298,5 +1329,71 @@ describe('métodos de trabalho', () => {
     expect(await seen(A)).toBe(1);
     await as(A, () => db.query(`delete from public.work_templates`));
     expect(await seen(A)).toBe(0);
+  });
+});
+
+describe('livro de movimentos', () => {
+  const post = (data: string, origemId: string, lines: unknown[], origem = 'teste') =>
+    db.query<{ acc_post: string }>(`select public.acc_post($1::date, 'Lançamento de teste', $2, $3, $4::jsonb)`, [data, origem, origemId, JSON.stringify(lines)]);
+  const balanced = [
+    { conta: '13.1', debito: 18450, credito: 0 },
+    { conta: '72.1', debito: 0, credito: 15000 },
+    { conta: '24.33', debito: 0, credito: 3450 },
+  ];
+
+  it('grava lançamentos equilibrados, uma só vez por origem', async () => {
+    const a = (await post('2026-10-05', 'x1', balanced)).rows[0]!.acc_post;
+    const b = (await post('2026-10-05', 'x1', balanced)).rows[0]!.acc_post;
+    expect(b).toBe(a);
+    expect(Number((await one<{ n: string }>('select count(*) n from public.acc_lines where entry_id = $1', [a])).n)).toBe(3);
+  });
+
+  it('recusa lançamentos desequilibrados, contas inexistentes e valores nos dois lados', async () => {
+    await expect(post('2026-10-05', 'x2', [{ conta: '13.1', debito: 100 }, { conta: '72.1', credito: 99 }])).rejects.toThrow(/desequilibrado/);
+    await expect(post('2026-10-05', 'x3', [{ conta: '13.1', debito: 100 }])).rejects.toThrow(/desequilibrado/);
+    await expect(post('2026-10-05', 'x4', [{ conta: '99.9', debito: 100 }, { conta: '72.1', credito: 100 }])).rejects.toThrow(/foreign key|violates/);
+    await expect(post('2026-10-05', 'x5', [{ conta: '13.1', debito: 100, credito: 100 }, { conta: '72.1', credito: 0 }])).rejects.toThrow(/check/);
+    // Nada ficou gravado dos que falharam.
+    expect(Number((await one<{ n: string }>(`select count(*) n from public.acc_entries where origem_id in ('x2','x3','x4','x5')`)).n)).toBe(0);
+  });
+
+  it('nada se altera nem se apaga, nem pela equipa', async () => {
+    await expect(db.query(`update public.acc_entries set descricao = 'x'`)).rejects.toThrow(/estorno/);
+    await expect(db.query(`delete from public.acc_lines`)).rejects.toThrow(/estorno/);
+    await expect(as(ADMIN, () => db.query(`delete from public.acc_entries`))).rejects.toThrow(/permission denied/);
+  });
+
+  it('só a equipa lê; ninguém grava pela API', async () => {
+    expect(await as(ADMIN, async () => (await db.query('select 1 from public.acc_entries')).rows.length)).toBeGreaterThan(0);
+    for (const u of [A, B]) expect(await as(u, async () => (await db.query('select 1 from public.acc_entries')).rows)).toEqual([]);
+    await expect(as(ADMIN, () => post('2026-10-05', 'x6', balanced))).rejects.toThrow(/permission denied/);
+    await expect(as(ADMIN, () => db.query(`insert into public.acc_entries (data, descricao, origem, origem_id) values ('2026-10-05', 'x', 't', 'x7')`))).rejects.toThrow(/permission denied/);
+  });
+
+  it('períodos: fecham-se por ordem, e um lançamento num mês fechado passa para o mês aberto', async () => {
+    await expect(as(B, () => db.query(`select public.acc_close_period('2020-01-10')`))).rejects.toThrow(/Só a equipa/);
+    await as(ADMIN, () => db.query(`select public.acc_close_period('2020-01-10')`));
+    await expect(as(ADMIN, () => db.query(`select public.acc_close_period('2020-03-01')`))).rejects.toThrow(/por ordem/);
+    await expect(as(ADMIN, () => db.query(`select public.acc_close_period(date_trunc('month', now())::date)`))).rejects.toThrow(/terminados|por ordem/);
+    await as(ADMIN, () => db.query(`select public.acc_close_period('2020-02-01')`));
+    const id = (await post('2020-01-15', 'x8', balanced)).rows[0]!.acc_post;
+    expect((await one<{ data: string }>(`select to_char(data, 'YYYY-MM-DD') as data from public.acc_entries where id = $1`, [id])).data).toBe('2020-03-01');
+    await expect(db.query(`insert into public.acc_entries (data, descricao, origem, origem_id) values ('2020-02-10', 'x', 't', 'x9')`)).rejects.toThrow(/fechado/);
+    await as(ADMIN, () => db.query(`select public.acc_reopen_period()`));
+    await as(ADMIN, () => db.query(`select public.acc_reopen_period()`));
+    expect(Number((await one<{ n: string }>(`select count(*) n from public.acc_period_log`)).n)).toBe(4);
+    const closed = await db.query(`select 1 from public.acc_periods where fechado`);
+    expect(closed.rows).toHaveLength(0);
+  });
+});
+
+describe('balancete do livro', () => {
+  it('soma por conta, só para a equipa, e fecha a zeros', async () => {
+    const rows = await as(ADMIN, async () => (await db.query<{ conta: string; debito_cents: string; credito_cents: string }>('select conta, debito_cents, credito_cents from public.acc_balancete')).rows);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.reduce((n, r) => n + Number(r.debito_cents), 0)).toBe(rows.reduce((n, r) => n + Number(r.credito_cents), 0));
+    expect(await as(B, async () => (await db.query('select 1 from public.acc_balancete')).rows)).toEqual([]);
+    const monthly = await as(ADMIN, async () => (await db.query('select mes from public.acc_balancete_mensal')).rows);
+    expect(monthly.length).toBeGreaterThan(0);
   });
 });

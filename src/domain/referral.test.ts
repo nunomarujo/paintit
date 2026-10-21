@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { commissionFor, painterFee } from './commission';
-import { isValidPtIban, newReferralCode, normalizeCode, payoutStatus, RULES_2026_10_20_REF, supplierCommission, supplierCommissionVat } from './referral';
+import { isValidPtIban, newReferralCode, normalizeCode, payoutStatus, redemptionAmounts, RULES_2026_10_20_REF, supplierBalance, supplierCommission, supplierCommissionVat } from './referral';
 import { CURRENT_RULES, RULES_BY_VERSION } from './rules';
 
 describe('códigos de adesão', () => {
@@ -26,10 +26,25 @@ describe('códigos de adesão', () => {
     expect(supplierCommissionVat(2_500, false)).toBe(0);
   });
 
-  it('o estado diz o que falta ao fornecedor', () => {
-    expect(payoutStatus({ estado: 'adjudicada', feeRecebidoEm: null }).action).toBeNull();
-    expect(payoutStatus({ estado: 'adjudicada', feeRecebidoEm: '2026-10-21' }).action).toMatch(/fatura/);
-    expect(payoutStatus({ estado: 'paga', feeRecebidoEm: '2026-10-21' }).label).toBe('Paga');
+  it('o estado e o saldo seguem adjudicada → disponível → em resgate → paga', () => {
+    expect(payoutStatus({ estado: 'adjudicada', feeRecebidoEm: null }).key).toBe('adjudicada');
+    expect(payoutStatus({ estado: 'adjudicada', feeRecebidoEm: '2026-10-21' }).key).toBe('disponivel');
+    expect(payoutStatus({ estado: 'adjudicada', feeRecebidoEm: '2026-10-21', redemptionId: 'r' }).key).toBe('em_resgate');
+    expect(payoutStatus({ estado: 'paga', feeRecebidoEm: '2026-10-21', redemptionId: 'r' }).label).toBe('Paga');
+    const b = supplierBalance([
+      { estado: 'adjudicada', feeRecebidoEm: null, redemptionId: null, amount: 100 },
+      { estado: 'adjudicada', feeRecebidoEm: 'x', redemptionId: null, amount: 200 },
+      { estado: 'adjudicada', feeRecebidoEm: 'x', redemptionId: 'r', amount: 400 },
+      { estado: 'paga', feeRecebidoEm: 'x', redemptionId: 'r0', amount: 800 },
+      { estado: 'sem_efeito', feeRecebidoEm: 'x', redemptionId: null, amount: 1600 },
+    ]);
+    expect(b).toEqual({ adjudicada: 100, disponivel: 200, em_resgate: 400, paga: 800 });
+  });
+
+  it('o resgate soma o IVA e desconta a retenção, como a base de dados', () => {
+    expect(redemptionAmounts(343, true, 2500)).toEqual({ iva: 79, retencao: 86, liquido: 336 });
+    expect(redemptionAmounts(10_000, false, 0)).toEqual({ iva: 0, retencao: 0, liquido: 10_000 });
+    expect(redemptionAmounts(10_000, true, 0).liquido).toBe(12_300);
   });
 
   it('gera códigos legíveis e normaliza o que o pintor escreve', () => {

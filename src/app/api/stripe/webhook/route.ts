@@ -51,6 +51,23 @@ export async function POST(req: Request) {
       if (error) return new Response('Erro ao gravar', { status: 500 });
       if (promo) await db.from('promo_codes').update({ uses: promo.uses + 1 }).eq('id', promo.id);
     }
+  } else if (event.type === 'invoice.paid') {
+    // Cada mensalidade paga entra no livro de movimentos (src/lib/accounting.ts). Idempotente pelo id da fatura do Stripe.
+    const inv = event.data.object;
+    if (inv.subscription && inv.amount_paid > 0 && inv.id) {
+      const orgId = inv.subscription_details?.metadata?.org_id ?? null;
+      const { error } = await db.from('subscription_payments').upsert(
+        {
+          stripe_invoice_id: inv.id,
+          org_id: orgId,
+          amount_cents: inv.amount_paid,
+          vat_cents: inv.tax ?? null,
+          paid_at: new Date((inv.status_transitions?.paid_at ?? event.created) * 1000).toISOString(),
+        },
+        { onConflict: 'stripe_invoice_id', ignoreDuplicates: true },
+      );
+      if (error) return new Response('Erro ao gravar', { status: 500 });
+    }
   } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
     await db

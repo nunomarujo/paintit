@@ -110,6 +110,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 - Páginas legais provisórias publicadas (termos, privacidade e cookies, aviso legal com IA e RSD, Livro de Reclamações): a rever por advogado. Falta registar a empresa no Livro de Reclamações Eletrónico (livroreclamacoes.pt), indicar a entidade de resolução alternativa de litígios e completar registo comercial e capital social no aviso legal.
 - Perguntas para o contabilista: `docs/contabilista/Perguntas_2026-10-21.md`.
 
+- **Aplicar as migrações `20261021080000_saldo_e_resgate.sql` e `20261021090000_livro_de_movimentos.sql`, por esta ordem**, e acrescentar o evento `invoice.paid` ao webhook da Stripe. Até lá, o separador Contabilidade e o resgate dão erro.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):
