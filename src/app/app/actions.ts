@@ -1,5 +1,7 @@
 'use server';
 
+import { isCompanyNif, nameMatchesOfficial } from '@/domain/nif';
+import { lookupNif } from '@/lib/nifpt';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -66,12 +68,24 @@ async function addressErrors(morada: string | null, cp: string | null, moradaFie
   return info ? { [moradaField]: problem } : { codigoPostal: problem };
 }
 
+
+/** Confirma o NIPC e o nome na nif.pt (só pessoas coletivas; sem chave ou com o serviço em baixo, não bloqueia). */
+async function nifErrors(nif: string | null, nome: string): Promise<FieldErrors> {
+  if (!nif || !isCompanyNif(nif)) return {};
+  const r = await lookupNif(nif);
+  if (r === 'indisponivel') return {};
+  if (!r.found) return { nif: 'NIF não encontrado. Confirme os 9 algarismos.' };
+  if (!r.ativo) return { nif: 'Este NIF consta como inativo.' };
+  if (!nameMatchesOfficial(nome, r.nome)) return { nome: 'O nome não corresponde ao titular deste NIF. Use a denominação oficial.' };
+  return {};
+}
+
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
 export async function createOrganization(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
-  const addrErr = await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal');
+  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...(await nifErrors(parsed.value.nif, parsed.value.nome)) };
   if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
@@ -108,7 +122,7 @@ export async function createBuilding(orgId: string, _prev: FormState, form: Form
 export async function updateOrganization(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
-  const addrErr = await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal');
+  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...(await nifErrors(parsed.value.nif, parsed.value.nome)) };
   if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
