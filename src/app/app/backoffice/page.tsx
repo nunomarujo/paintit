@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { availableActions } from '@/domain/contracting';
 import { isPlatformAdmin } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
+import { serverChecks } from '@/lib/diagnostics';
 import { getUser } from '@/lib/supabase/server';
 import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
@@ -50,6 +51,8 @@ export default async function BackofficePage() {
   const proposalsFor = (rid: string) => (submitted ?? []).filter((p) => p.request_id === rid).length;
   const needing = (open ?? []).filter((l) => proposalsFor(l.request_id) < 3);
 
+  const checks = await serverChecks(engagements?.length ?? 0);
+
   const tiles = [
     { href: '/app/validacao', label: 'Documentos e fotografias por rever', n: (docs.count ?? 0) + (photos.count ?? 0) },
     { href: '/app/contratacoes', label: 'Contratações à espera da plataforma', n: pendingEngagements },
@@ -65,6 +68,22 @@ export default async function BackofficePage() {
           Tudo o que a equipa da plataforma faz fica registado com autor e hora (ver auditoria).
         </p>
       </div>
+
+      <section className={card} aria-labelledby="diagnostico">
+        <h2 id="diagnostico" className="font-semibold">Estado do servidor</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {checks.map((c) => (
+            <li key={c.label} className="flex gap-3">
+              <span className={c.ok ? 'text-tinta-700' : 'font-bold text-red-700'} aria-label={c.ok ? 'Em ordem' : 'Com problema'}>
+                {c.ok ? '✓' : '✗'}
+              </span>
+              <span>
+                <b>{c.label}.</b> <span className={c.ok ? 'text-slate-600' : 'text-red-800'}>{c.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (

@@ -20,10 +20,17 @@ export async function recordStripePayment(p: {
 }): Promise<{ ok: boolean; reason?: string }> {
   const db = adminClient();
   if (!db) return { ok: false, reason: 'Sem chave do Supabase.' };
-  const { data: already } = await db.from('stripe_payments').select('id').eq('payment_intent', p.paymentIntent).maybeSingle();
+  const { data: already, error: alreadyError } = await db.from('stripe_payments').select('id').eq('payment_intent', p.paymentIntent).maybeSingle();
+  if (alreadyError) return { ok: false, reason: `Leitura dos pagamentos falhou: ${alreadyError.message}` };
   if (already) return { ok: true };
-  const { data: row } = await db.from('engagements').select('*').eq('id', p.engagementId).maybeSingle();
-  if (!row) return { ok: false, reason: 'Contratação não encontrada.' };
+  const { data: row, error: rowError } = await db.from('engagements').select('*').eq('id', p.engagementId).maybeSingle();
+  if (rowError) return { ok: false, reason: `Leitura da contratação falhou: ${rowError.message}` };
+  if (!row) {
+    return {
+      ok: false,
+      reason: 'Contratação não encontrada. Se existe na aplicação, a chave SUPABASE_SECRET_KEY não é a chave secreta (service role) do projeto Paint it: ver o estado do servidor no backoffice.',
+    };
+  }
 
   const kind = p.kind === 'caucao' ? 'deposito_confirmado' : 'fee_recebido';
   const candidate = { id: 'novo', kind, amount: p.amount, payload: {}, at: p.at.toISOString() } as const;
