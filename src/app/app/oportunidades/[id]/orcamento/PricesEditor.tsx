@@ -83,7 +83,7 @@ export function PricesEditor({
   const errorText = state.message ?? Object.values(state.errors)[0];
 
   return (
-    <form {...formProps} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <form autoComplete="off" {...formProps} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <input type="hidden" name="payload" value={payload} />
       <div className="space-y-6 p-5 md:p-7">
         <fieldset>
