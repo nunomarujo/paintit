@@ -110,7 +110,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 - Páginas legais provisórias publicadas (termos, privacidade e cookies, aviso legal com IA e RSD, Livro de Reclamações): a rever por advogado. Falta registar a empresa no Livro de Reclamações Eletrónico (livroreclamacoes.pt), indicar a entidade de resolução alternativa de litígios e completar registo comercial e capital social no aviso legal.
 - Perguntas para o contabilista: `docs/contabilista/Perguntas_2026-10-21.md`.
 
-- **Aplicar as migrações `20261021080000_saldo_e_resgate.sql`, `20261021090000_livro_de_movimentos.sql` e `20261021100000_reconciliacao_stripe.sql`, por esta ordem**, e acrescentar o evento `invoice.paid` ao webhook da Stripe. Até lá, o separador Contabilidade e o resgate dão erro.
+- Migrações `...080000_saldo_e_resgate` e `...090000_livro_de_movimentos` aplicadas e confirmadas na base real (21/10/2026): 16 contas, 6 funções públicas, 3 auxiliares, 2 vistas; avisos novos esperados (7 "SECURITY DEFINER executável por autenticados" e 9 "índice não usado").
+- **Falta aplicar `20261021100000_reconciliacao_stripe.sql`** (sem ela, o separador Reconciliação dá erro) e acrescentar o evento `invoice.paid` ao webhook da Stripe.
 
 ## Pendente do promotor
 
