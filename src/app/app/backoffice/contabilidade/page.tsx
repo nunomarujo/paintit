@@ -4,12 +4,14 @@ import { ACCOUNTS, accountName } from '@/domain/accounting/accounts';
 import { formatEuros } from '@/domain/money';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
-import { PeriodForms, RedemptionForm, RegimeForm, SyncButton, VoidPayoutForm } from './Forms';
+import { reconcile } from '@/domain/accounting/reconcile';
+import { PeriodForms, RedemptionForm, RegimeForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const TABS = [
   ['painel', 'Painel'],
   ['movimentos', 'Movimentos'],
+  ['reconciliacao', 'Reconciliação'],
   ['pagar', 'A pagar'],
   ['periodos', 'Períodos'],
 ] as const;
@@ -61,6 +63,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       </nav>
       {tab === 'painel' && <Dashboard />}
       {tab === 'movimentos' && <Movements mes={q.mes} origem={q.origem} />}
+      {tab === 'reconciliacao' && <Reconciliation />}
       {tab === 'pagar' && <ToPay />}
       {tab === 'periodos' && <Periods />}
     </div>
@@ -358,5 +361,118 @@ async function Periods() {
         </details>
       )}
     </section>
+  );
+}
+
+const KIND_LABELS: Record<string, string> = {
+  cobranca_nao_registada: 'Cobrança não registada',
+  valor_diferente: 'Valor diferente',
+  reembolso_diferente: 'Reembolso diferente',
+  pagamento_sem_cobranca: 'Registado sem cobrança na Stripe',
+  movimento_a_rever: 'Movimento a rever',
+};
+const KIND_HELP: Record<string, string> = {
+  cobranca_nao_registada: 'Na Stripe, abra o pagamento e reenvie o evento checkout.session.completed (Developers > Events). Se a contratação já avançou e o pagamento é duplicado, reembolse-o na Stripe.',
+  valor_diferente: 'Confirme o valor na Stripe e na contratação; se foi um erro de registo, corrija com um estorno.',
+  reembolso_diferente: 'A sincronização diária regista a diferença; se persistir, veja os reembolsos desse pagamento na Stripe.',
+  pagamento_sem_cobranca: 'Sincronize de novo; se persistir, o pagamento pode ter sido anulado na Stripe.',
+  movimento_a_rever: 'Movimento sem tratamento automático (disputa, ajuste, mensalidade reembolsada…): decida com o contabilista.',
+};
+
+async function Reconciliation() {
+  const { supabase } = await getUser();
+  const [{ data: bts }, { data: payments }, { data: subs }, { data: payouts }, { data: snap }, { data: ledger }] = await Promise.all([
+    supabase.from('stripe_bt').select('*').eq('currency', 'eur').order('created_at', { ascending: false }),
+    supabase.from('stripe_payments').select('payment_intent, kind, amount_cents, refunded_cents'),
+    supabase.from('subscription_payments').select('stripe_invoice_id, amount_cents'),
+    supabase.from('stripe_payouts').select('*').eq('currency', 'eur').order('created_at', { ascending: false }),
+    supabase.from('stripe_balance_snapshots').select('*').order('taken_at', { ascending: false }).limit(1),
+    supabase.from('acc_balancete').select('*').eq('conta', ACCOUNTS.stripe.codigo),
+  ]);
+  const ledgerCents = ledger?.[0] ? balance(ledger[0]) : 0;
+  const snapshot = snap?.[0] ?? null;
+  const r = reconcile({
+    lines: (bts ?? []).map((b) => ({ id: b.id, type: b.type, category: b.reporting_category, amountCents: b.amount_cents, feeCents: b.fee_cents, currency: b.currency, createdAt: b.created_at, paymentIntent: b.payment_intent, invoiceId: b.invoice_id, description: b.description })),
+    payments: (payments ?? []).map((p) => ({ paymentIntent: p.payment_intent, kind: p.kind === 'comissao' ? 'comissao' : 'caucao', amountCents: p.amount_cents, refundedCents: p.refunded_cents })),
+    subscriptions: (subs ?? []).map((s) => ({ invoiceId: s.stripe_invoice_id, amountCents: s.amount_cents })),
+    payouts: (payouts ?? []).map((o) => ({ id: o.id, amountCents: o.amount_cents, status: o.status })),
+    ledgerCents,
+    stripeCents: snapshot ? snapshot.available_cents + snapshot.pending_cents : null,
+  });
+  const dash = process.env.STRIPE_SECRET_KEY?.startsWith('sk_live') ? 'https://dashboard.stripe.com' : 'https://dashboard.stripe.com/test';
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SyncStripeButton />
+        <p className="text-sm text-slate-600">{snapshot ? `Última leitura: ${new Date(snapshot.taken_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}.` : 'Ainda não se leu a Stripe.'}</p>
+      </div>
+      <section className={`${card} ${r.reconciled ? 'border-tinta-600' : ''}`}>
+        <h2 className="font-semibold">{r.reconciled ? 'Reconciliado' : snapshot ? 'Há diferenças por tratar' : 'Por reconciliar'}</h2>
+        <dl className="mt-3 grid max-w-xl grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
+          <dt className="text-slate-600">Saldo do livro (conta 13.1)</dt>
+          <dd className="text-right">{formatEuros(r.ledgerCents)}</dd>
+          <dt className="text-slate-600">Saldo da Stripe (disponível + pendente)</dt>
+          <dd className="text-right">{r.stripeCents === null ? '—' : formatEuros(r.stripeCents)}</dd>
+          <dt className="font-medium">Diferença (livro − Stripe)</dt>
+          <dd className="text-right font-medium">{r.difference === null ? '—' : formatEuros(r.difference)}</dd>
+          {r.explained.map((e) => (
+            <div key={e.label} className="contents">
+              <dt className="pl-4 text-slate-600">explicada por: {e.label}</dt>
+              <dd className="text-right text-slate-600">{formatEuros(e.cents)}</dd>
+            </div>
+          ))}
+          <dt className="font-medium">Por explicar</dt>
+          <dd className={`text-right font-medium ${r.unexplainedCents ? 'text-red-700' : ''}`}>{r.unexplainedCents === null ? '—' : formatEuros(r.unexplainedCents)}</dd>
+        </dl>
+        <p className="mt-3 text-xs text-slate-500">{r.matchedCharges} cobranças da Stripe batem com o que a plataforma registou. A Stripe é lida só para consulta: nada se move daqui.</p>
+      </section>
+      {r.discrepancies.length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Diferenças a tratar ({r.discrepancies.length})</h2>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {r.discrepancies.map((d, i) => (
+              <li key={`${d.ref}-${i}`} className="py-3">
+                <p className="font-medium">
+                  {KIND_LABELS[d.kind]} · <span className="font-mono text-xs">{d.ref}</span>
+                  {d.ref.startsWith('pi_') && (
+                    <>
+                      {' '}
+                      <a href={`${dash}/payments/${d.ref}`} target="_blank" rel="noopener noreferrer" className="font-normal text-tinta-700 underline">
+                        Abrir na Stripe
+                      </a>
+                    </>
+                  )}
+                </p>
+                <p className="text-slate-600">
+                  {d.detail} {d.stripeCents !== null && `Stripe: ${formatEuros(d.stripeCents)}. `}
+                  {d.platformCents !== null && `Plataforma: ${formatEuros(d.platformCents)}.`}
+                </p>
+                <p className="text-xs text-slate-500">{KIND_HELP[d.kind]}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <section className={card}>
+        <h2 className="font-semibold">Transferências da Stripe para o banco</h2>
+        <p className="mt-1 text-sm text-slate-600">Lançam-se no livro quando chegam ao banco. A conferência com o extrato do EuroBic faz-se quando a importação do extrato estiver ligada.</p>
+        {(payouts ?? []).length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">Ainda sem transferências.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {(payouts ?? []).slice(0, 15).map((o) => (
+              <li key={o.id} className="flex flex-wrap justify-between gap-2 py-2">
+                <span>
+                  {ptDate(o.arrival_at)} · <span className="font-mono text-xs">{o.id}</span>
+                </span>
+                <span>
+                  {formatEuros(o.amount_cents)} · {o.status === 'paid' ? 'chegou ao banco' : o.status === 'in_transit' ? 'a caminho' : o.status === 'pending' ? 'pendente' : o.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }

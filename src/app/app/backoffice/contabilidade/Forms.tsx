@@ -3,7 +3,7 @@
 import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
-import { closePeriodAction, decideRedemption, reopenPeriodAction, syncLedgerAction, validateRegimeAction, voidPayoutAction } from '../actions';
+import { closePeriodAction, decideRedemption, reopenPeriodAction, syncLedgerAction, syncStripeAction, validateRegimeAction, voidPayoutAction } from '../actions';
 
 const note = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
@@ -20,6 +20,18 @@ export function SyncButton() {
     <form {...formProps} className="flex flex-wrap items-center gap-3">
       <button type="submit" disabled={pending} className="btn-secondary">
         {pending ? 'A lançar…' : 'Sincronizar agora'}
+      </button>
+      {note(state)}
+    </form>
+  );
+}
+
+export function SyncStripeButton() {
+  const { state, pending, formProps } = useFormAction<FormState>(async () => syncStripeAction(), { errors: {} });
+  return (
+    <form {...formProps} className="flex flex-wrap items-center gap-3">
+      <button type="submit" disabled={pending} className="btn-primary">
+        {pending ? 'A ler a Stripe…' : 'Obter movimentos da Stripe e reconciliar'}
       </button>
       {note(state)}
     </form>

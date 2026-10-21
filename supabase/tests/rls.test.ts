@@ -1397,3 +1397,17 @@ describe('balancete do livro', () => {
     expect(monthly.length).toBeGreaterThan(0);
   });
 });
+
+describe('reconciliação com a Stripe', () => {
+  it('só a equipa lê as cópias da Stripe; ninguém as grava pela API', async () => {
+    await db.query(`insert into public.stripe_bt (id, type, reporting_category, amount_cents, fee_cents, net_cents, currency, created_at) values ('txn_t1', 'charge', 'charge', 18450, 400, 18050, 'eur', now())`);
+    await db.query(`insert into public.stripe_payouts (id, amount_cents, status, currency, created_at) values ('po_t1', 10000, 'paid', 'eur', now())`);
+    await db.query(`insert into public.stripe_balance_snapshots (available_cents, pending_cents, currency) values (1000, 0, 'eur')`);
+    for (const t of ['stripe_bt', 'stripe_payouts', 'stripe_balance_snapshots']) {
+      expect(await as(ADMIN, async () => (await db.query(`select 1 from public.${t}`)).rows.length)).toBe(1);
+      expect(await as(B, async () => (await db.query(`select 1 from public.${t}`)).rows)).toEqual([]);
+    }
+    await expect(as(ADMIN, () => db.query(`insert into public.stripe_payouts (id, amount_cents, status, currency, created_at) values ('po_x', 1, 'paid', 'eur', now())`))).rejects.toThrow(/permission denied/);
+    await expect(as(B, () => db.query(`delete from public.stripe_bt`))).rejects.toThrow(/permission denied/);
+  });
+});

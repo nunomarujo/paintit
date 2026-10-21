@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { planPostings, type PlanSources } from './plan';
 import { sum } from './entries';
 
-const empty: PlanSources = { payments: [], retentions: [], payouts: [], redemptions: [], subscriptions: [], posted: new Set(), today: '2026-10-21', day: (iso) => iso.slice(0, 10) };
+const empty: PlanSources = { payments: [], retentions: [], payouts: [], redemptions: [], subscriptions: [], stripeFees: [], stripePayouts: [], posted: new Set(), today: '2026-10-21', day: (iso) => iso.slice(0, 10) };
 const key = (p: { origem: string; origemId: string }) => `${p.origem}|${p.origemId}`;
 
 describe('livro de movimentos: o que falta lançar', () => {
@@ -19,16 +19,27 @@ describe('livro de movimentos: o que falta lançar', () => {
     ],
     redemptions: [{ id: 'r1', estado: 'paga', comissaoCents: 343, ivaCents: 79, retencaoCents: 86, liquidoCents: 336, invoiceEm: '2026-10-21T08:00:00Z', pagaEm: '2026-10-21T09:00:00Z' }],
     subscriptions: [{ invoiceId: 'in_1', amountCents: 4_797, vatCents: 897, paidAt: '2026-10-19T12:00:00Z' }],
+    stripeFees: [
+      { id: 'txn_1', feeCents: 320, createdAt: '2026-10-20T11:00:00Z' },
+      { id: 'txn_2', feeCents: 0, createdAt: '2026-10-20T11:30:00Z' },
+    ],
+    stripePayouts: [
+      { id: 'po_1', amountCents: 10_000, status: 'paid', arrivalAt: '2026-10-21T00:00:00Z' },
+      { id: 'po_2', amountCents: 5_000, status: 'in_transit', arrivalAt: '2026-10-23T00:00:00Z' },
+    ],
   };
 
   it('lança tudo uma vez e todos os lançamentos fecham', () => {
     const plan = planPostings(src);
     expect(plan.map((p) => p.origem).sort()).toEqual(
-      ['caucao_retida', 'comissao_adesao', 'resgate_fatura', 'resgate_pago', 'stripe_caucao', 'stripe_comissao', 'stripe_reembolso', 'stripe_subscricao'].sort(),
+      ['caucao_retida', 'comissao_adesao', 'resgate_fatura', 'resgate_pago', 'stripe_caucao', 'stripe_comissao', 'stripe_payout', 'stripe_reembolso', 'stripe_subscricao', 'stripe_taxa'].sort(),
     );
     for (const p of plan) expect(sum(p.lines, 'debito')).toBe(sum(p.lines, 'credito'));
     // A comissão do fornecedor que ainda não entrou na conta não é gasto.
     expect(plan.some((p) => p.origemId === 'y2')).toBe(false);
+    // Só as taxas com valor e só as transferências já chegadas ao banco.
+    expect(plan.filter((p) => p.origem === 'stripe_taxa')).toHaveLength(1);
+    expect(plan.filter((p) => p.origem === 'stripe_payout').map((p) => p.origemId)).toEqual(['po_1']);
   });
 
   it('é idempotente: correr de novo sobre o mesmo estado não lança nada', () => {

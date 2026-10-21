@@ -662,6 +662,53 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      stripe_bt: {
+        Row: {
+          amount_cents: number;
+          available_on: string | null;
+          created_at: string;
+          currency: string;
+          description: string | null;
+          fee_cents: number;
+          id: string;
+          invoice_id: string | null;
+          net_cents: number;
+          payment_intent: string | null;
+          reporting_category: string;
+          source_id: string | null;
+          synced_at: string;
+          type: string;
+        };
+        Insert: {
+          amount_cents: number;
+          available_on?: string | null;
+          created_at: string;
+          currency: string;
+          description?: string | null;
+          fee_cents?: number;
+          id: string;
+          invoice_id?: string | null;
+          net_cents: number;
+          payment_intent?: string | null;
+          reporting_category: string;
+          source_id?: string | null;
+          type: string;
+        };
+        Update: Partial<Database['public']['Tables']['stripe_bt']['Insert']>;
+        Relationships: [];
+      };
+      stripe_payouts: {
+        Row: { amount_cents: number; arrival_at: string | null; created_at: string; currency: string; id: string; status: string; synced_at: string };
+        Insert: { amount_cents: number; arrival_at?: string | null; created_at: string; currency: string; id: string; status: string };
+        Update: Partial<Database['public']['Tables']['stripe_payouts']['Insert']>;
+        Relationships: [];
+      };
+      stripe_balance_snapshots: {
+        Row: { available_cents: number; currency: string; id: string; pending_cents: number; taken_at: string };
+        Insert: { available_cents: number; currency: string; pending_cents: number };
+        Update: never;
+        Relationships: [];
+      };
       work_templates: {
         Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
         Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };

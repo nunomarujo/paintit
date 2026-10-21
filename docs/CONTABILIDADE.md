@@ -144,3 +144,13 @@ acrescentar o CAE adequado antes de faturar.
 - **Saldo e resgate:** feito (migração `saldo_e_resgate`). O fornecedor declara IBAN, regime de IVA e de retenção; a equipa valida e fixa a taxa de retenção; o resgate junta o saldo disponível numa só fatura.
 - **Falta:** taxas e transferências (payouts) da Stripe, faturação certificada (fase 2), importação do extrato (fase 4), IVA trimestral e fecho (fase 5), acesso do contabilista (fase 6).
 - **Stripe:** o webhook tem de receber também o evento `invoice.paid` (Developers > Webhooks > editar o endpoint).
+
+## 12. Reconciliação com a Stripe (feita em 21/10/2026)
+
+- `stripe_bt`, `stripe_payouts` e `stripe_balance_snapshots` guardam cópia dos movimentos de saldo, das transferências e do saldo (só leitura na Stripe; `src/lib/stripeSync.ts`).
+- O livro passa a lançar as **taxas** (`stripe_taxa`: gasto 62.2.2) e as **transferências já chegadas ao banco** (`stripe_payout`: 12.1 contra 13.1). As a caminho não se lançam: aparecem como diferença explicada.
+- `reconcile()` (`src/domain/accounting/reconcile.ts`) compara cobrança a cobrança com o que a plataforma registou, os reembolsos, e o saldo do livro (13.1) com o saldo da Stripe. Apanha:
+  cobranças não registadas (o caso da caução de 21/10/2026), valores e reembolsos diferentes, registos sem cobrança, movimentos de outro tipo (disputas, ajustes). A diferença que sobra fica «por explicar».
+- Separador **Reconciliação** do backoffice: um botão lê a Stripe, lança o que falta e mostra o estado. O cron diário faz o mesmo antes de lançar o livro.
+- ◆ **Por confirmar com o contabilista:** o IVA das faturas da Stripe (empresa irlandesa; provável autoliquidação) e se a taxa é gasto no momento da cobrança ou no da fatura mensal.
+- **Falta:** conferir as transferências com o extrato do banco (importação do extrato EuroBic).

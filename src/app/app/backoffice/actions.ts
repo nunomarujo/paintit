@@ -5,6 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
 import { decideAppeal, unblockUser } from '@/lib/strikes';
 import { syncLedger } from '@/lib/accounting';
+import { syncStripeData } from '@/lib/stripeSync';
 import { notifyReferralPaid } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 import { normalizeCode, parseDiscountPercent, promoBlocker } from '@/domain/promo';
@@ -206,4 +207,15 @@ export async function reopenPeriodAction(): Promise<FormState> {
   if (error) return { errors: {}, message: error.message };
   revalidatePath('/app/backoffice/contabilidade');
   return { errors: {}, ok: true, message: 'Último mês reaberto.' };
+}
+
+/** Traz os movimentos e o saldo da Stripe, lança o que falta no livro e deixa a reconciliação pronta. */
+export async function syncStripeAction(): Promise<FormState> {
+  if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
+  const s = await syncStripeData();
+  if (s.errors.length) return { errors: {}, message: `Stripe: ${s.errors.join(' | ')}` };
+  const l = await syncLedger();
+  revalidatePath('/app/backoffice/contabilidade');
+  if (l.errors.length) return { errors: {}, message: `Stripe lida (${s.lines} movimentos, ${s.payouts} transferências), mas o livro teve erros: ${l.errors.slice(0, 3).join(' | ')}` };
+  return { errors: {}, ok: true, message: `Stripe lida: ${s.lines} movimentos e ${s.payouts} transferências; ${l.posted} novos lançamentos.` };
 }

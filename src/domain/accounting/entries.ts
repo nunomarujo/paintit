@@ -110,6 +110,28 @@ export function subscriptionReceived(p: { invoiceId: string; gross: Cents; vat: 
   });
 }
 
+/** Taxa cobrada pela Stripe (gasto). ◆ O IVA/autoliquidação da fatura da Stripe fica por confirmar com o contabilista. */
+export function stripeFee(p: { btId: string; fee: Cents; data: string }): Posting {
+  return assertBalanced({
+    origem: 'stripe_taxa',
+    origemId: p.btId,
+    data: p.data,
+    descricao: 'Taxa de processamento da Stripe',
+    lines: [dr(ACCOUNTS.gastoStripe.codigo, p.fee), cr(ACCOUNTS.stripe.codigo, p.fee)],
+  });
+}
+
+/** Transferência da Stripe para o banco, já chegada (data de chegada). */
+export function stripePayout(p: { payoutId: string; amount: Cents; data: string }): Posting {
+  return assertBalanced({
+    origem: 'stripe_payout',
+    origemId: p.payoutId,
+    data: p.data,
+    descricao: 'Transferência da Stripe para o banco',
+    lines: [dr(ACCOUNTS.banco.codigo, p.amount), cr(ACCOUNTS.stripe.codigo, p.amount)],
+  });
+}
+
 /** Comissão de adesão devida ao fornecedor: gasto, a pagar quando ele resgatar. */
 export function referralAccrued(p: { payoutId: string; amount: Cents; data: string }): Posting {
   return assertBalanced({
