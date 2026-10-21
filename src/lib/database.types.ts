@@ -741,6 +741,10 @@ export type Database = {
           validade: string | null;
           version: number;
           habilitacao_ok: boolean | null;
+          fases: Json;
+          confirma_mao_obra: boolean;
+          seguro_rc: string | null;
+          seguro_at: string | null;
         };
         Insert: {
           adiantamento_bps?: number;
@@ -757,6 +761,10 @@ export type Database = {
           request_id: string;
           status?: ProposalStatus;
           validade?: string | null;
+          fases?: Json;
+          confirma_mao_obra?: boolean;
+          seguro_rc?: string | null;
+          seguro_at?: string | null;
         };
         Update: Partial<Database['public']['Tables']['proposals']['Insert']>;
         Relationships: [

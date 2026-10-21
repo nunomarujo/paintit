@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { addLine, saveTerms, submitProposal } from '@/app/app/oportunidades/actions';
@@ -11,7 +12,9 @@ import {
   LINE_CATEGORY_LABELS,
   UNITS,
   UNIT_LABELS,
+  MAX_PHASES,
   VAT_RATES_BPS,
+  type PaymentPhase,
   type ProposalTerms,
 } from '@/domain/proposal';
 import { SURFACE_KIND_LABELS, type SurfaceKind } from '@/domain/request';
@@ -58,7 +61,7 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
           label="Adiantamento de adjudicação (%)"
           inputMode="numeric"
           error={e.adiantamento}
-          hint="Até 30%. Fica guardado até à assinatura."
+          hint="Opcional, até 30%. Conta como a primeira parte do plano de pagamentos."
           defaultValue={hundredths(terms.adiantamentoBps || null)}
         />
         <Field
@@ -70,13 +73,38 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
         />
         <Field
           name="garantiaAnos"
-          label="Garantia da obra (anos)"
+          label="Garantia adicional da obra (anos)"
           inputMode="numeric"
           error={e.garantiaAnos}
-          hint="Garantia comercial. Não reduz os prazos legais (5 anos para defeitos em imóveis, quando aplicável)."
+          hint="Opcional. A garantia exigida por lei aplica-se sempre e fica indicada na proposta; esta acresce a ela."
           defaultValue={terms.garantiaAnos?.toString() ?? ''}
         />
       </div>
+      <PaymentPlan phases={terms.fases} error={e.fases} />
+      <fieldset className="space-y-3 rounded-xl bg-slate-50 p-4">
+        <legend className="px-1 text-sm font-semibold">Declarações</legend>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="confirmaMaoObra" value="sim" defaultChecked={terms.confirmaMaoObra} className="mt-1" />
+          <span>Confirmo que o orçamento inclui mão-de-obra qualificada para a execução proposta.</span>
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field name="seguroRc" label="Seguro de responsabilidade civil" required error={e.seguroRc}>
+            <select name="seguroRc" defaultValue={terms.seguroRc ?? ''} className={selectClass}>
+              <option value="" disabled>Escolher…</option>
+              <option value="sim">Tenho</option>
+              <option value="nao">Não tenho</option>
+            </select>
+          </Field>
+          <Field name="seguroAt" label="Seguro de acidentes de trabalho" required error={e.seguroAt}>
+            <select name="seguroAt" defaultValue={terms.seguroAt ?? ''} className={selectClass}>
+              <option value="" disabled>Escolher…</option>
+              <option value="sim">Tenho</option>
+              <option value="nao">Não tenho</option>
+            </select>
+          </Field>
+        </div>
+        <p className="text-xs text-slate-600">Quem declara não ter seguro pode submeter, mas o cliente vê um aviso a vermelho.</p>
+      </fieldset>
       <Field name="exclusoes" label="Exclusões" error={e.exclusoes} hint="O que não está incluído (licenças, ocupação de via…).">
         <textarea name="exclusoes" rows={2} defaultValue={terms.exclusoes} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
       </Field>
@@ -88,6 +116,43 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
         {pending ? 'A guardar…' : 'Guardar condições'}
       </button>
     </form>
+  );
+}
+
+function PaymentPlan({ phases, error }: { phases: PaymentPhase[]; error?: string }) {
+  const [rows, setRows] = useState<{ nome: string; pct: string }[]>(
+    phases.length ? phases.map((f) => ({ nome: f.nome, pct: hundredths(f.bps) })) : [{ nome: '', pct: '' }],
+  );
+  const set = (i: number, k: 'nome' | 'pct', v: string) => setRows((r) => r.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <fieldset className="space-y-3 rounded-xl bg-slate-50 p-4">
+      <legend className="px-1 text-sm font-semibold">Plano de pagamentos</legend>
+      <p className="text-xs text-slate-600">
+        Fases e percentagem do preço de cada uma (por exemplo: ao iniciar, a meio da obra, ao concluir). Com o adiantamento,
+        têm de somar 100%. O pagamento da obra é feito diretamente entre as partes.
+      </p>
+      {rows.map((r, i) => (
+        <div key={i} className="grid grid-cols-[1fr_6rem_auto] items-end gap-3">
+          <label className="block text-sm font-medium text-slate-700">
+            {i === 0 ? 'Fase' : <span className="sr-only">Fase</span>}
+            <input name="faseNome" value={r.nome} onChange={(ev) => set(i, 'nome', ev.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" placeholder="Ex.: Ao concluir a fachada principal" />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            {i === 0 ? '%' : <span className="sr-only">Percentagem</span>}
+            <input name="fasePct" value={r.pct} onChange={(ev) => set(i, 'pct', ev.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
+          </label>
+          <button type="button" onClick={() => setRows((x) => (x.length > 1 ? x.filter((_, j) => j !== i) : [{ nome: '', pct: '' }]))} className="mb-1 text-sm text-slate-600 hover:underline">
+            Remover
+          </button>
+        </div>
+      ))}
+      {rows.length < MAX_PHASES && (
+        <button type="button" onClick={() => setRows((x) => [...x, { nome: '', pct: '' }])} className={button}>
+          Acrescentar fase
+        </button>
+      )}
+      {error && <p className="text-xs text-red-700" role="alert">{error}</p>}
+    </fieldset>
   );
 }
 

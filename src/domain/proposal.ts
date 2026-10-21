@@ -68,6 +68,29 @@ export function proposalTotals(lines: ProposalLine[], ivaBps: number): ProposalT
   return { base, opcionais: sum('opcional'), condicionados: sum('condicionado'), iva, totalComIva: base + iva };
 }
 
+/** Fase do plano de pagamentos: nome livre e percentagem do preço em pontos-base. */
+export interface PaymentPhase {
+  nome: string;
+  bps: number;
+}
+export const MAX_PHASES = 8;
+export type Declared = 'sim' | 'nao';
+
+/** O adiantamento e as fases têm de somar 100% do preço. null = em ordem. */
+export function phasesProblem(adiantamentoBps: number, fases: PaymentPhase[]): string | null {
+  if (fases.length === 0) return 'Indique o plano de pagamentos: as fases e a percentagem de cada uma.';
+  const sum = adiantamentoBps + fases.reduce((n, f) => n + f.bps, 0);
+  if (sum !== 10_000) return `O plano de pagamentos soma ${(sum / 100).toLocaleString('pt-PT')}%: tem de somar 100%.`;
+  return null;
+}
+
+export function parseFases(raw: unknown): PaymentPhase[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x): x is { nome: string; bps: number } => typeof x === 'object' && x !== null && typeof (x as { nome?: unknown }).nome === 'string' && Number.isInteger((x as { bps?: unknown }).bps))
+    .map((x) => ({ nome: x.nome, bps: x.bps }));
+}
+
 export interface ProposalTerms {
   ivaBps: number;
   validade: string | null; // AAAA-MM-DD
@@ -79,6 +102,13 @@ export interface ProposalTerms {
   garantiaAnos: number | null;
   exclusoes: string;
   notas: string;
+  /** Plano de pagamentos por fases (além do adiantamento). */
+  fases: PaymentPhase[];
+  /** O pintor confirma que o orçamento inclui mão-de-obra qualificada para a execução proposta. */
+  confirmaMaoObra: boolean;
+  /** Seguros declarados: responsabilidade civil e acidentes de trabalho. null = por declarar. */
+  seguroRc: Declared | null;
+  seguroAt: Declared | null;
 }
 
 export const MAX_ADVANCE_BPS = 3000;
@@ -102,6 +132,10 @@ export function submitBlockers(input: SubmitCheckInput): string[] {
   else if (terms.validade < input.today) out.push('A validade já passou.');
   if (!terms.duracaoDias) out.push('Indique a duração estimada da obra.');
   if (terms.adiantamentoBps > MAX_ADVANCE_BPS) out.push('O adiantamento de adjudicação não pode passar de 30%.');
+  if (!terms.confirmaMaoObra) out.push('Confirme que o orçamento inclui mão-de-obra qualificada para a execução proposta.');
+  if (!terms.seguroRc || !terms.seguroAt) out.push('Declare os seguros: responsabilidade civil e acidentes de trabalho.');
+  const phases = phasesProblem(terms.adiantamentoBps, terms.fases);
+  if (phases) out.push(phases);
   if (input.viaPublica === 'sim' && !lines.some((l) => l.categoria === 'licencas' && l.inclusao !== 'opcional')) {
     out.push('A obra prevê ocupação da via pública: acrescente uma linha de licenças camarárias (incluída ou só depois de observar).');
   }
@@ -255,10 +289,26 @@ export function parseTerms(form: FormData): { value?: ProposalTerms; errors: Fie
   if (Number.isNaN(adiantamentoPct)) errors.adiantamento = 'Percentagem inválida.';
   const precoAjusteM2 = parseEuros(form.get('precoAjusteM2'));
   if (Number.isNaN(precoAjusteM2)) errors.precoAjusteM2 = 'Preço em euros.';
+  const nomes = form.getAll('faseNome').map((v) => String(v).trim());
+  const pcts = form.getAll('fasePct').map((v) => String(v));
+  const fases: PaymentPhase[] = [];
+  nomes.forEach((nome, i) => {
+    const bps = parseHundredths(pcts[i] ?? null);
+    if (!nome && (bps === null || bps === undefined)) return; // linha em branco
+    if (!nome || nome.length > 60) errors.fases = 'Cada fase precisa de um nome (até 60 letras).';
+    else if (bps === null || bps === undefined || Number.isNaN(bps) || bps <= 0 || bps > 10_000) errors.fases = 'Percentagem de cada fase entre 0 e 100.';
+    else fases.push({ nome, bps });
+  });
+  if (fases.length > MAX_PHASES) errors.fases = `No máximo ${MAX_PHASES} fases.`;
+  const declared = (k: string): Declared | null => (get(k) === 'sim' || get(k) === 'nao' ? (get(k) as Declared) : null);
   if (Object.keys(errors).length > 0) return { errors };
   return {
     errors,
     value: {
+      fases,
+      confirmaMaoObra: form.get('confirmaMaoObra') === 'sim',
+      seguroRc: declared('seguroRc'),
+      seguroAt: declared('seguroAt'),
       ivaBps,
       validade: dates.validade ?? null,
       inicioPossivel: dates.inicioPossivel ?? null,

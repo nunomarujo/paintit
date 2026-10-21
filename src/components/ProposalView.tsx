@@ -1,6 +1,7 @@
-import { formatEuros } from '@/domain/money';
+import { formatEuros, percentOf } from '@/domain/money';
 import {
   INCLUSION_LABELS,
+  LINE_CATEGORIES,
   LINE_CATEGORY_LABELS,
   UNIT_LABELS,
   lineTotal,
@@ -25,8 +26,11 @@ export function ProposalView({
   onDelete?: (lineId: string) => React.ReactNode;
 }) {
   const t = proposalTotals(lines, terms.ivaBps);
-  return (
-    <div className="space-y-4 text-sm">
+  const byCategory = LINE_CATEGORIES.map((c) => [c, lines.filter((l) => l.categoria === c && l.inclusao === 'incluido').reduce((n, l) => n + lineTotal(l), 0)] as const).filter(
+    ([, total]) => total > 0,
+  );
+  const table = (
+    <>
       {lines.length === 0 ? (
         <p className="text-slate-600">Ainda sem linhas.</p>
       ) : (
@@ -70,6 +74,26 @@ export function ProposalView({
         </div>
       )}
 
+    </>
+  );
+  return (
+    <div className="space-y-4 text-sm">
+      <section>
+        <h3 className="font-semibold">Resumo por capítulo</h3>
+        {byCategory.length === 0 ? (
+          <p className="mt-1 text-slate-600">Ainda sem linhas incluídas no preço.</p>
+        ) : (
+          <dl className="mt-1 divide-y divide-slate-100">
+            {byCategory.map(([c, total]) => (
+              <div key={c} className="flex justify-between gap-3 py-1.5">
+                <dt className="text-slate-600">{LINE_CATEGORY_LABELS[c]}</dt>
+                <dd className="font-medium">{formatEuros(total)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
+
       <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
         <dt className="text-slate-500">Preço sem IVA (incluído)</dt>
         <dd className="text-base font-semibold sm:text-right">{formatEuros(t.base)}</dd>
@@ -102,9 +126,55 @@ export function ProposalView({
         <dd className="sm:text-right">{terms.adiantamentoBps > 0 ? `${terms.adiantamentoBps / 100}%` : 'Nenhum'}</dd>
         <dt className="text-slate-500">Preço por m² para correções de área</dt>
         <dd className="sm:text-right">{terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'Não indicado'}</dd>
-        <dt className="text-slate-500">Garantia da obra</dt>
-        <dd className="sm:text-right">{terms.garantiaAnos !== null ? `${terms.garantiaAnos} anos` : 'Não indicada'}</dd>
+        <dt className="text-slate-500">Garantia legal</dt>
+        <dd className="sm:text-right">A exigida por lei, que se aplica sempre</dd>
+        <dt className="text-slate-500">Garantia adicional da obra</dt>
+        <dd className="sm:text-right">{terms.garantiaAnos ? `${terms.garantiaAnos} ${terms.garantiaAnos === 1 ? 'ano' : 'anos'}, além da legal` : 'Nenhuma'}</dd>
+        <dt className="text-slate-500">Mão-de-obra</dt>
+        <dd className="sm:text-right">Qualificada, incluída no preço{terms.confirmaMaoObra ? '' : ' (por confirmar)'}</dd>
       </dl>
+      {(terms.seguroRc === 'nao' || terms.seguroAt === 'nao') && (
+        <p className="rounded-lg bg-red-50 p-3 font-medium text-red-800" role="alert">
+          Atenção: o pintor declara não ter{' '}
+          {[terms.seguroRc === 'nao' && 'seguro de responsabilidade civil', terms.seguroAt === 'nao' && 'seguro de acidentes de trabalho']
+            .filter(Boolean)
+            .join(' nem ')}
+          . Quem avançar assume essa responsabilidade.
+        </p>
+      )}
+      {terms.fases.length > 0 && (
+        <section>
+          <h3 className="font-semibold">Plano de pagamentos</h3>
+          <dl className="mt-1 divide-y divide-slate-100">
+            {terms.adiantamentoBps > 0 && (
+              <div className="flex justify-between gap-3 py-1.5">
+                <dt className="text-slate-600">Adiantamento de adjudicação</dt>
+                <dd>{terms.adiantamentoBps / 100}% · {formatEuros(percentOf(t.base, terms.adiantamentoBps))}</dd>
+              </div>
+            )}
+            {terms.fases.map((f) => (
+              <div key={f.nome} className="flex justify-between gap-3 py-1.5">
+                <dt className="text-slate-600">{f.nome}</dt>
+                <dd>{f.bps / 100}% · {formatEuros(percentOf(t.base, f.bps))}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-1 text-xs text-slate-500">Valores sem IVA. O pagamento é feito diretamente entre as partes.</p>
+        </section>
+      )}
+      {onDelete ? (
+        <section>
+          <h3 className="font-semibold">Linhas do orçamento</h3>
+          <div className="mt-2">{table}</div>
+        </section>
+      ) : (
+        <details className="group rounded-xl border border-slate-200 p-3">
+          <summary className="cursor-pointer list-none font-semibold text-tinta-700">
+            Ver orçamento discriminado ({lines.length} {lines.length === 1 ? 'linha' : 'linhas'}) <span className="font-normal text-slate-500 group-open:hidden">▾</span>
+          </summary>
+          <div className="mt-3">{table}</div>
+        </details>
+      )}
       {terms.exclusoes && (
         <p>
           <span className="text-slate-500">Exclusões: </span>

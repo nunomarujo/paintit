@@ -547,6 +547,19 @@ describe('propostas e escolha', () => {
   });
 
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
+    // Condições do orçamento: sem mão-de-obra, seguros e plano de pagamentos a 100% não se submete.
+    const upd = async (sql: string) => {
+      await as(P, () => db.query(`update public.proposals set ${sql} where id = $1`, [mine]));
+      await as(P2, () => db.query(`update public.proposals set ${sql} where id = $1`, [other]));
+    };
+    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/mão-de-obra qualificada/);
+    await upd('confirma_mao_obra = true');
+    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/seguros/);
+    await upd(`seguro_rc = 'sim', seguro_at = 'nao'`);
+    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/100%/);
+    await upd(`fases = '[{"nome":"No início","bps":3000},{"nome":"No fim","bps":6000}]'::jsonb`);
+    await expect(setStatus(P, mine, 'submetida')).rejects.toThrow(/100%/);
+    await upd(`fases = '[{"nome":"No início","bps":3000},{"nome":"No fim","bps":7000}]'::jsonb`);
     await expect(setStatus(P2, other, 'submetida')).rejects.toThrow(/pelo menos uma linha/);
     await setStatus(P, mine, 'submetida');
     const r = await one<{ base_cents: string; iva_cents: string; request_version: number; pintor_verificado: boolean }>(

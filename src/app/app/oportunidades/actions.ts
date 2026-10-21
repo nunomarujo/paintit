@@ -7,6 +7,7 @@ import { localDate } from '@/domain/deadline';
 import { parseLine, parseTerms, submitBlockers } from '@/domain/proposal';
 import { revealingContent } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
+import type { Json } from '@/lib/database.types';
 import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { notifyProposalSubmitted } from '@/lib/notify';
@@ -48,6 +49,10 @@ export async function saveTerms(proposalId: string, requestId: string, _prev: Fo
       garantia_anos: v.garantiaAnos,
       exclusoes: v.exclusoes,
       notas: v.notas,
+      fases: v.fases.map((f) => ({ nome: f.nome, bps: f.bps })) as Json,
+      confirma_mao_obra: v.confirmaMaoObra,
+      seguro_rc: v.seguroRc,
+      seguro_at: v.seguroAt,
     })
     .eq('id', proposalId)
     .eq('status', 'rascunho')

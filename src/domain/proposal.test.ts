@@ -5,6 +5,7 @@ import {
   lineTotal,
   parseLine,
   parseTerms,
+  phasesProblem,
   proposalTotals,
   sortRows,
   submitBlockers,
@@ -35,6 +36,13 @@ const terms: ProposalTerms = {
   garantiaAnos: 2,
   exclusoes: '',
   notas: '',
+  fases: [
+    { nome: 'Ao iniciar', bps: 3000 },
+    { nome: 'No fim', bps: 6000 },
+  ],
+  confirmaMaoObra: true,
+  seguroRc: 'sim',
+  seguroAt: 'sim',
 };
 
 const form = (o: Record<string, string>) => {
@@ -69,7 +77,7 @@ describe('propostas', () => {
       today: '2026-10-19',
       requestOpen: false,
     });
-    expect(b).toHaveLength(6);
+    expect(b).toHaveLength(7);
     expect(b.join(' ')).toMatch(/telefone/);
   });
 
@@ -113,5 +121,31 @@ describe('propostas', () => {
     const t = parseTerms(form({ ivaBps: '600', validade: '2026-12-31', duracaoDias: '20', adiantamento: '10,5' }));
     expect(t.value).toMatchObject({ ivaBps: 600, adiantamentoBps: 1050, duracaoDias: 20 });
     expect(parseTerms(form({ ivaBps: '1000', duracaoDias: '0' })).errors).toMatchObject({ ivaBps: expect.any(String), duracaoDias: expect.any(String) });
+  });
+
+  it('o orçamento exige mão-de-obra qualificada, seguros declarados e pagamentos a 100%', () => {
+    const base = { lines: [line()], today: '2026-10-19', requestOpen: true };
+    expect(submitBlockers({ ...base, terms: { ...terms, confirmaMaoObra: false } }).join(' ')).toMatch(/mão-de-obra qualificada/);
+    expect(submitBlockers({ ...base, terms: { ...terms, seguroRc: null } }).join(' ')).toMatch(/seguros/);
+    expect(submitBlockers({ ...base, terms: { ...terms, fases: [] } }).join(' ')).toMatch(/plano de pagamentos/);
+    expect(submitBlockers({ ...base, terms: { ...terms, fases: [{ nome: 'Tudo', bps: 5000 }] } }).join(' ')).toMatch(/soma/);
+    expect(phasesProblem(1000, [{ nome: 'a', bps: 3000 }, { nome: 'b', bps: 6000 }])).toBeNull();
+  });
+
+  it('lê as fases do formulário, ignora linhas em branco e recusa percentagens inválidas', () => {
+    const f = form({ ivaBps: '2300', duracaoDias: '10', adiantamento: '10' });
+    f.append('faseNome', 'Início'); f.append('fasePct', '30');
+    f.append('faseNome', ''); f.append('fasePct', '');
+    f.append('faseNome', 'Fim'); f.append('fasePct', '60');
+    f.set('confirmaMaoObra', 'sim'); f.set('seguroRc', 'sim'); f.set('seguroAt', 'nao');
+    expect(parseTerms(f).value).toMatchObject({
+      fases: [{ nome: 'Início', bps: 3000 }, { nome: 'Fim', bps: 6000 }],
+      confirmaMaoObra: true,
+      seguroRc: 'sim',
+      seguroAt: 'nao',
+    });
+    const bad = form({ ivaBps: '2300' });
+    bad.append('faseNome', 'X'); bad.append('fasePct', '0');
+    expect(parseTerms(bad).errors.fases).toBeDefined();
   });
 });

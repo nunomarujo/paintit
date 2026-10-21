@@ -1,4 +1,4 @@
-import type { ProposalLine, ProposalTerms } from '@/domain/proposal';
+import { parseFases, type Declared, type ProposalLine, type ProposalTerms } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
 
 // --- Conversões linha da base de dados → domínio ----------------------------------
@@ -32,5 +32,9 @@ export function toTerms(p: Row<'proposals'>): ProposalTerms {
     garantiaAnos: p.garantia_anos,
     exclusoes: p.exclusoes,
     notas: p.notas,
+    fases: parseFases(p.fases),
+    confirmaMaoObra: p.confirma_mao_obra,
+    seguroRc: p.seguro_rc as Declared | null,
+    seguroAt: p.seguro_at as Declared | null,
   };
 }
