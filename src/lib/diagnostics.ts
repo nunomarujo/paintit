@@ -14,8 +14,16 @@ export interface Check {
  */
 export async function serverChecks(userEngagementCount: number): Promise<Check[]> {
   const out: Check[] = [];
-  const db = adminClient();
-  if (!db) {
+  const raw = (process.env.SUPABASE_SECRET_KEY ?? '').trim();
+  const bad = raw.search(/[^\x21-\x7e]/);
+  const db = bad >= 0 ? null : adminClient();
+  if (bad >= 0) {
+    out.push({
+      label: 'Chave secreta do Supabase',
+      ok: false,
+      detail: `O valor de SUPABASE_SECRET_KEY tem um carácter inválido na posição ${bad + 1} (espaço, travessão ou texto a mais colado a seguir à chave). Voltar a copiar só a chave, com o botão de copiar do Supabase, e colá-la sozinha na Vercel.`,
+    });
+  } else if (!db) {
     out.push({ label: 'Chave secreta do Supabase', ok: false, detail: 'SUPABASE_SECRET_KEY não está definida neste ambiente.' });
   } else {
     const users = await db.auth.admin.listUsers({ page: 1, perPage: 1 });
