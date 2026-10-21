@@ -1437,3 +1437,16 @@ describe('extrato bancário', () => {
     await expect(as(ADMIN, () => db.query(`update public.bank_lines set classificacao = 'stripe_payout', stripe_payout_id = 'po_b1' where id = $1`, [other.id]))).rejects.toThrow(/unique|duplicate/);
   });
 });
+
+describe('revisão de movimentos da Stripe', () => {
+  it('só a equipa deixa movimentos fora do livro, com nota e autor', async () => {
+    await expect(as(B, () => db.query(`insert into public.stripe_bt_review (bt_id, nota) values ('txn_t1', 'resíduo de teste')`))).rejects.toThrow(/row-level security/);
+    await expect(as(ADMIN, () => db.query(`insert into public.stripe_bt_review (bt_id, nota) values ('txn_t1', 'x')`))).rejects.toThrow(/check/);
+    await as(ADMIN, () => db.query(`insert into public.stripe_bt_review (bt_id, nota) values ('txn_t1', 'resíduo de teste')`));
+    expect((await one<{ por: string }>(`select por from public.stripe_bt_review where bt_id = 'txn_t1'`)).por).toBe(ADMIN);
+    expect(await as(B, async () => (await db.query('select 1 from public.stripe_bt_review')).rows)).toEqual([]);
+    await expect(as(ADMIN, () => db.query(`update public.stripe_bt_review set nota = 'outra nota'`))).rejects.toThrow(/permission denied/);
+    await as(ADMIN, () => db.query(`delete from public.stripe_bt_review where bt_id = 'txn_t1'`));
+    expect(await as(ADMIN, async () => (await db.query('select 1 from public.stripe_bt_review')).rows)).toEqual([]);
+  });
+});

@@ -113,7 +113,9 @@ contactos, morada da obra e fotografias), só para essa obra.
 - Migrações `...080000_saldo_e_resgate` e `...090000_livro_de_movimentos` aplicadas e confirmadas na base real (21/10/2026): 16 contas, 6 funções públicas, 3 auxiliares, 2 vistas; avisos novos esperados (7 "SECURITY DEFINER executável por autenticados" e 9 "índice não usado").
 - Migração `...100000_reconciliacao_stripe` aplicada e confirmada na base real (21/10/2026): 3 tabelas vazias; avisos novos: só 2 "índice não usado".
 - Evento `invoice.paid` acrescentado ao webhook da Stripe (21/10/2026).
-- **Falta:** correr a primeira reconciliação com a conta de administrador (Contabilidade > Reconciliação) e **aplicar `20261021110000_extrato_bancario.sql`** (importação do extrato).
+- **Falta:** correr a primeira reconciliação com a conta de administrador (Contabilidade > Reconciliação) e **aplicar `20261021110000_extrato_bancario.sql` e `20261021120000_revisao_movimentos_stripe.sql`** (extrato e revisão de movimentos da Stripe). Primeira reconciliação feita a 22/10/2026 (ver `docs/CONTABILIDADE.md` §14).
+- **Obter um extrato real do banco** (a conta passou de EuroBic para Abanca) para afinar o leitor; rever o acesso ao Web Banking.
+- **Antes de passar a Stripe a modo real:** limpar os dados de teste do livro e da reconciliação (SQL à mão; ver `docs/CONTABILIDADE.md` §14).
 
 ## Pendente do promotor
 

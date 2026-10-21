@@ -165,3 +165,11 @@ acrescentar o CAE adequado antes de faturar.
 - A «Conferência» mostra as transferências chegadas e os resgates pagos que ainda não se viram no extrato.
 - Os dados do extrato não se alteram (trigger); só a classificação.
 - Falta: lançar no livro os movimentos «outros» (taxas bancárias, rendas, etc.): decide-se com o contabilista que contas usar.
+
+## 14. Primeira reconciliação real (22/10/2026) e o que se aprendeu
+
+- A leitura da Stripe trouxe 9 movimentos. Bateram 3 cobranças. Apareceram: (a) o **reembolso manual** da primeira caução (feito na Stripe, a plataforma não o sabia): a leitura passa a atualizar `stripe_payments.refunded_cents` a partir da Stripe
+  (só sobe), o que também impede devolver duas vezes; (b) **resíduos de testes** de Stripe Connect de 19/10 (cobrança de 100 €, transferência de −100 € e duas comissões de aplicação de 3 €).
+- Os movimentos de outro tipo contam na diferença explicada (a conta fecha) e ficam listados; a equipa pode **deixá-los fora do livro com uma nota** (`stripe_bt_review`), ficando registado quem decidiu.
+- ⚠ **Antes de passar a Stripe a modo real:** a base de dados tem dados de teste (pagamentos, lançamentos, movimentos Stripe). O livro é imutável, por isso a limpeza dos lançamentos de teste faz-se à mão, no SQL Editor, por quem tem permissão de dono
+  (desligar os triggers de imutabilidade, apagar `acc_*`, `stripe_bt`, `stripe_payouts`, `stripe_balance_snapshots`, `subscription_payments` de teste, e voltar a ligá-los). Guardar o SQL e usar uma só vez, antes do lançamento.

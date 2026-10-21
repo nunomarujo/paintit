@@ -744,6 +744,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_bt_review: {
+        Row: { bt_id: string; em: string; nota: string; por: string | null };
+        Insert: { bt_id: string; nota: string };
+        Update: never;
+        Relationships: [];
+      };
       work_templates: {
         Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
         Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };

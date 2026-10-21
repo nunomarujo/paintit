@@ -72,6 +72,19 @@ export async function syncStripeData(): Promise<StripeSyncResult> {
     }
     out.lines = rows.length;
 
+    // Reembolsos feitos diretamente na Stripe (por exemplo, à mão): a plataforma passa a saber, para não tentar devolver duas vezes
+    // e para o livro os lançar. Só sobe, nunca desce.
+    const { data: all } = await db.from('stripe_bt').select('payment_intent, amount_cents').eq('reporting_category', 'refund').eq('currency', 'eur').not('payment_intent', 'is', null);
+    const refunded = new Map<string, number>();
+    for (const r of all ?? []) refunded.set(r.payment_intent!, (refunded.get(r.payment_intent!) ?? 0) + Math.abs(r.amount_cents));
+    if (refunded.size) {
+      const { data: pays } = await db.from('stripe_payments').select('id, payment_intent, amount_cents, refunded_cents').in('payment_intent', [...refunded.keys()]);
+      for (const p of pays ?? []) {
+        const total = Math.min(refunded.get(p.payment_intent) ?? 0, p.amount_cents);
+        if (total > p.refunded_cents) await db.from('stripe_payments').update({ refunded_cents: total }).eq('id', p.id);
+      }
+    }
+
     const payouts: { id: string; amount_cents: number; status: string; currency: string; created_at: string; arrival_at: string }[] = [];
     for await (const p of stripe.payouts.list({ limit: 100 })) {
       payouts.push({ id: p.id, amount_cents: p.amount, status: p.status, currency: p.currency, created_at: iso(p.created), arrival_at: iso(p.arrival_date) });

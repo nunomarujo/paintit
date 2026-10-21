@@ -5,7 +5,7 @@ import { formatEuros } from '@/domain/money';
 import { isPlatformAdmin } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { reconcile } from '@/domain/accounting/reconcile';
-import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RegimeForm, RematchButton, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
+import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RegimeForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const TABS = [
@@ -376,21 +376,23 @@ const KIND_LABELS: Record<string, string> = {
 const KIND_HELP: Record<string, string> = {
   cobranca_nao_registada: 'Na Stripe, abra o pagamento e reenvie o evento checkout.session.completed (Developers > Events). Se a contratação já avançou e o pagamento é duplicado, reembolse-o na Stripe.',
   valor_diferente: 'Confirme o valor na Stripe e na contratação; se foi um erro de registo, corrija com um estorno.',
-  reembolso_diferente: 'A sincronização diária regista a diferença; se persistir, veja os reembolsos desse pagamento na Stripe.',
+  reembolso_diferente: 'Use «Obter movimentos da Stripe e reconciliar»: a plataforma atualiza os reembolsos feitos diretamente na Stripe e o livro lança-os.',
   pagamento_sem_cobranca: 'Sincronize de novo; se persistir, o pagamento pode ter sido anulado na Stripe.',
   movimento_a_rever: 'Movimento sem tratamento automático (disputa, ajuste, mensalidade reembolsada…): decida com o contabilista.',
 };
 
 async function Reconciliation() {
   const { supabase } = await getUser();
-  const [{ data: bts }, { data: payments }, { data: subs }, { data: payouts }, { data: snap }, { data: ledger }] = await Promise.all([
+  const [{ data: bts }, { data: payments }, { data: subs }, { data: payouts }, { data: snap }, { data: ledger }, { data: reviews }] = await Promise.all([
     supabase.from('stripe_bt').select('*').eq('currency', 'eur').order('created_at', { ascending: false }),
     supabase.from('stripe_payments').select('payment_intent, kind, amount_cents, refunded_cents'),
     supabase.from('subscription_payments').select('stripe_invoice_id, amount_cents'),
     supabase.from('stripe_payouts').select('*').eq('currency', 'eur').order('created_at', { ascending: false }),
     supabase.from('stripe_balance_snapshots').select('*').order('taken_at', { ascending: false }).limit(1),
     supabase.from('acc_balancete').select('*').eq('conta', ACCOUNTS.stripe.codigo),
+    supabase.from('stripe_bt_review').select('bt_id, nota, em'),
   ]);
+  const reviewed = new Set((reviews ?? []).map((r) => r.bt_id));
   const ledgerCents = ledger?.[0] ? balance(ledger[0]) : 0;
   const snapshot = snap?.[0] ?? null;
   const r = reconcile({
@@ -400,6 +402,7 @@ async function Reconciliation() {
     payouts: (payouts ?? []).map((o) => ({ id: o.id, amountCents: o.amount_cents, status: o.status })),
     ledgerCents,
     stripeCents: snapshot ? snapshot.available_cents + snapshot.pending_cents : null,
+    reviewed,
   });
   const dash = process.env.STRIPE_SECRET_KEY?.startsWith('sk_live') ? 'https://dashboard.stripe.com' : 'https://dashboard.stripe.com/test';
   return (
@@ -450,8 +453,28 @@ async function Reconciliation() {
                   {d.platformCents !== null && `Plataforma: ${formatEuros(d.platformCents)}.`}
                 </p>
                 <p className="text-xs text-slate-500">{KIND_HELP[d.kind]}</p>
+                {d.lineId && (d.kind === 'movimento_a_rever' || d.kind === 'cobranca_nao_registada') && <StripeReviewForm btId={d.lineId} reviewed={false} />}
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+      {(reviews ?? []).length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Movimentos revistos e deixados fora do livro</h2>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {(reviews ?? []).map((v) => {
+              const b = (bts ?? []).find((x) => x.id === v.bt_id);
+              return (
+                <li key={v.bt_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    {b ? `${ptDate(b.created_at)} · ${formatEuros(b.amount_cents)} · ` : ''}
+                    <span className="font-mono text-xs">{v.bt_id}</span> · {v.nota}
+                  </span>
+                  <StripeReviewForm btId={v.bt_id} reviewed />
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

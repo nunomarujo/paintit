@@ -4,7 +4,7 @@ import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import { classifyBankLineAction, importBankFileAction, rematchAction } from './bank-actions';
-import { closePeriodAction, decideRedemption, reopenPeriodAction, syncLedgerAction, syncStripeAction, validateRegimeAction, voidPayoutAction } from '../actions';
+import { closePeriodAction, decideRedemption, reviewStripeLineAction, reopenPeriodAction, syncLedgerAction, syncStripeAction, validateRegimeAction, voidPayoutAction } from '../actions';
 
 const note = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
@@ -179,6 +179,29 @@ export function BankLineForm({ lineId, options, classified }: { lineId: string; 
         Ignorar
       </button>
       <div className="basis-full">{note(state)}</div>
+    </form>
+  );
+}
+
+export function StripeReviewForm({ btId, reviewed }: { btId: string; reviewed: boolean }) {
+  const { state, pending, formProps } = useFormAction<FormState>(reviewStripeLineAction.bind(null, btId), { errors: {} });
+  if (reviewed) {
+    return (
+      <form {...formProps} className="inline">
+        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-sm text-slate-600 hover:underline">
+          Desfazer
+        </button>
+        {note(state)}
+      </form>
+    );
+  }
+  return (
+    <form {...formProps} autoComplete="off" className="mt-1 flex flex-wrap items-end gap-2 text-sm">
+      <Field name="nota" label="Deixar fora do livro: porquê?" error={state.errors.nota} />
+      <button type="submit" disabled={pending} className="btn-secondary">
+        Deixar fora do livro
+      </button>
+      {state.message && !state.ok && <p className="basis-full text-red-700">{state.message}</p>}
     </form>
   );
 }

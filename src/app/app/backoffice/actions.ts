@@ -219,3 +219,19 @@ export async function syncStripeAction(): Promise<FormState> {
   if (l.errors.length) return { errors: {}, message: `Stripe lida (${s.lines} movimentos, ${s.payouts} transferências), mas o livro teve erros: ${l.errors.slice(0, 3).join(' | ')}` };
   return { errors: {}, ok: true, message: `Stripe lida: ${s.lines} movimentos e ${s.payouts} transferências; ${l.posted} novos lançamentos.` };
 }
+
+/** Deixa um movimento da Stripe fora do livro, com nota (por exemplo, resíduos de testes): deixa de contar como diferença. */
+export async function reviewStripeLineAction(btId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const nota = String(form.get('nota') ?? '').trim();
+  const undo = String(form.get('decision') ?? '') === 'desfazer';
+  if (!/^[A-Za-z0-9_]{5,80}$/.test(btId)) return { errors: {}, message: 'Movimento inválido.' };
+  if (!undo && nota.length < 3) return { errors: { nota: 'Explique porque fica fora do livro (3 a 300 caracteres).' } };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = undo
+    ? await supabase.from('stripe_bt_review').delete().eq('bt_id', btId)
+    : await supabase.from('stripe_bt_review').insert({ bt_id: btId, nota: nota.slice(0, 300) });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice/contabilidade');
+  return { errors: {}, ok: true, message: undo ? 'Revisão desfeita.' : 'Movimento deixado fora do livro.' };
+}

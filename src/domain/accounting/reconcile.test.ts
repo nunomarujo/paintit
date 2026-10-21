@@ -68,9 +68,23 @@ describe('reconciliação com a Stripe', () => {
     expect(r.reconciled).toBe(false);
   });
 
-  it('movimentos de outros tipos pedem revisão', () => {
-    const r = reconcile({ ...balanced, lines: [...balanced.lines, line({ id: 'txn_9', category: 'dispute', type: 'adjustment', amountCents: -2_000, description: 'Chargeback' })] });
-    expect(r.discrepancies.map((d) => d.kind)).toEqual(['movimento_a_rever']);
+  it('movimentos de outros tipos pedem revisão e entram na diferença explicada', () => {
+    const lines = [...balanced.lines, line({ id: 'txn_9', category: 'dispute', type: 'adjustment', amountCents: -2_000, description: 'Chargeback' })];
+    const r = reconcile({ ...balanced, lines, ledgerCents: 12_727, stripeCents: 12_727 - 2_000 });
+    expect(r.discrepancies.map((d) => [d.kind, d.lineId])).toEqual([['movimento_a_rever', 'txn_9']]);
+    expect(r.explained).toEqual([{ label: expect.stringContaining('por tratar'), cents: 2_000 }]);
+    expect(r.unexplainedCents).toBe(0);
+    expect(r.reconciled).toBe(false);
+  });
+
+  it('o que a equipa reviu e deixou fora do livro deixa de ser diferença e fecha a conta', () => {
+    const lines = [...balanced.lines, line({ id: 'txn_9', category: 'platform_earning', type: 'charge', amountCents: 300, description: 'teste' }), line({ id: 'txn_10', category: 'charge', amountCents: 10_000, paymentIntent: 'pi_teste' })];
+    const open = reconcile({ ...balanced, lines, ledgerCents: 12_727, stripeCents: 12_727 + 10_300 });
+    expect(open.discrepancies.map((d) => d.lineId).sort()).toEqual(['txn_10', 'txn_9']);
+    const done = reconcile({ ...balanced, lines, ledgerCents: 12_727, stripeCents: 12_727 + 10_300, reviewed: new Set(['txn_9', 'txn_10']) });
+    expect(done.discrepancies).toEqual([]);
+    expect(done.unexplainedCents).toBe(0);
+    expect(done.reconciled).toBe(true);
   });
 
   it('pagamento registado que a Stripe não mostra', () => {

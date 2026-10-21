@@ -32,6 +32,8 @@ export interface ReconcileInput {
   ledgerCents: Cents;
   /** Saldo da Stripe (disponível + pendente), em cêntimos; null se ainda não foi lido. */
   stripeCents: Cents | null;
+  /** Movimentos que a equipa reviu e deixou fora do livro (ids dos movimentos da Stripe). */
+  reviewed?: Set<string>;
 }
 
 export type DiscrepancyKind = 'cobranca_nao_registada' | 'valor_diferente' | 'reembolso_diferente' | 'pagamento_sem_cobranca' | 'movimento_a_rever';
@@ -39,6 +41,8 @@ export type DiscrepancyKind = 'cobranca_nao_registada' | 'valor_diferente' | 're
 export interface Discrepancy {
   kind: DiscrepancyKind;
   ref: string;
+  /** Movimento da Stripe a que diz respeito (para a equipa o poder rever), quando há. */
+  lineId?: string;
   stripeCents: Cents | null;
   platformCents: Cents | null;
   detail: string;
@@ -70,8 +74,16 @@ export function reconcile(input: ReconcileInput): Reconciliation {
   let matched = 0;
   let unregistered = 0;
   let mismatch = 0;
+  let toReview = 0;
+  let reviewedOut = 0;
+  const reviewed = input.reviewed ?? new Set<string>();
 
   for (const l of input.lines) {
+    if (reviewed.has(l.id)) {
+      // Revisto pela equipa e deixado fora do livro: conta como explicado, não como diferença.
+      reviewedOut += l.amountCents;
+      continue;
+    }
     if (l.category === 'charge') {
       if (l.paymentIntent && byPi.has(l.paymentIntent)) {
         const p = byPi.get(l.paymentIntent)!;
@@ -93,6 +105,7 @@ export function reconcile(input: ReconcileInput): Reconciliation {
         unregistered += l.amountCents;
         discrepancies.push({
           kind: 'cobranca_nao_registada',
+          lineId: l.id,
           ref: l.paymentIntent ?? l.invoiceId ?? l.id,
           stripeCents: l.amountCents,
           platformCents: null,
@@ -100,13 +113,17 @@ export function reconcile(input: ReconcileInput): Reconciliation {
         });
       } else {
         unregistered += l.amountCents;
-        discrepancies.push({ kind: 'movimento_a_rever', ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: `Cobrança sem pagamento associado${l.description ? `: ${l.description}` : ''}.` });
+        discrepancies.push({ kind: 'movimento_a_rever', lineId: l.id, ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: `Cobrança sem pagamento associado${l.description ? `: ${l.description}` : ''}.` });
       }
     } else if (l.category === 'refund') {
       if (l.paymentIntent) refundsByPi.set(l.paymentIntent, (refundsByPi.get(l.paymentIntent) ?? 0) + Math.abs(l.amountCents));
-      else discrepancies.push({ kind: 'movimento_a_rever', ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: 'Reembolso sem pagamento associado (por exemplo, de uma mensalidade).' });
+      else {
+        toReview += l.amountCents;
+        discrepancies.push({ kind: 'movimento_a_rever', lineId: l.id, ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: 'Reembolso sem pagamento associado (por exemplo, de uma mensalidade).' });
+      }
     } else if (!EXPECTED.has(l.category)) {
-      discrepancies.push({ kind: 'movimento_a_rever', ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: `Movimento de tipo «${l.category}»${l.description ? ` (${l.description})` : ''}: rever com o contabilista.` });
+      toReview += l.amountCents;
+      discrepancies.push({ kind: 'movimento_a_rever', lineId: l.id, ref: l.id, stripeCents: l.amountCents, platformCents: null, detail: `Movimento de tipo «${l.category}»${l.description ? ` (${l.description})` : ''}: rever com o contabilista.` });
     }
   }
 
@@ -138,6 +155,8 @@ export function reconcile(input: ReconcileInput): Reconciliation {
   if (mismatch) explained.push({ label: 'Valores registados diferentes dos cobrados', cents: mismatch });
   if (refundGap) explained.push({ label: 'Reembolsos diferentes entre a Stripe e a plataforma', cents: refundGap });
   if (withoutCharge) explained.push({ label: 'Pagamentos registados que não aparecem na Stripe', cents: withoutCharge });
+  if (toReview) explained.push({ label: 'Movimentos de outro tipo ainda por tratar', cents: -toReview });
+  if (reviewedOut) explained.push({ label: 'Movimentos revistos e deixados fora do livro', cents: -reviewedOut });
   if (inTransit) explained.push({ label: 'Transferências para o banco a caminho', cents: inTransit });
 
   const difference = input.stripeCents === null ? null : input.ledgerCents - input.stripeCents;
