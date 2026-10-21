@@ -111,7 +111,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 - Perguntas para o contabilista: `docs/contabilista/Perguntas_2026-10-21.md`.
 
 - Migrações `...080000_saldo_e_resgate` e `...090000_livro_de_movimentos` aplicadas e confirmadas na base real (21/10/2026): 16 contas, 6 funções públicas, 3 auxiliares, 2 vistas; avisos novos esperados (7 "SECURITY DEFINER executável por autenticados" e 9 "índice não usado").
-- **Falta aplicar `20261021100000_reconciliacao_stripe.sql`** (sem ela, o separador Reconciliação dá erro) e acrescentar o evento `invoice.paid` ao webhook da Stripe.
+- Migração `...100000_reconciliacao_stripe` aplicada e confirmada na base real (21/10/2026): 3 tabelas vazias; avisos novos: só 2 "índice não usado".
+- **Falta:** acrescentar o evento `invoice.paid` ao webhook da Stripe e correr a primeira reconciliação (Contabilidade > Reconciliação).
 
 ## Pendente do promotor
 
