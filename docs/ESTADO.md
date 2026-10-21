@@ -112,6 +112,7 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
 - Criar `CRON_SECRET` (sequência aleatória de 32+ caracteres) na Vercel; redeploy.
 - `NIFPT_KEY` (nif.pt, gratuita até aos limites): criada e testada em produção a 21/10/2026 (nome errado recusado, NIF inativo recusado). Sem chave, a validação fica só pelo dígito de controlo. Já ligada ao código (`src/lib/nifpt.ts`): ao criar/alterar uma entidade com NIPC (5/6/8/9) confirma que existe, está ativo e o nome corresponde; sem chave ou com o serviço em baixo, não bloqueia.
 - Fotografias de prédios (ou aprovar ilustrações) para a página inicial; ilustração em linha do prédio.
+- Questões ao advogado, ronda 2 (ordem: ver `docs/advogado/Pedido_ronda2_2026-10-21.md`) e roteiro do teste com pintores (`docs/teste/Roteiro_pintores.md`).
 - Parecer jurídico: termos, privacidade, garantia legal da obra, minuta do contrato, Livro de Reclamações.
 - Stripe em modo real (ativar a conta com os dados da empresa); registo da marca.
 - Limpeza das contas de teste e retirada de `nunomarujo@gmail.com` de `platform_admins` (o Claude prepara o SQL).
