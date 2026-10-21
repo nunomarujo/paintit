@@ -165,6 +165,11 @@ const CONTACT_PATTERNS: [RegExp, string][] = [
   [/\S+\s*(@|\barroba\b)\s*\S+|\b(gmail|hotmail|outlook|sapo|yahoo|icloud|live)\b|\bponto\s+(com|pt)\b/i, 'um email'],
   [/\b(whats\s?app|telegram|signal|messenger|instagram|facebook|linkedin)\b/i, 'um contacto fora da plataforma'],
   [/\b(contact\w*|ligu\w*|liga[rm]?|fal(e|ar)|venha|vir)\b.{0,40}\b(diretamente|direto|por fora|fora da (plataforma|aplicação|app))\b|\b(evitar|sem|fugir|poupar)\b.{0,20}\b(comiss\w*|plataforma|aplicação|app)\b/i, 'um pedido de contacto fora da plataforma'],
+  // Contornar a plataforma pelo preço: "faço-lhe mais barato porque a app cobra...".
+  [/\b(mais barato|desconto|melhor pre[çc]o|pre[çc]o melhor|sem (a )?(app|aplica\w+|plataforma))\b.{0,60}\b(app|aplica\w+|plataforma|comiss\w+)\b|\b(app|aplica\w+|plataforma)\b.{0,30}\b(quer|cobra|leva|fica com)\b.{0,30}\b(dinheiro|comiss\w+|percentagem)\b/i, 'um pedido de contacto fora da plataforma'],
+  // Onde fica a empresa ou o cliente, por pontos de referência: "a nossa loja, ao lado do café…".
+  [/\b(a nossa|o nosso|a minha|o meu)\s+(loja|escrit[óo]rio|sede|armaz[ée]m|oficina)\b/i, 'a localização da empresa'],
+  [/\b(ao lado d[oae]s?|junto (a|ao|à|d[oae]s?)|perto d[oae]s?|em frente (a|ao|à|d[oae]s?)|na zona d[oae]s?|fica(mos)? (na|no|em))\b.{0,30}\b(caf[ée]|restaurante|pastelaria|farm[áa]cia|igreja|escola|supermercado|bomba|loja|escrit[óo]rio|armaz[ée]m|oficina|largo|jardim|pra[çc]a|mercado)\b/i, 'uma indicação de localização'],
   [/(https?:\/\/|www\.)\S+/i, 'um endereço web'],
   [/(\+?351[\s.-]?)?\b[29]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b/, 'um número de telefone'],
   [/\b\d{4}-\d{3}\b/, 'um código postal'],

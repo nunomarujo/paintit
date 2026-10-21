@@ -157,3 +157,24 @@ describe('fachadas: trabalhos iguais ou com diferenças', () => {
     expect(parseSurface(g).value?.trabalhos).toBeNull();
   });
 });
+
+describe('contornar a plataforma sem contactos diretos', () => {
+  it('apanha a loja, o ponto de referência e o preço mais barato por causa da app', () => {
+    const msg = 'pode-me encontra a nossa loja ao laod do café Feijoada, na abelheira\nfaço-lhe mais barato porque a app quer muito dinheiro';
+    const r = revealingContent(msg);
+    expect(r).toContain('a localização da empresa');
+    expect(r).toContain('um pedido de contacto fora da plataforma');
+    expect(revealingContent('Ao lado do café fica a loja; ligue-me, sem passar pela app')).not.toEqual([]);
+  });
+  it('não bloqueia perguntas técnicas normais', () => {
+    for (const t of [
+      'Qual é a altura da fachada ao lado da varanda?',
+      'O reboco junto às janelas está solto?',
+      'Podem enviar fotografias do tardoz e da zona das caleiras?',
+      'Preferem tinta acrílica ou elastomérica para as fissuras?',
+      'A plataforma leva muito tempo a carregar as fotografias.',
+    ]) {
+      expect(revealingContent(t)).toEqual([]);
+    }
+  });
+});
