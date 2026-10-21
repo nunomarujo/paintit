@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NEW_PROPOSAL_NOTICE, engagementNotices } from './notifications';
+import { NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -26,5 +26,18 @@ describe('avisos por email', () => {
   });
   it('nova proposta não identifica a empresa', () => {
     expect(NEW_PROPOSAL_NOTICE('Fachadas 2027').lines.join(' ')).toContain('Fachadas 2027');
+  });
+});
+
+describe('convite aos pintores', () => {
+  const n = NEW_REQUEST_NOTICE({ concelho: 'Viana do Castelo', tipoObra: 'Fachadas e varandas', prazo: '28/10/2026' });
+  it('tem o assunto pedido', () => {
+    expect(n.subject).toBe('Pedido de Orçamento - pintura em Viana do Castelo');
+  });
+  it('só diz o que o anúncio anónimo mostra e nunca fala em comissão', () => {
+    const text = n.lines.join(' ');
+    expect(text).toMatch(/Viana do Castelo/);
+    expect(text).toMatch(/28\/10\/2026/);
+    expect(text).not.toMatch(/comiss|rua |nif/i);
   });
 });

@@ -68,3 +68,13 @@ export const NEW_PROPOSAL_NOTICE = (requestTitle: string): Omit<Notice, 'to'> =>
   subject: 'Nova proposta recebida',
   lines: [`Há uma nova proposta para o pedido «${requestTitle}».`, 'As propostas aparecem sem identificar a empresa, para serem comparadas pelo conteúdo.'],
 });
+
+/** Convite aos pintores quando um pedido é publicado. Só leva o que o anúncio anónimo já mostra (concelho, tipo, prazo). */
+export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; prazo: string }): { subject: string; lines: string[] } => ({
+  subject: `Pedido de Orçamento - pintura em ${p.concelho}`,
+  lines: [
+    'Está aberto um pedido de orçamento para uma obra de pintura e a sua empresa é convidada a participar.',
+    `Local: ${p.concelho}. Tipo de obra: ${p.tipoObra}. Propostas até ${p.prazo}.`,
+    'Abra o anúncio, veja as zonas e as áreas e prepare o orçamento por trabalhos, em poucos passos. O cliente compara as propostas sem saber quem as fez.',
+  ],
+});

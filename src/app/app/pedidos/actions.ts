@@ -1,5 +1,7 @@
 'use server';
 
+import { after } from 'next/server';
+import { notifyNewRequest } from '@/lib/notify';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -125,6 +127,8 @@ export async function publishRequest(requestId: string): Promise<FormState> {
   // A base de dados repete as verificações essenciais e cria o anúncio anónimo.
   const { error } = await supabase.from('work_requests').update({ status: 'publicado' }).eq('id', requestId);
   if (error) return { errors: {}, message: error.message };
+  // Depois da resposta: convidar os pintores por email não atrasa nem faz falhar a publicação.
+  after(() => notifyNewRequest(requestId).catch((e) => console.error('Convite aos pintores falhou:', e)));
   revalidatePath(`/app/pedidos/${requestId}`);
   return { errors: {}, ok: true, message: 'Publicado. Os pintores da zona já podem ver o anúncio.' };
 }
