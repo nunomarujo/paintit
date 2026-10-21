@@ -98,9 +98,10 @@ estado é reconstruído em `src/domain/contracting.ts` a partir de `engagement.t
 A apresentação acontece quando a comissão entra dentro do prazo: a partir daí as partes veem-se (nome, NIF,
 contactos, morada da obra e fotografias), só para essa obra.
 
-- Aplicar a migração `20261021060000_metodos_de_trabalho.sql` (tabela `work_templates`) no Supabase; sem ela, a barra de métodos dá erro ao guardar/listar.
 
 - Parecer jurídico sobre «ou equivalente» (cláusula 2-B e aviso na proposta); depois definir `NEXT_PUBLIC_EQUIVALENTE=1` na Vercel.
+
+- Migrações aplicadas e confirmadas na base real (21/10/2026): `...030000_infracoes_contacto`, `...040000_revisao_avisos` e `...060000_metodos_de_trabalho` (4 políticas RLS; avisos novos: nenhum, só 2 "unused index" informativos).
 
 ## Pendente do promotor
 
