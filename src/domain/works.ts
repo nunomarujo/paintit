@@ -1,3 +1,4 @@
+import { EQUIVALENT_LABEL, equivalentFlag } from './equivalence';
 import { parseHundredths, type DesiredWork } from './request';
 import type { Inclusion, LineCategory, Unit } from './proposal';
 
@@ -143,7 +144,8 @@ export function describeItem(item: WorkItem, zones: Zone[]): string {
   for (const f of def.fields) {
     const v = (item.campos[f.key] ?? '').trim();
     if (!v) continue;
-    parts.push(f.key === 'demaos' ? `${v} ${v === '1' ? 'demão' : 'demãos'}` : `${f.prefix ? `${f.prefix}: ` : ''}${v}${f.kind === 'number' && f.suffix ? ` ${f.suffix}` : ''}`);
+    const eq = f.kind === 'text' && item.campos[equivalentFlag(f.key)] === 'sim' ? ` ${EQUIVALENT_LABEL}` : '';
+    parts.push(f.key === 'demaos' ? `${v} ${v === '1' ? 'demão' : 'demãos'}` : `${f.prefix ? `${f.prefix}: ` : ''}${v}${eq}${f.kind === 'number' && f.suffix ? ` ${f.suffix}` : ''}`);
   }
   if (item.notas.trim()) parts.push(item.notas.trim());
   return parts.join(' · ').slice(0, 500);
@@ -180,6 +182,7 @@ export function parseWorkItems(raw: unknown, zones: Zone[]): { items?: WorkItem[
       if (f.kind === 'number' && v && !/^\d{1,4}([.,]\d{1,2})?$/.test(v)) errors.push(`${def.label}: ${f.label} tem de ser um número.`);
       if (f.key === 'demaos' && v && !(Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 5)) errors.push(`${def.label}: demãos entre 1 e 5.`);
       if (v) campos[f.key] = v;
+      if (v && f.kind === 'text' && rc[equivalentFlag(f.key)] === 'sim') campos[equivalentFlag(f.key)] = 'sim';
     }
     const quantidade = String(o.quantidade ?? '').trim().slice(0, 12);
     if (quantidade && parseQty(quantidade) === null) errors.push(`${def.label}: quantidade inválida.`);

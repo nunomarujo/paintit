@@ -1,3 +1,4 @@
+import { hasEquivalent } from '@/domain/equivalence';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
@@ -135,6 +136,7 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
         linha: l.descricao,
       }));
     })(),
+    equivalentes: (lines ?? []).some((l) => hasEquivalent(l.descricao)),
     garantiaObra:
       terms.garantiaAnos !== null
         ? `O empreiteiro garante os trabalhos executados durante ${terms.garantiaAnos} anos a contar da receção da obra.`

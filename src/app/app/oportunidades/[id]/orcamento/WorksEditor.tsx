@@ -5,6 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { saveWorks } from '@/app/app/oportunidades/orcamento-actions';
 import { outcome, useBudget, useStepSaver } from './BudgetContext';
 import { useFormAction } from '@/components/useFormAction';
+import { EQUIVALENT_LABEL, EQUIVALENT_RULE, equivalentEnabled, equivalentFlag } from '@/domain/equivalence';
 import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { pricePerLitre, type Preference } from '@/domain/reference';
@@ -34,6 +35,7 @@ function SuggestField({
   onChange,
   options,
   preferred,
+  equivalent,
 }: {
   id: string;
   label: string;
@@ -43,8 +45,11 @@ function SuggestField({
   onChange: (v: string) => void;
   options: CatalogueProduct[];
   preferred: Preference[];
+  /** Caixa «ou equivalente» (ausente = não se oferece). */
+  equivalent?: { checked: boolean; onChange: (v: boolean) => void };
 }) {
   const [open, setOpen] = useState(false);
+  const [help, setHelp] = useState(false);
   const [query, setQuery] = useState('');
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -76,6 +81,22 @@ function SuggestField({
           Sugestões
         </button>
       </div>
+      {equivalent && (
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600">
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input type="checkbox" checked={equivalent.checked} onChange={(e) => equivalent.onChange(e.target.checked)} />
+            {EQUIVALENT_LABEL}
+          </label>
+          <button type="button" aria-label="O que é «ou equivalente»?" aria-expanded={help} onClick={() => setHelp((h) => !h)} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-400 text-[10px] font-bold text-slate-600 hover:bg-slate-100">
+            ?
+          </button>
+        </div>
+      )}
+      {help && (
+        <p className="mt-1 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" role="note">
+          {EQUIVALENT_RULE} O cliente vê este aviso, bem destacado, na proposta, e o contrato inclui os mesmos termos.
+        </p>
+      )}
       {open && (
         <div id={`${id}-lista`} className="absolute right-0 z-20 mt-1 w-full max-w-xl rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por marca ou nome" aria-label="Filtrar sugestões" className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -311,6 +332,11 @@ export function WorksEditor({
                           onChange={(v) => patch(item.key, { campos: { ...item.campos, [f.key]: v } })}
                           options={options}
                           preferred={preferred}
+                          equivalent={
+                            equivalentEnabled()
+                              ? { checked: item.campos[equivalentFlag(f.key)] === 'sim', onChange: (v) => patch(item.key, { campos: { ...item.campos, [equivalentFlag(f.key)]: v ? 'sim' : '' } }) }
+                              : undefined
+                          }
                         />
                       );
                     }

@@ -1,3 +1,4 @@
+import { EQUIVALENT_PROPOSAL_NOTE, hasEquivalent } from '@/domain/equivalence';
 import { formatEuros, percentOf } from '@/domain/money';
 import {
   INCLUSION_LABELS,
@@ -54,6 +55,7 @@ export function ProposalView({
                 <tr key={l.id} className={l.inclusao === 'incluido' ? '' : 'text-slate-500'}>
                   <td className="py-1.5 pr-2">
                     <span className="font-medium">{l.descricao}</span>
+                    {hasEquivalent(l.descricao) && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Produto ou equivalente</span>}
                     {l.productId && (
                       <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
                     )}
@@ -99,6 +101,12 @@ export function ProposalView({
   );
   return (
     <div className="space-y-4 text-sm">
+      {lines.some((l) => hasEquivalent(l.descricao)) && (
+        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-900" role="note">
+          <span aria-hidden className="font-bold">(!)</span>
+          <span>{EQUIVALENT_PROPOSAL_NOTE}</span>
+        </p>
+      )}
       <section>
         <h3 className="font-semibold">Resumo por capítulo</h3>
         {byCategory.length === 0 ? (

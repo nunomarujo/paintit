@@ -1,3 +1,4 @@
+import { equivalentFlag } from './equivalence';
 import { parseFases, type Declared, type PaymentPhase } from './proposal';
 import { WORK_STATES, suggestedQuantity, workDef, type WorkItem, type WorkState, type Zone } from './works';
 
@@ -65,6 +66,7 @@ export function parseTemplate(raw: unknown): TemplateData {
     for (const f of def.fields) {
       const v = String((x.campos as Record<string, unknown> | undefined)?.[f.key] ?? '').trim().slice(0, 200);
       if (v && (f.kind !== 'select' || (f.options ?? []).includes(v))) campos[f.key] = v;
+      if (v && f.kind === 'text' && (x.campos as Record<string, unknown> | undefined)?.[equivalentFlag(f.key)] === 'sim') campos[equivalentFlag(f.key)] = 'sim';
     }
     items.push({ code, estado, campos, notas: String(x.notas ?? '').slice(0, 300) });
   }

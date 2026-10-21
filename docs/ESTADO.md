@@ -100,6 +100,8 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 - Aplicar a migração `20261021060000_metodos_de_trabalho.sql` (tabela `work_templates`) no Supabase; sem ela, a barra de métodos dá erro ao guardar/listar.
 
+- Parecer jurídico sobre «ou equivalente» (cláusula 2-B e aviso na proposta); depois definir `NEXT_PUBLIC_EQUIVALENTE=1` na Vercel.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):

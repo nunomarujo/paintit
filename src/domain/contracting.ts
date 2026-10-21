@@ -1,3 +1,4 @@
+import { EQUIVALENT_RULE } from './equivalence';
 import {
   carryToNext,
   clientDepositDue,
@@ -246,6 +247,8 @@ export interface DraftInput {
   garantiaObra: string;
   exclusoes: string;
   /** Materiais comprometidos que o empreiteiro se compromete a aplicar. */
+  /** Alguma linha indica um produto «ou equivalente». */
+  equivalentes?: boolean;
   materiais?: { produto: string; fornecedor: string; linha: string }[];
 }
 
@@ -301,6 +304,14 @@ export function contractDraft(d: DraftInput): Draft {
                 ...d.materiais.map((m) => `${m.produto}, fornecido por ${m.fornecedor} — ${m.linha}.`),
                 'A substituição de um produto só é admitida com acordo escrito do dono da obra e por produto equivalente ou superior.',
               ],
+            },
+          ]
+        : []),
+      ...(d.equivalentes
+        ? [
+            {
+              heading: '2-B. Produtos «ou equivalente»',
+              paragraphs: [EQUIVALENT_RULE, 'Qualquer diferença visível para o dono da obra, nomeadamente de cor, carece da sua aceitação escrita antes da aplicação.'],
             },
           ]
         : []),
