@@ -17,7 +17,7 @@ export async function lookupNif(nif: string): Promise<NifLookup> {
     if (!res.ok) return 'indisponivel';
     const body = (await res.json()) as { result?: string; records?: Record<string, { title?: string; status?: string }>; message?: string };
     const rec = body.records?.[nif];
-    if (body.result === 'success' && rec?.title) return { found: true, nome: rec.title, ativo: (rec.status ?? 'active') === 'active' };
+    if (body.result === 'success' && rec?.title) return { found: true, nome: rec.title, ativo: (rec.status ?? 'active') !== 'inactive' };
     // "Limit" e erros de chave não são "NIF inexistente".
     if (body.result === 'error' && /not found|n[aã]o encontrado|inexist/i.test(body.message ?? '')) return { found: false };
     return 'indisponivel';
