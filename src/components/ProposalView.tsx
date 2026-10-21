@@ -29,6 +29,7 @@ export function ProposalView({
   zoneNames?: Record<string, string>;
 }) {
   const t = proposalTotals(lines, terms.ivaBps);
+  const global = terms.modoPreco === 'global';
   const byCategory = LINE_CATEGORIES.map((c) => [c, lines.filter((l) => l.categoria === c && l.inclusao === 'incluido').reduce((n, l) => n + lineTotal(l), 0)] as const).filter(
     ([, total]) => total > 0,
   );
@@ -69,11 +70,23 @@ export function ProposalView({
                     </span>
                     {l.motivoDiferenca && <span className="block text-xs text-slate-600">Motivo: {l.motivoDiferenca}</span>}
                   </td>
-                  <td className="py-1.5 text-right">
-                    {qty(l.quantidade)} {UNIT_LABELS[l.unidade]}
-                  </td>
-                  <td className="py-1.5 text-right">{formatEuros(l.precoUnitario)}</td>
-                  <td className="py-1.5 text-right">{formatEuros(lineTotal(l))}</td>
+                  {global && l.trabalho !== 'global' ? (
+                    <td colSpan={3} className="py-1.5 text-right text-slate-500">
+                      {l.inclusao === 'nao_incluido' ? 'Não incluído' : l.inclusao === 'opcional' ? 'Opcional' : l.inclusao === 'condicionado' ? 'A confirmar' : 'Incluído no preço global'}
+                    </td>
+                  ) : l.inclusao === 'nao_incluido' ? (
+                    <td colSpan={3} className="py-1.5 text-right text-slate-500">
+                      Não incluído
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-1.5 text-right">
+                        {qty(l.quantidade)} {UNIT_LABELS[l.unidade]}
+                      </td>
+                      <td className="py-1.5 text-right">{formatEuros(l.precoUnitario)}</td>
+                      <td className="py-1.5 text-right">{formatEuros(lineTotal(l))}</td>
+                    </>
+                  )}
                   {onDelete && <td className="py-1.5 pl-2 text-right">{onDelete(l.id)}</td>}
                 </tr>
               ))}

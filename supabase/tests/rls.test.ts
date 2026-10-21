@@ -561,6 +561,21 @@ describe('propostas e escolha', () => {
     await as(P, () => db.query('delete from public.proposal_lines where id = $1', [(ok.rows[0] as { id: string }).id]));
   });
 
+  it('orçamento guiado: trabalhos e estados nas linhas, preço global e IVA livre até 30%', async () => {
+    const line = await as(P, () =>
+      db.query(
+        `insert into public.proposal_lines (proposal_id, categoria, descricao, quantidade, preco_unitario_cents, inclusao, trabalho, detalhes)
+         values ($1, 'preparacao', 'Lavagem e limpeza', 100, 0, 'nao_incluido', 'lavagem', '{"key":"lavagem","estado":"nao_incluido","ordem":0}'::jsonb) returning id`,
+        [mine],
+      ),
+    );
+    await as(P, () => db.query('delete from public.proposal_lines where id = $1', [(line.rows[0] as { id: string }).id]));
+    await as(P, () => db.query(`update public.proposals set iva_bps = 600, modo_preco = 'global' where id = $1`, [mine]));
+    await expect(as(P, () => db.query(`update public.proposals set iva_bps = 3100 where id = $1`, [mine]))).rejects.toThrow(/proposals_iva_bps_range|check/);
+    await expect(as(P, () => db.query(`update public.proposals set modo_preco = 'x' where id = $1`, [mine]))).rejects.toThrow(/check/);
+    await as(P, () => db.query(`update public.proposals set iva_bps = 2300, modo_preco = 'detalhado' where id = $1`, [mine]));
+  });
+
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
     // Condições do orçamento: sem mão-de-obra, seguros e plano de pagamentos a 100% não se submete.
     const upd = async (sql: string) => {

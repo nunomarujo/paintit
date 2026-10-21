@@ -13,7 +13,6 @@ import {
   UNITS,
   UNIT_LABELS,
   MAX_PHASES,
-  VAT_RATES_BPS,
   type PaymentPhase,
   type ProposalTerms,
 } from '@/domain/proposal';
@@ -36,15 +35,7 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
   return (
     <form {...formProps} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field name="ivaBps" label="IVA" error={e.ivaBps}>
-          <select name="ivaBps" defaultValue={String(terms.ivaBps)} className={selectClass}>
-            {VAT_RATES_BPS.map((v) => (
-              <option key={v} value={v}>
-                {v / 100}%
-              </option>
-            ))}
-          </select>
-        </Field>
+        <input type="hidden" name="ivaBps" value={String(terms.ivaBps)} />
         <Field name="validade" label="Válida até" type="date" required error={e.validade} defaultValue={terms.validade ?? ''} />
         <Field name="inicioPossivel" label="Início possível" type="date" error={e.inicioPossivel} defaultValue={terms.inicioPossivel ?? ''} />
         <Field

@@ -18,6 +18,7 @@ export function toLine(l: Row<'proposal_lines'>): ProposalLine {
     produto: l.produto,
     inclusao: l.inclusao,
     productId: l.product_id,
+    trabalho: l.trabalho,
     zonas: l.surface_ids,
     motivoDiferenca: l.motivo_diferenca,
   };
@@ -38,5 +39,6 @@ export function toTerms(p: Row<'proposals'>): ProposalTerms {
     confirmaMaoObra: p.confirma_mao_obra,
     seguroRc: p.seguro_rc as Declared | null,
     seguroAt: p.seguro_at as Declared | null,
+    modoPreco: p.modo_preco === 'global' ? 'global' : 'detalhado',
   };
 }

@@ -1,5 +1,6 @@
 import type { Cents } from './money';
 import type { FieldErrors } from './organization';
+import { workDef } from './works';
 import { parseHundredths, revealingContent, type AreaCm2, type SurfaceKind, SURFACE_KINDS } from './request';
 
 // Proposta do pintor a um pedido: preço global e linhas técnicas (PRO-04), com
@@ -22,12 +23,13 @@ export const UNITS = ['m2', 'ml', 'un', 'vg'] as const;
 export type Unit = (typeof UNITS)[number];
 export const UNIT_LABELS: Record<Unit, string> = { m2: 'm²', ml: 'm', un: 'un.', vg: 'vg' };
 
-export const INCLUSIONS = ['incluido', 'opcional', 'condicionado'] as const;
+export const INCLUSIONS = ['incluido', 'opcional', 'condicionado', 'nao_incluido'] as const;
 export type Inclusion = (typeof INCLUSIONS)[number];
 export const INCLUSION_LABELS: Record<Inclusion, string> = {
   incluido: 'Incluído no preço',
   opcional: 'Opcional (não somado)',
   condicionado: 'Só depois de observar (preço indicativo)',
+  nao_incluido: 'Não incluído',
 };
 
 export const VAT_RATES_BPS = [600, 1300, 2300] as const;
@@ -45,6 +47,8 @@ export interface ProposalLine {
   inclusao: Inclusion;
   /** Produto do catálogo de um fornecedor registado na plataforma (material comprometido). */
   productId?: string | null;
+  /** Trabalho do orçamento guiado que gerou a linha (src/domain/works.ts); 'global' = preço global da obra. */
+  trabalho?: string | null;
   /** Zonas (fachadas) do pedido a que a linha se aplica; vazio = obra toda. */
   zonas?: string[];
   /** Porque esta linha só se aplica a algumas zonas. */
@@ -113,6 +117,8 @@ export interface ProposalTerms {
   /** Seguros declarados: responsabilidade civil e acidentes de trabalho. null = por declarar. */
   seguroRc: Declared | null;
   seguroAt: Declared | null;
+  /** Preço por trabalho ou um preço global da obra. */
+  modoPreco?: 'detalhado' | 'global';
 }
 
 export const MAX_ADVANCE_BPS = 3000;
@@ -140,6 +146,10 @@ export function submitBlockers(input: SubmitCheckInput): string[] {
   if (!terms.seguroRc || !terms.seguroAt) out.push('Declare os seguros: responsabilidade civil e acidentes de trabalho.');
   const phases = phasesProblem(terms.adiantamentoBps, terms.fases);
   if (phases) out.push(phases);
+  if ((terms.modoPreco ?? 'detalhado') === 'detalhado') {
+    const unpriced = lines.filter((l) => l.trabalho && l.trabalho !== 'global' && (l.inclusao === 'incluido' || l.inclusao === 'opcional') && l.precoUnitario === 0);
+    if (unpriced.length > 0) out.push(`Falta o preço de: ${[...new Set(unpriced.map((l) => workDef(l.trabalho!)?.label ?? l.trabalho))].join(', ')}.`);
+  }
   if (input.viaPublica === 'sim' && !lines.some((l) => l.categoria === 'licencas' && l.inclusao !== 'opcional')) {
     out.push('A obra prevê ocupação da via pública: acrescente uma linha de licenças camarárias (incluída ou só depois de observar).');
   }

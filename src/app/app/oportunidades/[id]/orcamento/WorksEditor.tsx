@@ -1,0 +1,302 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import type { FormState } from '@/app/app/actions';
+import { saveWorks } from '@/app/app/oportunidades/orcamento-actions';
+import { useFormAction } from '@/components/useFormAction';
+import {
+  WORKS,
+  WORK_STATES,
+  WORK_STATE_LABELS,
+  describeItem,
+  isComplete,
+  suggestedQuantity,
+  workDef,
+  type WorkItem,
+  type WorkState,
+  type Zone,
+} from '@/domain/works';
+
+const input = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base';
+
+export function WorksEditor({
+  proposalId,
+  requestId,
+  zones,
+  initial,
+  basePath,
+}: {
+  proposalId: string;
+  requestId: string;
+  zones: Zone[];
+  initial: WorkItem[];
+  basePath: string;
+}) {
+  const router = useRouter();
+  const { state, pending, formProps } = useFormAction<FormState>(saveWorks.bind(null, proposalId, requestId), { errors: {} });
+  const [items, setItems] = useState<WorkItem[]>(initial);
+  const [current, setCurrent] = useState<string | null>(initial[0]?.key ?? null);
+  const goNext = useRef(false);
+
+  useEffect(() => {
+    if (state.ok && goNext.current) {
+      goNext.current = false;
+      router.push(`${basePath}?passo=precos`);
+      router.refresh();
+    }
+  }, [state, router, basePath]);
+
+  const item = items.find((i) => i.key === current) ?? null;
+  const def = item ? workDef(item.code) : null;
+  const patch = (key: string, p: Partial<WorkItem>) => setItems((all) => all.map((i) => (i.key === key ? { ...i, ...p } : i)));
+
+  function add(code: string, zonas: WorkItem['zonas'] = 'todas') {
+    const d = workDef(code)!;
+    const n = items.filter((i) => i.code === code).length;
+    const key = n === 0 ? code : `${code}#${n + 1}`;
+    const next: WorkItem = { key, code, estado: 'base', zonas, campos: {}, quantidade: suggestedQuantity(d, zonas, zones), notas: '' };
+    setItems((all) => [...all, next]);
+    setCurrent(key);
+  }
+  function toggle(code: string) {
+    const mine = items.filter((i) => i.code === code);
+    if (mine.length === 0) return add(code);
+    setItems((all) => all.filter((i) => i.code !== code));
+    if (mine.some((i) => i.key === current)) setCurrent(null);
+  }
+  function setZonas(i: WorkItem, zonas: WorkItem['zonas']) {
+    const d = workDef(i.code)!;
+    const wasSuggested = i.quantidade === '' || i.quantidade === suggestedQuantity(d, i.zonas, zones);
+    patch(i.key, { zonas, ...(wasSuggested ? { quantidade: suggestedQuantity(d, zonas, zones) } : {}) });
+  }
+  function toggleZone(i: WorkItem, id: string) {
+    const list = i.zonas === 'todas' ? zones.map((z) => z.id) : i.zonas;
+    setZonas(i, list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  }
+
+  const done = items.filter((i) => isComplete(i, zones)).length;
+  const errorText = state.message ?? Object.values(state.errors)[0];
+
+  return (
+    <form {...formProps} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <input type="hidden" name="payload" value={JSON.stringify(items)} />
+      <div className="grid md:grid-cols-[17rem_minmax(0,1fr)]">
+        <nav aria-label="Trabalhos" className="border-b border-slate-200 bg-slate-50 p-3 md:border-b-0 md:border-r">
+          <p className="px-2 pb-2 text-sm text-slate-600">O que vai executar?</p>
+          <ul className="flex gap-2 overflow-x-auto pb-1 md:block md:space-y-2 md:overflow-visible md:pb-0">
+            {WORKS.map((w) => {
+              const mine = items.filter((i) => i.code === w.code);
+              const selected = mine.length > 0;
+              const complete = selected && mine.every((i) => isComplete(i, zones));
+              const active = mine.some((i) => i.key === current);
+              return (
+                <li key={w.code} className="w-60 shrink-0 md:w-auto">
+                  <div
+                    className={`flex items-start gap-3 rounded-xl border p-3 ${
+                      complete ? 'border-tinta-600 bg-tinta-50' : selected ? 'border-amber-300 bg-amber-50' : 'border-transparent bg-white'
+                    } ${active ? 'ring-2 ring-tinta-500' : ''}`}
+                  >
+                    <input type="checkbox" checked={selected} onChange={() => toggle(w.code)} className="mt-1 h-5 w-5" aria-label={`Incluir ${w.label}`} />
+                    <button type="button" onClick={() => (selected ? setCurrent(mine[0]!.key) : add(w.code))} className="min-w-0 flex-1 text-left">
+                      <span className="block font-medium text-slate-900">{w.label}</span>
+                      <span className={`block text-xs ${complete ? 'font-semibold text-tinta-700' : selected ? 'text-amber-800' : 'text-slate-500'}`}>
+                        {complete ? '✓ Preenchido' : selected ? 'Selecionado: por preencher' : 'Por selecionar'}
+                      </span>
+                    </button>
+                  </div>
+                  {mine.length > 1 && (
+                    <ul className="ml-9 mt-1 flex flex-wrap gap-1">
+                      {mine.map((i, n) => (
+                        <li key={i.key}>
+                          <button
+                            type="button"
+                            onClick={() => setCurrent(i.key)}
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${i.key === current ? 'bg-tinta-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}
+                          >
+                            Versão {n + 1}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="p-5 md:p-7">
+          {!item || !def ? (
+            <p className="text-slate-600">Escolha, à esquerda, os trabalhos que vai executar. Cada um tem só os campos que lhe dizem respeito.</p>
+          ) : (
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold">
+                  {def.label}
+                  {item.key.includes('#') ? ` · versão ${item.key.split('#')[1]}` : ''}
+                </h2>
+                <label className="text-sm">
+                  <span className="sr-only">Estado no orçamento</span>
+                  <select value={item.estado} onChange={(e) => patch(item.key, { estado: e.target.value as WorkState })} className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 font-medium">
+                    {WORK_STATES.map((s) => (
+                      <option key={s} value={s}>
+                        {WORK_STATE_LABELS[s]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {def.where && zones.length > 0 && (
+                <fieldset>
+                  <legend className="text-sm font-medium text-slate-700">Onde vai executar?</legend>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {([['todas', 'Todas as fachadas'], ['escolher', 'Escolher fachadas']] as const).map(([k, label]) => {
+                      const active = k === 'todas' ? item.zonas === 'todas' : item.zonas !== 'todas';
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setZonas(item, k === 'todas' ? 'todas' : [])}
+                          className={`rounded-xl border px-4 py-2.5 ${active ? 'border-tinta-600 bg-tinta-50 font-medium' : 'border-slate-300 bg-white'}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {item.zonas !== 'todas' && (
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      {zones.map((z) => (
+                        <label key={z.id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                          <input type="checkbox" checked={item.zonas.includes(z.id)} onChange={() => toggleZone(item, z.id)} />
+                          {z.label}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </fieldset>
+              )}
+
+              {(item.estado === 'base' || item.estado === 'opcional') && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {def.fields.map((f) => (
+                    <label key={f.key} className={`block text-sm font-medium text-slate-700 ${f.kind === 'text' ? 'sm:col-span-2' : ''}`}>
+                      {f.label}
+                      {f.required && <span className="text-red-700"> *</span>}
+                      {f.kind === 'select' ? (
+                        <select value={item.campos[f.key] ?? ''} onChange={(e) => patch(item.key, { campos: { ...item.campos, [f.key]: e.target.value } })} className={input}>
+                          <option value="">Escolher…</option>
+                          {f.options!.map((o) => (
+                            <option key={o} value={o}>
+                              {o}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="relative block">
+                          <input
+                            value={item.campos[f.key] ?? ''}
+                            onChange={(e) => patch(item.key, { campos: { ...item.campos, [f.key]: e.target.value } })}
+                            inputMode={f.kind === 'number' ? 'decimal' : 'text'}
+                            placeholder={f.placeholder}
+                            maxLength={200}
+                            className={input}
+                          />
+                          {f.suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">{f.suffix}</span>}
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                  {def.qtyLabel && (
+                    <label className="block text-sm font-medium text-slate-700">
+                      {def.qtyLabel}
+                      <span className="text-red-700"> *</span>
+                      <span className="relative block">
+                        <input value={item.quantidade} onChange={(e) => patch(item.key, { quantidade: e.target.value })} inputMode="decimal" placeholder="Medir / estimar" className={input} />
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">{def.unit === 'ml' ? 'm' : 'm²'}</span>
+                      </span>
+                      <span className="mt-1 block text-xs font-normal text-slate-500">
+                        {def.unit === 'm2' && item.quantidade !== '' && item.quantidade === suggestedQuantity(def, item.zonas, zones)
+                          ? 'Área preenchida a partir das fachadas. Confirme ou ajuste.'
+                          : 'Quantidade específica deste trabalho.'}
+                      </span>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {(item.estado === 'confirmar' || item.estado === 'nao_incluido') && (
+                <label className="block text-sm font-medium text-slate-700">
+                  {item.estado === 'confirmar' ? 'O que falta confirmar, e como?' : 'Justificação para o cliente'}
+                  <span className="text-red-700"> *</span>
+                  <textarea
+                    value={item.notas}
+                    onChange={(e) => patch(item.key, { notas: e.target.value })}
+                    rows={3}
+                    maxLength={300}
+                    placeholder={item.estado === 'confirmar' ? 'Ex.: depende de visita ao tardoz' : 'Ex.: o condomínio trata deste trabalho'}
+                    className={input}
+                  />
+                </label>
+              )}
+
+              {(item.estado === 'base' || item.estado === 'opcional') && (
+                <details className="group border-t border-slate-200 pt-4">
+                  <summary className="cursor-pointer list-none font-medium text-tinta-700">
+                    <span className="mr-2 inline-block transition-transform group-open:rotate-90">▸</span>Mais detalhes do trabalho
+                  </summary>
+                  <label className="mt-3 block text-sm font-medium text-slate-700">
+                    Notas para o cliente (opcional)
+                    <textarea value={item.notas} onChange={(e) => patch(item.key, { notas: e.target.value })} rows={2} maxLength={300} className={input} />
+                  </label>
+                </details>
+              )}
+
+              <div className="rounded-xl bg-sage p-4">
+                <p className="text-sm font-medium text-slate-700">Descrição gerada para o cliente</p>
+                <p className="mt-1 text-sm text-slate-700">{describeItem(item, zones)}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-3 text-sm">
+                {def.where && zones.length > 1 && (
+                  <button type="button" onClick={() => add(def.code, [])} className="font-semibold text-tinta-700 underline underline-offset-4">
+                    Acrescentar outra versão para outras fachadas
+                  </button>
+                )}
+                {item.key.includes('#') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItems((all) => all.filter((i) => i.key !== item.key));
+                      setCurrent(items.find((i) => i.code === item.code)?.key ?? null);
+                    }}
+                    className="text-red-700 hover:underline"
+                  >
+                    Remover esta versão
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+        <p className="text-sm text-slate-600" role="status">
+          {errorText ? <span className="text-red-700">{errorText}</span> : state.ok ? <span className="text-tinta-700">{state.message}</span> : `${done} de ${items.length} trabalhos preenchidos`}
+        </p>
+        <div className="flex gap-2">
+          <button type="submit" disabled={pending} onClick={() => (goNext.current = false)} className="btn-secondary">
+            {pending ? 'A guardar…' : 'Guardar rascunho'}
+          </button>
+          <button type="submit" disabled={pending || items.length === 0} onClick={() => (goNext.current = true)} className="btn-primary">
+            Continuar para os preços →
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+}

@@ -50,7 +50,7 @@ type EngagementEventKind =
   | 'encerrar_sem_contrato';
 type LineCategory = 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
 type LineUnit = 'm2' | 'ml' | 'un' | 'vg';
-type LineInclusion = 'incluido' | 'opcional' | 'condicionado';
+type LineInclusion = 'incluido' | 'opcional' | 'condicionado' | 'nao_incluido';
 type MessageSide = 'cliente' | 'pintor';
 type ReportStatus = 'pendente' | 'suspenso' | 'sem_fundamento';
 type OrderStatus = 'pedida' | 'confirmada' | 'entregue' | 'cancelada';
@@ -771,6 +771,7 @@ export type Database = {
           confirma_mao_obra: boolean;
           seguro_rc: string | null;
           seguro_at: string | null;
+          modo_preco: string;
         };
         Insert: {
           adiantamento_bps?: number;
@@ -791,6 +792,7 @@ export type Database = {
           confirma_mao_obra?: boolean;
           seguro_rc?: string | null;
           seguro_at?: string | null;
+          modo_preco?: string;
         };
         Update: Partial<Database['public']['Tables']['proposals']['Insert']>;
         Relationships: [
@@ -823,6 +825,8 @@ export type Database = {
           desconto_bps: number | null;
           surface_ids: string[];
           motivo_diferenca: string | null;
+          trabalho: string | null;
+          detalhes: Json;
         };
         Insert: {
           categoria: LineCategory;
@@ -841,6 +845,8 @@ export type Database = {
           desconto_bps?: number | null;
           surface_ids?: string[];
           motivo_diferenca?: string | null;
+          trabalho?: string | null;
+          detalhes?: Json;
         };
         Update: Partial<Database['public']['Tables']['proposal_lines']['Insert']>;
         Relationships: [
