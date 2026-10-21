@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { outcome, useBudget, useStepSaver } from '@/app/app/oportunidades/[id]/orcamento/BudgetContext';
 import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { addLine, saveTerms, submitProposal } from '@/app/app/oportunidades/actions';
@@ -31,9 +32,27 @@ const hundredths = (n: number | null) => (n === null ? '' : (n / 100).toString()
 
 export function TermsForm({ proposalId, requestId, terms }: { proposalId: string; requestId: string; terms: ProposalTerms }) {
   const { state, pending, formProps } = useFormAction<FormState>(saveTerms.bind(null, proposalId, requestId), { errors: {} });
+  const { go } = useBudget();
+  const touched = useRef(false);
   const e = state.errors;
+
+  useEffect(() => {
+    if (state.ok) touched.current = false;
+  }, [state]);
+
+  // Guarda-se sozinho ao mudar de separador (ver BudgetShell). Os campos ficam no formulário, que continua montado.
+  useStepSaver('condicoes', {
+    dirty: () => touched.current,
+    save: async () => {
+      if (!formProps.ref.current) return null;
+      const error = outcome(await saveTerms(proposalId, requestId, { errors: {} }, new FormData(formProps.ref.current)));
+      if (!error) touched.current = false;
+      return error;
+    },
+  });
+
   return (
-    <form {...formProps} className="space-y-4">
+    <form {...formProps} onChange={() => (touched.current = true)} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <input type="hidden" name="ivaBps" value={String(terms.ivaBps)} />
         <Field name="validade" label="Válida até" type="date" required error={e.validade} defaultValue={terms.validade ?? ''} />
@@ -102,9 +121,14 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
         <textarea name="notas" rows={3} defaultValue={terms.notas} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
       </Field>
       {status(state)}
-      <button type="submit" disabled={pending} className={button}>
-        {pending ? 'A guardar…' : 'Guardar condições'}
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button type="submit" disabled={pending} className={button}>
+          {pending ? 'A guardar…' : 'Guardar condições'}
+        </button>
+        <button type="button" disabled={pending} onClick={() => go('rever')} className="btn-primary">
+          Continuar para a revisão →
+        </button>
+      </div>
     </form>
   );
 }

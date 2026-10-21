@@ -1,9 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { saveWorks } from '@/app/app/oportunidades/orcamento-actions';
+import { outcome, useBudget, useStepSaver } from './BudgetContext';
 import { useFormAction } from '@/components/useFormAction';
 import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
@@ -125,7 +125,6 @@ export function WorksEditor({
   requestId,
   zones,
   initial,
-  basePath,
   catalogue = [],
   tipoObra = null,
   preferred = [],
@@ -134,26 +133,34 @@ export function WorksEditor({
   requestId: string;
   zones: Zone[];
   initial: WorkItem[];
-  basePath: string;
   /** Produtos de referência do catálogo, para as sugestões. */
   catalogue?: CatalogueProduct[];
   tipoObra?: string | null;
   /** Produtos que o cliente pediu no pedido (aparecem primeiro nas sugestões). */
   preferred?: Preference[];
 }) {
-  const router = useRouter();
+  const { go } = useBudget();
   const { state, pending, formProps } = useFormAction<FormState>(saveWorks.bind(null, proposalId, requestId), { errors: {} });
   const [items, setItems] = useState<WorkItem[]>(initial);
   const [current, setCurrent] = useState<string | null>(initial[0]?.key ?? null);
-  const goNext = useRef(false);
+  const payload = JSON.stringify(items);
+  const saved = useRef(payload);
+  const sent = useRef(payload);
 
   useEffect(() => {
-    if (state.ok && goNext.current) {
-      goNext.current = false;
-      router.push(`${basePath}?passo=precos`);
-      router.refresh();
-    }
-  }, [state, router, basePath]);
+    if (state.ok) saved.current = sent.current;
+  }, [state]);
+
+  useStepSaver('trabalhos', {
+    dirty: () => payload !== saved.current,
+    save: async () => {
+      const form = new FormData();
+      form.set('payload', payload);
+      const error = outcome(await saveWorks(proposalId, requestId, { errors: {} }, form));
+      if (!error) saved.current = payload;
+      return error;
+    },
+  });
 
   const item = items.find((i) => i.key === current) ?? null;
   const def = item ? workDef(item.code) : null;
@@ -187,8 +194,8 @@ export function WorksEditor({
   const errorText = state.message ?? Object.values(state.errors)[0];
 
   return (
-    <form {...formProps} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      <input type="hidden" name="payload" value={JSON.stringify(items)} />
+    <form {...formProps} onSubmit={(e) => { sent.current = payload; formProps.onSubmit(e); }} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <input type="hidden" name="payload" value={payload} />
       <div className="grid md:grid-cols-[17rem_minmax(0,1fr)]">
         <nav aria-label="Trabalhos" className="border-b border-slate-200 bg-slate-50 p-3 md:border-b-0 md:border-r">
           <p className="px-2 pb-2 text-sm text-slate-600">O que vai executar?</p>
@@ -415,10 +422,10 @@ export function WorksEditor({
           {errorText ? <span className="text-red-700">{errorText}</span> : state.ok ? <span className="text-tinta-700">{state.message}</span> : `${done} de ${items.length} trabalhos preenchidos`}
         </p>
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} onClick={() => (goNext.current = false)} className="btn-secondary">
+          <button type="submit" disabled={pending} className="btn-secondary">
             {pending ? 'A guardar…' : 'Guardar rascunho'}
           </button>
-          <button type="submit" disabled={pending || items.length === 0} onClick={() => (goNext.current = true)} className="btn-primary">
+          <button type="button" disabled={pending || items.length === 0} onClick={() => go('precos')} className="btn-primary">
             Continuar para os preços →
           </button>
         </div>

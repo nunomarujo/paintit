@@ -563,6 +563,12 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['strike_appeals']['Insert']>;
         Relationships: [];
       };
+      work_templates: {
+        Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
+        Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['work_templates']['Insert']>;
+        Relationships: [];
+      };
       blocked_users: {
         Row: { blocked_at: string; motivo: string; user_id: string };
         Insert: { blocked_at?: string; motivo: string; user_id: string };

@@ -4,7 +4,8 @@ import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/opor
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
-import { BudgetSteps, STEP_IDS, type StepId } from './orcamento/BudgetSteps';
+import { BudgetShell, type TemplateOption } from './orcamento/BudgetShell';
+import { STEP_IDS, type StepId } from './orcamento/steps';
 import { PricesEditor, type PriceRow } from './orcamento/PricesEditor';
 import { WorksEditor } from './orcamento/WorksEditor';
 import { painterFee } from '@/domain/commission';
@@ -12,6 +13,7 @@ import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
+import { parseTemplate } from '@/domain/templates';
 import { budgetIssues, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
 import { parsePreferences } from '@/domain/reference';
 import type { DesiredWork } from '@/domain/request';
@@ -119,9 +121,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
     rever: false,
   };
   const legacyLines = domainLines.filter((l) => !l.trabalho);
-  // Sugestões de produtos só no passo dos trabalhos.
+  // Sugestões de produtos para o passo dos trabalhos; os métodos de trabalho guardados pela entidade.
   const catalogue: CatalogueProduct[] =
-    wizard && passo === 'trabalhos'
+    wizard
       ? (await loadReferences(supabase)).map((r) => ({
           id: r.id,
           marca: r.marca,
@@ -135,6 +137,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
           preco_embalagem_l: r.preco_embalagem_l,
         }))
       : [];
+  const { data: templateRows } = wizard ? await supabase.from('work_templates').select('id, nome, dados').eq('org_id', org.id).order('nome') : { data: [] };
+  const templates: TemplateOption[] = (templateRows ?? []).map((t) => {
+    const n = parseTemplate(t.dados).items.length;
+    return { id: t.id, nome: t.nome, resumo: `${n} ${n === 1 ? 'trabalho' : 'trabalhos'}` };
+  });
   const materials =
     draft && listing
       ? await materialOptions(supabase, {
@@ -288,95 +295,89 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   {wizardZones.length} {wizardZones.length === 1 ? 'zona' : 'fachadas ou zonas'} · {formatArea(listing?.area_total_cm2 ?? 0)} estimados pelo cliente
                 </p>
               </div>
-              <BudgetSteps basePath={path} current={passo} done={done} />
-
-              {passo === 'trabalhos' && (
-                <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} basePath={path} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
-              )}
-
-              {passo === 'precos' && (
-                <>
-                  <PricesEditor
-                    proposalId={proposal.id}
-                    requestId={id}
-                    rows={priceRows}
-                    modoPreco={modoPreco}
-                    global={euros(globalLine?.preco_unitario_cents ?? 0)}
-                    iva={String(terms.ivaBps / 100).replace('.', ',')}
-                    basePath={path}
-                  />
-                  {legacyLines.length > 0 && (
-                    <section className={card}>
-                      <h3 className="font-semibold">Linhas avulsas</h3>
-                      <p className="mt-1 text-sm text-slate-600">Linhas criadas antes do orçamento guiado, ou com material de um fornecedor da plataforma.</p>
-                      <ProposalView
-                        lines={legacyLines}
-                        terms={terms}
-                        zoneNames={zoneNames}
-                        onDelete={(lineId) => (
-                          <form action={deleteLine.bind(null, id, lineId)}>
-                            <button type="submit" className="text-red-700 hover:underline">
-                              Remover
-                            </button>
-                          </form>
-                        )}
+              <BudgetShell
+                proposalId={proposal.id}
+                requestId={id}
+                initial={passo}
+                done={done}
+                templates={templates}
+                hasWork={items.length > 0}
+                steps={{
+                  trabalhos: (
+                    <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
+                  ),
+                  precos: (
+                    <>
+                      <PricesEditor
+                        proposalId={proposal.id}
+                        requestId={id}
+                        rows={priceRows}
+                        modoPreco={modoPreco}
+                        global={euros(globalLine?.preco_unitario_cents ?? 0)}
+                        iva={String(terms.ivaBps / 100).replace('.', ',')}
                       />
+                      {legacyLines.length > 0 && (
+                        <section className={card}>
+                          <h3 className="font-semibold">Linhas avulsas</h3>
+                          <p className="mt-1 text-sm text-slate-600">Linhas criadas antes do orçamento guiado, ou com material de um fornecedor da plataforma.</p>
+                          <ProposalView
+                            lines={legacyLines}
+                            terms={terms}
+                            zoneNames={zoneNames}
+                            onDelete={(lineId) => (
+                              <form action={deleteLine.bind(null, id, lineId)}>
+                                <button type="submit" className="text-red-700 hover:underline">
+                                  Remover
+                                </button>
+                              </form>
+                            )}
+                          />
+                        </section>
+                      )}
+                      <details className={card}>
+                        <summary className="cursor-pointer font-semibold">Acrescentar linha avulsa, com material de um fornecedor da plataforma</summary>
+                        <div className="mt-4">
+                          <LineForm proposalId={proposal.id} requestId={id} zones={zones} materials={materials} />
+                        </div>
+                      </details>
+                    </>
+                  ),
+                  condicoes: (
+                    <section className={card}>
+                      <h3 className="font-semibold">Condições</h3>
+                      <div className="mt-4">
+                        <TermsForm proposalId={proposal.id} requestId={id} terms={terms} />
+                      </div>
                     </section>
-                  )}
-                  <details className={card}>
-                    <summary className="cursor-pointer font-semibold">Acrescentar linha avulsa, com material de um fornecedor da plataforma</summary>
-                    <div className="mt-4">
-                      <LineForm proposalId={proposal.id} requestId={id} zones={zones} materials={materials} />
-                    </div>
-                  </details>
-                </>
-              )}
-
-              {passo === 'condicoes' && (
-                <section className={card}>
-                  <h3 className="font-semibold">Condições</h3>
-                  <div className="mt-4">
-                    <TermsForm proposalId={proposal.id} requestId={id} terms={terms} />
-                  </div>
-                  <div className="mt-6 flex justify-end">
-                    <Link href={`${path}?passo=rever`} className="btn-primary">
-                      Continuar para a revisão →
-                    </Link>
-                  </div>
-                </section>
-              )}
-
-              {passo === 'rever' && (
-                <>
-                  <article className="mx-auto max-w-[210mm] border border-slate-300 bg-white p-6 shadow-md sm:p-10" aria-label="Proposta para revisão">
-                    <p className="eyebrow">Proposta de orçamento</p>
-                    <h3 className="mt-1 text-2xl font-semibold">Pedido {listing?.ref}</h3>
-                    <p className="mb-6 text-sm text-slate-600">
-                      {listing?.concelho} · {formatArea(listing?.area_total_cm2 ?? 0)}
-                    </p>
-                    <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} />
-                  </article>
-                  {issues.length > 0 && (
-                    <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
-                      <p className="font-medium">Pendências do orçamento:</p>
-                      <ul className="mt-1 list-disc pl-5">
-                        {issues.map((m) => (
-                          <li key={m}>{m}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                  <section className={`${card} mx-auto max-w-[210mm]`}>
-                    {licenseWarning && <p className="mb-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{licenseWarning}</p>}
-                    <div className="mb-4">
-                      <Link href={`${path}?passo=trabalhos`} className="btn-secondary">
-                        ← Voltar e editar
-                      </Link>
-                    </div>
-                    <SubmitProposal proposalId={proposal.id} requestId={id} blockers={blockers} />
-                  </section>
-                </>
-              )}
+                  ),
+                  rever: (
+                    <>
+                      <article className="mx-auto max-w-[210mm] border border-slate-300 bg-white p-6 shadow-md sm:p-10" aria-label="Proposta para revisão">
+                        <p className="eyebrow">Proposta de orçamento</p>
+                        <h3 className="mt-1 text-2xl font-semibold">Pedido {listing?.ref}</h3>
+                        <p className="mb-6 text-sm text-slate-600">
+                          {listing?.concelho} · {formatArea(listing?.area_total_cm2 ?? 0)}
+                        </p>
+                        <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} />
+                      </article>
+                      {issues.length > 0 && (
+                        <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
+                          <p className="font-medium">Pendências do orçamento:</p>
+                          <ul className="mt-1 list-disc pl-5">
+                            {issues.map((m) => (
+                              <li key={m}>{m}</li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
+                      <section className={`${card} mx-auto max-w-[210mm]`}>
+                        {licenseWarning && <p className="mb-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{licenseWarning}</p>}
+                        <SubmitProposal proposalId={proposal.id} requestId={id} blockers={blockers} />
+                      </section>
+                    </>
+                  ),
+                }}
+              />
             </section>
           )}
 

@@ -98,6 +98,8 @@ estado é reconstruído em `src/domain/contracting.ts` a partir de `engagement.t
 A apresentação acontece quando a comissão entra dentro do prazo: a partir daí as partes veem-se (nome, NIF,
 contactos, morada da obra e fotografias), só para essa obra.
 
+- Aplicar a migração `20261021060000_metodos_de_trabalho.sql` (tabela `work_templates`) no Supabase; sem ela, a barra de métodos dá erro ao guardar/listar.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):

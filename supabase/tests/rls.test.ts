@@ -1214,3 +1214,20 @@ describe('catálogo de referência', () => {
     await expect(as(A, () => db.query(`insert into public.reference_products (marca, nome, tipo) values ('X', 'Y', 'outro')`))).rejects.toThrow(/row-level security/);
   });
 });
+
+describe('métodos de trabalho', () => {
+  it('só a equipa da entidade os vê; só gestores alteram', async () => {
+    const insert = (user: string, org: string, nome: string) =>
+      as(user, () => db.query(`insert into public.work_templates (org_id, nome, dados) values ($1, $2, '{}')`, [org, nome]));
+    await insert(A, adminOrg, 'Fachada completa');
+    const seen = (user: string) => as(user, async () => (await db.query('select 1 from public.work_templates')).rows.length);
+    expect(await seen(A)).toBe(1);
+    expect(await seen(C)).toBe(1);
+    expect(await seen(B)).toBe(0);
+    await expect(insert(B, adminOrg, 'Intruso')).rejects.toThrow(/row-level security/);
+    await as(B, () => db.query(`delete from public.work_templates`));
+    expect(await seen(A)).toBe(1);
+    await as(A, () => db.query(`delete from public.work_templates`));
+    expect(await seen(A)).toBe(0);
+  });
+});

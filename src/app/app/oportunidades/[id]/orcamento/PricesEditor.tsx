@@ -1,9 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { savePrices } from '@/app/app/oportunidades/orcamento-actions';
+import { outcome, useBudget, useStepSaver } from './BudgetContext';
 import { useFormAction } from '@/components/useFormAction';
 import { formatEuros } from '@/domain/money';
 import { parseEuros } from '@/domain/proposal';
@@ -35,7 +35,6 @@ export function PricesEditor({
   modoPreco,
   global,
   iva,
-  basePath,
 }: {
   proposalId: string;
   requestId: string;
@@ -43,32 +42,44 @@ export function PricesEditor({
   modoPreco: 'detalhado' | 'global';
   global: string;
   iva: string;
-  basePath: string;
 }) {
-  const router = useRouter();
+  const { go } = useBudget();
   const { state, pending, formProps } = useFormAction<FormState>(savePrices.bind(null, proposalId, requestId), { errors: {} });
   const [modo, setModo] = useState(modoPreco);
   const [prices, setPrices] = useState<Record<string, string>>(Object.fromEntries(rows.map((r) => [r.key, r.preco])));
   const [globalPrice, setGlobalPrice] = useState(global);
   const [ivaText, setIva] = useState(iva);
-  const goNext = useRef(false);
+  // Os preços dos trabalhos que entraram depois (guardados no passo anterior) vêm das linhas.
+  const priceOf = (r: PriceRow) => prices[r.key] ?? r.preco;
+  const payload = JSON.stringify({ modo, global: globalPrice, iva: ivaText, prices: Object.fromEntries(rows.map((r) => [r.key, priceOf(r)])) });
+  const touched = useRef(false);
+  const edit = <T,>(set: (v: T) => void) => (v: T) => {
+    touched.current = true;
+    set(v);
+  };
 
   useEffect(() => {
-    if (state.ok && goNext.current) {
-      goNext.current = false;
-      router.push(`${basePath}?passo=condicoes`);
-      router.refresh();
-    }
-  }, [state, router, basePath]);
+    if (state.ok) touched.current = false;
+  }, [state]);
 
-  const lineTotal = (r: PriceRow) => Math.round((r.quantidade * cents(prices[r.key] ?? '')) / 100);
+  useStepSaver('precos', {
+    dirty: () => touched.current,
+    save: async () => {
+      const form = new FormData();
+      form.set('payload', payload);
+      const error = outcome(await savePrices(proposalId, requestId, { errors: {} }, form));
+      if (!error) touched.current = false;
+      return error;
+    },
+  });
+
+  const lineTotal = (r: PriceRow) => Math.round((r.quantidade * cents(priceOf(r))) / 100);
   const included = rows.filter((r) => r.estado === 'base');
   const sum = (list: PriceRow[]) => list.reduce((n, r) => n + lineTotal(r), 0);
   const base = modo === 'global' ? cents(globalPrice) : sum(included);
   const ivaBps = parseHundredths(ivaText);
   const validIva = ivaBps !== null && !Number.isNaN(ivaBps) && ivaBps >= 0 && ivaBps <= 3000;
   const iva$ = validIva ? Math.round((base * ivaBps!) / 10000) : 0;
-  const payload = JSON.stringify({ modo, global: globalPrice, iva: ivaText, prices });
   const errorText = state.message ?? Object.values(state.errors)[0];
 
   return (
@@ -80,7 +91,7 @@ export function PricesEditor({
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {([['detalhado', 'Discriminado por trabalho', 'O cliente vê o preço de cada trabalho.'], ['global', 'Preço global da obra', 'Um só valor; os trabalhos ficam descritos, sem preço.']] as const).map(([k, title, text]) => (
               <label key={k} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${modo === k ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300'}`}>
-                <input type="radio" name="modo-visivel" checked={modo === k} onChange={() => setModo(k)} className="mt-1" />
+                <input type="radio" name="modo-visivel" checked={modo === k} onChange={() => edit(setModo)(k)} className="mt-1" />
                 <span>
                   <span className="block font-medium">{title}</span>
                   <span className="block text-sm text-slate-600">{text}</span>
@@ -119,7 +130,7 @@ export function PricesEditor({
                         ) : (
                           <label>
                             <span className="sr-only">Preço de {r.descricao}</span>
-                            <input value={prices[r.key] ?? ''} onChange={(e) => setPrices({ ...prices, [r.key]: e.target.value })} inputMode="decimal" placeholder={r.unidade === 'vg' ? '€ total' : `€ por ${UNIT[r.unidade]}`} className={field} />
+                            <input value={priceOf(r)} onChange={(e) => edit(setPrices)({ ...prices, [r.key]: e.target.value })} inputMode="decimal" placeholder={r.unidade === 'vg' ? '€ total' : `€ por ${UNIT[r.unidade]}`} className={field} />
                           </label>
                         )}
                       </td>
@@ -133,7 +144,7 @@ export function PricesEditor({
         ) : (
           <label className="block max-w-sm text-sm font-medium text-slate-700">
             Preço global da obra, sem IVA (€)
-            <input value={globalPrice} onChange={(e) => setGlobalPrice(e.target.value)} inputMode="decimal" className={`mt-1 ${field}`} />
+            <input value={globalPrice} onChange={(e) => edit(setGlobalPrice)(e.target.value)} inputMode="decimal" className={`mt-1 ${field}`} />
           </label>
         )}
 
@@ -144,7 +155,7 @@ export function PricesEditor({
             <label htmlFor="iva">IVA (%)</label>
           </dt>
           <dd className="flex items-center justify-end gap-3">
-            <input id="iva" value={ivaText} onChange={(e) => setIva(e.target.value)} inputMode="decimal" className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-right" aria-invalid={!validIva} />
+            <input id="iva" value={ivaText} onChange={(e) => edit(setIva)(e.target.value)} inputMode="decimal" className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-right" aria-invalid={!validIva} />
             <span className="w-24 text-right">{formatEuros(iva$)}</span>
           </dd>
           <dt className="font-semibold">Total com IVA</dt>
@@ -170,10 +181,10 @@ export function PricesEditor({
           {errorText ? <span className="text-red-700">{errorText}</span> : state.ok ? <span className="text-tinta-700">{state.message}</span> : null}
         </p>
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} onClick={() => (goNext.current = false)} className="btn-secondary">
+          <button type="submit" disabled={pending} className="btn-secondary">
             {pending ? 'A guardar…' : 'Guardar rascunho'}
           </button>
-          <button type="submit" disabled={pending || !validIva} onClick={() => (goNext.current = true)} className="btn-primary">
+          <button type="button" disabled={pending || !validIva} onClick={() => go('condicoes')} className="btn-primary">
             Continuar para as condições →
           </button>
         </div>
