@@ -103,7 +103,7 @@ contactos, morada da obra e fotografias), só para essa obra.
 
 - Migrações aplicadas e confirmadas na base real (21/10/2026): `...030000_infracoes_contacto`, `...040000_revisao_avisos` e `...060000_metodos_de_trabalho` (4 políticas RLS; avisos novos: nenhum, só 2 "unused index" informativos).
 
-- **Aplicar a migração `20261021070000_codigos_de_adesao.sql`** (códigos de adesão dos fornecedores: tabelas, funções, bucket `faturas-adesao`). Até ser aplicada, a página `/adesoes` e o campo de código do pintor dão erro.
+- Migração `20261021070000_codigos_de_adesao.sql` aplicada e confirmada na base real (21/10/2026): 5 funções, bucket `faturas-adesao`, 7 políticas. Avisos novos esperados: 5 "SECURITY DEFINER executável por autenticados" (cada função verifica quem chama) e 7 "índice não usado" (tabelas vazias).
 
 ## Pendente do promotor
 
