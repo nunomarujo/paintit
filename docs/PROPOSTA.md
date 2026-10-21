@@ -54,5 +54,5 @@ Decisões do promotor e plano por fases. Ler antes de mexer em `src/domain/propo
 |---|---|---|
 | 1 | Condições obrigatórias (mão-de-obra, seguros, pagamentos por fases), garantia legal + adicional, resumo + discriminado | feito e aplicada (21/10/2026) |
 | 2 | Zonas por fachada: o pedido diz se os trabalhos são iguais (`trabalhos_modo`) e cada zona pode ter os seus trabalhos; cada linha da proposta liga-se a uma ou mais zonas, com motivo da diferença; o comparador mostra que zonas ficaram sem preço | feito e aplicada (21/10/2026) |
-| 3 | Orçamento guiado em 4 passos (Trabalhos, Preços, Condições, Rever em folha A4): 13 trabalhos com os seus campos e estado (proposta base, opcional, a confirmar, não incluído), zonas por trabalho, preço por unidade ou global, IVA livre, descrição gerada para o cliente | feito, migração `20261021050000_orcamento_guiado.sql` por aplicar |
+| 3 | Orçamento guiado em 4 passos (Trabalhos, Preços, Condições, Rever em folha A4): 13 trabalhos com os seus campos e estado (proposta base, opcional, a confirmar, não incluído), zonas por trabalho, preço por unidade ou global, IVA livre, descrição gerada para o cliente | feito e aplicada (21/10/2026) |
 | 4 | Catálogo de produtos nos módulos, modelos próprios do pintor, duplicar solução, cobertura dos trabalhos pedidos no comparador | por fazer |
