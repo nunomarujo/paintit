@@ -69,6 +69,15 @@ export const DESIRED_WORK_LABELS: Record<DesiredWork, string> = {
   tratamento_metais: 'Tratamento de metais',
 };
 
+/** Os trabalhos pretendidos são iguais em todas as zonas (fachadas)? */
+export const WORKS_MODES = ['iguais', 'diferencas', 'nao_sei'] as const;
+export type WorksMode = (typeof WORKS_MODES)[number];
+export const WORKS_MODE_LABELS: Record<WorksMode, string> = {
+  iguais: 'Sim, o mesmo pedido para todas as zonas',
+  diferencas: 'Há diferenças entre zonas (trabalhos comuns, com ajustes em algumas)',
+  nao_sei: 'Ainda não sei: descrevo o objetivo e junto fotografias',
+};
+
 // Áreas em centésimos de m² (inteiros), para não acumular erros de arredondamento.
 export type AreaCm2 = number;
 
@@ -83,6 +92,8 @@ export interface SurfaceInput {
   vaosCm2: AreaCm2 | null;
   quantidade: number;
   origem: AreaSource;
+  /** Trabalhos só desta zona, quando diferem dos comuns do pedido. null = os do pedido. */
+  trabalhos: DesiredWork[] | null;
 }
 
 /** Área de uma superfície, em centésimos de m². A área direta prevalece. */
@@ -120,6 +131,8 @@ export function parseSurface(form: FormData): { value?: SurfaceInput; errors: Fi
   for (const [field, v] of [['area', areaDireta], ['largura', largura], ['altura', altura], ['vaos', vaos]] as const) {
     if (Number.isNaN(v)) errors[field] = 'Número com até 2 casas decimais.';
   }
+  const zonaTrabalhos = form.getAll('trabalhosZona').map(String);
+  if (zonaTrabalhos.some((t) => !(DESIRED_WORKS as readonly string[]).includes(t))) errors.trabalhosZona = 'Trabalho inválido.';
   const qty = String(form.get('quantidade') ?? '1').trim() || '1';
   const quantidade = /^\d+$/.test(qty) ? Number(qty) : Number.NaN;
   if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 500) errors.quantidade = 'Entre 1 e 500.';
@@ -138,6 +151,7 @@ export function parseSurface(form: FormData): { value?: SurfaceInput; errors: Fi
     vaosCm2: vaos,
     quantidade,
     origem: origem as AreaSource,
+    trabalhos: zonaTrabalhos.length > 0 ? (zonaTrabalhos as DesiredWork[]) : null,
   };
   if (surfaceArea(value) <= 0) return { errors: { area: 'A área resultante tem de ser maior do que zero.' } };
   return { value, errors };
@@ -230,6 +244,7 @@ export interface RequestInput {
   execucaoDesde: string | null;
   execucaoAte: string | null;
   ocupacaoViaPublica: ViaPublica;
+  trabalhosModo: WorksMode;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -251,6 +266,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
     if (v && !DATE.test(v)) errors[k] = 'Data inválida.';
     dates[k] = v || null;
   }
+  const modo = get('trabalhosModo') || 'iguais';
+  if (!(WORKS_MODES as readonly string[]).includes(modo)) errors.trabalhosModo = 'Escolha uma opção.';
   const via = get('ocupacaoViaPublica') || 'a_avaliar';
   if (!(VIA_PUBLICA as readonly string[]).includes(via)) errors.ocupacaoViaPublica = 'Escolha uma opção.';
   if (dates.execucaoDesde && dates.execucaoAte && dates.execucaoAte < dates.execucaoDesde) {
@@ -270,6 +287,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
       execucaoDesde: dates.execucaoDesde ?? null,
       execucaoAte: dates.execucaoAte ?? null,
       ocupacaoViaPublica: via as ViaPublica,
+      trabalhosModo: modo as WorksMode,
     },
   };
 }

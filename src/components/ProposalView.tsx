@@ -19,11 +19,14 @@ export function ProposalView({
   lines,
   terms,
   onDelete,
+  zoneNames = {},
 }: {
   lines: (ProposalLine & { id: string })[];
   terms: ProposalTerms;
   /** Se presente, cada linha tem um botão para a remover (rascunho do pintor). */
   onDelete?: (lineId: string) => React.ReactNode;
+  /** Nome de cada zona do pedido, para mostrar a que zonas se aplica cada linha. */
+  zoneNames?: Record<string, string>;
 }) {
   const t = proposalTotals(lines, terms.ivaBps);
   const byCategory = LINE_CATEGORIES.map((c) => [c, lines.filter((l) => l.categoria === c && l.inclusao === 'incluido').reduce((n, l) => n + lineTotal(l), 0)] as const).filter(
@@ -55,11 +58,16 @@ export function ProposalView({
                     )}
                     <span className="block text-xs text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria]}
-                      {l.superficie ? ` · ${SURFACE_KIND_LABELS[l.superficie]}` : ''}
+                      {l.zonas && l.zonas.length > 0
+                        ? ` · ${l.zonas.map((z) => zoneNames[z] ?? 'Zona').join(', ')}`
+                        : l.superficie
+                          ? ` · ${SURFACE_KIND_LABELS[l.superficie]}`
+                          : ' · Obra toda'}
                       {l.demaos ? ` · ${l.demaos} demão${l.demaos > 1 ? 's' : ''}` : ''}
                       {l.produto ? ` · ${l.produto}` : ''}
                       {l.inclusao !== 'incluido' ? ` · ${INCLUSION_LABELS[l.inclusao]}` : ''}
                     </span>
+                    {l.motivoDiferenca && <span className="block text-xs text-slate-600">Motivo: {l.motivoDiferenca}</span>}
                   </td>
                   <td className="py-1.5 text-right">
                     {qty(l.quantidade)} {UNIT_LABELS[l.unidade]}

@@ -2,7 +2,7 @@
 
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
-import { DESIRED_WORKS, DESIRED_WORK_LABELS, VIA_PUBLICA, VIA_PUBLICA_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
+import { DESIRED_WORKS, DESIRED_WORK_LABELS, VIA_PUBLICA, VIA_PUBLICA_LABELS, WORKS_MODES, WORKS_MODE_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
 import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
 import type { Preference } from '@/domain/reference';
@@ -19,6 +19,7 @@ export interface RequestInitial {
   execucao_ate: string | null;
   ocupacao_via_publica?: string;
   produtos_preferidos?: Preference[];
+  trabalhos_modo?: string;
 }
 
 interface Props {
@@ -90,6 +91,22 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
               </label>
             ))}
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="text-sm font-medium text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
+          <div className="mt-2 space-y-2 text-sm">
+            {WORKS_MODES.map((m) => (
+              <label key={m} className="flex items-start gap-2">
+                <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} className="mt-1" />
+                {WORKS_MODE_LABELS[m]}
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Com diferenças, é possível indicar, em cada zona, os trabalhos que só nela se aplicam (depois de guardar, ao acrescentar zonas).
+            Fotografias e problemas observados ficam sempre associados à zona.
+          </p>
         </fieldset>
 
         <Field

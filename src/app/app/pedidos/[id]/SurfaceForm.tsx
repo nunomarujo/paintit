@@ -3,10 +3,10 @@
 import type { FormState } from '@/app/app/actions';
 import { addSurface } from '@/app/app/pedidos/actions';
 import { Field, selectClass } from '@/components/Field';
-import { AREA_SOURCES, AREA_SOURCE_LABELS, SURFACE_KINDS, SURFACE_KIND_LABELS } from '@/domain/request';
+import { AREA_SOURCES, AREA_SOURCE_LABELS, DESIRED_WORKS, DESIRED_WORK_LABELS, SURFACE_KINDS, SURFACE_KIND_LABELS, type WorksMode } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
 
-export function SurfaceForm({ requestId }: { requestId: string }) {
+export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string; modo?: WorksMode }) {
   const { state, pending, formProps } = useFormAction<FormState>(
     addSurface.bind(null, requestId),
     { errors: {} },
@@ -27,7 +27,7 @@ export function SurfaceForm({ requestId }: { requestId: string }) {
             ))}
           </select>
         </Field>
-        <Field name="descricao" label="Descrição" error={e.descricao} hint="Ex.: fachada norte, com fissuras." />
+        <Field name="descricao" label="Nome da fachada ou zona" error={e.descricao} hint="Ex.: fachada principal; tardoz, com fissuras. Não indique a morada." />
         <Field name="origem" label="Origem da medida" error={e.origem}>
           <select name="origem" defaultValue="estimativa" className={selectClass}>
             {AREA_SOURCES.map((s) => (
@@ -46,6 +46,22 @@ export function SurfaceForm({ requestId }: { requestId: string }) {
         <Field name="vaos" label="Vãos (m²)" inputMode="text" error={e.vaos} hint="Janelas e portas." />
         <Field name="quantidade" label="Quantidade" inputMode="numeric" defaultValue="1" error={e.quantidade} />
       </div>
+      {modo === 'diferencas' && (
+        <fieldset className="rounded-xl bg-slate-50 p-4">
+          <legend className="px-1 text-sm font-semibold">Trabalhos só desta zona (opcional)</legend>
+          <p className="text-xs text-slate-600">
+            Assinale apenas se esta zona tiver trabalhos diferentes dos comuns do pedido. Sem nada assinalado, aplicam-se os comuns.
+          </p>
+          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+            {DESIRED_WORKS.map((w) => (
+              <label key={w} className="flex items-center gap-2">
+                <input type="checkbox" name="trabalhosZona" value={w} />
+                {DESIRED_WORK_LABELS[w]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       {state.message && (
         <p className="text-sm text-red-700" role="alert">
           {state.message}

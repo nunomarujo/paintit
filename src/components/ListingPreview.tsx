@@ -24,7 +24,9 @@ export interface ListingView {
   prazoPropostas: string | null;
   execucaoDesde: string | null;
   execucaoAte: string | null;
-  surfaces: { kind: SurfaceKind; descricao: string | null; area: number }[];
+  surfaces: { id?: string; kind: SurfaceKind; descricao: string | null; area: number; trabalhos?: string[] | null }[];
+  /** Os trabalhos são iguais em todas as zonas? */
+  trabalhosModo?: 'iguais' | 'diferencas' | 'nao_sei';
   ocupacaoViaPublica?: 'sim' | 'nao' | 'a_avaliar';
   /** Produtos de referência pedidos pelo cliente; fixo = não substituir. */
   preferidos?: { id: string; label: string; fixo: boolean }[];
@@ -92,6 +94,13 @@ export function ListingPreview({ l }: { l: ListingView }) {
         <p className="mt-3">
           <span className="text-slate-500">Trabalhos pretendidos: </span>
           {l.trabalhos.map((t) => DESIRED_WORK_LABELS[t as DesiredWork] ?? t).join(', ')}
+          {l.trabalhosModo === 'iguais' && l.surfaces.length > 1 && <span className="block text-slate-500">Iguais em todas as zonas.</span>}
+          {l.trabalhosModo === 'diferencas' && <span className="block text-slate-500">Comuns a todas as zonas, com ajustes indicados em algumas.</span>}
+          {l.trabalhosModo === 'nao_sei' && (
+            <span className="block font-medium text-amber-700">
+              O cliente ainda não sabe se os trabalhos são iguais em todas as zonas: a proposta deve esclarecer as diferenças.
+            </span>
+          )}
         </p>
       )}
       {l.ocupacaoViaPublica && (
@@ -136,6 +145,11 @@ export function ListingPreview({ l }: { l: ListingView }) {
                 <td className="py-1">
                   {SURFACE_KIND_LABELS[s.kind]}
                   {s.descricao && <span className="block text-slate-500">{s.descricao}</span>}
+                  {s.trabalhos && s.trabalhos.length > 0 && (
+                    <span className="block text-slate-600">
+                      Nesta zona: {s.trabalhos.map((t) => DESIRED_WORK_LABELS[t as DesiredWork] ?? t).join(', ')}
+                    </span>
+                  )}
                 </td>
                 <td className="py-1 text-right">{formatArea(s.area)}</td>
               </tr>

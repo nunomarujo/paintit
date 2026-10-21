@@ -85,7 +85,11 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
                 {named ?? alias(i)} · {formatEuros(proposalTotals(linesOf(p.id), p.iva_bps).base)} sem IVA · estado: {p.status.replace('_', ' ')}
               </h3>
               <div className="mt-2">
-                <ProposalView lines={linesOf(p.id)} terms={toTerms(p)} />
+                <ProposalView
+                  lines={linesOf(p.id)}
+                  terms={toTerms(p)}
+                  zoneNames={Object.fromEntries((surfaces ?? []).map((z) => [z.id, `${z.descricao?.trim() || SURFACE_KIND_LABELS[z.kind]} (${formatArea(z.area_cm2)})`]))}
+                />
               </div>
             </section>
           );

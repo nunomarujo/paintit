@@ -6,7 +6,7 @@ import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
 import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
-import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers } from '@/domain/request';
+import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers, type DesiredWork } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { loadReferences, preferredView } from '@/lib/reference';
@@ -157,6 +157,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                         }`}
                     {s.quantidade > 1 ? ` × ${s.quantidade}` : ''} · {AREA_SOURCE_LABELS[s.origem]}
                   </span>
+                  {s.trabalhos && s.trabalhos.length > 0 && (
+                    <span className="block text-slate-600">
+                      Nesta zona: {s.trabalhos.map((t) => DESIRED_WORK_LABELS[t as DesiredWork] ?? t).join(', ')}
+                    </span>
+                  )}
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="font-semibold">{formatArea(s.area_cm2)}</span>
@@ -176,7 +181,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         )}
         {manager && draft && (
           <div className="mt-6 border-t border-slate-100 pt-6">
-            <SurfaceForm requestId={req.id} />
+            <SurfaceForm requestId={req.id} modo={req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei'} />
           </div>
         )}
       </section>
@@ -241,7 +246,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             prazoPropostas: req.prazo_propostas,
             execucaoDesde: req.execucao_desde,
             execucaoAte: req.execucao_ate,
-            surfaces: list.map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
+            surfaces: list.map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+            trabalhosModo: req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
             ocupacaoViaPublica: req.ocupacao_via_publica,
             preferidos: await preferredView(supabase, req.produtos_preferidos),
             photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),

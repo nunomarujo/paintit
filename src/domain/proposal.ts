@@ -45,6 +45,10 @@ export interface ProposalLine {
   inclusao: Inclusion;
   /** Produto do catálogo de um fornecedor registado na plataforma (material comprometido). */
   productId?: string | null;
+  /** Zonas (fachadas) do pedido a que a linha se aplica; vazio = obra toda. */
+  zonas?: string[];
+  /** Porque esta linha só se aplica a algumas zonas. */
+  motivoDiferenca?: string | null;
 }
 
 /** Total de uma linha em cêntimos, arredondado ao cêntimo. */
@@ -159,6 +163,8 @@ export interface ComparableProposal {
 }
 
 export interface ComparisonRow {
+  /** Zonas do pedido (por id) sem nenhuma linha incluída que as abranja. */
+  zonasEmFalta: string[];
   id: string;
   /** "Pintor A", "Pintor B"… pela ordem de chegada; a identidade só é revelada na apresentação. */
   alias: string;
@@ -177,12 +183,19 @@ export const alias = (index: number) =>
 
 export function compareProposals(
   proposals: ComparableProposal[],
-  request: { areaTotal: AreaCm2; superficies: SurfaceKind[] },
+  request: { areaTotal: AreaCm2; superficies: SurfaceKind[]; zonas?: { id: string; kind: SurfaceKind }[] },
 ): ComparisonRow[] {
   return proposals.map((p, i) => {
     const totals = proposalTotals(p.lines, p.ivaBps);
     const included = p.lines.filter((l) => l.inclusao === 'incluido');
     const covered = new Set(included.map((l) => l.superficie).filter((s): s is SurfaceKind => s !== null));
+    // Com zonas identificadas, cobre-se cada zona: por id, ou (linhas antigas, sem zonas) pelo tipo de superfície.
+    const zonasEmFalta = (request.zonas ?? [])
+      .filter((z) => !included.some((l) => (l.zonas?.length ? l.zonas.includes(z.id) : l.superficie === z.kind)))
+      .map((z) => z.id);
+    const missingKinds = request.zonas
+      ? [...new Set((request.zonas ?? []).filter((z) => zonasEmFalta.includes(z.id)).map((z) => z.kind))]
+      : [...new Set(request.superficies)].filter((s) => !covered.has(s));
     const categorias = Object.fromEntries(
       LINE_CATEGORIES.map((c) => {
         const ls = included.filter((l) => l.categoria === c);
@@ -194,7 +207,8 @@ export function compareProposals(
       alias: alias(i),
       totals,
       precoM2: request.areaTotal > 0 ? Math.round((totals.base * 100) / request.areaTotal) : null,
-      superficiesEmFalta: [...new Set(request.superficies)].filter((s) => !covered.has(s)),
+      superficiesEmFalta: missingKinds,
+      zonasEmFalta,
       temCondicionados: p.lines.some((l) => l.inclusao === 'condicionado'),
       categorias,
       materiaisCertificados: included.filter((l) => l.productId).length,
@@ -221,6 +235,7 @@ export function sortRows(rows: ComparisonRow[], key: SortKey, durations: Record<
 /** "12,50" euros → cêntimos; null se vazio; NaN se inválido. */
 export const parseEuros = parseHundredths;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isOneOf = <T extends string>(list: readonly T[], v: string): v is T => (list as readonly string[]).includes(v);
 
 export function parseLine(form: FormData): { value?: ProposalLine; errors: FieldErrors } {
@@ -236,6 +251,10 @@ export function parseLine(form: FormData): { value?: ProposalLine; errors: Field
   if (superficie && !isOneOf(SURFACE_KINDS, superficie)) errors.superficie = 'Superfície inválida.';
   const descricao = get('descricao');
   if (!descricao) errors.descricao = 'Descreva o trabalho.';
+  const zonas = [...new Set(form.getAll('zona').map(String))];
+  if (zonas.some((z) => !UUID.test(z)) || zonas.length > 30) errors.zona = 'Zona inválida.';
+  const motivoDiferenca = get('motivoDiferenca');
+  if (motivoDiferenca.length > 300) errors.motivoDiferenca = 'No máximo 300 letras.';
   const quantidade = parseHundredths(form.get('quantidade'));
   if (quantidade === null || Number.isNaN(quantidade) || quantidade <= 0) errors.quantidade = 'Quantidade maior do que zero.';
   const preco = parseEuros(form.get('preco'));
@@ -256,6 +275,8 @@ export function parseLine(form: FormData): { value?: ProposalLine; errors: Field
       demaos,
       produto: get('produto') || null,
       inclusao: inclusao as Inclusion,
+      zonas,
+      motivoDiferenca: motivoDiferenca || null,
     },
   };
 }

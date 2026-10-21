@@ -41,7 +41,7 @@ export default async function ProposalsPage({
   if (!req) notFound();
   const [{ data: org }, { data: surfaces }, { data: proposals }, { data: messages }] = await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
-    supabase.from('request_surfaces').select('kind, area_cm2').eq('request_id', id),
+    supabase.from('request_surfaces').select('id, kind, descricao, area_cm2').eq('request_id', id).order('created_at'),
     supabase.from('proposals').select('*').eq('request_id', id).neq('status', 'rascunho').order('submitted_at'),
     supabase.from('proposal_messages').select('id, proposal_id, lado, texto, created_at').eq('request_id', id).order('created_at'),
   ]);
@@ -70,8 +70,13 @@ export default async function ProposalsPage({
       inicioPossivel: p.inicio_possivel,
       adiantamentoBps: p.adiantamento_bps,
     })),
-    { areaTotal, superficies: (surfaces ?? []).map((s) => s.kind) },
+    { areaTotal, superficies: (surfaces ?? []).map((s) => s.kind), zonas: (surfaces ?? []).map((s) => ({ id: s.id, kind: s.kind })) },
   );
+  const zoneNames = Object.fromEntries(
+    (surfaces ?? []).map((s) => [s.id, `${s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind]} (${formatArea(s.area_cm2)})`]),
+  );
+  const missing = (r: { zonasEmFalta: string[]; superficiesEmFalta: (keyof typeof SURFACE_KIND_LABELS)[] }) =>
+    r.zonasEmFalta.length ? r.zonasEmFalta.map((z) => zoneNames[z] ?? 'zona').join(', ') : r.superficiesEmFalta.map((x) => SURFACE_KIND_LABELS[x]).join(', ');
   const byId = new Map(list.map((p) => [p.id, p]));
   const prefs = parsePreferences(req.produtos_preferidos);
   const prefRefs = await loadReferences(supabase, prefs.map((p) => p.id));
@@ -150,7 +155,7 @@ export default async function ProposalsPage({
                   <span className="flex justify-between gap-3 py-2 text-slate-500">
                     Superfícies
                     <b className={`text-right font-medium ${r.superficiesEmFalta.length ? 'text-amber-700' : 'text-slate-900'}`}>
-                      {r.superficiesEmFalta.length ? `Falta ${r.superficiesEmFalta.map((x) => SURFACE_KIND_LABELS[x]).join(', ')}` : 'Todas com preço'}
+                      {r.superficiesEmFalta.length ? `Falta ${missing(r)}` : 'Todas com preço'}
                     </b>
                   </span>
                 </div>
@@ -240,7 +245,7 @@ export default async function ProposalsPage({
                       'Todas cobertas'
                     ) : (
                       <span key={r.id} className="text-amber-800">
-                        {r.superficiesEmFalta.map((s) => SURFACE_KIND_LABELS[s]).join(', ')}
+                        {missing(r)}
                       </span>
                     ),
                   )}
@@ -326,7 +331,7 @@ export default async function ProposalsPage({
               <span className="text-sm text-slate-600">{STATUS[p.status]}</span>
             </div>
             <div className="mt-4">
-              <ProposalView lines={linesOf(p.id)} terms={terms} />
+              <ProposalView lines={linesOf(p.id)} terms={terms} zoneNames={zoneNames} />
             </div>
             {manager && !chosen && p.status === 'submetida' && (
               <div className="mt-4">

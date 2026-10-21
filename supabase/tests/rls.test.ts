@@ -546,6 +546,21 @@ describe('propostas e escolha', () => {
     );
   });
 
+  it('as linhas só se ligam a zonas do próprio pedido', async () => {
+    const zone = (await one<{ id: string }>('select id from public.request_surfaces where request_id = $1 limit 1', [requestId])).id;
+    const ins = (z: string) =>
+      as(P, () =>
+        db.query(
+          `insert into public.proposal_lines (proposal_id, categoria, descricao, quantidade, preco_unitario_cents, inclusao, surface_ids)
+           values ($1, 'pintura', 'Zona de teste', 100, 100, 'opcional', array[$2]::uuid[]) returning id`,
+          [mine, z],
+        ),
+      );
+    await expect(ins('00000000-0000-4000-8000-00000000dead')).rejects.toThrow(/não pertence/);
+    const ok = await ins(zone);
+    await as(P, () => db.query('delete from public.proposal_lines where id = $1', [(ok.rows[0] as { id: string }).id]));
+  });
+
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
     // Condições do orçamento: sem mão-de-obra, seguros e plano de pagamentos a 100% não se submete.
     const upd = async (sql: string) => {

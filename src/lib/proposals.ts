@@ -18,6 +18,8 @@ export function toLine(l: Row<'proposal_lines'>): ProposalLine {
     produto: l.produto,
     inclusao: l.inclusao,
     productId: l.product_id,
+    zonas: l.surface_ids,
+    motivoDiferenca: l.motivo_diferenca,
   };
 }
 

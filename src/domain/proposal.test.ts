@@ -148,4 +148,32 @@ describe('propostas', () => {
     bad.append('faseNome', 'X'); bad.append('fasePct', '0');
     expect(parseTerms(bad).errors.fases).toBeDefined();
   });
+
+  it('cobre cada zona do pedido: por id, ou pelo tipo nas linhas antigas', () => {
+    const zonas = [
+      { id: 'a', kind: 'fachada' as const },
+      { id: 'b', kind: 'fachada' as const },
+      { id: 'c', kind: 'varandas' as const },
+    ];
+    const [r] = compareProposals(
+      [{ id: 'x', lines: [line({ zonas: ['a'] }), line({ superficie: 'varandas' })], ivaBps: 2300, duracaoDias: 10, inicioPossivel: null, adiantamentoBps: 0 }],
+      { areaTotal: 10000, superficies: ['fachada', 'varandas'], zonas },
+    );
+    expect(r!.zonasEmFalta).toEqual(['b']);
+    expect(r!.superficiesEmFalta).toEqual(['fachada']);
+    const [all] = compareProposals(
+      [{ id: 'y', lines: [line({ zonas: ['a', 'b'] }), line({ zonas: ['c'], superficie: 'varandas' })], ivaBps: 2300, duracaoDias: 10, inicioPossivel: null, adiantamentoBps: 0 }],
+      { areaTotal: 10000, superficies: ['fachada', 'varandas'], zonas },
+    );
+    expect(all!.zonasEmFalta).toEqual([]);
+  });
+
+  it('lê as zonas da linha, só ids válidos, e o motivo da diferença', () => {
+    const ok = '123e4567-e89b-42d3-a456-426614174000';
+    const f = form({ categoria: 'pintura', descricao: 'Fachada', quantidade: '10', preco: '5' });
+    f.append('zona', ok); f.append('zona', ok); f.set('motivoDiferenca', 'Tardoz com fissuras');
+    expect(parseLine(f).value).toMatchObject({ zonas: [ok], motivoDiferenca: 'Tardoz com fissuras' });
+    f.append('zona', 'x');
+    expect(parseLine(f).errors.zona).toBeDefined();
+  });
 });

@@ -291,6 +291,7 @@ export type Database = {
           updated_at: string;
           version: number;
           ocupacao_via_publica: ViaPublica;
+          trabalhos_modo: string;
         };
         Insert: {
           produtos_preferidos?: Json;
@@ -313,6 +314,7 @@ export type Database = {
           updated_at?: string;
           version?: number;
           ocupacao_via_publica?: ViaPublica;
+          trabalhos_modo?: string;
         };
         Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
         Relationships: [
@@ -795,6 +797,8 @@ export type Database = {
           product_id: string | null;
           preco_fornecedor_cents: number | null;
           desconto_bps: number | null;
+          surface_ids: string[];
+          motivo_diferenca: string | null;
         };
         Insert: {
           categoria: LineCategory;
@@ -811,6 +815,8 @@ export type Database = {
           product_id?: string | null;
           preco_fornecedor_cents?: number | null;
           desconto_bps?: number | null;
+          surface_ids?: string[];
+          motivo_diferenca?: string | null;
         };
         Update: Partial<Database['public']['Tables']['proposal_lines']['Insert']>;
         Relationships: [
@@ -903,6 +909,7 @@ export type Database = {
           quantidade: number;
           request_id: string;
           vaos_cm2: number | null;
+          trabalhos: string[] | null;
         };
         Insert: {
           altura_cm?: number | null;
@@ -916,6 +923,7 @@ export type Database = {
           quantidade?: number;
           request_id: string;
           vaos_cm2?: number | null;
+          trabalhos?: string[] | null;
         };
         Update: Partial<Database['public']['Tables']['request_surfaces']['Insert']>;
         Relationships: [
@@ -950,6 +958,7 @@ export type Database = {
           trabalhos: string[];
           version: number;
           ocupacao_via_publica: ViaPublica;
+          trabalhos_modo: string;
         };
         // Escrita só pelo gatilho de publicação (a base de dados recusa o resto).
         Insert: Partial<Database['public']['Tables']['request_listings']['Row']>;

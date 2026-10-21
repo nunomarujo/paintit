@@ -53,6 +53,6 @@ Decisões do promotor e plano por fases. Ler antes de mexer em `src/domain/propo
 | Fase | Conteúdo | Estado |
 |---|---|---|
 | 1 | Condições obrigatórias (mão-de-obra, seguros, pagamentos por fases), garantia legal + adicional, resumo + discriminado | feito, migração `20261021000000` por aplicar |
-| 2 | Zonas por fachada no pedido (campo "mesmo para todas / diferenças") e na proposta; soluções partilhadas | por fazer |
+| 2 | Zonas por fachada: o pedido diz se os trabalhos são iguais (`trabalhos_modo`) e cada zona pode ter os seus trabalhos; cada linha da proposta liga-se a uma ou mais zonas, com motivo da diferença; o comparador mostra que zonas ficaram sem preço | feito, migração `20261021020000_fachadas.sql` por aplicar |
 | 3 | Orçamento guiado em 5 passos: trabalhos com estado, módulos técnicos, preços gerados | por fazer |
 | 4 | Catálogo de produtos nos módulos, modelos próprios do pintor, duplicar solução, cobertura dos trabalhos pedidos no comparador | por fazer |

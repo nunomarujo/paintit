@@ -28,6 +28,7 @@ function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>
     execucao_desde: v.execucaoDesde,
     execucao_ate: v.execucaoAte,
     ocupacao_via_publica: v.ocupacaoViaPublica,
+    trabalhos_modo: v.trabalhosModo,
   };
 }
 
@@ -82,6 +83,7 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
     vaos_cm2: v.areaDireta === null ? v.vaosCm2 : null,
     quantidade: v.quantidade,
     origem: v.origem,
+    trabalhos: v.trabalhos,
   });
   if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
   revalidatePath(`/app/pedidos/${requestId}`);

@@ -17,7 +17,6 @@ import {
   type PaymentPhase,
   type ProposalTerms,
 } from '@/domain/proposal';
-import { SURFACE_KIND_LABELS, type SurfaceKind } from '@/domain/request';
 import type { MaterialOption } from '@/lib/materials';
 import { MaterialPicker } from '@/components/MaterialPicker';
 
@@ -159,12 +158,13 @@ function PaymentPlan({ phases, error }: { phases: PaymentPhase[]; error?: string
 export function LineForm({
   proposalId,
   requestId,
-  surfaces,
+  zones,
   materials,
 }: {
   proposalId: string;
   requestId: string;
-  surfaces: SurfaceKind[];
+  /** Zonas (fachadas) do pedido a que a linha se pode aplicar. */
+  zones: { id: string; label: string }[];
   materials: MaterialOption[];
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(addLine.bind(null, proposalId, requestId), {
@@ -184,16 +184,6 @@ export function LineForm({
             ))}
           </select>
         </Field>
-        <Field name="superficie" label="Superfície do pedido" error={e.superficie}>
-          <select name="superficie" defaultValue={surfaces[0] ?? ''} className={selectClass}>
-            <option value="">Geral</option>
-            {[...new Set(surfaces)].map((s) => (
-              <option key={s} value={s}>
-                {SURFACE_KIND_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </Field>
         <Field name="inclusao" label="Preço" error={e.inclusao}>
           <select name="inclusao" defaultValue="incluido" className={selectClass}>
             {INCLUSIONS.map((i) => (
@@ -204,6 +194,29 @@ export function LineForm({
           </select>
         </Field>
       </div>
+      <fieldset className="rounded-xl bg-slate-50 p-4">
+        <legend className="px-1 text-sm font-semibold">Aplicar esta linha a</legend>
+        <p className="text-xs text-slate-600">
+          Assinale uma, várias ou todas as zonas. Sem nada assinalado, a linha aplica-se à obra toda (por exemplo, andaimes ou mobilização).
+        </p>
+        <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+          {zones.map((z) => (
+            <label key={z.id} className="flex items-center gap-2">
+              <input type="checkbox" name="zona" value={z.id} />
+              {z.label}
+            </label>
+          ))}
+        </div>
+        {e.zona && <p className="mt-1 text-xs text-red-700" role="alert">{e.zona}</p>}
+        <div className="mt-3">
+          <Field
+            name="motivoDiferenca"
+            label="Motivo da diferença (opcional)"
+            error={e.motivoDiferenca}
+            hint="Se a linha só se aplica a algumas zonas, explique porquê ao cliente. Ex.: tardoz com fissuras."
+          />
+        </div>
+      </fieldset>
       <Field name="descricao" label="Descrição do trabalho" required error={e.descricao} placeholder="Ex.: pintura com tinta acrílica, 2 demãos" />
       <div className="grid gap-4 sm:grid-cols-4">
         <Field name="quantidade" label="Quantidade" required error={e.quantidade} />

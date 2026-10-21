@@ -10,6 +10,7 @@ import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
 import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
+import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions } from '@/lib/materials';
@@ -38,7 +39,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
 
   const [{ data: listing }, { data: surfaces }, { data: photos }, { data: proposals }] = await Promise.all([
     supabase.from('request_listings').select('*').eq('request_id', id).maybeSingle(),
-    supabase.from('request_surfaces').select('kind, descricao, area_cm2').eq('request_id', id).order('created_at'),
+    supabase.from('request_surfaces').select('id, kind, descricao, area_cm2, trabalhos').eq('request_id', id).order('created_at'),
     supabase.from('request_photos').select('id, legenda').eq('request_id', id).eq('revisao', 'aprovada'),
     supabase.from('proposals').select('*').eq('request_id', id).in('painter_org_id', orgs.map((o) => o.id)),
   ]);
@@ -53,6 +54,11 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         supabase.from('proposal_messages').select('id, lado, texto, created_at').eq('proposal_id', proposal.id).order('created_at'),
       ])
     : [{ data: [] }, { data: [] }];
+  const zones = (surfaces ?? []).map((s) => ({
+    id: s.id,
+    label: `${s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind]} (${formatArea(s.area_cm2)})`,
+  }));
+  const zoneNames = Object.fromEntries(zones.map((z) => [z.id, z.label]));
   const domainLines = (lines ?? []).map((l) => ({ id: l.id, ...toLine(l) }));
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
@@ -115,7 +121,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             prazoPropostas: listing.prazo_propostas,
             execucaoDesde: listing.execucao_desde,
             execucaoAte: listing.execucao_ate,
-            surfaces: (surfaces ?? []).map((s) => ({ kind: s.kind, descricao: s.descricao, area: s.area_cm2 })),
+            surfaces: (surfaces ?? []).map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+            trabalhosModo: listing.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
             ocupacaoViaPublica: listing.ocupacao_via_publica,
             preferidos: await preferredView(supabase, listing.produtos_preferidos),
             photos: photos ?? [],
@@ -175,6 +182,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               <ProposalView
                 lines={domainLines}
                 terms={terms!}
+                zoneNames={zoneNames}
                 onDelete={
                   draft && org.manager
                     ? (lineId) => (
@@ -216,7 +224,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                 <LineForm
                   proposalId={proposal.id}
                   requestId={id}
-                  surfaces={(surfaces ?? []).map((s) => s.kind)}
+                  zones={zones}
                   materials={materials}
                 />
               </section>

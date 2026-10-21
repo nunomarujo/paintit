@@ -84,11 +84,21 @@ export async function addLine(proposalId: string, requestId: string, _prev: Form
     if (!priced) return { errors: {}, message: 'Esse produto já não está no catálogo.' };
     material = { product_id: productId, preco_fornecedor_cents: priced.precoFornecedor, desconto_bps: priced.descontoBps, produto: priced.label };
   }
+  // As linhas ligam-se a zonas do pedido; o tipo da primeira zona mantém a cobertura por tipo de superfície.
+  const zonas = l.zonas ?? [];
+  let superficie = l.superficie;
+  if (zonas.length > 0) {
+    const { data: zs } = await supabase.from('request_surfaces').select('id, kind').eq('request_id', requestId).in('id', zonas);
+    if (!zs || zs.length !== zonas.length) return { errors: { zona: 'Zona inválida.' }, message: 'Há uma zona que não pertence a este pedido.' };
+    superficie = zs[0]!.kind;
+  }
   const { error } = await supabase.from('proposal_lines').insert({
     proposal_id: proposalId,
+    surface_ids: zonas,
+    motivo_diferenca: l.motivoDiferenca ?? null,
     categoria: l.categoria,
     descricao: l.descricao,
-    superficie: l.superficie,
+    superficie,
     quantidade: l.quantidade,
     unidade: l.unidade,
     preco_unitario_cents: l.precoUnitario,

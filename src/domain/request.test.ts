@@ -35,6 +35,7 @@ const base: SurfaceInput = {
   vaosCm2: null,
   quantidade: 1,
   origem: 'estimativa',
+  trabalhos: null,
 };
 
 describe('área das superfícies', () => {
@@ -131,5 +132,28 @@ describe('publicação', () => {
   it('exige área, descrição sem contactos e pelo menos 7 dias para propostas', () => {
     const r = publishBlockers({ ...ok, surfacesArea: [], descricao: 'Ligue 912345678 para visitar a obra hoje mesmo', prazoPropostas: '2026-10-22' });
     expect(r).toHaveLength(3);
+  });
+});
+
+describe('fachadas: trabalhos iguais ou com diferenças', () => {
+  it('o pedido lê o modo e recusa valores inválidos', () => {
+    const f = new FormData();
+    f.set('buildingId', 'x'); f.set('titulo', 't'); f.set('tipoObra', 'fachadas');
+    expect(parseRequest(f).value?.trabalhosModo).toBe('iguais');
+    f.set('trabalhosModo', 'diferencas');
+    expect(parseRequest(f).value?.trabalhosModo).toBe('diferencas');
+    f.set('trabalhosModo', 'x');
+    expect(parseRequest(f).errors.trabalhosModo).toBeDefined();
+  });
+  it('a zona guarda os seus trabalhos, só os válidos', () => {
+    const f = new FormData();
+    f.set('kind', 'fachada'); f.set('area', '45');
+    f.append('trabalhosZona', 'reparacao_fissuras'); f.append('trabalhosZona', 'pintura');
+    expect(parseSurface(f).value?.trabalhos).toEqual(['reparacao_fissuras', 'pintura']);
+    f.append('trabalhosZona', 'inventado');
+    expect(parseSurface(f).errors.trabalhosZona).toBeDefined();
+    const g = new FormData();
+    g.set('kind', 'fachada'); g.set('area', '45');
+    expect(parseSurface(g).value?.trabalhos).toBeNull();
   });
 });
