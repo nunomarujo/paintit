@@ -187,3 +187,9 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Por fazer (fases seguintes, ver `docs/PROPOSTA.md`): orçamento guiado em 5 passos por trabalho e estado
   (incluído / opcional / não incluído / não aplicável / a confirmar), zonas por fachada no pedido e na proposta,
   soluções partilhadas por várias fachadas, módulos técnicos (rede, reboco, primário, pintura final) e catálogo de produtos.
+
+## 21/10/2026 — funções da Vercel em Dublin (`dub1`)
+
+- O Supabase está em eu-west-1 (Irlanda) e as funções da Vercel corriam por omissão em iad1 (EUA): cada consulta
+  atravessava o Atlântico, e ações com muitas consultas (webhook do Stripe, escolha de proposta) demoravam 10 a 15 s.
+  `vercel.json` fixa `regions: ["dub1"]`.
