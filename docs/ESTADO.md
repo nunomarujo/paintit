@@ -117,7 +117,11 @@ contactos, morada da obra e fotografias), só para essa obra.
 - **Obter um extrato real do banco** (a conta passou de EuroBic para Abanca) para afinar o leitor; rever o acesso ao Web Banking.
 - **Antes de passar a Stripe a modo real:** limpar os dados de teste do livro e da reconciliação (SQL à mão; ver `docs/CONTABILIDADE.md` §14).
 
-- Faturação certificada: Moloni escolhida (22/10/2026, preço, fase inicial). Código pronto (domínio, fila «Faturação» no backoffice, cliente `src/lib/moloni.ts`), **sem acesso à conta real para testar** — ver `docs/FATURACAO.md` para os pontos a confirmar com a sandbox. Migrações `20261022010000_documentos_fiscais.sql` e `20261022020000_moloni_token.sql` aplicadas e confirmadas na base real (22/10/2026; `fiscal_documents` com 1 política, `moloni_token` sem nenhuma, de propósito — só o servidor lê e escreve; sem avisos novos). Falta preencher as variáveis `MOLONI_*` na Vercel depois de criar a conta.
+- Faturação certificada: Moloni escolhida (22/10/2026, preço, fase inicial). Migrações de `fiscal_documents` e `moloni_token` aplicadas e confirmadas na base real.
+  Conta Moloni já criada; investigação na conta real confirmou: autenticação por OAuth com login no browser (não password), série única "M" (id 974940),
+  IVA Normal 23% (id 3934440), cliente "Consumidor Final" (id 162460860), company_id 517588676. Código ajustado a estes factos
+  (`/api/moloni/connect` e `/api/moloni/callback`, ver `docs/FATURACAO.md`). **Pedido o ambiente de demonstração ao apoio@moloni.pt (22/10/2026), a aguardar resposta — não emitir nenhum documento antes disso, a conta não tem sandbox e um documento criado é real e não se apaga.**
+  Falta: subutilizador "Serviços Web" no Portal das Finanças (com permissão de comunicação de faturas) ligado nas definições da Moloni; ativar a API na Moloni com o callback `https://quempinta.pt/api/moloni/callback` e colar `MOLONI_CLIENT_ID`/`MOLONI_CLIENT_SECRET` na Vercel; depois `/api/moloni/connect` com a conta de administrador.
 
 ## Pendente do promotor
 

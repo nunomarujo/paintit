@@ -3,19 +3,30 @@ import { invoiceTotal, type InvoiceDraft } from '@/domain/invoicing';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
- * Cliente da API da Moloni (faturação certificada). Escrito a partir da documentação pública conhecida em 22/10/2026
- * (OAuth 2.0, https://api.moloni.pt), **sem acesso a uma conta real para testar**: os pontos assinalados com "◆ CONFIRMAR"
- * são os que só se confirmam com a conta de sandbox (pedida à Moloni) e corrigem-se então. Até lá, `moloniConfigured`
- * é falso e nada se tenta emitir. Ver docs/FATURACAO.md.
+ * Cliente da API da Moloni (faturação certificada). A conta real (22/10/2026) só autentica por OAuth 2.0 com login no
+ * browser (authorization_code), não por password: um administrador liga-se uma vez em /api/moloni/connect, e a
+ * aplicação guarda o refresh_token (válido 14 dias) para renovar sozinha. Se o refresh falhar (os 14 dias passaram
+ * sem uso), é preciso ligar de novo pelo mesmo caminho. Ver docs/FATURACAO.md.
+ *
+ * ⚠ Nada aqui foi testado contra a API real: a conta da Quem Pinta ainda não tem o ambiente de demonstração
+ * (pedido ao apoio@moloni.pt, 22/10/2026). Enquanto não existir, `emitDocument` não deve ser chamada — criaria um
+ * documento fiscal real na série única da conta, que não se apaga.
  */
 
 const BASE = 'https://api.moloni.pt/v1';
+const AUTH_BASE = 'https://www.moloni.pt/ac/root/oauth/';
 
 function env(name: string): string {
   return process.env[name] ?? '';
 }
 
-export const moloniConfigured = !!(env('MOLONI_CLIENT_ID') && env('MOLONI_CLIENT_SECRET') && env('MOLONI_USERNAME') && env('MOLONI_PASSWORD') && env('MOLONI_COMPANY_ID'));
+export const moloniConfigured = !!(env('MOLONI_CLIENT_ID') && env('MOLONI_CLIENT_SECRET') && env('MOLONI_REDIRECT_URI') && env('MOLONI_COMPANY_ID'));
+
+/** Endereço para onde reencaminhar o administrador para iniciar sessão na Moloni e autorizar a aplicação. */
+export function moloniAuthorizeUrl(): string {
+  const params = new URLSearchParams({ response_type: 'code', client_id: env('MOLONI_CLIENT_ID'), redirect_uri: env('MOLONI_REDIRECT_URI') });
+  return `${AUTH_BASE}?${params.toString()}`;
+}
 
 interface Token {
   access_token: string;
@@ -23,54 +34,61 @@ interface Token {
   expires_at: string;
 }
 
-/** Pede um token novo por password grant. ◆ CONFIRMAR: o endpoint e os nomes dos campos contra a sandbox real. */
-async function requestToken(): Promise<Token> {
-  const res = await fetch(`${BASE}/grant/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'password',
-      client_id: env('MOLONI_CLIENT_ID'),
-      client_secret: env('MOLONI_CLIENT_SECRET'),
-      username: env('MOLONI_USERNAME'),
-      password: env('MOLONI_PASSWORD'),
-    }),
-  });
-  if (!res.ok) throw new Error(`Moloni recusou a autenticação (${res.status}): ${await res.text().catch(() => '')}`);
-  const j = (await res.json()) as { access_token: string; refresh_token: string; expires_in: number };
+async function grant(params: Record<string, string>): Promise<Token> {
+  // GET com os parâmetros na própria URL (confirmado na documentação da conta real, 22/10/2026), não POST.
+  const url = new URL(`${BASE}/grant/`);
+  for (const [k, v] of Object.entries({ client_id: env('MOLONI_CLIENT_ID'), client_secret: env('MOLONI_CLIENT_SECRET'), ...params })) url.searchParams.set(k, v);
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Moloni (autenticação) recusou: ${text.slice(0, 400)}`);
+  const j = JSON.parse(text) as { access_token: string; refresh_token: string; expires_in: number };
   return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: new Date(Date.now() + (j.expires_in - 60) * 1000).toISOString() };
 }
 
-async function refreshToken(refresh: string): Promise<Token> {
-  const res = await fetch(`${BASE}/grant/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'refresh_token', client_id: env('MOLONI_CLIENT_ID'), client_secret: env('MOLONI_CLIENT_SECRET'), refresh_token: refresh }),
-  });
-  if (!res.ok) return requestToken(); // o refresh pode ter expirado (14 dias): pede-se um novo por password.
-  const j = (await res.json()) as { access_token: string; refresh_token: string; expires_in: number };
-  return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: new Date(Date.now() + (j.expires_in - 60) * 1000).toISOString() };
+/** Troca o código devolvido pelo login (em /api/moloni/callback) por um token, e guarda-o. */
+export async function exchangeCodeForToken(code: string): Promise<void> {
+  const db = adminClient();
+  if (!db) throw new Error('Sem chave do Supabase.');
+  const token = await grant({ grant_type: 'authorization_code', redirect_uri: env('MOLONI_REDIRECT_URI'), code });
+  await db.from('moloni_token').upsert({ id: true, access_token: token.access_token, refresh_token: token.refresh_token, expires_at: token.expires_at, updated_at: new Date().toISOString() });
 }
 
-/** Token em cache na base de dados (serverless: sem memória entre pedidos). */
+/** Token em cache na base de dados (serverless: sem memória entre pedidos); renova-se sozinho enquanto o refresh durar. */
 async function getAccessToken(): Promise<string> {
   const db = adminClient();
   if (!db) throw new Error('Sem chave do Supabase.');
   const { data: row } = await db.from('moloni_token').select('*').eq('id', true).maybeSingle();
-  if (row && new Date(row.expires_at) > new Date()) return row.access_token;
-  const token = row ? await refreshToken(row.refresh_token) : await requestToken();
+  if (!row) throw new Error('A Moloni ainda não está ligada: um administrador tem de entrar em /api/moloni/connect.');
+  if (new Date(row.expires_at) > new Date()) return row.access_token;
+  const token = await grant({ grant_type: 'refresh_token', refresh_token: row.refresh_token }).catch((e) => {
+    throw new Error(`Falha ao renovar a ligação à Moloni (pode ter passado o prazo de 14 dias): ${e instanceof Error ? e.message : e}. É preciso ligar de novo em /api/moloni/connect.`);
+  });
   await db.from('moloni_token').upsert({ id: true, access_token: token.access_token, refresh_token: token.refresh_token, expires_at: token.expires_at, updated_at: new Date().toISOString() });
   return token.access_token;
 }
 
-/** Chamada genérica à API (POST, JSON). ◆ CONFIRMAR: alguns endpoints da Moloni esperam o corpo como form-urlencoded; se
- * falhar com 400, é o primeiro ponto a mudar. */
+/** Transforma um objeto em pares "campo[índice][subcampo]=valor" (formato clássico da API da Moloni, confirmado 22/10/2026:
+ * os pedidos vão como formulário, não como JSON). */
+function toFormPairs(prefix: string, value: unknown, out: [string, string][]): void {
+  if (value === undefined || value === null) return;
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => toFormPairs(`${prefix}[${i}]`, v, out));
+  } else if (typeof value === 'object') {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) toFormPairs(`${prefix}[${k}]`, v, out);
+  } else {
+    out.push([prefix, String(value)]);
+  }
+}
+
+/** Chamada genérica à API (POST, formulário). */
 async function call<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const token = await getAccessToken();
+  const pairs: [string, string][] = [];
+  for (const [k, v] of Object.entries({ company_id: Number(env('MOLONI_COMPANY_ID')), ...body })) toFormPairs(k, v, pairs);
   const res = await fetch(`${BASE}/${path}/?access_token=${encodeURIComponent(token)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ company_id: Number(env('MOLONI_COMPANY_ID')), ...body }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(pairs).toString(),
   });
   const text = await res.text();
   let json: unknown;
@@ -83,16 +101,16 @@ async function call<T>(path: string, body: Record<string, unknown>): Promise<T> 
   return json as T;
 }
 
-/** Encontra o cliente pelo NIF, ou cria-o. Sem NIF (consumidor final), usa o cliente genérico da conta. ◆ CONFIRMAR:
- * o endpoint `customers/getByVat` e os campos de `customers/insert` (country_id de Portugal = 1 na Moloni, a confirmar). */
+/** Encontra o cliente pelo NIF, ou cria-o. Sem NIF (consumidor final), usa o cliente da conta (MOLONI_FINAL_CONSUMER_CUSTOMER_ID).
+ * ◆ CONFIRMAR: o endpoint `customers/getByVat` (não confirmado contra a conta real) e se `country_id: 1` é Portugal. */
 async function ensureCustomer(c: InvoiceDraft['customer']): Promise<number> {
   if (!c.nif) {
     const generic = env('MOLONI_FINAL_CONSUMER_CUSTOMER_ID');
-    if (!generic) throw new Error('Falta configurar MOLONI_FINAL_CONSUMER_CUSTOMER_ID (cliente "Consumidor final" da conta Moloni).');
+    if (!generic) throw new Error('Falta configurar MOLONI_FINAL_CONSUMER_CUSTOMER_ID.');
     return Number(generic);
   }
-  const found = await call<{ customer_id?: number }[] | { customer_id: number }>('customers/getByVat', { vat: c.nif }).catch(() => null);
-  const existing = Array.isArray(found) ? found[0] : found;
+  const found = await call<{ customer_id?: number }[] | { customer_id: number } | false>('customers/getByVat', { vat: c.nif }).catch(() => null);
+  const existing = Array.isArray(found) ? found[0] : found || undefined;
   if (existing?.customer_id) return existing.customer_id;
   const created = await call<{ customer_id: number }>('customers/insert', {
     vat: c.nif,
@@ -114,15 +132,15 @@ export interface EmittedDocument {
   pdfBytes: Uint8Array | null;
 }
 
-/** Emite o documento (FT ou NC) na Moloni e tenta obter logo o PDF e o ATCUD. ◆ CONFIRMAR: `document_set_id` é
- * específico da conta (a série configurada); `tax_id` é o id interno da taxa de 23% nessa conta. Ambos vêm de
- * MOLONI_DOCUMENT_SET_FT / _NC e MOLONI_TAX_ID_NORMAL — só se conhecem depois de criar a conta e consultar
- * `taxes/getAll` e `documentSets/getAll`. */
+/** Emite o documento (FT ou NC) na Moloni e tenta obter logo o PDF e o ATCUD.
+ * ◆ CONFIRMAR: esta conta só tem uma série ("M"), partilhada por faturas e notas de crédito — não confirmado se a
+ * Moloni aceita a mesma série para os dois tipos via API, ou se vai exigir uma série própria para NC.
+ * ◆ CONFIRMAR: se a resposta de `invoices/insert`/`creditNotes/insert` já traz `number`/`atcud`, ou só `getOne` depois. */
 export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument> {
   if (!moloniConfigured) throw new Error('Moloni não está configurada.');
-  const documentSet = Number(env(draft.tipo === 'FT' ? 'MOLONI_DOCUMENT_SET_FT' : 'MOLONI_DOCUMENT_SET_NC'));
+  const documentSet = Number(env('MOLONI_DOCUMENT_SET_ID'));
   const taxId = Number(env('MOLONI_TAX_ID_NORMAL'));
-  if (!documentSet) throw new Error(`Falta configurar a série (MOLONI_DOCUMENT_SET_${draft.tipo}).`);
+  if (!documentSet) throw new Error('Falta configurar MOLONI_DOCUMENT_SET_ID.');
   const customerId = await ensureCustomer(draft.customer);
   const products = draft.lines.map((l) => ({
     name: l.descricao.slice(0, 100),
@@ -132,16 +150,14 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
     taxes: l.isencao ? [] : taxId ? [{ tax_id: taxId }] : [],
   }));
   const endpoint = draft.tipo === 'FT' ? 'invoices/insert' : 'creditNotes/insert';
-  const body: Record<string, unknown> = { customer_id: customerId, document_set_id: documentSet, date: draft.data, products };
+  const body: Record<string, unknown> = { customer_id: customerId, document_set_id: documentSet, date: draft.data, expiration_date: draft.data, products };
   if (draft.referencia) {
-    // ◆ CONFIRMAR: para ligar a NC ao documento original, a Moloni pode exigir `associated_documents` com o id dela, não o nosso.
+    // ◆ CONFIRMAR: ligar a NC ao documento original pode exigir um campo próprio (ex.: associated_documents), não uma nota de texto.
     body.notes = `Refere-se ao documento interno ${draft.referencia.originType}/${draft.referencia.originId}.`;
   }
   const created = await call<{ document_id: number; number?: string; atcud?: string }>(endpoint, body);
-  // A resposta de criação pode não trazer PDF/ATCUD (ver nota no relatório de pesquisa): confirma-se com uma leitura.
   let numero = created.number ?? null;
   let atcud = created.atcud ?? null;
-  let pdfBytes: Uint8Array | null = null;
   try {
     const got = await call<{ number?: string; atcud?: string; document_id: number }>(draft.tipo === 'FT' ? 'invoices/getOne' : 'creditNotes/getOne', { document_id: created.document_id });
     numero = numero ?? got.number ?? null;
@@ -149,11 +165,13 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
   } catch {
     // Sem leitura de confirmação: o id fica guardado e o número/ATCUD completam-se depois, à mão se preciso.
   }
+  let pdfBytes: Uint8Array | null = null;
   try {
-    const pdfRes = await fetch(`${BASE}/${draft.tipo === 'FT' ? 'invoices' : 'creditNotes'}/getPDF/?access_token=${encodeURIComponent(await getAccessToken())}`, {
+    const token = await getAccessToken();
+    const pdfRes = await fetch(`${BASE}/${draft.tipo === 'FT' ? 'invoices' : 'creditNotes'}/getPDF/?access_token=${encodeURIComponent(token)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_id: Number(env('MOLONI_COMPANY_ID')), document_id: created.document_id }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ company_id: env('MOLONI_COMPANY_ID'), document_id: String(created.document_id) }).toString(),
     });
     if (pdfRes.ok) pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
   } catch {

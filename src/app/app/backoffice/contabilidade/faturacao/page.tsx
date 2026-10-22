@@ -10,7 +10,8 @@ const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const REASON_LABELS: Record<string, string> = { comissao: 'Comissão de sucesso (pintor)', subscricao: 'Subscrição (fornecedor)', caucao_retida: 'Caução retida (cliente)' };
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
-export default async function InvoicingPage() {
+export default async function InvoicingPage({ searchParams }: { searchParams: Promise<{ moloni?: string }> }) {
+  const { moloni } = await searchParams;
   const { supabase } = await getUser();
   const [pending, { data: emitted }, { data: failed }] = await Promise.all([
     pendingInvoices(),
@@ -25,10 +26,23 @@ export default async function InvoicingPage() {
   }
   return (
     <div className="space-y-6">
+      {moloni && (
+        <p className={`rounded-xl border p-4 text-sm ${moloni === 'ligado' ? 'border-tinta-300 bg-tinta-50 text-tinta-900' : 'border-red-300 bg-red-50 text-red-900'}`}>
+          {moloni === 'ligado' ? 'Ligação à Moloni feita com sucesso.' : `A ligação à Moloni falhou: ${moloni}`}
+        </p>
+      )}
       {!moloniConfigured && (
         <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           A faturação (Moloni) ainda não está configurada: faltam as variáveis <code>MOLONI_*</code> na Vercel. Esta página mostra o que falta faturar, mas «Emitir» não funciona até lá. Ver{' '}
           <code>docs/FATURACAO.md</code>.
+        </p>
+      )}
+      {moloniConfigured && (
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+          <a href="/api/moloni/connect" className="font-semibold text-tinta-700 hover:underline">
+            Ligar (ou religar) a conta Moloni →
+          </a>{' '}
+          Precisa de o fazer uma vez, e de novo sempre que a ligação expirar (até 14 dias sem uso).
         </p>
       )}
       <section className={card}>
