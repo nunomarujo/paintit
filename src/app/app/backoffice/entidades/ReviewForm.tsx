@@ -1,20 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { reviewDocument, type FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
+import { RejectionReasons } from '@/components/RejectionReasons';
+import { DOCUMENT_REJECTION_REASONS } from '@/domain/review';
 
 export function ReviewForm({ documentId }: { documentId: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(reviewDocument.bind(null, documentId), { errors: {} });
+  const [notas, setNotas] = useState('');
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
 
   return (
     <form {...formProps} className="mt-3 space-y-2">
-      <textarea
-        name="notas"
-        rows={2}
-        placeholder="Notas (obrigatórias para rejeitar; o cliente vê o motivo)"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      />
+      <RejectionReasons reasons={DOCUMENT_REJECTION_REASONS} value={notas} onChange={setNotas} />
       {(state.errors.notas || state.message) && (
         <p className="text-sm text-red-700" role="alert">
           {state.errors.notas ?? state.message}

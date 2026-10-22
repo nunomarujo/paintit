@@ -1,21 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { reviewPhoto } from '@/app/app/pedidos/actions';
+import { RejectionReasons } from '@/components/RejectionReasons';
+import { PHOTO_REJECTION_REASONS } from '@/domain/review';
 
 export function PhotoReviewForm({ photoId }: { photoId: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(reviewPhoto.bind(null, photoId), { errors: {} });
+  const [notas, setNotas] = useState('');
   if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
 
   return (
     <form {...formProps} className="mt-3 space-y-2">
-      <textarea
-        name="notas"
-        rows={2}
-        placeholder="Motivo (obrigatório para recusar; o cliente vê-o)"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-      />
+      <RejectionReasons reasons={PHOTO_REJECTION_REASONS} value={notas} onChange={setNotas} />
       {(state.errors.notas || state.message) && (
         <p className="text-sm text-red-700" role="alert">
           {state.errors.notas ?? state.message}

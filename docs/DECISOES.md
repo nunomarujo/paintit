@@ -317,3 +317,12 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - A validação do regime de IVA/retenção declarado por um fornecedor (para as comissões de adesão) passou de
   Contabilidade → A pagar para **Entidades → Regimes de fornecedores**, por ser uma validação de dados da entidade,
   como os documentos. Contabilidade → A pagar fica só com dinheiro: resgates por pagar e comissões ainda fora de resgate.
+
+## 22/10/2026 — motivos pré-aprovados para rejeitar fotos e documentos
+
+- Ao rejeitar uma fotografia de pormenor ou um documento de verificação, a equipa escolhe agora um motivo pré-aprovado
+  (`src/domain/review.ts`) que preenche o texto, continuando editável, ou "Outro motivo" para escrever livremente. Não
+  houve alteração à base de dados: o campo continua a ser só texto (`notas_revisao`/`notas_validacao`).
+- Descartado, por agora: o motor sugerir o motivo sozinho (exigiria reconhecimento de imagem por IA, que a página de
+  Aviso Legal exclui explicitamente) e a edição da foto (tapar zonas) pela equipa antes de aprovar — fica como melhoria
+  futura se a recusa por pormenores pequenos continuar frequente.
