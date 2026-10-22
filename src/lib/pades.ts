@@ -6,8 +6,11 @@ import { PT_CC_ANCHORS } from './trust/anchors';
 // Verificação criptográfica da última assinatura de um PDF: a assinatura CMS é
 // válida para os bytes cobertos, identifica o signatário pelo certificado e
 // confirma que o certificado encadeia numa entidade "Cartão de Cidadão" do
-// Estado (src/lib/trust/anchors.ts). A revogação (OCSP/CRL) ainda não é
-// consultada — ver docs/PAGAMENTOS_E_ASSINATURA.md.
+// Estado (src/lib/trust/anchors.ts). A revogação é consultada por OCSP (abaixo);
+// sem resposta confiável (responder em baixo, sem rede, sem URL no certificado)
+// falha aberto — como o resto desta verificação (ver `fetchIssuer`) — porque um
+// responder indisponível não é prova de nada; só uma resposta "revogado",
+// assinada por quem tem autoridade para a dar, bloqueia a confiança.
 
 export interface SignerInfo {
   valid: boolean;
@@ -84,16 +87,68 @@ const parseCert = (der: Uint8Array) => {
 const ANCHORS = PT_CC_ANCHORS.map((a) => parseCert(Uint8Array.from(Buffer.from(a.der, 'base64'))));
 const AIA = '1.3.6.1.5.5.7.1.1';
 const CA_ISSUERS = '1.3.6.1.5.5.7.48.2';
+const OCSP_METHOD = '1.3.6.1.5.5.7.48.1';
+
+const aiaUrl = (cert: pkijs.Certificate, accessMethod: string): string | undefined => {
+  const ext = cert.extensions?.find((e) => e.extnID === AIA)?.parsedValue as pkijs.InfoAccess | undefined;
+  const url = ext?.accessDescriptions.find((d) => d.accessMethod === accessMethod)?.accessLocation.value as string | undefined;
+  return url && /^https?:\/\//.test(url) ? url : undefined;
+};
 
 /** Certificado do emissor indicado no próprio certificado (Authority Information Access), se a cadeia não vier no PDF. */
 async function fetchIssuer(cert: pkijs.Certificate): Promise<pkijs.Certificate | null> {
-  const ext = cert.extensions?.find((e) => e.extnID === AIA)?.parsedValue as pkijs.InfoAccess | undefined;
-  const url = ext?.accessDescriptions.find((d) => d.accessMethod === CA_ISSUERS)?.accessLocation.value as string | undefined;
-  if (!url || !/^https?:\/\//.test(url)) return null;
+  const url = aiaUrl(cert, CA_ISSUERS);
+  if (!url) return null;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     return parseCert(new Uint8Array(await res.arrayBuffer()));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Estado de revogação pelo OCSP (RFC 6960): `true` só quando um responder com autoridade confirma, com
+ * assinatura válida, que o certificado está revogado. `null` sempre que a pergunta não pôde ser feita ou
+ * confirmada (sem URL no certificado, sem rede, resposta malformada ou assinada por quem não tem autoridade) —
+ * nunca `false` por omissão nesses casos, para nunca ler "sem resposta" como "confirmado como válido".
+ */
+async function checkRevocation(
+  cert: pkijs.Certificate,
+  issuer: pkijs.Certificate | undefined,
+  anchors: pkijs.Certificate[],
+  pool: pkijs.Certificate[],
+): Promise<boolean | null> {
+  const url = aiaUrl(cert, OCSP_METHOD);
+  if (!url || !issuer) return null;
+  try {
+    const request = new pkijs.OCSPRequest();
+    await request.createForCertificate(cert, { issuerCertificate: issuer, hashAlgorithm: 'SHA-1' });
+    const body = request.toSchema(true).toBER(false);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/ocsp-request' },
+      body: new Uint8Array(body),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const respAsn = asn1js.fromBER(await res.arrayBuffer());
+    if (respAsn.offset === -1) return null;
+    const ocspResponse = new pkijs.OCSPResponse({ schema: respAsn.result });
+    if (ocspResponse.responseStatus.valueBlock.valueDec !== 0 || !ocspResponse.responseBytes) return null;
+    // O conteúdo (OCTET STRING) é uma vista sobre o ArrayBuffer completo da resposta: sem cortar ao seu próprio
+    // intervalo, o BasicOCSPResponse lia bytes de fora de si — passava silenciosamente como "inconclusivo" em vez
+    // de recusar, o que teria escondido qualquer resposta real (boa ou revogada) por detrás do mesmo resultado.
+    const octet = ocspResponse.responseBytes.response.valueBlock.valueHexView;
+    const basicAsn = asn1js.fromBER(octet.buffer.slice(octet.byteOffset, octet.byteOffset + octet.byteLength) as ArrayBuffer);
+    if (basicAsn.offset === -1) return null;
+    const basic = new pkijs.BasicOCSPResponse({ schema: basicAsn.result });
+    const signedByAuthority = await basic.verify({ trustedCerts: anchors, issuerCerts: [issuer, ...pool, ...anchors] });
+    if (!signedByAuthority) return null;
+    const status = await basic.getCertificateStatus(cert, issuer);
+    if (!status.isForCertificate) return null;
+    return status.status === 1;
   } catch {
     return null;
   }
@@ -122,7 +177,10 @@ export async function validateChain(
       checkDate: at ?? new Date(),
     });
     const r = await engine.verify();
-    return r.result ? { trusted: true } : { trusted: false, reason: r.resultMessage || 'Cadeia de certificados não confiável.' };
+    if (!r.result) return { trusted: false, reason: r.resultMessage || 'Cadeia de certificados não confiável.' };
+    const issuer = [...pool, ...anchors].find((c) => c.subject.isEqual(cert.issuer));
+    const revoked = await checkRevocation(cert, issuer, anchors, pool);
+    return revoked ? { trusted: false, reason: 'Certificado revogado.' } : { trusted: true };
   } catch (err) {
     return { trusted: false, reason: err instanceof Error ? err.message : 'Cadeia de certificados não confiável.' };
   }

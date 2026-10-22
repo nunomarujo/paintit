@@ -180,6 +180,114 @@ describe('cadeia de confiança', () => {
   }, 30_000);
 });
 
+describe('revogação por OCSP', () => {
+  // Uma CA que também responde por OCSP (o caso mais simples de autorização: o emissor direto não precisa de
+  // um certificado delegado com id-kp-OCSPSigning — ver BasicOCSPResponseVerifyParams em pkijs).
+  async function leafSignedByCa(ca: Awaited<ReturnType<typeof testCertificate>>, ocspUrl: string) {
+    const leafKeys = (await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify'],
+    )) as CryptoKeyPair;
+    const leaf = new pkijs.Certificate();
+    leaf.version = 2;
+    leaf.serialNumber = new asn1js.Integer({ value: 3 });
+    leaf.issuer = ca.cert.subject;
+    leaf.subject.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.3', value: new asn1js.Utf8String({ value: 'ANA' }) }));
+    leaf.notBefore.value = new Date('2026-01-01');
+    leaf.notAfter.value = new Date('2029-01-01');
+    const infoAccess = new pkijs.InfoAccess({
+      accessDescriptions: [
+        new pkijs.AccessDescription({ accessMethod: '1.3.6.1.5.5.7.48.1', accessLocation: new pkijs.GeneralName({ type: 6, value: ocspUrl }) }),
+      ],
+    });
+    leaf.extensions = [new pkijs.Extension({ extnID: '1.3.6.1.5.5.7.1.1', critical: false, extnValue: infoAccess.toSchema().toBER(false), parsedValue: infoAccess })];
+    await leaf.subjectPublicKeyInfo.importKey(leafKeys.publicKey);
+    await leaf.sign(ca.key, 'SHA-256');
+    return leaf;
+  }
+
+  // Constrói uma BasicOCSPResponse assinada pela própria CA, do jeito documentado pelo pkijs (ver o comentário
+  // de exemplo em OCSPResponse), para o teste bater à porta real do nosso código (pedido → HTTP → resposta
+  // assinada → verificação) em vez de confiar só em que o tipo compila.
+  async function ocspResponseBytes(
+    ca: Awaited<ReturnType<typeof testCertificate>>,
+    leaf: pkijs.Certificate,
+    status: 'boa' | 'revogado',
+  ) {
+    const basic = new pkijs.BasicOCSPResponse();
+    basic.tbsResponseData.responderID = ca.cert.subject;
+    basic.tbsResponseData.producedAt = new Date();
+    const certID = new pkijs.CertID();
+    await certID.createForCertificate(leaf, { hashAlgorithm: 'SHA-256', issuerCertificate: ca.cert });
+    const single = new pkijs.SingleResponse({ certID });
+    single.certStatus =
+      status === 'boa'
+        ? new asn1js.Primitive({ idBlock: { tagClass: 3, tagNumber: 0 } })
+        : new asn1js.Constructed({ idBlock: { tagClass: 3, tagNumber: 1 }, value: [new asn1js.GeneralizedTime({ valueDate: new Date('2026-09-01') })] });
+    single.thisUpdate = new Date();
+    basic.tbsResponseData.responses.push(single);
+    basic.certs = [ca.cert];
+    await basic.sign(ca.key, 'SHA-256');
+    const response = new pkijs.OCSPResponse({
+      responseStatus: new asn1js.Enumerated({ value: 0 }),
+      responseBytes: new pkijs.ResponseBytes({ responseType: pkijs.id_PKIX_OCSP_Basic, response: new asn1js.OctetString({ valueHex: basic.toSchema().toBER(false) }) }),
+    });
+    return new Uint8Array(response.toSchema().toBER(false));
+  }
+
+  async function withOcspServer(respond: (body: Uint8Array) => Promise<Uint8Array>, run: (url: string) => Promise<void>) {
+    const http = await import('node:http');
+    const server = http.createServer((req, res) => {
+      const chunks: Uint8Array[] = [];
+      req.on('data', (c: Uint8Array) => chunks.push(c));
+      req.on('end', () => {
+        respond(Buffer.concat(chunks)).then((out) => res.end(Buffer.from(out)));
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as { port: number }).port;
+    try {
+      await run(`http://127.0.0.1:${port}/ocsp`);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }
+
+  it('um certificado com resposta OCSP "revogado" deixa de ser de confiança, mesmo com a cadeia válida', async () => {
+    const ca = await testCertificate('EC OCSP TESTE 2');
+    let leaf!: pkijs.Certificate;
+    await withOcspServer(
+      async () => ocspResponseBytes(ca, leaf, 'revogado'),
+      async (url) => {
+        leaf = await leafSignedByCa(ca, url);
+        const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);
+        expect(result).toEqual({ trusted: false, reason: 'Certificado revogado.' });
+      },
+    );
+  }, 30_000);
+
+  it('uma resposta "boa" confirma a confiança já dada pela cadeia', async () => {
+    const ca = await testCertificate('EC OCSP TESTE 3');
+    let leaf!: pkijs.Certificate;
+    await withOcspServer(
+      async () => ocspResponseBytes(ca, leaf, 'boa'),
+      async (url) => {
+        leaf = await leafSignedByCa(ca, url);
+        const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);
+        expect(result).toEqual({ trusted: true });
+      },
+    );
+  }, 30_000);
+
+  it('sem responder acessível, não bloqueia (falha aberta, como o resto desta verificação)', async () => {
+    const ca = await testCertificate('EC OCSP TESTE 4');
+    const leaf = await leafSignedByCa(ca, 'http://127.0.0.1:1/ocsp');
+    const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);
+    expect(result).toEqual({ trusted: true });
+  }, 30_000);
+});
+
 describe('o que a assinatura acrescenta ao PDF', () => {
   const page = '\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n';
   const base = enc.encode('%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj' + page + 'trailer\n%%EOF\n');
