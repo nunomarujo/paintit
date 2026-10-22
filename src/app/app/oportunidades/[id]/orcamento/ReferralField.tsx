@@ -3,9 +3,27 @@
 import { useState } from 'react';
 import { applyReferral } from '@/app/app/oportunidades/orcamento-actions';
 
-/** Código de adesão de um fornecedor: aplica-se ao rascunho; a base de dados valida (src/domain/referral.ts). */
-export function ReferralField({ proposalId, requestId, applied }: { proposalId: string; requestId: string; applied: boolean }) {
-  const [on, setOn] = useState(applied);
+interface LinkedSupplier {
+  id: string;
+  code: string;
+  nome: string;
+}
+
+/** Fornecedor associado a esta obra, para efeitos da comissão por volume do fornecedor (src/domain/referral.ts).
+ * O desconto do pintor já conta todos os fornecedores ligados e ativos, nesta e em todas as propostas — escolher
+ * aqui não o muda; só diz qual fornecedor fica associado a ESTA obra. */
+export function ReferralField({
+  proposalId,
+  requestId,
+  linkedSuppliers,
+  appliedCodeId,
+}: {
+  proposalId: string;
+  requestId: string;
+  linkedSuppliers: LinkedSupplier[];
+  appliedCodeId: string | null;
+}) {
+  const [addingNew, setAddingNew] = useState(linkedSuppliers.length === 0);
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,30 +34,49 @@ export function ReferralField({ proposalId, requestId, applied }: { proposalId: 
     setBusy(false);
     setMsg({ ok: !!r.ok, text: r.message ?? 'Não foi possível aplicar o código.' });
     if (r.ok) {
-      setOn(!!r.applied);
       setCode('');
+      if (value) setAddingNew(false);
     }
   }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6" aria-labelledby="codigo-fornecedor">
       <h3 id="codigo-fornecedor" className="font-semibold">
-        Código de fornecedor
+        Fornecedor associado a esta obra
       </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Se um fornecedor de tintas lhe deu um código de adesão, aplique-o aqui para o ligar a esta obra — identifica qual fornecedor fica associado a ela.
-        A partir da primeira vez que aplicar o código de um fornecedor, a comissão que paga à plataforma desce 0,25 pontos percentuais em todas as obras que
-        ganhar, enquanto o código estiver ativo; soma com os de outros fornecedores que também tenha aplicado. Por causa do mínimo de 150 €, o desconto só se
-        nota em obras acima de 5 000 €.
+        Se ganhar a obra, o fornecedor que indicar aqui soma-a às suas. Não muda nada no que paga: o seu desconto por fornecedores com código ligado já conta
+        todos, em todas as obras, enquanto o código estiver ativo — não precisa de voltar a aplicá-lo.
       </p>
-      {on ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-tinta-50 px-3 py-1 text-sm font-semibold text-tinta-700">Código aplicado ✓</span>
-          <button type="button" disabled={busy} onClick={() => run('')} className="text-sm text-slate-600 hover:underline">
-            Retirar
+
+      {!addingNew && linkedSuppliers.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-sm font-medium text-slate-700">
+            Fornecedor
+            <select
+              defaultValue={appliedCodeId ?? ''}
+              disabled={busy}
+              onChange={(e) => {
+                const supplier = linkedSuppliers.find((s) => s.id === e.target.value);
+                run(supplier?.code ?? '');
+              }}
+              className="mt-1 block w-56 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+            >
+              <option value="">Nenhum</option>
+              {linkedSuppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" disabled={busy} onClick={() => setAddingNew(true)} className="text-sm text-slate-600 hover:underline">
+            + Novo código de outro fornecedor
           </button>
         </div>
-      ) : (
+      )}
+
+      {addingNew && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="text-sm font-medium text-slate-700">
             Código
@@ -54,8 +91,14 @@ export function ReferralField({ proposalId, requestId, applied }: { proposalId: 
           <button type="button" disabled={busy || code.trim().length < 6} onClick={() => run(code)} className="btn-secondary">
             {busy ? 'A validar…' : 'Aplicar código'}
           </button>
+          {linkedSuppliers.length > 0 && (
+            <button type="button" disabled={busy} onClick={() => setAddingNew(false)} className="text-sm text-slate-600 hover:underline">
+              Cancelar
+            </button>
+          )}
         </div>
       )}
+
       {msg && (
         <p className={`mt-3 text-sm ${msg.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {msg.text}

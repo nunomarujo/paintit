@@ -458,3 +458,19 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Testado (tsc, lint, 357 testes, build) mas não visto a correr: o `npm run dev` desta sessão não tem credenciais
   reais do Supabase (confirmado com a página `adesoes`, já existente, a falhar da mesma forma) — falta a
   confirmação visual depois de as migrações estarem aplicadas.
+
+## 22/10/2026 — `ReferralField.tsx`: separa "associar esta obra" de "ligar um fornecedor novo"
+
+- O código deixou de identificar uma só obra; passou a identificar uma relação permanente (acima). O formulário
+  antigo (uma caixa de texto, "aplicado"/"retirar") já não fazia sentido com mais de um fornecedor ligado — não
+  havia forma de escolher qual.
+- Agora: com pelo menos um fornecedor já ligado, um menu escolhe qual fica associado a **esta** obra (ou nenhum) —
+  não muda o desconto do pintor, só a quem vai a comissão por volume do fornecedor, se ganhar. Sem nenhum ligado,
+  mantém-se a caixa de texto de sempre; com algum ligado, "+ Novo código de outro fornecedor" abre-a à parte.
+  `apply_referral_code` não mudou — já aceitava reaplicar um código já ligado.
+- Corrigido também um valor que ficou errado com a mudança anterior: a pré-visualização da comissão ao pintor, a
+  meio do orçamento, ainda calculava com a versão fixa `RULES_2026_10_20_REF` (sempre 0,25 p.p.) em vez do desconto
+  real, ambiente e somado — agora usa `applyPainterDiscount(CURRENT_RULES, painterDiscountBp(...))`, a mesma conta
+  de `src/domain/contracting.ts`. `painterDiscountBp` e `linkedSupplierCodes`, novos em `src/lib/queries.ts`,
+  partilham-se entre esta página e a futura.
+- Texto desatualizado corrigido também em `orcamento-actions.ts` (`applyReferral`).

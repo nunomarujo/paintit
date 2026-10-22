@@ -9,7 +9,7 @@ import { STEP_IDS, type StepId } from './orcamento/steps';
 import { PricesEditor, type PriceRow } from './orcamento/PricesEditor';
 import { WorksEditor } from './orcamento/WorksEditor';
 import { ReferralField } from './orcamento/ReferralField';
-import { RULES_2026_10_20_REF } from '@/domain/referral';
+import { applyPainterDiscount } from '@/domain/referral';
 import { painterFee } from '@/domain/commission';
 import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
@@ -23,7 +23,7 @@ import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions } from '@/lib/materials';
-import { painterOrgs } from '@/lib/queries';
+import { linkedSupplierCodes, painterDiscountBp, painterOrgs } from '@/lib/queries';
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
@@ -58,6 +58,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   if (!listing && !proposal) notFound();
 
   const org = orgs.find((o) => o.id === proposal?.painter_org_id) ?? orgs.find((o) => o.manager) ?? orgs[0]!;
+  const [linkedSuppliers, discountBp] = await Promise.all([linkedSupplierCodes(supabase, org.id), painterDiscountBp(supabase, org.id)]);
   const [{ data: lines }, { data: messages }] = proposal
     ? await Promise.all([
         supabase.from('proposal_lines').select('*').eq('proposal_id', proposal.id).order('created_at'),
@@ -74,8 +75,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
-  const referralApplied = !!proposal?.referral_code_id;
-  const fee = totals && totals.base > 0 ? painterFee(totals.base, referralApplied ? RULES_2026_10_20_REF : CURRENT_RULES) : null;
+  const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discountBp)) : null;
   const { data: licenses } = proposal
     ? await supabase
         .from('org_documents')
@@ -269,7 +269,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {fee && (
               <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
                 Se for escolhido, paga à plataforma {formatEuros(fee.gross)} ({formatEuros(fee.net)} de comissão +{' '}
-                {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço do cliente.{referralApplied ? ' Inclui o desconto do código de fornecedor.' : ''}
+                {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço do cliente.{discountBp > 0 ? ' Já inclui o seu desconto de fornecedores ligados e referidos.' : ''}
               </p>
             )}
             {proposal.status === 'submetida' && org.manager && (
@@ -353,7 +353,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                           <TermsForm proposalId={proposal.id} requestId={id} terms={terms} />
                         </div>
                       </section>
-                      <ReferralField proposalId={proposal.id} requestId={id} applied={referralApplied} />
+                      <ReferralField proposalId={proposal.id} requestId={id} linkedSuppliers={linkedSuppliers} appliedCodeId={proposal.referral_code_id} />
                     </>
                   ),
                   rever: (

@@ -227,6 +227,6 @@ export async function applyReferral(proposalId: string, requestId: string, code:
   const { data, error } = await supabase.rpc('apply_referral_code', { p_proposal: proposalId, p_code: text || null });
   if (error) return { errors: {}, message: error.message };
   revalidatePath(`/app/oportunidades/${requestId}`);
-  if (!text) return { errors: {}, ok: true, applied: false, message: 'Código retirado.' };
-  return { errors: {}, ok: true, applied: true, message: `Código aceite (${data ?? 'fornecedor'}). Se ganhar a obra, a comissão da plataforma desce 0,25 pontos.` };
+  if (!text) return { errors: {}, ok: true, applied: false, message: 'Nenhum fornecedor associado a esta obra.' };
+  return { errors: {}, ok: true, applied: true, message: `${data ?? 'Fornecedor'} associado a esta obra.` };
 }
