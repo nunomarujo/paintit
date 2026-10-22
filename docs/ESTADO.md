@@ -121,7 +121,8 @@ contactos, morada da obra e fotografias), só para essa obra.
   Conta Moloni já criada; investigação na conta real confirmou: autenticação por OAuth com login no browser (não password), série única "M" (id 974940),
   IVA Normal 23% (id 3934440), cliente "Consumidor Final" (id 162460860), company_id 517588676. Código ajustado a estes factos
   (`/api/moloni/connect` e `/api/moloni/callback`, ver `docs/FATURACAO.md`). **Pedido o ambiente de demonstração ao apoio@moloni.pt (22/10/2026), a aguardar resposta — não emitir nenhum documento antes disso, a conta não tem sandbox e um documento criado é real e não se apaga.**
-  Falta: subutilizador "Serviços Web" no Portal das Finanças (com permissão de comunicação de faturas) ligado nas definições da Moloni; ativar a API na Moloni com o callback `https://quempinta.pt/api/moloni/callback` e colar `MOLONI_CLIENT_ID`/`MOLONI_CLIENT_SECRET` na Vercel; depois `/api/moloni/connect` com a conta de administrador.
+  Subutilizador do Portal das Finanças criado (517588676/1, perfil WFA — webservice de comunicação de faturas) e ligado na Moloni (Configuração AT da empresa: documentos de faturação ativos, diferimento 0 dias; a série "M" já estava registada na AT). Dados da empresa completados na Moloni (morada, código postal, localidade, tipo de negócio "Prestadores de Serviços").
+  Falta: ativar a API na Moloni (Configurações > Developers > Configuração da API e Plugins) com o callback `https://quempinta.pt/api/moloni/callback`, colar `MOLONI_CLIENT_ID`/`MOLONI_CLIENT_SECRET`/as restantes `MOLONI_*` na Vercel (valores em `.env.example`) e fazer deploy; depois, com a conta de administrador, `/api/moloni/connect` para ligar o token. A comunicação à AT só se confirma mesmo com a primeira fatura emitida — e essa só deve acontecer depois de a Moloni confirmar o ambiente de demonstração (pedido a 22/10/2026, ainda sem resposta).
 
 ## Pendente do promotor
 
