@@ -571,8 +571,11 @@ uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
   entidade, para não ligar o código com um simples GET.
 - **Porque não parece um risco de desvio:** o código tem de existir *antes* de qualquer proposta ser submetida e
   está ligado a uma obra específica — não é possível reclassificar depois um negócio já descoberto pela via normal.
-- **Por fazer, deixado de propósito para depois:** gerar a imagem do QR code — o código/link já funciona sem ela;
-  é só uma camada visual por cima. Nenhuma biblioteca foi acrescentada ainda.
-- Testado (tsc, lint, 365 testes, build, zero) — `npm run dev` falha da mesma forma ambiental de sempre (sem
+- **Imagem do QR code:** `src/lib/qrcode.ts` (pacote `qrcode`, só no servidor), gerada de novo em cada pedido da
+  página a partir do mesmo link de sempre — nunca guardada como ficheiro. Não precisa de nenhuma lógica própria
+  de associação: o que já impede a distribuição em massa (código amarrado a uma obra publicada desde que nasce,
+  e a uma só empresa depois de resgatado) protege a imagem por extensão, porque ela não é mais do que a
+  representação visual desse código. Em `/app/pedidos/[id]`, um `<details>` ("Ver código QR") ao lado do link.
+- Testado (tsc, lint, 367 testes, build, zero) — `npm run dev` falha da mesma forma ambiental de sempre (sem
   credenciais reais do Supabase), confirmando que não há erro novo. Migração por aplicar à base real, depois da
   `...060000_termos_de_aceitacao_pintor.sql` (ver `docs/ESTADO.md`).

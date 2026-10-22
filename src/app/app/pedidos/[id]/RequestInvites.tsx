@@ -22,6 +22,7 @@ export interface RequestInvite {
   active: boolean;
   estado: 'disponivel' | 'associado' | 'desativado';
   painterNome: string | null;
+  qrSvg: string | null;
 }
 
 /** "Traga o seu pintor" (docs/DECISOES.md, 22/10/2026): um código por obra publicada, para entregar à empresa de
@@ -66,9 +67,20 @@ export function RequestInvites({ requestId, invites }: { requestId: string; invi
                 </form>
               </div>
               {i.active && (
-                <p className="mt-1 break-all text-xs text-slate-500">
-                  {BRAND.url}/convite/{i.code}
-                </p>
+                <>
+                  <p className="mt-1 break-all text-xs text-slate-500">
+                    {BRAND.url}/convite/{i.code}
+                  </p>
+                  {i.qrSvg && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-xs text-tinta-700 hover:underline">Ver código QR</summary>
+                      <div
+                        className="mt-2 h-32 w-32 [&_svg]:h-full [&_svg]:w-full"
+                        dangerouslySetInnerHTML={{ __html: i.qrSvg }}
+                      />
+                    </details>
+                  )}
+                </>
               )}
             </li>
           ))}

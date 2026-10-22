@@ -9,6 +9,8 @@ import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers, type DesiredWork } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
+import { BRAND } from '@/config/brand';
+import { qrCodeSvg } from '@/lib/qrcode';
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
@@ -58,6 +60,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const invitePainterName = new Map((invitePainters ?? []).map((p) => [p.id, p.nome]));
   const invites: RequestInvite[] = (rawInvites ?? []).map((i) => ({
     id: i.id,
+    qrSvg: i.active ? qrCodeSvg(`${BRAND.url}/convite/${i.code}`) : null,
     code: i.code,
     nota: i.nota,
     active: i.active,

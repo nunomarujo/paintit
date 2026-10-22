@@ -172,7 +172,7 @@ Claude do navegador):
 
 **Ainda por decidir ou construir:** como/onde um pintor liga-se a um fornecedor fora do fluxo de uma proposta
 específica (hoje só pelo `ReferralField` ou pela página de referências); se a "nota" dos códigos deve aparecer
-em mais sítios; o resto do algoritmo de fee (ponto 1); a imagem do QR code do convite direto (hoje só código/link).
+em mais sítios; o resto do algoritmo de fee (ponto 1).
 
 **22/10/2026 — convite direto do cliente ("traga o seu pintor"):** pedido novo, fora dos dois programas de
 referência acima — o cliente convida diretamente o seu próprio pintor para uma obra sua (código ou QR,
@@ -183,8 +183,9 @@ confirmar). **Correção feita ainda nesta sessão:** a primeira versão usava 1
 sítio do sistema sem o confrontar com o documento `Algoritmo_determinacao_fee_QuemPinta_v1.docx` — esse
 documento já fixa 9% como o piso absoluto do próprio algoritmo dinâmico (18% − 3 − 2 − 4 p.p., todos os
 descontos ao mesmo tempo); o promotor corrigiu antes de qualquer migração chegar à base real. **Confirmado
-também:** o desconto aplica-se sem limite de usos nem de validade por convite (ver `docs/DECISOES.md`). QR em
-imagem ainda não construído, só o código/link.
+também:** o desconto aplica-se sem limite de usos nem de validade por convite (ver `docs/DECISOES.md`). Imagem
+do QR code feita (`src/lib/qrcode.ts`, gerada a cada pedido da página, nunca guardada) — a funcionalidade fica
+completa, falta só aplicar a migração à base real.
 
 ## Pendente do promotor
 
