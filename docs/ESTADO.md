@@ -182,9 +182,9 @@ lhe parecer que insistir na plataforma lhe sobe o preço. Feito: esquema e RPCs,
 confirmar). **Correção feita ainda nesta sessão:** a primeira versão usava 1%, um número reaproveitado de outro
 sítio do sistema sem o confrontar com o documento `Algoritmo_determinacao_fee_QuemPinta_v1.docx` — esse
 documento já fixa 9% como o piso absoluto do próprio algoritmo dinâmico (18% − 3 − 2 − 4 p.p., todos os
-descontos ao mesmo tempo); o promotor corrigiu antes de qualquer migração chegar à base real. "Sem limite de
-usos por convite" continua proposta minha, por confirmar (ver `docs/DECISOES.md`). QR em imagem ainda não
-construído, só o código/link.
+descontos ao mesmo tempo); o promotor corrigiu antes de qualquer migração chegar à base real. **Confirmado
+também:** o desconto aplica-se sem limite de usos nem de validade por convite (ver `docs/DECISOES.md`). QR em
+imagem ainda não construído, só o código/link.
 
 ## Pendente do promotor
 

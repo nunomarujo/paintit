@@ -560,9 +560,8 @@ uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
   nunca ficar abaixo do que o negócio já decidiu ser sustentável — mesmo acima dos 3% interinos de hoje, que já
   se sabe estarem temporariamente baixos demais. Os descontos de códigos de adesão e referências continuam a
   aplicar-se sobre esta base nova, não por cima da base de 3%.
-  - ◆ **Por decidir:** o desconto aplica-se sempre que este convite específico for usado para ganhar uma obra,
-    sem limite de vezes nem de validade — pareceu-me economicamente inofensivo (é a mesma relação cliente-pintor
-    a repetir-se), mas não foi pedido explicitamente; posso acrescentar um teto ou prazo, se preferir.
+- **Confirmado pelo promotor (22/10/2026):** o desconto aplica-se sempre que este convite específico for usado
+  para ganhar uma obra, sem limite de vezes nem de validade — é a mesma relação cliente-pintor a repetir-se.
 - **Interface do cliente:** `/app/pedidos/[id]`, só em obras publicadas — criar código (com nota opcional), ver
   o estado de cada um (disponível / associado a [pintor] / desativado) e o link a partilhar
   (`quempinta.pt/convite/CÓDIGO`). Pode desativar um código; nunca apagar.
