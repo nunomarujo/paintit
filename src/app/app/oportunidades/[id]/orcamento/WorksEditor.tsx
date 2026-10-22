@@ -195,6 +195,15 @@ export function WorksEditor({
     setItems((all) => [...all, next]);
     setCurrent(key);
   }
+  /** Nova versão com os mesmos campos (produto, acabamento…) desta — só as fachadas ficam por escolher, para
+   * não começar com as mesmas zonas da versão copiada. */
+  function duplicate(i: WorkItem) {
+    const d = workDef(i.code)!;
+    const n = items.filter((x) => x.code === i.code).length;
+    const key = `${i.code}#${n + 1}`;
+    setItems((all) => [...all, { ...i, key, zonas: [], quantidade: suggestedQuantity(d, [], zones) }]);
+    setCurrent(key);
+  }
   function toggle(code: string) {
     const mine = items.filter((i) => i.code === code);
     if (mine.length === 0) return add(code);
@@ -421,9 +430,14 @@ export function WorksEditor({
 
               <div className="flex flex-wrap gap-3 text-sm">
                 {def.where && zones.length > 1 && (
-                  <button type="button" onClick={() => add(def.code, [])} className="font-semibold text-tinta-700 underline underline-offset-4">
-                    Acrescentar outra versão para outras fachadas
-                  </button>
+                  <>
+                    <button type="button" onClick={() => add(def.code, [])} className="font-semibold text-tinta-700 underline underline-offset-4">
+                      Acrescentar outra versão em branco
+                    </button>
+                    <button type="button" onClick={() => duplicate(item)} className="font-semibold text-tinta-700 underline underline-offset-4">
+                      Duplicar esta solução para outra fachada
+                    </button>
+                  </>
                 )}
                 {item.key.includes('#') && (
                   <button
