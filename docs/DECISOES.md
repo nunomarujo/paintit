@@ -410,10 +410,31 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Testado em `supabase/tests/rls.test.ts`: o desconto ambiente reflete *todos* os fornecedores ligados (não só o
   código desta proposta); o mesmo código reaplica-se a uma 2.ª e 3.ª obra do mesmo fornecedor; a 3.ª sobe a 2% sem
   alterar as duas primeiras (confirmado por leitura direta depois).
-- **Ainda não tocado** (próximo passo): a tabela de convites das referências de fornecedores (pintor → fornecedor;
-  não existe nenhuma ainda) e a sua ligação ao mesmo `referral_discount_bp`; a UX do pintor (`ReferralField.tsx`,
-  hoje "um código por proposta", já não precisa de se repetir por proposta — fica por decidir como se torna a
-  ligação visível/editável fora do fluxo da proposta); e `src/lib/engagements.ts`/`src/domain/contracting.ts`
-  (`replay()`, linha ~132) ainda não leem `referral_discount_bp` nem aplicam `applyPainterDiscount` — a comissão
-  mostrada e cobrada ao pintor **ainda não reflete este desconto** até essa ligação se fazer (precisa dos tipos
-  gerados depois de a migração ser aplicada à base real — `src/lib/database.types.ts`).
+- **Ainda não tocado** (até aqui): `src/lib/engagements.ts`/`src/domain/contracting.ts` (`replay()`, linha ~132)
+  ainda não leem `referral_discount_bp` nem aplicam `applyPainterDiscount` — a comissão mostrada e cobrada ao
+  pintor **ainda não reflete este desconto** até essa ligação se fazer (precisa dos tipos gerados depois de as
+  migrações serem aplicadas à base real — `src/lib/database.types.ts`).
+
+## 22/10/2026 — referências de fornecedores: tabela de convites, ativação e Q(n) em SQL
+
+- `supabase/migrations/20261022050000_referencias_de_fornecedores.sql`: tabela nova `supplier_referral_invites`
+  (painter_org_id, code, nota, active, e — só graváveis pelas funções próprias, nunca por `authenticated` — 
+  supplier_org_id, nif, convite_confirmado_em, adesao_elegivel_em). Simétrica a `referral_codes`, mas de sentido
+  contrário: o **pintor** cria o código (só uma organização `pintor`), o **fornecedor** aplica-o no momento do
+  registo (`apply_supplier_referral_code`) — e, ao contrário dos códigos de adesão, cada convite serve uma só vez
+  (entidade nova, não se reatribui).
+- `adesao_elegivel_em` (início da janela de 12 meses) grava-se pela 1.ª linha em `supplier_subscriptions` desse
+  fornecedor, não pelo registo — como já estava decidido em `referralEligibility.ts`, para não encurtar a janela
+  pelo tempo até subscrever.
+- `private.referral_window_discount_bp(pintor, data)`: repete em SQL o Q(n) de
+  `src/domain/referralEligibility.ts` (um benefício por NIF, o convite confirmado mais antigo, só os atualmente
+  elegíveis) — testado contra a função do domínio para n=0..5.
+- `proposal_selected()` soma este valor ao desconto dos códigos de adesão, com o mesmo teto único de 800 p.b.
+  (`combinedPainterDiscountBp`) — um pintor com um fornecedor de código ligado (25 p.b.) e um fornecedor referido
+  já elegível (Q(1)=100 p.b.) fica com 125 p.b., testado de ponta a ponta.
+- Nenhum gatilho de guarda além do `grant update (active, nota)`: como em `referral_codes.painter_org_id`, o
+  grant por si só impede `authenticated` de tocar nos campos do sistema — não precisa de um gatilho a verificar
+  uma bandeira de sessão (mais simples do que o equivalente em `proposals`, que tem muitas colunas livres e por
+  isso usa esse mecanismo).
+- **Ainda não tocado:** a UX — nem o pintor tem onde criar/ver o seu código de convite, nem o registo de um
+  fornecedor (`/app/organizacoes/nova`) tem campo para o inserir e chamar `apply_supplier_referral_code`.

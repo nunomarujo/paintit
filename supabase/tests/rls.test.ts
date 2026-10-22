@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
+import { referralDiscountBp } from '../../src/domain/referralEligibility';
 import { CURRENT_RULES } from '../../src/domain/rules';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
@@ -1532,5 +1533,122 @@ describe('documentos fiscais', () => {
         ),
       ),
     ).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('referências de fornecedores', () => {
+  const RP = '00000000-0000-4000-8000-0000000000c1'; // pintor que refere fornecedores
+  const RS1 = '00000000-0000-4000-8000-0000000000c2'; // fornecedor que usa o código
+  const RS2 = '00000000-0000-4000-8000-0000000000c3'; // outro fornecedor, nunca aplica o código
+  const RP2 = '00000000-0000-4000-8000-0000000000c4'; // pintor dedicado ao teste do Q(n)
+  const RS3 = '00000000-0000-4000-8000-0000000000c5'; // fornecedor de materiais, código de adesão (sem relação com as referências)
+  let painterOrg: string;
+  let inviteCode: string;
+
+  beforeAll(async () => {
+    for (const u of [RP, RS1, RS2, RP2, RS3]) {
+      await db.query('insert into auth.users (id, email) values ($1, $2)', [u, `zz-test-${u.slice(-2)}@exemplo.pt`]);
+    }
+    painterOrg = (await createOrg(RP, 'pintor', 'Pinturas Referências', '506226620')).id;
+  });
+
+  it('o pintor cria o convite; só pela sua organização de pintor', async () => {
+    await expect(
+      as(RS1, () => db.query(`insert into public.supplier_referral_invites (painter_org_id, code) values ($1, 'QRST1234')`, [painterOrg])),
+    ).rejects.toThrow(/row-level security/);
+    const created = await as(RP, () =>
+      one<{ id: string; code: string }>(`insert into public.supplier_referral_invites (painter_org_id, code) values ($1, 'QRST1234') returning id, code`, [painterOrg]),
+    );
+    inviteCode = created.code;
+  });
+
+  it('ninguém altera os campos do sistema diretamente; só apply_supplier_referral_code', async () => {
+    await expect(
+      as(RP, () => db.query(`update public.supplier_referral_invites set nif = '999999990' where code = $1`, [inviteCode])),
+    ).rejects.toThrow(/permission denied/);
+    // active e nota continuam livres.
+    await as(RP, () => db.query(`update public.supplier_referral_invites set nota = 'Resinas Um, feira de outubro' where code = $1`, [inviteCode]));
+  });
+
+  it('o fornecedor aplica o código no registo; entidade nova, não se reatribui, nunca ao próprio código', async () => {
+    const supplier1 = (await createOrg(RS1, 'fornecedor', 'Resinas Um', '506226638')).id;
+    await expect(as(RS1, () => db.query(`select public.apply_supplier_referral_code($1, 'ZZZZZZZZ')`, [supplier1]))).rejects.toThrow(/inválido/);
+    await as(RS1, () => db.query(`select public.apply_supplier_referral_code($1, ' qrst1234 ')`, [supplier1]));
+    const inv = await one<{ supplier_org_id: string; nif: string; convite_confirmado_em: string }>(
+      'select supplier_org_id, nif, convite_confirmado_em from public.supplier_referral_invites where code = $1',
+      [inviteCode],
+    );
+    expect(inv.supplier_org_id).toBe(supplier1);
+    expect(inv.nif).toBe('506226638');
+    expect(inv.convite_confirmado_em).not.toBeNull();
+    // Entidade já referida: não se reatribui a um segundo fornecedor.
+    const supplier2 = (await createOrg(RS2, 'fornecedor', 'Resinas Dois', '506226646')).id;
+    await expect(as(RS2, () => db.query(`select public.apply_supplier_referral_code($1, 'QRST1234')`, [supplier2]))).rejects.toThrow(/já foi utilizado/);
+  });
+
+  it('a 1.ª subscrição do fornecedor marca a ativação elegível (início da janela de 12 meses)', async () => {
+    const supplier1 = (await one<{ supplier_org_id: string }>('select supplier_org_id from public.supplier_referral_invites where code = $1', [inviteCode])).supplier_org_id;
+    await as(ADMIN, () =>
+      db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'vendedores', 3900)`, [supplier1]),
+    );
+    const inv = await one<{ adesao_elegivel_em: string }>('select adesao_elegivel_em from public.supplier_referral_invites where code = $1', [inviteCode]);
+    expect(inv.adesao_elegivel_em).not.toBeNull();
+  });
+
+  it('Q(n): a fórmula em SQL concorda com src/domain/referralEligibility.ts', async () => {
+    const painterOrgQ = (await createOrg(RP2, 'pintor', 'Pinturas Q', '606226613')).id;
+    const discountNow = () => one<{ v: number }>('select private.referral_window_discount_bp($1, current_date) v', [painterOrgQ]);
+    expect((await discountNow()).v).toBe(referralDiscountBp(0));
+    const nifs = ['300000005', '350000003', '360000001', '370000000', '380000009'];
+    for (let i = 0; i < nifs.length; i++) {
+      await db.query(
+        `insert into public.supplier_referral_invites (painter_org_id, code, supplier_org_id, nif, convite_confirmado_em, adesao_elegivel_em)
+         values ($1, $2, null, $3, now(), current_date)`,
+        [painterOrgQ, `QN${i}CODE${i}`, nifs[i]],
+      );
+      expect((await discountNow()).v).toBe(referralDiscountBp(i + 1));
+    }
+  });
+
+  it('desconto combinado: código de adesão ligado + referência elegível, um só teto', async () => {
+    // Um fornecedor de materiais, sem relação com as referências, liga-se a este pintor por código de adesão.
+    const materialSupplier = (await createOrg(RS3, 'fornecedor', 'Tintas do Pintor Q2', '706226615')).id;
+    await db.query(`insert into public.referral_codes (supplier_org_id, code, painter_org_id) values ($1, 'ADESAOQ1', $2)`, [materialSupplier, painterOrg]);
+
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const reqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — referências', 'fachadas', 'Obra para testar o desconto combinado das duas referências.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 16150)`, [reqId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [reqId]));
+    const propId = (
+      await as(RP, () =>
+        one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id, validade, duracao_dias) values ($1, $2, current_date + 30, 20) returning id`, [reqId, painterOrg]),
+      )
+    ).id;
+    await as(RP, () =>
+      db.query(
+        `insert into public.proposal_lines (proposal_id, categoria, descricao, superficie, quantidade, preco_unitario_cents, inclusao) values ($1, 'pintura', 'Pintura', 'fachada', 16150, 850, 'incluido')`,
+        [propId],
+      ),
+    );
+    await as(RP, () =>
+      db.query(
+        `update public.proposals set confirma_mao_obra = true, seguro_rc = 'sim', seguro_at = 'nao',
+           fases = '[{"nome":"No início","bps":3000},{"nome":"No fim","bps":7000}]'::jsonb where id = $1`,
+        [propId],
+      ),
+    );
+    await as(RP, () => db.query(`update public.proposals set status = 'submetida' where id = $1`, [propId]));
+    await as(A, () => db.query('select public.select_proposal($1)', [propId]));
+    const e = await one<{ referral_discount_bp: number }>('select referral_discount_bp from public.engagements where proposal_id = $1', [propId]);
+    // 25 (1 fornecedor com código de adesão ligado) + 100 (Q(1), o fornecedor referido e já elegível) = 125.
+    expect(e.referral_discount_bp).toBe(25 + referralDiscountBp(1));
   });
 });
