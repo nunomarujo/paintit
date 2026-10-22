@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
+import { CURRENT_PAINTER_TERMS_VERSION } from '@/domain/painterTerms';
 import { parseLine, parseTerms, submitBlockers } from '@/domain/proposal';
 import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
@@ -15,6 +16,17 @@ import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 const today = () => localDate(new Date(), CURRENT_RULES.timeZone);
+
+/** Aceita os termos para ver a ficha completa de uma obra (src/domain/painterTerms.ts). Uma linha por versão;
+ * uma versão nova não apaga as anteriores. */
+export async function acceptPainterTerms(orgId: string, requestId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.from('painter_terms_acceptances').insert({ painter_org_id: orgId, version: CURRENT_PAINTER_TERMS_VERSION });
+  if (error) return { errors: {}, message: 'Não foi possível registar. Só gestores da entidade o podem fazer.' };
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  return { errors: {}, ok: true };
+}
 
 export async function createProposal(requestId: string, painterOrgId: string) {
   const { supabase, user } = await getUser();

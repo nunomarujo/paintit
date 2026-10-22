@@ -590,6 +590,12 @@ export type Database = {
           { foreignKeyName: 'supplier_referral_invites_supplier_org_id_fkey'; columns: ['supplier_org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
         ];
       };
+      painter_terms_acceptances: {
+        Row: { accepted_at: string; accepted_by: string; painter_org_id: string; version: string };
+        Insert: { accepted_at?: string; accepted_by?: string; painter_org_id: string; version: string };
+        Update: never;
+        Relationships: [];
+      };
       supplier_payout_details: {
         Row: { cobra_iva: boolean; declaracao_retencao: 'nao_sujeito' | 'sujeito' | 'dispensa' | null; iban: string; isencao_iva: string | null; org_id: string; regime_validado: boolean; retencao_bps: number; titular: string; updated_at: string };
         Insert: { cobra_iva?: boolean; declaracao_retencao?: 'nao_sujeito' | 'sujeito' | 'dispensa' | null; iban: string; isencao_iva?: string | null; org_id: string; titular: string; updated_at?: string };

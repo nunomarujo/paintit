@@ -157,9 +157,12 @@ Claude do navegador):
 2. `supabase/migrations/20261022030000_nif_unico_fornecedores.sql`
 3. `supabase/migrations/20261022040000_codigos_de_adesao_cumulativos.sql`
 4. `supabase/migrations/20261022050000_referencias_de_fornecedores.sql`
-5. Confirmar avisos de segurança/desempenho a zero (ou explicados) e correr `generate_typescript_types`, para
+5. `supabase/migrations/20261022060000_termos_de_aceitacao_pintor.sql` (termos de aceitação antes da ficha
+   completa de uma obra, incluindo não revelar a comissão ao cliente — ver `docs/DECISOES.md`, 22/10/2026;
+   texto em `src/app/app/oportunidades/[id]/AcceptTerms.tsx`, por rever pelo promotor e pelo advogado).
+6. Confirmar avisos de segurança/desempenho a zero (ou explicados) e correr `generate_typescript_types`, para
    confirmar o `database.types.ts` escrito à mão.
-6. **Falta ver a correr num browser com dados reais** — esta sessão não tinha credenciais do Supabase no
+7. **Falta ver a correr num browser com dados reais** — esta sessão não tinha credenciais do Supabase no
    `npm run dev` (confirmado com a página `adesoes`, já existente, a falhar da mesma forma antes de qualquer
    mudança desta sessão), por isso as páginas novas e o `ReferralField` só foram verificados por tsc/lint/testes/build.
 

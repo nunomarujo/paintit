@@ -41,11 +41,21 @@ export async function linkedSupplierCodes(supabase: SupabaseClient<Database>, pa
   return (codes ?? []).map((c) => ({ id: c.id, code: c.code, nome: nameOf.get(c.supplier_org_id) ?? 'Fornecedor' }));
 }
 
-/** O desconto do pintor em vigor agora, em pontos-base: códigos de adesão ligados (ambiente, qualquer que seja o
- * marcado nesta proposta) somado às referências de fornecedores elegíveis, com o teto conjunto. */
-export async function painterDiscountBp(supabase: SupabaseClient<Database>, painterOrgId: string): Promise<number> {
+export interface PainterDiscountBreakdown {
+  linkedCount: number;
+  linkedBp: number;
+  eligibleCount: number;
+  referralsBp: number;
+  combinedBp: number;
+}
+
+/** O desconto do pintor em vigor agora: códigos de adesão ligados (ambiente, qualquer que seja o marcado nesta
+ * proposta) somado às referências de fornecedores elegíveis, com o teto conjunto. Devolve os dois lados em
+ * separado, para quem quiser mostrar o detalhe (ex.: a pré-visualização da comissão). */
+export async function painterDiscountBreakdown(supabase: SupabaseClient<Database>, painterOrgId: string): Promise<PainterDiscountBreakdown> {
   const { data: codes } = await supabase.from('referral_codes').select('supplier_org_id').eq('painter_org_id', painterOrgId).eq('active', true);
   const linkedCount = new Set((codes ?? []).map((c) => c.supplier_org_id)).size;
+  const linkedBp = linkedSupplierDiscountBp(linkedCount);
 
   const { data: invites } = await supabase
     .from('supplier_referral_invites')
@@ -57,7 +67,8 @@ export async function painterDiscountBp(supabase: SupabaseClient<Database>, pain
     adesaoElegivelEm: (i.adesao_elegivel_em as IsoDate | null) ?? null,
   }));
   const today = new Date().toISOString().slice(0, 10) as IsoDate;
-  const referralsBp = referralDiscountBp(countEligibleReferrals(referred, today));
+  const eligibleCount = countEligibleReferrals(referred, today);
+  const referralsBp = referralDiscountBp(eligibleCount);
 
-  return combinedPainterDiscountBp(linkedSupplierDiscountBp(linkedCount), referralsBp);
+  return { linkedCount, linkedBp, eligibleCount, referralsBp, combinedBp: combinedPainterDiscountBp(linkedBp, referralsBp) };
 }

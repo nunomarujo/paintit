@@ -1652,3 +1652,40 @@ describe('referências de fornecedores', () => {
     expect(e.referral_discount_bp).toBe(25 + referralDiscountBp(1));
   });
 });
+
+describe('termos de aceitação do pintor', () => {
+  const TP = '00000000-0000-4000-8000-0000000000d1'; // pintor (gestor)
+  const TP2 = '00000000-0000-4000-8000-0000000000d2'; // colega, sem papel de gestor
+  let painterOrg: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [TP, email(TP), TP2, email(TP2)]);
+    painterOrg = (await createOrg(TP, 'pintor', 'Pinturas Termos', '606226621')).id;
+    await db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'leitor')`, [painterOrg, TP2]);
+  });
+
+  it('só um gestor da entidade regista a aceitação, e só para a sua', async () => {
+    await expect(
+      as(TP2, () => db.query(`insert into public.painter_terms_acceptances (painter_org_id, version) values ($1, '2026-10-22')`, [painterOrg])),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(TP, () => db.query(`insert into public.painter_terms_acceptances (painter_org_id, version) values ($1, '2026-10-22')`, [condo])),
+    ).rejects.toThrow(/row-level security/);
+    await as(TP, () => db.query(`insert into public.painter_terms_acceptances (painter_org_id, version) values ($1, '2026-10-22')`, [painterOrg]));
+    expect(await as(TP2, async () => (await db.query('select version from public.painter_terms_acceptances where painter_org_id = $1', [painterOrg])).rows)).toEqual([
+      { version: '2026-10-22' },
+    ]);
+  });
+
+  it('não se altera nem se apaga; uma versão nova é outra linha', async () => {
+    await expect(
+      as(TP, () => db.query(`update public.painter_terms_acceptances set version = 'x' where painter_org_id = $1`, [painterOrg])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(TP, () => db.query(`delete from public.painter_terms_acceptances where painter_org_id = $1`, [painterOrg])),
+    ).rejects.toThrow(/permission denied/);
+    await as(TP, () => db.query(`insert into public.painter_terms_acceptances (painter_org_id, version) values ($1, '2026-11-01')`, [painterOrg]));
+    const rows = await one<{ n: string }>('select count(*) n from public.painter_terms_acceptances where painter_org_id = $1', [painterOrg]);
+    expect(Number(rows.n)).toBe(2);
+  });
+});

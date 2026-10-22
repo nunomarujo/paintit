@@ -9,6 +9,8 @@ import { STEP_IDS, type StepId } from './orcamento/steps';
 import { PricesEditor, type PriceRow } from './orcamento/PricesEditor';
 import { WorksEditor } from './orcamento/WorksEditor';
 import { ReferralField } from './orcamento/ReferralField';
+import { AcceptTerms } from './AcceptTerms';
+import { CURRENT_PAINTER_TERMS_VERSION } from '@/domain/painterTerms';
 import { applyPainterDiscount } from '@/domain/referral';
 import { painterFee } from '@/domain/commission';
 import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
@@ -19,11 +21,11 @@ import { parseTemplate } from '@/domain/templates';
 import { budgetIssues, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
 import { parsePreferences } from '@/domain/reference';
 import type { DesiredWork } from '@/domain/request';
-import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
+import { SURFACE_KIND_LABELS, WORK_TYPE_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions } from '@/lib/materials';
-import { linkedSupplierCodes, painterDiscountBp, painterOrgs } from '@/lib/queries';
+import { linkedSupplierCodes, painterDiscountBreakdown, painterOrgs } from '@/lib/queries';
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
@@ -58,7 +60,31 @@ export default async function OpportunityPage({ params, searchParams }: { params
   if (!listing && !proposal) notFound();
 
   const org = orgs.find((o) => o.id === proposal?.painter_org_id) ?? orgs.find((o) => o.manager) ?? orgs[0]!;
-  const [linkedSuppliers, discountBp] = await Promise.all([linkedSupplierCodes(supabase, org.id), painterDiscountBp(supabase, org.id)]);
+  const { data: accepted } = await supabase
+    .from('painter_terms_acceptances')
+    .select('version')
+    .eq('painter_org_id', org.id)
+    .eq('version', CURRENT_PAINTER_TERMS_VERSION)
+    .maybeSingle();
+  if (!accepted) {
+    return (
+      <div className="space-y-8">
+        <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
+          ← Oportunidades
+        </Link>
+        {listing && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="font-semibold">
+              {WORK_TYPE_LABELS[listing.tipo_obra]} · {listing.concelho}
+            </p>
+            <p className="text-sm text-slate-600">Pedido {listing.ref}</p>
+          </div>
+        )}
+        <AcceptTerms orgId={org.id} requestId={id} />
+      </div>
+    );
+  }
+  const [linkedSuppliers, discount] = await Promise.all([linkedSupplierCodes(supabase, org.id), painterDiscountBreakdown(supabase, org.id)]);
   const [{ data: lines }, { data: messages }] = proposal
     ? await Promise.all([
         supabase.from('proposal_lines').select('*').eq('proposal_id', proposal.id).order('created_at'),
@@ -75,7 +101,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
-  const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discountBp)) : null;
+  const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discount.combinedBp)) : null;
   const { data: licenses } = proposal
     ? await supabase
         .from('org_documents')
@@ -267,10 +293,28 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </div>
             )}
             {fee && (
-              <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-                Se for escolhido, paga à plataforma {formatEuros(fee.gross)} ({formatEuros(fee.net)} de comissão +{' '}
-                {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço do cliente.{discountBp > 0 ? ' Já inclui o seu desconto de fornecedores ligados e referidos.' : ''}
-              </p>
+              <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                <p>
+                  Se for escolhido, paga à plataforma {formatEuros(fee.gross)} ({formatEuros(fee.net)} de comissão +{' '}
+                  {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço
+                  do cliente.
+                </p>
+                {discount.combinedBp > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer font-medium text-tinta-700">Ver o detalhe do desconto</summary>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      <li>Comissão sem desconto: {(CURRENT_RULES.commissionBp / 100).toFixed(2)}%</li>
+                      {discount.linkedBp > 0 && (
+                        <li>Fornecedores com código ligado ({discount.linkedCount}): −{(discount.linkedBp / 100).toFixed(2)} p.p.</li>
+                      )}
+                      {discount.referralsBp > 0 && (
+                        <li>Referências de fornecedores elegíveis ({discount.eligibleCount}): −{(discount.referralsBp / 100).toFixed(2)} p.p.</li>
+                      )}
+                      <li className="font-medium">Comissão aplicada: {((CURRENT_RULES.commissionBp - discount.combinedBp) / 100).toFixed(2)}%</li>
+                    </ul>
+                  </details>
+                )}
+              </div>
             )}
             {proposal.status === 'submetida' && org.manager && (
               <div className="mt-4 flex flex-wrap gap-2">

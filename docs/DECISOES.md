@@ -474,3 +474,38 @@ pagamento original só por intervenção manual (caso raro, a tratar).
   de `src/domain/contracting.ts`. `painterDiscountBp` e `linkedSupplierCodes`, novos em `src/lib/queries.ts`,
   partilham-se entre esta página e a futura.
 - Texto desatualizado corrigido também em `orcamento-actions.ts` (`applyReferral`).
+
+## 22/10/2026 — termos de aceitação do pintor antes da ficha completa de uma obra
+
+Decisão do promotor: os pintores são alertados caso a caso do valor/percentagem do fee da plataforma (com detalhe
+se tiverem desconto), mas para ver a ficha completa de uma obra (fotografias, superfícies e descrição) têm de
+aceitar termos — comprometendo-se a não revelar a comissão daquele caso. Reforço explícito: **o condomínio/cliente
+sabe que existe comissão, nunca sabe quanto** (regra 13 do `CLAUDE.md`, já em vigor — isto não a muda, acrescenta
+o lado do pintor).
+
+- **Detalhe do fee por proposta:** `/app/oportunidades/[id]`, a pré-visualização da comissão ganha "Ver o detalhe
+  do desconto" (um `<details>`, só aparece se houver desconto) — comissão sem desconto, cada componente (códigos
+  de adesão / referências, com a contagem) e a comissão aplicada. `painterDiscountBp` (`src/lib/queries.ts`) passou
+  a `painterDiscountBreakdown`, devolvendo os dois lados separados, não só o total.
+- **Termos de aceitação:** tabela nova `painter_terms_acceptances` (`painter_org_id`, `version`, `accepted_at`,
+  `accepted_by`) — uma linha por versão aceite, nunca se altera nem apaga. Versão em `src/domain/painterTerms.ts`
+  (`CURRENT_PAINTER_TERMS_VERSION`); mudar o texto muda a versão, o que pede aceitação de novo a toda a gente.
+  Só um gestor da entidade de pintura regista a aceitação (como as outras ações consequentes desta natureza).
+- **Onde pega:** `/app/oportunidades/[id]` só mostra a ficha completa (hoje tudo dentro de `ListingPreview`:
+  fotografias, superfícies, descrição) e o resto da página (orçamento, propostas) a quem já aceitou a versão em
+  vigor; sem isso, mostra só o que já era público na lista (tipo de obra, concelho, referência) e o formulário de
+  aceitação. A lista (`/app/oportunidades`) não muda — já só mostra isso.
+- **Decisão de desenho, não pedida explicitamente — a registar:** a imposição é ao nível da interface/processo
+  (esta página), não das políticas RLS das tabelas de base (`work_requests`, `request_photos`, `request_surfaces`).
+  Uma aceitação de termos de utilização não precisa de ser uma barreira de segurança ao nível dos dados — é um
+  passo de processo, como aceitar quaisquer termos de utilização de um serviço. Mudar isto, se vier a ser
+  necessário (ex.: impedir aceder à informação por fora da aplicação), é um passo maior e separado.
+- **Texto** (rascunho, em `src/app/app/oportunidades/[id]/AcceptTerms.tsx`, impessoal, cinco pontos curtos):
+  comissão confidencial; uso só para orçamentar (não partilhar nem usar para contactar o cliente fora da
+  plataforma); sem contacto direto antes da apresentação; a obra contrata-se na plataforma (sem contornar);
+  dados verdadeiros sobre a entidade. **Por rever pelo promotor e, como os outros textos legais do projeto,
+  pelo advogado** — não é um contrato assinado com Chave Móvel Digital (não é preciso: é aceitação de termos de
+  utilização, não um contrato entre duas partes com dinheiro a mudar de mãos).
+- Testado em `supabase/tests/rls.test.ts` (só um gestor regista, só para a sua entidade, imutável) e tsc/lint/359
+  testes/build. `database.types.ts` atualizado à mão, como as tabelas anteriores desta sessão — confirmar com
+  `generate_typescript_types` quando a migração for aplicada (é a 4.ª e última, por agora, da fila por aplicar).

@@ -78,3 +78,6 @@ npm run build
 13. **O cliente nunca vê o que a plataforma cobra ao pintor** (comissão, % ou valores), em nenhum ecrã, email ou
     resumo: pode mudar e não é informação do utilizador final. Texto para o cliente fala em "confirmação do pintor".
     Valores e percentagens aparecem só ao pintor e à plataforma. A página pública Transparência diz apenas, sem números, que a plataforma cobra uma pequena comissão pelo sucesso ao prestador de serviço (exigência do parecer jurídico).
+    O pintor vê o valor da sua própria comissão, com o detalhe do desconto se tiver — isto não abre excepção à regra
+    acima: antes de ver a ficha completa de uma obra, aceita não revelar esse valor ao cliente nem a terceiros
+    (`painter_terms_acceptances`, `src/domain/painterTerms.ts`, decisão de 22/10/2026).
