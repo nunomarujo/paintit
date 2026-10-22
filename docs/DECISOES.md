@@ -326,3 +326,23 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - Descartado, por agora: o motor sugerir o motivo sozinho (exigiria reconhecimento de imagem por IA, que a página de
   Aviso Legal exclui explicitamente) e a edição da foto (tapar zonas) pela equipa antes de aprovar — fica como melhoria
   futura se a recusa por pormenores pequenos continuar frequente.
+
+## 22/10/2026 — fundação do desconto por referências do novo algoritmo de fee (ponto 2)
+
+- Documento "Algoritmo de determinação de fee QuemPinta v1" (22/10/2026): substitui a faixa fixa de 3% por uma faixa
+  dinâmica 18–23%, com nove fatores. Trabalho em curso, por fases — ver nota no início deste ficheiro.
+- **Feito agora:** a fórmula Q(n) (desconto por fornecedores referidos elegíveis, até 4 p.p.) e a janela de 12 meses
+  de elegibilidade (ativação validada, aniversário exclusive, 29 de fevereiro), em `src/domain/referralEligibility.ts`,
+  pura e testada contra os exemplos do próprio documento (secção 9).
+  - ◆ Por decidir: a data que inicia a janela é a da inscrição ou a da ativação validada — usei a ativação validada,
+    que é a opção que o documento justifica, mas falta confirmar.
+- **Ainda não tocado** (decisão a tomar antes de avançar): como isto substitui o que está em produção.
+  - Hoje (`src/domain/referral.ts`, `REFERRAL_BPS`): o pintor aplica um código a **uma proposta**; ganhar a obra
+    consome o código (`max_wins`) e dá 0,25 p.p., só nessa contratação.
+  - No documento: o desconto é **ambiente**, aplica-se a **todas** as propostas do pintor enquanto tiver fornecedores
+    referidos elegíveis, e varia com a contagem (Q(n)) — não há "um código, uma obra".
+  - Isto muda a UX do pintor (hoje: `ReferralField` no passo Condições do orçamento) e o esquema (`referral_codes`,
+    `proposals.referral_code_id`, o sufixo `+ref` na versão das regras). Não decidido se o "convite" ainda passa por
+    um código escrito pelo pintor ou se é automático a partir de quem o fornecedor indica ter convidado.
+  - **Não parece afetado:** a comissão que o fornecedor recebe (0,25%, `referral_payouts`/`referral_redemptions`,
+    já faturada via Moloni) — o documento só fala do desconto ao pintor, nunca do que o fornecedor ganha.
