@@ -5,8 +5,9 @@ import { ProposalView } from '@/components/ProposalView';
 import { clientGuarantee } from '@/domain/commission';
 import { formatEuros, percentOf } from '@/domain/money';
 import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, SORT_LABELS, compareProposals, sortRows, type SortKey } from '@/domain/proposal';
-import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
+import { DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, type DesiredWork } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
+import { WORK_STATE_LABELS, requestedCoverage } from '@/domain/works';
 import { canManage, myRole } from '@/lib/access';
 import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
@@ -88,6 +89,8 @@ export default async function ProposalsPage({
   const refInfo = new Map(prefRefs.map((r) => [r.id, { tipo: r.tipo, perLitre: refPerLitre(r) }]));
   const refName = new Map(prefRefs.map((r) => [r.id, `${r.marca} ${r.nome}`]));
   const adherenceOf = (pid: string) => adherence(prefs, refInfo, used.get(pid) ?? []);
+  const desiredWorks = (req.trabalhos ?? []) as DesiredWork[];
+  const coverageOf = (pid: string) => requestedCoverage(desiredWorks, linesOf(pid));
   const active = rows.filter((r) => byId.get(r.id)!.status !== 'retirada');
   const sorted = sortRows(active, sortKey, Object.fromEntries(list.map((p) => [p.id, p.duracao_dias])));
   const chosen = list.find((p) => p.status === 'selecionada');
@@ -229,6 +232,21 @@ export default async function ProposalsPage({
                               {a.diffPct === 0 ? 'mesmo preço por litro' : `${Math.abs(a.diffPct)}% ${a.diffPct > 0 ? 'mais caro' : 'mais barato'} por litro`} (referência de mercado)
                             </span>
                           )}
+                        </span>
+                      );
+                    })}
+                  />
+                ))}
+                {desiredWorks.map((w, i) => (
+                  <Row
+                    key={w}
+                    label={`${DESIRED_WORK_LABELS[w]} (pedido)`}
+                    cells={sorted.map((r) => {
+                      const state = coverageOf(r.id)[i]!.state;
+                      if (!state) return <Missing key={r.id} />;
+                      return (
+                        <span key={r.id} className={state === 'nao_incluido' ? 'text-red-700' : state === 'base' ? 'text-tinta-700' : 'text-amber-700'}>
+                          {WORK_STATE_LABELS[state]}
                         </span>
                       );
                     })}

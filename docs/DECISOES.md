@@ -636,3 +636,22 @@ sempre, só com T a variar em vez de ser fixo.
 
 Quando o promotor quiser avançar: o motor já está pronto, validado, e pode ser ligado assim que existirem os
 campos de ecrã, a consulta de R/L e uma decisão sobre o indicador S e a composição com os códigos de adesão.
+
+## 22/10/2026 — comparador do cliente: cobertura dos trabalhos pedidos (fase 4 do `docs/PROPOSTA.md`)
+
+O comparador já mostrava, produto a produto, se cada proposta seguia o que o cliente pediu (20/10/2026); não
+mostrava o mesmo para **trabalhos** (ex.: o cliente pediu tratamento de humidade — alguma proposta responde a
+isso, e como?). A ligação já existia no modelo (`WorkDef.requested` em `src/domain/works.ts`, usada até agora só
+nas pendências do lado do pintor, `budgetIssues`) — faltava só mostrá-la do lado do cliente.
+
+- `requestedCoverage(requested, lines)`, nova em `works.ts`, pura e testada: para cada trabalho pedido, procura a
+  linha da proposta com esse código (`ProposalLine.trabalho`) e devolve o estado (proposta base / opcional / a
+  confirmar / não incluído) ou `null` se a proposta não tiver essa linha — nunca filtra a lista de entrada, para
+  o comparador poder cruzar pelo índice sem risco de desalinhar.
+- `/app/pedidos/[id]/propostas`: uma linha por trabalho pedido, ao lado das já existentes por produto pedido, com
+  a mesma lógica de cor (vermelho só quando explicitamente não incluído; "Não indicado" quando a proposta nem
+  fala no trabalho — nunca se lê silêncio como "incluído").
+- Testado (`src/domain/works.test.ts`) e tsc/lint/392 testes/build, zero.
+- Fica por fazer, da mesma fase do `docs/PROPOSTA.md`: "duplicar solução" (copiar os campos de uma fachada para
+  outra no passo Trabalhos) — é conveniência de preenchimento para o pintor, não uma lacuna de informação ao
+  cliente, por isso ficou de fora desta entrada.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { productSuggestions, type CatalogueProduct, budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, suggestedQuantity, workDef, type WorkItem, type Zone } from './works';
+import { productSuggestions, type CatalogueProduct, budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, requestedCoverage, suggestedQuantity, workDef, type WorkItem, type Zone } from './works';
 
 const zones: Zone[] = [
   { id: 'a', label: 'Fachada principal (420 m²)', area: 42000 },
@@ -67,6 +67,18 @@ describe('orçamento guiado', () => {
     const unjustified = budgetIssues({ items: [item({ code: 'lavagem', key: 'lavagem', estado: 'nao_incluido' })], prices: {}, globalMode: true, zones, requested: ['lavagem'] });
     expect(unjustified.join(' ')).toMatch(/justificar/);
     expect(budgetIssues({ items: [item()], prices: {}, globalMode: true, zones, requested: [] })).toEqual([]);
+  });
+
+  it('comparador: cobertura dos trabalhos pedidos, um por um, na mesma ordem e tamanho do pedido', () => {
+    const lines = [
+      { trabalho: 'pintura_final', inclusao: 'incluido' as const },
+      { trabalho: 'acessos', inclusao: 'opcional' as const },
+    ];
+    expect(requestedCoverage(['pintura', 'lavagem'], lines)).toEqual([
+      { work: 'pintura', label: 'Pintura final', state: 'base' },
+      { work: 'lavagem', label: 'Lavagem e limpeza', state: null }, // pedido, mas a proposta não tem essa linha
+    ]);
+    expect(requestedCoverage([], lines)).toEqual([]);
   });
 });
 

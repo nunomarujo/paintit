@@ -1,5 +1,5 @@
 import { EQUIVALENT_LABEL, equivalentFlag } from './equivalence';
-import { parseHundredths, type DesiredWork } from './request';
+import { DESIRED_WORK_LABELS, parseHundredths, type DesiredWork } from './request';
 import type { Inclusion, LineCategory, Unit } from './proposal';
 
 // Orçamento guiado (docs/PROPOSTA.md, fase 3): o pintor escolhe "trabalhos"; cada um tem os seus campos,
@@ -82,6 +82,26 @@ export const WORKS: WorkDef[] = [
 export const workDef = (code: string) => WORKS.find((w) => w.code === code);
 const BY_REQUESTED = new Map(WORKS.filter((w) => w.requested).map((w) => [w.requested as DesiredWork, w]));
 export const workForRequested = (w: DesiredWork) => BY_REQUESTED.get(w);
+
+/**
+ * Para cada trabalho que o cliente pediu no pedido, como esta proposta o cobre — usado no comparador do cliente,
+ * trabalho a trabalho, do mesmo jeito que já se mostra a aderência por produto pedido. Uma entrada por pedido,
+ * na mesma ordem e com o mesmo tamanho de `requested` (nunca filtra), para poder cruzar pelo índice com a lista
+ * original. `state: null` quando a proposta não tem nenhuma linha desse trabalho, ou quando o próprio trabalho
+ * pedido não tem um módulo correspondente no orçamento guiado (não deveria acontecer; os sete trabalhos do
+ * pedido têm todos um módulo — ver `WORKS` — mas não se assume isso aqui).
+ */
+export function requestedCoverage(
+  requested: DesiredWork[],
+  lines: { trabalho?: string | null; inclusao: Inclusion }[],
+): Array<{ work: DesiredWork; label: string; state: WorkState | null }> {
+  return requested.map((w) => {
+    const def = workForRequested(w);
+    if (!def) return { work: w, label: DESIRED_WORK_LABELS[w], state: null };
+    const line = lines.find((l) => l.trabalho === def.code);
+    return { work: w, label: def.label, state: line ? inclusionToState(line.inclusao) : null };
+  });
+}
 
 export interface Zone {
   id: string;
