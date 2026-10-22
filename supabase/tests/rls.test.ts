@@ -669,19 +669,77 @@ describe('propostas e escolha', () => {
     await expect(as(A, () => db.query('select public.select_proposal($1)', [other]))).rejects.toThrow(/submetida/);
   });
 
-  it('com código, a contratação usa as regras com desconto e nasce a comissão do fornecedor', async () => {
-    const e = await one<{ id: string; rules_version: string }>('select e.id, e.rules_version from public.engagements e where e.proposal_id = $1', [mine]);
-    expect(e.rules_version).toBe('2026-10-20+ref');
+  it('com código, a contratação usa o desconto ambiente e nasce a comissão do fornecedor por volume', async () => {
+    const e = await one<{ id: string; rules_version: string; referral_discount_bp: number }>(
+      'select e.id, e.rules_version, e.referral_discount_bp from public.engagements e where e.proposal_id = $1',
+      [mine],
+    );
+    // A versão em vigor fica sem sufixo: o desconto do pintor vive em referral_discount_bp (0,25 p.p., 1 fornecedor ligado).
+    expect(e.rules_version).toBe(CURRENT_RULES.version);
+    expect(e.referral_discount_bp).toBe(25);
     const pay = await one<{ id: string; amount_cents: number; estado: string; fee_recebido_em: string | null; supplier_org_id: string }>(
       'select id, amount_cents, estado, fee_recebido_em, supplier_org_id from public.referral_payouts where engagement_id = $1',
       [e.id],
     );
-    expect([pay.amount_cents, pay.estado, pay.fee_recebido_em]).toEqual([343, 'adjudicada', null]); // 0,25% de 1372,75 €
+    expect([pay.amount_cents, pay.estado, pay.fee_recebido_em]).toEqual([1373, 'adjudicada', null]); // 1% de 1372,75 € (1.ª obra do fornecedor)
     const S = '00000000-0000-4000-8000-0000000000f5';
     expect(await as(S, async () => (await db.query('select 1 from public.referral_payouts')).rows)).toHaveLength(1);
     expect(await as(P2, async () => (await db.query('select 1 from public.referral_payouts')).rows)).toEqual([]);
     // Sem dados de pagamento nem saldo (a comissão do pintor ainda não entrou), não há resgate.
     await expect(as(S, () => db.query(`select public.referral_request_redemption($1)`, [pay.supplier_org_id]))).rejects.toThrow(/IBAN/);
+  });
+
+  it('código de adesão: desconto ambiente por todos os fornecedores ligados, comissão do fornecedor por volume', async () => {
+    // Um segundo fornecedor liga-se ao mesmo pintor diretamente (sem passar por apply_referral_code, já testado).
+    const S2 = '00000000-0000-4000-8000-0000000000f8';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [S2, 'zz-test-forn4@exemplo.pt']);
+    const supplier2 = (await createOrg(S2, 'fornecedor', 'Vernizes Dois', '123456789')).id;
+    await db.query(`insert into public.referral_codes (supplier_org_id, code, painter_org_id) values ($1, 'EFGH5678', $2)`, [supplier2, painterOrg]);
+
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const win = async () => {
+      requestId = (
+        await as(A, () =>
+          one<{ id: string }>(
+            `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+             values ($1, $2, 'Rua A, 1 — outra obra', 'fachadas', 'Outra obra, para testar o código de adesão cumulativo.', current_date + 10) returning id`,
+            [condo, buildingId],
+          ),
+        )
+      ).id;
+      await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 16150)`, [requestId]));
+      await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+      const id = (await proposal(P, painterOrg)).id;
+      await addLine(P, id, 850);
+      await as(P, () => db.query(`select public.apply_referral_code($1, 'ABCD1234')`, [id]));
+      await as(P, () =>
+        db.query(
+          `update public.proposals set confirma_mao_obra = true, seguro_rc = 'sim', seguro_at = 'nao',
+             fases = '[{"nome":"No início","bps":3000},{"nome":"No fim","bps":7000}]'::jsonb where id = $1`,
+          [id],
+        ),
+      );
+      await setStatus(P, id, 'submetida');
+      await as(A, () => db.query('select public.select_proposal($1)', [id]));
+      return id;
+    };
+
+    // 2.ª obra deste fornecedor (a 1.ª foi no teste anterior): ainda 1%. Reaplicar o mesmo código já não falha com
+    // "já foi utilizado" — a relação fica ativa até o fornecedor a desligar. O desconto do pintor já reflete os
+    // DOIS fornecedores ligados (50 p.b.), nesta proposta tal como em qualquer outra: não é preciso voltar a
+    // aplicar o código do segundo fornecedor em cada proposta.
+    const id2 = await win();
+    const e2 = await one<{ referral_discount_bp: number }>('select referral_discount_bp from public.engagements where proposal_id = $1', [id2]);
+    expect(e2.referral_discount_bp).toBe(50);
+    const pay2 = await one<{ amount_cents: number }>('select amount_cents from public.referral_payouts where proposal_id = $1', [id2]);
+    expect(pay2.amount_cents).toBe(1373); // 1% de 1372,75 € (2.ª obra deste fornecedor, ainda antes da 3.ª)
+
+    // 3.ª obra deste fornecedor nos últimos 2 meses: sobe a 2%. As duas primeiras não mudam (nunca retroativo).
+    const id3 = await win();
+    const pay3 = await one<{ amount_cents: number }>('select amount_cents from public.referral_payouts where proposal_id = $1', [id3]);
+    expect(pay3.amount_cents).toBe(2746); // 2% de 1372,75 €
+    const olderStillAt1 = await one<{ amount_cents: number }>('select amount_cents from public.referral_payouts where proposal_id = $1', [id2]);
+    expect(olderStillAt1.amount_cents).toBe(1373);
   });
 });
 
@@ -700,8 +758,10 @@ describe('contratação', () => {
     );
 
   beforeAll(async () => {
+    // A mais antiga: o teste do código de adesão cumulativo (acima) já selecionou mais propostas depois desta.
     const e = await one<{ id: string; request_id: string }>(
-      `select e.id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
+      `select e.id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id
+       where p.status = 'selecionada' order by e.created_at asc limit 1`,
     );
     engagementId = e.id;
     requestId = e.request_id;
@@ -712,15 +772,16 @@ describe('contratação', () => {
       'select rules_version, base_cents, advance_cents from public.engagements where id = $1',
       [engagementId],
     );
-    // Esta proposta levou um código de adesão: versão em vigor mais o sufixo do desconto.
-    expect(e.rules_version).toBe(`${CURRENT_RULES.version}+ref`);
+    // Esta proposta levou um código de adesão, mas isso já não muda a versão — vive em referral_discount_bp.
+    expect(e.rules_version).toBe(CURRENT_RULES.version);
     expect([Number(e.base_cents), Number(e.advance_cents)]).toEqual([137275, 0]);
   });
 
   it('cada lado vê a contratação; o pintor não escolhido não', async () => {
+    // 3: esta e as duas do teste do código de adesão cumulativo (acima), ambas também do pintor P.
     for (const u of [A, P]) {
       const rows = await as(u, async () => (await db.query('select id from public.engagements')).rows);
-      expect(rows).toHaveLength(1);
+      expect(rows).toHaveLength(3);
     }
     expect(await as(P2, async () => (await db.query('select id from public.engagements')).rows)).toEqual([]);
   });
@@ -792,7 +853,8 @@ describe('contratação', () => {
     expect(pay.fee_recebido_em).not.toBeNull();
     const org = pay.supplier_org_id;
     const activity = (user: string) => as(user, async () => (await db.query('select code, pintor, estado from public.referral_activity($1)', [org])).rows);
-    expect(await activity(S)).toEqual([{ code: 'ABCD1234', pintor: expect.any(String), estado: 'adjudicada' }]);
+    // 3: esta obra e as duas do teste do código de adesão cumulativo (acima) — o mesmo código, reutilizado.
+    expect(await activity(S)).toEqual(Array(3).fill({ code: 'ABCD1234', pintor: expect.any(String), estado: 'adjudicada' }));
     await expect(activity(P)).rejects.toThrow(/Fornecedor não encontrado/);
     const request = (user: string) => as(user, () => one<{ referral_request_redemption: string }>(`select public.referral_request_redemption($1)`, [org]));
     await expect(request(S)).rejects.toThrow(/IBAN/);
@@ -819,12 +881,12 @@ describe('contratação', () => {
     await as(ADMIN, () => db.query(`select public.referral_validate_regime($1, 2500, true)`, [org]));
     await expect(request(P)).rejects.toThrow(/não encontrado/);
     const rid = (await request(S)).referral_request_redemption;
-    // 343 + IVA 79 (23%) - retenção 86 (25% de 343) = 336.
+    // 1373 (1% da 1.ª obra do fornecedor) + IVA 316 (23%) - retenção 343 (25% de 1373) = 1346.
     const r = await one<{ comissao_cents: number; iva_cents: number; retencao_cents: number; liquido_cents: number; estado: string }>(
       'select comissao_cents, iva_cents, retencao_cents, liquido_cents, estado from public.referral_redemptions where id = $1',
       [rid],
     );
-    expect([r.comissao_cents, r.iva_cents, r.retencao_cents, r.liquido_cents, r.estado]).toEqual([pay.amount_cents, 79, 86, 336, 'pedido']);
+    expect([r.comissao_cents, r.iva_cents, r.retencao_cents, r.liquido_cents, r.estado]).toEqual([pay.amount_cents, 316, 343, 1346, 'pedido']);
     await expect(request(S)).rejects.toThrow(/em curso/);
     const invoice = (user: string, path = `${org}/${rid}.pdf`) =>
       as(user, () => db.query(`select public.referral_redemption_invoice($1, 'FT 2026/1', $2)`, [rid, path]));

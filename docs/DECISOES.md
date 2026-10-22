@@ -388,9 +388,32 @@ pagamento original só por intervenção manual (caso raro, a tratar).
     desconto à comissão sem nunca a tornar negativa — o mínimo de 150 € continua a proteger a plataforma).
   - `addCalendarMonths` mudou de `referralEligibility.ts` para `deadline.ts` (é utilidade genérica de datas,
     passou a ser usada também em `referral.ts`; sem mudança de comportamento, só de sítio).
-- **Ainda não tocado** (próximo passo): ligar isto ao esquema e ao gatilho `proposal_selected()` — hoje tem o `25`
-  fixo em SQL e o sufixo `+ref` como versão nomeada das regras comerciais; passa a um valor resolvido e gravado uma
-  vez por contratação (ponto único de entrada em `replay()`, `src/domain/contracting.ts:132`, que já isola toda a
-  reconstrução do estado a partir das regras da versão guardada). Falta também a tabela de convites das referências
-  de fornecedores (não existe nenhuma ainda) e a UX do pintor (`ReferralField.tsx`, hoje "um código por proposta",
-  passa a ambiente — ligação ao parceiro, não escolha por proposta).
+
+## 22/10/2026 — códigos de adesão: ligação ao esquema e ao `proposal_selected()`
+
+- `supabase/migrations/20261022040000_codigos_de_adesao_cumulativos.sql`:
+  - `engagements` ganha `referral_discount_bp` (pontos-base, resolvido e gravado uma vez, nunca recalculado — o
+    sufixo `+ref` na versão das regras deixa de se produzir; `RULES_2026_10_20_REF` fica só para reconstruir
+    contratações antigas que já o têm, imutáveis).
+  - `proposal_selected()`: o desconto do pintor passa a contar, a cada contratação, quantos fornecedores distintos
+    têm código ligado e ativo a este pintor (`referral_codes.painter_org_id`) — **não** só o código marcado nesta
+    proposta — e aplica `least(25 × contagem, 800)`. A comissão do fornecedor (só se esta proposta tiver um código
+    próprio ligado e ativo) passa a contar as obras desse fornecedor — de qualquer pintor que referenciou — nos
+    2 meses anteriores a esta (`now() - interval '2 months'`, corrido, não bimestre de calendário) e escolhe
+    100 ou 200 pontos-base; nunca retroativo, porque só conta as já registadas antes de inserir esta.
+  - `apply_referral_code()`: deixou de rejeitar com "este código já foi utilizado" — o mesmo código serve a
+    relação enquanto estiver ativa, não uma só obra. `max_wins` fica na tabela (sem remover colunas sem
+    confirmação manual) mas deixa de ser consultado.
+  - Desativar um código (`active = false`) corta a comissão do fornecedor em obras futuras de imediato — e também
+    deixa de contar para o desconto ambiente do pintor, porque ambos se calculam de novo a cada contratação, a
+    partir do estado atual, nunca de um valor guardado.
+- Testado em `supabase/tests/rls.test.ts`: o desconto ambiente reflete *todos* os fornecedores ligados (não só o
+  código desta proposta); o mesmo código reaplica-se a uma 2.ª e 3.ª obra do mesmo fornecedor; a 3.ª sobe a 2% sem
+  alterar as duas primeiras (confirmado por leitura direta depois).
+- **Ainda não tocado** (próximo passo): a tabela de convites das referências de fornecedores (pintor → fornecedor;
+  não existe nenhuma ainda) e a sua ligação ao mesmo `referral_discount_bp`; a UX do pintor (`ReferralField.tsx`,
+  hoje "um código por proposta", já não precisa de se repetir por proposta — fica por decidir como se torna a
+  ligação visível/editável fora do fluxo da proposta); e `src/lib/engagements.ts`/`src/domain/contracting.ts`
+  (`replay()`, linha ~132) ainda não leem `referral_discount_bp` nem aplicam `applyPainterDiscount` — a comissão
+  mostrada e cobrada ao pintor **ainda não reflete este desconto** até essa ligação se fazer (precisa dos tipos
+  gerados depois de a migração ser aplicada à base real — `src/lib/database.types.ts`).
