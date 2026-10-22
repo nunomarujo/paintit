@@ -54,10 +54,20 @@ export const RULES_2026_10_20_REF: CommercialRules = { ...RULES_2026_10_20, vers
 
 export const CURRENT_RULES = RULES_2026_10_20;
 
+/**
+ * 22/10/2026: "traga o seu pintor" — o cliente convida diretamente a empresa da sua confiança para a sua própria
+ * obra (código ou QR, src/domain/painterTerms.ts não se aplica aqui; ver supabase/migrations/20261022070000). A
+ * comissão desce de 3% para 1%: para a empresa convidada, usar a plataforma não deve parecer ao cliente um custo
+ * a mais só para "cumprir burocracia" — o cliente é que trouxe o negócio, o custo de o adquirir é quase nulo.
+ * Os descontos de códigos de adesão e referências continuam a aplicar-se sobre esta base, não por cima dela.
+ */
+export const RULES_2026_10_20_CONVITE: CommercialRules = { ...RULES_2026_10_20, version: `${RULES_2026_10_20.version}+convite`, commissionBp: 100 };
+
 /** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
 export const RULES_BY_VERSION: Record<string, CommercialRules> = {
   [RULES_2026_10.version]: RULES_2026_10,
   [RULES_2026_10_19.version]: RULES_2026_10_19,
   [RULES_2026_10_20.version]: RULES_2026_10_20,
   [RULES_2026_10_20_REF.version]: RULES_2026_10_20_REF,
+  [RULES_2026_10_20_CONVITE.version]: RULES_2026_10_20_CONVITE,
 };

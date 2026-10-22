@@ -1689,3 +1689,85 @@ describe('termos de aceitação do pintor', () => {
     expect(Number(rows.n)).toBe(2);
   });
 });
+
+describe('convite direto do cliente ("traga o seu pintor")', () => {
+  const IC = '00000000-0000-4000-8000-0000000000d3'; // pintor convidado (gestor)
+  const IC2 = '00000000-0000-4000-8000-0000000000d4'; // outra empresa, nunca convidada
+  let inviteCode: string;
+  let reqId: string;
+  let painterOrg: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [IC, email(IC), IC2, email(IC2)]);
+    painterOrg = (await createOrg(IC, 'pintor', 'Pinturas Convidadas', '606226702')).id;
+  });
+
+  it('o cliente cria o convite só numa obra publicada e sua; só um gestor', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    reqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — convite direto', 'fachadas', 'Obra para testar o convite direto ao pintor de confiança.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 16150)`, [reqId]));
+    // Antes de publicar, ainda não há convite possível (listing_open falha).
+    await expect(
+      as(A, () => db.query(`insert into public.request_invites (request_id, code) values ($1, 'CONVITE1')`, [reqId])),
+    ).rejects.toThrow(/row-level security/);
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [reqId]));
+    await expect(
+      as(B, () => db.query(`insert into public.request_invites (request_id, code) values ($1, 'CONVITE2')`, [reqId])),
+    ).rejects.toThrow(/row-level security/);
+    const created = await as(A, () =>
+      one<{ id: string; code: string }>(`insert into public.request_invites (request_id, code, nota) values ($1, 'CONVITE1', 'O pintor do prédio ao lado') returning id, code`, [reqId]),
+    );
+    inviteCode = created.code;
+  });
+
+  it('a pré-visualização mostra só o que já era público', async () => {
+    const info = await as(IC, () =>
+      one<{ request_id: string; tipo_obra: string; concelho: string; ja_redimido: boolean }>('select * from public.request_invite_info($1)', [inviteCode]),
+    );
+    expect([info.request_id, info.tipo_obra, info.ja_redimido]).toEqual([reqId, 'fachadas', false]);
+  });
+
+  it('o pintor segue o código; liga-se à sua empresa, nunca a outra', async () => {
+    await expect(as(IC, () => db.query(`select public.redeem_request_invite('ZZZZZZZZ', $1)`, [painterOrg]))).rejects.toThrow(/inválido/);
+    const r = await as(IC, () => one<{ redeem_request_invite: string }>(`select public.redeem_request_invite($1, $2)`, [inviteCode, painterOrg]));
+    expect(r.redeem_request_invite).toBe(reqId);
+    // Idempotente para a mesma empresa.
+    await as(IC, () => db.query(`select public.redeem_request_invite($1, $2)`, [inviteCode, painterOrg]));
+    // Já associado: outra empresa não o pode seguir.
+    const other = (await createOrg(IC2, 'pintor', 'Outra Empresa', '606226710')).id;
+    await expect(as(IC2, () => db.query(`select public.redeem_request_invite($1, $2)`, [inviteCode, other]))).rejects.toThrow(/já foi associado/);
+  });
+
+  it('ganhar a obra por este caminho aplica a comissão do convite direto (1%), não a normal (3%)', async () => {
+    const propId = (
+      await as(IC, () =>
+        one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id, validade, duracao_dias) values ($1, $2, current_date + 30, 20) returning id`, [reqId, painterOrg]),
+      )
+    ).id;
+    await as(IC, () =>
+      db.query(
+        `insert into public.proposal_lines (proposal_id, categoria, descricao, superficie, quantidade, preco_unitario_cents, inclusao) values ($1, 'pintura', 'Pintura', 'fachada', 16150, 850, 'incluido')`,
+        [propId],
+      ),
+    );
+    await as(IC, () =>
+      db.query(
+        `update public.proposals set confirma_mao_obra = true, seguro_rc = 'sim', seguro_at = 'nao',
+           fases = '[{"nome":"No início","bps":3000},{"nome":"No fim","bps":7000}]'::jsonb where id = $1`,
+        [propId],
+      ),
+    );
+    await as(IC, () => db.query(`update public.proposals set status = 'submetida' where id = $1`, [propId]));
+    await as(A, () => db.query('select public.select_proposal($1)', [propId]));
+    const e = await one<{ rules_version: string }>('select rules_version from public.engagements where proposal_id = $1', [propId]);
+    expect(e.rules_version).toBe('2026-10-20+convite');
+  });
+});

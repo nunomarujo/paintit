@@ -11,6 +11,7 @@ import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
 import { parseRequest, parseSurface, publishBlockers } from '@/domain/request';
 import { preferencesFromForm } from '@/domain/reference';
+import { newReferralCode } from '@/domain/referral';
 import { CURRENT_RULES } from '@/domain/rules';
 import { isPlatformAdmin } from '@/lib/access';
 import { guardContact } from '@/lib/strikes';
@@ -138,6 +139,30 @@ export async function changeRequestStatus(requestId: string, status: 'rascunho' 
   if (!['rascunho', 'encerrado', 'cancelado'].includes(status)) return;
   const { supabase } = await getUser();
   await supabase.from('work_requests').update({ status }).eq('id', requestId);
+  revalidatePath(`/app/pedidos/${requestId}`);
+}
+
+// --- Convite direto ("traga o seu pintor") ------------------------------------------
+
+export async function createRequestInvite(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const nota = String(form.get('nota') ?? '').trim().slice(0, 80) || null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = newReferralCode();
+    const { data, error } = await supabase.from('request_invites').insert({ request_id: requestId, code, nota }).select('code').maybeSingle();
+    if (!error && data) {
+      revalidatePath(`/app/pedidos/${requestId}`);
+      return { errors: {}, ok: true, message: `Código ${data.code} criado. Partilhe-o com o seu pintor de confiança.` };
+    }
+    if (error?.code !== '23505') return { errors: {}, message: 'Não foi possível criar o código. Só gestores desta entidade o podem fazer, numa obra publicada.' };
+  }
+  return { errors: {}, message: 'Não foi possível gerar um código novo. Tente de novo.' };
+}
+
+export async function setRequestInviteActive(requestId: string, inviteId: string, active: boolean) {
+  const { supabase } = await getUser();
+  await supabase.from('request_invites').update({ active: active === true }).eq('id', inviteId).eq('request_id', requestId);
   revalidatePath(`/app/pedidos/${requestId}`);
 }
 

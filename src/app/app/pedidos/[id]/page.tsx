@@ -13,6 +13,7 @@ import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
 import { PublishButton } from './PublishButton';
+import { RequestInvites, type RequestInvite } from './RequestInvites';
 import { SurfaceForm } from './SurfaceForm';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -51,6 +52,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
+  const { data: rawInvites } = req.status === 'publicado' ? await supabase.from('request_invites').select('*').eq('request_id', id).order('created_at', { ascending: false }) : { data: [] };
+  const invitePainterIds = [...new Set((rawInvites ?? []).map((i) => i.painter_org_id).filter((x): x is string => !!x))];
+  const { data: invitePainters } = invitePainterIds.length ? await supabase.from('organizations').select('id, nome').in('id', invitePainterIds) : { data: [] };
+  const invitePainterName = new Map((invitePainters ?? []).map((p) => [p.id, p.nome]));
+  const invites: RequestInvite[] = (rawInvites ?? []).map((i) => ({
+    id: i.id,
+    code: i.code,
+    nota: i.nota,
+    active: i.active,
+    estado: !i.active ? 'desativado' : i.painter_org_id ? 'associado' : 'disponivel',
+    painterNome: i.painter_org_id ? invitePainterName.get(i.painter_org_id) ?? null : null,
+  }));
   const list = surfaces ?? [];
   const total = list.reduce((n, s) => n + s.area_cm2, 0);
   const blockers = publishBlockers({
@@ -123,6 +136,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
         </section>
       )}
+
+      {manager && req.status === 'publicado' && <RequestInvites requestId={req.id} invites={invites} />}
 
       <section className={card}>
         <h2 className="font-semibold">Dados do pedido</h2>

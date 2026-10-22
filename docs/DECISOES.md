@@ -535,3 +535,40 @@ precisa, insuflando o custo — mesmo com o preço de referência do fornecedor 
   obra (sem resposta nossa nem na leitura externa); "traga o seu pintor" (hoje só a equipa convida pintores a um
   anúncio — `listing_invites`, restrito a `is_platform_admin()` — alargar ao cliente é pequeno, mas é uma UX nova,
   não decidida ainda).
+
+## 22/10/2026 — convite direto do cliente ("traga o seu pintor")
+
+Pedido do promotor: o cliente que já tem um pintor da sua confiança pode querer insistir em contratá-lo mesmo
+assim, mas sem que a plataforma pareça um custo extra imposto a esse pintor ("então quer que eu vá para uma
+plataforma para subir 10% ao custo?"). Mecanismo pedido: um código ou QR (o mesmo link) ligado a **uma obra
+publicada específica**, que o cliente gera e partilha diretamente; qualquer entidade de pintura (nova ou já
+registada) que o resgate vai direta a essa oportunidade, sem precisar de a encontrar na lista pública — e com
+uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
+
+- **Feito agora:** tabela `request_invites` (`supabase/migrations/20261022070000_convite_direto_do_cliente.sql`),
+  só criável por um gestor da entidade do pedido, numa obra já publicada. `redeem_request_invite` liga o código à
+  primeira entidade de pintura que o resgata (idempotente para a mesma entidade; recusa se já estiver ligado a
+  outra). `request_invite_info` mostra uma pré-visualização com só o que já é público (tipo de obra, concelho).
+  `proposal_selected()` deteta este caminho e acrescenta o sufixo `+convite` à versão das regras.
+- **A comissão desce de 3% para 1%** (`RULES_2026_10_20_CONVITE`, mínimo de 150 € mantido) — o cliente é que
+  trouxe o negócio; o custo de o adquirir é quase nulo. Os descontos de códigos de adesão e referências continuam
+  a aplicar-se sobre esta base nova, não por cima da base de 3%.
+  - ◆ **Por decidir:** o 1% é a minha proposta (reaproveita um valor já usado noutro sítio do sistema; não foi um
+    número pedido explicitamente) — falta confirmar.
+  - ◆ **Por decidir:** o desconto aplica-se sempre que este convite específico for usado para ganhar uma obra,
+    sem limite de vezes nem de validade — pareceu-me economicamente inofensivo (é a mesma relação cliente-pintor
+    a repetir-se), mas não foi pedido explicitamente; posso acrescentar um teto ou prazo, se preferir.
+- **Interface do cliente:** `/app/pedidos/[id]`, só em obras publicadas — criar código (com nota opcional), ver
+  o estado de cada um (disponível / associado a [pintor] / desativado) e o link a partilhar
+  (`quempinta.pt/convite/CÓDIGO`). Pode desativar um código; nunca apagar.
+- **Interface do pintor:** `/convite/[código]` (fora de `/app`, pede sessão com `?seguinte=` de volta para aqui —
+  `safeNext()` alargado para aceitar este caminho). Mostra a pré-visualização, pede para escolher a entidade (ou
+  criar uma, se não tiver nenhuma) e exige uma confirmação explícita antes de resgatar — mesmo havendo só uma
+  entidade, para não ligar o código com um simples GET.
+- **Porque não parece um risco de desvio:** o código tem de existir *antes* de qualquer proposta ser submetida e
+  está ligado a uma obra específica — não é possível reclassificar depois um negócio já descoberto pela via normal.
+- **Por fazer, deixado de propósito para depois:** gerar a imagem do QR code — o código/link já funciona sem ela;
+  é só uma camada visual por cima. Nenhuma biblioteca foi acrescentada ainda.
+- Testado (tsc, lint, 365 testes, build, zero) — `npm run dev` falha da mesma forma ambiental de sempre (sem
+  credenciais reais do Supabase), confirmando que não há erro novo. Migração por aplicar à base real, depois da
+  `...060000_termos_de_aceitacao_pintor.sql` (ver `docs/ESTADO.md`).

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clientGuarantee, commissionFor, effectiveRate, painterFee } from './commission';
 import { euros, formatEuros, percentOf } from './money';
-import { RULES_2026_10 as rules } from './rules';
+import { RULES_2026_10 as rules, RULES_2026_10_20_CONVITE } from './rules';
 
 describe('comissão do pintor', () => {
   it('é 3% do valor sem IVA', () => {
@@ -47,5 +47,14 @@ describe('dinheiro em cêntimos', () => {
 
   it('formata em euros de Portugal', () => {
     expect(formatEuros(euros(3_690))).toMatch(/^3\s690,00\s€$/);
+  });
+});
+
+describe('convite direto do cliente ("traga o seu pintor")', () => {
+  it('1%, não os 3% normais; o mínimo de 150 € mantém-se', () => {
+    expect(RULES_2026_10_20_CONVITE.commissionBp).toBe(100);
+    expect(RULES_2026_10_20_CONVITE.version).toBe('2026-10-20+convite');
+    expect(commissionFor(euros(100_000), RULES_2026_10_20_CONVITE)).toBe(euros(1_000));
+    expect(commissionFor(euros(5_000), RULES_2026_10_20_CONVITE)).toBe(euros(150));
   });
 });

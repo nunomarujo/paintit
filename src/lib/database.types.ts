@@ -474,6 +474,22 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      request_invites: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          nota: string | null;
+          painter_org_id: string | null;
+          redeemed_at: string | null;
+          request_id: string;
+        };
+        Insert: { active?: boolean; code: string; created_at?: string; created_by?: string; id?: string; nota?: string | null; request_id: string };
+        Update: { active?: boolean; nota?: string | null };
+        Relationships: [];
+      };
       reviews: {
         Row: {
           comentario: string;
@@ -1325,6 +1341,11 @@ export type Database = {
     Functions: {
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
       apply_supplier_referral_code: { Args: { p_org: string; p_code: string | null }; Returns: undefined };
+      redeem_request_invite: { Args: { p_code: string; p_painter_org: string }; Returns: string };
+      request_invite_info: {
+        Args: { p_code: string };
+        Returns: { request_id: string; tipo_obra: string; concelho: string; ja_redimido: boolean }[];
+      };
       referral_submit_invoice: { Args: { p_payout: string; p_numero: string; p_path: string }; Returns: undefined };
       referral_activity: {
         Args: { p_org: string };

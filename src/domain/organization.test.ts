@@ -36,10 +36,12 @@ describe('documentos em falta', () => {
 });
 
 describe('destino depois de entrar', () => {
-  it('só aceita caminhos internos da área reservada', () => {
+  it('só aceita caminhos internos da área reservada, ou o convite direto de uma obra', () => {
     expect(safeNext('/app/organizacoes/1')).toBe('/app/organizacoes/1');
+    expect(safeNext('/convite/ABCD1234')).toBe('/convite/ABCD1234');
     expect(safeNext('https://exemplo.com')).toBe('/app');
     expect(safeNext('//exemplo.com')).toBe('/app');
+    expect(safeNext('/convite')).toBe('/app'); // sem barra final: não é um código, é a secção.
     expect(safeNext(null)).toBe('/app');
   });
 });
