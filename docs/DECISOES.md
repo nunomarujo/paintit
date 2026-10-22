@@ -550,11 +550,16 @@ uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
   primeira entidade de pintura que o resgata (idempotente para a mesma entidade; recusa se já estiver ligado a
   outra). `request_invite_info` mostra uma pré-visualização com só o que já é público (tipo de obra, concelho).
   `proposal_selected()` deteta este caminho e acrescenta o sufixo `+convite` à versão das regras.
-- **A comissão desce de 3% para 1%** (`RULES_2026_10_20_CONVITE`, mínimo de 150 € mantido) — o cliente é que
-  trouxe o negócio; o custo de o adquirir é quase nulo. Os descontos de códigos de adesão e referências continuam
-  a aplicar-se sobre esta base nova, não por cima da base de 3%.
-  - ◆ **Por decidir:** o 1% é a minha proposta (reaproveita um valor já usado noutro sítio do sistema; não foi um
-    número pedido explicitamente) — falta confirmar.
+- **A comissão fica em 9%** (`RULES_2026_10_20_CONVITE`, mínimo de 150 € mantido) — **corrigido** depois de o
+  promotor notar que a primeira versão (1%) contradizia o que já estava estabelecido no documento
+  `Algoritmo_determinacao_fee_QuemPinta_v1.docx`: esse 1% tinha sido reaproveitado de outro sítio do sistema (a
+  comissão do *fornecedor* nos códigos de adesão), sem o confrontar com o modelo de fee do *pintor*. O documento
+  já fixa 9% como o piso absoluto do próprio algoritmo dinâmico, mesmo empilhando todos os seus descontos ao
+  mesmo tempo (18% de base − 3 p.p. resposta inicial − 2 p.p. fidelização − 4 p.p. referências = 9%); usar esse
+  piso aqui, antes de o motor dinâmico ("ponto 1") estar construído, fica muito abaixo do alvo de 18-23% sem
+  nunca ficar abaixo do que o negócio já decidiu ser sustentável — mesmo acima dos 3% interinos de hoje, que já
+  se sabe estarem temporariamente baixos demais. Os descontos de códigos de adesão e referências continuam a
+  aplicar-se sobre esta base nova, não por cima da base de 3%.
   - ◆ **Por decidir:** o desconto aplica-se sempre que este convite específico for usado para ganhar uma obra,
     sem limite de vezes nem de validade — pareceu-me economicamente inofensivo (é a mesma relação cliente-pintor
     a repetir-se), mas não foi pedido explicitamente; posso acrescentar um teto ou prazo, se preferir.

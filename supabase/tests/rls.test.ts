@@ -1746,7 +1746,7 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     await expect(as(IC2, () => db.query(`select public.redeem_request_invite($1, $2)`, [inviteCode, other]))).rejects.toThrow(/já foi associado/);
   });
 
-  it('ganhar a obra por este caminho aplica a comissão do convite direto (1%), não a normal (3%)', async () => {
+  it('ganhar a obra por este caminho aplica a comissão do convite direto (9%, o piso do algoritmo), não a normal (3%)', async () => {
     const propId = (
       await as(IC, () =>
         one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id, validade, duracao_dias) values ($1, $2, current_date + 30, 20) returning id`, [reqId, painterOrg]),

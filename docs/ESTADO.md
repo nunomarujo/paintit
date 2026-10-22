@@ -161,8 +161,8 @@ Claude do navegador):
    completa de uma obra, incluindo não revelar a comissão ao cliente — ver `docs/DECISOES.md`, 22/10/2026;
    texto em `src/app/app/oportunidades/[id]/AcceptTerms.tsx`, por rever pelo promotor e pelo advogado).
 6. `supabase/migrations/20261022070000_convite_direto_do_cliente.sql` ("traga o seu pintor": o cliente convida
-   diretamente a sua entidade de confiança para uma obra sua, por código ou QR, com comissão de 1% em vez de 3%
-   — ver `docs/DECISOES.md`, 22/10/2026).
+   diretamente a sua entidade de confiança para uma obra sua, por código ou QR, com comissão de 9% — o piso do
+   algoritmo de fee, não os 3% normais — ver `docs/DECISOES.md`, 22/10/2026).
 7. Confirmar avisos de segurança/desempenho a zero (ou explicados) e correr `generate_typescript_types`, para
    confirmar o `database.types.ts` escrito à mão.
 8. **Falta ver a correr num browser com dados reais** — esta sessão não tinha credenciais do Supabase no
@@ -176,11 +176,15 @@ em mais sítios; o resto do algoritmo de fee (ponto 1); a imagem do QR code do c
 
 **22/10/2026 — convite direto do cliente ("traga o seu pintor"):** pedido novo, fora dos dois programas de
 referência acima — o cliente convida diretamente o seu próprio pintor para uma obra sua (código ou QR,
-`request_invites`), com comissão de 1% em vez dos 3% normais (`RULES_2026_10_20_CONVITE`), para não lhe parecer
-que insistir na plataforma lhe sobe o preço. Feito: esquema e RPCs, página do cliente (`/app/pedidos/[id]`,
-criar/desativar código) e página do pintor (`/convite/[código]`, escolher entidade e confirmar). O valor de 1% e
-"sem limite de usos por convite" são proposta minha, por confirmar (ver `docs/DECISOES.md`). QR em imagem ainda
-não construído, só o código/link.
+`request_invites`), com comissão de **9%** (`RULES_2026_10_20_CONVITE`) em vez dos 3% normais de hoje, para não
+lhe parecer que insistir na plataforma lhe sobe o preço. Feito: esquema e RPCs, página do cliente
+(`/app/pedidos/[id]`, criar/desativar código) e página do pintor (`/convite/[código]`, escolher entidade e
+confirmar). **Correção feita ainda nesta sessão:** a primeira versão usava 1%, um número reaproveitado de outro
+sítio do sistema sem o confrontar com o documento `Algoritmo_determinacao_fee_QuemPinta_v1.docx` — esse
+documento já fixa 9% como o piso absoluto do próprio algoritmo dinâmico (18% − 3 − 2 − 4 p.p., todos os
+descontos ao mesmo tempo); o promotor corrigiu antes de qualquer migração chegar à base real. "Sem limite de
+usos por convite" continua proposta minha, por confirmar (ver `docs/DECISOES.md`). QR em imagem ainda não
+construído, só o código/link.
 
 ## Pendente do promotor
 

@@ -51,10 +51,10 @@ describe('dinheiro em cêntimos', () => {
 });
 
 describe('convite direto do cliente ("traga o seu pintor")', () => {
-  it('1%, não os 3% normais; o mínimo de 150 € mantém-se', () => {
-    expect(RULES_2026_10_20_CONVITE.commissionBp).toBe(100);
+  it('9% — o piso do algoritmo de fee, não os 3% normais; o mínimo de 150 € mantém-se', () => {
+    expect(RULES_2026_10_20_CONVITE.commissionBp).toBe(900);
     expect(RULES_2026_10_20_CONVITE.version).toBe('2026-10-20+convite');
-    expect(commissionFor(euros(100_000), RULES_2026_10_20_CONVITE)).toBe(euros(1_000));
-    expect(commissionFor(euros(5_000), RULES_2026_10_20_CONVITE)).toBe(euros(150));
+    expect(commissionFor(euros(100_000), RULES_2026_10_20_CONVITE)).toBe(euros(9_000));
+    expect(commissionFor(euros(1_000), RULES_2026_10_20_CONVITE)).toBe(euros(150));
   });
 });

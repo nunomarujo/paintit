@@ -56,12 +56,17 @@ export const CURRENT_RULES = RULES_2026_10_20;
 
 /**
  * 22/10/2026: "traga o seu pintor" — o cliente convida diretamente a empresa da sua confiança para a sua própria
- * obra (código ou QR, src/domain/painterTerms.ts não se aplica aqui; ver supabase/migrations/20261022070000). A
- * comissão desce de 3% para 1%: para a empresa convidada, usar a plataforma não deve parecer ao cliente um custo
- * a mais só para "cumprir burocracia" — o cliente é que trouxe o negócio, o custo de o adquirir é quase nulo.
- * Os descontos de códigos de adesão e referências continuam a aplicar-se sobre esta base, não por cima dela.
+ * obra (código ou QR, src/domain/painterTerms.ts não se aplica aqui; ver supabase/migrations/20261022070000).
+ * A comissão fica em 9%, não por ser um valor novo, mas por ser o piso que o documento "Algoritmo de
+ * determinação de fee QuemPinta v1" já estabelece como mínimo absoluto do próprio modelo dinâmico — mesmo
+ * empilhando todos os seus descontos ao mesmo tempo (18% de base − 3 p.p. de resposta inicial − 2 p.p. de
+ * fidelização − 4 p.p. de referências = 9%). Aplicar já esse piso a este canal, antes de o motor dinâmico
+ * ("ponto 1") estar construído, é seguro: fica muito abaixo do alvo de 18-23% (o que importa para quem vem por
+ * este caminho), nunca abaixo do que o negócio já decidiu ser sustentável — mesmo ficando acima dos 3% interinos
+ * de hoje, que já se sabe estarem temporariamente baixos demais. Os descontos de códigos de adesão e referências
+ * continuam a aplicar-se sobre esta base, não por cima dela.
  */
-export const RULES_2026_10_20_CONVITE: CommercialRules = { ...RULES_2026_10_20, version: `${RULES_2026_10_20.version}+convite`, commissionBp: 100 };
+export const RULES_2026_10_20_CONVITE: CommercialRules = { ...RULES_2026_10_20, version: `${RULES_2026_10_20.version}+convite`, commissionBp: 900 };
 
 /** Todas as versões, para reconstruir contratações antigas com as regras que aplicaram. */
 export const RULES_BY_VERSION: Record<string, CommercialRules> = {
