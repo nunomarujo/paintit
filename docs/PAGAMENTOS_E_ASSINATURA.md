@@ -52,6 +52,11 @@ Como o contrato é gerado pela plataforma, também mostramos ao lado o **texto d
 - Cadeia de confiança: o certificado do signatário tem de encadear numa das entidades "Cartão de Cidadão
   001–007" do Estado (`src/lib/trust/anchors.ts`, descarregadas do site oficial); a cadeia completa-se pelo
   endereço do emissor (AIA) quando não vem no PDF. Se não encadear, a assinatura válida é aceite mas fica
-  marcada "por confirmar" no backoffice. Falta: consultar a revogação (OCSP/CRL).
+  marcada "por confirmar" no backoffice.
+- **Revogação (22/10/2026):** consultada por OCSP (`checkRevocation` em `src/lib/pades.ts`) ao responder indicado
+  no próprio certificado; uma resposta "revogado" com assinatura válida impede a confiança, qualquer outro caso
+  (sem responder, responder em baixo, resposta inconclusiva) falha aberto, como o resto desta verificação. CRL
+  não foi implementada — fica como reforço futuro, opcional: a infraestrutura do Cartão de Cidadão publica OCSP,
+  que já cobre o caso que importa (um certificado revogado é recusado).
 - Para testes sem Chave Móvel Digital: `PERMITIR_ACEITACAO_SIMPLES=1` no ambiente volta a mostrar a aceitação
   com caixa de confirmação. Nunca em produção.
