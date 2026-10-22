@@ -750,6 +750,59 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      fiscal_documents: {
+        Row: {
+          atcud: string | null;
+          cliente_nif: string | null;
+          cliente_nome: string;
+          created_at: string;
+          data: string;
+          emitido_em: string | null;
+          erro: string | null;
+          estado: 'pendente' | 'emitido' | 'falhou';
+          id: string;
+          numero: string | null;
+          origin_id: string;
+          origin_type: string;
+          pdf_path: string | null;
+          provider: string;
+          provider_document_id: string | null;
+          reason: 'comissao' | 'subscricao' | 'caucao_retida';
+          referencia_origin_id: string | null;
+          referencia_origin_type: string | null;
+          tipo: 'FT' | 'NC';
+          total_cents: number;
+        };
+        Insert: {
+          atcud?: string | null;
+          cliente_nif?: string | null;
+          cliente_nome: string;
+          data: string;
+          emitido_em?: string | null;
+          erro?: string | null;
+          estado?: 'pendente' | 'emitido' | 'falhou';
+          id?: string;
+          numero?: string | null;
+          origin_id: string;
+          origin_type: string;
+          pdf_path?: string | null;
+          provider?: string;
+          provider_document_id?: string | null;
+          reason: 'comissao' | 'subscricao' | 'caucao_retida';
+          referencia_origin_id?: string | null;
+          referencia_origin_type?: string | null;
+          tipo: 'FT' | 'NC';
+          total_cents: number;
+        };
+        Update: Partial<Database['public']['Tables']['fiscal_documents']['Insert']>;
+        Relationships: [];
+      };
+      moloni_token: {
+        Row: { access_token: string; expires_at: string; id: boolean; refresh_token: string; updated_at: string };
+        Insert: { access_token: string; expires_at: string; id?: boolean; refresh_token: string; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['moloni_token']['Insert']>;
+        Relationships: [];
+      };
       work_templates: {
         Row: { created_at: string; created_by: string | null; dados: Json; id: string; nome: string; org_id: string; updated_at: string };
         Insert: { created_at?: string; created_by?: string | null; dados?: Json; id?: string; nome: string; org_id: string; updated_at?: string };

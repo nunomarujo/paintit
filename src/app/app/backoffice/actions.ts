@@ -5,6 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
 import { decideAppeal, unblockUser } from '@/lib/strikes';
 import { syncLedger } from '@/lib/accounting';
+import { emitInvoice, pendingInvoices } from '@/lib/invoicing';
 import { syncStripeData } from '@/lib/stripeSync';
 import { notifyReferralPaid } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
@@ -234,4 +235,31 @@ export async function reviewStripeLineAction(btId: string, _prev: FormState, for
   if (error) return { errors: {}, message: error.message };
   revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: undo ? 'Revisão desfeita.' : 'Movimento deixado fora do livro.' };
+}
+
+/** Emite um documento fiscal pendente (ou tenta de novo, se falhou). Os valores vêm do navegador: a emissão
+ * recalcula o documento a partir dos dados reais (pendingInvoices) e ignora o que não corresponder. */
+export async function emitInvoiceAction(originType: string, originId: string): Promise<FormState> {
+  if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
+  const pending = await pendingInvoices();
+  const draft = pending.find((d) => d.originType === originType && d.originId === originId);
+  if (!draft) return { errors: {}, message: 'Este documento já não está pendente: a página pode estar desatualizada.' };
+  const r = await emitInvoice(draft);
+  revalidatePath('/app/backoffice/contabilidade/faturacao');
+  return { errors: {}, ok: r.ok, message: r.message };
+}
+
+export async function emitAllInvoicesAction(): Promise<FormState> {
+  if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
+  const pending = await pendingInvoices();
+  let ok = 0;
+  const errors: string[] = [];
+  for (const d of pending) {
+    const r = await emitInvoice(d);
+    if (r.ok) ok++;
+    else errors.push(`${d.customer.nome}: ${r.message}`);
+  }
+  revalidatePath('/app/backoffice/contabilidade/faturacao');
+  if (errors.length) return { errors: {}, message: `${ok} emitidos; ${errors.length} falharam: ${errors.slice(0, 3).join(' | ')}` };
+  return { errors: {}, ok: true, message: `${ok} documento(s) emitido(s).` };
 }

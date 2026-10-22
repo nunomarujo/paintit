@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { pendingEngagements, queueCounts } from '@/lib/backofficeCounts';
+import { invoicingCount, pendingEngagements, queueCounts } from '@/lib/backofficeCounts';
 import { serverChecks } from '@/lib/diagnostics';
 import { getUser } from '@/lib/supabase/server';
 
@@ -8,9 +8,10 @@ const card = 'rounded-2xl border border-slate-200 bg-white p-5';
 // Painel da equipa da plataforma: o que espera por uma pessoa, por secção. O detalhe está em cada secção (barra lateral).
 export default async function BackofficeDashboard() {
   const { supabase } = await getUser();
-  const [c, engagements, { data: open }, { data: submitted }] = await Promise.all([
+  const [c, engagements, faturar, { data: open }, { data: submitted }] = await Promise.all([
     queueCounts(supabase),
     pendingEngagements(supabase),
+    invoicingCount(),
     supabase.from('request_listings').select('request_id').eq('aberto', true),
     supabase.from('proposals').select('request_id').eq('status', 'submetida'),
   ]);
@@ -47,6 +48,7 @@ export default async function BackofficeDashboard() {
       items: [
         { href: '/app/backoffice/contabilidade/pagar', label: 'Resgates de fornecedores por pagar', n: c.resgates },
         { href: '/app/backoffice/contabilidade/banco', label: 'Movimentos do banco por classificar', n: c.banco },
+        { href: '/app/backoffice/contabilidade/faturacao', label: 'Documentos fiscais por emitir', n: faturar },
       ],
     },
   ];

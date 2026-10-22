@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { availableActions } from '@/domain/contracting';
 import type { Database } from '@/lib/database.types';
 import { loadReplay } from '@/lib/engagements';
+import { pendingInvoices } from '@/lib/invoicing';
 
 type Client = SupabaseClient<Database>;
 
@@ -38,4 +39,9 @@ export async function pendingEngagements(supabase: Client) {
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at', { ascending: false });
   const items = await Promise.all((rows ?? []).map(async (r) => ({ r, e: (await loadReplay(supabase, r)).replay.engagement })));
   return items.map((i) => ({ ...i, pending: availableActions(i.e, 'plataforma').length > 0 }));
+}
+
+/** Documentos fiscais por emitir (só a contagem; barato o suficiente para a barra lateral). */
+export async function invoicingCount(): Promise<number> {
+  return (await pendingInvoices()).length;
 }

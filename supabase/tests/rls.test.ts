@@ -1450,3 +1450,17 @@ describe('revisão de movimentos da Stripe', () => {
     expect(await as(ADMIN, async () => (await db.query('select 1 from public.stripe_bt_review')).rows)).toEqual([]);
   });
 });
+
+describe('documentos fiscais', () => {
+  it('só a equipa lê; ninguém grava pela API; emitido não se altera; não se apaga', async () => {
+    expect(await as(ADMIN, async () => (await db.query('select 1 from public.fiscal_documents')).rows)).toEqual([]);
+    expect(await as(B, async () => (await db.query('select 1 from public.fiscal_documents')).rows)).toEqual([]);
+    await expect(
+      as(ADMIN, () =>
+        db.query(
+          `insert into public.fiscal_documents (reason, origin_type, origin_id, tipo, data, cliente_nome, total_cents) values ('comissao', 'stripe_payment', 'pi_t1', 'FT', '2026-10-22', 'Pinturas X', 15000)`,
+        ),
+      ),
+    ).rejects.toThrow(/permission denied/);
+  });
+});

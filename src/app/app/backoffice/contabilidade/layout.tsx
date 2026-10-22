@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { BackofficeSection } from '@/components/BackofficeSection';
-import { queueCounts } from '@/lib/backofficeCounts';
+import { invoicingCount, queueCounts } from '@/lib/backofficeCounts';
 import { getUser } from '@/lib/supabase/server';
 
 const B = '/app/backoffice/contabilidade';
 
 export default async function AccountingLayout({ children }: { children: ReactNode }) {
   const { supabase } = await getUser();
-  const c = await queueCounts(supabase);
+  const [c, faturar] = await Promise.all([queueCounts(supabase), invoicingCount()]);
   return (
     <BackofficeSection
       title="Contabilidade"
@@ -18,6 +18,7 @@ export default async function AccountingLayout({ children }: { children: ReactNo
         { href: `${B}/reconciliacao`, label: 'Reconciliação Stripe' },
         { href: `${B}/banco`, label: 'Banco', count: c.banco },
         { href: `${B}/pagar`, label: 'A pagar', count: c.resgates },
+        { href: `${B}/faturacao`, label: 'Faturação', count: faturar },
         { href: `${B}/periodos`, label: 'Períodos' },
         { href: `${B}/contratacoes`, label: 'Por contratação' },
       ]}

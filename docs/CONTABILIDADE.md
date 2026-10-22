@@ -166,6 +166,12 @@ acrescentar o CAE adequado antes de faturar.
 - Os dados do extrato não se alteram (trigger); só a classificação.
 - Falta: lançar no livro os movimentos «outros» (taxas bancárias, rendas, etc.): decide-se com o contabilista que contas usar.
 
+## 13-A. Faturação certificada: Moloni escolhida (22/10/2026)
+
+Ver `docs/FATURACAO.md` para o desenho completo, a configuração e os pontos por confirmar com a sandbox. Resumo: a
+plataforma fatura a comissão do pintor, a subscrição do fornecedor e a caução retida; a comissão de adesão continua a
+ser o fornecedor a faturar a plataforma (fluxo já feito).
+
 ## 14. Primeira reconciliação real (22/10/2026) e o que se aprendeu
 
 - A leitura da Stripe trouxe 9 movimentos. Bateram 3 cobranças. Apareceram: (a) o **reembolso manual** da primeira caução (feito na Stripe, a plataforma não o sabia): a leitura passa a atualizar `stripe_payments.refunded_cents` a partir da Stripe
