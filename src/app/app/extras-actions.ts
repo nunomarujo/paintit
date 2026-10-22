@@ -14,7 +14,7 @@ export async function invitePainter(requestId: string, _prev: FormState, form: F
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
   const { error } = await supabase.from('listing_invites').insert({ request_id: requestId, painter_org_id: painterOrgId, invited_by: user.id });
   if (error) return { errors: {}, message: error.code === '23505' ? 'Esse pintor já foi convidado.' : 'Não foi possível convidar.' };
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: 'Convite enviado.' };
 }
 

@@ -13,6 +13,7 @@ type BankPatch = Database['public']['Tables']['bank_lines']['Update'];
 
 const MAX_BYTES = 3 * 1024 * 1024;
 const PAGE = '/app/backoffice/contabilidade';
+// Revalida a secção inteira (todos os sub-separadores).
 
 async function admin() {
   const { supabase, user } = await getUser();
@@ -61,7 +62,7 @@ export async function importBankFileAction(_prev: FormState, form: FormData): Pr
   }
 
   const matched = await runAutoMatch();
-  revalidatePath(PAGE);
+  revalidatePath(PAGE, 'layout');
   const warn = parsed.errors.length ? ` ${parsed.errors.length} linha(s) ignoradas por erro de leitura (${parsed.errors[0]}).` : '';
   return { errors: {}, ok: true, message: `${fresh.length} movimentos novos, ${parsed.lines.length - fresh.length} já existentes; ${matched} casados automaticamente.${warn}` };
 }
@@ -99,7 +100,7 @@ async function runAutoMatch(): Promise<number> {
 export async function rematchAction(): Promise<FormState> {
   if (!(await admin())) return { errors: {}, message: 'Sem permissão.' };
   const n = await runAutoMatch();
-  revalidatePath(PAGE);
+  revalidatePath(PAGE, 'layout');
   return { errors: {}, ok: true, message: `${n} movimentos casados.` };
 }
 
@@ -137,6 +138,6 @@ export async function classifyBankLineAction(lineId: string, _prev: FormState, f
   } else return { errors: {}, message: 'Escolha o que fazer com o movimento.' };
   const { error } = await supabase.from('bank_lines').update(patch).eq('id', lineId);
   if (error) return { errors: {}, message: /unique|duplicate/i.test(error.message) ? 'Essa transferência ou esse resgate já está casado com outro movimento.' : error.message };
-  revalidatePath(PAGE);
+  revalidatePath(PAGE, 'layout');
   return { errors: {}, ok: true, message: 'Guardado.' };
 }

@@ -22,7 +22,7 @@ export async function resolveReport(reportId: string, _prev: FormState, form: Fo
     p_resolucao: resolucao,
   });
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: decision === 'suspender' ? 'Anúncio suspenso.' : 'Denúncia arquivada.' };
 }
 
@@ -49,7 +49,7 @@ export async function createPromoCode(_prev: FormState, form: FormData): Promise
     created_by: user.id,
   });
   if (error) return { errors: {}, message: error.code === '23505' ? 'Esse código já existe.' : 'Não foi possível criar o código.' };
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: `Código ${code} criado.` };
 }
 
@@ -58,7 +58,7 @@ export async function setPromoActive(id: string, active: boolean, ...[]: [FormSt
   // Só a equipa da plataforma passa a política RLS; `active` vem do navegador mas é só um booleano.
   const { error } = await supabase.from('promo_codes').update({ active: active === true }).eq('id', id);
   if (error) return { errors: {}, message: 'Não foi possível alterar o código.' };
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true };
 }
 
@@ -71,7 +71,7 @@ export async function setSupplierPlan(_prev: FormState, form: FormData): Promise
   if (plan === 'cancelar') {
     const { error } = await supabase.from('supplier_subscriptions').update({ status: 'cancelada', updated_at: new Date().toISOString() }).eq('org_id', orgId);
     if (error) return { errors: {}, message: 'Não foi possível cancelar.' };
-    revalidatePath('/app/backoffice');
+    revalidatePath('/app/backoffice', 'layout');
     return { errors: {}, ok: true, message: 'Subscrição cancelada.' };
   }
   if (!(SUPPLIER_PLANS as readonly string[]).includes(plan)) return { errors: { plano: 'Plano inválido.' } };
@@ -98,7 +98,7 @@ export async function setSupplierPlan(_prev: FormState, form: FormData): Promise
   });
   if (error) return { errors: {}, message: 'Não foi possível ativar o plano.' };
   if (promo) await supabase.from('promo_codes').update({ uses: promo.uses + 1 }).eq('id', promo.id);
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: 'Plano ativo.' };
 }
 
@@ -108,7 +108,7 @@ export async function unblockAccount(userId: string): Promise<void> {
   if (!user || !(await isPlatformAdmin(supabase, user.id))) return;
   if (!/^[0-9a-f-]{36}$/i.test(userId)) return;
   await unblockUser(userId);
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
 }
 
 /** Decisão sobre um pedido de revisão do 2.º aviso por contactos (src/domain/strikes.ts). */
@@ -122,7 +122,7 @@ export async function decideAppealAction(appealId: string, _prev: FormState, for
   if (!user || !(await isPlatformAdmin(supabase, user.id))) return { errors: {}, message: 'Sem permissão.' };
   const done = await decideAppeal(appealId, decision === 'aceitar', motivo.slice(0, 1000), user.id);
   if (!done) return { errors: {}, message: 'O pedido já foi decidido ou não existe.' };
-  revalidatePath('/app/backoffice');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: decision === 'aceitar' ? 'Aceite: o segundo aviso foi anulado.' : 'Recusado: mantém-se o último aviso.' };
 }
 
@@ -150,7 +150,7 @@ export async function decideRedemption(redemptionId: string, _prev: FormState, f
       : await supabase.rpc('referral_redemption_cancel', { p_redemption: redemptionId, p_motivo: texto });
   if (error) return { errors: {}, message: error.message };
   if (decision === 'paga') await notifyReferralPaid(redemptionId).catch(() => undefined);
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: decision === 'paga' ? 'Marcado como pago; o fornecedor foi avisado.' : 'Resgate anulado; o saldo volta ao fornecedor.' };
 }
 
@@ -163,7 +163,7 @@ export async function voidPayoutAction(payoutId: string, _prev: FormState, form:
   if (!supabase) return { errors: {}, message: 'Sem permissão.' };
   const { error } = await supabase.rpc('referral_void', { p_payout: payoutId, p_motivo: texto });
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: 'Comissão sem efeito.' };
 }
 
@@ -176,7 +176,7 @@ export async function validateRegimeAction(orgId: string, _prev: FormState, form
   if (!supabase) return { errors: {}, message: 'Sem permissão.' };
   const { error } = await supabase.rpc('referral_validate_regime', { p_org: orgId, p_bps: Math.round(pct * 100), p_validado: true });
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: 'Regime validado.' };
 }
 
@@ -184,7 +184,7 @@ export async function validateRegimeAction(orgId: string, _prev: FormState, form
 export async function syncLedgerAction(): Promise<FormState> {
   if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
   const r = await syncLedger();
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   if (r.errors.length) return { errors: {}, message: `${r.posted} lançados; ${r.errors.length} erros: ${r.errors.slice(0, 3).join(' | ')}` };
   return { errors: {}, ok: true, message: `${r.posted} novos lançamentos (${r.already} já estavam lançados).` };
 }
@@ -196,7 +196,7 @@ export async function closePeriodAction(_prev: FormState, form: FormData): Promi
   if (!supabase) return { errors: {}, message: 'Sem permissão.' };
   const { error } = await supabase.rpc('acc_close_period', { p_mes: `${mes}-01` });
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: `Mês ${mes} fechado.` };
 }
 
@@ -205,7 +205,7 @@ export async function reopenPeriodAction(): Promise<FormState> {
   if (!supabase) return { errors: {}, message: 'Sem permissão.' };
   const { error } = await supabase.rpc('acc_reopen_period');
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: 'Último mês reaberto.' };
 }
 
@@ -215,7 +215,7 @@ export async function syncStripeAction(): Promise<FormState> {
   const s = await syncStripeData();
   if (s.errors.length) return { errors: {}, message: `Stripe: ${s.errors.join(' | ')}` };
   const l = await syncLedger();
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   if (l.errors.length) return { errors: {}, message: `Stripe lida (${s.lines} movimentos, ${s.payouts} transferências), mas o livro teve erros: ${l.errors.slice(0, 3).join(' | ')}` };
   return { errors: {}, ok: true, message: `Stripe lida: ${s.lines} movimentos e ${s.payouts} transferências; ${l.posted} novos lançamentos.` };
 }
@@ -232,6 +232,6 @@ export async function reviewStripeLineAction(btId: string, _prev: FormState, for
     ? await supabase.from('stripe_bt_review').delete().eq('bt_id', btId)
     : await supabase.from('stripe_bt_review').insert({ bt_id: btId, nota: nota.slice(0, 300) });
   if (error) return { errors: {}, message: error.message };
-  revalidatePath('/app/backoffice/contabilidade');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: undo ? 'Revisão desfeita.' : 'Movimento deixado fora do livro.' };
 }

@@ -6,6 +6,7 @@ import { AppNav, type NavItem } from '@/components/AppNav';
 import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
 import { isPlatformAdmin } from '@/lib/access';
+import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
@@ -37,10 +38,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
   const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
   if (kinds.has('pintor')) more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
+  // Equipa da plataforma: o backoffice organizado por secções, com o que espera por uma pessoa em cada uma.
+  const q = admin ? await queueCounts(supabase) : null;
+  const backoffice: NavItem[] = q
+    ? [
+        { href: '/app/backoffice', label: 'Painel', exact: true },
+        { href: '/app/backoffice/pedidos', label: 'Pedidos', count: q.denuncias + q.fotografias },
+        { href: '/app/backoffice/entidades', label: 'Entidades', count: q.documentos },
+        { href: '/app/backoffice/contratacoes', label: 'Contratações' },
+        { href: '/app/backoffice/moderacao', label: 'Moderação', count: q.revisoes },
+        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', count: q.resgates + q.regimes + q.banco },
+        { href: '/app/backoffice/sistema', label: 'Sistema' },
+      ]
+    : [];
+  // Uma conta só de equipa (sem entidades) vê só o backoffice.
   const groups = [
-    { title: 'Área de trabalho', items: work },
+    ...(admin && kinds.size === 0 ? [] : [{ title: 'Área de trabalho', items: work }]),
     ...(more.length ? [{ title: 'Recursos', items: more }] : []),
-    ...(admin ? [{ title: 'Plataforma', items: [{ href: '/app/backoffice', label: 'Backoffice' }] }] : []),
+    ...(admin ? [{ title: 'Backoffice', items: backoffice }] : []),
   ];
 
   async function leave() {

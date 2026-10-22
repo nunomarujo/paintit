@@ -8,12 +8,14 @@ export interface NavItem {
   label: string;
   /** Contagem a mostrar (ex.: avisos por ler). */
   count?: number;
+  /** Só fica ativo no endereço exato (ex.: o painel, que é o início de uma secção com subpáginas). */
+  exact?: boolean;
 }
 
 /** Navegação da área de trabalho: lateral em ecrãs largos, em linha no telemóvel. */
 export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }[] }) {
   const path = usePathname();
-  const active = (href: string) => (href === '/app' ? path === '/app' : path.startsWith(href));
+  const active = (i: NavItem) => (i.href === '/app' || i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
   return (
     <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto md:block md:space-y-6 md:overflow-visible">
       {groups.map((g) => (
@@ -23,9 +25,9 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
             <Link
               key={i.href}
               href={i.href}
-              aria-current={active(i.href) ? 'page' : undefined}
+              aria-current={active(i) ? 'page' : undefined}
               className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[13px] ${
-                active(i.href) ? 'bg-sage font-semibold text-tinta-600' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                active(i) ? 'bg-sage font-semibold text-tinta-600' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               {i.label}

@@ -217,6 +217,6 @@ export async function reviewPhoto(photoId: string, _prev: FormState, form: FormD
     .eq('id', photoId)
     .select('id');
   if (error || !data || data.length === 0) return { errors: {}, message: 'Não foi possível registar a decisão.' };
-  revalidatePath('/app/validacao');
+  revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: decision === 'aprovada' ? 'Aprovada para o anúncio.' : 'Fica fora do anúncio.' };
 }
