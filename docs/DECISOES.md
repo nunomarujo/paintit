@@ -579,3 +579,60 @@ uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
 - Testado (tsc, lint, 367 testes, build, zero) — `npm run dev` falha da mesma forma ambiental de sempre (sem
   credenciais reais do Supabase), confirmando que não há erro novo. Migração por aplicar à base real, depois da
   `...060000_termos_de_aceitacao_pintor.sql` (ver `docs/ESTADO.md`).
+
+## 22/10/2026 — consulta de revogação (OCSP) nas assinaturas de contrato
+
+Item já listado em `docs/ESTADO.md` como "a seguir, sem depender do promotor". `src/lib/pades.ts`
+(`checkRevocation`, chamada de dentro de `validateChain`): depois de a cadeia de certificados ser válida,
+consulta por OCSP (RFC 6960) o emissor direto do certificado do signatário — a mesma extensão *Authority
+Information Access* já usada para completar a cadeia, agora também pelo método `id-ad-ocsp`. Uma resposta
+assinada com autoridade a confirmar "revogado" muda `trusted` para `false` (`'Certificado revogado.'`); qualquer
+outro caso (sem URL no certificado, responder em baixo, resposta malformada ou sem autoridade para responder)
+**falha aberto** — mantém o que a cadeia já tinha decidido, nunca lê "sem resposta" como "garantidamente válido"
+nem bloqueia por um responder indisponível, seguindo o mesmo princípio já usado para completar a cadeia por AIA
+(`fetchIssuer`) e a decisão de 19/10/2026 sobre habilitação/certificado não confirmado (não bloqueia; só o
+positivo — revogado de facto — é que impede confiança).
+
+- Testes de ponta a ponta com um responder OCSP real (servidor HTTP local + `BasicOCSPResponse` assinada pela
+  própria CA de teste, como o pkijs documenta): resposta "boa" mantém a confiança, resposta "revogado" derruba-a,
+  responder inacessível não bloqueia. Ao escrevê-los foi apanhado um bug real (não hipotético): o conteúdo da
+  resposta OCSP vinha como vista (`Uint8Array`) sobre o `ArrayBuffer` completo da mensagem, não cortada ao seu
+  próprio intervalo — sem o corte, o `BasicOCSPResponse` lia bytes de fora de si e falhava sempre de forma
+  silenciosa (sempre `null`/inconclusivo), nunca chegando a confirmar nem "bom" nem "revogado" — só os testes com
+  um responder real o revelaram; um teste que só verificasse "não rebenta" teria passado da mesma forma com o
+  bug lá.
+- 391 testes (24 destes são novos, de `pades.ts`), tsc, lint, build — zero.
+
+## 22/10/2026 — "ponto 1" do algoritmo de fee: motor construído e testado, de propósito não ligado
+
+Sessão autónoma (o promotor pediu para avançar o máximo possível sem parar para perguntar). O documento
+`Algoritmo_determinacao_fee_QuemPinta_v1.docx` tem duas partes: o "ponto 2" (descontos por referência, já
+construído e em produção — ver entradas anteriores de 22/10/2026) e o "ponto 1" (a própria faixa dinâmica
+18-23%, substituindo os 3% fixos), que o promotor decidiu deixar para depois.
+
+`src/domain/fee.ts` implementa o "ponto 1" por inteiro como funções puras, testadas byte a byte contra os
+cenários da secção 9 do documento (os quatro exemplos de B/A/T e os montantes em euros em 40.000€, incluindo o
+piso de 9% e o exemplo do mínimo monetário de 150€) — não há nenhum valor inventado; tudo o que o código produz
+foi conferido contra um número que o próprio documento já mostrava.
+
+**Decisão desta sessão: construir o motor, não o ligar a nada.** Não por cautela genérica, mas porque faltam
+peças que não são minhas para inventar:
+- Não há onde declarar C/E/F/M/J no pedido ou na proposta — são campos de ecrã que não existem.
+- R e L precisam de uma consulta ao histórico (propostas anteriores da oportunidade; janela de 180 dias) que
+  não existe hoje.
+- A parcela de qualidade competitiva de L depende de um indicador S que o próprio documento diz vir de "um
+  módulo de ranking separado ainda a fechar" — `fidelizacaoBp` recebe esse número já pronto, nunca o inventa.
+- O documento assinala os seus próprios pesos (referência de 21%, cada fator, os escalões de R/L) como
+  "propostas para teste", não decisões fechadas — trocar a comissão real por eles sem o promotor ver e aprovar
+  cada número seria exatamente o género de decisão de negócio que não me cabe tomar sozinho.
+- Falta decidir como isto se compõe com os códigos de adesão (mecanismo à parte, não previsto no documento, que
+  o promotor manteve e fez crescer nesta mesma sessão) — hoje somam-se por cima da comissão em produção; juntar
+  os dois motores sem decidir a ordem e o teto certo muda dinheiro real, não é só código.
+
+Q (referências de fornecedores) não foi reimplementado: `fee.ts` chama `referralDiscountFor`
+(`src/domain/referralEligibility.ts`), já construído e testado, exatamente a fórmula da secção 7. A comissão em
+euros também não inventa uma conta nova: reaproveita `percentOf` de `money.ts`, o mesmo arredondamento de
+sempre, só com T a variar em vez de ser fixo.
+
+Quando o promotor quiser avançar: o motor já está pronto, validado, e pode ser ligado assim que existirem os
+campos de ecrã, a consulta de R/L e uma decisão sobre o indicador S e a composição com os códigos de adesão.

@@ -72,7 +72,7 @@ versão (ou deixar como está e não a voltar a aplicar).
 A seguir, sem depender do promotor:
 
 1. Teste completo no browser pela sessão de teste (com `PERMITIR_ACEITACAO_SIMPLES=1`).
-2. Consulta de revogação (OCSP) dos certificados das assinaturas.
+2. ~~Consulta de revogação (OCSP) dos certificados das assinaturas~~ — feito em 22/10/2026 (ver abaixo).
 
 ### Decisões e questões para o promotor
 
@@ -124,11 +124,13 @@ contactos, morada da obra e fotografias), só para essa obra.
   Subutilizador do Portal das Finanças criado (517588676/1, perfil WFA — webservice de comunicação de faturas) e ligado na Moloni (Configuração AT da empresa: documentos de faturação ativos, diferimento 0 dias; a série "M" já estava registada na AT). Dados da empresa completados na Moloni (morada, código postal, localidade, tipo de negócio "Prestadores de Serviços").
   Falta: ativar a API na Moloni (Configurações > Developers > Configuração da API e Plugins) com o callback `https://quempinta.pt/api/moloni/callback`, colar `MOLONI_CLIENT_ID`/`MOLONI_CLIENT_SECRET`/as restantes `MOLONI_*` na Vercel (valores em `.env.example`) e fazer deploy; depois, com a conta de administrador, `/api/moloni/connect` para ligar o token. A comunicação à AT só se confirma mesmo com a primeira fatura emitida — e essa só deve acontecer depois de a Moloni confirmar o ambiente de demonstração (pedido a 22/10/2026, ainda sem resposta).
 
-## Algoritmo de fee: ponto 2 (referências) trabalhado; ponto 1 (fee 18-23%) não começado
+## Algoritmo de fee: ponto 2 (referências) trabalhado; ponto 1 (fee 18-23%) com motor puro construído, não ligado
 
 Documento "Algoritmo de determinação de fee QuemPinta v1" (22/10/2026): substitui a faixa fixa de 3% por uma
 faixa dinâmica 18-23% com nove fatores (B/C/E/F/M/J/R/L/Q). Decisão do promotor: trabalhar primeiro o ponto 2
-(descontos por referência), com rigor — **o ponto 1 (a faixa dinâmica em si) continua por começar.**
+(descontos por referência), com rigor — feito (ver abaixo). **O ponto 1 (a faixa dinâmica em si) tem agora o
+motor de cálculo construído e testado (`src/domain/fee.ts`), mas continua por ligar a qualquer fluxo real** —
+ver "Ponto 1" mais abaixo nesta secção para o que falta antes de poder substituir os 3% em produção.
 
 O que saiu disto, nesta sessão, foi maior do que o documento previa: há **dois programas simétricos**, não um
 — o documento só descrevia o segundo:
@@ -172,7 +174,36 @@ Claude do navegador):
 
 **Ainda por decidir ou construir:** como/onde um pintor liga-se a um fornecedor fora do fluxo de uma proposta
 específica (hoje só pelo `ReferralField` ou pela página de referências); se a "nota" dos códigos deve aparecer
-em mais sítios; o resto do algoritmo de fee (ponto 1).
+em mais sítios.
+
+### Ponto 1 — motor da faixa dinâmica (22/10/2026, sessão autónoma)
+
+`src/domain/fee.ts` + `fee.test.ts`: as nove peças da secção 3-8 do documento, puras e testadas contra os seus
+próprios cenários da secção 9 (todos os valores em euros e percentagens do documento batem certo, incluindo o
+piso de 9% e o exemplo do mínimo monetário). `baseFactors`/`obraBaseBp` (B, blocos C/E/F/M), `adequacaoIndividualBp`
+(A, bloco J), `respostaInicialBp` (R), `fidelizacaoBp` (L), `taxaFinal`/`calcularFee` (T e a comissão em euros,
+reaproveitando `percentOf` de `money.ts` — não um cálculo paralelo), `valorParaLiquido` (fórmula inversa da
+secção 8). Q não se reimplementou: usa `referralDiscountFor` de `referralEligibility.ts`, já construído em
+22/10/2026 e idêntico à fórmula da secção 7.
+
+**Decidido não fazer nesta sessão, de propósito:** ligar isto a qualquer fluxo real (schema, `proposal_selected()`,
+`CURRENT_RULES`). Não é falta de tempo — é que falta o que o próprio documento ainda não tem:
+- Os campos de cada fator (C1-C3, E1-E4, F1-F3, M1, J1-J3) não existem em `work_requests`/`proposals`: não há onde
+  o cliente ou o pintor os declarar. Isto é trabalho de ecrã novo, não só de esquema.
+- R (propostas elegíveis anteriores desta oportunidade) e L (janela de 180 dias) precisam de uma consulta própria
+  sobre o histórico — hoje não há nada a contá-los.
+- A parcela de qualidade competitiva de L depende do indicador S, que o próprio documento diz ser "um módulo
+  separado ainda a fechar" (um ranking técnico e comercial que também não existe). `fidelizacaoBp` recebe S já
+  calculado, de propósito — nunca o calcula, para não inventar um ranking que não foi pedido.
+- O documento marca os seus próprios pesos e limites (referência de 21%, os valores de cada fator, os escalões
+  de R e L) como "propostas para teste", não decisões fechadas — mudar a comissão de produção com base neles sem
+  o promotor ver e confirmar primeiro seria exatamente o tipo de decisão de negócio que não é minha para tomar.
+- Falta decidir como isto compõe com os códigos de adesão (não existem no documento do algoritmo — são um
+  mecanismo à parte que o promotor manteve e fez evoluir nesta sessão). Hoje T = A−R−L−Q; códigos de adesão
+  somam-se por cima na versão em produção. Juntar os dois sem decidir a ordem/teto certo é mudar economia real.
+
+Quando o promotor quiser avançar com isto a sério, o motor já está pronto e validado — falta decidir o que
+acima e desenhar os ecrãs que alimentam cada fator.
 
 **22/10/2026 — convite direto do cliente ("traga o seu pintor"):** pedido novo, fora dos dois programas de
 referência acima — o cliente convida diretamente o seu próprio pintor para uma obra sua (código ou QR,
