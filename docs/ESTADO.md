@@ -222,6 +222,18 @@ também:** o desconto aplica-se sem limite de usos nem de validade por convite (
 do QR code feita (`src/lib/qrcode.ts`, gerada a cada pedido da página, nunca guardada) — a funcionalidade fica
 completa, falta só aplicar a migração à base real.
 
+**22/10/2026, sessão autónoma — resto da fase 4 de `docs/PROPOSTA.md` e uma passagem de `/code-review`:** o
+comparador do cliente passou a mostrar, trabalho a trabalho, se cada proposta cobre o que foi pedido
+(`requestedCoverage` em `works.ts`, do mesmo jeito que já existia por produto); e "duplicar esta solução para
+outra fachada" no orçamento guiado, para não reescrever os mesmos campos em cada fachada. Uma passagem de
+`/code-review` sobre todos os commits da sessão encontrou e corrigiu 6 problemas reais (nenhum de negócio): o
+OCSP falhava sempre em silêncio quando o responder não embute o seu próprio certificado (comum e permitido pela
+RFC); a cobertura de trabalhos só olhava à primeira linha, não à melhor entre várias zonas; o convite direto não
+verificava se a obra ainda estava publicada antes de resgatar; a lista de fornecedores ligados em `/referencias`
+podia duplicar o mesmo fornecedor; e uma pequena ineficiência no comparador. Detalhe de cada um em
+`docs/DECISOES.md` (entrada "correções encontradas por uma passagem de `/code-review`"). Tudo com tsc, lint, 395
+testes, build — zero.
+
 ## Pendente do promotor
 
 Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegador):
