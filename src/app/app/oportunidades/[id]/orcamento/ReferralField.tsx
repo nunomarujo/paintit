@@ -27,7 +27,10 @@ export function ReferralField({ proposalId, requestId, applied }: { proposalId: 
         Código de fornecedor
       </h3>
       <p className="mt-1 text-sm text-slate-600">
-        Se um fornecedor de tintas lhe deu um código de adesão, aplique-o aqui. Se ganhar a obra, a comissão da plataforma desce 0,25 pontos percentuais. Por causa do mínimo de 150 €, o desconto só se nota em obras acima de 5 000 €.
+        Se um fornecedor de tintas lhe deu um código de adesão, aplique-o aqui para o ligar a esta obra — identifica qual fornecedor fica associado a ela.
+        A partir da primeira vez que aplicar o código de um fornecedor, a comissão que paga à plataforma desce 0,25 pontos percentuais em todas as obras que
+        ganhar, enquanto o código estiver ativo; soma com os de outros fornecedores que também tenha aplicado. Por causa do mínimo de 150 €, o desconto só se
+        nota em obras acima de 5 000 €.
       </p>
       {on ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">

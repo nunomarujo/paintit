@@ -126,6 +126,21 @@ export function OrgForm({ action: submit, administradoras, initial, initialKind,
         />
       )}
 
+      {!initial && kind === 'fornecedor' && (
+        <Field
+          name="codigoReferencia"
+          label="Código de quem o indicou (opcional)"
+          hint="Se um pintor lhe deu um código, indique-o aqui e fica registado como referência dele."
+        >
+          <input
+            name="codigoReferencia"
+            maxLength={14}
+            autoComplete="off"
+            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base uppercase tracking-wider"
+          />
+        </Field>
+      )}
+
       {kind === 'condominio' && administradoras.length > 0 && (
         <Field
           name="geridaPor"

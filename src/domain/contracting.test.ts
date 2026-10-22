@@ -8,6 +8,7 @@ const rec: EngagementRecord = {
   base: euros(100_000),
   advance: euros(10_000),
   rulesVersion: '2026-10-18',
+  referralDiscountBp: 0,
   createdAt: '2026-10-19T09:00:00Z',
 };
 let n = 0;
@@ -134,5 +135,16 @@ describe('resumo em linguagem simples', () => {
     expect(s).not.toMatch(/3\s690/);
     expect(plainSummary(e, { duracao: '', materiais: 0 }, 'pintor').join(' ')).toMatch(/comissão/);
     for (const label of Object.values(STATUS_LABELS)) expect(label).not.toMatch(/comiss/i);
+  });
+});
+
+describe('desconto do pintor (códigos de adesão e referências de fornecedores)', () => {
+  it('replay() aplica o referralDiscountBp gravado na contratação, nunca a versão', () => {
+    const base = replay(rec, [], new Date('2026-10-19T12:00:00Z')).engagement;
+    expect(base.fee.net).toBe(euros(3_000)); // 3% sem desconto
+
+    const comDesconto = replay({ ...rec, referralDiscountBp: 125 }, [], new Date('2026-10-19T12:00:00Z')).engagement;
+    expect(comDesconto.rules.version).toBe('2026-10-18'); // a versão não leva sufixo
+    expect(comDesconto.fee.net).toBe(euros(1_750)); // 3% − 1,25 p.p. = 1,75%
   });
 });

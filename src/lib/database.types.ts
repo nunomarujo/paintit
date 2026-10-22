@@ -344,6 +344,7 @@ export type Database = {
           id: string;
           painter_org_id: string;
           proposal_id: string;
+          referral_discount_bp: number;
           request_id: string;
           rules_version: string;
         };
@@ -568,6 +569,26 @@ export type Database = {
         Insert: { active?: boolean; code: string; created_at?: string; created_by?: string | null; id?: string; max_wins?: number; nota?: string | null; painter_org_id?: string | null; supplier_org_id: string };
         Update: { active?: boolean; nota?: string | null };
         Relationships: [];
+      };
+      supplier_referral_invites: {
+        Row: {
+          active: boolean;
+          adesao_elegivel_em: string | null;
+          code: string;
+          convite_confirmado_em: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          nif: string | null;
+          nota: string | null;
+          painter_org_id: string;
+          supplier_org_id: string | null;
+        };
+        Insert: { active?: boolean; code: string; created_at?: string; created_by?: string | null; id?: string; nota?: string | null; painter_org_id: string };
+        Update: { active?: boolean; nota?: string | null };
+        Relationships: [
+          { foreignKeyName: 'supplier_referral_invites_supplier_org_id_fkey'; columns: ['supplier_org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+        ];
       };
       supplier_payout_details: {
         Row: { cobra_iva: boolean; declaracao_retencao: 'nao_sujeito' | 'sujeito' | 'dispensa' | null; iban: string; isencao_iva: string | null; org_id: string; regime_validado: boolean; retencao_bps: number; titular: string; updated_at: string };
@@ -1297,6 +1318,7 @@ export type Database = {
     };
     Functions: {
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
+      apply_supplier_referral_code: { Args: { p_org: string; p_code: string | null }; Returns: undefined };
       referral_submit_invoice: { Args: { p_payout: string; p_numero: string; p_path: string }; Returns: undefined };
       referral_activity: {
         Args: { p_org: string };

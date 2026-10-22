@@ -59,6 +59,7 @@ export async function loadReplay(
     base: row.base_cents,
     advance: row.advance_cents,
     rulesVersion: row.rules_version,
+    referralDiscountBp: row.referral_discount_bp,
     createdAt: row.created_at,
     carried,
   };

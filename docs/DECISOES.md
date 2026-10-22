@@ -436,5 +436,25 @@ pagamento original só por intervenção manual (caso raro, a tratar).
   grant por si só impede `authenticated` de tocar nos campos do sistema — não precisa de um gatilho a verificar
   uma bandeira de sessão (mais simples do que o equivalente em `proposals`, que tem muitas colunas livres e por
   isso usa esse mecanismo).
-- **Ainda não tocado:** a UX — nem o pintor tem onde criar/ver o seu código de convite, nem o registo de um
-  fornecedor (`/app/organizacoes/nova`) tem campo para o inserir e chamar `apply_supplier_referral_code`.
+## 22/10/2026 — UX das referências de fornecedores e dos códigos de adesão; liga-se o desconto à comissão
+
+- `src/lib/database.types.ts` atualizado à mão com `supplier_referral_invites`, `engagements.referral_discount_bp`
+  e `apply_supplier_referral_code` — o cabeçalho do ficheiro já previa isto ("atualizar depois de cada migração");
+  confirma-se com `generate_typescript_types` quando as migrações forem aplicadas à base real.
+- Com os tipos disponíveis, `src/domain/contracting.ts` (`replay()`) e `src/lib/engagements.ts` passam a ler
+  `referral_discount_bp` e a aplicá-lo com `applyPainterDiscount` — a comissão que o pintor vê e paga **já reflete
+  os dois descontos**. Contratações antigas (versão com sufixo `+ref`) não mudam: `referralDiscountBp` vem a 0 e
+  `applyPainterDiscount` com 0 não altera nada.
+- **Pintor** — página nova `/app/organizacoes/[id]/referencias`: cria e desativa códigos de convite, vê a quantos
+  fornecedores já referidos (com o nome, desde que confirmado) e o estado de cada um (a aguardar subscrição /
+  elegível até [data] / terminado), e um resumo com os dois descontos separados e o total.
+- **Fornecedor** — `/app/organizacoes/nova`: campo opcional "Código de quem o indicou", só quando o tipo é
+  fornecedor e só no registo (não na edição). Um código inválido ou já usado não impede o registo, só não regista
+  a referência (`createOrganization`, `src/app/app/actions.ts`).
+- Texto desatualizado corrigido em `adesoes/page.tsx` (já não "0,25%/cada código vale uma obra") e em
+  `ReferralField.tsx` (aplicar o código liga-o a obras futuras, não só a esta) — o texto, não a interação: a forma
+  de ligar um código a uma proposta continua "um código por proposta" (`ReferralField.tsx`) e falta decidir se
+  deve passar a uma ligação visível fora desse fluxo, como já estava registado.
+- Testado (tsc, lint, 357 testes, build) mas não visto a correr: o `npm run dev` desta sessão não tem credenciais
+  reais do Supabase (confirmado com a página `adesoes`, já existente, a falhar da mesma forma) — falta a
+  confirmação visual depois de as migrações estarem aplicadas.

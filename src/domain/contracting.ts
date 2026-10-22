@@ -20,6 +20,7 @@ import {
   held,
 } from './engagement';
 import type { Cents } from './money';
+import { applyPainterDiscount } from './referral';
 import { RULES_BY_VERSION } from './rules';
 
 // Persistência da contratação: a base de dados guarda só os acontecimentos
@@ -89,6 +90,8 @@ export interface EngagementRecord {
   base: Cents;
   advance: Cents;
   rulesVersion: string;
+  /** Desconto do pintor (códigos de adesão + referências de fornecedores), resolvido e gravado uma vez na seleção. */
+  referralDiscountBp: number;
   createdAt: string;
   carried?: { from: string; guarantee: Cents; advance: Cents };
 }
@@ -129,8 +132,11 @@ function apply(e: Engagement, ev: EngagementEvent): { e: Engagement; carried?: R
 
 /** Reconstrói a contratação a partir dos acontecimentos, por ordem, e aplica os prazos até `now`. */
 export function replay(rec: EngagementRecord, events: EngagementEvent[], now: Date): Replay {
-  const rules = RULES_BY_VERSION[rec.rulesVersion];
-  if (!rules) throw new EngagementError('regras_desconhecidas', `Versão de regras desconhecida: ${rec.rulesVersion}.`);
+  const baseRules = RULES_BY_VERSION[rec.rulesVersion];
+  if (!baseRules) throw new EngagementError('regras_desconhecidas', `Versão de regras desconhecida: ${rec.rulesVersion}.`);
+  // Contratações antigas (antes de 22/10/2026) já trazem o desconto na própria versão (sufixo "+ref"); as novas
+  // gravam-no em referralDiscountBp e a versão fica sem sufixo — applyPainterDiscount com 0 não faz nada.
+  const rules = applyPainterDiscount(baseRules, rec.referralDiscountBp);
   let e = createEngagement({
     id: rec.id,
     base: rec.base,

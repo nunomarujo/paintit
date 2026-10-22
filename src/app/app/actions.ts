@@ -98,6 +98,13 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
     .single();
   if (error || !data) return { errors: {}, message: 'Não foi possível guardar. Confirme os dados e tente de novo.' };
 
+  // Código de quem o indicou (referências de fornecedores, src/domain/referralEligibility.ts): opcional, e um
+  // código inválido ou já usado não impede o registo — só não se regista a referência.
+  if (v.kind === 'fornecedor') {
+    const codigoReferencia = String(form.get('codigoReferencia') ?? '').trim();
+    if (codigoReferencia) await supabase.rpc('apply_supplier_referral_code', { p_org: data.id, p_code: codigoReferencia });
+  }
+
   revalidatePath('/app');
   redirect(`/app/organizacoes/${data.id}`);
 }

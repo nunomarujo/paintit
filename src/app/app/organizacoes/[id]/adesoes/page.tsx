@@ -27,7 +27,6 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
     supabase.from('referral_payouts').select('id, amount_cents, estado, fee_recebido_em, redemption_id').eq('supplier_org_id', id),
     supabase.from('referral_redemptions').select('*').eq('supplier_org_id', id).order('created_at', { ascending: false }),
   ]);
-  const used = new Set((activity ?? []).filter((a) => a.estado && a.estado !== 'sem_efeito').map((a) => a.code));
   const balance = supplierBalance((payouts ?? []).map((p) => ({ estado: p.estado, feeRecebidoEm: p.fee_recebido_em, redemptionId: p.redemption_id, amount: p.amount_cents })));
   const openRedemption = (redemptions ?? []).some((r) => r.estado === 'pedido' || r.estado === 'fatura_recebida');
   const canRedeem = !!details && details.regime_validado && balance.disponivel > 0 && !openRedemption;
@@ -49,9 +48,11 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Descontos a novos aderentes</h1>
         <p className="mt-1 max-w-3xl text-sm text-slate-600">
-          Crie um código e entregue-o a um pintor que ainda não use a plataforma. Quando ele o aplicar ao orçamento e ganhar a obra, a comissão que paga à
-          plataforma desce 0,25 pontos percentuais (de 3% para 2,75% do valor sem IVA) e a sua empresa recebe 0,25% desse valor, mais IVA se o cobrar, em saldo que pode resgatar quando quiser.
-          O desconto do pintor só se nota em obras acima de 5 000 € (a comissão tem um mínimo de 150 €) e é pleno acima de 5 455 €; a sua comissão de 0,25% aplica-se sempre. Cada código vale uma obra ganha: se o pintor pedir outro, crie-lho. 
+          Crie um código e entregue-o a um pintor que ainda não use a plataforma. Quando ele o aplicar a um orçamento, fica ligado à sua empresa: a comissão
+          que paga à plataforma desce 0,25 pontos percentuais em todas as obras que ganhar a partir daí, enquanto o código estiver ativo — some com códigos
+          de outros fornecedores que também tenha aplicado. A sua empresa recebe 1% do valor de cada obra ganha por um pintor que referenciou (2% a partir
+          da 3.ª obra, nos 2 meses anteriores a cada uma), mais IVA se o cobrar, em saldo que pode resgatar quando quiser. O código não se esgota: desative-o
+          quando quiser cortar a relação.
         </p>
       </div>
 
@@ -164,9 +165,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
                   <tr key={c.id}>
                     <td className="py-2 font-mono text-base font-semibold tracking-wider">{c.code}</td>
                     <td className="py-2 text-slate-600">{c.nota ?? ''}</td>
-                    <td className="py-2">
-                      {!c.active ? 'Desativado' : used.has(c.code) ? 'Utilizado' : c.painter_org_id ? 'Em uso por um pintor' : 'Disponível'}
-                    </td>
+                    <td className="py-2">{!c.active ? 'Desativado' : c.painter_org_id ? 'Ligado a um pintor' : 'Disponível'}</td>
                     <td className="py-2 text-right">
                       {manager && (
                         <form action={setReferralActive.bind(null, id, c.id, !c.active)}>
