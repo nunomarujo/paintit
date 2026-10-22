@@ -1,6 +1,6 @@
 # Ponto de situação — ler primeiro numa sessão nova
 
-Atualizado a 19/10/2026 (fim do dia). Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
+Atualizado a 22/10/2026 (fim do dia). Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
 deve lê-lo, junto com `CLAUDE.md`, antes de qualquer trabalho. Atualizar no fim de cada sessão.
 
 ## O projeto
@@ -123,6 +123,49 @@ contactos, morada da obra e fotografias), só para essa obra.
   (`/api/moloni/connect` e `/api/moloni/callback`, ver `docs/FATURACAO.md`). **Pedido o ambiente de demonstração ao apoio@moloni.pt (22/10/2026), a aguardar resposta — não emitir nenhum documento antes disso, a conta não tem sandbox e um documento criado é real e não se apaga.**
   Subutilizador do Portal das Finanças criado (517588676/1, perfil WFA — webservice de comunicação de faturas) e ligado na Moloni (Configuração AT da empresa: documentos de faturação ativos, diferimento 0 dias; a série "M" já estava registada na AT). Dados da empresa completados na Moloni (morada, código postal, localidade, tipo de negócio "Prestadores de Serviços").
   Falta: ativar a API na Moloni (Configurações > Developers > Configuração da API e Plugins) com o callback `https://quempinta.pt/api/moloni/callback`, colar `MOLONI_CLIENT_ID`/`MOLONI_CLIENT_SECRET`/as restantes `MOLONI_*` na Vercel (valores em `.env.example`) e fazer deploy; depois, com a conta de administrador, `/api/moloni/connect` para ligar o token. A comunicação à AT só se confirma mesmo com a primeira fatura emitida — e essa só deve acontecer depois de a Moloni confirmar o ambiente de demonstração (pedido a 22/10/2026, ainda sem resposta).
+
+## Algoritmo de fee: ponto 2 (referências) trabalhado; ponto 1 (fee 18-23%) não começado
+
+Documento "Algoritmo de determinação de fee QuemPinta v1" (22/10/2026): substitui a faixa fixa de 3% por uma
+faixa dinâmica 18-23% com nove fatores (B/C/E/F/M/J/R/L/Q). Decisão do promotor: trabalhar primeiro o ponto 2
+(descontos por referência), com rigor — **o ponto 1 (a faixa dinâmica em si) continua por começar.**
+
+O que saiu disto, nesta sessão, foi maior do que o documento previa: há **dois programas simétricos**, não um
+— o documento só descrevia o segundo:
+
+- **Códigos de adesão** (já existia, fornecedor → pintor): evoluiu de "um código, uma obra" (0,25% fixo dos dois
+  lados) para uma relação permanente. O desconto do pintor soma 0,25 p.p. por fornecedor com código ligado e
+  ativo, em todas as obras futuras, não só na que aplicou o código; a comissão do fornecedor passou a 1%, com
+  2% ao alcançar a 3.ª obra (de qualquer pintor que referenciou) nos 2 meses anteriores, nunca retroativo.
+- **Referências de fornecedores** (novo, pintor → fornecedor, o do documento): o pintor cria um código, o
+  fornecedor aplica-o no registo; conta como referência elegível durante 12 meses a partir da 1.ª subscrição
+  (não do registo), com desconto Q(n) ao pintor (até 4 p.p.) pelo número de referências elegíveis em simultâneo.
+- Os dois descontos do pintor somam-se com um teto conjunto de 8 p.p. (`combinedPainterDiscountBp`).
+- Buraco encontrado e corrigido: nada impedia a mesma empresa registar-se duas vezes como fornecedor com mails
+  diferentes — agora há um índice único em `organizations.nif`, só para fornecedores.
+- Feito: domínio puro e testado (`src/domain/referral.ts`, `src/domain/referralEligibility.ts`); três migrações
+  (schema + `proposal_selected()` + a tabela de convites); `database.types.ts` atualizado à mão (confirmar com
+  `generate_typescript_types` depois de aplicar); `contracting.ts`/`lib/engagements.ts` já aplicam o desconto à
+  comissão; páginas novas `/app/organizacoes/[id]/referencias` (pintor) e campo no registo de um fornecedor
+  (`/app/organizacoes/nova`); `ReferralField.tsx` redesenhado (escolhe qual fornecedor fica associado a cada
+  obra, separado de ligar um código novo). Tudo em `supabase/tests/rls.test.ts` e testes de domínio — tsc, lint,
+  357 testes, build, zero. Detalhe de cada decisão em `docs/DECISOES.md` (entradas de 22/10/2026).
+
+**Falta aplicar à base real, nesta ordem** (esta sessão não tem permissão de escrita no Supabase — pedir ao
+Claude do navegador):
+1. Confirmar sem NIFs duplicados: `select nif, count(*) from organizations where kind='fornecedor' and nif is not null group by nif having count(*)>1;`
+2. `supabase/migrations/20261022030000_nif_unico_fornecedores.sql`
+3. `supabase/migrations/20261022040000_codigos_de_adesao_cumulativos.sql`
+4. `supabase/migrations/20261022050000_referencias_de_fornecedores.sql`
+5. Confirmar avisos de segurança/desempenho a zero (ou explicados) e correr `generate_typescript_types`, para
+   confirmar o `database.types.ts` escrito à mão.
+6. **Falta ver a correr num browser com dados reais** — esta sessão não tinha credenciais do Supabase no
+   `npm run dev` (confirmado com a página `adesoes`, já existente, a falhar da mesma forma antes de qualquer
+   mudança desta sessão), por isso as páginas novas e o `ReferralField` só foram verificados por tsc/lint/testes/build.
+
+**Ainda por decidir ou construir:** como/onde um pintor liga-se a um fornecedor fora do fluxo de uma proposta
+específica (hoje só pelo `ReferralField` ou pela página de referências); se a "nota" dos códigos deve aparecer
+em mais sítios; o resto do algoritmo de fee (ponto 1).
 
 ## Pendente do promotor
 
