@@ -1,3 +1,4 @@
+import { materialCheck, type Consumption } from '@/domain/catalog';
 import { EQUIVALENT_PROPOSAL_NOTE, hasEquivalent } from '@/domain/equivalence';
 import { formatEuros, percentOf } from '@/domain/money';
 import {
@@ -11,9 +12,11 @@ import {
   type ProposalTerms,
 } from '@/domain/proposal';
 import { SURFACE_KIND_LABELS } from '@/domain/request';
+import type { MaterialCheckProduct } from '@/lib/materials';
 
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : 'Não indicado');
 const qty = (n: number) => (n / 100).toLocaleString('pt-PT', { maximumFractionDigits: 2 });
+const litres = (c: Consumption) => `≈ ${(c.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L${c.embalagens !== null ? ` (${c.embalagens} embalagem${c.embalagens > 1 ? 'ns' : ''}${c.custo !== null ? `, ${formatEuros(c.custo)} ao preço de referência` : ''})` : ''}`;
 
 /** Proposta tal como o cliente a lê: linhas, totais e condições. Não mostra quem a fez. */
 export function ProposalView({
@@ -21,6 +24,7 @@ export function ProposalView({
   terms,
   onDelete,
   zoneNames = {},
+  products = {},
 }: {
   lines: (ProposalLine & { id: string })[];
   terms: ProposalTerms;
@@ -28,6 +32,9 @@ export function ProposalView({
   onDelete?: (lineId: string) => React.ReactNode;
   /** Nome de cada zona do pedido, para mostrar a que zonas se aplica cada linha. */
   zoneNames?: Record<string, string>;
+  /** Dados dos produtos comprometidos (por productId), para a conta de litros/custo esperada (materialCheck,
+   * src/domain/catalog.ts) — transparência para o cliente, nunca um bloqueio ao pintor. */
+  products?: Record<string, MaterialCheckProduct>;
 }) {
   const t = proposalTotals(lines, terms.ivaBps);
   const global = terms.modoPreco === 'global';
@@ -59,6 +66,14 @@ export function ProposalView({
                     {l.productId && (
                       <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
                     )}
+                    {l.productId && products[l.productId] && (() => {
+                      const check = materialCheck(l.quantidade, l.demaos, products[l.productId]!);
+                      return check.demaosAcimaDoEsperado ? (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                          Mais demãos do que o produto recomenda
+                        </span>
+                      ) : null;
+                    })()}
                     <span className="block text-xs text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria]}
                       {l.zonas && l.zonas.length > 0
@@ -69,6 +84,12 @@ export function ProposalView({
                       {l.demaos ? ` · ${l.demaos} demão${l.demaos > 1 ? 's' : ''}` : ''}
                       {l.produto ? ` · ${l.produto}` : ''}
                       {l.inclusao !== 'incluido' ? ` · ${INCLUSION_LABELS[l.inclusao]}` : ''}
+                      {l.productId &&
+                        products[l.productId] &&
+                        (() => {
+                          const c = materialCheck(l.quantidade, l.demaos, products[l.productId]!).consumo;
+                          return c ? ` · ${litres(c)}` : '';
+                        })()}
                     </span>
                     {l.motivoDiferenca && <span className="block text-xs text-slate-600">Motivo: {l.motivoDiferenca}</span>}
                   </td>

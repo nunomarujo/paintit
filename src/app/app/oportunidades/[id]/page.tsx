@@ -24,7 +24,7 @@ import type { DesiredWork } from '@/domain/request';
 import { SURFACE_KIND_LABELS, WORK_TYPE_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
-import { materialOptions } from '@/lib/materials';
+import { materialOptions, productsFor } from '@/lib/materials';
 import { linkedSupplierCodes, painterDiscountBreakdown, painterOrgs } from '@/lib/queries';
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
@@ -98,6 +98,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const zoneNames = Object.fromEntries(zones.map((z) => [z.id, z.label]));
   const wizardZones: Zone[] = (surfaces ?? []).map((s) => ({ id: s.id, label: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind], area: s.area_cm2 }));
   const domainLines = (lines ?? []).map((l) => ({ id: l.id, ...toLine(l) }));
+  const committedProductIds = [...new Set(domainLines.map((l) => l.productId).filter((x): x is string => !!x))];
+  const materialProducts = Object.fromEntries(await productsFor(supabase, committedProductIds));
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
@@ -278,6 +280,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   lines={domainLines}
                   terms={terms!}
                   zoneNames={zoneNames}
+                  products={materialProducts}
                   onDelete={
                     draft && org.manager
                       ? (lineId) => (
@@ -371,6 +374,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                             lines={legacyLines}
                             terms={terms}
                             zoneNames={zoneNames}
+                            products={materialProducts}
                             onDelete={(lineId) => (
                               <form action={deleteLine.bind(null, id, lineId)}>
                                 <button type="submit" className="text-red-700 hover:underline">
@@ -408,7 +412,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         <p className="mb-6 text-sm text-slate-600">
                           {listing?.concelho} · {formatArea(listing?.area_total_cm2 ?? 0)}
                         </p>
-                        <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} />
+                        <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} />
                       </article>
                       {issues.length > 0 && (
                         <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">

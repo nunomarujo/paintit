@@ -67,6 +67,31 @@ export function consumption(area: AreaCm2, demaos: number, p: Pick<ProductInput,
   return { ml, embalagens, custo: embalagens !== null && p.precoReferencia !== null ? embalagens * p.precoReferencia : null };
 }
 
+export interface MaterialCheck {
+  /** Litros/embalagens/custo esperados para esta linha, com as demãos declaradas (ou as recomendadas, se não
+   * houver nenhuma declarada). null se o produto não tiver rendimento (sem base para estimar). */
+  consumo: Consumption | null;
+  /** As demãos declaradas excedem em mais de uma as recomendadas pelo próprio produto — um pintor não pode
+   * justificar o rendimento mínimo, nem o fornecedor o preço de referência, por isso não é fraude do fornecedor;
+   * é só um sinal para o cliente notar, não um bloqueio (decisão de 22/10/2026, docs/DECISOES.md). */
+  demaosAcimaDoEsperado: boolean;
+}
+
+/** Sinal de transparência para uma linha com material comprometido: a conta de litros/custo esperada, e se as
+ * demãos declaradas se afastam muito da recomendação do próprio produto. */
+export function materialCheck(
+  area: AreaCm2,
+  demaos: number | null,
+  p: Pick<ProductInput, 'rendimento' | 'embalagemMl' | 'precoReferencia' | 'demaosRecomendadas'>,
+): MaterialCheck {
+  const recomendadas = p.demaosRecomendadas ?? null;
+  const efetivas = demaos ?? recomendadas ?? 2;
+  return {
+    consumo: consumption(area, efetivas, p),
+    demaosAcimaDoEsperado: demaos !== null && recomendadas !== null && demaos > recomendadas + 1,
+  };
+}
+
 export function productLabel(p: Pick<ProductInput, 'marca' | 'nome' | 'referencia'>): string {
   return `${p.marca} ${p.nome}${p.referencia ? ` (${p.referencia})` : ''}`;
 }

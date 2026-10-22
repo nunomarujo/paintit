@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { consumption, parseProduct, productLabel } from './catalog';
+import { consumption, materialCheck, parseProduct, productLabel } from './catalog';
 
 const form = (o: Record<string, string>) => {
   const f = new FormData();
@@ -22,6 +22,17 @@ describe('catálogo', () => {
     expect(productLabel(p.value!)).toBe('Marca X Acrílica Mate');
     expect(parseProduct(form({ nome: 'x', marca: 'y', tipo: 'tinta_exterior', preco: '10' })).errors.precoData).toBeTruthy();
     expect(parseProduct(form({ tipo: 'nada' })).errors).toMatchObject({ nome: expect.any(String), marca: expect.any(String), tipo: expect.any(String) });
+  });
+
+  it('sinaliza demãos muito acima do recomendado, sem bloquear', () => {
+    const p = { rendimento: 1200, embalagemMl: 15000, precoReferencia: 8990, demaosRecomendadas: 2 };
+    expect(materialCheck(16150, 2, p)).toEqual({ consumo: consumption(16150, 2, p), demaosAcimaDoEsperado: false });
+    expect(materialCheck(16150, 3, p).demaosAcimaDoEsperado).toBe(false); // +1: variação normal (cor, substrato).
+    expect(materialCheck(16150, 4, p).demaosAcimaDoEsperado).toBe(true); // +2: sinaliza.
+    // Sem demãos declaradas, usa as recomendadas do produto — nunca sinaliza por falta de dados.
+    expect(materialCheck(16150, null, p)).toEqual({ consumo: consumption(16150, 2, p), demaosAcimaDoEsperado: false });
+    // Sem recomendação do produto, não há base de comparação — não sinaliza.
+    expect(materialCheck(16150, 10, { ...p, demaosRecomendadas: null }).demaosAcimaDoEsperado).toBe(false);
   });
 });
 

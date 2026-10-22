@@ -6,6 +6,7 @@ import { formatEuros } from '@/domain/money';
 import { alias, proposalTotals } from '@/domain/proposal';
 import { SURFACE_KIND_LABELS, WORK_TYPE_LABELS, formatArea } from '@/domain/request';
 import { loadReplay } from '@/lib/engagements';
+import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
 
@@ -28,6 +29,8 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
   ]);
   const ids = (proposals ?? []).map((p) => p.id);
   const { data: lines } = ids.length ? await supabase.from('proposal_lines').select('*').in('proposal_id', ids).order('created_at') : { data: [] };
+  const committedProductIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => !!x))];
+  const materialProducts = Object.fromEntries(await productsFor(supabase, committedProductIds));
   const linesOf = (pid: string) => (lines ?? []).filter((l) => l.proposal_id === pid).map((l) => ({ id: l.id, ...toLine(l) }));
   const replays = await Promise.all((engagements ?? []).map(async (e) => ({ e, r: await loadReplay(supabase, e) })));
   const painters = await Promise.all(
@@ -89,6 +92,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
                   lines={linesOf(p.id)}
                   terms={toTerms(p)}
                   zoneNames={Object.fromEntries((surfaces ?? []).map((z) => [z.id, `${z.descricao?.trim() || SURFACE_KIND_LABELS[z.kind]} (${formatArea(z.area_cm2)})`]))}
+                  products={materialProducts}
                 />
               </div>
             </section>

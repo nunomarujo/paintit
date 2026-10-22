@@ -8,6 +8,7 @@ import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, SORT_LABELS, compareProposals, s
 import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
+import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { adherence, parsePreferences } from '@/domain/reference';
 import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
@@ -53,6 +54,8 @@ export default async function ProposalsPage({
   const { data: lines } = ids.length
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', ids).order('created_at')
     : { data: [] };
+  const committedProductIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => !!x))];
+  const materialProducts = Object.fromEntries(await productsFor(supabase, committedProductIds));
   const [ratings, { data: versions }] = await Promise.all([
     Promise.all(ids.map(async (pid) => [pid, (await supabase.rpc('painter_rating', { p_proposal: pid })).data?.[0] ?? null] as const)),
     ids.length ? supabase.from('proposal_versions').select('proposal_id, version').in('proposal_id', ids) : Promise.resolve({ data: [] }),
@@ -331,7 +334,7 @@ export default async function ProposalsPage({
               <span className="text-sm text-slate-600">{STATUS[p.status]}</span>
             </div>
             <div className="mt-4">
-              <ProposalView lines={linesOf(p.id)} terms={terms} zoneNames={zoneNames} />
+              <ProposalView lines={linesOf(p.id)} terms={terms} zoneNames={zoneNames} products={materialProducts} />
             </div>
             {manager && !chosen && p.status === 'submetida' && (
               <div className="mt-4">

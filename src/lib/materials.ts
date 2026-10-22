@@ -9,6 +9,7 @@ import {
   productLabel,
   type ApplicationMethod,
   type DiscountRule,
+  type ProductInput,
   type ProductType,
 } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
@@ -159,4 +160,19 @@ export async function pricedProduct(
     { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: deliveredCount ?? undefined },
   );
   return { label: productLabel(p), precoFornecedor: p.preco_fornecedor_cents, descontoBps: d?.bps ?? 0 };
+}
+
+export type MaterialCheckProduct = Pick<ProductInput, 'rendimento' | 'embalagemMl' | 'precoReferencia' | 'demaosRecomendadas'>;
+
+/** Os dados (rendimento, embalagem, preço, demãos recomendadas) dos produtos comprometidos numa proposta — só o
+ * que `materialCheck` (src/domain/catalog.ts) precisa, para o sinal de transparência no `ProposalView`. */
+export async function productsFor(supabase: SupabaseClient<Database>, productIds: string[]): Promise<Map<string, MaterialCheckProduct>> {
+  if (productIds.length === 0) return new Map();
+  const { data } = await supabase.from('products').select('id, rendimento, embalagem_ml, preco_referencia_cents, demaos_recomendadas').in('id', productIds);
+  return new Map(
+    (data ?? []).map((p) => [
+      p.id,
+      { rendimento: p.rendimento, embalagemMl: p.embalagem_ml, precoReferencia: p.preco_referencia_cents, demaosRecomendadas: p.demaos_recomendadas },
+    ]),
+  );
 }

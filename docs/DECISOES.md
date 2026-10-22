@@ -509,3 +509,29 @@ o lado do pintor).
 - Testado em `supabase/tests/rls.test.ts` (só um gestor regista, só para a sua entidade, imutável) e tsc/lint/359
   testes/build. `database.types.ts` atualizado à mão, como as tabelas anteriores desta sessão — confirmar com
   `generate_typescript_types` quando a migração for aplicada (é a 4.ª e última, por agora, da fila por aplicar).
+
+## 22/10/2026 — sinal de demãos acima do esperado, no comparador e no rascunho
+
+Ponto 2 de uma leitura de uma sessão externa (painel de comprador + board, noutro contexto, sem conhecer este
+projeto) sobre a oferta do Quem Pinta — trazida pelo promotor para ver o que adaptar, não para copiar às
+cegas (ver a resposta anterior a essa leitura, acima na conversa, não registada aqui por ser só análise, sem
+código). O ponto escolhido para avançar: nada impede hoje um pintor de declarar mais demãos do que um material
+precisa, insuflando o custo — mesmo com o preço de referência do fornecedor fixo.
+
+- `materialCheck` (`src/domain/catalog.ts`, ao lado de `consumption`, já existente): dada a área, as demãos
+  declaradas e o produto, devolve a conta de litros/embalagens/custo esperada e sinaliza quando as demãos
+  excedem em mais de uma as recomendadas pelo próprio produto (`demaos_recomendadas`, já no catálogo). Sem
+  recomendação do produto, ou sem demãos declaradas, não sinaliza — falta de dados não é motivo para alarme.
+  Nunca bloqueia: é transparência para o cliente notar, decidir ele (CMP-04, o catálogo já evita dizer que o mais
+  caro é melhor — isto segue o mesmo espírito).
+- Mostra-se em `ProposalView` (por isso chega automaticamente às três páginas que o usam: o rascunho do pintor,
+  o comparador do cliente e o dossiê para imprimir) — uma etiqueta âmbar só quando sinalizado, e a conta de
+  litros/custo sempre que há produto comprometido, sinalizado ou não. `productsFor`, novo em `src/lib/materials.ts`,
+  traz os dados do produto (rendimento, embalagem, preço, demãos recomendadas) para quem chama.
+- Sem migração: usa só colunas que já existiam. Testado em `src/domain/catalog.test.ts`; tsc, lint, 360 testes,
+  build, zero.
+- O que ficou de fora desta leitura, por pedir decisão de negócio (não código): o levantamento feito por um
+  vendedor de tintas, com partilha de comissão (modelo novo, sem número definido); a garantia de execução da
+  obra (sem resposta nossa nem na leitura externa); "traga o seu pintor" (hoje só a equipa convida pintores a um
+  anúncio — `listing_invites`, restrito a `is_platform_admin()` — alargar ao cliente é pequeno, mas é uma UX nova,
+  não decidida ainda).
