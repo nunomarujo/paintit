@@ -44,10 +44,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     ? [
         { href: '/app/backoffice', label: 'Painel', exact: true },
         { href: '/app/backoffice/pedidos', label: 'Pedidos', count: q.denuncias + q.fotografias },
-        { href: '/app/backoffice/entidades', label: 'Entidades', count: q.documentos },
+        { href: '/app/backoffice/entidades', label: 'Entidades', count: q.documentos + q.regimes },
         { href: '/app/backoffice/contratacoes', label: 'Contratações' },
         { href: '/app/backoffice/moderacao', label: 'Moderação', count: q.revisoes },
-        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', count: q.resgates + q.regimes + q.banco },
+        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', count: q.resgates + q.banco },
         { href: '/app/backoffice/sistema', label: 'Sistema' },
       ]
     : [];

@@ -27,7 +27,13 @@ export default async function BackofficeDashboard() {
         { href: '/app/backoffice/pedidos/fotografias', label: 'Fotografias por rever', n: c.fotografias },
       ],
     },
-    { title: 'Entidades', items: [{ href: '/app/backoffice/entidades', label: 'Documentos por validar', n: c.documentos }] },
+    {
+      title: 'Entidades',
+      items: [
+        { href: '/app/backoffice/entidades', label: 'Documentos por validar', n: c.documentos },
+        { href: '/app/backoffice/entidades/regimes', label: 'Regimes de fornecedores por validar', n: c.regimes },
+      ],
+    },
     {
       title: 'Contratações',
       items: [
@@ -40,7 +46,6 @@ export default async function BackofficeDashboard() {
       title: 'Contabilidade',
       items: [
         { href: '/app/backoffice/contabilidade/pagar', label: 'Resgates de fornecedores por pagar', n: c.resgates },
-        { href: '/app/backoffice/contabilidade/pagar', label: 'Regimes de fornecedores por validar', n: c.regimes },
         { href: '/app/backoffice/contabilidade/banco', label: 'Movimentos do banco por classificar', n: c.banco },
       ],
     },

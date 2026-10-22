@@ -14,6 +14,7 @@ export default async function EntitiesLayout({ children }: { children: ReactNode
         { href: '/app/backoffice/entidades', label: 'Documentos por validar', count: c.documentos },
         { href: '/app/backoffice/entidades/subscricoes', label: 'Subscrições de fornecedores' },
         { href: '/app/backoffice/entidades/promocoes', label: 'Códigos promocionais' },
+        { href: '/app/backoffice/entidades/regimes', label: 'Regimes de fornecedores', count: c.regimes },
       ]}
     >
       {children}

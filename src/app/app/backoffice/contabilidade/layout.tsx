@@ -17,7 +17,7 @@ export default async function AccountingLayout({ children }: { children: ReactNo
         { href: `${B}/movimentos`, label: 'Movimentos' },
         { href: `${B}/reconciliacao`, label: 'Reconciliação Stripe' },
         { href: `${B}/banco`, label: 'Banco', count: c.banco },
-        { href: `${B}/pagar`, label: 'A pagar', count: c.resgates + c.regimes },
+        { href: `${B}/pagar`, label: 'A pagar', count: c.resgates },
         { href: `${B}/periodos`, label: 'Períodos' },
         { href: `${B}/contratacoes`, label: 'Por contratação' },
       ]}

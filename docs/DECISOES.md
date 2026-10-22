@@ -311,3 +311,9 @@ pagamento original só por intervenção manual (caso raro, a tratar).
   **Sistema** (estado do servidor, auditoria).
 - Cada secção tem sub-separadores (`src/components/SubTabs.tsx`). Uma conta só de equipa, sem entidades, já não vê a «Área de trabalho».
 - Os endereços antigos (`/app/validacao`, `/app/backoffice/conciliacao`, `/app/backoffice/auditoria`, `contabilidade?v=…`) redirecionam para os novos.
+
+## 22/10/2026 — validação do regime dos fornecedores passa para Entidades
+
+- A validação do regime de IVA/retenção declarado por um fornecedor (para as comissões de adesão) passou de
+  Contabilidade → A pagar para **Entidades → Regimes de fornecedores**, por ser uma validação de dados da entidade,
+  como os documentos. Contabilidade → A pagar fica só com dinheiro: resgates por pagar e comissões ainda fora de resgate.

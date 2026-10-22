@@ -2,7 +2,7 @@ import { ACCOUNTS, accountName } from '@/domain/accounting/accounts';
 import { formatEuros } from '@/domain/money';
 import { getUser } from '@/lib/supabase/server';
 import { reconcile } from '@/domain/accounting/reconcile';
-import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RegimeForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
+import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 
@@ -179,13 +179,12 @@ export async function Movements({ mes, origem }: { mes?: string; origem?: string
 
 export async function ToPay() {
   const { supabase } = await getUser();
-  const [{ data: open }, { data: recent }, { data: unvalidated }, { data: pending }] = await Promise.all([
+  const [{ data: open }, { data: recent }, { data: pending }] = await Promise.all([
     supabase.from('referral_redemptions').select('*').in('estado', ['pedido', 'fatura_recebida']).order('created_at'),
     supabase.from('referral_redemptions').select('*').in('estado', ['paga', 'anulado']).order('created_at', { ascending: false }).limit(10),
-    supabase.from('supplier_payout_details').select('*').eq('regime_validado', false),
     supabase.from('referral_payouts').select('id, supplier_org_id, amount_cents, fee_recebido_em, created_at').eq('estado', 'adjudicada').is('redemption_id', null).order('created_at').limit(50),
   ]);
-  const orgIds = [...new Set([...(open ?? []), ...(recent ?? []), ...(unvalidated ?? []).map((u) => ({ supplier_org_id: u.org_id })), ...(pending ?? [])].map((x) => x.supplier_org_id))];
+  const orgIds = [...new Set([...(open ?? []), ...(recent ?? []), ...(pending ?? [])].map((x) => x.supplier_org_id))];
   const { data: orgs } = orgIds.length ? await supabase.from('organizations').select('id, nome, nif').in('id', orgIds) : { data: [] };
   const name = (id: string) => (orgs ?? []).find((o) => o.id === id)?.nome ?? id;
   const links = new Map<string, string>();
@@ -241,24 +240,6 @@ export async function ToPay() {
               ))}
             </ul>
           </details>
-        )}
-      </section>
-
-      <section className={card}>
-        <h2 className="font-semibold">Regimes de fornecedores por validar</h2>
-        <p className="mt-1 text-sm text-slate-600">Confirme com o contabilista o regime de IVA e a retenção antes de o fornecedor poder resgatar.</p>
-        {(unvalidated ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Nenhum por validar.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
-            {(unvalidated ?? []).map((u) => (
-              <li key={u.org_id} className="py-3">
-                <b>{name(u.org_id)}</b> (NIF {(orgs ?? []).find((o) => o.id === u.org_id)?.nif ?? '—'}) · {u.cobra_iva ? 'liquida IVA' : `isento: ${u.isencao_iva ?? '—'}`} · retenção declarada:{' '}
-                {u.declaracao_retencao === 'sujeito' ? 'sujeito' : u.declaracao_retencao === 'dispensa' ? 'dispensado' : u.declaracao_retencao === 'nao_sujeito' ? 'não sujeito' : 'não declarada'}
-                <RegimeForm orgId={u.org_id} current={u.retencao_bps} />
-              </li>
-            ))}
-          </ul>
         )}
       </section>
 
