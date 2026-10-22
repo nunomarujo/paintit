@@ -16,7 +16,8 @@ export default async function ConvitePage({ params }: { params: Promise<{ code: 
 
   const { data } = await supabase.rpc('request_invite_info', { p_code: code });
   const info = data?.[0];
-  const orgs = (await painterOrgs(supabase, user.id)).filter((o) => o.manager);
+  const allOrgs = await painterOrgs(supabase, user.id);
+  const orgs = allOrgs.filter((o) => o.manager);
 
   return (
     <main className="mx-auto max-w-md px-4 py-16">
@@ -42,13 +43,24 @@ export default async function ConvitePage({ params }: { params: Promise<{ code: 
               O cliente pediu-lhe diretamente para orçamentar esta obra. Ao aceitar, fica associado a este
               convite e a comissão da plataforma nesta obra é muito mais baixa do que a habitual.
             </p>
-            {orgs.length === 0 ? (
+            {info.ja_redimido && (
+              <p className="mt-4 text-sm text-amber-700" role="alert">
+                Este convite já foi associado a uma empresa. Se não for a sua, peça ao cliente um código novo —
+                se for, pode continuar.
+              </p>
+            )}
+            {allOrgs.length === 0 ? (
               <p className="mt-6 text-sm text-slate-700">
                 Ainda não tem uma entidade de pintura registada.{' '}
                 <Link href="/app/organizacoes/nova" className="font-medium text-blue-700 underline">
                   Criar uma entidade
                 </Link>{' '}
                 e volte a abrir este link.
+              </p>
+            ) : orgs.length === 0 ? (
+              <p className="mt-6 text-sm text-slate-700">
+                Só um gestor ou proprietário da sua empresa de pintura pode aceitar este convite. Peça a quem
+                gere a entidade para abrir este link.
               </p>
             ) : (
               <RedeemForm code={code} orgs={orgs.map((o) => ({ id: o.id, nome: o.nome }))} />
