@@ -4,6 +4,7 @@ import type { IsoDate } from '@/domain/deadline';
 import { combinedPainterDiscountBp, linkedSupplierDiscountBp } from '@/domain/referral';
 import { countEligibleReferrals, isReferralEligible, referralDiscountBp, referralWindow, type ReferredSupplier } from '@/domain/referralEligibility';
 import { canManage, myRole } from '@/lib/access';
+import { linkedSupplierCodes } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { NewInviteForm } from './Forms';
 import { setInviteActive } from './actions';
@@ -19,13 +20,14 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
   if (!org || org.kind !== 'pintor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
 
-  const [{ data: invites }, { data: codes }] = await Promise.all([
+  const [{ data: invites }, { data: codes }, linkedSuppliers] = await Promise.all([
     supabase
       .from('supplier_referral_invites')
       .select('id, code, nota, active, supplier_org_id, nif, convite_confirmado_em, adesao_elegivel_em')
       .eq('painter_org_id', id)
       .order('created_at', { ascending: false }),
     supabase.from('referral_codes').select('supplier_org_id, active').eq('painter_org_id', id),
+    linkedSupplierCodes(supabase, id),
   ]);
 
   const orgIds = [...new Set((invites ?? []).map((i) => i.supplier_org_id).filter((x): x is string => !!x))];
@@ -80,6 +82,24 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
           </div>
         ))}
       </section>
+
+      {linkedSuppliers.length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Fornecedores com código de adesão ligado</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Aplicou um código destes fornecedores a alguma proposta; o desconto que isso dá conta em todas as obras, não só nessa (ver o desconto atual na
+            comissão, acima). Para deixar de contar, é o fornecedor que desativa o código do lado dele.
+          </p>
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {linkedSuppliers.map((s) => (
+              <li key={s.id} className="flex items-center justify-between py-2">
+                <span>{s.nome}</span>
+                <span className="font-mono text-xs text-slate-500">{s.code}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={card}>
         <h2 className="font-semibold">Códigos de convite</h2>

@@ -172,8 +172,12 @@ Claude do navegador):
    mudança desta sessão), por isso as páginas novas, o `ReferralField` e o convite direto só foram verificados
    por tsc/lint/testes/build.
 
-**Ainda por decidir ou construir:** como/onde um pintor liga-se a um fornecedor fora do fluxo de uma proposta
-específica (hoje só pelo `ReferralField` ou pela página de referências); se a "nota" dos códigos deve aparecer
+**Resolvido parcialmente (22/10/2026, sessão autónoma):** a página `/referencias` do pintor já mostra, por nome,
+os fornecedores cujo código de adesão tem ligado (antes só aparecia o número e os pontos-base, não a lista) —
+`linkedSupplierCodes` já existia em `queries.ts`, só faltava usá-la aqui. **Continua por decidir:** ligar-se a um
+fornecedor (aplicar o código por primeira vez) continua só possível dentro de uma proposta (`ReferralField`); se
+deve haver também uma forma de o fazer fora desse fluxo é que fica por decidir — hoje não é uma limitação real,
+porque basta abrir qualquer rascunho de proposta para o fazer. Também por decidir: se a "nota" dos códigos deve aparecer
 em mais sítios.
 
 ### Ponto 1 — motor da faixa dinâmica (22/10/2026, sessão autónoma)
