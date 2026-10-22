@@ -90,7 +90,7 @@ export default async function ProposalsPage({
   const refName = new Map(prefRefs.map((r) => [r.id, `${r.marca} ${r.nome}`]));
   const adherenceOf = (pid: string) => adherence(prefs, refInfo, used.get(pid) ?? []);
   const desiredWorks = (req.trabalhos ?? []) as DesiredWork[];
-  const coverageOf = (pid: string) => requestedCoverage(desiredWorks, linesOf(pid));
+  const coverageByProposal = new Map(list.map((p) => [p.id, requestedCoverage(desiredWorks, linesOf(p.id))]));
   const active = rows.filter((r) => byId.get(r.id)!.status !== 'retirada');
   const sorted = sortRows(active, sortKey, Object.fromEntries(list.map((p) => [p.id, p.duracao_dias])));
   const chosen = list.find((p) => p.status === 'selecionada');
@@ -242,7 +242,7 @@ export default async function ProposalsPage({
                     key={w}
                     label={`${DESIRED_WORK_LABELS[w]} (pedido)`}
                     cells={sorted.map((r) => {
-                      const state = coverageOf(r.id)[i]!.state;
+                      const state = coverageByProposal.get(r.id)![i]!.state;
                       if (!state) return <Missing key={r.id} />;
                       return (
                         <span key={r.id} className={state === 'nao_incluido' ? 'text-red-700' : state === 'base' ? 'text-tinta-700' : 'text-amber-700'}>

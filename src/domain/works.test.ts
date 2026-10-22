@@ -80,6 +80,15 @@ describe('orçamento guiado', () => {
     ]);
     expect(requestedCoverage([], lines)).toEqual([]);
   });
+
+  it('com várias zonas para o mesmo trabalho, conta o melhor estado, não a primeira linha', () => {
+    const lines = [
+      { trabalho: 'pintura_final', inclusao: 'nao_incluido' as const }, // zona A: cliente trata
+      { trabalho: 'pintura_final', inclusao: 'incluido' as const }, // zona B: incluída
+    ];
+    expect(requestedCoverage(['pintura'], lines)).toEqual([{ work: 'pintura', label: 'Pintura final', state: 'base' }]);
+    expect(requestedCoverage(['pintura'], [lines[0]!])).toEqual([{ work: 'pintura', label: 'Pintura final', state: 'nao_incluido' }]);
+  });
 });
 
 describe('sugestões do catálogo por trabalho', () => {

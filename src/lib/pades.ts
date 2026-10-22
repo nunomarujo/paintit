@@ -133,17 +133,16 @@ async function checkRevocation(
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
-    const respAsn = asn1js.fromBER(await res.arrayBuffer());
-    if (respAsn.offset === -1) return null;
-    const ocspResponse = new pkijs.OCSPResponse({ schema: respAsn.result });
+    // `fromBER` (herdado de PkiObject) aceita a vista (Uint8Array) tal como vem, sem o corte manual ao próprio
+    // intervalo que uma conversão para ArrayBuffer por `.buffer` exigiria (e que, feito mal, lia bytes de fora
+    // de si — passava sempre como "inconclusivo" em vez de recusar, escondendo qualquer resposta real).
+    const ocspResponse = pkijs.OCSPResponse.fromBER(new Uint8Array(await res.arrayBuffer()));
     if (ocspResponse.responseStatus.valueBlock.valueDec !== 0 || !ocspResponse.responseBytes) return null;
-    // O conteúdo (OCTET STRING) é uma vista sobre o ArrayBuffer completo da resposta: sem cortar ao seu próprio
-    // intervalo, o BasicOCSPResponse lia bytes de fora de si — passava silenciosamente como "inconclusivo" em vez
-    // de recusar, o que teria escondido qualquer resposta real (boa ou revogada) por detrás do mesmo resultado.
-    const octet = ocspResponse.responseBytes.response.valueBlock.valueHexView;
-    const basicAsn = asn1js.fromBER(octet.buffer.slice(octet.byteOffset, octet.byteOffset + octet.byteLength) as ArrayBuffer);
-    if (basicAsn.offset === -1) return null;
-    const basic = new pkijs.BasicOCSPResponse({ schema: basicAsn.result });
+    const basic = pkijs.BasicOCSPResponse.fromBER(new Uint8Array(ocspResponse.responseBytes.response.valueBlock.valueHexView));
+    // Um responder pode legitimamente não incluir o seu próprio certificado na resposta (RFC 6960), contando
+    // com o cliente já o conhecer — sem isto, `verify()` recusa-se já à partida ("No certificates attached"),
+    // antes de chegar a examinar quem assinou, tratando esse caso como sempre inconclusivo.
+    if (!basic.certs || basic.certs.length === 0) basic.certs = [issuer, ...anchors];
     const signedByAuthority = await basic.verify({ trustedCerts: anchors, issuerCerts: [issuer, ...pool, ...anchors] });
     if (!signedByAuthority) return null;
     const status = await basic.getCertificateStatus(cert, issuer);

@@ -54,6 +54,9 @@ begin
   if not found or not inv.active then
     raise exception 'Código inválido ou desativado.' using errcode = 'P0001';
   end if;
+  if not private.listing_open(inv.request_id) then
+    raise exception 'Esta obra já não está publicada.' using errcode = 'P0001';
+  end if;
   if inv.painter_org_id is not null and inv.painter_org_id <> p_painter_org then
     raise exception 'Este convite já foi associado a outra empresa.' using errcode = 'P0001';
   end if;
@@ -73,7 +76,7 @@ language sql stable security definer set search_path = '' as $$
   select l.request_id, l.tipo_obra, l.concelho, (i.painter_org_id is not null)
   from public.request_invites i
   join public.request_listings l on l.request_id = i.request_id
-  where i.code = upper(btrim(p_code)) and i.active;
+  where i.code = upper(btrim(p_code)) and i.active and l.aberto;
 $$;
 revoke all on function public.request_invite_info(text) from public, anon;
 grant execute on function public.request_invite_info(text) to authenticated;

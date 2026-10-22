@@ -20,7 +20,7 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
   if (!org || org.kind !== 'pintor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
 
-  const [{ data: invites }, { data: codes }, linkedSuppliers] = await Promise.all([
+  const [{ data: invites }, { data: codes }, linkedSupplierCodesList] = await Promise.all([
     supabase
       .from('supplier_referral_invites')
       .select('id, code, nota, active, supplier_org_id, nif, convite_confirmado_em, adesao_elegivel_em')
@@ -29,6 +29,10 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
     supabase.from('referral_codes').select('supplier_org_id, active').eq('painter_org_id', id),
     linkedSupplierCodes(supabase, id),
   ]);
+
+  // Um fornecedor pode ter mais do que um código ligado a esta empresa (o fornecedor pode emitir outro código
+  // sem desativar o anterior) — conta uma só vez para o desconto (acima) e aparece uma só vez aqui também.
+  const linkedSuppliers = [...new Map(linkedSupplierCodesList.map((s) => [s.supplierOrgId, s])).values()];
 
   const orgIds = [...new Set((invites ?? []).map((i) => i.supplier_org_id).filter((x): x is string => !!x))];
   const { data: suppliers } = orgIds.length ? await supabase.from('organizations').select('id, nome').in('id', orgIds) : { data: [] };

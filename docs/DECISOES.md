@@ -654,4 +654,32 @@ nas pendências do lado do pintor, `budgetIssues`) — faltava só mostrá-la do
 - Testado (`src/domain/works.test.ts`) e tsc/lint/392 testes/build, zero.
 - Fica por fazer, da mesma fase do `docs/PROPOSTA.md`: "duplicar solução" (copiar os campos de uma fachada para
   outra no passo Trabalhos) — é conveniência de preenchimento para o pintor, não uma lacuna de informação ao
-  cliente, por isso ficou de fora desta entrada.
+  cliente, por isso ficou de fora desta entrada. (Feito separadamente nesta sessão — ver commit `5f399c4`.)
+
+## 22/10/2026 — correções encontradas por uma passagem de `/code-review` sobre os commits da sessão
+
+Seis achados reais, todos corrigidos no mesmo lote, tsc/lint/395 testes/build, zero:
+
+- **`src/lib/pades.ts`, OCSP:** `basic.verify()` recusa-se logo à partida ("No certificates attached") quando a
+  resposta não inclui o certificado do próprio responder — o que a RFC 6960 permite (o cliente pode já o
+  conhecer). Sem isto, esses responders ficavam sempre "inconclusivos", nunca confirmando "revogado" nem "bom".
+  Corrigido: se a resposta não trouxer certificados, usa-se o emissor (e as âncoras) como candidatos antes de
+  chamar `verify()` — e simplificou-se o parsing para `BasicOCSPResponse.fromBER`/`OCSPResponse.fromBER`
+  (herdados de `PkiObject`), que aceita a vista tal como vem, em vez da conversão manual para `ArrayBuffer`.
+  Novo teste prova o caso (falha sem a correção, confirmado antes de reverter).
+- **`src/domain/works.ts`, `requestedCoverage`:** só olhava para a primeira linha da proposta com aquele código
+  de trabalho; com várias zonas (ex.: pintura incluída numa fachada, não incluída noutra), mostrava "não
+  incluído" ao cliente mesmo que a proposta cobrisse o trabalho noutra zona. Corrigido para contar o melhor
+  estado encontrado entre todas as linhas desse trabalho, como `budgetIssues` já fazia do lado do pintor.
+- **Migração do convite direto, `redeem_request_invite`/`request_invite_info`:** não verificavam se a obra ainda
+  estava publicada (ao contrário da política de inserção, que já o fazia) — um convite de uma obra fechada
+  entretanto podia ainda ser resgatado, levando a um beco sem saída (404 na oportunidade já fechada) em vez de
+  um erro claro. Corrigido com a mesma verificação (`private.listing_open`) nos dois sítios.
+- **`/app/organizacoes/[id]/referencias`:** a lista de "fornecedores com código de adesão ligado" mostrava uma
+  linha por código, não por fornecedor — se um fornecedor tivesse dois códigos ligados, aparecia duas vezes,
+  sugerindo visualmente o dobro do desconto realmente aplicado (que já contava só fornecedores distintos).
+  `linkedSupplierCodes` passou a devolver também o `supplierOrgId`; a página usa-o para mostrar cada fornecedor
+  uma só vez.
+- **`/app/pedidos/[id]/propostas`:** a cobertura dos trabalhos pedidos (acima) recalculava tudo a cada célula da
+  tabela em vez de uma vez por pintor — sem impacto real com as listas pequenas de hoje, mas corrigido para um
+  mapa calculado uma vez.

@@ -38,7 +38,7 @@ export async function linkedSupplierCodes(supabase: SupabaseClient<Database>, pa
   const ids = (codes ?? []).map((c) => c.supplier_org_id);
   const { data: suppliers } = ids.length ? await supabase.from('organizations').select('id, nome').in('id', ids) : { data: [] };
   const nameOf = new Map((suppliers ?? []).map((s) => [s.id, s.nome]));
-  return (codes ?? []).map((c) => ({ id: c.id, code: c.code, nome: nameOf.get(c.supplier_org_id) ?? 'Fornecedor' }));
+  return (codes ?? []).map((c) => ({ id: c.id, code: c.code, supplierOrgId: c.supplier_org_id, nome: nameOf.get(c.supplier_org_id) ?? 'Fornecedor' }));
 }
 
 export interface PainterDiscountBreakdown {

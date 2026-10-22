@@ -90,6 +90,11 @@ export const workForRequested = (w: DesiredWork) => BY_REQUESTED.get(w);
  * original. `state: null` quando a proposta não tem nenhuma linha desse trabalho, ou quando o próprio trabalho
  * pedido não tem um módulo correspondente no orçamento guiado (não deveria acontecer; os sete trabalhos do
  * pedido têm todos um módulo — ver `WORKS` — mas não se assume isso aqui).
+ *
+ * Um trabalho pode ter mais do que uma linha (zonas diferentes, cada uma com o seu estado, como em
+ * `budgetIssues`) — conta o melhor estado encontrado (base > opcional > a confirmar > não incluído, a ordem de
+ * `WORK_STATES`): se a proposta inclui o trabalho nalguma zona, isso é o que importa para "cobre ou não o
+ * pedido", mesmo que outra zona o exclua.
  */
 export function requestedCoverage(
   requested: DesiredWork[],
@@ -98,8 +103,9 @@ export function requestedCoverage(
   return requested.map((w) => {
     const def = workForRequested(w);
     if (!def) return { work: w, label: DESIRED_WORK_LABELS[w], state: null };
-    const line = lines.find((l) => l.trabalho === def.code);
-    return { work: w, label: def.label, state: line ? inclusionToState(line.inclusao) : null };
+    const states = lines.filter((l) => l.trabalho === def.code).map((l) => inclusionToState(l.inclusao));
+    const best = WORK_STATES.find((s) => states.includes(s)) ?? null;
+    return { work: w, label: def.label, state: best };
   });
 }
 

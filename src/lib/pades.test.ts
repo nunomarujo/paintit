@@ -214,6 +214,7 @@ describe('revogação por OCSP', () => {
     ca: Awaited<ReturnType<typeof testCertificate>>,
     leaf: pkijs.Certificate,
     status: 'boa' | 'revogado',
+    embedCerts = true,
   ) {
     const basic = new pkijs.BasicOCSPResponse();
     basic.tbsResponseData.responderID = ca.cert.subject;
@@ -227,7 +228,8 @@ describe('revogação por OCSP', () => {
         : new asn1js.Constructed({ idBlock: { tagClass: 3, tagNumber: 1 }, value: [new asn1js.GeneralizedTime({ valueDate: new Date('2026-09-01') })] });
     single.thisUpdate = new Date();
     basic.tbsResponseData.responses.push(single);
-    basic.certs = [ca.cert];
+    // A RFC 6960 permite ao responder omitir o seu próprio certificado (o cliente já o conhece); testado abaixo.
+    if (embedCerts) basic.certs = [ca.cert];
     await basic.sign(ca.key, 'SHA-256');
     const response = new pkijs.OCSPResponse({
       responseStatus: new asn1js.Enumerated({ value: 0 }),
@@ -259,6 +261,19 @@ describe('revogação por OCSP', () => {
     let leaf!: pkijs.Certificate;
     await withOcspServer(
       async () => ocspResponseBytes(ca, leaf, 'revogado'),
+      async (url) => {
+        leaf = await leafSignedByCa(ca, url);
+        const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);
+        expect(result).toEqual({ trusted: false, reason: 'Certificado revogado.' });
+      },
+    );
+  }, 30_000);
+
+  it('deteta "revogado" mesmo quando a resposta não inclui o certificado do responder (RFC 6960 permite omiti-lo)', async () => {
+    const ca = await testCertificate('EC OCSP TESTE 5');
+    let leaf!: pkijs.Certificate;
+    await withOcspServer(
+      async () => ocspResponseBytes(ca, leaf, 'revogado', false),
       async (url) => {
         leaf = await leafSignedByCa(ca, url);
         const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);

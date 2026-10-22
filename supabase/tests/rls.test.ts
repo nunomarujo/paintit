@@ -1770,4 +1770,26 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     const e = await one<{ rules_version: string }>('select rules_version from public.engagements where proposal_id = $1', [propId]);
     expect(e.rules_version).toBe('2026-10-20+convite');
   });
+
+  it('convite numa obra que deixou de estar publicada: nem a pré-visualização nem o resgate funcionam', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const closedReqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — convite depois de fechar', 'fachadas', 'Obra para testar o convite depois de a obra deixar de estar publicada.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 16150)`, [closedReqId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [closedReqId]));
+    const { code } = await as(A, () =>
+      one<{ code: string }>(`insert into public.request_invites (request_id, code) values ($1, 'FECHOU01') returning code`, [closedReqId]),
+    );
+    // A obra deixa de estar publicada (ex.: o cliente volta a rascunho) com o convite ainda ativo.
+    await as(A, () => db.query(`update public.work_requests set status = 'rascunho' where id = $1`, [closedReqId]));
+    expect((await db.query('select * from public.request_invite_info($1)', [code])).rows).toHaveLength(0);
+    await expect(as(IC, () => db.query(`select public.redeem_request_invite($1, $2)`, [code, painterOrg]))).rejects.toThrow(/já não está publicada/);
+  });
 });
