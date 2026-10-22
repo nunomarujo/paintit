@@ -346,3 +346,51 @@ pagamento original só por intervenção manual (caso raro, a tratar).
     um código escrito pelo pintor ou se é automático a partir de quem o fornecedor indica ter convidado.
   - **Não parece afetado:** a comissão que o fornecedor recebe (0,25%, `referral_payouts`/`referral_redemptions`,
     já faturada via Moloni) — o documento só fala do desconto ao pintor, nunca do que o fornecedor ganha.
+
+## 22/10/2026 — dois programas de referência, não um: correção e decisões
+
+- O ponto anterior assumia um só sentido (pintor → fornecedor, o do documento). O promotor esclareceu que há
+  **dois programas simétricos**, com nomes próprios a partir de agora:
+  - **Códigos de adesão** (já em produção, fornecedor → pintor): o fornecedor convida pintores; cada um que usa o
+    código de um fornecedor e ganha a obra desconta ao pintor e paga ao fornecedor.
+  - **Referências de fornecedores** (a construir, pintor → fornecedor, o do documento): o pintor convida
+    fornecedores; ganha um desconto quando o fornecedor convidado se valida como entidade nova (NIF/NIPC que ainda
+    não estava na plataforma, mesmo que o mail seja diferente).
+  - Correção ao ponto anterior: os códigos de adesão **mudam, sim**, a comissão do fornecedor — o documento do
+    algoritmo de fee não trata deste programa, mas o promotor decidiu, nesta conversa, subir essa comissão e
+    torná-la progressiva.
+- **Decidido pelo promotor (22/10/2026):**
+  1. Nos códigos de adesão, o desconto do pintor **não** cresce com o volume do fornecedor (isso só sobe o que o
+     fornecedor recebe). Continuam os mesmos 0,25 p.p. de sempre, **um por fornecedor com código ligado**, somados
+     — ex.: dois fornecedores ligados dão 0,5 p.p. Deixa de ser "um código, uma obra": passa a desconto em vigor em
+     todas as propostas futuras do pintor enquanto o código estiver ativo (`max_wins` deixa de ser o mecanismo
+     certo para isto — o fornecedor corta a relação desativando o código).
+  2. A comissão do fornecedor nos códigos de adesão sobe de 0,25% para **1%, e 2% ao alcançar a 3.ª obra** (de
+     qualquer pintor que referenciou, não só de um código) **nos 2 meses anteriores**, contados corridos a partir
+     de cada vitória (não um bimestre fixo de calendário) e **nunca retroativo** — as obras já contadas a 1% não
+     sobem com o tempo.
+  3. Teto conjunto dos dois descontos do pintor (códigos de adesão + referências de fornecedores): **8 pontos
+     percentuais** — "dá margem" de propósito; com os valores de hoje só se aproxima com muitos fornecedores
+     ligados e muitas referências elegíveis em simultâneo.
+  4. Índice único em `organizations.nif`, só para fornecedores, para impedir a mesma empresa registar-se duas
+     vezes com mails diferentes — buraco encontrado ao verificar a regra de "entidade nova" das referências de
+     fornecedores (nada o impedia até aqui).
+- **Porque não bloqueia a Moloni:** a comissão de adesão a fornecedores nunca passou pela Moloni — é o fornecedor
+  que fatura a plataforma (fluxo inverso, já feito). Subir ou tornar progressiva essa taxa muda o número, não o
+  mecanismo. A Moloni só depende de receber o valor certo da comissão do pintor, resolvido noutro sítio (ver abaixo).
+- **Sigilo fornecedor → pintor:** já garantido por RLS, não por convenção — `referral_payouts`/`referral_redemptions`
+  só deixam ver quem acede à organização fornecedora; um pintor não vê isto por nenhum caminho de junção.
+- **Feito agora:**
+  - Índice único `organizations_fornecedor_nif_idx` (`supabase/migrations/20261022030000_nif_unico_fornecedores.sql`),
+    parcial (só `kind = 'fornecedor'`), com teste em `supabase/tests/rls.test.ts`.
+  - Funções puras e testadas em `src/domain/referral.ts`: `linkedSupplierDiscountBp`, `supplierCommissionBpAt` (com
+    `priorWinsInSupplierWindow`), `combinedPainterDiscountBp` (teto de 800 p.b.) e `applyPainterDiscount` (aplica o
+    desconto à comissão sem nunca a tornar negativa — o mínimo de 150 € continua a proteger a plataforma).
+  - `addCalendarMonths` mudou de `referralEligibility.ts` para `deadline.ts` (é utilidade genérica de datas,
+    passou a ser usada também em `referral.ts`; sem mudança de comportamento, só de sítio).
+- **Ainda não tocado** (próximo passo): ligar isto ao esquema e ao gatilho `proposal_selected()` — hoje tem o `25`
+  fixo em SQL e o sufixo `+ref` como versão nomeada das regras comerciais; passa a um valor resolvido e gravado uma
+  vez por contratação (ponto único de entrada em `replay()`, `src/domain/contracting.ts:132`, que já isola toda a
+  reconstrução do estado a partir das regras da versão guardada). Falta também a tabela de convites das referências
+  de fornecedores (não existe nenhuma ainda) e a UX do pintor (`ReferralField.tsx`, hoje "um código por proposta",
+  passa a ambiente — ligação ao parceiro, não escolha por proposta).

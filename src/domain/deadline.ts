@@ -19,6 +19,19 @@ export function addDays(date: IsoDate, days: number): IsoDate {
   return utc.toISOString().slice(0, 10) as IsoDate;
 }
 
+/** Soma `months` meses a uma data de calendário. O único caso em que o dia não existe no mês de chegada, com uma
+ * soma de meses inteiros, é 29 de fevereiro a cair num ano não bissexto: usa-se então o último dia de fevereiro
+ * desse ano. `months` pode ser negativo (recua). */
+export function addCalendarMonths(date: IsoDate, months: number): IsoDate {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const totalMonths = (m - 1) + months;
+  const targetYear = y + Math.floor(totalMonths / 12);
+  const targetMonth = ((totalMonths % 12) + 12) % 12; // 0-based
+  const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(d, lastDayOfTargetMonth);
+  return new Date(Date.UTC(targetYear, targetMonth, day)).toISOString().slice(0, 10) as IsoDate;
+}
+
 /** Último dia (inclusive) para cumprir um prazo iniciado em `start`. */
 export function deadlineFrom(start: Date, days: number, timeZone: string): IsoDate {
   return addDays(localDate(start, timeZone), days);

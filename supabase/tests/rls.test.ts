@@ -599,6 +599,14 @@ describe('propostas e escolha', () => {
     await expect(as(S, () => db.query(`update public.referral_codes set max_wins = 99 where id = $1`, [codeId]))).rejects.toThrow(/permission denied/);
   });
 
+  it('duas organizações-fornecedor não partilham o mesmo NIF', async () => {
+    const S2 = '00000000-0000-4000-8000-0000000000f6';
+    const S3 = '00000000-0000-4000-8000-0000000000f7';
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [S2, 'zz-test-forn2@exemplo.pt', S3, 'zz-test-forn3@exemplo.pt']);
+    await createOrg(S2, 'fornecedor', 'Tintas Um', '455000000');
+    await expect(createOrg(S3, 'fornecedor', 'Tintas Dois', '455000000')).rejects.toThrow();
+  });
+
   it('não submete sem linhas incluídas; submetida fixa a base e fica imutável', async () => {
     // Condições do orçamento: sem mão-de-obra, seguros e plano de pagamentos a 100% não se submete.
     const upd = async (sql: string) => {

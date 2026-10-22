@@ -1,5 +1,6 @@
+import { addCalendarMonths, type IsoDate } from './deadline';
 import { percentOf, type Cents } from './money';
-import { RULES_2026_10_20, RULES_2026_10_20_REF } from './rules';
+import { RULES_2026_10_20, RULES_2026_10_20_REF, type CommercialRules } from './rules';
 
 export { RULES_2026_10_20_REF };
 
@@ -65,4 +66,54 @@ export function isValidPtIban(input: string): boolean {
   let rem = 0;
   for (const ch of digits) rem = (rem * 10 + Number(ch)) % 97;
   return rem === 1;
+}
+
+// Decisão de 22/10/2026 (docs/DECISOES.md): o código de adesão deixa de ser "um código, uma obra" para passar a
+// desconto em vigor em todas as propostas futuras do pintor, enquanto tiver fornecedores com código ligado. O
+// desconto do pintor não cresce com o volume do fornecedor — isso só muda o que o fornecedor recebe.
+
+/** Desconto do pintor: os mesmos 0,25 p.p. de sempre, um por fornecedor com código ligado, somados (ex.: dois
+ * fornecedores ligados dão 0,5 p.p.). Sem teto próprio — só o teto conjunto com as referências de fornecedores
+ * (`combinedPainterDiscountBp`) limita isto. */
+export function linkedSupplierDiscountBp(linkedSupplierCount: number): number {
+  if (!Number.isInteger(linkedSupplierCount) || linkedSupplierCount < 0) return 0;
+  return REFERRAL_BPS * linkedSupplierCount;
+}
+
+/** Teto conjunto dos dois descontos do pintor (códigos de adesão + referências de fornecedores, Q(n) em
+ * `referralEligibility.ts`) — decisão de 22/10/2026, "dá margem": não se espera atingir-se na prática. */
+export const MAX_COMBINED_PAINTER_DISCOUNT_BP = 800;
+
+/** Soma os dois descontos do pintor e aplica o teto conjunto. */
+export function combinedPainterDiscountBp(linkedCodesBp: number, referralsBp: number): number {
+  return Math.min(linkedCodesBp + referralsBp, MAX_COMBINED_PAINTER_DISCOUNT_BP);
+}
+
+/** As regras comerciais com o desconto do pintor já aplicado à comissão, nunca abaixo de zero (o mínimo em euros,
+ * `commissionMinCents`, continua a proteger a plataforma de uma comissão ínfima — ver `commission.ts`). */
+export function applyPainterDiscount(rules: CommercialRules, discountBp: number): CommercialRules {
+  return { ...rules, commissionBp: Math.max(0, rules.commissionBp - discountBp) };
+}
+
+// Comissão do fornecedor nos códigos de adesão: sobe de 1% para 2% ao alcançar a 3.ª obra — de qualquer pintor que
+// referenciou, não só deste código — nos 2 meses anteriores a esta. Janela corrida (não bimestre de calendário) e
+// nunca retroativa: cada vitória resolve a sua própria taxa a partir só das vitórias anteriores, gravada uma vez
+// (como já acontece com `amount_cents`) e nunca recalculada depois.
+
+export const SUPPLIER_TIER_WINDOW_MONTHS = 2;
+export const SUPPLIER_TIER_WIN_THRESHOLD = 3;
+export const SUPPLIER_BASE_COMMISSION_BP = 100;
+export const SUPPLIER_TIER_COMMISSION_BP = 200;
+
+/** Quantas das vitórias anteriores (de qualquer pintor referenciado por este fornecedor) caem na janela corrida
+ * de `SUPPLIER_TIER_WINDOW_MONTHS` meses que termina em `at`, inclusive nos dois limites. */
+export function priorWinsInSupplierWindow(priorWinDates: IsoDate[], at: IsoDate): number {
+  const from = addCalendarMonths(at, -SUPPLIER_TIER_WINDOW_MONTHS);
+  return priorWinDates.filter((w) => w >= from && w <= at).length;
+}
+
+/** A taxa desta vitória (em pontos-base), a partir só das vitórias já registadas antes dela. */
+export function supplierCommissionBpAt(priorWinDates: IsoDate[], at: IsoDate): number {
+  const priorInWindow = priorWinsInSupplierWindow(priorWinDates, at);
+  return priorInWindow + 1 >= SUPPLIER_TIER_WIN_THRESHOLD ? SUPPLIER_TIER_COMMISSION_BP : SUPPLIER_BASE_COMMISSION_BP;
 }

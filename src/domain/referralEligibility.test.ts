@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { IsoDate } from './deadline';
+import { addCalendarMonths, type IsoDate } from './deadline';
 import {
-  addCalendarMonths,
   countEligibleReferrals,
   isReferralEligible,
   MAX_REFERRAL_DISCOUNT_BP,
