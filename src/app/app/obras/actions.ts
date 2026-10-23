@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
 import { parseHundredths } from '@/domain/request';
+import { notifyNewOrder, notifyNewSupplierReview, notifyOrderState } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 
 const path = (id: string) => `/app/obras/${id}`;
@@ -110,20 +111,27 @@ export async function orderMaterial(engagementId: string, productId: string, _pr
   if (!Number.isInteger(n) || n < 1) return fail('embalagens', 'Número de embalagens.');
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
-  const { error } = await supabase.from('material_orders').insert({
-    engagement_id: engagementId,
-    product_id: productId,
-    embalagens: n,
-    nota: String(form.get('nota') ?? '').trim().slice(0, 1000) || null,
-    created_by: user.id,
-  });
-  return error ? { errors: {}, message: 'Não foi possível encomendar (o contrato tem de estar assinado).' } : done(engagementId, 'Encomenda enviada ao fornecedor.');
+  const { data, error } = await supabase
+    .from('material_orders')
+    .insert({
+      engagement_id: engagementId,
+      product_id: productId,
+      embalagens: n,
+      nota: String(form.get('nota') ?? '').trim().slice(0, 1000) || null,
+      created_by: user.id,
+    })
+    .select('id')
+    .single();
+  if (error || !data) return { errors: {}, message: 'Não foi possível encomendar (o contrato tem de estar assinado).' };
+  await notifyNewOrder(data.id).catch(() => undefined);
+  return done(engagementId, 'Encomenda enviada ao fornecedor.');
 }
 
 export async function setOrderState(orderId: string, estado: 'confirmada' | 'entregue' | 'cancelada', back: string) {
   if (!['confirmada', 'entregue', 'cancelada'].includes(estado) || !back.startsWith('/app/')) return;
   const { supabase } = await getUser();
   await supabase.from('material_orders').update({ estado }).eq('id', orderId);
+  await notifyOrderState(orderId, estado).catch(() => undefined);
   revalidatePath(back);
 }
 
@@ -150,5 +158,7 @@ export async function reviewSupplier(engagementId: string, supplierId: string, p
     : await supabase
         .from('supplier_reviews')
         .insert({ supplier_org_id: supplierId, painter_org_id: painterId, produto, entrega, atendimento, comentario, created_by: user.id });
-  return error ? { errors: {}, message: 'Só pode avaliar depois de o fornecedor confirmar uma encomenda.' } : done(engagementId, 'Avaliação guardada.');
+  if (error) return { errors: {}, message: 'Só pode avaliar depois de o fornecedor confirmar uma encomenda.' };
+  if (!existing) await notifyNewSupplierReview(supplierId).catch(() => undefined);
+  return done(engagementId, 'Avaliação guardada.');
 }

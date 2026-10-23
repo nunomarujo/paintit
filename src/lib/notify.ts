@@ -161,6 +161,47 @@ export async function notifyNewMessage(proposalId: string, lado: 'cliente' | 'pi
   }
 }
 
+/** Quando o cliente avalia a obra pela primeira vez (COM-05, "avaliação"): a empresa de pintura sabe que tem
+ * uma avaliação nova, sem repetir aqui a nota nem o comentário — abre a contratação para os ver. */
+export async function notifyNewReview(engagementId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: e } = await db.from('engagements').select('painter_org_id').eq('id', engagementId).maybeSingle();
+  if (!e) return;
+  await sendEmail(await recipients(e.painter_org_id), 'Avaliação nova', ['O cliente avaliou esta obra.'], `/app/contratacoes/${engagementId}`);
+}
+
+/** Quando o pintor encomenda um produto (COM-05, "compra confirmada" começa aqui): o fornecedor sabe que tem
+ * uma encomenda nova por confirmar, em /app/encomendas. */
+export async function notifyNewOrder(orderId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: o } = await db.from('material_orders').select('supplier_org_id').eq('id', orderId).maybeSingle();
+  if (!o) return;
+  await sendEmail(await recipients(o.supplier_org_id), 'Encomenda nova', ['Um pintor encomendou um produto do seu catálogo.'], '/app/encomendas');
+}
+
+const ORDER_STATE_NOTICE: Record<string, { subject: string; line: string }> = {
+  confirmada: { subject: 'Encomenda confirmada', line: 'O fornecedor confirmou a venda do produto encomendado.' },
+  entregue: { subject: 'Encomenda entregue', line: 'O fornecedor marcou o produto encomendado como entregue em obra.' },
+  cancelada: { subject: 'Encomenda cancelada', line: 'O fornecedor cancelou a encomenda do produto.' },
+};
+
+/** O fornecedor muda o estado de uma encomenda (só ele o pode fazer, de /app/encomendas): o pintor sabe. */
+export async function notifyOrderState(orderId: string, estado: string): Promise<void> {
+  const notice = ORDER_STATE_NOTICE[estado];
+  const db = adminClient();
+  if (!notice || !db) return;
+  const { data: o } = await db.from('material_orders').select('engagement_id, painter_org_id').eq('id', orderId).maybeSingle();
+  if (!o) return;
+  await sendEmail(await recipients(o.painter_org_id), notice.subject, [notice.line], `/app/obras/${o.engagement_id}`);
+}
+
+/** Quando o pintor avalia um fornecedor pela primeira vez (COM-05, "avaliação"): o fornecedor sabe. */
+export async function notifyNewSupplierReview(supplierOrgId: string): Promise<void> {
+  await sendEmail(await recipients(supplierOrgId), 'Avaliação nova', ['Um pintor avaliou a sua empresa.'], `/app/organizacoes/${supplierOrgId}`);
+}
+
 const euro = (cents: number) => formatEuros(cents);
 const SUPPLIER_PATH = (orgId: string) => `/app/organizacoes/${orgId}/adesoes`;
 

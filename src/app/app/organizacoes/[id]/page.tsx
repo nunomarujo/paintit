@@ -44,7 +44,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   const manager = canManage(role);
   const owner = role === 'proprietario';
 
-  const [{ data: buildings }, { data: docs }, { data: managed }, { data: members }, { data: invites }, { data: requests }] =
+  const [{ data: buildings }, { data: docs }, { data: managed }, { data: members }, { data: invites }, { data: requests }, { data: supplierReviews }] =
     await Promise.all([
       supabase.from('buildings').select('id, nome_interno, tipo, concelho, pisos').eq('org_id', id).order('nome_interno'),
       supabase
@@ -69,6 +69,13 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         .select('id, titulo, status, prazo_propostas, building_id')
         .eq('org_id', id)
         .order('created_at', { ascending: false }),
+      org.kind === 'fornecedor'
+        ? supabase
+            .from('supplier_reviews')
+            .select('painter_org_id, produto, entrega, atendimento, comentario, created_at')
+            .eq('supplier_org_id', id)
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: null }),
     ]);
 
   const memberIds = (members ?? []).map((m) => m.user_id);
@@ -76,6 +83,10 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
     ? await supabase.from('profiles').select('user_id, nome, email').in('user_id', memberIds)
     : { data: [] };
   const profileOf = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+
+  const reviewerIds = [...new Set((supplierReviews ?? []).map((r) => r.painter_org_id))];
+  const { data: reviewerOrgs } = reviewerIds.length ? await supabase.from('organizations').select('id, nome').in('id', reviewerIds) : { data: [] };
+  const reviewerName = new Map((reviewerOrgs ?? []).map((o) => [o.id, o.nome]));
 
   const missing = missingDocs(org.kind, docs ?? []);
   const ownsBuildings = org.kind === 'condominio' || org.kind === 'particular';
@@ -152,6 +163,29 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           )}
         </dl>
       </section>
+
+      {org.kind === 'fornecedor' && (
+        <section className={card}>
+          <h2 className="font-semibold">Avaliações de pintores</h2>
+          <p className="mt-1 text-sm text-slate-600">De quem já encomendou e recebeu o produto.</p>
+          {(supplierReviews ?? []).length === 0 ? (
+            <p className="mt-4 text-sm text-slate-600">Ainda sem avaliações.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-slate-100 text-sm">
+              {(supplierReviews ?? []).map((r, i) => (
+                <li key={i} className="py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-medium">{reviewerName.get(r.painter_org_id) ?? 'Um pintor'}</span>
+                    <span className="text-xs text-slate-500">{ptDate(r.created_at)}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Produto {r.produto}/5 · Entrega {r.entrega}/5 · Atendimento {r.atendimento}/5</p>
+                  {r.comentario && <p className="mt-1 text-slate-700">{r.comentario}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {org.kind === 'administradora' && (
         <section className={card}>

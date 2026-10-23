@@ -746,3 +746,32 @@ voltasse a abrir essa proposta específica. Era o único canal de comunicação 
   isso uma só chamada cobre tudo — cliente a perguntar numa proposta ainda rascunho incluído.
 - `notify.ts` não tem testes diretos (é `server-only`, como as outras funções de envio neste ficheiro) — tsc,
   lint, 398 testes, build, zero.
+
+## 23/10/2026 — avaliações e encomendas passam a avisar; fornecedor passa a ver as suas avaliações
+
+Mesmo levantamento (COM-05: "avaliação" e "compra confirmada"). Duas partes:
+
+- **Cliente avalia o pintor** (`saveReview`, `src/app/app/extras-actions.ts`): `notifyNewReview`, nova em
+  `notify.ts`, avisa a empresa de pintura na primeira vez que o cliente avalia (não nas edições seguintes, que já
+  tinham o texto "Avaliação atualizada" a distinguir), sem repetir a nota nem o comentário no email.
+- **Pintor ↔ fornecedor**: `orderMaterial`/`setOrderState`/`reviewSupplier` (`src/app/app/obras/actions.ts`) são
+  as três ações que atravessam esta relação (encomendas com confirmação, avaliações) e nenhuma avisava ninguém —
+  o fornecedor só saberia de uma encomenda nova abrindo `/app/encomendas` por iniciativa própria, e o pintor só
+  saberia que foi confirmada/entregue da mesma forma.
+
+- `notifyNewOrder`, `notifyOrderState`, `notifyNewSupplierReview`, novas em `notify.ts`, no mesmo padrão das
+  outras: nunca repetem o comentário nem outro conteúdo gerado pelo utilizador, só dizem que há novidade e para
+  onde ir vê-la. `setOrderState` só é chamado por quem gere o fornecedor (a única entidade com acesso de escrita
+  a partir de `/app/encomendas`), confirmado na política RLS antes de assumir a direção do aviso.
+- **Buraco maior encontrado ao construir isto, não só a faltar o aviso:** o fornecedor não tinha *nenhuma forma*
+  de ver as avaliações que os pintores lhe fazem (`supplier_reviews` só era lida do lado do pintor, em
+  `obras/[id]/page.tsx`) — o aviso ia apontar para lado nenhum. Acrescentada uma secção "Avaliações de pintores"
+  em `/app/organizacoes/[id]` (visível só a entidades fornecedor), com o nome de quem avaliou — não há regra de
+  anonimato entre pintor e fornecedor equivalente à do cliente antes da apresentação, por isso não escondi nada.
+- **Deixado de fora, por ser uma funcionalidade nova e não só a ligação de uma já construída:** responder a uma
+  avaliação de fornecedor (`supplier_reviews` nunca teve campos `resposta`/`resposta_at`, ao contrário de
+  `reviews`) — parece ter sido uma escolha deliberada na migração original (`20261019012701_materiais_obra.sql`),
+  não um esquecimento igual aos avisos; se quiseres que o fornecedor possa responder, como já pode o pintor, é
+  uma migração pequena, mas é uma decisão a confirmar, não só uma lacuna a fechar.
+- Testado por tsc, lint, 398 testes, build (sem teste direto novo: a secção é leitura simples e as funções de
+  aviso são `server-only`, como as outras). Smoke-test confirma o mesmo erro ambiental de sempre, sem erro novo.

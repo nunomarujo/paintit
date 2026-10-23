@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { guardContact } from '@/lib/strikes';
+import { notifyNewReview } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 
 // Convites, avaliações e avisos.
@@ -36,6 +37,7 @@ export async function saveReview(engagementId: string, _prev: FormState, form: F
     ? await supabase.from('reviews').update({ qualidade, prazo, comunicacao, comentario }).eq('id', existing.id)
     : await supabase.from('reviews').insert({ engagement_id: engagementId, qualidade, prazo, comunicacao, comentario, created_by: user.id });
   if (error) return { errors: {}, message: 'Não foi possível guardar a avaliação.' };
+  if (!existing) await notifyNewReview(engagementId).catch(() => undefined);
   revalidatePath(`/app/contratacoes/${engagementId}`);
   return { errors: {}, ok: true, message: existing ? 'Avaliação atualizada.' : 'Obrigado pela avaliação.' };
 }
