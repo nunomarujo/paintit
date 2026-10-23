@@ -48,12 +48,23 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         </Link>
         <h1 className="mt-3 text-2xl font-semibold">Descontos a novos aderentes</h1>
         <p className="mt-1 max-w-3xl text-sm text-slate-600">
-          Crie um código e entregue-o a um pintor que ainda não use a plataforma. Quando ele o aplicar a um orçamento, fica ligado à sua empresa: a comissão
-          que paga à plataforma desce 0,25 pontos percentuais em todas as obras que ganhar a partir daí, enquanto o código estiver ativo — some com códigos
-          de outros fornecedores que também tenha aplicado. A sua empresa recebe 1% do valor de cada obra ganha por um pintor que referenciou (2% a partir
-          da 3.ª obra, nos 2 meses anteriores a cada uma), mais IVA se o cobrar, em saldo que pode resgatar quando quiser. O código não se esgota: desative-o
-          quando quiser cortar a relação.
+          Crie um código e entregue-o a um pintor que ainda não use a plataforma. O código não se esgota: desative-o quando
+          quiser cortar a relação.
         </p>
+        {/* Parágrafo único quebrado em lista, com os números em destaque (auditoria de UX, 23/10/2026: área
+            financeira a explicar um mecanismo com vários números não devia ser texto corrido). */}
+        <ul className="mt-3 max-w-3xl list-disc space-y-1.5 pl-5 text-sm text-slate-600">
+          <li>
+            Quando o pintor aplica o código a um orçamento, a sua comissão à plataforma desce <strong>0,25 pontos percentuais</strong>{' '}
+            em todas as obras que ganhar a partir daí, enquanto o código estiver ativo — soma com códigos de outros fornecedores que também
+            tenha aplicado.
+          </li>
+          <li>
+            A sua empresa recebe <strong>1%</strong> do valor de cada obra ganha por esse pintor (<strong>2%</strong> a partir da 3.ª obra,
+            nos <strong>2 meses</strong> anteriores a cada uma), mais IVA se o cobrar.
+          </li>
+          <li>O valor acumula em saldo, que pode resgatar quando quiser.</li>
+        </ul>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -236,7 +236,9 @@ export default async function CatalogPage({
             fabricante sem ninguém por trás a vender.
           </p>
           {!products || products.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem produtos com estes filtros.</p>
+            <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+              Nenhum produto corresponde a estes filtros. Experimente alargar o tipo ou limpar a ordenação.
+            </p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2">
               {products.map((p) => {

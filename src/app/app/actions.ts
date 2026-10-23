@@ -99,7 +99,18 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
     .insert({ kind: v.kind, ...orgColumns(v), created_by: user.id })
     .select('id')
     .single();
-  if (error || !data) return { errors: {}, message: 'Não foi possível guardar. Confirme os dados e tente de novo.' };
+  if (error || !data) {
+    // "Esta conta já tem outro perfil" / "uma conta de pintor ou de fornecedor corresponde a uma só
+    // empresa" (private.one_profile_per_account, acionada pelo gatilho que torna o criador proprietário
+    // logo a seguir a esta inserção, 20261020030000/20261020070000): mensagem já escrita para o
+    // utilizador, com `errcode = 'P0001'` — mostrá-la em vez do aviso genérico, que até agora escondia
+    // a causa real (auditoria de UX, 23/10/2026: o formulário "parecia" não gravar nunca, quando a causa
+    // era sempre esta regra). Qualquer outro erro (tecnico, inesperado) mantém o aviso genérico.
+    return {
+      errors: {},
+      message: error?.code === 'P0001' ? error.message : 'Não foi possível guardar. Confirme os dados e tente de novo.',
+    };
+  }
 
   // Código de quem o indicou (referências de fornecedores, src/domain/referralEligibility.ts): opcional, e um
   // código inválido ou já usado não impede o registo — só não se regista a referência.

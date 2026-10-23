@@ -1394,6 +1394,31 @@ describe('um perfil por conta', () => {
     await expect(createOrg(A, 'pintor', 'Pinturas do Cliente', '507722280')).rejects.toThrow(/outro perfil/);
     await expect(createOrg(A, 'fornecedor', 'Tintas do Cliente', '508140510')).rejects.toThrow(/outro perfil/);
   });
+
+  // Reprodução do caso da auditoria de UX (23/10/2026): o formulário "Nova entidade" parecia nunca
+  // gravar, com qualquer combinação de dados — a causa real era sempre esta regra (a conta de teste já
+  // tinha outro perfil), só que a ação do Next.js (createOrganization, src/app/app/actions.ts) mostrava
+  // sempre o aviso genérico "Não foi possível guardar", escondendo esta mensagem específica. Corrigido
+  // ao mostrar `error.message` quando o código é 'P0001' (gatilho aplicado). Este teste confirma, do
+  // lado da base de dados, que (a) uma conta nova e sem perfil nenhum consegue mesmo criar uma entidade
+  // "particular" só com o nome (não é um problema de dados em falta), e (b) a mesma operação, pela conta
+  // de um fornecedor já existente, falha com esta mensagem exata — a direção inversa da que já estava
+  // testada acima.
+  it('conta nova, sem perfil: criar "particular" só com o nome tem sucesso (não é problema de dados em falta)', async () => {
+    const NOVO = '00000000-0000-4000-8000-0000000000f9';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [NOVO, email(NOVO)]);
+    const r = await as(NOVO, () =>
+      one<{ id: string }>(`insert into public.organizations (kind, nome) values ('particular', 'Zé Cliente') returning id`),
+    );
+    expect(r.id).toBeDefined();
+  });
+
+  it('quem já é fornecedor (ou pintor) não cria uma entidade cliente com a mesma conta', async () => {
+    const F = '00000000-0000-4000-8000-0000000000f1'; // já é "Tintas Exemplo" (fornecedor), descrito acima
+    await expect(
+      as(F, () => db.query(`insert into public.organizations (kind, nome) values ('particular', 'Outra Entidade do Fornecedor')`)),
+    ).rejects.toThrow(/outro perfil/);
+  });
 });
 
 describe('avisos e bloqueio por contactos', () => {

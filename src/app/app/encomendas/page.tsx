@@ -36,7 +36,10 @@ export default async function SupplierOrdersPage() {
         </p>
       </div>
       {(orders ?? []).length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem encomendas.</p>
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+          Ainda sem encomendas. Aparecem aqui sozinhas quando um pintor compromete o seu produto numa proposta e a obra é
+          adjudicada — não há nada a fazer até lá.
+        </p>
       ) : (
         <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white text-sm">
           {(orders ?? []).map((o) => {

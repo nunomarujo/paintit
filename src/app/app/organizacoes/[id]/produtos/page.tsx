@@ -94,7 +94,10 @@ export default async function SupplierProductsPage({ params }: { params: Promise
       <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
         <h2 className="font-semibold">Descontos para pintores</h2>
         {(discounts ?? []).length === 0 ? (
-          <p className="mt-2 text-slate-600">Sem descontos.</p>
+          <p className="mt-2 text-slate-600">
+            Ainda sem descontos.{' '}
+            {catalogo ? 'Crie um abaixo — os pintores veem-no diretamente no catálogo.' : 'Disponível no plano de catálogo.'}
+          </p>
         ) : (
           <ul className="mt-3 divide-y divide-slate-100">
             {(discounts ?? []).map((d) => (

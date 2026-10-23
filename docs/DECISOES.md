@@ -1645,3 +1645,62 @@ testes próprios, função `claim_supplier_invite` substituída por inteiro para
 aplicar, bloqueada pelo mesmo classificador "Production Deploy" das migrações anteriores.
 
 Verificado: `npm test` (457 testes, incluindo RLS novo), `typecheck`, `lint`, `build`, todos a zero.
+
+## 23/10/2026 — duas auditorias de UX/UI independentes: bug crítico corrigido, triagem do resto
+
+O promotor mandou duas auditorias de UX/UI independentes ao site (uma em texto, outra num documento
+partilhado), cada uma a navegar como cliente, pintor e fornecedor, pedindo decisão e aplicação do que
+fosse necessário. As duas convergem no mesmo diagnóstico geral — modelo de negócio e validação de dados
+mais sofisticados do que a experiência à volta deles — mas uma encontrou um bloqueio concreto que a outra
+não isolou da mesma forma. Prioridade dada: primeiro confirmar e corrigir o que for mesmo um bug, só depois
+decidir o resto.
+
+**Bug crítico confirmado e corrigido: "Nova entidade" parecia nunca gravar.** Uma das auditorias reproduziu
+isto 5/5 vezes, com qualquer combinação de dados, incluindo só o nome. Investigado até à causa: não é um
+problema de dados nem de validação — é a regra "um perfil por conta" (`private.one_profile_per_account`,
+20261020030000/20261020070000), que bloqueia criar uma entidade "cliente" numa conta que já é pintor ou
+fornecedor (e vice-versa), com uma mensagem clara em português. A conta de teste usada na auditoria
+(`nm@quempinta.pt`) já tem outro perfil de testes anteriores — por isso falhava sempre, com qualquer dado.
+O bug real não era a regra (que está correta e já testada), mas `createOrganization`
+(`src/app/app/actions.ts`): mostrava sempre o aviso genérico "Não foi possível guardar. Confirme os dados
+e tente de novo.", escondendo a mensagem específica que a base de dados já devolvia. Corrigido para mostrar
+essa mensagem quando o erro é da regra de negócio (`error.code === 'P0001'`), mantendo o aviso genérico só
+para erros técnicos inesperados. Acrescentados dois testes em `rls.test.ts` que confirmam, do lado da base:
+(a) uma conta nova e sem perfil nenhum cria "particular" só com o nome sem problema — não há bug de dados
+em falta — e (b) a mesma operação, pela conta de um fornecedor já existente, falha com a mensagem exata.
+
+**Link de navegação partido, confirmado e corrigido.** O item "Referências" aparecia no menu do
+*fornecedor*, mas a página (`/app/organizacoes/[id]/referencias/page.tsx`) é só para `kind === 'pintor'`
+— é o pintor que indica um fornecedor (desconto na própria comissão), não o inverso. Resultado: qualquer
+fornecedor que clicasse via sempre "Não encontrado". Corrigido em `src/app/app/layout.tsx`: o link sai do
+menu do fornecedor e entra no do pintor (que, por este erro, nunca tinha link nenhum para esta página).
+
+**Vitórias rápidas aplicadas** (texto e marcação, sem risco de negócio):
+- Estados vazios reescritos com explicação + o que fazer a seguir, seguindo o padrão já bom da página
+  "Clientes" (`encomendas/page.tsx`, `organizacoes/[id]/produtos/page.tsx`, `catalogo/page.tsx`).
+- `ConcelhosPicker.tsx`: ícone "+"/"−" trocado por um chevron (▸/▾) e legenda fixa — o "+" era lido como
+  "adicionar o distrito inteiro" quando só abre a lista para escolher concelho a concelho.
+- `organizacoes/[id]/adesoes/page.tsx`: parágrafo único com vários números (0,25 p.p., 1%/2%, 2 meses)
+  quebrado numa lista curta, números em destaque.
+- Página inicial: a resposta a "A plataforma garante a obra?" (a pergunta de maior risco percebido para
+  quem vai propor despesa a uma assembleia) subida para junto do botão "Pedir orçamentos", além de
+  continuar no acordeão — sem mencionar comissões (regra 13 do `CLAUDE.md` mantida).
+
+**Decisões e triagem do resto — fica registado, não construído nesta ronda:**
+- *"Cliente vê o backoffice"* (as duas auditorias notaram isto, uma delas até como "crítico"): quase
+  certamente não é um bug de permissões — `nm@quempinta.pt` é a própria conta de admin/testes do
+  promotor, corretamente um `platform_admin`. É uma mistura de credenciais de teste entre perfis, não uma
+  falha de isolamento de sessões. Fica como suspeita a confirmar, não como bug a corrigir; a recomendação
+  de dar uma identidade visual distinta ao backoffice mantém-se válida por si (ver abaixo).
+- *Mudanças estruturais* (sistema de design, fotografia real, prova social, pré-visualização antes do
+  login, escolha de perfil antes de criar conta, identidade visual do backoffice, automação da validação
+  de documentos de pintores): todas de acordo entre as duas auditorias, nenhuma é um bug — são decisões de
+  produto e de design que merecem uma ronda dedicada (direção visual, não só correção), não encaixadas
+  às pressas por cima de uma sessão de correção de bugs. Registadas em `docs/ESTADO.md` secção 7 para essa
+  ronda, com a prioridade que as duas auditorias já dão (prova social e fotografia primeiro; depois a
+  separação do backoffice e a automação de documentos).
+- *Percurso do pintor não verificado em nenhuma das duas auditorias* (credenciais de teste sem acesso à
+  caixa de correio) — recomendação de ambas: repetir com uma conta de pintor funcional antes de fechar
+  decisões de redesign específicas para esse perfil.
+
+Verificado: `npm test` (459 testes), `typecheck`, `lint`, `build`, todos a zero.

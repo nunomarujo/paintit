@@ -40,12 +40,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
   if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });
   const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
-  if (kinds.has('pintor')) more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
+  if (kinds.has('pintor')) {
+    more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
+    // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
+    // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.
+    // Este link apontava por erro para a entidade do fornecedor (abaixo), onde dava sempre 404 — link
+    // partido encontrado na auditoria de UX de 23/10/2026. Uma conta de pintor é sempre uma só empresa
+    // (allowedOrgKinds em organization.ts), por isso usa-se o mesmo padrão de `fornecedorId` abaixo.
+    const pintorId = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations.id;
+    if (pintorId) more.push({ href: `/app/organizacoes/${pintorId}/referencias`, label: 'Referências de fornecedores' });
+  }
   if (fornecedorId) {
     more.push(
       { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos' },
       { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes' },
-      { href: `/app/organizacoes/${fornecedorId}/referencias`, label: 'Referências' },
       { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão' },
     );
   }

@@ -76,6 +76,13 @@ export default function Home() {
             Gerir vários edifícios
           </a>
         </div>
+        {/* Resposta mais decisiva do "Antes de avançar" (abaixo), subida para junto do CTA em vez de só
+            dentro do acordeão (auditoria de UX, 23/10/2026: é a pergunta de maior risco percebido para
+            quem vai propor despesa a uma assembleia de condomínio — escondê-la só adia a desistência). */}
+        <p className="mt-4 text-sm text-slate-600">
+          Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
+          plataforma guarda a prova do que foi acordado.
+        </p>
         <p className="mt-6 text-xs text-slate-500">Descer para ver o prédio ganhar cor.</p>
       </PaintedHero>
 
