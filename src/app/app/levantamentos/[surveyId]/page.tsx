@@ -111,6 +111,14 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
       <section className={card}>
         <h2 className="font-semibold">Fotografias</h2>
+        {!done && (
+          <p className="mt-2 text-sm text-amber-900">
+            Não fotografe nada que identifique a localização do prédio ou dos vizinhos — números de porta, placas
+            de rua, matrículas, fachadas inteiras reconhecíveis à distância. Fotografe só o pormenor da obra em
+            si (fissuras, humidade, acabamentos): a aplicação trata o resto para o cliente nunca ser identificável
+            a partir das fotografias.
+          </p>
+        )}
         {(photos ?? []).length > 0 && (
           <ul className="mt-4 grid gap-4 sm:grid-cols-3">
             {(photos ?? []).map((p) => (
