@@ -3,7 +3,10 @@ import { DISTRITOS } from '@/lib/concelhos';
 /** Seleção de concelhos por distrito, em grupos que se abrem com um "+" (decisão de 23/10/2026,
  * docs/DECISOES.md) — substitui o campo de texto livre "separados por vírgulas". Cada concelho
  * marcado é um valor próprio sob o mesmo `name`; o servidor lê-os com `form.getAll(name)`, nunca
- * com `.split(',')`. Sem JavaScript nenhum: `<details>` nativo trata de abrir/fechar. */
+ * com `.split(',')`. Sem JavaScript nenhum: `<details>` nativo trata de abrir/fechar. Um distrito com
+ * pelo menos um concelho marcado fica com o fundo ligeiramente destacado mesmo fechado (pedido do
+ * promotor, 23/10/2026) — o "(n)" ao lado do nome já dizia quantos, mas não dava para ver de relance,
+ * numa lista comprida, que distritos tinham alguma marca. */
 export function ConcelhosPicker({ name, defaultValue = [] }: { name: string; defaultValue?: string[] }) {
   const selected = new Set(defaultValue);
   return (
@@ -12,7 +15,11 @@ export function ConcelhosPicker({ name, defaultValue = [] }: { name: string; def
         const n = d.concelhos.filter((c) => selected.has(c)).length;
         return (
           <details key={d.distrito} className="group" open={n > 0}>
-            <summary className="flex cursor-pointer select-none items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+            <summary
+              className={`flex cursor-pointer select-none items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 [&::-webkit-details-marker]:hidden ${
+                n > 0 ? 'bg-tinta-50 hover:bg-tinta-100' : 'hover:bg-slate-50'
+              }`}
+            >
               <span>
                 {d.distrito}
                 {n > 0 && <span className="ml-1.5 font-normal text-tinta-700">({n})</span>}
