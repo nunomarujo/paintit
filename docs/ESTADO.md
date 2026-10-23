@@ -1,6 +1,7 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 23/10/2026 (fim do dia).
+Atualizado a 23/10/2026 (fim do dia, sessão de verificação de acessos Vercel/Supabase e aplicação das migrações
+pendentes).
 
 **Como usar este ficheiro:** é feito para que uma sessão nova (Claude, ou o promotor) fique **completamente
 inteirada só com esta leitura**, sem precisar de abrir mais nada. Não é um índice de apontadores — o essencial de
@@ -261,9 +262,9 @@ por um atalho direto para essa entidade (pintor ou fornecedor), preservando avis
 administradoras e condomínios continuam a ver a lista completa.
 
 **Onde está no código:** domínio `src/domain/survey.ts` + `survey.test.ts` (puro, 6 testes); migrações
-`20261023030000_papel_vendedor.sql` (o valor novo do enum `member_role` tem de estar numa migração à parte —
-`alter type ... add value` não pode ser usado na mesma transação que o consome), `20261023031000_levantamento_
-por_vendedor.sql` (esquema, RLS, RPCs) e `20261023040000_levantamento_avisos_e_expiracao.sql` (aviso ao cliente,
+`20261023143532_papel_vendedor.sql` (o valor novo do enum `member_role` tem de estar numa migração à parte —
+`alter type ... add value` não pode ser usado na mesma transação que o consome), `20261023143643_levantamento_
+por_vendedor.sql` (esquema, RLS, RPCs) e `20261023143658_levantamento_avisos_e_expiracao.sql` (aviso ao cliente,
 extensão da manutenção diária); `src/lib/surveys.ts` (liga-se a `contratacoes/actions.ts` no momento em que a
 comissão é confirmada); páginas em `src/app/app/pedidos/[id]/` (cartão do cliente, `RequestSurveyCard.tsx`) e
 `src/app/app/levantamentos/` (lista do vendedor, workspace por obra com termos, formulários de contacto e
@@ -434,67 +435,56 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 1. **Emails do Supabase Auth** (confirmação de conta, magic link) — SMTP já configurado com Resend, **verificado
    e testado** (20/10/2026).
 2. **Emails de negócio da própria app** (`src/lib/notify.ts`: proposta nova, prazos, litígio, avaliações,
-   encomendas…) — enviados pela API do Resend diretamente do servidor da app, **precisam da sua própria
-   `RESEND_API_KEY` nas variáveis da Vercel, que ainda falta colar.** Sem ela, a plataforma funciona sem estes
-   avisos (não bloqueia nada, só não avisa).
+   encomendas…) — enviados pela API do Resend diretamente do servidor da app, com a sua própria `RESEND_API_KEY`,
+   **já colada nas variáveis da Vercel** (confirmado 23/10/2026 — ver secção 6.1; uma sessão anterior tinha
+   reportado isto como em falta por engano).
 
 ---
 
 ## 6. Travões ativos agora (o que impede avançar, não é falta de código)
 
-0. **Projeto Supabase transferido de organização, 23/10/2026 (fim do dia):** "Paint it" (`phkfrabrjqbpnmocrrvj`)
-   passou de `mar-nordico` (partilhada com outros negócios do promotor) para a organização dedicada **`Quem Pinta`**
-   (`eehwjlguffmcpaudqspy`), por pedido do promotor — cumprir a regra de isolamento do `CLAUDE.md` também ao nível
-   da organização Supabase, não só do código. Feito pela sessão "Claude do navegador", autenticada no dashboard;
-   confirmado depois: `Quem Pinta` tem 1 projeto (Paint it), `mar-nordico` manteve intacto o seu próprio projeto de
-   imóveis, e URL/chaves API/connection string não mudaram (nada a atualizar na Vercel). **O conector MCP Supabase
-   desta sessão continua preso a uma organização terceira sem relação com o Quem Pinta** — o bloqueio do ponto 1
-   abaixo pode já não se dever à mesma causa; confirmar numa sessão nova se a ligação em claude.ai → Connectors →
-   Supabase já aponta para `Quem Pinta`.
-
-1. **Ligação MCP ao Supabase sem permissão nesta sessão**, desde meio da sessão autónoma de 23/10/2026 (antes
-   funcionava — várias migrações desse dia e do dia anterior foram aplicadas com sucesso). Voltei a tentar
-   (`list_migrations`) ao escrever este documento: **o erro é o mesmo**, não se resolveu por si só. Em
-   consequência, **há 10 migrações escritas e testadas localmente (PGlite, `supabase/tests/`) que nunca chegaram
-   ao projeto real**, por esta ordem exata (as duas primeiras do lote de 22/10 já estavam aplicadas antes do
-   bloqueio; a partir da 3.ª é que ficou tudo pendente):
-   - ~~`20261022010000_documentos_fiscais.sql`~~ — aplicada e confirmada
-   - ~~`20261022020000_moloni_token.sql`~~ — aplicada e confirmada
-   - `20261022030000_nif_unico_fornecedores.sql`
-   - `20261022040000_codigos_de_adesao_cumulativos.sql`
-   - `20261022050000_referencias_de_fornecedores.sql`
-   - `20261022060000_termos_de_aceitacao_pintor.sql`
-   - `20261022070000_convite_direto_do_cliente.sql`
-   - `20261023010000_avaliacao_cancelamento.sql`
-   - `20261023020000_resposta_avaliacao_fornecedor.sql`
-   - `20261023030000_papel_vendedor.sql`
-   - `20261023031000_levantamento_por_vendedor.sql`
-   - `20261023040000_levantamento_avisos_e_expiracao.sql`
-
-   **Antes de confirmar sem NIFs duplicados**, correr primeiro:
-   `select nif, count(*) from organizations where kind='fornecedor' and nif is not null group by nif having count(*)>1;`
-   Depois aplicar as 10 por ordem, correr `mcp__Supabase__get_advisors` (zero avisos novos de segurança, os de
-   desempenho são esperados — SECURITY DEFINER e índices em tabelas ainda vazias), e **regenerar
-   `src/lib/database.types.ts`** (`generate_typescript_types`) — hoje é **mantido à mão**, campo a campo, desde
-   que a ligação falhou; já se encontrou e corrigiu nesta sessão um erro numa dessas edições manuais
-   (`survey_terms_acceptances.user_id` marcado como opcional no tipo `Insert` sem ter valor por omissão na base
-   de dados — teria deixado passar no `tsc` um `insert` que falharia sempre em produção real).
-   **Para resolver:** confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar.
-
-2. **Moloni sem ambiente de demonstração** — pedido enviado, sem resposta confirmada (ver histórico em
+1. **Moloni sem ambiente de demonstração** — pedido enviado, sem resposta confirmada (ver histórico em
    `docs/FATURACAO.md`). Não emitir nenhum documento fiscal real até isto se confirmar: a conta não tem sandbox,
    um documento emitido é real e não se apaga (só se anula com nota de crédito).
 
-3. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
+2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-4. **`RESEND_API_KEY` em falta na Vercel** — os avisos de negócio da própria app (não os do Supabase Auth, já a
-   funcionar) ainda não saem. Ver secção 5.15.
+Nenhum outro travão ativo neste momento — ver a correção abaixo sobre a Vercel e o Supabase.
 
-5. **`CRON_SECRET` em falta na Vercel** — necessário para `/api/cron/devolucoes` e `/api/cron/contabilidade`.
+### 6.1 Resolvido nesta sessão (23/10/2026, sessão de verificação de acessos)
 
-6. **Chave secreta do Supabase (`SUPABASE_SECRET_KEY`)** — confirmar em `/app/backoffice` → "Estado do servidor"
-   que está colada; sem ela o webhook do Stripe falha.
+- **Ligação MCP ao Supabase e à Vercel**: ambas voltaram a funcionar nesta sessão (o projeto Supabase "Paint it"
+  tinha sido transferido de organização, `mar-nordico` → `eehwjlguffmcpaudqspy`, pelo promotor com apoio de outra
+  sessão; a autorização da equipa Vercel `quempintapt-8835` foi corrigida à mão no navegador). **As 10 migrações
+  que estavam pendentes (lista antiga desta secção) foram todas aplicadas com sucesso**, por esta ordem, depois de
+  confirmar que não há NIFs de fornecedor duplicados: `nif_unico_fornecedores`, `codigos_de_adesao_cumulativos`,
+  `referencias_de_fornecedores`, `termos_de_aceitacao_pintor`, `convite_direto_do_cliente`,
+  `avaliacao_cancelamento`, `resposta_avaliacao_fornecedor`, `papel_vendedor`, `levantamento_por_vendedor`,
+  `levantamento_avisos_e_expiracao`.
+  - **Importante para quem ler o histórico de migrações:** a transferência de organização tinha desincronizado a
+    tabela `supabase_migrations.schema_migrations` da base real — 20 migrações (18/10 a 20/10, mais as duas
+    primeiras de 22/10) já lá estavam aplicadas mas desapareceram da tabela de histórico; foram reconciliadas sem
+    voltar a correr o SQL (só um `insert ... on conflict do nothing` na própria tabela de histórico). As 10
+    genuinamente pendentes foram então aplicadas via `apply_migration`, que lhes atribuiu **novos números de
+    versão** (ex.: `20261023143306`, não `20261022030000`) em vez de reaproveitar os números dos ficheiros locais.
+    Os ficheiros em `supabase/migrations/` foram **renomeados para os números realmente registados no Supabase**
+    (regra do `CLAUDE.md`: "nome igual à versão registada"), e as referências a esses nomes em
+    `docs/DECISOES.md`, `src/lib/qrcode.ts` e `src/domain/rules.ts` foram atualizadas a par.
+  - `mcp__Supabase__get_advisors` depois de aplicar: **zero avisos novos** de segurança; os avisos de desempenho
+    existentes já estavam documentados em `docs/DECISOES.md` (duas políticas permissivas em `org_members`/
+    `profiles`) e são esperados (SECURITY DEFINER, índices em tabelas ainda vazias).
+  - `src/lib/database.types.ts` **comparado campo a campo** com o gerado agora pelo Supabase
+    (`generate_typescript_types`): tabelas, colunas, funções e views coincidem todos; só faltavam dois enums no
+    dicionário `Enums` (`order_status`, `worksite_entry_kind` — já usados nos tipos de coluna, mas não listados),
+    corrigido.
+  - `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` — os quatro com código de saída 0 depois de
+    todas estas alterações.
+
+- **Variáveis de ambiente na Vercel — a secção 5.15/travões anteriores estava errada**: `RESEND_API_KEY`,
+  `CRON_SECRET` e `SUPABASE_SECRET_KEY` **já estão todas coladas** no projeto Vercel. O que a sessão anterior
+  reportou como "em falta" era um falso negativo de uma leitura com a equipa sem autorização — confirmado agora
+  com `filter_project_envs` depois de corrigir a autorização.
 
 ---
 
@@ -505,7 +495,7 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 | Parecer jurídico (19/10/2026) | Nova ordem da apresentação, mínimo da caução, contrato cliente-plataforma, conservação, não evasão, transparência — ver `docs/advogado/Parecer_2026-10-19.md` | Percurso v2 já aplicado; o resto aguarda |
 | Parecer jurídico, ronda 2 | Ver `docs/advogado/Pedido_ronda2_2026-10-21.md` | — |
 | Advogado | Enviar `docs/advogado/Pedido_minuta_contrato.docx` com o contacto preenchido | Minuta gerada sem revisão jurídica |
-| Email transacional | Confirmar Resend como definitivo para os avisos de negócio (`RESEND_API_KEY`) | Resend já escolhido, falta só a chave |
+| Email transacional | Confirmar Resend como definitivo para os avisos de negócio | Resend já escolhido, `RESEND_API_KEY` já colada (secção 6.1) |
 | Certificado de assinatura não confirmado | Hoje aceite e marcado "por confirmar" para a equipa — recusar logo? | Aceite, marcado |
 | Pintores sem documentos aprovados | Hoje podem propor, com aviso no comparador — só deixar propor verificados? | Podem propor |
 | "Percentagem dos 57%" | Não usada por falta de fonte; entra no texto se houver estudo | Fora do texto |
@@ -621,9 +611,12 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   (mecanismo completo, secção 5.3) e reorganização do workspace do fornecedor; **este documento**, reescrito do
   zero para ser completo e autossuficiente; **"server-side exception" em `/app/backoffice` em produção
   (quempinta.pt) encontrado e corrigido** — a única linha real de `engagements` não tinha a coluna aditiva
-  `referral_discount_bp` (migração `20261022040000` nunca aplicada à base real), o que entrava como `undefined`
-  na matemática de dinheiro (`NaN`) e derrubava a página inteira, sem try/catch, a cada visita; corrigido em dois
-  níveis — `toEngagementRecord` (`src/domain/engagementRecord.ts`, testado) usa `?? 0` como a própria coluna terá
-  por omissão quando a migração lá chegar, e `pendingEngagements` isola a reconstrução de cada contratação, para
-  uma linha malformada nunca mais derrubar as outras. tsc, lint, 431 testes, build — zero; **projeto Supabase
-  "Paint it" transferido de `mar-nordico` para a organização dedicada `Quem Pinta`** (ver secção 6, ponto 0).
+  `referral_discount_bp` (a migração que a cria ainda não tinha chegado à base real nesse momento), o que entrava
+  como `undefined` na matemática de dinheiro (`NaN`) e derrubava a página inteira, sem try/catch, a cada visita;
+  corrigido em dois níveis — `toEngagementRecord` (`src/domain/engagementRecord.ts`, testado) usa `?? 0` como a
+  própria coluna terá por omissão, e `pendingEngagements` isola a reconstrução de cada contratação, para uma linha
+  malformada nunca mais derrubar as outras; **projeto Supabase "Paint it" transferido de `mar-nordico` para a
+  organização dedicada `Quem Pinta`** (`eehwjlguffmcpaudqspy`); e, já com a ligação MCP corrigida, **as 10
+  migrações pendentes aplicadas** (histórico de migrações reconciliado, `database.types.ts` confirmado campo a
+  campo contra a base real, env vars da Vercel confirmadas já corretas — secção 6.1), o que resolve de vez a causa
+  do erro do backoffice acima.

@@ -1,5 +1,5 @@
 -- Avisos do levantamento por vendedor e expiração da reserva (continuação de
--- 20261023031000_levantamento_por_vendedor.sql, decisão de 23/10/2026, docs/DECISOES.md):
+-- 20261023143643_levantamento_por_vendedor.sql, decisão de 23/10/2026, docs/DECISOES.md):
 -- - o cliente é avisado quando o levantamento é concluído (a app já promete isto em
 --   RequestSurveyCard.tsx: "Avisamos quando o levantamento estiver registado");
 -- - se o vendedor que reservou não concluir dentro do prazo (RESERVE_WINDOW_HOURS, 48h,

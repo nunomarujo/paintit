@@ -381,7 +381,7 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 - **Sigilo fornecedor → pintor:** já garantido por RLS, não por convenção — `referral_payouts`/`referral_redemptions`
   só deixam ver quem acede à organização fornecedora; um pintor não vê isto por nenhum caminho de junção.
 - **Feito agora:**
-  - Índice único `organizations_fornecedor_nif_idx` (`supabase/migrations/20261022030000_nif_unico_fornecedores.sql`),
+  - Índice único `organizations_fornecedor_nif_idx` (`supabase/migrations/20261023143306_nif_unico_fornecedores.sql`),
     parcial (só `kind = 'fornecedor'`), com teste em `supabase/tests/rls.test.ts`.
   - Funções puras e testadas em `src/domain/referral.ts`: `linkedSupplierDiscountBp`, `supplierCommissionBpAt` (com
     `priorWinsInSupplierWindow`), `combinedPainterDiscountBp` (teto de 800 p.b.) e `applyPainterDiscount` (aplica o
@@ -391,7 +391,7 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 
 ## 22/10/2026 — códigos de adesão: ligação ao esquema e ao `proposal_selected()`
 
-- `supabase/migrations/20261022040000_codigos_de_adesao_cumulativos.sql`:
+- `supabase/migrations/20261023143330_codigos_de_adesao_cumulativos.sql`:
   - `engagements` ganha `referral_discount_bp` (pontos-base, resolvido e gravado uma vez, nunca recalculado — o
     sufixo `+ref` na versão das regras deixa de se produzir; `RULES_2026_10_20_REF` fica só para reconstruir
     contratações antigas que já o têm, imutáveis).
@@ -417,7 +417,7 @@ pagamento original só por intervenção manual (caso raro, a tratar).
 
 ## 22/10/2026 — referências de fornecedores: tabela de convites, ativação e Q(n) em SQL
 
-- `supabase/migrations/20261022050000_referencias_de_fornecedores.sql`: tabela nova `supplier_referral_invites`
+- `supabase/migrations/20261023143405_referencias_de_fornecedores.sql`: tabela nova `supplier_referral_invites`
   (painter_org_id, code, nota, active, e — só graváveis pelas funções próprias, nunca por `authenticated` — 
   supplier_org_id, nif, convite_confirmado_em, adesao_elegivel_em). Simétrica a `referral_codes`, mas de sentido
   contrário: o **pintor** cria o código (só uma organização `pintor`), o **fornecedor** aplica-o no momento do
@@ -545,7 +545,7 @@ publicada específica**, que o cliente gera e partilha diretamente; qualquer ent
 registada) que o resgate vai direta a essa oportunidade, sem precisar de a encontrar na lista pública — e com
 uma comissão de base bem mais baixa, precisamente para não criar esse atrito.
 
-- **Feito agora:** tabela `request_invites` (`supabase/migrations/20261022070000_convite_direto_do_cliente.sql`),
+- **Feito agora:** tabela `request_invites` (`supabase/migrations/20261023143445_convite_direto_do_cliente.sql`),
   só criável por um gestor da entidade do pedido, numa obra já publicada. `redeem_request_invite` liga o código à
   primeira entidade de pintura que o resgata (idempotente para a mesma entidade; recusa se já estiver ligado a
   outra). `request_invite_info` mostra uma pré-visualização com só o que já é público (tipo de obra, concelho).
@@ -858,7 +858,7 @@ uma avaliação quando `pintor_assinou` tinha acontecido.
   `obra_concluida = true`. Decidi não misturar: um cancelamento depois da apresentação é um sinal diferente de
   "qualidade do trabalho" — fica visível na íntegra na própria contratação (comentário incluído, com rótulo
   "obra cancelada"), mas não entra numa média de 1 a 5 pensada para trabalho executado.
-- **Construído:** migração `20261023010000_avaliacao_cancelamento.sql` (coluna `obra_concluida`, função
+- **Construído:** migração `20261023143504_avaliacao_cancelamento.sql` (coluna `obra_concluida`, função
   `private.engagement_revealed`, `review_guard`/`reviews_insert`/`painter_rating` atualizados); `reviewCategory`
   em `contracting.ts`; `saveReview` passa a verificar a categoria antes de gravar; `/app/contratacoes/[id]`
   mostra o rótulo da categoria e já não esconde a secção fora de `assinado`.
@@ -877,7 +877,7 @@ uma avaliação quando `pintor_assinou` tinha acontecido.
 Terceira e última das 3 questões. Simples como o item 10 de `docs/ESTADO.md` já previa: `supplier_reviews`
 nunca teve `resposta`/`resposta_at`, só `reviews` (cliente ↔ pintor) os tinha.
 
-- **Mesmo mecanismo, não um novo:** migração `20261023020000_resposta_avaliacao_fornecedor.sql` acrescenta as
+- **Mesmo mecanismo, não um novo:** migração `20261023143518_resposta_avaliacao_fornecedor.sql` acrescenta as
   duas colunas e um gatilho `private.supplier_review_guard()` que é a mesma lógica de `private.review_guard()`
   aplicada a `supplier_reviews` — o pintor (dono da avaliação) atualiza a nota sem tocar na resposta; o
   fornecedor só altera a resposta, nunca a nota (erro claro se tentar as duas coisas na mesma atualização). A
@@ -961,10 +961,10 @@ continuar — o que fiz (grep ao transcript bruto da sessão por palavra-chave, 
   sempre uma só entidade (`allowedOrgKinds`) — a Início troca a lista "As suas entidades" com um único item por
   um atalho directo para essa entidade, preservando avisos, convites e o resto do painel; administradoras e
   condomínios (que podem ter várias) continuam a ver a lista.
-- **Construído:** `src/domain/survey.ts` (puro); migrações `20261023030000_papel_vendedor.sql` (o valor novo do
+- **Construído:** `src/domain/survey.ts` (puro); migrações `20261023143532_papel_vendedor.sql` (o valor novo do
   enum tem de estar numa migração à parte — `alter type ... add value` não pode ser usado na mesma transacção
-  que o cria), `20261023031000_levantamento_por_vendedor.sql` (esquema, RLS, RPCs) e
-  `20261023040000_levantamento_avisos_e_expiracao.sql` (gatilho de aviso, extensão da manutenção diária);
+  que o cria), `20261023143643_levantamento_por_vendedor.sql` (esquema, RLS, RPCs) e
+  `20261023143658_levantamento_avisos_e_expiracao.sql` (gatilho de aviso, extensão da manutenção diária);
   `src/lib/surveys.ts`; páginas e acções em `src/app/app/pedidos/[id]/` (cartão do cliente) e
   `src/app/app/levantamentos/` (lista do vendedor, workspace por obra, termos, formulários).
 - **Duas armadilhas de RLS, registadas em comentário nas próprias migrações para não se repetirem:** quatro
