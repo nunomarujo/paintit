@@ -1,7 +1,9 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
 Atualizado a 23/10/2026 (fim do dia, sessão de verificação de acessos Vercel/Supabase, aplicação das migrações
-pendentes, e verificação cruzada com a sessão original antes de esta tomar a frente do projeto — secção 6.2).
+pendentes, verificação cruzada com a sessão original antes de esta tomar a frente do projeto — secção 6.2 —,
+recuperação de duas migrações aplicadas sem ficheiro, e desenho do pedido de esclarecimento ao vendedor —
+secção 6.5, ainda só base de dados, sem UI).
 
 **Como usar este ficheiro:** é feito para que uma sessão nova (Claude, ou o promotor) fique **completamente
 inteirada só com esta leitura**, sem precisar de abrir mais nada. Não é um índice de apontadores — o essencial de
@@ -486,7 +488,7 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Duas migrações escritas e não aplicadas**, ambas bloqueadas pelo modo automático ("Production Deploy", pede
+3. **Três migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
    aprovação explícita do promotor):
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de defesa em profundidade em
      `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o DELETE já está
@@ -496,6 +498,8 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      que o código da app já tenha deixado de ter o formulário de pedido (`RequestSurveyCard.tsx` já não mostra
      nenhum). **Não publicar esta alteração de código sem aplicar a migração a par** — sem o gatilho, nenhum
      pedido novo teria levantamento nenhum, nem automático nem por pedido.
+   - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` (secção 6.5): sem efeito nenhum enquanto não for
+     aplicada — não há ainda nenhum caminho de UI que a use (ver 6.5).
 
 Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
@@ -621,6 +625,38 @@ certo, carácter a carácter, com o que `buildings.concelho` já guarda. Só a c
 migração, sem alteração ao domínio. Verificado visualmente com Playwright (abre/fecha, contagem por
 distrito). Detalhe completo em `docs/DECISOES.md`.
 
+### 6.5 Pedido de esclarecimento ao vendedor sobre o levantamento (23/10/2026) — só base de dados, sem UI
+
+Depois de o levantamento estar concluído, qualquer pintor com acesso ao pedido publicado pode achar a
+informação insuficiente para orçamentar e pedir o que falta. Desenhado em detalhe (e com duas correções
+explícitas do promotor a propostas minhas anteriores) em `docs/DECISOES.md`, entrada "pedido de esclarecimento
+ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
+
+- **Feito e testado**: `src/domain/clarification.ts`; migração
+  `20261023190000_pedido_esclarecimento_ao_vendedor.sql` (tabelas `survey_clarifications`/
+  `survey_clarification_items`; funções `request_painter_doubt`, `clarification_batch`, `confirm_clarification`,
+  `respond_clarification`, `claim_clarification`; quinto bloco de `daily_maintenance()` para a escalada). Lista
+  conjunta e não identificada para o vendedor; prazo em dois marcos fixos (24h+24h) sem perda parcial; ao
+  falhar, o vendedor perde a comissão de toda a obra por completo e fica impedido de voltar a reservar este
+  esclarecimento — qualquer outro fornecedor da zona que ainda não tenha falhado pode reservar a tentativa
+  seguinte (primeiro a chegar, avança), herdando nesse momento `request_surveys.vendedor_org_id` (e por isso a
+  comissão de todo o levantamento, não só do esclarecimento). `supabase/tests/rls.test.ts` ganhou um bloco novo
+  (+4 casos, incluindo uma escalada completa de ponta a ponta). `npm test` (447), `typecheck`, `lint`, `build`
+  — os quatro com saída 0.
+- **Não aplicada à Supabase** (ver travão 3 acima) e **sem nenhuma peça de UI**: falta o formulário do pintor
+  para pedir, o ecrã do vendedor para ver a lista conjunta e confirmar/responder, e o aviso ao cliente quando
+  escala. Não publicar sem a migração aplicada a par, pelo mesmo motivo da `levantamento_automatico`.
+- **Em aberto, não decidido**: a fórmula dinâmica da comissão do vendedor (pesos 40/30/15/15 — ver secção 7)
+  ainda não tem nenhuma implementação; falta a própria avaliação do pintor sobre a qualidade da informação do
+  levantamento (mecanismo novo, nem desenhado ainda); `respond_clarification` só regista a resposta, não
+  alimenta nenhum cálculo de comissão. A comunicação ao vendedor como "% do valor adjudicado" também não tem
+  nenhuma peça de UI.
+- **Pendente de confirmação do Code e do promotor**: o bloqueio cruzado por NIF já existe
+  (`src/lib/strikes.ts`, `blocked_identifiers`), mas só por NIF — ainda não por nome de empresa/pessoa nem por
+  NIPC, como o promotor pediu para o novo canal de mensagens desta funcionalidade. Não implementado nesta
+  sessão; fica por confirmar antes de construir a extensão, para não duplicar trabalho se já existir noutro
+  sítio.
+
 ---
 
 ## 7. Decisões e questões em aberto para o promotor (lista consolidada, substitui listas antigas e dispersas)
@@ -636,7 +672,9 @@ distrito). Detalhe completo em `docs/DECISOES.md`.
 | "Percentagem dos 57%" | Não usada por falta de fonte; entra no texto se houver estudo | Fora do texto |
 | Identidades no PDF assinado | O PDF não tem nomes, por causa do anonimato — confirmar que está bem assim | Sem nomes |
 | **Algoritmo de fee dinâmico (ponto 1, 18-23%)** | Decidir os pesos finais (hoje "propostas para teste" no documento), desenhar os ecrãs de C/E/F/M/J, decidir o indicador S, decidir como compõe com os códigos de adesão | Motor pronto, não ligado (secção 5.8) |
-| **Percentagem do levantamento por vendedor** | `SURVEY_SHARE_BP_PROVISIONAL` (10%) é um valor meu, provisório — confirmar antes de qualquer pagamento real | 10% (secção 5.3) |
+| **Percentagem do levantamento por vendedor** | `SURVEY_SHARE_BP_PROVISIONAL` (10%) é um valor meu, provisório — confirmar antes de qualquer pagamento real; a decisão de 23/10 de a tornar dinâmica (pesos 40/30/15/15, secção 6.5) ainda não decide o valor/escala de base sobre o qual esses pesos se aplicam | 10% fixo, a substituir pela fórmula dinâmica quando construída (secção 6.5) |
+| "% do valor adjudicado" ao vendedor | Comunicação pedida pelo promotor — é um número independente, ou fica internamente limitado pela comissão real da plataforma (que nunca se revela)? | Em aberto, perguntado ao promotor em 23/10/2026, sem resposta ainda |
+| Bloqueio cruzado por nome/NIPC (strikes) | Hoje só por NIF (`src/lib/strikes.ts`) — o promotor pediu também por nome de empresa/pessoa e por NIPC para o novo canal de esclarecimento (secção 6.5) | Confirmar com o Code antes de estender, para não duplicar |
 | Contabilista | Validar o desenho completo (`docs/CONTABILIDADE.md`), o momento da fatura, a natureza fiscal da caução retida, retenção na fonte aos fornecedores, CAE | Desenho aplicado sem validação formal |
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | Por fazer |
 | Piloto | Convidar 5-10 pintores e 2-3 fornecedores de Viana do Castelo para testar antes dos clientes | Por fazer |

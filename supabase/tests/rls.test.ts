@@ -2082,3 +2082,101 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [survey4])).status).toBe('reservado');
   });
 });
+
+describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédito parcial)', () => {
+  const VEND = '00000000-0000-4000-8000-0000000000e7'; // vendedor que fez o levantamento
+  const VEND2 = '00000000-0000-4000-8000-0000000000e8'; // segundo vendedor, depois da escalada
+  const CP = '00000000-0000-4000-8000-0000000000e9'; // pintor que pede esclarecimento
+  const CP2 = '00000000-0000-4000-8000-0000000000ea'; // segundo pintor, junta-se à mesma tentativa
+  let vendorOrg: string;
+  let vendor2Org: string;
+  let requestId: string;
+  let surveyId: string;
+
+  beforeAll(async () => {
+    for (const u of [VEND, VEND2, CP, CP2]) await db.query('insert into auth.users (id, email) values ($1, $2)', [u, email(u)]);
+    vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Esclarecimento Lda', '610000055')).id;
+    await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
+    vendor2Org = (await createOrg(VEND2, 'fornecedor', 'Tintas do Esclarecimento Dois Lda', '610000063')).id;
+    await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendor2Org, VEND2]);
+    await createOrg(CP, 'pintor', 'Pinturas do Esclarecimento Lda', '610000071');
+    await createOrg(CP2, 'pintor', 'Pinturas do Esclarecimento Dois Lda', '610000080');
+
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'levantamento esclarecimento', 'fachadas', 'Obra para pedido de esclarecimento.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    surveyId = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [requestId])).id;
+    await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, vendorOrg]));
+    await as(VEND, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 12000)`, [requestId]));
+    await as(VEND, () => db.query('select public.conclude_survey($1)', [surveyId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+  });
+
+  it('um pintor pede esclarecimento sobre um levantamento concluído; a comissão continua do vendedor', async () => {
+    await as(CP, () => db.query('select public.request_painter_doubt($1, $2)', [surveyId, 'Falta saber se há andaime montado.']));
+    const c = await one<{ status: string; vendedor_org_id: string }>(
+      'select status, vendedor_org_id from public.survey_clarifications where request_survey_id = $1',
+      [surveyId],
+    );
+    expect(c).toEqual({ status: 'aberto', vendedor_org_id: vendorOrg });
+    expect((await one<{ vendedor_org_id: string }>('select vendedor_org_id from public.request_surveys where id = $1', [surveyId])).vendedor_org_id).toBe(
+      vendorOrg,
+    );
+  });
+
+  it('a lista é conjunta e não identificada: o vendedor vê os textos, nunca quem perguntou', async () => {
+    const clarificationId = (await one<{ id: string }>('select id from public.survey_clarifications where request_survey_id = $1', [surveyId])).id;
+    await as(CP2, () => db.query('select public.request_painter_doubt($1, $2)', [surveyId, 'Há acesso de andaime ou é preciso contratar?']));
+    const stillOne = await one<{ n: string }>('select count(*)::text as n from public.survey_clarifications where request_survey_id = $1', [surveyId]);
+    expect(stillOne.n).toBe('1'); // a segunda dúvida juntou-se à mesma tentativa, não abriu outra
+    const batch = await as(VEND, async () => (await db.query<{ texto: string }>('select texto from public.clarification_batch($1) order by texto', [clarificationId])).rows);
+    expect(batch.map((r) => r.texto)).toEqual(['Falta saber se há andaime montado.', 'Há acesso de andaime ou é preciso contratar?']);
+    expect(await as(B, async () => (await db.query('select texto from public.clarification_batch($1)', [clarificationId])).rows)).toEqual([]);
+    const items = await one<{ n: string }>('select count(*)::text as n from public.survey_clarification_items where clarification_id = $1', [clarificationId]);
+    expect(items.n).toBe('2');
+  });
+
+  it('dia 1 falhado: perde a comissão por completo e fica impedido de reservar a tentativa seguinte', async () => {
+    const clarificationId = (await one<{ id: string }>('select id from public.survey_clarifications where request_survey_id = $1', [surveyId])).id;
+    await db.query(`update public.survey_clarifications set confirm_deadline = now() - interval '1 hour' where id = $1`, [clarificationId]);
+    await db.query('select private.daily_maintenance()');
+    expect((await one<{ status: string }>('select status from public.survey_clarifications where id = $1', [clarificationId])).status).toBe('expirado');
+    const excluded = await one<{ clarification_excluded_orgs: string[] }>(
+      'select clarification_excluded_orgs from public.request_surveys where id = $1',
+      [surveyId],
+    );
+    expect(excluded.clarification_excluded_orgs).toEqual([vendorOrg]);
+    // a comissão só se transfere quando outro vendedor reservar — não se solta por si só.
+    expect((await one<{ vendedor_org_id: string }>('select vendedor_org_id from public.request_surveys where id = $1', [surveyId])).vendedor_org_id).toBe(
+      vendorOrg,
+    );
+    const next = await one<{ id: string; vendedor_org_id: string | null }>(
+      `select id, vendedor_org_id from public.survey_clarifications where request_survey_id = $1 and status = 'aberto'`,
+      [surveyId],
+    );
+    expect(next.vendedor_org_id).toBeNull();
+    // as duas dúvidas, ainda sem resposta, passaram para a tentativa nova.
+    const items = await one<{ n: string }>('select count(*)::text as n from public.survey_clarification_items where clarification_id = $1', [next.id]);
+    expect(items.n).toBe('2');
+    await expect(as(VEND, () => db.query('select public.claim_clarification($1, $2)', [next.id, vendorOrg]))).rejects.toThrow(/já não pode reservar/);
+  });
+
+  it('o segundo vendedor reserva o esclarecimento e herda a comissão de todo o levantamento', async () => {
+    const next = await one<{ id: string }>(`select id from public.survey_clarifications where request_survey_id = $1 and status = 'aberto'`, [surveyId]);
+    await as(VEND2, () => db.query('select public.claim_clarification($1, $2)', [next.id, vendor2Org]));
+    expect((await one<{ vendedor_org_id: string }>('select vendedor_org_id from public.request_surveys where id = $1', [surveyId])).vendedor_org_id).toBe(
+      vendor2Org,
+    );
+    await as(VEND2, () => db.query('select public.confirm_clarification($1)', [next.id]));
+    await as(VEND2, () => db.query('select public.respond_clarification($1, $2)', [next.id, 'Há andaime próprio montado, inclui-se no preço.']));
+    const done = await one<{ status: string; resposta: string }>('select status, resposta from public.survey_clarifications where id = $1', [next.id]);
+    expect(done).toEqual({ status: 'respondido', resposta: 'Há andaime próprio montado, inclui-se no preço.' });
+  });
+});

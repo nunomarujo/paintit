@@ -1223,3 +1223,66 @@ em obra, `/produtos`) e "Concelhos" (zona de cobertura do levantamento, `/levant
   e depois de clicar no "+" de um distrito) — abre/fecha, mostra a contagem de selecionados, e o distrito com
   um concelho já marcado (`defaultValue`) começa aberto. Página removida a seguir; não ficou nenhum vestígio
   (`git status --porcelain` confirmado vazio dela).
+
+## 23/10/2026 — duas migrações aplicadas à Supabase sem ficheiro no repositório, recuperadas
+
+Ao tentar enviar trabalho novo para o repositório, reparei que `mcp__Supabase__list_migrations` mostrava duas
+versões (`20261023182915_limpeza_notas_e_estimativa_rendimento`, `20261023182946_limpeza_notas_so_importacao`,
+ambas sobre `reference_products` — limpeza do texto interno de importação e estimativa de rendimento m2/L para
+produtos sem ficha técnica oficial) que não existiam em `supabase/migrations/` em nenhum commit, de nenhuma das
+duas sessões. A outra sessão (`<>code`) aplicou-as diretamente à base real sem as commitar — quebra a regra do
+`CLAUDE.md` ("migrações em `supabase/migrations/`, com o nome igual à versão registada no Supabase").
+
+- Recuperei o texto exato de cada uma via `select statements from supabase_migrations.schema_migrations where
+  version in (...)` e escrevi os dois ficheiros, sem qualquer alteração ao conteúdo.
+- **Não regenerei `database.types.ts` a par**: a regeneração completa a partir do schema atual revelou uma
+  divergência bem maior do que estas duas migrações (quebra `typecheck`/`build` em vários ficheiros não
+  relacionados — backoffice, materiais, invoicing, strikes). A tipagem à mão de hoje continua a compilar bem
+  com estas duas migrações recuperadas; a reconciliação completa da tipagem fica para uma sessão dedicada, a
+  corrigir ficheiro a ficheiro, não de uma vez.
+- Fica como aviso para as duas sessões: aplicar uma migração ao Supabase sem a commitar aqui deixa o
+  repositório a mentir sobre o estado real da base — a próxima pessoa (ou sessão) a ler `supabase/migrations/`
+  vê uma coisa, a base tem outra.
+
+## 23/10/2026 — pedido de esclarecimento ao vendedor sobre o levantamento
+
+Depois de concluído o levantamento (secção 5.3/6.2), qualquer pintor com acesso ao pedido publicado pode achar
+a informação insuficiente para orçamentar. O promotor pediu um mecanismo para pedir o que falta, com várias
+regras explícitas:
+
+- **Anonimato nos dois sentidos**: as dúvidas de todos os pintores dessa obra juntam-se numa lista única, sem
+  identificar quem perguntou (o vendedor nunca sabe qual pintor pediu o quê); e o vendedor responde sempre pela
+  plataforma, nunca diretamente — nenhuma mensagem pode conter contactos, moradas nem identificação de ninguém
+  (a aplicação valida o texto com `guardContact`/`revealingContent` antes de chamar a função SQL, como qualquer
+  outro campo livre).
+- **Prazo em dois marcos fixos, sem perda parcial** — correção explícita do promotor a uma proposta minha
+  anterior de desconto proporcional por atraso: um dia para confirmar, na aplicação, que vai à obra; mais um
+  dia (a partir dessa confirmação, nunca do início do pedido) para lá ir e responder. Falhar qualquer marco
+  perde a comissão desta obra **por completo** — nunca parcial — e o esclarecimento passa a estar disponível
+  para outro fornecedor da zona reservar (primeiro a chegar, avança — confirmado pelo promotor como o mesmo
+  padrão de `reserve_survey`, em vez de um "segundo vendedor" específico).
+- **Âmbito estrito**: este mecanismo só serve para pedir esclarecimentos sobre o levantamento já feito — nunca
+  para pedir um levantamento novo nem qualquer outra tarefa.
+- **A comissão de todo o levantamento transfere-se com a reserva do esclarecimento, não com a visita
+  original**: quem reserva uma tentativa escalada passa a ser, a partir desse momento,
+  `request_surveys.vendedor_org_id`/`vendedor_user_id` — de onde `settleSurveyPayout` (`src/lib/surveys.ts`) já
+  lê em tempo real, no momento em que a comissão do pintor é confirmada (bem depois de qualquer escalada se
+  resolver). Não há nenhuma duplicação das regras de pagamento: é a mesma linha que já existia, só
+  reatribuída.
+- **Construído**: `src/domain/clarification.ts` (prazos); migração
+  `20261023190000_pedido_esclarecimento_ao_vendedor.sql` — tabelas `survey_clarifications` (uma tentativa por
+  vez, nunca duas abertas ao mesmo tempo) e `survey_clarification_items` (as dúvidas em si, reatribuídas à
+  tentativa nova numa escalada, nunca perdidas); funções `request_painter_doubt`, `clarification_batch` (lista
+  conjunta e não identificada, só visível a quem está atualmente responsável), `confirm_clarification`,
+  `respond_clarification`, `claim_clarification`; quinto bloco em `daily_maintenance()` para a escalada
+  automática. `supabase/tests/rls.test.ts` ganhou um bloco novo (+4 casos, incluindo a escalada completa de
+  ponta a ponta). `npm test` (447), `typecheck`, `lint`, `build` — os quatro com saída 0.
+- **Ainda não aplicada à Supabase** (modo automático bloqueia, como as outras duas pendentes — ver secção 6 de
+  `docs/ESTADO.md`) e **sem UI nenhuma ainda** (nem para o pintor pedir, nem para o vendedor ver a lista e
+  responder, nem para o cliente acompanhar) — só a camada de base de dados está feita e testada.
+- **Em aberto, não decidido pelo promotor**: a fórmula dinâmica da comissão do vendedor (pesos 40/30/15/15:
+  qualificação geral acumulada / nota do pintor sobre a informação do levantamento / resposta a pedidos de
+  esclarecimento / outros incluindo nota do cliente a esta obra) ainda não está implementada — falta a própria
+  avaliação do pintor sobre a qualidade da informação (mecanismo novo, não construído), e `respond_clarification`
+  ainda não alimenta nenhum cálculo de comissão, só regista a resposta. A comunicação ao vendedor como "% do
+  valor adjudicado" (em vez de "% da comissão da plataforma") também ainda não tem nenhuma peça de UI.
