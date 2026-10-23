@@ -1101,6 +1101,47 @@ ele ter de descobrir por fora um código de adesão já existente.
   convites/códigos, não algo que este convite introduz), `database.types.ts` confirmado campo a campo contra
   o gerado pelo Supabase.
 
+## 23/10/2026 — convite do fornecedor: contacto completo, código promocional, vantagens, remetente identificado
+
+Pedido do promotor logo a seguir, a afinar o convite acima: o formulário deve pedir também telefone e
+morada/sede/localização (não só nome e email); poder anexar um código promocional de adesão em vez de um
+gerado ao acaso; o próprio separador `/clientes` deve explicar as vantagens para as duas partes; o email
+deve identificar a pessoa que convidou, não só a empresa ("Cláudio da Cemtintas convida-o..."); e o email
+tem de ser apelativo, cativante, com a imagem da Quem Pinta e a apontar para a página inicial, "como
+funciona" e perguntas frequentes.
+
+- **Telefone e morada passam a obrigatórios** na tabela e no formulário (migração aditiva
+  `convite_contactos_do_pintor`, tabela confirmada vazia antes de aplicar — por isso `not null` direto, sem
+  valor por omissão). "Morada" ficou livre (até 200 carateres) em vez de um endereço estruturado: o
+  fornecedor está a descrever um contacto, não a registar uma entidade formal — isso faz-se a sério quando o
+  pintor criar a sua própria organização.
+- **"Anexar um promo-code de adesão, em que terá o desconto de adesão" — interpretado como um campo opcional
+  de código personalizado**, não como um segundo mecanismo de desconto: o convite já reaproveita
+  `referral_codes` e já traz consigo os 0,25 p.p. de desconto na comissão (`REFERRAL_BPS`,
+  `src/domain/referral.ts`) de sempre, por fornecedor ligado. O que faltava era deixar o fornecedor escolher
+  o próprio código (ex. o nome da empresa) em vez de um gerado ao acaso — útil para o transmitir verbalmente
+  ou por fora do email. Se o campo ficar vazio, gera-se um ao acaso como antes; se o código escolhido já
+  existir, o erro fica no campo (não se tenta outro em silêncio, ao contrário do caminho automático).
+- **Remetente identificado pelo nome do perfil (`profiles.nome`), não só pela empresa**: a ação lê o perfil
+  de quem está autenticado e passa esse nome ao aviso; se não houver (não devia acontecer, `profiles.nome`
+  é `not null`, mas a leitura pode falhar por outra razão), cai para "A equipa da {empresa}".
+- **Email redesenhado para se "ler" como um convite, não um aviso**: assunto e primeira linha identificam a
+  pessoa e a empresa; o desconto concreto (0,25 p.p.) escrito por extenso, não como "um desconto" vago;
+  acrescentada a `notify.ts` a capacidade de pôr ligações secundárias, pequenas, por baixo do botão
+  principal — aqui "Como funciona" e "Perguntas frequentes", a apontar para as âncoras já existentes da
+  página inicial (`/#como-funciona`, `/#perguntas`). A página `/convite-fornecedor/[code]` ganhou o mesmo
+  texto e as mesmas ligações, e corrigiu de passagem uma imprecisão da versão anterior (dizia que o desconto
+  só valia "ao usar produtos desta empresa" — não é assim, o desconto da ligação por código é incondicional).
+- **Vantagens das duas partes, escritas com cuidado para não inventar nada que a plataforma não faça**: para
+  o fornecedor, só a carteira de clientes e os descontos que pode aplicar — nunca uma comissão direta, que
+  este programa não paga (ao contrário das "referências de fornecedores", pintor→fornecedor, essa sim paga
+  1-2%, secção 5.6 do `docs/ESTADO.md`). Para o pintor, a entrada gratuita e o desconto concreto.
+- Nenhuma imagem nova para o email: não havia nenhuma de pintura disponível em `/public/img` (só as de
+  prédio, usadas noutros avisos) e não se inventou uma — a diferenciação ficou só no texto.
+- Testes RLS ajustados (telefone/morada agora obrigatórios no insert do bloco já existente). `tsc`, lint,
+  438 testes, build — zero. Migração aplicada à base real (`20261023171829`), ficheiro renomeado a par,
+  `get_advisors` sem categorias novas, `database.types.ts` confirmado campo a campo.
+
 ## 23/10/2026 — levantamento automático: deixa de ser o cliente a pedir ajuda, passa a ser sempre aberto por omissão
 
 Pedido do promotor, ao reler o documento-fonte "Quem Pinta — a oferta" (`e46e664a-offer.md`, o mesmo que
@@ -1142,3 +1183,43 @@ que este mecanismo foi inventado para matar continua por resolver.
   Deploy", a pedir aprovação explícita do promotor (mesma situação já registada em `docs/ESTADO.md`, secção
   6, para `revoke_delete_clientes_fornecedor`). Fica como ficheiro local, testado em PGlite, à espera de "sim,
   aplica".
+
+## 23/10/2026 — seletor de concelhos por distrito, a substituir "separados por vírgulas"
+
+Pedido do promotor: todos os campos de "concelho" no site (até agora só texto livre, "separados por
+vírgulas") devem passar a um seletor tipo lista pendente, organizado por distrito, com um "+" a abrir os
+concelhos de cada um. Dois sítios tinham exatamente este campo: "Concelhos servidos" (condição de entrega
+em obra, `/produtos`) e "Concelhos" (zona de cobertura do levantamento, `/levantamentos`).
+
+- **A lista dos 308 concelhos não veio de memória nem da Wikipédia — veio da mesma fonte que a aplicação já
+  usa em produção**: `buildings.concelho` é preenchido em `AddressFields.tsx` a partir da resposta da API do
+  geoapi.pt (`src/lib/postalCodes.ts`, `json.geoapi.pt/cp/{cp}`), que por sua vez serve os dados postais dos
+  CTT. Para garantir que os valores deste seletor são exatamente os que a aplicação já guarda — maiúsculas,
+  acentos e até os concelhos homónimos desambiguados pelos próprios CTT (ex.: "Lagoa (Algarve)" vs "Lagoa
+  (São Miguel)", "Calheta (Madeira)" vs "Calheta (São Jorge)") — clonei o repositório público do próprio
+  geoapi.pt (`github.com/iotechpis/geoapi.pt`, a fonte open-source desta API) e extraí os pares
+  Distrito/Concelho dos ~193 mil ficheiros de dados postais que ele já gera (`res/postal-codes/data`), que
+  são a mesma base que o site consulta ao vivo. Confirmado: 308 concelhos, 278 do continente (18 distritos) +
+  19 dos Açores + 11 da Madeira — os totais oficiais. Uma lista escrita de memória arriscava-se a divergir em
+  detalhes como "Mêda" (grafia "oficial") vs "Meda" (a grafia que os CTT realmente usam, e portanto a que
+  fica gravada nos prédios) — por isso a nota no topo de `src/lib/concelhos.ts` a avisar para nunca
+  "corrigir" um nome aqui sem confirmar primeiro contra essa fonte.
+- **Açores e Madeira agrupados como duas regiões, não como 11 "ilhas" separadas**: os CTT guardam o campo
+  Distrito dos códigos postais insulares por ilha (ex.: "Ilha Terceira", "Ilha do Pico"), não por região
+  autónoma — mas isso é só a chave de agrupamento de exibição deste seletor, nunca gravada em lado nenhum;
+  juntei as 9 ilhas dos Açores (19 concelhos) e as 2 da Madeira (11 concelhos) nos dois grupos que um
+  utilizador português reconhece.
+- **Construído:** `src/lib/concelhos.ts` (dados estáticos, `DISTRITOS`) e `src/components/ConcelhosPicker.tsx`
+  — grupos `<details>`/`<summary>` nativos (sem JavaScript nenhum: o próprio HTML trata de abrir/fechar),
+  uma checkbox por concelho sob o mesmo `name`, e a contagem de selecionados no cabeçalho de cada distrito
+  (`group-open:` do Tailwind para o "+"/"−"). O servidor passa a ler `form.getAll('concelhos')` em vez de
+  `.split(',')` em `addDelivery` (`catalogo/actions.ts`) e `setSurveyCoverage` (`levantamentos/actions.ts`) —
+  o resto do caminho (coluna `text[]`, `coversZone`/`deliveryFor` em `src/domain/`) não mudou nada.
+- Testado em `src/lib/concelhos.test.ts` (20 grupos, 308 concelhos, sem distrito nem concelho repetido dentro
+  do mesmo distrito, sem concelho homónimo a aparecer em mais de um distrito ao mesmo tempo — só o
+  desambiguado tal como os CTT). tsc, lint, 443 testes, build — zero. Não há migração nem mudança de domínio:
+  é só a camada de formulário.
+- **Verificado visualmente**: página de pré-visualização temporária, aberta com Playwright (screenshot antes
+  e depois de clicar no "+" de um distrito) — abre/fecha, mostra a contagem de selecionados, e o distrito com
+  um concelho já marcado (`defaultValue`) começa aberto. Página removida a seguir; não ficou nenhum vestígio
+  (`git status --porcelain` confirmado vazio dela).

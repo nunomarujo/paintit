@@ -112,7 +112,7 @@ export default async function SurveysPage() {
           <h2 className="font-semibold">Zonas cobertas</h2>
           <p className="mt-1 text-sm text-slate-600">Concelhos em que tem vendedores disponíveis. Vazio: todo o país.</p>
           <div className="mt-4">
-            <CoverageForm orgId={org.id} initial={(coverage?.concelhos ?? []).join(', ')} />
+            <CoverageForm orgId={org.id} initial={coverage?.concelhos ?? []} />
           </div>
         </section>
       )}

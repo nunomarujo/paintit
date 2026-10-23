@@ -342,8 +342,11 @@ ver o nome do cliente: a política `organizations_select` já deixa um fornecedo
 (`supplier_customers`) é mesmo nova.
 
 **Convite de adesão a quem ainda não está na plataforma (novo, 23/10/2026):** enquanto a carteira estiver
-vazia, `/clientes` mostra em vez da lista um formulário para o fornecedor preencher o nome e o email de um
-pintor que já conhece; a plataforma envia-lhe um convite por email, ligado por baixo a um código de adesão
+vazia, `/clientes` mostra em vez da lista um formulário para o fornecedor preencher nome, email, telefone e
+morada/localização de um pintor que já conhece, mais um campo opcional para um código promocional próprio (em
+vez de um gerado ao acaso); explica também, ao lado do formulário, a vantagem para cada lado (carteira e
+descontos para o fornecedor; adesão gratuita e desconto na comissão para o pintor). A plataforma envia-lhe um
+convite por email — identificando quem convidou, não só a empresa — ligado por baixo a um código de adesão
 normal (`referral_codes`) — aparece de imediato no seletor "fornecedores já ligados" do pintor assim que ele
 aceitar. Aceita-se em `/convite-fornecedor/[código]` (gémeo de "traga o seu pintor", 5.7) ou logo no registo
 de uma entidade de pintura nova. Detalhe completo em `docs/DECISOES.md` e secção 6.3.
@@ -601,6 +604,22 @@ pelo fornecedor"). Resumo do que mudou e já está em produção:
 - Esta secção 6.3 não altera nem resolve o ponto pendente da secção 6.2 acima
   (`revoke_delete_clientes_fornecedor`, ainda à espera de aprovação explícita do promotor) — são migrações
   independentes, sobre tabelas diferentes.
+- **Afinado logo a seguir, mesmo pedido em duas voltas**: telefone e morada passam a obrigatórios (migração
+  `convite_contactos_do_pintor`, versão real `20261023171829`); código promocional opcional no formulário, em
+  vez de sempre gerado ao acaso; identificação de quem convidou (`profiles.nome`) no email; email e página de
+  aceitação redesenhados para serem apelativos e apontar para "Como funciona" e perguntas frequentes
+  (`notify.ts` ganhou a capacidade de pôr ligações secundárias nos emails). Detalhe completo em
+  `docs/DECISOES.md`, entrada seguinte à do parágrafo anterior.
+
+### 6.4 Seletor de concelhos por distrito (23/10/2026)
+
+Os dois campos "concelho" do site (entrega em obra, `/produtos`; zona de cobertura do levantamento,
+`/levantamentos`) eram texto livre "separados por vírgulas"; passaram a um seletor com um grupo por distrito
+que se abre com um "+" (`src/components/ConcelhosPicker.tsx`, dados em `src/lib/concelhos.ts`). Os 308
+concelhos vieram do próprio repositório open-source do geoapi.pt (não de memória), para garantir que batem
+certo, carácter a carácter, com o que `buildings.concelho` já guarda. Só a camada de formulário mudou — sem
+migração, sem alteração ao domínio. Verificado visualmente com Playwright (abre/fecha, contagem por
+distrito). Detalhe completo em `docs/DECISOES.md`.
 
 ---
 

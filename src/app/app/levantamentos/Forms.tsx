@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormState } from '@/app/app/actions';
+import { ConcelhosPicker } from '@/components/ConcelhosPicker';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import { requestSurveyRedemption, setSurveyCoverage, submitSurveyRedemptionInvoice } from './actions';
@@ -15,12 +16,14 @@ const msg = (s: FormState) => {
   ) : null;
 };
 
-export function CoverageForm({ orgId, initial }: { orgId: string; initial: string }) {
+export function CoverageForm({ orgId, initial }: { orgId: string; initial: string[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(setSurveyCoverage.bind(null, orgId), { errors: {} });
   return (
     <form {...formProps} className="flex flex-wrap items-end gap-3">
       <div className="min-w-64 flex-1">
-        <Field name="concelhos" label="Concelhos" defaultValue={initial} hint="Separados por vírgulas. Vazio = todo o país." />
+        <Field name="concelhos" label="Concelhos" hint="Vazio = todo o país.">
+          <ConcelhosPicker name="concelhos" defaultValue={initial} />
+        </Field>
       </div>
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A guardar…' : 'Guardar'}

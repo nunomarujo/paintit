@@ -130,10 +130,7 @@ export async function deleteDiscount(orgId: string, id: string) {
 }
 
 export async function addDelivery(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
-  const concelhos = String(form.get('concelhos') ?? '')
-    .split(/[,;\n]/)
-    .map((c) => c.trim())
-    .filter(Boolean);
+  const concelhos = form.getAll('concelhos').map((c) => String(c).trim()).filter(Boolean);
   const custo = parseHundredths(form.get('custo'));
   const minimo = parseHundredths(form.get('minimo'));
   if (Number.isNaN(custo) || Number.isNaN(minimo)) return { errors: { custo: 'Valores em euros.' } };

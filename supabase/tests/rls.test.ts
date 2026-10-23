@@ -1899,7 +1899,7 @@ describe('convite de adesão do fornecedor (fornecedor convida um pintor que ain
     const ins = (user: string, org: string) =>
       as(user, () =>
         db.query(
-          `insert into public.supplier_painter_invites (org_id, referral_code_id, nome, email) values ($1, $2, 'Zé Pintor', 'ze@exemplo.pt')`,
+          `insert into public.supplier_painter_invites (org_id, referral_code_id, nome, email, telefone, morada) values ($1, $2, 'Zé Pintor', 'ze@exemplo.pt', '912345678', 'Lisboa')`,
           [org, codeId],
         ),
       );

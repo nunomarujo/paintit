@@ -2,11 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { BrandMark } from '@/components/BrandMark';
 import { BRAND } from '@/config/brand';
+import { REFERRAL_BPS } from '@/domain/referral';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { ClaimForm } from './ClaimForm';
 
 export const metadata = { title: `Convite de adesão — ${BRAND.name}` };
+
+const DESCONTO = (REFERRAL_BPS / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
 
 /** Convite de adesão enviado diretamente por um fornecedor a um pintor que ainda não estava na
  * plataforma (docs/DECISOES.md, 23/10/2026) — mesma estrutura de /convite/[code] ("traga o seu
@@ -37,10 +40,17 @@ export default async function SupplierInvitePage({ params }: { params: Promise<{
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-2xl font-semibold">Foi convidado para a {BRAND.name}</h1>
+            <h1 className="mt-2 text-2xl font-semibold">{info.fornecedor} convida-o para a {BRAND.name}</h1>
             <p className="mt-2 text-sm text-slate-600">
-              {info.fornecedor} convidou-o a juntar-se como pintor. Ao aceitar, os seus orçamentos passam a ter um
-              desconto na comissão da plataforma quando usar produtos desta empresa — sem nenhum custo.
+              Orçamente obras de pintura — condomínios e particulares, sem anúncios pagos nem portas frias. Ao
+              aceitar, fica ligado a {info.fornecedor} e os seus orçamentos passam a ter {DESCONTO} pontos
+              percentuais de desconto na comissão da plataforma, em todas as obras que ganhar, enquanto a ligação
+              estiver ativa. Juntar-se é gratuito e sem compromisso.
+            </p>
+            <p className="mt-3 text-sm">
+              <Link href="/#como-funciona" className="font-medium text-blue-700 underline">Como funciona</Link>
+              {' · '}
+              <Link href="/#perguntas" className="font-medium text-blue-700 underline">Perguntas frequentes</Link>
             </p>
             {info.ja_aceite && (
               <p className="mt-4 text-sm text-amber-700" role="alert">
