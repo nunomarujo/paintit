@@ -90,11 +90,8 @@ A seguir, sem depender do promotor:
 5. **Percentagem dos 57%:** não foi usada na app por falta de fonte; se tiver o estudo, pode entrar no texto.
 6. **Identidades no PDF assinado** (pergunta E4 ao advogado): o PDF não tem nomes, por causa do anonimato.
 7. **Advogado:** enviar `docs/advogado/Pedido_minuta_contrato.docx` com o seu contacto preenchido.
-8. **Litígio com repartição (não só culpa de um lado):** o documento de requisitos (DIS-07) prevê um acordo do
-   tipo "60%/40%" entre as partes, mas `resolveDispute` (`src/domain/engagement.ts`) só tem os dois desfechos
-   binários já existentes (culpa do cliente / culpa do pintor). Construir a repartição é uma decisão de negócio
-   (quem a propõe, se as duas partes têm de aceitar, como afeta caução e comissão) — fica por decidir, não é
-   lacuna de código a fechar sozinho. Encontrado a 23/10/2026, sessão autónoma.
+8. ~~Litígio com repartição (DIS-07)~~: resolvido com julgamento próprio a 23/10/2026 — outcome `repartido` +
+   percentagem de culpa do cliente (1-99), ver `docs/DECISOES.md`.
 9. **Avaliação de uma obra cancelada, não só concluída:** o documento (AVA-01) prevê avaliações de cancelamentos
    em categoria distinta; hoje `reviews` só aceita uma avaliação por `engagement_id` quando a obra foi assinada
    (implícito na política de inserção). Se quiseres isto, é sobretudo decidir quem pode avaliar um cancelamento

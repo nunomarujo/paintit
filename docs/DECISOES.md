@@ -795,3 +795,38 @@ pede precisamente que a equipa consiga reunir e encontrar os casos.
   (como o separador "Todas", ao lado, também não tem) — só o Painel principal, que já paga esse custo de
   qualquer forma.
 - Testado por tsc, lint, 398 testes, build, zero; smoke-test com o mesmo erro ambiental de sempre.
+
+## 23/10/2026 — litígio com repartição (DIS-07/DIS-08), decidido com julgamento próprio
+
+Terceira questão registada em `docs/ESTADO.md` (item 8) a 23/10/2026, autorizada pelo promotor a resolver com o
+meu melhor julgamento ("continua, resolve as 3 questões com o teu melhor julgamento"). O documento de requisitos
+(DIS-07/DIS-08, UAT-26) pede um acordo "60%/40%" entre as partes; `resolveDispute` só tinha os dois desfechos
+binários. Faltava decidir **para onde vai cada fração — não só que existe uma fração.**
+
+- **Para onde vai o dinheiro, confirmado por `docs/MODELO.md` antes de tocar em `engagement.ts` (regra do
+  CLAUDE.md):** a tabela de desfechos e a frase "a plataforma devolve a comissão ao pintor (que não teve culpa)
+  e fica com a caução" confirmam que nos dois desfechos binários o dinheiro nunca passa de uma parte para a
+  outra — só entre cada parte e a plataforma (a caução retida é receita da plataforma, nunca paga ao pintor; a
+  comissão retida também). Uma primeira leitura minha do DIS-12 genérico ("devolução de caução ao pintor")
+  tinha-me feito pensar o contrário; é exatamente a hipótese que o CLAUDE.md pede para verificar no MODELO.md
+  antes de mudar isto, e o próprio `settlement()` (campo `plataforma.recebeu`, que já soma `retencao_fee` e
+  `retencao_garantia`) confirma a leitura do MODELO.md.
+- **Desenho (minha decisão):** um parâmetro só, `culpaClientePercent` (1-99, inteiro), aplicado com o mesmo
+  sentido às duas rubricas: essa fração da caução fica retida pela plataforma (o resto volta ao cliente); essa
+  mesma fração da comissão volta ao pintor (o resto fica retido pela plataforma). Em 100% e 0% reproduz
+  exatamente os dois desfechos binários já existentes — por isso ficaram como estavam (`culpa_cliente`,
+  `culpa_pintor`), e o novo caminho (`outcome: 'repartido'`) cobre só o meio-termo, 1 a 99. Os dois lados nunca
+  trocam dinheiro diretamente, só com a plataforma — consistente com o resto do modelo.
+- **Quem decide e como se fecha a conta:** a equipa da plataforma, no mesmo formulário que já tinha as duas
+  decisões binárias (não é um acordo que as partes propõem uma à outra na aplicação — isso ficaria para o
+  documento jurídico da minuta, fora do que hoje existe). Os dois valores (retido/devolvido) são sempre
+  complementares por construção (`total - percentOf(total, pct)`), nunca por dois arredondamentos
+  independentes — fecha sempre ao cêntimo, sem resto.
+- **Construído:** `DisputeOutcome` ganha `'repartido'`; `EngagementStatus` ganha `'litigio_repartido'`;
+  `resolveDispute` valida a percentagem (inteiro 1-99) e lança `EngagementError` fora disso. `contracting.ts`
+  (payload, `apply`, `STATUS_LABELS`), `notifications.ts` (aviso genérico, sem dizer quem "ganhou", como os
+  outros dois já não dizem valores), `contratacoes/actions.ts` (`OUTCOMES`, validação da percentagem) e
+  `ActionForms.tsx` (campo numérico que só aparece com "Repartido" escolhido). Nenhuma migração: `payload` de
+  `engagement_events` é `jsonb` sem restrição de esquema.
+- Testado em `engagement.test.ts` (37% e 60%, incluindo o fecho exato ao cêntimo e a rejeição de percentagens
+  fora de 1-99) e `notifications.test.ts`. tsc, lint, 407 testes, build, zero.

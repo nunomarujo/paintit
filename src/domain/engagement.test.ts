@@ -7,6 +7,7 @@ import {
   closeWithoutContract,
   confirmClientDeposit,
   createEngagement,
+  EngagementError,
   expire,
   held,
   openDispute,
@@ -178,6 +179,37 @@ describe('litígio antes da assinatura do pintor', () => {
     expectNothingHeld(e);
     expect(settlement(e).plataforma.recebeu).toBe(GUARANTEE);
     expect(settlement(e).pintor.recebeu).toBe(FEE_GROSS);
+  });
+
+  it('repartido 37%: fecha exatamente sem resto, com arredondamento ao cêntimo', () => {
+    const e = resolveDispute(disputed(), { at: t('2026-12-01T09:00:00Z'), outcome: 'repartido', culpaClientePercent: 37 });
+    expect(e.status).toBe('litigio_repartido');
+    expectNothingHeld(e);
+    const s = settlement(e);
+    expect(s.pintor.recebeu).toBe(136_530); // 37% da comissão devolvido ao pintor
+    expect(s.plataforma.recebeu).toBe(343_470); // 37% da caução + 63% da comissão
+    expect(s.cliente.recebeu).toBe(ADVANCE + 189_000); // adiantamento (devolvido ao abrir o litígio) + 63% da caução
+    // Nada se perde nem se cria: tudo o que entrou sai outra vez, por algum lado.
+    expect(s.cliente.recebeu + s.pintor.recebeu + s.plataforma.recebeu).toBe(s.cliente.entregou + s.pintor.entregou);
+  });
+
+  it('repartido: a percentagem é a mesma fração aplicada à caução e à comissão, em sentidos opostos', () => {
+    const e = resolveDispute(disputed(), { at: t('2026-12-01T09:00:00Z'), outcome: 'repartido', culpaClientePercent: 60 });
+    expectNothingHeld(e);
+    const s = settlement(e);
+    expect(s.pintor.recebeu).toBe(Math.round(FEE_GROSS * 0.6)); // 60% devolvido ao pintor, 40% retido
+    expect(s.cliente.recebeu).toBe(ADVANCE + Math.round(GUARANTEE * 0.4)); // adiantamento + 40% da caução devolvido
+    expect(s.cliente.recebeu + s.pintor.recebeu + s.plataforma.recebeu).toBe(s.cliente.entregou + s.pintor.entregou);
+  });
+
+  it.each([0, 100, 50.5, -10, 101])('repartido rejeita uma percentagem fora de 1-99 (%s)', (pct) => {
+    expect(() => resolveDispute(disputed(), { at: t('2026-12-01T09:00:00Z'), outcome: 'repartido', culpaClientePercent: pct })).toThrow(
+      EngagementError,
+    );
+  });
+
+  it('repartido sem percentagem indicada é rejeitado', () => {
+    expect(() => resolveDispute(disputed(), { at: t('2026-12-01T09:00:00Z'), outcome: 'repartido' })).toThrow(EngagementError);
   });
 
   it('acordo: nova minuta, o cliente assina e o pintor assina sem voltar a pagar', () => {

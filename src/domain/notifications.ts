@@ -69,6 +69,11 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
         { to: 'cliente', subject: 'Litígio resolvido a seu favor', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado da empresa de pintura.', 'A caução depositada é devolvida.'] },
         { to: 'pintor', subject: 'Litígio resolvido: a comissão não é devolvida', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado da empresa de pintura.', 'A comissão paga fica retida.'] },
       ];
+    case 'litigio_repartido':
+      return both('Litígio resolvido: responsabilidade repartida', [
+        'A equipa da plataforma decidiu o litígio com responsabilidade repartida entre as duas partes.',
+        'Cada parte perde só uma fração do que tinha em risco; o detalhe está na página da contratação.',
+      ]);
     default:
       return [];
   }

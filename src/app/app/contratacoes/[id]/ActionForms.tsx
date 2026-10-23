@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { partyAction, platformAction } from '@/app/app/contratacoes/actions';
@@ -87,18 +88,45 @@ export function PlatformAction({ engagementId, kind, expected }: { engagementId:
   const { state, pending, formProps } = useFormAction<FormState>(platformAction.bind(null, engagementId, kind), {
     errors: {},
   });
+  const [decisao, setDecisao] = useState('');
   return (
     <form {...formProps} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
       <p className="font-semibold">{PLATFORM[kind]}</p>
       {kind === 'litigio_resolvido' ? (
-        <select name="decisao" defaultValue="" className="block rounded-lg border border-slate-300 bg-white px-3 py-2">
-          <option value="" disabled>
-            Decisão…
-          </option>
-          <option value="culpa_cliente">Culpa do cliente: perde a caução, o pintor recupera a comissão</option>
-          <option value="culpa_pintor">Culpa do pintor: perde a comissão, o cliente recupera a caução</option>
-          <option value="retomar">Acordo: nova minuta para o cliente assinar</option>
-        </select>
+        <>
+          <select
+            name="decisao"
+            defaultValue=""
+            onChange={(e) => setDecisao(e.target.value)}
+            className="block rounded-lg border border-slate-300 bg-white px-3 py-2"
+          >
+            <option value="" disabled>
+              Decisão…
+            </option>
+            <option value="culpa_cliente">Culpa do cliente: perde a caução, o pintor recupera a comissão</option>
+            <option value="culpa_pintor">Culpa do pintor: perde a comissão, o cliente recupera a caução</option>
+            <option value="repartido">Repartido: cada parte perde só uma fração</option>
+            <option value="retomar">Acordo: nova minuta para o cliente assinar</option>
+          </select>
+          {decisao === 'repartido' && (
+            <label className="block">
+              Percentagem de culpa do cliente (1 a 99)
+              <input
+                name="percentualCliente"
+                type="number"
+                min={1}
+                max={99}
+                step={1}
+                defaultValue={50}
+                className="mt-1 block w-28 rounded-lg border border-slate-300 px-3 py-2"
+              />
+              <span className="mt-1 block text-xs text-slate-600">
+                Essa fração da caução fica retida (o resto volta ao cliente); essa mesma fração da comissão volta ao pintor (o
+                resto fica retido).
+              </span>
+            </label>
+          )}
+        </>
       ) : (
         <div className="flex flex-wrap gap-3">
           <label>

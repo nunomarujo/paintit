@@ -269,7 +269,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </section>
       )}
 
-      {['assinado', 'cliente_desistiu', 'litigio_culpa_cliente', 'litigio_culpa_pintor', 'encerrado_sem_contrato', 'transitado'].includes(e.status) && (
+      {['assinado', 'cliente_desistiu', 'litigio_culpa_cliente', 'litigio_culpa_pintor', 'litigio_repartido', 'encerrado_sem_contrato', 'transitado'].includes(e.status) && (
         <section className={card}>
           <h2 className="font-semibold">Acerto final</h2>
           <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">

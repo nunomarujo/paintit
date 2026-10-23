@@ -112,7 +112,7 @@ export async function carryToProposal(engagementId: string, requestId: string, n
   redirect(next ? `/app/contratacoes/${next.id}` : `/app/pedidos/${requestId}/propostas`);
 }
 
-const OUTCOMES: DisputeOutcome[] = ['culpa_cliente', 'culpa_pintor', 'retomar'];
+const OUTCOMES: DisputeOutcome[] = ['culpa_cliente', 'culpa_pintor', 'repartido', 'retomar'];
 
 /** Confirmações do parceiro de pagamentos e decisões de litígio: só a equipa da plataforma. */
 export async function platformAction(
@@ -129,6 +129,14 @@ export async function platformAction(
   }
   const outcome = String(form.get('decisao') ?? '') as DisputeOutcome;
   if (kind === 'litigio_resolvido' && !OUTCOMES.includes(outcome)) return { errors: { decisao: 'Escolha a decisão.' } };
+  let culpaClientePercent: number | undefined;
+  if (kind === 'litigio_resolvido' && outcome === 'repartido') {
+    const raw = Number(form.get('percentualCliente'));
+    if (!Number.isInteger(raw) || raw < 1 || raw > 99) {
+      return { errors: { percentualCliente: 'A percentagem de culpa do cliente tem de ser um número inteiro entre 1 e 99.' } };
+    }
+    culpaClientePercent = raw;
+  }
   const when = String(form.get('quando') ?? '').trim();
   const at = when ? (fromLocalDateTime(when, CURRENT_RULES.timeZone) ?? undefined) : undefined;
   if (when && (!at || at > new Date())) return { errors: { quando: 'Data e hora no passado (hora de Lisboa).' } };
@@ -136,7 +144,7 @@ export async function platformAction(
     amount,
     at,
     admin: true,
-    payload: kind === 'litigio_resolvido' ? { outcome } : {},
+    payload: kind === 'litigio_resolvido' ? { outcome, ...(culpaClientePercent !== undefined ? { culpaClientePercent } : {}) } : {},
   });
   return {
     errors: r.errors,

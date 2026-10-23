@@ -33,6 +33,11 @@ describe('avisos por email', () => {
     expect(culpaPintor.find((n) => n.to === 'cliente')!.lines.join(' ')).toMatch(/devolvida/);
     expect(culpaPintor.find((n) => n.to === 'pintor')!.lines.join(' ')).toMatch(/retida/);
   });
+  it('o litígio repartido avisa as duas partes, sem dizer quem "ganhou"', () => {
+    const repartido = engagementNotices('em_litigio', 'litigio_repartido', 8);
+    expect(repartido.map((n) => n.to).sort()).toEqual(['cliente', 'pintor']);
+    expect(repartido.every((n) => /repartid/.test(n.lines.join(' ')))).toBe(true);
+  });
   it('nova proposta não identifica a empresa', () => {
     expect(NEW_PROPOSAL_NOTICE('Fachadas 2027').lines.join(' ')).toContain('Fachadas 2027');
   });

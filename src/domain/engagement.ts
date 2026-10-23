@@ -1,6 +1,6 @@
 import { clientGuarantee, painterFee } from './commission';
 import { deadlineFrom, isWithin, type IsoDate } from './deadline';
-import { assertCents, type Cents } from './money';
+import { assertCents, percentOf, type Cents } from './money';
 import type { CommercialRules } from './rules';
 
 // Contratação: da escolha de uma proposta pelo cliente até à assinatura das
@@ -21,6 +21,7 @@ export type EngagementStatus =
   | 'em_litigio'
   | 'litigio_culpa_cliente'
   | 'litigio_culpa_pintor'
+  | 'litigio_repartido'
   | 'transitado'
   | 'encerrado_sem_contrato'
   | 'cancelado';
@@ -388,10 +389,20 @@ export function openDispute(e: Engagement, p: { at: Date; reason: string }): Eng
   return { ...next, status: 'em_litigio', signDue: undefined, clientDue: undefined };
 }
 
-export type DisputeOutcome = 'culpa_cliente' | 'culpa_pintor' | 'retomar';
+export type DisputeOutcome = 'culpa_cliente' | 'culpa_pintor' | 'repartido' | 'retomar';
 
-/** Acordo ou decisão: só a parte culpada perde os seus 3%. */
-export function resolveDispute(e: Engagement, p: { at: Date; outcome: DisputeOutcome }): Engagement {
+/**
+ * Acordo ou decisão. Nos dois desfechos binários, só a parte culpada perde os
+ * seus 3%. Em "repartido" (DIS-07/DIS-08), a equipa fixa a fração de culpa do
+ * cliente (1-99): essa fração da caução fica retida (o resto volta ao
+ * cliente) e essa mesma fração da comissão volta ao pintor (o resto fica
+ * retido) — nunca há transferência direta entre as partes, só entre cada
+ * parte e a plataforma, como nos outros desfechos (docs/MODELO.md).
+ */
+export function resolveDispute(
+  e: Engagement,
+  p: { at: Date; outcome: DisputeOutcome; culpaClientePercent?: number },
+): Engagement {
   expectStatus(e, ['em_litigio'], 'Resolver o litígio');
   const h = held(e);
   if (p.outcome === 'culpa_cliente') {
@@ -407,6 +418,21 @@ export function resolveDispute(e: Engagement, p: { at: Date; outcome: DisputeOut
       { kind: 'devolucao_garantia', amount: h.guarantee },
     ]);
     return { ...next, status: 'litigio_culpa_pintor' };
+  }
+  if (p.outcome === 'repartido') {
+    const pct = p.culpaClientePercent;
+    if (pct === undefined || !Number.isInteger(pct) || pct < 1 || pct > 99) {
+      fail('percentagem_invalida', 'A percentagem de culpa do cliente tem de ser um número inteiro entre 1 e 99 (fora disso, use culpa do cliente ou do pintor).');
+    }
+    const guaranteeRetained = percentOf(h.guarantee, pct * 100);
+    const feeReturned = percentOf(h.fee, pct * 100);
+    const next = record(e, p.at, `litígio resolvido: repartido ${pct}% cliente / ${100 - pct}% pintor`, [
+      { kind: 'retencao_garantia', amount: guaranteeRetained },
+      { kind: 'devolucao_garantia', amount: h.guarantee - guaranteeRetained },
+      { kind: 'devolucao_fee', amount: feeReturned },
+      { kind: 'retencao_fee', amount: h.fee - feeReturned },
+    ]);
+    return { ...next, status: 'litigio_repartido' };
   }
   const clientDue = isV2(e) ? deadlineFrom(p.at, e.rules.signDeadlineDays, e.rules.timeZone) : undefined;
   return { ...record(e, p.at, 'acordo: nova minuta para o cliente assinar'), status: 'aguarda_assinatura_cliente', clientDue };

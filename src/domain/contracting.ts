@@ -73,6 +73,8 @@ export interface EngagementEvent {
   payload: {
     reason?: string;
     outcome?: DisputeOutcome;
+    /** Só com outcome 'repartido': fração de culpa do cliente, 1-99. */
+    culpaClientePercent?: number;
     to?: string;
     documentHash?: string;
     /** Como assinou: PDF com Chave Móvel Digital/Cartão de Cidadão, ou aceitação simples (só em testes). */
@@ -120,7 +122,7 @@ function apply(e: Engagement, ev: EngagementEvent): { e: Engagement; carried?: R
       return { e: openDispute(e, { at, reason: ev.payload.reason ?? 'sem motivo indicado' }) };
     case 'litigio_resolvido':
       if (!ev.payload.outcome) throw new EngagementError('sem_decisao', 'Falta a decisão do litígio.');
-      return { e: resolveDispute(e, { at, outcome: ev.payload.outcome }) };
+      return { e: resolveDispute(e, { at, outcome: ev.payload.outcome, culpaClientePercent: ev.payload.culpaClientePercent }) };
     case 'transitar': {
       const r = carryToNext(e, { at, to: ev.payload.to ?? 'outra proposta' });
       return { e: r.engagement, carried: r.carried };
@@ -176,6 +178,7 @@ export const STATUS_LABELS: Record<EngagementStatus, string> = {
   em_litigio: 'Em litígio',
   litigio_culpa_cliente: 'Litígio resolvido: culpa do cliente',
   litigio_culpa_pintor: 'Litígio resolvido: culpa do pintor',
+  litigio_repartido: 'Litígio resolvido: repartido entre as partes',
   transitado: 'Valores transitaram para outra proposta',
   encerrado_sem_contrato: 'Encerrado sem contrato',
   cancelado: 'Escolha cancelada',
