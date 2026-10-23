@@ -76,8 +76,9 @@ export default async function CatalogPage({
       <div>
         <h1 className="text-2xl font-semibold">Catálogo de produtos</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Produtos dos fornecedores, com ficha técnica e preço de referência datado. A estimativa usa o rendimento
-          declarado; o preço por litro e a marca não dizem, por si, qual é o melhor sistema para o suporte.
+          Fichas de fabricante e produtos à venda na plataforma, com ficha técnica e preço de referência datado.
+          Indique a área e as demãos para uma estimativa de litros, embalagens e custo por produto; o preço por
+          litro e a marca não dizem, por si, qual é o melhor sistema para o suporte.
         </p>
       </div>
       <form autoComplete="off" className="flex flex-wrap items-end gap-3 text-sm">
