@@ -563,6 +563,14 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['supplier_customers']['Insert']>;
         Relationships: [];
       };
+      supplier_painter_invites: {
+        Row: { created_at: string; created_by: string | null; email: string; id: string; nome: string; org_id: string; referral_code_id: string };
+        Insert: { created_at?: string; created_by?: string | null; email: string; id?: string; nome: string; org_id: string; referral_code_id: string };
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'supplier_painter_invites_referral_code_id_fkey'; columns: ['referral_code_id']; isOneToOne: true; referencedRelation: 'referral_codes'; referencedColumns: ['id'] },
+        ];
+      };
       reference_products: {
         Row: {
           acabamento: string | null; base_aquosa: boolean | null; complementares: string[]; cores: string | null; created_at: string;
@@ -1431,6 +1439,8 @@ export type Database = {
     Functions: {
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
       apply_supplier_referral_code: { Args: { p_org: string; p_code: string | null }; Returns: undefined };
+      claim_supplier_invite: { Args: { p_code: string; p_org: string }; Returns: string };
+      supplier_invite_info: { Args: { p_code: string }; Returns: { fornecedor: string; ja_aceite: boolean }[] };
       redeem_request_invite: { Args: { p_code: string; p_painter_org: string }; Returns: string };
       request_invite_info: {
         Args: { p_code: string };

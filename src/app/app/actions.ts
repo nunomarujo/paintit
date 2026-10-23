@@ -106,6 +106,12 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
     const codigoReferencia = String(form.get('codigoReferencia') ?? '').trim();
     if (codigoReferencia) await supabase.rpc('apply_supplier_referral_code', { p_org: data.id, p_code: codigoReferencia });
   }
+  // Código de um convite de adesão de um fornecedor (docs/DECISOES.md, 23/10/2026): mesmo espírito —
+  // opcional, um código inválido ou já usado não impede o registo, só não liga o convite.
+  if (v.kind === 'pintor') {
+    const codigoConvite = String(form.get('codigoConvite') ?? '').trim();
+    if (codigoConvite) await supabase.rpc('claim_supplier_invite', { p_code: codigoConvite, p_org: data.id });
+  }
 
   revalidatePath('/app');
   redirect(`/app/organizacoes/${data.id}`);

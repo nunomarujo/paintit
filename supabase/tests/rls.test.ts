@@ -1876,6 +1876,75 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
   });
 });
 
+describe('convite de adesão do fornecedor (fornecedor convida um pintor que ainda não está na plataforma)', () => {
+  const FM = '00000000-0000-4000-8000-0000000000d5'; // fornecedor, gestor — envia o convite
+  const FM2 = '00000000-0000-4000-8000-0000000000d6'; // colega no fornecedor, sem papel de gestor
+  const IP = '00000000-0000-4000-8000-0000000000d7'; // pintor que aceita o convite
+  const IP2 = '00000000-0000-4000-8000-0000000000d8'; // outro pintor, sem relação com o convite
+  let supplierOrg: string;
+  let codeId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4), ($5, $6), ($7, $8)', [
+      FM, email(FM), FM2, email(FM2), IP, email(IP), IP2, email(IP2),
+    ]);
+    supplierOrg = (await createOrg(FM, 'fornecedor', 'Tintas Convites Lda', '606226729')).id;
+    await db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'leitor')`, [supplierOrg, FM2]);
+    codeId = (
+      await as(FM, () => one<{ id: string }>(`insert into public.referral_codes (supplier_org_id, code) values ($1, 'CONVF1234') returning id`, [supplierOrg]))
+    ).id;
+  });
+
+  it('só um gestor do fornecedor cria o convite, pela sua organização', async () => {
+    const ins = (user: string, org: string) =>
+      as(user, () =>
+        db.query(
+          `insert into public.supplier_painter_invites (org_id, referral_code_id, nome, email) values ($1, $2, 'Zé Pintor', 'ze@exemplo.pt')`,
+          [org, codeId],
+        ),
+      );
+    await expect(ins(FM2, supplierOrg)).rejects.toThrow(/row-level security/);
+    await expect(ins(IP, supplierOrg)).rejects.toThrow(/row-level security/);
+    await as(FM, () => ins(FM, supplierOrg));
+  });
+
+  it('só quem acede à organização do fornecedor vê o convite; não se altera nem se apaga', async () => {
+    expect(await as(FM, async () => (await db.query('select nome from public.supplier_painter_invites where org_id = $1', [supplierOrg])).rows)).toEqual([
+      { nome: 'Zé Pintor' },
+    ]);
+    expect(await as(IP, async () => (await db.query('select 1 from public.supplier_painter_invites where org_id = $1', [supplierOrg])).rows)).toEqual([]);
+    await expect(
+      as(FM, () => db.query(`update public.supplier_painter_invites set nome = 'Outro Nome' where org_id = $1`, [supplierOrg])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(as(FM, () => db.query(`delete from public.supplier_painter_invites where org_id = $1`, [supplierOrg]))).rejects.toThrow(/permission denied/);
+  });
+
+  it('supplier_invite_info mostra só o fornecedor e se já foi aceite — nunca quem foi convidado', async () => {
+    const info = await as(IP, () => one<{ fornecedor: string; ja_aceite: boolean }>(`select * from public.supplier_invite_info('CONVF1234')`));
+    expect(info).toEqual({ fornecedor: 'Tintas Convites Lda', ja_aceite: false });
+    expect((await db.query(`select * from public.supplier_invite_info('ZZZZZZZZ')`)).rows).toHaveLength(0);
+  });
+
+  it('claim_supplier_invite: só um gestor da entidade de pintura, código inválido, sucesso, não se reatribui', async () => {
+    const painterOrg = (await createOrg(IP, 'pintor', 'Pinturas do Convite', '606226737')).id;
+    await expect(as(IP2, () => db.query(`select public.claim_supplier_invite('CONVF1234', $1)`, [painterOrg]))).rejects.toThrow(/não encontrada/);
+    await expect(as(FM, () => db.query(`select public.claim_supplier_invite('CONVF1234', $1)`, [supplierOrg]))).rejects.toThrow(/não encontrada/);
+    await expect(as(IP, () => db.query(`select public.claim_supplier_invite('ZZZZZZZZ', $1)`, [painterOrg]))).rejects.toThrow(/inválido/);
+
+    const r = await as(IP, () => one<{ claim_supplier_invite: string }>(`select public.claim_supplier_invite('CONVF1234', $1)`, [painterOrg]));
+    expect(r.claim_supplier_invite).toBe('Tintas Convites Lda');
+    expect((await one<{ painter_org_id: string }>('select painter_org_id from public.referral_codes where id = $1', [codeId])).painter_org_id).toBe(painterOrg);
+    expect((await as(IP, () => one<{ fornecedor: string; ja_aceite: boolean }>(`select * from public.supplier_invite_info('CONVF1234')`))).ja_aceite).toBe(true);
+
+    // Idempotente para a mesma empresa.
+    await as(IP, () => db.query(`select public.claim_supplier_invite('CONVF1234', $1)`, [painterOrg]));
+
+    // Já associado: outra empresa de pintura não o pode seguir.
+    const otherPainterOrg = (await createOrg(IP2, 'pintor', 'Outra Empresa de Pintura', '606226745')).id;
+    await expect(as(IP2, () => db.query(`select public.claim_supplier_invite('CONVF1234', $1)`, [otherPainterOrg]))).rejects.toThrow(/já foi associado a outra empresa/);
+  });
+});
+
 describe('levantamento por vendedor (reserva por zona, prazo, repartição)', () => {
   const VEND = '00000000-0000-4000-8000-0000000000e5'; // vendedor (papel novo) de um fornecedor
   let vendorOrg: string;

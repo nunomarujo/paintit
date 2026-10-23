@@ -8,9 +8,9 @@ import { OrgForm } from './OrgForm';
 export default async function NewOrganizationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string; gerida_por?: string; perfil?: string }>;
+  searchParams: Promise<{ tipo?: string; gerida_por?: string; perfil?: string; convite?: string }>;
 }) {
-  const { tipo, gerida_por, perfil } = await searchParams;
+  const { tipo, gerida_por, perfil, convite } = await searchParams;
   const { supabase, user } = await getUser();
 
   const administradoras = await managedAdministradoras(supabase, user!.id);
@@ -60,6 +60,7 @@ export default async function NewOrganizationPage({
           initialKind={initialKind}
           initialGeridaPor={gerida_por}
           defaultEmail={user?.email ?? undefined}
+          defaultCodigoConvite={convite}
         />
       </div>
     </div>
