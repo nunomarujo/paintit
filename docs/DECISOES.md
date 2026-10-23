@@ -683,3 +683,29 @@ Seis achados reais, todos corrigidos no mesmo lote, tsc/lint/395 testes/build, z
 - **`/app/pedidos/[id]/propostas`:** a cobertura dos trabalhos pedidos (acima) recalculava tudo a cada célula da
   tabela em vez de uma vez por pintor — sem impacto real com as listas pequenas de hoje, mas corrigido para um
   mapa calculado uma vez.
+
+## 23/10/2026 — ficheiros enviados: confirmar o tipo pelos bytes, não pelo que o navegador diz (SEG-05)
+
+Levantamento contra o documento de requisitos (secção 25.2, SEG-05: "o nome da extensão não é suficiente para
+confiar num documento"). As fotografias já faziam isto bem (`sniffImage`, `src/domain/photo.ts`, com remoção de
+metadados a seguir) — mas os três sítios que recebem **PDF** confiavam no `file.type` que o navegador envia, que
+quem submete o formulário controla por inteiro (um pedido direto à *server action*, sem passar pelo ecrã, pode
+dizer `application/pdf` sobre qualquer conteúdo, incluindo HTML/script). Um ficheiro assim ficava guardado no
+armazenamento com esse rótulo e podia mais tarde ser servido como se fosse PDF a outra pessoa.
+
+- `src/domain/fileSignature.ts`: `sniffPdf(bytes)`, pura e testada — confirma `%PDF-` nos primeiros bytes, o
+  mesmo princípio de `sniffImage`, não uma abstração nova.
+- Documentos de entidade (`uploadDocument`, `src/app/app/actions.ts`): deixou de confiar em `file.type`; sniffa
+  PDF ou imagem a partir dos bytes recebidos e usa esse resultado (não o que o pedido alegava) para o tipo
+  gravado no armazenamento.
+- Fatura de resgate de comissão (`submitRedemptionInvoice`, `.../adesoes/actions.ts`): o mesmo, só para PDF.
+- Ficha técnica de um produto (`addProduct`, `.../catalogo/actions.ts`): já fazia a confirmação pelos bytes à
+  mão (`String.fromCharCode(...head) !== '%PDF-'`) — só passou a usar a função partilhada, sem mudar o
+  comportamento.
+- O PDF do contrato assinado (`contratacoes/actions.ts`) já não precisava disto: `checkSignedPdf`/
+  `verifySignature` (`src/lib/pades.ts`) já validam a estrutura e a assinatura criptográfica do ficheiro
+  inteiro, uma verificação de conteúdo muito mais forte do que confirmar só os primeiros bytes.
+- O extrato bancário (`bank-actions.ts`) não precisa disto por outra razão: o próprio `parseBankFile` lê e
+  interpreta o conteúdo como texto — um ficheiro que não seja um extrato simplesmente falha a interpretar-se,
+  não há um rótulo de tipo a confiar cegamente.
+- Testado (`src/domain/fileSignature.test.ts`) e tsc, lint, 397 testes, build, zero.

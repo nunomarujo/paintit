@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { sniffPdf } from '@/domain/fileSignature';
 import { isValidPtIban, newReferralCode } from '@/domain/referral';
 import { getUser } from '@/lib/supabase/server';
 
@@ -86,9 +87,11 @@ export async function submitRedemptionInvoice(orgId: string, redemptionId: strin
   const file = form.get('ficheiro');
   if (!numero || numero.length > 40) return { errors: { numero: 'Indique o número da fatura.' } };
   if (!(file instanceof File) || file.size === 0) return { errors: { ficheiro: 'Escolha o PDF da fatura.' } };
-  if (file.type !== 'application/pdf' || file.size > 5 * 1024 * 1024) return { errors: { ficheiro: 'PDF até 5 MB.' } };
+  if (file.size > 5 * 1024 * 1024) return { errors: { ficheiro: 'PDF até 5 MB.' } };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!sniffPdf(bytes)) return { errors: { ficheiro: 'O ficheiro não é um PDF.' } };
   const storagePath = `${orgId}/${redemptionId}.pdf`;
-  const up = await supabase.storage.from('faturas-adesao').upload(storagePath, file, { contentType: 'application/pdf', upsert: false });
+  const up = await supabase.storage.from('faturas-adesao').upload(storagePath, bytes, { contentType: 'application/pdf', upsert: false });
   if (up.error && !/exists|Duplicate/i.test(up.error.message)) return { errors: {}, message: 'Não foi possível enviar o ficheiro. Só gestores do fornecedor o podem fazer.' };
   const { error } = await supabase.rpc('referral_redemption_invoice', { p_redemption: redemptionId, p_numero: numero, p_path: storagePath });
   if (error) return { errors: {}, message: error.message };

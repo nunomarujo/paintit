@@ -13,6 +13,7 @@ import {
   type PaymentTerms,
   type ProductType,
 } from '@/domain/catalog';
+import { sniffPdf } from '@/domain/fileSignature';
 import { parseHundredths } from '@/domain/request';
 import { getUser } from '@/lib/supabase/server';
 
@@ -24,9 +25,9 @@ export async function addProduct(orgId: string, _prev: FormState, form: FormData
   const file = form.get('ficha');
   const hasFile = file instanceof File && file.size > 0;
   if (hasFile) {
-    const head = new Uint8Array(await (file as File).slice(0, 5).arrayBuffer());
     if (file.size > MAX_BYTES) return { errors: { ficha: 'A ficha tem mais de 10 MB.' } };
-    if (String.fromCharCode(...head) !== '%PDF-') return { errors: { ficha: 'A ficha técnica tem de ser um PDF.' } };
+    const head = new Uint8Array(await (file as File).slice(0, 5).arrayBuffer());
+    if (!sniffPdf(head)) return { errors: { ficha: 'A ficha técnica tem de ser um PDF.' } };
   }
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };

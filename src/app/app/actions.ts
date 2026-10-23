@@ -1,6 +1,8 @@
 'use server';
 
 import { isCompanyNif, nameMatchesOfficial } from '@/domain/nif';
+import { sniffPdf } from '@/domain/fileSignature';
+import { sniffImage } from '@/domain/photo';
 import { lookupNif } from '@/lib/nifpt';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
@@ -269,7 +271,6 @@ export async function reviewDocument(documentId: string, _prev: FormState, form:
 }
 
 const MAX_BYTES = 10 * 1024 * 1024;
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 
 export async function uploadDocument(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const kind = String(form.get('kind') ?? '');
@@ -279,7 +280,6 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
   if (!(DOC_KINDS as readonly string[]).includes(kind)) errors.kind = 'Escolha o tipo de documento.';
   if (!(file instanceof File) || file.size === 0) errors.ficheiro = 'Escolha um ficheiro.';
   else if (file.size > MAX_BYTES) errors.ficheiro = 'O ficheiro tem mais de 10 MB.';
-  else if (!ALLOWED_TYPES.includes(file.type)) errors.ficheiro = 'Só PDF, JPG ou PNG.';
   if (validoAte && !/^\d{4}-\d{2}-\d{2}$/.test(validoAte)) errors.validoAte = 'Data inválida.';
   const classeRaw = String(form.get('classe') ?? '').trim();
   const classe = kind === 'alvara_impic' && classeRaw ? Number(classeRaw) : null;
@@ -288,16 +288,21 @@ export async function uploadDocument(orgId: string, _prev: FormState, form: Form
   }
   if (Object.keys(errors).length > 0) return { errors };
 
+  // O tipo que o navegador diz vem do ficheiro escolhido, não é prova de nada: confirma-se pelos bytes.
+  const f = file as File;
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  const contentType = sniffPdf(bytes) ? 'application/pdf' : sniffImage(bytes);
+  if (!contentType) return { errors: { ficheiro: 'Só PDF, JPG ou PNG — o ficheiro não corresponde a nenhum destes formatos.' } };
+
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
   // O tipo de documento vem do navegador: confirmar que faz sentido para esta entidade.
   const { data: owner } = await supabase.from('organizations').select('kind').eq('id', orgId).maybeSingle();
   if (!owner || !ALLOWED_DOCS[owner.kind as OrgKind].includes(kind as DocKind)) return { errors: { kind: 'Este documento não se aplica a esta entidade.' } };
-  const f = file as File;
-  const ext = f.type === 'application/pdf' ? 'pdf' : f.type === 'image/png' ? 'png' : 'jpg';
+  const ext = contentType === 'application/pdf' ? 'pdf' : contentType === 'image/png' ? 'png' : 'jpg';
   const path = `${orgId}/${randomUUID()}.${ext}`;
 
-  const upload = await supabase.storage.from('documentos').upload(path, f, { contentType: f.type });
+  const upload = await supabase.storage.from('documentos').upload(path, bytes, { contentType });
   if (upload.error) return { errors: {}, message: 'Não foi possível carregar o ficheiro.' };
 
   const { error } = await supabase.from('org_documents').insert({
