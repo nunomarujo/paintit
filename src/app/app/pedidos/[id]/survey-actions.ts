@@ -4,14 +4,9 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
 
-/** O cliente pede ajuda de um profissional qualificado para o levantamento (docs/DECISOES.md, 23/10/2026). */
-export async function requestSurveyHelp(requestId: string, _prev: FormState, _form: FormData): Promise<FormState> {
-  const { supabase } = await getUser();
-  const { error } = await supabase.from('request_surveys').insert({ request_id: requestId });
-  if (error) return { errors: {}, message: 'Não foi possível pedir ajuda agora.' };
-  revalidatePath(`/app/pedidos/${requestId}`);
-  return { errors: {}, ok: true, message: 'Pedido enviado. Avisamos quando um profissional reservar a visita.' };
-}
+// O pedido de ajuda de um profissional já não é uma ação do cliente: fica aberto, por omissão, desde a
+// criação do pedido em rascunho (gatilho `work_requests_create_survey`, 23/10/2026 — docs/DECISOES.md).
+// Só resta a possibilidade de desistir, a qualquer momento, e preencher sozinho.
 
 export async function cancelSurveyHelp(requestId: string, surveyId: string, _prev: FormState, _form: FormData): Promise<FormState> {
   const { supabase } = await getUser();
