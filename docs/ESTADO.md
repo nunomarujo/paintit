@@ -332,6 +332,13 @@ ver o nome do cliente: a política `organizations_select` já deixa um fornecedo
 (`private.ordered_from_me`, migração de 19/10/2026) — só a tabela de classificação/nota
 (`supplier_customers`) é mesmo nova.
 
+**Convite de adesão a quem ainda não está na plataforma (novo, 23/10/2026):** enquanto a carteira estiver
+vazia, `/clientes` mostra em vez da lista um formulário para o fornecedor preencher o nome e o email de um
+pintor que já conhece; a plataforma envia-lhe um convite por email, ligado por baixo a um código de adesão
+normal (`referral_codes`) — aparece de imediato no seletor "fornecedores já ligados" do pintor assim que ele
+aceitar. Aceita-se em `/convite-fornecedor/[código]` (gémeo de "traga o seu pintor", 5.7) ou logo no registo
+de uma entidade de pintura nova. Detalhe completo em `docs/DECISOES.md` e secção 6.3.
+
 ### 5.6 Os dois programas de referência — não confundir (Feito, em produção)
 
 Há **dois mecanismos simétricos e distintos**, com nomes próprios desde 22/10/2026:
@@ -557,6 +564,29 @@ sessão reportou era alucinação:
   qualquer sessão que leia isto antes de a aplicar: confirmar com o promotor primeiro, o ficheiro no repositório
   não significa que já está em vigor na base real.**
 
+### 6.3 Convite de adesão enviado pelo fornecedor (23/10/2026, logo a seguir à verificação cruzada acima)
+
+Pedido do promotor a partir do separador `/clientes` vazio: o fornecedor passa a poder preencher nome e email de
+um pintor que já conhece e enviar-lhe um convite por email, em vez de depender de ele descobrir por fora um
+código de adesão já existente. Descrito em detalhe em `docs/DECISOES.md` (23/10/2026, "convite de adesão enviado
+pelo fornecedor"). Resumo do que mudou e já está em produção:
+
+- Migração nova `convite_de_adesao_do_fornecedor` (tabela `supplier_painter_invites`; funções
+  `claim_supplier_invite` e `supplier_invite_info`), aplicada com sucesso — **versão real `20261023161107`**,
+  ficheiro local já renomeado a par. `get_advisors` sem categorias novas de aviso. `database.types.ts`
+  confirmado campo a campo contra o gerado pelo Supabase (única diferença deliberada: a relação
+  `supplier_painter_invites → organizations` por `org_id` não está listada em `Relationships`, só a de
+  `referral_code_id`, porque é a única usada por um embed no código — mesmo critério já seguido em
+  `supplier_referral_invites`).
+- Reaproveita por inteiro `referral_codes`; não é um segundo mecanismo de convites. `claim_supplier_invite` é
+  nova (não reutiliza `apply_referral_code`, que está presa a uma proposta em rascunho), mas com a mesma
+  validação de sempre.
+- `supabase/tests/rls.test.ts` ganhou um bloco novo (+4 casos). `npm test` (438), `typecheck`, `lint`, `build` —
+  os quatro com saída 0 depois desta migração.
+- Esta secção 6.3 não altera nem resolve o ponto pendente da secção 6.2 acima
+  (`revoke_delete_clientes_fornecedor`, ainda à espera de aprovação explícita do promotor) — são migrações
+  independentes, sobre tabelas diferentes.
+
 ---
 
 ## 7. Decisões e questões em aberto para o promotor (lista consolidada, substitui listas antigas e dispersas)
@@ -696,4 +726,7 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   depois de uma ronda de perguntas entre as duas sessões em paralelo, **verificação cruzada completa** (secção
   6.2): mais 5 pontos de crash isolados (mesmo padrão do `pendingEngagements` acima), lógica nova de
   `daily_maintenance()` e RLS de `request_surveys`/`supplier_customers` confirmados ao vivo na base real, sem
-  nenhuma falha — e uma migração de reforço (grant de DELETE) escrita mas a aguardar aprovação antes de aplicar.
+  nenhuma falha — e uma migração de reforço (grant de DELETE) escrita mas a aguardar aprovação antes de aplicar;
+  e, logo a seguir, **convite de adesão enviado pelo fornecedor a um pintor fora da plataforma** a partir do
+  separador `/clientes` vazio (secção 5.5 e 6.3), reaproveitando por inteiro o mecanismo de código de adesão já
+  em produção.
