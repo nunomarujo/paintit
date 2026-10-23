@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { addDelivery, addDiscount } from '@/app/app/catalogo/actions';
+import { ConcelhosPicker } from '@/components/ConcelhosPicker';
 import { Field, selectClass } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import {
@@ -180,7 +181,9 @@ export function DeliveryForm({ orgId }: { orgId: string }) {
   return (
     <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Nova condição de entrega em obra</h3>
-      <Field name="concelhos" label="Concelhos servidos" error={e.concelhos} hint="Separados por vírgulas. Vazio = todo o país." />
+      <Field name="concelhos" label="Concelhos servidos" error={e.concelhos} hint="Vazio = todo o país.">
+        <ConcelhosPicker name="concelhos" />
+      </Field>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="incluida" label="Entrega" error={e.incluida}>
           <select name="incluida" defaultValue="sim" className={selectClass}>

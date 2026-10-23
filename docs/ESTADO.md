@@ -611,6 +611,16 @@ pelo fornecedor"). Resumo do que mudou e já está em produção:
   (`notify.ts` ganhou a capacidade de pôr ligações secundárias nos emails). Detalhe completo em
   `docs/DECISOES.md`, entrada seguinte à do parágrafo anterior.
 
+### 6.4 Seletor de concelhos por distrito (23/10/2026)
+
+Os dois campos "concelho" do site (entrega em obra, `/produtos`; zona de cobertura do levantamento,
+`/levantamentos`) eram texto livre "separados por vírgulas"; passaram a um seletor com um grupo por distrito
+que se abre com um "+" (`src/components/ConcelhosPicker.tsx`, dados em `src/lib/concelhos.ts`). Os 308
+concelhos vieram do próprio repositório open-source do geoapi.pt (não de memória), para garantir que batem
+certo, carácter a carácter, com o que `buildings.concelho` já guarda. Só a camada de formulário mudou — sem
+migração, sem alteração ao domínio. Verificado visualmente com Playwright (abre/fecha, contagem por
+distrito). Detalhe completo em `docs/DECISOES.md`.
+
 ---
 
 ## 7. Decisões e questões em aberto para o promotor (lista consolidada, substitui listas antigas e dispersas)

@@ -51,10 +51,7 @@ export async function concludeSurvey(surveyId: string): Promise<FormState> {
 export async function setSurveyCoverage(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
-  const concelhos = String(form.get('concelhos') ?? '')
-    .split(',')
-    .map((c) => c.trim())
-    .filter(Boolean);
+  const concelhos = form.getAll('concelhos').map((c) => String(c).trim()).filter(Boolean);
   const { error } = await supabase.from('supplier_survey_coverage').upsert({ org_id: orgId, concelhos }, { onConflict: 'org_id' });
   if (error) return { errors: {}, message: 'Não foi possível guardar.' };
   revalidatePath(path);

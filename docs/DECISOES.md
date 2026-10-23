@@ -1183,3 +1183,43 @@ que este mecanismo foi inventado para matar continua por resolver.
   Deploy", a pedir aprovação explícita do promotor (mesma situação já registada em `docs/ESTADO.md`, secção
   6, para `revoke_delete_clientes_fornecedor`). Fica como ficheiro local, testado em PGlite, à espera de "sim,
   aplica".
+
+## 23/10/2026 — seletor de concelhos por distrito, a substituir "separados por vírgulas"
+
+Pedido do promotor: todos os campos de "concelho" no site (até agora só texto livre, "separados por
+vírgulas") devem passar a um seletor tipo lista pendente, organizado por distrito, com um "+" a abrir os
+concelhos de cada um. Dois sítios tinham exatamente este campo: "Concelhos servidos" (condição de entrega
+em obra, `/produtos`) e "Concelhos" (zona de cobertura do levantamento, `/levantamentos`).
+
+- **A lista dos 308 concelhos não veio de memória nem da Wikipédia — veio da mesma fonte que a aplicação já
+  usa em produção**: `buildings.concelho` é preenchido em `AddressFields.tsx` a partir da resposta da API do
+  geoapi.pt (`src/lib/postalCodes.ts`, `json.geoapi.pt/cp/{cp}`), que por sua vez serve os dados postais dos
+  CTT. Para garantir que os valores deste seletor são exatamente os que a aplicação já guarda — maiúsculas,
+  acentos e até os concelhos homónimos desambiguados pelos próprios CTT (ex.: "Lagoa (Algarve)" vs "Lagoa
+  (São Miguel)", "Calheta (Madeira)" vs "Calheta (São Jorge)") — clonei o repositório público do próprio
+  geoapi.pt (`github.com/iotechpis/geoapi.pt`, a fonte open-source desta API) e extraí os pares
+  Distrito/Concelho dos ~193 mil ficheiros de dados postais que ele já gera (`res/postal-codes/data`), que
+  são a mesma base que o site consulta ao vivo. Confirmado: 308 concelhos, 278 do continente (18 distritos) +
+  19 dos Açores + 11 da Madeira — os totais oficiais. Uma lista escrita de memória arriscava-se a divergir em
+  detalhes como "Mêda" (grafia "oficial") vs "Meda" (a grafia que os CTT realmente usam, e portanto a que
+  fica gravada nos prédios) — por isso a nota no topo de `src/lib/concelhos.ts` a avisar para nunca
+  "corrigir" um nome aqui sem confirmar primeiro contra essa fonte.
+- **Açores e Madeira agrupados como duas regiões, não como 11 "ilhas" separadas**: os CTT guardam o campo
+  Distrito dos códigos postais insulares por ilha (ex.: "Ilha Terceira", "Ilha do Pico"), não por região
+  autónoma — mas isso é só a chave de agrupamento de exibição deste seletor, nunca gravada em lado nenhum;
+  juntei as 9 ilhas dos Açores (19 concelhos) e as 2 da Madeira (11 concelhos) nos dois grupos que um
+  utilizador português reconhece.
+- **Construído:** `src/lib/concelhos.ts` (dados estáticos, `DISTRITOS`) e `src/components/ConcelhosPicker.tsx`
+  — grupos `<details>`/`<summary>` nativos (sem JavaScript nenhum: o próprio HTML trata de abrir/fechar),
+  uma checkbox por concelho sob o mesmo `name`, e a contagem de selecionados no cabeçalho de cada distrito
+  (`group-open:` do Tailwind para o "+"/"−"). O servidor passa a ler `form.getAll('concelhos')` em vez de
+  `.split(',')` em `addDelivery` (`catalogo/actions.ts`) e `setSurveyCoverage` (`levantamentos/actions.ts`) —
+  o resto do caminho (coluna `text[]`, `coversZone`/`deliveryFor` em `src/domain/`) não mudou nada.
+- Testado em `src/lib/concelhos.test.ts` (20 grupos, 308 concelhos, sem distrito nem concelho repetido dentro
+  do mesmo distrito, sem concelho homónimo a aparecer em mais de um distrito ao mesmo tempo — só o
+  desambiguado tal como os CTT). tsc, lint, 443 testes, build — zero. Não há migração nem mudança de domínio:
+  é só a camada de formulário.
+- **Verificado visualmente**: página de pré-visualização temporária, aberta com Playwright (screenshot antes
+  e depois de clicar no "+" de um distrito) — abre/fecha, mostra a contagem de selecionados, e o distrito com
+  um concelho já marcado (`defaultValue`) começa aberto. Página removida a seguir; não ficou nenhum vestígio
+  (`git status --porcelain` confirmado vazio dela).
