@@ -1447,3 +1447,38 @@ ponta a ponta:
 **Nada disto está construído** — fica registado aqui como a proposta de referência para quando o promotor
 quiser avançar com a garantia de execução, sem repetir a leitura do documento. Acrescentado à tabela de
 questões em aberto, `docs/ESTADO.md`, secção 7.
+
+## 23/10/2026 — nova secção no documento-fonte: "relatório de propostas" (proposta, nada construído)
+
+O promotor pediu para ler sempre o documento-fonte ("Quem Pinta — a oferta",
+[link](https://claude.ai/artifact/J8TGcaAn21a1ZFZFPZL5Yc)) porque pode ter atualizações — lido de novo, ganhou
+uma secção 8 nova ("O relatório de propostas") desde a última leitura desta sessão. Resumo, para não se perder:
+
+**O problema que resolve**: o condomínio que decide e paga depende inteiramente de quem imprime/distribui as
+propostas (tipicamente o gestor de condomínio) para ver o quadro completo — nada impede hoje esse gestor de
+"esquecer" de entregar uma proposta à assembleia. **Gerado assim que a janela de propostas fecha, antes de
+qualquer escolha** — as propostas continuam anónimas, consistente com o resto do modelo (diferente do dossiê já
+existente, `/app/pedidos/[id]/dossie`, que só existe depois de haver contratação e já pode nomear o pintor
+escolhido).
+
+Quatro peças:
+1. **Tabela-resumo** (8.1): uma linha por proposta, em **ordem aleatória a cada geração** (evita viés de a
+   primeira da lista receber mais atenção). Colunas: número da proposta, preço, anos de experiência, garantia
+   legal (anos), reputação interna, prazo de execução, material principal sugerido e preço de referência.
+2. **Ficha independente por proposta** (8.2): todos os dados já definidos no perfil (trabalhos discriminados,
+   datas, materiais, alvará, dívidas, garantia legal) — sem identidade da empresa. Mostra sempre, de forma
+   saliente, "Proposta X de N".
+3. **Aviso de integridade** (8.3): texto fixo no topo da tabela-resumo e de cada ficha — *"Este relatório
+   contém N propostas, numeradas de 1 a N. Se recebeu menos do que N fichas, falta pelo menos uma — confirme
+   através do código QR antes de aprovar qualquer decisão."* Formulação deliberadamente neutra (não acusa
+   ninguém de má-fé — pode ser erro de impressão), mas dá ao condómino uma forma objetiva de detetar a falha.
+4. **QR code e código por página** (8.4): um QR que aponta para a mesma versão online do relatório, acessível
+   **sem login** (link-token longo, não adivinhável, específico daquele pedido, nunca listado nem pesquisável)
+   — qualquer condómino confirma que o impresso bate certo com o registo original, sem conta na plataforma. Mais
+   um código visível a olho nu por página, formato `AAAAA-BBBBB` (primeiros 5 caracteres = obra/pedido, iguais
+   em todas as páginas do mesmo relatório; os 5 seguintes = proposta/página específica). O código por si só não
+   aumenta a segurança (é copiável); a verificação real continua a ser o QR — o código só torna visível a olho,
+   sem telemóvel, se uma página pertence ao mesmo relatório.
+
+**Nada disto está construído.** Fica registado como proposta de referência — mesmo padrão do que se fez para a
+garantia de execução (entrada anterior desta mesma data). Acrescentado a `docs/ESTADO.md`, secção 7.
