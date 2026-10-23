@@ -10,7 +10,9 @@ export const refPerLitre = (r: Pick<ReferenceProduct, 'preco_referencia_cents' |
 
 export async function loadReferences(supabase: SupabaseClient<Database>, ids?: string[]): Promise<ReferenceProduct[]> {
   if (ids && ids.length === 0) return [];
-  let q = supabase.from('reference_products').select('*').order('marca').order('nome');
+  // Produtos sem confirmação suficiente dos dados do fabricante (visivel = false) ficam fora
+  // de listagens, formulários e sugestões públicas, mas os dados não se perdem (ver nota_interna).
+  let q = supabase.from('reference_products').select('*').eq('visivel', true).order('marca').order('nome');
   if (ids) q = q.in('id', ids);
   const { data } = await q;
   return data ?? [];

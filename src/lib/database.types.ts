@@ -585,9 +585,9 @@ export type Database = {
         Row: {
           acabamento: string | null; base_aquosa: boolean | null; complementares: string[]; cores: string | null; created_at: string;
           demaos: string | null; descricao: string | null; diluicao: string | null; embalagens_l: number[]; foto_path: string | null;
-          id: string; marca: string; nome: string; nota: string | null; preco_data: string | null; preco_embalagem_l: number | null;
-          preco_fonte: string | null; preco_referencia_cents: number | null; rendimento_m2_l: number | null; secagem_horas: number | null;
-          tipo: ProductType; url_ficha_tecnica: string | null; url_produto: string | null; uso: string | null;
+          id: string; marca: string; nome: string; nota: string | null; nota_interna: string | null; preco_data: string | null; preco_embalagem_l: number | null;
+          preco_fonte: string | null; preco_referencia_cents: number | null; rendimento_estimado: boolean; rendimento_m2_l: number | null; secagem_horas: number | null;
+          tipo: ProductType; url_ficha_tecnica: string | null; url_produto: string | null; uso: string | null; visivel: boolean;
         };
         Insert: { marca: string; nome: string; tipo: ProductType; [k: string]: unknown };
         Update: { [k: string]: unknown };

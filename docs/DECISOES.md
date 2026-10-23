@@ -1286,3 +1286,33 @@ regras explícitas:
   avaliação do pintor sobre a qualidade da informação (mecanismo novo, não construído), e `respond_clarification`
   ainda não alimenta nenhum cálculo de comissão, só regista a resposta. A comunicação ao vendedor como "% do
   valor adjudicado" (em vez de "% da comissão da plataforma") também ainda não tem nenhuma peça de UI.
+
+## 23/10/2026 — catálogo de referência: nota pública deixa de mostrar rasto de importação, produtos sem ficha confiável ficam escondidos, rendimento passa a ter estimativa quando não há valor oficial
+
+- **Problema apanhado pelo promotor:** o campo `nota` de `reference_products` é mostrado tal e qual na página
+  pública do produto (`src/app/app/catalogo/referencia/[id]/page.tsx`). Continha texto interno de importação
+  ("Importado da Leroy Merlin PT (api-anything) em ..., SKU: ...") e o raciocínio do agente que foi buscar as
+  fichas técnicas ("Ficha tecnica (agente): ...", incluindo referências a ids internos em alguns casos) — nada
+  disto é apropriado para um visitante do site.
+- **Decisão do promotor:** nunca mostrar texto deste tipo publicamente; produtos sem informação suficiente do
+  fabricante ficam escondidos (não eliminados) até haver mais confiança; e, quando possível, estimar o
+  rendimento (m²/L) mesmo sem ficha técnica oficial, usando valores típicos do setor por tipo de produto.
+- **Construído:** três colunas novas em `reference_products`: `nota_interna` (guarda o texto antigo completo,
+  nunca lido pela interface pública), `visivel` (default `true`; passa a `false` nos 33 produtos em que não foi
+  possível confirmar com confiança nenhum produto oficial do fabricante — ficam fora de listagens, do catálogo
+  e dos formulários de pedido, mas os dados continuam na base) e `rendimento_estimado` (marca quando
+  `rendimento_m2_l` é uma estimativa, não um valor de ficha técnica). A nota pública foi limpa de qualquer
+  rasto de importação/SKU/raciocínio interno; 64 produtos (tintas de interior/exterior, primários e esmaltes,
+  sem valor oficial e ainda visíveis) receberam um rendimento estimado pelo extremo mais baixo do intervalo
+  típico do setor. **Nota de correção (mesmo dia, sessão seguinte):** esta migração tinha sido aplicada
+  diretamente à Supabase sem ficheiro no repositório, e o ficheiro que a trouxe de volta aqui chamava-se
+  `20261023180000_...`, um número que não corresponde à versão realmente registada no Supabase — corrigido
+  para os dois ficheiros com os números reais (`20261023182915` e `20261023182946`, ver a entrada "duas
+  migrações aplicadas... recuperadas", acima nesta mesma data), que já cobrem exatamente este conteúdo (o
+  passo "esvazia notas só com a linha de importação" é a segunda das duas).
+- **Código:** `loadReferences` (`src/lib/reference.ts`) e a página de referência individual passam a filtrar
+  `visivel = true`; a página de referência mostra "(estimativa típica, não confirmada pelo fabricante)" junto
+  do rendimento quando `rendimento_estimado` é verdadeiro. `database.types.ts` atualizado à mão com os três
+  campos novos (a geração automática de tipos trouxe uma versão do gerador incompatível com o resto do código
+  e foi descartada — o mesmo problema, apanhado independentemente pelas duas sessões).
+- Testado: tsc, lint, 440 testes de domínio + 138 de RLS — zero.
