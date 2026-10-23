@@ -1,4 +1,5 @@
 import type { EngagementStatus } from './engagement';
+import { REFERRAL_BPS } from './referral';
 
 // O que cada lado deve saber quando uma contratação muda de estado.
 // Texto impessoal e sem identificar a outra parte: a identidade só é revelada depois da apresentação.
@@ -95,15 +96,21 @@ export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; praz
 });
 
 /** Convite de adesão enviado por um fornecedor a um pintor que ainda não está na plataforma (decisão de
- * 23/10/2026, docs/DECISOES.md) — o único aviso desta lista endereçado a quem ainda não é utilizador. */
-export const SUPPLIER_INVITE_NOTICE = (p: { fornecedor: string }) => ({
-  subject: `${p.fornecedor} convidou-o para a Quem Pinta`,
-  lines: [
-    `${p.fornecedor} é fornecedor de tintas e materiais na Quem Pinta e convidou-o a juntar-se como pintor.`,
-    'Ao aceitar, fica ligado a esta empresa: os seus orçamentos passam a ter um desconto na comissão da plataforma quando usar produtos dela.',
-    'Juntar-se não tem nenhum custo.',
-  ],
-});
+ * 23/10/2026, docs/DECISOES.md) — o único aviso desta lista endereçado a quem ainda não é utilizador.
+ * Identifica a pessoa que convidou (não só a empresa) e o desconto concreto que o código já traz, para o
+ * email se ler como um convite pessoal com uma vantagem real, não um aviso genérico. */
+export const SUPPLIER_INVITE_NOTICE = (p: { fornecedor: string; remetente: string | null }) => {
+  const quemConvida = p.remetente ? `${p.remetente}, da ${p.fornecedor},` : `A equipa da ${p.fornecedor}`;
+  const desconto = (REFERRAL_BPS / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
+  return {
+    subject: p.remetente ? `${p.remetente} (${p.fornecedor}) convida-o a orçamentar obras na Quem Pinta` : `${p.fornecedor} convida-o a orçamentar obras na Quem Pinta`,
+    lines: [
+      `${quemConvida} convida-o a juntar-se à Quem Pinta: condomínios e particulares descrevem a obra, pintores verificados orçamentam e o cliente escolhe — sem anúncios pagos, sem portas frias.`,
+      `Este convite já vem com uma vantagem: ao aceitá-lo, fica ligado a esta empresa e os seus orçamentos passam a ter ${desconto} pontos percentuais de desconto na comissão da plataforma, enquanto a ligação estiver ativa.`,
+      'Juntar-se é gratuito e sem compromisso — cria a conta em poucos minutos.',
+    ],
+  };
+};
 
 // Avisos ao fornecedor sobre os códigos de adesão. Dizem só o que o fornecedor pode saber: a empresa que usou o código e o
 // concelho da obra; nunca o cliente, a morada nem o valor da obra (só a comissão a que tem direito).

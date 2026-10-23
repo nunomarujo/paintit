@@ -1100,3 +1100,44 @@ ele ter de descobrir por fora um código de adesão já existente.
   por `authenticated` e o índice novo "nunca usado" são o mesmo padrão já presente em toda a lista de
   convites/códigos, não algo que este convite introduz), `database.types.ts` confirmado campo a campo contra
   o gerado pelo Supabase.
+
+## 23/10/2026 — convite do fornecedor: contacto completo, código promocional, vantagens, remetente identificado
+
+Pedido do promotor logo a seguir, a afinar o convite acima: o formulário deve pedir também telefone e
+morada/sede/localização (não só nome e email); poder anexar um código promocional de adesão em vez de um
+gerado ao acaso; o próprio separador `/clientes` deve explicar as vantagens para as duas partes; o email
+deve identificar a pessoa que convidou, não só a empresa ("Cláudio da Cemtintas convida-o..."); e o email
+tem de ser apelativo, cativante, com a imagem da Quem Pinta e a apontar para a página inicial, "como
+funciona" e perguntas frequentes.
+
+- **Telefone e morada passam a obrigatórios** na tabela e no formulário (migração aditiva
+  `convite_contactos_do_pintor`, tabela confirmada vazia antes de aplicar — por isso `not null` direto, sem
+  valor por omissão). "Morada" ficou livre (até 200 carateres) em vez de um endereço estruturado: o
+  fornecedor está a descrever um contacto, não a registar uma entidade formal — isso faz-se a sério quando o
+  pintor criar a sua própria organização.
+- **"Anexar um promo-code de adesão, em que terá o desconto de adesão" — interpretado como um campo opcional
+  de código personalizado**, não como um segundo mecanismo de desconto: o convite já reaproveita
+  `referral_codes` e já traz consigo os 0,25 p.p. de desconto na comissão (`REFERRAL_BPS`,
+  `src/domain/referral.ts`) de sempre, por fornecedor ligado. O que faltava era deixar o fornecedor escolher
+  o próprio código (ex. o nome da empresa) em vez de um gerado ao acaso — útil para o transmitir verbalmente
+  ou por fora do email. Se o campo ficar vazio, gera-se um ao acaso como antes; se o código escolhido já
+  existir, o erro fica no campo (não se tenta outro em silêncio, ao contrário do caminho automático).
+- **Remetente identificado pelo nome do perfil (`profiles.nome`), não só pela empresa**: a ação lê o perfil
+  de quem está autenticado e passa esse nome ao aviso; se não houver (não devia acontecer, `profiles.nome`
+  é `not null`, mas a leitura pode falhar por outra razão), cai para "A equipa da {empresa}".
+- **Email redesenhado para se "ler" como um convite, não um aviso**: assunto e primeira linha identificam a
+  pessoa e a empresa; o desconto concreto (0,25 p.p.) escrito por extenso, não como "um desconto" vago;
+  acrescentada a `notify.ts` a capacidade de pôr ligações secundárias, pequenas, por baixo do botão
+  principal — aqui "Como funciona" e "Perguntas frequentes", a apontar para as âncoras já existentes da
+  página inicial (`/#como-funciona`, `/#perguntas`). A página `/convite-fornecedor/[code]` ganhou o mesmo
+  texto e as mesmas ligações, e corrigiu de passagem uma imprecisão da versão anterior (dizia que o desconto
+  só valia "ao usar produtos desta empresa" — não é assim, o desconto da ligação por código é incondicional).
+- **Vantagens das duas partes, escritas com cuidado para não inventar nada que a plataforma não faça**: para
+  o fornecedor, só a carteira de clientes e os descontos que pode aplicar — nunca uma comissão direta, que
+  este programa não paga (ao contrário das "referências de fornecedores", pintor→fornecedor, essa sim paga
+  1-2%, secção 5.6 do `docs/ESTADO.md`). Para o pintor, a entrada gratuita e o desconto concreto.
+- Nenhuma imagem nova para o email: não havia nenhuma de pintura disponível em `/public/img` (só as de
+  prédio, usadas noutros avisos) e não se inventou uma — a diferenciação ficou só no texto.
+- Testes RLS ajustados (telefone/morada agora obrigatórios no insert do bloco já existente). `tsc`, lint,
+  438 testes, build — zero. Migração aplicada à base real (`20261023171829`), ficheiro renomeado a par,
+  `get_advisors` sem categorias novas, `database.types.ts` confirmado campo a campo.

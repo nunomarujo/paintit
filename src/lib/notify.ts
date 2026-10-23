@@ -19,6 +19,8 @@ interface MailOptions {
   image?: string;
   cta?: string;
   footer?: string;
+  /** Ligações secundárias, pequenas, por baixo do botão principal (ex.: "Como funciona", FAQ). */
+  links?: { label: string; href: string }[];
 }
 
 function html(subject: string, lines: string[], link: string, o: MailOptions = {}) {
@@ -31,6 +33,7 @@ ${o.image ? `<a href="${escapeHtml(link)}"><img src="${escapeHtml(BRAND.url + o.
 <h1 style="font-size:18px;margin:0 0 12px">${escapeHtml(subject)}</h1>
 ${lines.map((l) => `<p style="margin:0 0 10px;line-height:1.5">${escapeHtml(l)}</p>`).join('')}
 <p style="margin:20px 0 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#c4572f;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">${escapeHtml(o.cta ?? 'Abrir na plataforma')}</a></p>
+${o.links && o.links.length > 0 ? `<p style="margin:12px 0 0;font-size:13px">${o.links.map((l) => `<a href="${escapeHtml(l.href)}" style="color:#173f42;text-decoration:underline">${escapeHtml(l.label)}</a>`).join(' &nbsp;·&nbsp; ')}</p>` : ''}
 <p style="margin:14px 0 0;font-size:12px;color:#62716c">Se o botão não abrir: ${escapeHtml(link)}</p>
 </div></div>
 <p style="font-size:12px;color:#62716c;margin:16px 0 0">${escapeHtml(o.footer ?? `Aviso automático de ${BRAND.name}.`)} Dúvidas: ${escapeHtml(BRAND.email)}.</p>
@@ -79,10 +82,18 @@ async function recipients(orgId: string, banned: Set<string> = new Set()): Promi
 
 /** Convite de adesão enviado por um fornecedor a um pintor que ainda não está na plataforma — único
  * caso nesta lista em que o destinatário vem direto do formulário (navegador), não de `recipients()`:
- * é precisamente a pessoa que ainda não tem conta nenhuma para resolver. */
-export async function notifySupplierInvite(email: string, fornecedorNome: string, code: string): Promise<void> {
-  const n = SUPPLIER_INVITE_NOTICE({ fornecedor: fornecedorNome });
-  await sendEmail([email], n.subject, n.lines, `/convite-fornecedor/${code}`, { cta: 'Aceitar o convite' });
+ * é precisamente a pessoa que ainda não tem conta nenhuma para resolver. Por isso aponta também, a par do
+ * botão principal, para a página inicial pública ("Como funciona", perguntas frequentes) — quem recebe
+ * nunca viu a plataforma e pode querer confirmar o que é antes de aceitar. */
+export async function notifySupplierInvite(email: string, fornecedorNome: string, remetenteNome: string | null, code: string): Promise<void> {
+  const n = SUPPLIER_INVITE_NOTICE({ fornecedor: fornecedorNome, remetente: remetenteNome });
+  await sendEmail([email], n.subject, n.lines, `/convite-fornecedor/${code}`, {
+    cta: 'Aceitar o convite e começar',
+    links: [
+      { label: 'Como funciona', href: `${BRAND.url}/#como-funciona` },
+      { label: 'Perguntas frequentes', href: `${BRAND.url}/#perguntas` },
+    ],
+  });
 }
 
 export async function notifyEngagementChange(engagementId: string, before: EngagementStatus, after: EngagementStatus): Promise<void> {

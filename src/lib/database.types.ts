@@ -564,8 +564,18 @@ export type Database = {
         Relationships: [];
       };
       supplier_painter_invites: {
-        Row: { created_at: string; created_by: string | null; email: string; id: string; nome: string; org_id: string; referral_code_id: string };
-        Insert: { created_at?: string; created_by?: string | null; email: string; id?: string; nome: string; org_id: string; referral_code_id: string };
+        Row: { created_at: string; created_by: string | null; email: string; id: string; morada: string; nome: string; org_id: string; referral_code_id: string; telefone: string };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          email: string;
+          id?: string;
+          morada: string;
+          nome: string;
+          org_id: string;
+          referral_code_id: string;
+          telefone: string;
+        };
         Update: never;
         Relationships: [
           { foreignKeyName: 'supplier_painter_invites_referral_code_id_fkey'; columns: ['referral_code_id']; isOneToOne: true; referencedRelation: 'referral_codes'; referencedColumns: ['id'] },
