@@ -5,7 +5,7 @@ import { parseHundredths } from '@/domain/request';
 import { loadReferences, refPerLitre } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { TinIcon } from '@/components/TinIcon';
+import { ProductThumb } from '@/components/ProductThumb';
 
 // Catálogo de todos os fornecedores, com uma estimativa de consumo (CMP-06).
 export default async function CatalogPage({
@@ -86,7 +86,7 @@ export default async function CatalogPage({
                     href={`/app/catalogo/referencia/${r.id}`}
                     className="flex h-full gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm hover:border-tinta-600"
                   >
-                    <TinIcon />
+                    <ProductThumb fotoPath={r.foto_path} alt={`${r.marca} ${r.nome}`} />
                     <span>
                       <span className="block font-semibold">{r.marca} {r.nome}</span>
                       <span className="block text-slate-600">{PRODUCT_TYPE_LABELS[r.tipo]}{r.acabamento ? ` · ${r.acabamento}` : ''}</span>
