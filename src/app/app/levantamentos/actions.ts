@@ -3,10 +3,20 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { sniffPdf } from '@/domain/fileSignature';
+import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 const path = '/app/levantamentos';
+
+export async function acceptSurveyTerms(surveyId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.from('survey_terms_acceptances').insert({ user_id: user.id, version: CURRENT_SURVEY_TERMS_VERSION });
+  if (error) return { errors: {}, message: 'Não foi possível registar.' };
+  revalidatePath(`${path}/${surveyId}`);
+  return { errors: {}, ok: true };
+}
 
 export async function reserveSurvey(surveyId: string, orgId: string): Promise<FormState> {
   const { supabase, user } = await getUser();

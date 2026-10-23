@@ -1897,4 +1897,38 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     const after = await one<{ n: number; media: number | null }>('select n, media::float8 as media from public.survey_vendor_rating($1)', [VEND]);
     expect(after).toEqual({ n: 1, media: 5 });
   });
+
+  it('ao concluir, o cliente é avisado (sem nomear o fornecedor nem o vendedor)', async () => {
+    const notes = await as(A, async () => (await db.query<{ texto: string }>('select texto from public.notifications')).rows.map((r) => r.texto));
+    expect(notes).toContain('O levantamento da obra foi concluído: pode rever e avaliar.');
+    expect(notes.some((t) => /Tintas do Levantamento|vendedor\b/i.test(t))).toBe(false);
+  });
+
+  it('reserva vencida: liberta-se, o vendedor perde o acesso e o cliente é avisado', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const reqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao) values ($1, $2, 'levantamento 2', 'fachadas', 'Segunda obra.') returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    const survey2 = (await as(A, () => one<{ id: string }>(`insert into public.request_surveys (request_id) values ($1) returning id`, [reqId]))).id;
+    await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [survey2, vendorOrg]));
+    await db.query(`update public.request_surveys set reserve_deadline = now() - interval '1 hour' where id = $1`, [survey2]);
+    await db.query('select private.daily_maintenance()');
+    const row = await one<{ status: string; vendedor_org_id: string | null }>('select status, vendedor_org_id from public.request_surveys where id = $1', [
+      survey2,
+    ]);
+    expect(row).toEqual({ status: 'aberto', vendedor_org_id: null });
+    const stillSeesAddress = await as(VEND, async () =>
+      (await db.query('select b.morada from public.buildings b join public.work_requests wr on wr.building_id = b.id where wr.id = $1', [reqId])).rows,
+    );
+    expect(stillSeesAddress).toEqual([]);
+    const notes = await as(A, async () => (await db.query<{ texto: string }>('select texto from public.notifications')).rows.map((r) => r.texto));
+    expect(notes).toContain(
+      'O profissional que tinha reservado a visita não concluiu o levantamento a tempo: o pedido voltou a ficar disponível para outro profissional.',
+    );
+  });
 });

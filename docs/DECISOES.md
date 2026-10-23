@@ -898,3 +898,91 @@ nunca teve `resposta`/`resposta_at`, só `reviews` (cliente ↔ pintor) os tinha
   voltar (deve substituir sem diferença, mas confirmar).
 - Testado em `supabase/tests/rls.test.ts` (fornecedor responde; não pode alterar a nota pela resposta; a
   resposta sobrevive a uma atualização do pintor). tsc, lint, 414 testes, build, zero.
+
+## 23/10/2026 — levantamento da obra por um vendedor do fornecedor, papel novo e workspace do fornecedor
+
+Pedido do promotor, com origem no documento "Quem Pinta — a oferta" (consolidação do "painel de compradores",
+3 rondas, e do "board" — feedback de uma sessão de IA externa, colado nesta mesma conversa antes de uma
+compactação de contexto; secções 3.1–3.6 especificam o mecanismo). Depois de eu ter perdido esse contexto e
+feito perguntas sobre coisas já decididas, o promotor corrigiu de forma direta e pediu para pesquisar antes de
+continuar — o que fiz (grep ao transcript bruto da sessão por palavra-chave, antes de voltar a escrever).
+
+- **O papel `vendedor` é da pessoa que vende tintas (do fornecedor), nunca uma figura nova e independente.**
+  Acede à sua entidade com login normal (`can_access_org` passa a incluir `'vendedor'`), mas não gere produtos,
+  descontos nem a equipa — isso continua reservado a `proprietario`/`gestor` (`can_manage_org`, intocado). Pode
+  receber e fazer o levantamento de obras na sua zona (`roleDescription`, `organization.ts`).
+- **O mecanismo do levantamento (o pedido central, com todo o pormenor):** o cliente pode sempre preencher
+  superfícies e fotografias sozinho — isto é uma rede de segurança, nunca uma obrigação. Um cartão bem
+  destacado no pedido (`RequestSurveyCard.tsx`) deixa pedir a visita de um profissional qualificado, com o
+  texto exigido pelo promotor, literal: **não acrescenta nenhum custo à obra**, e a responsabilidade pelos
+  dados continua do cliente, como se os tivesse preenchido sozinho. O primeiro vendedor elegível a reservar
+  avança (`reserve_survey`, verificação atómica no `where`, não leitura-depois-escrita); tem 48h
+  (`RESERVE_WINDOW_HOURS`, `src/domain/survey.ts`) para contactar, agendar e concluir.
+- **Zona por concelho**, `supplier_survey_coverage`: sem linha, ou lista vazia, cobre todo o país — mesma
+  convenção já em produção em `supplier_delivery`, para não introduzir uma segunda forma de dizer a mesma coisa.
+- **Anonimato mantido, com uma excepção nova e deliberada:** o cliente nunca sabe que empresa ou que pessoa vai
+  (só uma nota de 0 a 5, "primeira obra na plataforma" se ainda não houver nenhuma — pedido explícito do
+  promotor, ao contrário do comparador de pintores, que exige um mínimo de obras antes de mostrar média). Mas o
+  vendedor que reserva passa a ver a morada exacta (`buildings_select`, `work_requests_select` e as políticas de
+  `request_surfaces`/`request_photos`/`fotos`, com um `can_access_as_surveyor` novo) — excepção à regra 6 do
+  CLAUDE.md, documentada em comentário na própria migração: sem morada não há visita. Antes de a ver, aceita
+  termos de confidencialidade (`survey_terms_acceptances`, por pessoa — não por entidade como
+  `painter_terms_acceptances`, de propósito: é a pessoa que vai a casa de alguém, não a empresa); o gatilho é só
+  na aplicação, nunca em RLS, pela mesma razão por que os termos do pintor também não o são.
+- **Reutilização, não invenção:** o vendedor regista o levantamento com os componentes `SurfaceForm` e
+  `PhotoUpload` já existentes, sem alterações — confirmei primeiro que as suas server actions não tinham
+  nenhuma verificação de autorização redundante além da RLS, por isso a RLS por si só já os cobre para este
+  novo actor. A fórmula de resgate (IVA, retenção, líquido) e a tabela de dados de pagamento
+  (`supplier_payout_details`) são as mesmas das comissões de adesão — sem segundo formulário de IBAN.
+- **Compensação:** uma fração da comissão que a *plataforma* recebe (nunca do valor da obra, nunca um custo
+  extra ao cliente), criada só quando essa comissão já entrou (`settleSurveyPayout`, chamado de
+  `contratacoes/actions.ts` no mesmo ponto em que se liquidam reembolsos) — ciclo de vida mais simples que
+  `referral_payouts` (`adjudicada` → `paga`/`sem_efeito`), por não haver nada antes de a comissão chegar.
+  **A percentagem (`SURVEY_SHARE_BP_PROVISIONAL`, 10%, `src/domain/survey.ts`) é um valor provisório meu, não
+  uma decisão do promotor** — só a estrutura e a fórmula estão decididas; falta confirmar o número antes de
+  qualquer pagamento real.
+- **Avisos, sem nomear o fornecedor nem o vendedor:** o cliente é avisado quando o levantamento é concluído
+  (a app já prometia isto no próprio texto do cartão: "Avisamos quando o levantamento estiver registado") e
+  quando uma reserva vencida liberta o pedido para outro profissional — mesmo padrão já em
+  `private.daily_maintenance` para um anúncio cujo prazo de propostas termina. **Decidi não avisar** na
+  reserva inicial (o próprio texto do cartão não promete isso) **nem quando o vendedor recebe uma avaliação**
+  (não há esse precedente em nenhuma avaliação da plataforma) — para não inventar notificações que ninguém
+  pediu.
+- **Reserva vencida volta a `'aberto'` na mesma linha** (limpa `vendedor_org_id`, notas de contacto e
+  agendamento, para o próximo vendedor não herdar o que ficou do anterior) — acrescentado a
+  `private.daily_maintenance` (`create or replace`, corpo completo; os três blocos já existentes ficam iguais).
+  **O estado `'expirado'` fica definido mas sem nenhum gatilho que o use**: seria para um pedido `'aberto'` que
+  nunca chega a ser reservado por ninguém, e não há nenhuma especificação de prazo para isso — o próprio cliente
+  já pode sempre desistir (`cancel_survey`) ou continuar a preencher sozinho entretanto, o que já cobre
+  "demorar demasiado" sem inventar um temporizador novo sem pedido nem número.
+- **Workspace do fornecedor, antes pobre e quase vazio:** a barra lateral só tinha "Encomendas"; ganhou
+  "Levantamentos" e acesso directo a "Produtos e descontos", "Referências" e "Comissões de adesão"
+  (`layout.tsx`), antes só alcançáveis a partir da ficha da entidade. Contas de pintor e de fornecedor são
+  sempre uma só entidade (`allowedOrgKinds`) — a Início troca a lista "As suas entidades" com um único item por
+  um atalho directo para essa entidade, preservando avisos, convites e o resto do painel; administradoras e
+  condomínios (que podem ter várias) continuam a ver a lista.
+- **Construído:** `src/domain/survey.ts` (puro); migrações `20261023030000_papel_vendedor.sql` (o valor novo do
+  enum tem de estar numa migração à parte — `alter type ... add value` não pode ser usado na mesma transacção
+  que o cria), `20261023031000_levantamento_por_vendedor.sql` (esquema, RLS, RPCs) e
+  `20261023040000_levantamento_avisos_e_expiracao.sql` (gatilho de aviso, extensão da manutenção diária);
+  `src/lib/surveys.ts`; páginas e acções em `src/app/app/pedidos/[id]/` (cartão do cliente) e
+  `src/app/app/levantamentos/` (lista do vendedor, workspace por obra, termos, formulários).
+- **Duas armadilhas de RLS, registadas em comentário nas próprias migrações para não se repetirem:** quatro
+  políticas (`buildings_select`, `work_requests_select`, `request_surfaces_select`, `request_photos_select`)
+  já tinham sido alteradas uma vez antes (apresentação pós-comissão); `alter policy` substitui a cláusula
+  inteira, nunca soma — a nova condição teve de ser fundida com a anterior, não só acrescentada. E uma função
+  partilhada que tentava evitar repetir a condição de acesso (`can_see_survey`, extraída de
+  `request_surveys_select` e `survey_preview`) partia o `insert ... returning`, por se voltar a interrogar a
+  própria tabela dentro da política de leitura da linha que ainda se está a inserir — revertido de propósito,
+  com a duplicação assumida e comentada.
+- Testado em `src/domain/survey.test.ts` (6 casos) e `supabase/tests/rls.test.ts` (7 casos: pedido só pelo
+  gestor do cliente; pré-visualização segura antes de reservar, invisível a um estranho; reserva atómica,
+  primeiro-a-chegar; morada real e registo completo pelo vendedor que reservou; avaliação com "primeira obra";
+  aviso ao concluir sem nomear ninguém; reserva vencida liberta-se, o vendedor perde o acesso e o cliente é
+  avisado). tsc, lint, 427 testes, build, zero.
+- **Mesmo travão desta sessão, ainda sem resolução:** a ligação MCP ao Supabase continua sem permissão
+  (`list_migrations`/`apply_migration`) — todo este esquema existe só como ficheiros locais, testados em
+  PGlite, **nunca aplicados ao projeto real**; `src/lib/database.types.ts` continua a ser mantido à mão (e um
+  erro meu nessa manutenção manual foi encontrado e corrigido nesta mesma sessão: `survey_terms_acceptances`
+  tinha `user_id` marcado como opcional no tipo `Insert`, quando a coluna não tem valor por omissão na base de
+  dados — teria deixado passar no `tsc` um `insert` que falharia sempre em produção).

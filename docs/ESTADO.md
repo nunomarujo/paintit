@@ -1,6 +1,6 @@
 # Ponto de situação — ler primeiro numa sessão nova
 
-Atualizado a 22/10/2026 (fim do dia). Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
+Atualizado a 23/10/2026 (fim do dia). Este ficheiro substitui o historial da conversa em que o projeto começou: uma sessão nova
 deve lê-lo, junto com `CLAUDE.md`, antes de qualquer trabalho. Atualizar no fim de cada sessão.
 
 ## O projeto
@@ -52,6 +52,17 @@ condomínio. A app corre localmente (`npm run dev`); ainda não está alojada.
   linha de aderência no comparador. Migração `20261020060000_catalogo_referencia.sql` por aplicar no Supabase.
 
 - Avisos por email (`src/lib/notify.ts`): falta `RESEND_API_KEY` na Vercel (chave de envio, a colar pelo promotor).
+
+- **Levantamento da obra por um vendedor do fornecedor** (23/10/2026, pedido direto do promotor, com origem no
+  documento "Quem Pinta — a oferta"): papel novo `vendedor`; o cliente pode pedir a visita de um profissional
+  qualificado para medir e fotografar a obra em seu lugar, sem custo, com avaliação de 0 a 5 e "primeira obra"
+  quando ainda não há nenhuma; o vendedor que reserva vê a morada real (excepção nova à regra 6 do CLAUDE.md,
+  só enquanto a reserva estiver ativa) e regista o levantamento com os mesmos componentes que o cliente já
+  usava; compensação por uma fração (ainda provisória) da comissão da plataforma, paga só quando ela entra.
+  Workspace do fornecedor reorganizado a par disto (nav com "Levantamentos" e acesso direto a Produtos,
+  Referências e Comissões; a Início troca a lista "As suas entidades" por um atalho quando a conta só tem uma).
+  Detalhe completo, decisões e o que falta: `docs/DECISOES.md`, entrada de 23/10/2026. **Por aplicar à base
+  real** — ver "Pendente do promotor" abaixo.
 
 ## Próximo passo
 
@@ -261,7 +272,17 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
 - Convidar 5 a 10 pintores e 2 a 3 fornecedores de Viana do Castelo para testarem antes dos clientes.
 
 - **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
-- **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo). Ficam duas migrações só escritas e testadas localmente (`supabase/tests/`), sem chegar ao projeto real — ver a lista em `docs/DECISOES.md`, secção de hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as migrações pendentes (`supabase db push` ou pelo MCP) e regenerar `src/lib/database.types.ts` — **entretanto editado à mão** (só os campos novos de `reviews.obra_concluida` e `supplier_reviews.resposta`/`resposta_at`, para o código compilar sem acesso ao gerador); a regeneração real substitui-o sem problema, mas convém confirmar que bate certo.
+- **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo); voltei a tentar no fim do dia (`list_migrations`) e o erro é o mesmo — continua sem se resolver por si só. Ficam **cinco migrações** só escritas e testadas localmente (`supabase/tests/`), sem chegar ao projeto real:
+  `20261023010000_avaliacao_cancelamento.sql`, `20261023020000_resposta_avaliacao_fornecedor.sql`,
+  `20261023030000_papel_vendedor.sql`, `20261023031000_levantamento_por_vendedor.sql` e
+  `20261023040000_levantamento_avisos_e_expiracao.sql` — detalhe de cada uma em `docs/DECISOES.md`, secção de
+  hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as
+  migrações pendentes por ordem (`supabase db push` ou pelo MCP), correr os avisos de segurança/desempenho e
+  regenerar `src/lib/database.types.ts` — **entretanto editado à mão** (campos de `reviews.obra_concluida`,
+  `supplier_reviews.resposta`/`resposta_at` e as tabelas inteiras do levantamento por vendedor, para o código
+  compilar sem acesso ao gerador); a regeneração real substitui-o sem problema, mas convém confirmar que bate
+  certo — já se encontrou e corrigiu nesta sessão um erro numa dessas edições à mão (`survey_terms_acceptances.user_id`
+  marcado como opcional no tipo `Insert` sem ter valor por omissão na base de dados).
 
 - **Conector Gmail desta sessão ligado a `nunomarujo@gmail.com`, não a `nm@quempinta.pt` (23/10/2026):** descoberto
   ao tentar confirmar se a Moloni tinha respondido ao pedido de ambiente de demonstração (ver acima, linha ~132)

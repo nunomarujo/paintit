@@ -747,7 +747,7 @@ export type Database = {
       };
       survey_terms_acceptances: {
         Row: { accepted_at: string; user_id: string; version: string };
-        Insert: { accepted_at?: string; user_id?: string; version: string };
+        Insert: { accepted_at?: string; user_id: string; version: string };
         Update: never;
         Relationships: [];
       };

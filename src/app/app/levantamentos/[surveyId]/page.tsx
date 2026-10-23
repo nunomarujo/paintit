@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import { PhotoUpload } from '@/app/app/pedidos/[id]/PhotoUpload';
 import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
+import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { getUser } from '@/lib/supabase/server';
+import { AcceptTerms } from './AcceptTerms';
 import { ConcludeButton, ContactForm } from './ContactForm';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
@@ -13,6 +15,24 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   const { supabase } = await getUser();
   const { data: survey } = await supabase.from('request_surveys').select('*').eq('id', surveyId).maybeSingle();
   if (!survey || (survey.status !== 'reservado' && survey.status !== 'concluido')) notFound();
+
+  // A morada exata só se mostra depois de aceites os termos de confidencialidade (uma vez,
+  // por pessoa — src/domain/surveyTerms.ts), mesmo padrão do pintor antes da ficha completa da obra.
+  const { data: accepted } = await supabase
+    .from('survey_terms_acceptances')
+    .select('version')
+    .eq('version', CURRENT_SURVEY_TERMS_VERSION)
+    .maybeSingle();
+  if (!accepted) {
+    return (
+      <div className="space-y-8">
+        <Link href="/app/levantamentos" className="text-sm text-slate-600 hover:underline">
+          ← Levantamentos
+        </Link>
+        <AcceptTerms surveyId={survey.id} />
+      </div>
+    );
+  }
 
   const { data: request } = await supabase.from('work_requests').select('id, descricao, building_id').eq('id', survey.request_id).maybeSingle();
   if (!request) notFound();
