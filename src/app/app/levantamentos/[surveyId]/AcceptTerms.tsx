@@ -4,7 +4,7 @@ import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
 import { acceptSurveyTerms } from '../actions';
 
-/** Antes de ver a morada e os dados de uma obra reservada, o vendedor aceita estes termos — uma vez,
+/** Antes de ver a morada e os dados de uma obra reservada, o avaliador aceita estes termos — uma vez,
  * válidos para todas as visitas (decisão de 23/10/2026, docs/DECISOES.md). O texto fica aqui, não no
  * domínio: só a versão (src/domain/surveyTerms.ts) tem de ficar certa nos dois sítios. */
 export function AcceptTerms({ surveyId }: { surveyId: string }) {

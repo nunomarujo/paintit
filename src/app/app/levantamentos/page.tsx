@@ -58,10 +58,10 @@ export default async function SurveysPage() {
       <div>
         <h1 className="text-2xl font-semibold">Levantamentos</h1>
         <p className="mt-1 max-w-3xl text-sm text-slate-600">
-          Um cliente que não queira medir a obra sozinho pode pedir a visita de um profissional. Reserve, agende e
+          Um cliente que não queira medir a obra sozinho pode pedir a visita de um avaliador. Reserve, agende e
           registe o levantamento (superfícies e fotografias) — sem custo para o cliente. A sua empresa recebe uma
-          fração da comissão que a plataforma receber desta obra, seja qual for o pintor escolhido, e a margem normal
-          se o pintor escolher os seus produtos.
+          percentagem do valor adjudicado da obra, seja qual for o pintor escolhido, e a margem normal se o pintor
+          escolher os seus produtos.
         </p>
       </div>
 
@@ -110,7 +110,7 @@ export default async function SurveysPage() {
       {manager && (
         <section className={card}>
           <h2 className="font-semibold">Zonas cobertas</h2>
-          <p className="mt-1 text-sm text-slate-600">Concelhos em que tem vendedores disponíveis. Vazio: todo o país.</p>
+          <p className="mt-1 text-sm text-slate-600">Concelhos em que tem avaliadores disponíveis. Vazio: todo o país.</p>
           <div className="mt-4">
             <CoverageForm orgId={org.id} initial={coverage?.concelhos ?? []} />
           </div>

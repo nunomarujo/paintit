@@ -1,40 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { coversZone, surveyorCommissionBp, surveyorDisplayShareBp, surveyPayoutAmount, vendorRatingSummary } from './survey';
+import { coversZone, surveyorPayoutAmount, surveyorShareBp, vendorRatingSummary } from './survey';
 import { euros as eurosHelper } from './money';
 
-describe('repartição da comissão com o vendedor', () => {
-  it('é uma fração da comissão da plataforma, não do valor da obra', () => {
-    const platformFeeNet = eurosHelper(3_000); // 3% de 100 000€, por exemplo
-    expect(surveyPayoutAmount(platformFeeNet, 1000)).toBe(eurosHelper(300)); // 10% de 3 000 €
-    expect(surveyPayoutAmount(platformFeeNet, 0)).toBe(0);
+describe('fórmula dinâmica da fração do vendedor (40/30/15/15, 1%-2,7% do valor adjudicado)', () => {
+  it('sem histórico nenhum (tudo neutro): fica exatamente a meio da banda', () => {
+    expect(surveyorShareBp({ qualificacaoGeral: null, notaInformacao: null, respostaAtempada: null, notaCliente: null })).toBe(185);
   });
 
-  it('usa o placeholder por omissão quando não se indica a percentagem', () => {
-    expect(surveyPayoutAmount(eurosHelper(1_000))).toBe(eurosHelper(100)); // 10% provisório
-  });
-});
-
-describe('fórmula dinâmica da fração do vendedor (40/30/15/15)', () => {
-  it('sem histórico nenhum (tudo neutro): fica exatamente a meio da banda, igual ao antigo provisório', () => {
-    expect(surveyorCommissionBp({ qualificacaoGeral: null, notaInformacao: null, respostaAtempada: null, notaCliente: null })).toBe(1000);
+  it('tudo máximo: topo da banda (2,7%)', () => {
+    expect(surveyorShareBp({ qualificacaoGeral: 5, notaInformacao: 5, respostaAtempada: true, notaCliente: 5 })).toBe(270);
   });
 
-  it('tudo máximo: topo da banda', () => {
-    expect(surveyorCommissionBp({ qualificacaoGeral: 5, notaInformacao: 5, respostaAtempada: true, notaCliente: 5 })).toBe(1500);
-  });
-
-  it('tudo mínimo: fundo da banda', () => {
-    expect(surveyorCommissionBp({ qualificacaoGeral: 1, notaInformacao: 1, respostaAtempada: false, notaCliente: 1 })).toBe(500);
+  it('tudo mínimo: fundo da banda (1%)', () => {
+    expect(surveyorShareBp({ qualificacaoGeral: 1, notaInformacao: 1, respostaAtempada: false, notaCliente: 1 })).toBe(100);
   });
 
   it('pesa mais a qualificação geral (40%) do que a nota da informação (30%)', () => {
-    const maisQualificacao = surveyorCommissionBp({ qualificacaoGeral: 5, notaInformacao: 1, respostaAtempada: null, notaCliente: null });
-    const maisInformacao = surveyorCommissionBp({ qualificacaoGeral: 1, notaInformacao: 5, respostaAtempada: null, notaCliente: null });
+    const maisQualificacao = surveyorShareBp({ qualificacaoGeral: 5, notaInformacao: 1, respostaAtempada: null, notaCliente: null });
+    const maisInformacao = surveyorShareBp({ qualificacaoGeral: 1, notaInformacao: 5, respostaAtempada: null, notaCliente: null });
     expect(maisQualificacao).toBeGreaterThan(maisInformacao);
   });
+});
 
-  it('tradução para "% do valor adjudicado": fração da comissão típica, nunca a comissão em si', () => {
-    expect(surveyorDisplayShareBp(1000, 1800)).toBe(180); // 10% de 18% = 1,8%
+describe('pagamento ao vendedor: % do valor adjudicado, nunca mais do que a comissão realmente recebida', () => {
+  it('numa obra de comissão normal, o teto nunca chega a atuar', () => {
+    const valorAdjudicado = eurosHelper(100_000);
+    const feeNet = eurosHelper(20_000); // 20%, dentro do intervalo-alvo normal
+    expect(surveyorPayoutAmount(valorAdjudicado, 270, feeNet)).toBe(eurosHelper(2_700)); // 2,7% do valor
+  });
+
+  it('numa obra de comissão muito baixa, o teto protege a margem da plataforma', () => {
+    const valorAdjudicado = eurosHelper(100_000);
+    const feeNet = eurosHelper(1_000); // comissão residual, hipotética
+    expect(surveyorPayoutAmount(valorAdjudicado, 270, feeNet)).toBe(feeNet); // 2,7% (2 700€) excederia a comissão; fica limitado a 1 000€
+  });
+
+  it('percentagem zero não paga nada', () => {
+    expect(surveyorPayoutAmount(eurosHelper(100_000), 0, eurosHelper(20_000))).toBe(0);
   });
 });
 

@@ -1,10 +1,10 @@
 import 'server-only';
-import { surveyPayoutAmount, surveyorCommissionBp } from '@/domain/survey';
+import { surveyorPayoutAmount, surveyorShareBp } from '@/domain/survey';
 import type { Cents } from '@/domain/money';
 import { adminClient } from './supabase/admin';
 
 /**
- * Os quatro números da fórmula dinâmica (src/domain/survey.ts, surveyorCommissionBp), lidos com
+ * Os quatro números da fórmula dinâmica (src/domain/survey.ts, surveyorShareBp), lidos com
  * privilégios próprios no preciso momento em que a comissão do pintor é confirmada — nunca antes, para
  * contar o histórico mais recente possível (incluindo um pedido de esclarecimento que só se resolveu
  * depois do levantamento).
@@ -27,16 +27,17 @@ async function surveyorPerformance(db: NonNullable<ReturnType<typeof adminClient
 }
 
 /**
- * Paga ao fornecedor do vendedor a sua fração da comissão, no momento em que a plataforma recebe a
- * comissão do pintor — só se este pedido teve um levantamento concluído por um vendedor
- * (src/domain/survey.ts). A fração em si é dinâmica (surveyorCommissionBp): calculada aqui, com o estado
- * mais recente do vendedor atualmente entitulado — que pode já não ser quem fez a visita original, se
- * houve escalada de um pedido de esclarecimento (`claim_clarification`, 20261023190000). Calculado aqui,
- * não em SQL, porque usa a comissão já corrigida pelas regras e descontos desta contratação (fee.net),
- * que só o replay conhece. Nunca duplica: uma segunda chamada para a mesma obra (ex.: reenvio do webhook)
- * não grava uma segunda linha.
+ * Paga ao fornecedor do vendedor a sua fração do valor adjudicado, no momento em que a plataforma recebe
+ * a comissão do pintor — só se este pedido teve um levantamento concluído por um vendedor
+ * (src/domain/survey.ts). A fração em si é dinâmica (surveyorShareBp): calculada aqui, com o estado mais
+ * recente do vendedor atualmente entitulado — que pode já não ser quem fez a visita original, se houve
+ * escalada de um pedido de esclarecimento (`claim_clarification`, 20261023190000). O pagamento é 1%-2,7%
+ * do valor adjudicado (`valorAdjudicado`, sem IVA), mas nunca excede a comissão líquida (`feeNet`) que a
+ * plataforma de facto recebeu nesta obra (`surveyorPayoutAmount`). Calculado aqui, não em SQL, porque usa
+ * valores já corrigidos pelas regras e descontos desta contratação, que só o replay conhece. Nunca
+ * duplica: uma segunda chamada para a mesma obra (ex.: reenvio do webhook) não grava uma segunda linha.
  */
-export async function settleSurveyPayout(engagementId: string, requestId: string, feeNet: Cents, at: Date): Promise<void> {
+export async function settleSurveyPayout(engagementId: string, requestId: string, valorAdjudicado: Cents, feeNet: Cents, at: Date): Promise<void> {
   const db = adminClient();
   if (!db) return;
   const { data: survey } = await db
@@ -52,7 +53,7 @@ export async function settleSurveyPayout(engagementId: string, requestId: string
     request_survey_id: survey.id,
     supplier_org_id: survey.vendedor_org_id,
     engagement_id: engagementId,
-    amount_cents: surveyPayoutAmount(feeNet, surveyorCommissionBp(performance)),
+    amount_cents: surveyorPayoutAmount(valorAdjudicado, surveyorShareBp(performance), feeNet),
     fee_recebido_em: at.toISOString(),
   });
 }

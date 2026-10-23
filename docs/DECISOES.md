@@ -1348,3 +1348,48 @@ confirmar só se quer também bloqueio por nome, mais arriscado por falsos posit
   regeneração completa continua a quebrar o build noutros ficheiros, por resolver numa sessão dedicada.
 - **Ainda não aplicada à Supabase** (junta-se às três migrações já pendentes) e **sem nenhuma peça de UI**:
   falta o formulário do pintor para avaliar, e o ecrã do vendedor para ver a sua própria % traduzida.
+
+## 23/10/2026 — base de cálculo muda para % do valor adjudicado; papel passa a chamar-se "avaliador" no texto visível
+
+O promotor propôs números concretos que mudam a base económica da fórmula acima, ainda sem UI nem aplicada
+à Supabase: "proponho que a comissão base seja 1% e que em alta performance (100%) vá até 2,7% (DO TOTAL
+ADJUDICADO)". Ou seja, deixa de ser uma fração da comissão da plataforma e passa a ser uma fração direta do
+valor adjudicado da obra (`base`, sem IVA, o mesmo campo de `engagement.ts`) — mais simples de explicar ao
+vendedor/avaliador do que "uma fração de uma fração".
+
+O promotor também levantou e respondeu a si próprio um quinto fator possível: a % de comissão que a
+plataforma vai de facto receber nesta obra, que varia por canal (ex. "traga o seu pintor" cobra só 9%). Notou
+que isto é circular — só se sabe depois de o próprio trabalho do avaliador já estar feito, com proposta
+escolhida — e perguntou a opinião. Decisão: não entra como quinto fator pesado na fórmula; em vez disso, o
+pagamento fica sempre limitado (`Math.min`) à comissão líquida que a plataforma de facto recebeu
+(`platformFeeNet`). Isto absorve exatamente o caso que o promotor descreveu (comissão baixa → pagamento
+efetivamente mais baixo) sem complicar a fórmula 40/30/15/15 nem exigir prever a comissão antes de ela
+existir.
+
+Na mesma mensagem, instrução explícita e separada: "mudemos a palavras de vendedor para avaliador". Decisão
+de âmbito (sem confirmação à parte do promotor, por ser a leitura óbvia do pedido): muda só o texto visível
+ao utilizador e a documentação; os nomes internos ficam como estão — colunas `vendedor_org_id`/
+`vendedor_user_id`, o valor `'vendedor'` do enum `member_role` (já aplicado em produção,
+`20261023143532_papel_vendedor.sql`, referenciado em muitas políticas RLS), e nomes de funções/tabelas
+(`reserve_survey`, `survey_vendor_rating`, etc.). Uma mudança de nome a esse nível é uma decisão maior, à
+parte, só se o promotor a pedir depois.
+
+- **Construído** (`src/domain/survey.ts`): substituídas `surveyorCommissionBp`/`surveyorDisplayShareBp`/
+  `surveyPayoutAmount` (antigo modelo, % da comissão) por `surveyorShareBp` (mesma fórmula 40/30/15/15,
+  agora a interpolar na banda `SURVEYOR_SHARE_OF_VALUE_BP_MIN/MAX = 100/270`, i.e. 1%-2,7%) e
+  `surveyorPayoutAmount(valorAdjudicado, shareBp, platformFeeNet)` (três argumentos; devolve
+  `min(% do valor adjudicado, platformFeeNet)`). `src/domain/survey.test.ts` reescrito para a nova API.
+- `src/lib/surveys.ts` (`settleSurveyPayout`) ganha um argumento novo (`valorAdjudicado`); o chamador
+  (`src/app/app/contratacoes/actions.ts`) passa `after.engagement.base`.
+- Texto visível renomeado para "avaliador": rótulo e descrição do papel em `MEMBER_ROLE_LABELS`/
+  `roleDescription` (`src/domain/organization.ts`), o parágrafo de introdução e a frase "vendedores
+  disponíveis" em `src/app/app/levantamentos/page.tsx` (agora fala em % do valor adjudicado, não em
+  "fração da comissão"), e comentários em `src/domain/clarification.ts`, `src/domain/surveyTerms.ts` e
+  `AcceptTerms.tsx`. Confirmado por grepping que nenhum ecrã do **cliente** nomeava "vendedor" — a regra
+  13 do `CLAUDE.md` (cliente nunca vê comissões nem quem faz o quê) já impedia isso. Não tocado:
+  "vendedores"/"catálogo" em `src/domain/subscription.ts` e na ficha de produto de referência — é um
+  conceito diferente e anterior (fornecedor que vende produtos de pintura no catálogo, não o papel de
+  levantamento).
+- Testado: `npm test` (453), `typecheck`, `lint`, `build` — os quatro com saída 0.
+- **Ainda não aplicada à Supabase** (mesmas quatro migrações pendentes de antes) e **sem nenhuma peça de
+  UI** para o avaliador ver a sua própria %.

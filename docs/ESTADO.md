@@ -647,14 +647,28 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 - **Não aplicada à Supabase** (ver travão 3 acima) e **sem nenhuma peça de UI**: falta o formulário do pintor
   para pedir, o ecrã do vendedor para ver a lista conjunta e confirmar/responder, e o aviso ao cliente quando
   escala. Não publicar sem a migração aplicada a par, pelo mesmo motivo da `levantamento_automatico`.
-- **Fórmula dinâmica (40/30/15/15) construída e ligada** (23/10/2026, mesmo dia, sessão seguinte — proposta
-  minha, pedida simples, aprovada pelo promotor): `surveyorCommissionBp`/`surveyorDisplayShareBp`
-  (`src/domain/survey.ts`); nova migração `20261023200000_avaliacao_informacao_pelo_pintor.sql`
-  (`survey_info_reviews`, `rate_survey_info` — a nota do pintor sobre a informação, que faltava);
-  `settleSurveyPayout` (`src/lib/surveys.ts`) já lê os quatro componentes do vendedor atualmente entitulado
-  e calcula a fração real, em vez do antigo 10% fixo. `npm test` (453), os quatro com saída 0. **Ainda sem
-  UI**: falta o formulário do pintor para avaliar e o ecrã do vendedor para ver a sua própria % traduzida.
-  Detalhe completo em `docs/DECISOES.md`.
+- **Fórmula dinâmica (40/30/15/15) construída e ligada**, depois **a base de cálculo mudada para % do
+  valor adjudicado** (23/10/2026, mesmo dia, duas sessões seguintes — proposta minha, pedida simples,
+  aprovada pelo promotor, depois ajustada com números concretos dele): `surveyorShareBp`/
+  `surveyorPayoutAmount` (`src/domain/survey.ts`) — banda **1%-2,7% do valor adjudicado** (`base`, sem IVA),
+  nunca da comissão da plataforma, mas o pagamento nunca excede a comissão líquida de facto recebida
+  (`platformFeeNet`) — teto que absorve, sem complicar a fórmula, a preocupação do promotor sobre canais de
+  comissão baixa (ex. "traga o seu pintor", 9%). Nova migração `20261023200000_avaliacao_informacao_pelo_
+  pintor.sql` (`survey_info_reviews`, `rate_survey_info` — a nota do pintor sobre a informação, que
+  faltava); `settleSurveyPayout` (`src/lib/surveys.ts`) já lê os quatro componentes do avaliador atualmente
+  entitulado e calcula o pagamento real, em vez do antigo 10% fixo da comissão. `npm test` (453), os quatro
+  com saída 0. **Ainda sem UI**: falta o formulário do pintor para avaliar e o ecrã do avaliador para ver a
+  sua própria % traduzida. Detalhe completo em `docs/DECISOES.md`.
+- **Nomenclatura**: o promotor passou a chamar **"avaliador"** a este papel no texto visível ao utilizador
+  (23/10/2026) — "o papel que a pessoa faz é avaliar a obra, não vender tintas". Mudado: rótulo e descrição
+  do papel (`MEMBER_ROLE_LABELS`, `roleDescription`), texto da página `/app/levantamentos`, comentários nos
+  ficheiros de domínio relevantes. **Não mudado** (decisão de âmbito, à parte do pedido do promotor): os
+  nomes internos — colunas `vendedor_org_id`/`vendedor_user_id`, o valor `'vendedor'` do enum `member_role`
+  (já aplicado em produção, usado em muitas políticas RLS), nomes de funções/tabelas (`reserve_survey`,
+  `survey_vendor_rating`, etc.). Uma mudança de nome a esse nível é maior e fica para decisão separada, só
+  se o promotor a pedir. Não confundir com "vendedores"/"catálogo" (`src/domain/subscription.ts`,
+  `src/app/app/catalogo/referencia/[id]/page.tsx`) — conceito diferente e anterior, o fornecedor que vende
+  produtos de pintura no catálogo.
 - **NIPC — esclarecido, nada a construir**: é o mesmo número que o NIF para pessoas coletivas (não há dois
   sistemas de numeração em Portugal); o bloqueio por NIF (`src/lib/strikes.ts`, `blocked_identifiers`) já
   cobre o NIPC. Fica só em aberto, por decidir, se o promotor quer também bloqueio por **nome** de empresa
@@ -675,7 +689,7 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 | "Percentagem dos 57%" | Não usada por falta de fonte; entra no texto se houver estudo | Fora do texto |
 | Identidades no PDF assinado | O PDF não tem nomes, por causa do anonimato — confirmar que está bem assim | Sem nomes |
 | **Algoritmo de fee dinâmico (ponto 1, 18-23%)** | Decidir os pesos finais (hoje "propostas para teste" no documento), desenhar os ecrãs de C/E/F/M/J, decidir o indicador S, decidir como compõe com os códigos de adesão | Motor pronto, não ligado (secção 5.8) |
-| **Percentagem do levantamento por vendedor** | Confirmar antes de qualquer pagamento real: a fórmula dinâmica (40/30/15/15, 5%-15%, secção 6.5) está construída e ligada ao pagamento — falta só o promotor validar a banda (5%-15%) e os pesos num caso real antes de ligar a dinheiro verdadeiro | Fórmula dinâmica em vigor no código (secção 6.5), por validar com dinheiro real |
+| **Percentagem do levantamento por avaliador** | Confirmar antes de qualquer pagamento real: a fórmula dinâmica (40/30/15/15, **1%-2,7% do valor adjudicado**, com teto na comissão líquida recebida, secção 6.5) já reflete os números que o promotor propôs em 23/10/2026 — falta só validar os pesos e a banda num caso real antes de ligar a dinheiro verdadeiro | Fórmula dinâmica em vigor no código (secção 6.5), por validar com dinheiro real |
 | Bloqueio por nome (strikes) | NIPC já está coberto pelo bloqueio por NIF existente (são o mesmo número) — falta só decidir se quer também bloqueio por **nome** de empresa/pessoa, mais arriscado por falsos positivos | Em aberto, perguntado ao promotor em 23/10/2026 |
 | Contabilista | Validar o desenho completo (`docs/CONTABILIDADE.md`), o momento da fatura, a natureza fiscal da caução retida, retenção na fonte aos fornecedores, CAE | Desenho aplicado sem validação formal |
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | Por fazer |

@@ -61,7 +61,7 @@ async function record(
   if (error) return { errors: {}, message: 'Não foi possível registar. Confirme que tem permissão para este passo.' };
   // Devoluções que este passo torne devidas (ex.: caução na assinatura) seguem logo para o Stripe.
   await settleRefunds(engagementId).catch(() => undefined);
-  if (kind === 'fee_recebido') await settleSurveyPayout(engagementId, row.request_id, after.engagement.fee.net, at).catch(() => undefined);
+  if (kind === 'fee_recebido') await settleSurveyPayout(engagementId, row.request_id, after.engagement.base, after.engagement.fee.net, at).catch(() => undefined);
   await notifyEngagementChange(engagementId, before.status, after.engagement.status).catch(() => undefined);
   revalidatePath(`/app/contratacoes/${engagementId}`);
   return { errors: {}, ok: true, message: 'Registado.', revealed: reveal };

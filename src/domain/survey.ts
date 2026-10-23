@@ -6,6 +6,12 @@ import { percentOf, type Cents } from './money';
 // registar o levantamento — sem custo para o cliente. Se nenhum vendedor reservar a tempo, o
 // levantamento self-service (o cliente preenche sozinho) continua sempre disponível: é uma rede de
 // segurança, nunca uma obrigação.
+//
+// NOTA DE NOMENCLATURA (23/10/2026): o promotor passou a chamar "avaliador" a este papel, por ser o que
+// o pessoa faz (avalia a obra para orçamentação), não "vendedor" de tintas. Este ficheiro e a base de
+// dados (colunas, tabelas, o papel 'vendedor' já aplicado em produção) continuam com o nome antigo —
+// mudar isso é um passo maior (um enum já em produção, usado em muitas políticas RLS), por decidir
+// separadamente. Já mudou: todo o texto visível ao utilizador (`docs/ESTADO.md`, 23/10/2026).
 
 export const SURVEY_STATUSES = ['aberto', 'reservado', 'concluido', 'expirado', 'cancelado'] as const;
 export type SurveyStatus = (typeof SURVEY_STATUSES)[number];
@@ -20,38 +26,24 @@ export type SurveyStatus = (typeof SURVEY_STATUSES)[number];
 export const RESERVE_WINDOW_HOURS = 48;
 
 /**
- * Fração da comissão que a PLATAFORMA recebe (nunca do valor da obra) partilhada com o fornecedor do
- * vendedor, paga só quando essa comissão entra — seja qual for o pintor escolhido (é isto que torna o
- * vendedor aliado do processo, não um risco de desintermediação: ver docs/DECISOES.md). **Placeholder,
- * não confirmado pelo promotor** — o próprio documento que desenhou este mecanismo deixou a percentagem
- * em aberto ("precisa de um número para recalcular a receita líquida"). Não ligar a pagamentos reais sem
- * confirmar este valor.
- */
-export const SURVEY_SHARE_BP_PROVISIONAL = 1000;
-
-/** Quanto o fornecedor do vendedor recebe desta obra, a partir da comissão líquida que a plataforma
- * recebeu (sem IVA — o IVA da comissão nunca é receita da plataforma, não há o que partilhar dele). */
-export function surveyPayoutAmount(platformFeeNet: Cents, shareBp: number = SURVEY_SHARE_BP_PROVISIONAL): Cents {
-  return percentOf(platformFeeNet, shareBp);
-}
-
-/**
- * Fórmula dinâmica da fração do vendedor (proposta minha, pedida pelo promotor em 23/10/2026 para manter
- * simples — docs/DECISOES.md), a substituir `SURVEY_SHARE_BP_PROVISIONAL` fixo: 40% qualificação geral
- * acumulada do vendedor, 30% nota dos pintores sobre a informação deste levantamento, 15% se respondeu a
- * tempo a um pedido de esclarecimento (clarification.ts), 15% nota do cliente a esta obra em concreto.
- * Cada componente sem dados ainda (obra nova, sem avaliações, sem pedido de esclarecimento) entra como
- * neutro — nem penaliza nem beneficia um vendedor sem histórico suficiente, mesmo critério de
- * `vendorRatingSummary` ("primeira obra", sem limiar mínimo).
+ * Comissão do vendedor (o promotor chama-lhe "avaliador" no papel que desempenha aqui — ver nota no
+ * fundo do ficheiro): % do VALOR ADJUDICADO da obra (sem IVA, o mesmo `base` de `engagement.ts`), nunca
+ * da comissão da plataforma — mas paga a partir dela, por isso nunca pode exceder a comissão líquida que
+ * a plataforma de facto recebeu (`surveyorPayoutAmount`). Números do promotor (23/10/2026,
+ * docs/DECISOES.md): 1% de base, até 2,7% em alta performance — a mesma fórmula 40/30/15/15 já em vigor
+ * (qualificação geral acumulada / nota dos pintores sobre a informação do levantamento / resposta a
+ * tempo a um pedido de esclarecimento / nota do cliente a esta obra), só a reler numa escala direta de %
+ * do valor da obra em vez de % da comissão. Cada componente sem dados ainda entra neutro (meio da banda),
+ * mesmo critério de `vendorRatingSummary` ("primeira obra", sem limiar mínimo).
  *
- * O resultado fica entre `SURVEY_SHARE_BP_MIN` e `SURVEY_SHARE_BP_MAX`, com o antigo valor provisório
- * (10%) exatamente ao meio — ninguém fica pior do que estava, só se diferencia dentro de uma banda
- * moderada. Mostrado ao vendedor sempre como "% do valor adjudicado" (`surveyorDisplayShare`), nunca como
- * "% da comissão da plataforma" (CLAUDE.md, regra 13: o cliente nunca vê a comissão; o vendedor vê a sua
- * própria fração, traduzida).
+ * **Sobre o 5.º fator que o promotor considerou** (a % de comissão que a plataforma vai mesmo receber
+ * nesta obra): não entra como fator pesado à parte — é circular (só se sabe depois de o próprio trabalho
+ * do avaliador estar feito, com proposta já escolhida) e o teto abaixo já o traduz sem precisar de mais
+ * nada: numa obra de comissão baixa (ex. "traga o seu pintor", 9%), o teto por si só já reduz a fração
+ * efetiva do avaliador, sem ser preciso somar isso à fórmula.
  */
-export const SURVEY_SHARE_BP_MIN = 500; // 5%
-export const SURVEY_SHARE_BP_MAX = 1500; // 15%
+export const SURVEYOR_SHARE_OF_VALUE_BP_MIN = 100; // 1% do valor adjudicado
+export const SURVEYOR_SHARE_OF_VALUE_BP_MAX = 270; // 2,7% do valor adjudicado
 const SURVEYOR_NEUTRAL_SCORE = 50;
 
 export interface SurveyorPerformance {
@@ -67,20 +59,21 @@ export interface SurveyorPerformance {
 
 const starsToScore = (stars: number | null): number => (stars == null ? SURVEYOR_NEUTRAL_SCORE : ((stars - 1) / 4) * 100);
 
-export function surveyorCommissionBp(p: SurveyorPerformance): number {
+/** Posição do vendedor na banda 1%-2,7% do valor adjudicado, segundo o seu desempenho. */
+export function surveyorShareBp(p: SurveyorPerformance): number {
   const score =
     0.4 * starsToScore(p.qualificacaoGeral) +
     0.3 * starsToScore(p.notaInformacao) +
     0.15 * (p.respostaAtempada == null ? SURVEYOR_NEUTRAL_SCORE : p.respostaAtempada ? 100 : 0) +
     0.15 * starsToScore(p.notaCliente);
-  return Math.round(SURVEY_SHARE_BP_MIN + (score / 100) * (SURVEY_SHARE_BP_MAX - SURVEY_SHARE_BP_MIN));
+  return Math.round(SURVEYOR_SHARE_OF_VALUE_BP_MIN + (score / 100) * (SURVEYOR_SHARE_OF_VALUE_BP_MAX - SURVEYOR_SHARE_OF_VALUE_BP_MIN));
 }
 
-/** Tradução para o ecrã do vendedor: nunca a % real da comissão da plataforma, sempre "% do valor
- * adjudicado" — a mesma fração, só multiplicada pela comissão típica para dar um número que o vendedor
- * entende sem nunca revelar a comissão em si. */
-export function surveyorDisplayShareBp(shareBp: number, typicalCommissionBp: number): number {
-  return Math.round(percentOf(typicalCommissionBp, shareBp));
+/** Quanto o fornecedor do vendedor recebe desta obra: a % (`surveyorShareBp`) do valor adjudicado, nunca
+ * mais do que a comissão líquida que a plataforma de facto recebeu (sem IVA) — o teto que absorve o 5.º
+ * fator referido acima, sem o somar à fórmula. */
+export function surveyorPayoutAmount(valorAdjudicado: Cents, shareBp: number, platformFeeNet: Cents): Cents {
+  return Math.min(percentOf(valorAdjudicado, shareBp), platformFeeNet);
 }
 
 /** O fornecedor serve este concelho? Lista vazia = todo o país (mesma convenção de `supplier_delivery`,

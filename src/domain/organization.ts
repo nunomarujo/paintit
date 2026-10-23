@@ -47,7 +47,7 @@ export function roleDescription(kind: OrgKind, role: MemberRole): string {
     fornecedor: {
       gestor: 'Gere produtos, descontos, entregas e encomendas.',
       financeiro: 'Acompanha a subscrição e as encomendas.',
-      vendedor: 'Recebe e faz o levantamento de obras na sua zona.',
+      vendedor: 'Recebe e faz o levantamento de obras na sua zona (papel "avaliador").',
     },
     pintor: {
       gestor: 'Gere propostas, obras e documentos.',
@@ -61,7 +61,9 @@ export const MEMBER_ROLE_LABELS: Record<MemberRole, { label: string; description
   proprietario: { label: 'Proprietário', description: 'Gere tudo, incluindo a equipa.' },
   gestor: { label: 'Gestor', description: 'Gere prédios, pedidos e documentos.' },
   financeiro: { label: 'Financeiro', description: 'Envia documentos e acompanha pagamentos.' },
-  vendedor: { label: 'Vendedor', description: 'Recebe pedidos de levantamento de obras.' },
+  // Nome interno do papel ('vendedor') por continuidade com a base de dados (enum já em produção); o
+  // texto visível ao utilizador usa "avaliador" — decisão de 23/10/2026, docs/DECISOES.md.
+  vendedor: { label: 'Avaliador', description: 'Recebe pedidos de levantamento de obras.' },
   leitor: { label: 'Leitor', description: 'Só consulta.' },
 };
 
