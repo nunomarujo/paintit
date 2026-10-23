@@ -1482,3 +1482,25 @@ Quatro peças:
 
 **Nada disto está construído.** Fica registado como proposta de referência — mesmo padrão do que se fez para a
 garantia de execução (entrada anterior desta mesma data). Acrescentado a `docs/ESTADO.md`, secção 7.
+
+## 23/10/2026 — catálogo com dois separadores: "Produtos de referência" e "Produtos e descontos"
+
+Pedido do promotor a partir de um ecrã concreto: a secção "Produtos dos fornecedores" (`/app/catalogo`),
+vazia com os filtros aplicados, "deve passar para separador 'produtos e descontos'". A página empilhava os
+dois conceitos na mesma vista — fichas públicas de fabricante, sem ninguém a vender, e o que os fornecedores
+da plataforma realmente vendem — confundindo os dois.
+
+- **Construído em cima do trabalho paralelo de outra sessão nesta mesma página** (seleção "Escolhas e
+  descobertas do mês" na primeira visita, fotos dos produtos, ordenar por preço, filtro automático): não
+  reescrevi nada disso, só acrescentei a navegação por separadores por cima. Dois separadores: "Produtos de
+  referência" (cobre tanto a vista "Escolhas do mês" como a lista filtrada — a mesma distinção que já existia)
+  e "Produtos e descontos" (antes "Produtos dos fornecedores"). Um `?tab=` na URL guarda qual está ativo,
+  preservando os outros filtros (`q`, `tipo`, `area`, `demaos`, `ordenar`) ao trocar de separador.
+- **Conflito real de ficheiro com a outra sessão** (`src/app/app/catalogo/page.tsx` tinha sido reescrito em
+  paralelo, 165 linhas): resolvido fazendo `git checkout` à minha versão mais simples, mesclando o trabalho da
+  outra sessão limpo (sem conflito nenhum), e só depois voltando a aplicar os separadores por cima da versão
+  deles — em vez de tentar resolver um conflito de `git merge` a direito, com as duas versões a reestruturar o
+  mesmo JSX de formas diferentes.
+- Verificado visualmente com Playwright (página de pré-visualização temporária, removida a seguir): o
+  separador "Produtos e descontos" mostra agora "Sem produtos com estes filtros." exatamente onde o promotor
+  apontou. tsc, lint, 453 testes, build — zero.

@@ -8,13 +8,28 @@ import { getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { ProductThumb } from '@/components/ProductThumb';
 
-// Catálogo de todos os fornecedores, com uma estimativa de consumo (CMP-06).
+const TABS = [
+  { id: 'referencia', label: 'Produtos de referência' },
+  { id: 'fornecedores', label: 'Produtos e descontos' },
+] as const;
+
+// Catálogo de todos os fornecedores, com uma estimativa de consumo (CMP-06). Dois separadores (decisão de
+// 23/10/2026, docs/DECISOES.md): "Produtos de referência" (fichas públicas dos fabricantes, sem fornecedor
+// nenhum por trás) e "Produtos e descontos" (o que os fornecedores da plataforma realmente vendem, com o
+// seu preço) — antes vinham empilhados na mesma página, confundindo os dois conceitos.
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; area?: string; demaos?: string; ordenar?: string; touched?: string }>;
+  searchParams: Promise<{ q?: string; tipo?: string; area?: string; demaos?: string; ordenar?: string; touched?: string; tab?: string }>;
 }) {
-  const { q, tipo, area, demaos, ordenar, touched } = await searchParams;
+  const { q, tipo, area, demaos, ordenar, touched, tab } = await searchParams;
+  const activeTab = tab === 'fornecedores' ? 'fornecedores' : 'referencia';
+  const qs = (overrides: Record<string, string | undefined>) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries({ q, tipo, area, demaos, ordenar, ...overrides })) if (v) p.set(k, v);
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  };
   const { supabase } = await getUser();
   let query = supabase.from('products').select('*').eq('ativo', true).order('marca').order('nome').limit(200);
   if (tipo && (PRODUCT_TYPES as readonly string[]).includes(tipo)) query = query.eq('tipo', tipo as ProductType);
@@ -106,7 +121,22 @@ export default async function CatalogPage({
         </button>
       </form>
 
-      {curated ? (
+      <nav className="flex gap-1 border-b border-slate-200 text-sm font-semibold">
+        {TABS.map((t) => (
+          <Link
+            key={t.id}
+            href={`/app/catalogo${qs({ tab: t.id === 'referencia' ? undefined : t.id })}`}
+            aria-current={activeTab === t.id ? 'page' : undefined}
+            className={`-mb-px border-b-2 px-3 py-2 ${
+              activeTab === t.id ? 'border-tinta-600 text-tinta-700' : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </nav>
+
+      {activeTab !== 'referencia' ? null : curated ? (
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-semibold">Escolhas e descobertas do mês</h2>
@@ -198,31 +228,38 @@ export default async function CatalogPage({
           )}
         </section>
       )}
-      <h2 className="text-lg font-semibold">Produtos dos fornecedores</h2>
-      {!products || products.length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem produtos com estes filtros.</p>
-      ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {products.map((p) => {
-            const c =
-              areaCm2 && !Number.isNaN(areaCm2)
-                ? consumption(areaCm2, coats, { rendimento: p.rendimento, embalagemMl: p.embalagem_ml, precoReferencia: p.preco_referencia_cents })
-                : null;
-            return (
-              <li key={p.id}>
-                <ProductCard p={p}>
-                  {c && (
-                    <p className="mt-2 rounded-lg bg-slate-50 p-2">
-                      Para {area} m² com {coats} demão{coats > 1 ? 's' : ''}: {(c.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L
-                      {c.embalagens !== null ? `, ${c.embalagens} embalage${c.embalagens > 1 ? 'ns' : 'm'}` : ''}
-                      {c.custo !== null ? `, cerca de ${formatEuros(c.custo)} sem IVA` : ''}
-                    </p>
-                  )}
-                </ProductCard>
-              </li>
-            );
-          })}
-        </ul>
+      {activeTab === 'fornecedores' && (
+        <section className="space-y-3">
+          <p className="text-sm text-slate-600">
+            O que os fornecedores da plataforma vendem, com o preço e o desconto que já têm — nunca fichas de
+            fabricante sem ninguém por trás a vender.
+          </p>
+          {!products || products.length === 0 ? (
+            <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem produtos com estes filtros.</p>
+          ) : (
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {products.map((p) => {
+                const c =
+                  areaCm2 && !Number.isNaN(areaCm2)
+                    ? consumption(areaCm2, coats, { rendimento: p.rendimento, embalagemMl: p.embalagem_ml, precoReferencia: p.preco_referencia_cents })
+                    : null;
+                return (
+                  <li key={p.id}>
+                    <ProductCard p={p}>
+                      {c && (
+                        <p className="mt-2 rounded-lg bg-slate-50 p-2">
+                          Para {area} m² com {coats} demão{coats > 1 ? 's' : ''}: {(c.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L
+                          {c.embalagens !== null ? `, ${c.embalagens} embalage${c.embalagens > 1 ? 'ns' : 'm'}` : ''}
+                          {c.custo !== null ? `, cerca de ${formatEuros(c.custo)} sem IVA` : ''}
+                        </p>
+                      )}
+                    </ProductCard>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   );
