@@ -1,5 +1,9 @@
 # Plano
 
+> Este ficheiro mostra a forma do produto por fases, decidida a 18/10/2026, e não se atualiza a cada sessão.
+> **Para o estado atual e completo (o que foi construído depois da fase 6, os travões ativos e as decisões em
+> aberto), ler sempre `docs/ESTADO.md` primeiro** — é o documento mantido ao corrente.
+
 O produto avança por fases que entregam um percurso completo cada uma. O negócio (jurídico, pagamentos,
 marca, piloto) avança em paralelo e condiciona o lançamento.
 

@@ -38,6 +38,15 @@ proposta o previr, o adiantamento de adjudicação.
 
 **Regra central:** a plataforma recebe 3% uma única vez, e nunca as duas garantias.
 
+> **Litígio com repartição (`'repartido'`, DIS-07/DIS-08, decidido com julgamento próprio a 23/10/2026):** além dos
+> dois desfechos binários (culpa do cliente / culpa do pintor) acima e no percurso v2, existe um terceiro — um
+> parâmetro só, `culpaClientePercent` (inteiro, 1-99), aplicado com o mesmo sentido às duas rubricas: essa fração
+> da caução fica retida pela plataforma (o resto volta ao cliente); essa mesma fração da comissão volta ao pintor
+> (o resto fica retido pela plataforma). Em 100% ou 0% reproduz exatamente os dois desfechos binários — por isso
+> não têm linha própria nova na tabela. As duas partes nunca trocam dinheiro diretamente entre si, só com a
+> plataforma. Decide sempre a equipa da plataforma no backoffice. Detalhe: `docs/DECISOES.md`, 23/10/2026;
+> `docs/ESTADO.md`, secção 3.3.
+
 ## Exemplo: obra de 100 000 € sem IVA, adiantamento de 10%
 
 - Cliente deposita 13 000 € (3 000 € de garantia + 10 000 € de adiantamento).
