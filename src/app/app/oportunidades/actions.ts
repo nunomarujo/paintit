@@ -10,7 +10,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import type { Json } from '@/lib/database.types';
 import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
-import { notifyProposalSubmitted, notifyReferralCandidacy, notifyReferralWon } from '@/lib/notify';
+import { notifyNewMessage, notifyProposalSubmitted, notifyReferralCandidacy, notifyReferralWon } from '@/lib/notify';
 import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 
@@ -187,6 +187,7 @@ export async function sendMessage(
   if (refused) return refused;
   const { error } = await supabase.from('proposal_messages').insert({ proposal_id: proposalId, lado, texto, autor: user.id });
   if (error) return { errors: {}, message: 'Não foi possível enviar.' };
+  await notifyNewMessage(proposalId, lado).catch(() => undefined);
   revalidatePath(path);
   return { errors: {}, ok: true };
 }

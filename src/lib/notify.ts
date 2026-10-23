@@ -132,6 +132,35 @@ export async function notifyNewRequest(requestId: string): Promise<void> {
   }
 }
 
+/**
+ * Mensagem nova numa proposta, antes da apresentação (COM-05): avisa só quem a não escreveu, sem identificar
+ * quem a escreveu mais do que o anúncio anónimo já permite, e sem repetir o texto no email (já passou pelo
+ * filtro de contactos — guardContact — mas não há razão para o email repetir conteúdo gerado pelo utilizador).
+ */
+export async function notifyNewMessage(proposalId: string, lado: 'cliente' | 'pintor'): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: p } = await db.from('proposals').select('request_id, painter_org_id').eq('id', proposalId).maybeSingle();
+  if (!p) return;
+  const { data: req } = await db.from('work_requests').select('org_id, titulo').eq('id', p.request_id).maybeSingle();
+  if (!req) return;
+  if (lado === 'pintor') {
+    await sendEmail(
+      await recipients(req.org_id),
+      'Nova mensagem numa proposta',
+      [`Uma das propostas para «${req.titulo}» tem uma pergunta ou mensagem nova.`],
+      `/app/pedidos/${p.request_id}/propostas`,
+    );
+  } else {
+    await sendEmail(
+      await recipients(p.painter_org_id),
+      'Nova mensagem do cliente',
+      [`Há uma mensagem nova numa das suas propostas, para «${req.titulo}».`],
+      `/app/oportunidades/${p.request_id}`,
+    );
+  }
+}
+
 const euro = (cents: number) => formatEuros(cents);
 const SUPPLIER_PATH = (orgId: string) => `/app/organizacoes/${orgId}/adesoes`;
 

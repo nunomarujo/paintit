@@ -732,3 +732,17 @@ decidido pela função pura; faltava só dizê-lo.
   própria ação na app, escolher não continuar; um novo email aí informaria cada parte de algo que já sabe (o
   cliente, porque é ele que o faz; o pintor, porque já sabia que tinha falhado). Se preferires avisar mesmo
   assim, é uma linha igual às outras.
+
+## 23/10/2026 — mensagem nova numa proposta passa a avisar por email
+
+Mesmo levantamento (COM-05): "esclarecimento recebido" está na lista de eventos que merecem aviso, mas
+`sendMessage` (`src/app/app/oportunidades/actions.ts`) só gravava a mensagem — quem a recebia só saberia se
+voltasse a abrir essa proposta específica. Era o único canal de comunicação da plataforma sem nenhum aviso.
+
+- `notifyNewMessage(proposalId, lado)`, nova em `notify.ts`: avisa só quem não escreveu, nunca repete o texto da
+  mensagem no email (já passou pelo filtro de contactos — `guardContact` — mas não há razão para o repetir) e
+  mantém o anonimato de sempre antes da apresentação ("uma das propostas", nunca a empresa).
+- Um só ponto de inserção (`sendMessage`) serve as duas páginas que mostram conversas (`MessageThread.tsx`), por
+  isso uma só chamada cobre tudo — cliente a perguntar numa proposta ainda rascunho incluído.
+- `notify.ts` não tem testes diretos (é `server-only`, como as outras funções de envio neste ficheiro) — tsc,
+  lint, 398 testes, build, zero.
