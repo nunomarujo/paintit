@@ -16,6 +16,7 @@ import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
 import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
+import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { SurfaceForm } from './SurfaceForm';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -54,6 +55,20 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
+  const { data: surveyRow } = draft ? await supabase.from('request_surveys').select('*').eq('request_id', id).maybeSingle() : { data: null };
+  let survey: SurveyInfo | null = null;
+  if (surveyRow) {
+    const [{ data: vendorRatingRow }, { data: ratedRow }] = await Promise.all([
+      surveyRow.vendedor_user_id ? supabase.rpc('survey_vendor_rating', { p_user: surveyRow.vendedor_user_id }) : Promise.resolve({ data: null }),
+      supabase.from('survey_reviews').select('id').eq('request_survey_id', surveyRow.id).maybeSingle(),
+    ]);
+    survey = {
+      id: surveyRow.id,
+      status: surveyRow.status,
+      vendorRating: vendorRatingRow?.[0] ?? null,
+      rated: !!ratedRow,
+    };
+  }
   const { data: rawInvites } = req.status === 'publicado' ? await supabase.from('request_invites').select('*').eq('request_id', id).order('created_at', { ascending: false }) : { data: [] };
   const invitePainterIds = [...new Set((rawInvites ?? []).map((i) => i.painter_org_id).filter((x): x is string => !!x))];
   const { data: invitePainters } = invitePainterIds.length ? await supabase.from('organizations').select('id, nome').in('id', invitePainterIds) : { data: [] };
@@ -154,6 +169,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           />
         </div>
       </section>
+
+      {manager && draft && <RequestSurveyCard requestId={req.id} survey={survey} />}
 
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">

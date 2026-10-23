@@ -18,7 +18,7 @@ type DocKind =
   | 'autorizacao_marca'
   | 'outro';
 type DocStatus = 'submetido' | 'em_validacao' | 'aprovado' | 'rejeitado' | 'expirado';
-type MemberRole = 'proprietario' | 'gestor' | 'financeiro' | 'leitor';
+type MemberRole = 'proprietario' | 'gestor' | 'financeiro' | 'leitor' | 'vendedor';
 type OrgKind = 'condominio' | 'administradora' | 'particular' | 'pintor' | 'fornecedor';
 type RequestStatus = 'rascunho' | 'publicado' | 'encerrado' | 'cancelado';
 type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior';
@@ -667,6 +667,87 @@ export type Database = {
           titular: string;
         };
         Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      request_surveys: {
+        Row: {
+          concluded_at: string | null;
+          contact_notes: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          request_id: string;
+          reserve_deadline: string | null;
+          reserved_at: string | null;
+          scheduled_at: string | null;
+          status: 'aberto' | 'reservado' | 'concluido' | 'expirado' | 'cancelado';
+          vendedor_org_id: string | null;
+          vendedor_user_id: string | null;
+        };
+        Insert: { request_id: string };
+        Update: { contact_notes?: string; scheduled_at?: string | null };
+        Relationships: [];
+      };
+      supplier_survey_coverage: {
+        Row: { concelhos: string[]; org_id: string; updated_at: string };
+        Insert: { concelhos?: string[]; org_id: string };
+        Update: { concelhos?: string[] };
+        Relationships: [];
+      };
+      survey_reviews: {
+        Row: { comentario: string; created_at: string; created_by: string; id: string; nota: number; request_survey_id: string; vendedor_user_id: string };
+        Insert: { comentario?: string; nota: number; request_survey_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_payouts: {
+        Row: {
+          amount_cents: number;
+          created_at: string;
+          engagement_id: string;
+          estado: 'adjudicada' | 'paga' | 'sem_efeito';
+          fee_recebido_em: string;
+          id: string;
+          motivo: string | null;
+          redemption_id: string | null;
+          request_survey_id: string;
+          supplier_org_id: string;
+        };
+        Insert: { amount_cents: number; engagement_id: string; fee_recebido_em: string; request_survey_id: string; supplier_org_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_redemptions: {
+        Row: {
+          cobra_iva: boolean;
+          comissao_cents: number;
+          created_at: string;
+          created_by: string | null;
+          estado: 'pedido' | 'fatura_recebida' | 'paga' | 'anulado';
+          iban: string;
+          id: string;
+          invoice_em: string | null;
+          invoice_numero: string | null;
+          invoice_path: string | null;
+          isencao_iva: string | null;
+          iva_cents: number;
+          liquido_cents: number;
+          motivo: string | null;
+          paga_em: string | null;
+          referencia_pagamento: string | null;
+          retencao_bps: number;
+          retencao_cents: number;
+          supplier_org_id: string;
+          titular: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      survey_terms_acceptances: {
+        Row: { accepted_at: string; user_id: string; version: string };
+        Insert: { accepted_at?: string; user_id?: string; version: string };
         Update: never;
         Relationships: [];
       };
@@ -1384,6 +1465,31 @@ export type Database = {
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
+      reserve_survey: {
+        Args: { p_survey_id: string; p_org: string };
+        Returns: {
+          id: string;
+          request_id: string;
+          status: string;
+          vendedor_org_id: string | null;
+          vendedor_user_id: string | null;
+          reserved_at: string | null;
+          reserve_deadline: string | null;
+          contact_notes: string;
+          scheduled_at: string | null;
+          concluded_at: string | null;
+          created_by: string;
+          created_at: string;
+        };
+      };
+      conclude_survey: { Args: { p_survey_id: string }; Returns: undefined };
+      cancel_survey: { Args: { p_survey_id: string }; Returns: undefined };
+      survey_vendor_rating: { Args: { p_user: string }; Returns: { n: number; media: number | null }[] };
+      survey_preview: { Args: { p_survey_id: string }; Returns: { concelho: string; tipo_obra: string }[] };
+      survey_request_redemption: { Args: { p_org: string }; Returns: string };
+      survey_redemption_invoice: { Args: { p_redemption: string; p_numero: string; p_path: string }; Returns: undefined };
+      survey_redemption_cancel: { Args: { p_redemption: string; p_motivo: string }; Returns: undefined };
+      survey_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };
     };
     Enums: {
       building_kind: BuildingKind;

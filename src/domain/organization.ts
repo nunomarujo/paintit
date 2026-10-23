@@ -38,7 +38,7 @@ export function allowedOrgKinds(existing: OrgKind[]): OrgKind[] {
   return ORG_KINDS.filter((k) => accountProfile(k) === profile);
 }
 
-export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'leitor'] as const;
+export const MEMBER_ROLES = ['proprietario', 'gestor', 'financeiro', 'vendedor', 'leitor'] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
 /** Descrição do papel adaptada ao tipo de entidade (um fornecedor não gere prédios). */
@@ -47,6 +47,7 @@ export function roleDescription(kind: OrgKind, role: MemberRole): string {
     fornecedor: {
       gestor: 'Gere produtos, descontos, entregas e encomendas.',
       financeiro: 'Acompanha a subscrição e as encomendas.',
+      vendedor: 'Recebe e faz o levantamento de obras na sua zona.',
     },
     pintor: {
       gestor: 'Gere propostas, obras e documentos.',
@@ -60,6 +61,7 @@ export const MEMBER_ROLE_LABELS: Record<MemberRole, { label: string; description
   proprietario: { label: 'Proprietário', description: 'Gere tudo, incluindo a equipa.' },
   gestor: { label: 'Gestor', description: 'Gere prédios, pedidos e documentos.' },
   financeiro: { label: 'Financeiro', description: 'Envia documentos e acompanha pagamentos.' },
+  vendedor: { label: 'Vendedor', description: 'Recebe pedidos de levantamento de obras.' },
   leitor: { label: 'Leitor', description: 'Só consulta.' },
 };
 

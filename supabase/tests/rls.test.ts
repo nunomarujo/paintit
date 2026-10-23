@@ -1830,3 +1830,71 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     await expect(as(IC, () => db.query(`select public.redeem_request_invite($1, $2)`, [code, painterOrg]))).rejects.toThrow(/já não está publicada/);
   });
 });
+
+describe('levantamento por vendedor (reserva por zona, prazo, repartição)', () => {
+  const VEND = '00000000-0000-4000-8000-0000000000e5'; // vendedor (papel novo) de um fornecedor
+  let vendorOrg: string;
+  let requestId: string;
+  let surveyId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [VEND, email(VEND)]);
+    vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Levantamento Lda', '610000004')).id;
+    await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao) values ($1, $2, 'levantamento', 'fachadas', 'Obra para levantamento.') returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+  });
+
+  it('o cliente pede ajuda; só um gestor da sua entidade', async () => {
+    await expect(as(B, () => db.query(`insert into public.request_surveys (request_id) values ($1)`, [requestId]))).rejects.toThrow(/row-level security/);
+    surveyId = (await as(A, () => one<{ id: string }>(`insert into public.request_surveys (request_id) values ($1) returning id`, [requestId]))).id;
+    expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [surveyId])).status).toBe('aberto');
+  });
+
+  it('um fornecedor com o papel "vendedor" vê o pedido aberto; um estranho não', async () => {
+    const seen = await as(VEND, async () => (await db.query('select id from public.request_surveys where id = $1', [surveyId])).rows);
+    expect(seen).toHaveLength(1);
+    expect(await as(B, async () => (await db.query('select id from public.request_surveys where id = $1', [surveyId])).rows)).toEqual([]);
+    // Pré-visualização antes de reservar: só concelho e tipo de obra, nunca título nem morada.
+    const preview = await as(VEND, () => one<{ concelho: string; tipo_obra: string }>('select concelho, tipo_obra from public.survey_preview($1)', [surveyId]));
+    expect(preview).toEqual({ concelho: 'Lisboa', tipo_obra: 'fachadas' });
+    expect(await as(B, async () => (await db.query('select concelho from public.survey_preview($1)', [surveyId])).rows)).toEqual([]);
+  });
+
+  it('reservar: o primeiro vendedor avança; um segundo fornecedor chega tarde', async () => {
+    await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, vendorOrg]));
+    const row = await one<{ status: string; vendedor_org_id: string }>('select status, vendedor_org_id from public.request_surveys where id = $1', [surveyId]);
+    expect(row).toEqual({ status: 'reservado', vendedor_org_id: vendorOrg });
+    const OTHERVEND = '00000000-0000-4000-8000-0000000000e6';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
+    const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
+    await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
+  });
+
+  it('o vendedor que reservou vê a morada real e regista o levantamento (superfícies, contacto, conclusão)', async () => {
+    const seenByVendor = await as(VEND, () =>
+      one<{ morada: string }>('select b.morada from public.buildings b join public.work_requests wr on wr.building_id = b.id where wr.id = $1', [requestId]),
+    );
+    expect(seenByVendor.morada).toBe('Rua A, 1');
+    await as(VEND, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 12000)`, [requestId]));
+    await as(VEND, () => db.query(`update public.request_surveys set contact_notes = 'Agendado para 3.ª feira.' where id = $1`, [surveyId]));
+    await as(VEND, () => db.query('select public.conclude_survey($1)', [surveyId]));
+    expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [surveyId])).status).toBe('concluido');
+  });
+
+  it('avaliação do vendedor: "primeira obra" antes, 5 estrelas depois — só o cliente avalia, e só depois de concluído', async () => {
+    const before = await one<{ n: number; media: number | null }>('select n, media::float8 as media from public.survey_vendor_rating($1)', [VEND]);
+    expect(before).toEqual({ n: 0, media: null });
+    await expect(as(VEND, () => db.query(`insert into public.survey_reviews (request_survey_id, nota) values ($1, 5)`, [surveyId]))).rejects.toThrow(/Só se avalia/);
+    await as(A, () => db.query(`insert into public.survey_reviews (request_survey_id, nota, comentario) values ($1, 5, 'Rigoroso e rápido.')`, [surveyId]));
+    const after = await one<{ n: number; media: number | null }>('select n, media::float8 as media from public.survey_vendor_rating($1)', [VEND]);
+    expect(after).toEqual({ n: 1, media: 5 });
+  });
+});

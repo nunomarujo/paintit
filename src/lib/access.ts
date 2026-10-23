@@ -6,7 +6,7 @@ import type { Database } from '@/lib/database.types';
 // Só decide o que mostrar na interface. Quem autoriza é a base de dados (RLS):
 // esconder um botão não substitui a política.
 
-const RANK: Record<MemberRole, number> = { leitor: 0, financeiro: 1, gestor: 2, proprietario: 3 };
+const RANK: Record<MemberRole, number> = { leitor: 0, vendedor: 1, financeiro: 2, gestor: 3, proprietario: 4 };
 
 /** Papel efetivo do utilizador: o direto ou o herdado da administradora que gere a entidade. */
 export async function myRole(
