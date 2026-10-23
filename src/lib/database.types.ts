@@ -696,6 +696,7 @@ export type Database = {
       };
       request_surveys: {
         Row: {
+          clarification_excluded_orgs: string[];
           concluded_at: string | null;
           contact_notes: string;
           created_at: string;
@@ -722,6 +723,36 @@ export type Database = {
       survey_reviews: {
         Row: { comentario: string; created_at: string; created_by: string; id: string; nota: number; request_survey_id: string; vendedor_user_id: string };
         Insert: { comentario?: string; nota: number; request_survey_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_clarifications: {
+        Row: {
+          confirm_deadline: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          id: string;
+          request_survey_id: string;
+          resposta: string | null;
+          respond_deadline: string | null;
+          respondido_em: string | null;
+          status: 'aberto' | 'respondido' | 'expirado';
+          vendedor_org_id: string | null;
+          vendedor_user_id: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      survey_clarification_items: {
+        Row: { clarification_id: string; created_at: string; id: string; painter_user_id: string; texto: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      survey_info_reviews: {
+        Row: { comentario: string; created_at: string; nota: number; painter_user_id: string; request_survey_id: string; updated_at: string };
+        Insert: never;
         Update: never;
         Relationships: [];
       };

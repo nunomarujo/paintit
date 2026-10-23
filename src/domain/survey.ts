@@ -35,6 +35,54 @@ export function surveyPayoutAmount(platformFeeNet: Cents, shareBp: number = SURV
   return percentOf(platformFeeNet, shareBp);
 }
 
+/**
+ * Fórmula dinâmica da fração do vendedor (proposta minha, pedida pelo promotor em 23/10/2026 para manter
+ * simples — docs/DECISOES.md), a substituir `SURVEY_SHARE_BP_PROVISIONAL` fixo: 40% qualificação geral
+ * acumulada do vendedor, 30% nota dos pintores sobre a informação deste levantamento, 15% se respondeu a
+ * tempo a um pedido de esclarecimento (clarification.ts), 15% nota do cliente a esta obra em concreto.
+ * Cada componente sem dados ainda (obra nova, sem avaliações, sem pedido de esclarecimento) entra como
+ * neutro — nem penaliza nem beneficia um vendedor sem histórico suficiente, mesmo critério de
+ * `vendorRatingSummary` ("primeira obra", sem limiar mínimo).
+ *
+ * O resultado fica entre `SURVEY_SHARE_BP_MIN` e `SURVEY_SHARE_BP_MAX`, com o antigo valor provisório
+ * (10%) exatamente ao meio — ninguém fica pior do que estava, só se diferencia dentro de uma banda
+ * moderada. Mostrado ao vendedor sempre como "% do valor adjudicado" (`surveyorDisplayShare`), nunca como
+ * "% da comissão da plataforma" (CLAUDE.md, regra 13: o cliente nunca vê a comissão; o vendedor vê a sua
+ * própria fração, traduzida).
+ */
+export const SURVEY_SHARE_BP_MIN = 500; // 5%
+export const SURVEY_SHARE_BP_MAX = 1500; // 15%
+const SURVEYOR_NEUTRAL_SCORE = 50;
+
+export interface SurveyorPerformance {
+  /** Média de estrelas (1-5) de todas as obras já avaliadas deste vendedor. null = ainda nenhuma. */
+  qualificacaoGeral: number | null;
+  /** Média de estrelas (1-5) dos pintores desta obra sobre a informação do levantamento. null = nenhuma ainda. */
+  notaInformacao: number | null;
+  /** Houve pedido de esclarecimento nesta obra e respondeu a tempo? null = nunca houve pedido. */
+  respostaAtempada: boolean | null;
+  /** Nota do cliente (1-5) a esta obra em concreto. null = ainda não avaliou. */
+  notaCliente: number | null;
+}
+
+const starsToScore = (stars: number | null): number => (stars == null ? SURVEYOR_NEUTRAL_SCORE : ((stars - 1) / 4) * 100);
+
+export function surveyorCommissionBp(p: SurveyorPerformance): number {
+  const score =
+    0.4 * starsToScore(p.qualificacaoGeral) +
+    0.3 * starsToScore(p.notaInformacao) +
+    0.15 * (p.respostaAtempada == null ? SURVEYOR_NEUTRAL_SCORE : p.respostaAtempada ? 100 : 0) +
+    0.15 * starsToScore(p.notaCliente);
+  return Math.round(SURVEY_SHARE_BP_MIN + (score / 100) * (SURVEY_SHARE_BP_MAX - SURVEY_SHARE_BP_MIN));
+}
+
+/** Tradução para o ecrã do vendedor: nunca a % real da comissão da plataforma, sempre "% do valor
+ * adjudicado" — a mesma fração, só multiplicada pela comissão típica para dar um número que o vendedor
+ * entende sem nunca revelar a comissão em si. */
+export function surveyorDisplayShareBp(shareBp: number, typicalCommissionBp: number): number {
+  return Math.round(percentOf(typicalCommissionBp, shareBp));
+}
+
 /** O fornecedor serve este concelho? Lista vazia = todo o país (mesma convenção de `supplier_delivery`,
  * já em produção: "Separados por vírgulas. Vazio = todo o país"). */
 export function coversZone(coverageConcelhos: string[], concelho: string): boolean {

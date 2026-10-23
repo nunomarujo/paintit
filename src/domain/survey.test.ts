@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coversZone, surveyPayoutAmount, vendorRatingSummary } from './survey';
+import { coversZone, surveyorCommissionBp, surveyorDisplayShareBp, surveyPayoutAmount, vendorRatingSummary } from './survey';
 import { euros as eurosHelper } from './money';
 
 describe('repartição da comissão com o vendedor', () => {
@@ -11,6 +11,30 @@ describe('repartição da comissão com o vendedor', () => {
 
   it('usa o placeholder por omissão quando não se indica a percentagem', () => {
     expect(surveyPayoutAmount(eurosHelper(1_000))).toBe(eurosHelper(100)); // 10% provisório
+  });
+});
+
+describe('fórmula dinâmica da fração do vendedor (40/30/15/15)', () => {
+  it('sem histórico nenhum (tudo neutro): fica exatamente a meio da banda, igual ao antigo provisório', () => {
+    expect(surveyorCommissionBp({ qualificacaoGeral: null, notaInformacao: null, respostaAtempada: null, notaCliente: null })).toBe(1000);
+  });
+
+  it('tudo máximo: topo da banda', () => {
+    expect(surveyorCommissionBp({ qualificacaoGeral: 5, notaInformacao: 5, respostaAtempada: true, notaCliente: 5 })).toBe(1500);
+  });
+
+  it('tudo mínimo: fundo da banda', () => {
+    expect(surveyorCommissionBp({ qualificacaoGeral: 1, notaInformacao: 1, respostaAtempada: false, notaCliente: 1 })).toBe(500);
+  });
+
+  it('pesa mais a qualificação geral (40%) do que a nota da informação (30%)', () => {
+    const maisQualificacao = surveyorCommissionBp({ qualificacaoGeral: 5, notaInformacao: 1, respostaAtempada: null, notaCliente: null });
+    const maisInformacao = surveyorCommissionBp({ qualificacaoGeral: 1, notaInformacao: 5, respostaAtempada: null, notaCliente: null });
+    expect(maisQualificacao).toBeGreaterThan(maisInformacao);
+  });
+
+  it('tradução para "% do valor adjudicado": fração da comissão típica, nunca a comissão em si', () => {
+    expect(surveyorDisplayShareBp(1000, 1800)).toBe(180); // 10% de 18% = 1,8%
   });
 });
 

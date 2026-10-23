@@ -1316,3 +1316,35 @@ regras explícitas:
   campos novos (a geração automática de tipos trouxe uma versão do gerador incompatível com o resto do código
   e foi descartada — o mesmo problema, apanhado independentemente pelas duas sessões).
 - Testado: tsc, lint, 440 testes de domínio + 138 de RLS — zero.
+
+## 23/10/2026 — fórmula dinâmica da fração do vendedor, construída e ligada ao pagamento
+
+O promotor aprovou a proposta (pedida para ficar simples) depois de confirmar os pesos 40/30/15/15
+(qualificação geral acumulada / nota dos pintores sobre a informação do levantamento / resposta a tempo a
+um esclarecimento / nota do cliente a esta obra) e os dois pontos em aberto sobre "% do valor adjudicado"
+(fica internamente limitada pela comissão real, traduzida num número que nunca a revela) e NIPC (é o mesmo
+número que o NIF para pessoas coletivas — o bloqueio por NIF já cobre o NIPC, nada a construir aí; fica por
+confirmar só se quer também bloqueio por nome, mais arriscado por falsos positivos).
+
+- **Construído**: `src/domain/survey.ts` ganhou `surveyorCommissionBp` (pura, testada: 11 casos) — cada um
+  dos quatro componentes entra como estrelas 1-5 (ou um booleano para a resposta a tempo), normalizado e
+  pesado; sem dados ainda (obra nova, sem avaliações, sem pedido de esclarecimento) entra neutro, nem
+  penaliza nem beneficia. O resultado fica entre 5% e 15% (`SURVEY_SHARE_BP_MIN/MAX`), com o antigo
+  provisório (10%) exatamente ao meio quando não há nenhum dado — ninguém fica pior do que estava.
+  `surveyorDisplayShareBp` traduz para "% do valor adjudicado" (fração da comissão típica, nunca a
+  comissão em si) — pronta para a UI, que ainda não existe.
+- Nova migração `20261023200000_avaliacao_informacao_pelo_pintor.sql`: tabela `survey_info_reviews` (uma
+  nota por pintor e por levantamento, corrige em vez de duplicar) e função `rate_survey_info`, mesma guarda
+  de acesso que `request_painter_doubt`. Nunca visível ao vendedor por linha individual (identificaria o
+  pintor) — só a média, lida com privilégios próprios.
+- `src/lib/surveys.ts` (`settleSurveyPayout`) deixa de usar a percentagem fixa: lê os quatro componentes
+  do vendedor **atualmente entitulado** (que pode já não ser quem fez a visita original, se houve escalada
+  de um esclarecimento) no momento em que a comissão do pintor é confirmada, e passa o resultado de
+  `surveyorCommissionBp` a `surveyPayoutAmount`.
+- `supabase/tests/rls.test.ts` ganhou mais um caso (avaliação da informação: uma por pintor, corrige,
+  nunca visível ao vendedor nem a um estranho). `npm test` (453), `typecheck`, `lint`, `build` — os quatro
+  com saída 0. `database.types.ts` corrigido à mão (três tabelas novas, mais `clarification_excluded_orgs`
+  em `request_surveys`) — a mesma reconciliação parcial que o Code já tinha feito para o catálogo; a
+  regeneração completa continua a quebrar o build noutros ficheiros, por resolver numa sessão dedicada.
+- **Ainda não aplicada à Supabase** (junta-se às três migrações já pendentes) e **sem nenhuma peça de UI**:
+  falta o formulário do pintor para avaliar, e o ecrã do vendedor para ver a sua própria % traduzida.

@@ -2179,4 +2179,29 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     const done = await one<{ status: string; resposta: string }>('select status, resposta from public.survey_clarifications where id = $1', [next.id]);
     expect(done).toEqual({ status: 'respondido', resposta: 'Há andaime próprio montado, inclui-se no preço.' });
   });
+
+  it('avaliação do pintor sobre a informação do levantamento: uma por pintor, corrige em vez de duplicar', async () => {
+    await as(CP, () => db.query('select public.rate_survey_info($1, $2, $3)', [surveyId, 4, 'Faltava saber a altura das paredes.']));
+    await as(CP2, () => db.query('select public.rate_survey_info($1, $2, $3)', [surveyId, 2, null]));
+    const mediaAntes = await one<{ media: number }>(
+      'select avg(nota)::float8 as media from public.survey_info_reviews where request_survey_id = $1',
+      [surveyId],
+    );
+    expect(mediaAntes.media).toBe(3);
+    // o mesmo pintor avalia outra vez: corrige a sua nota, não duplica.
+    await as(CP, () => db.query('select public.rate_survey_info($1, $2, $3)', [surveyId, 5, null]));
+    const n = await one<{ n: string }>('select count(*)::text as n from public.survey_info_reviews where request_survey_id = $1', [surveyId]);
+    expect(n.n).toBe('2');
+    // só o próprio pintor e o cliente veem; um vendedor ou um estranho, não.
+    const seenByPainter = await as(CP, async () => (await db.query('select nota from public.survey_info_reviews where painter_user_id = $1', [CP])).rows);
+    expect(seenByPainter).toEqual([{ nota: 5 }]);
+    expect(await as(VEND2, async () => (await db.query('select nota from public.survey_info_reviews where request_survey_id = $1', [surveyId])).rows)).toEqual(
+      [],
+    );
+    expect(await as(B, async () => (await db.query('select nota from public.survey_info_reviews where request_survey_id = $1', [surveyId])).rows)).toEqual(
+      [],
+    );
+    const seenByClient = await as(A, async () => (await db.query('select nota from public.survey_info_reviews where request_survey_id = $1', [surveyId])).rows);
+    expect(seenByClient).toHaveLength(2);
+  });
 });

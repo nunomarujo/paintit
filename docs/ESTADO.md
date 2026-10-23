@@ -488,7 +488,7 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Três migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
+3. **Quatro migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
    aprovação explícita do promotor):
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de defesa em profundidade em
      `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o DELETE já está
@@ -500,6 +500,7 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      pedido novo teria levantamento nenhum, nem automático nem por pedido.
    - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` (secção 6.5): sem efeito nenhum enquanto não for
      aplicada — não há ainda nenhum caminho de UI que a use (ver 6.5).
+   - `20261023200000_avaliacao_informacao_pelo_pintor.sql` (secção 6.5): idem — sem efeito nenhum, sem UI.
 
 Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
@@ -646,16 +647,18 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 - **Não aplicada à Supabase** (ver travão 3 acima) e **sem nenhuma peça de UI**: falta o formulário do pintor
   para pedir, o ecrã do vendedor para ver a lista conjunta e confirmar/responder, e o aviso ao cliente quando
   escala. Não publicar sem a migração aplicada a par, pelo mesmo motivo da `levantamento_automatico`.
-- **Em aberto, não decidido**: a fórmula dinâmica da comissão do vendedor (pesos 40/30/15/15 — ver secção 7)
-  ainda não tem nenhuma implementação; falta a própria avaliação do pintor sobre a qualidade da informação do
-  levantamento (mecanismo novo, nem desenhado ainda); `respond_clarification` só regista a resposta, não
-  alimenta nenhum cálculo de comissão. A comunicação ao vendedor como "% do valor adjudicado" também não tem
-  nenhuma peça de UI.
-- **Pendente de confirmação do Code e do promotor**: o bloqueio cruzado por NIF já existe
-  (`src/lib/strikes.ts`, `blocked_identifiers`), mas só por NIF — ainda não por nome de empresa/pessoa nem por
-  NIPC, como o promotor pediu para o novo canal de mensagens desta funcionalidade. Não implementado nesta
-  sessão; fica por confirmar antes de construir a extensão, para não duplicar trabalho se já existir noutro
-  sítio.
+- **Fórmula dinâmica (40/30/15/15) construída e ligada** (23/10/2026, mesmo dia, sessão seguinte — proposta
+  minha, pedida simples, aprovada pelo promotor): `surveyorCommissionBp`/`surveyorDisplayShareBp`
+  (`src/domain/survey.ts`); nova migração `20261023200000_avaliacao_informacao_pelo_pintor.sql`
+  (`survey_info_reviews`, `rate_survey_info` — a nota do pintor sobre a informação, que faltava);
+  `settleSurveyPayout` (`src/lib/surveys.ts`) já lê os quatro componentes do vendedor atualmente entitulado
+  e calcula a fração real, em vez do antigo 10% fixo. `npm test` (453), os quatro com saída 0. **Ainda sem
+  UI**: falta o formulário do pintor para avaliar e o ecrã do vendedor para ver a sua própria % traduzida.
+  Detalhe completo em `docs/DECISOES.md`.
+- **NIPC — esclarecido, nada a construir**: é o mesmo número que o NIF para pessoas coletivas (não há dois
+  sistemas de numeração em Portugal); o bloqueio por NIF (`src/lib/strikes.ts`, `blocked_identifiers`) já
+  cobre o NIPC. Fica só em aberto, por decidir, se o promotor quer também bloqueio por **nome** de empresa
+  ou pessoa (mais arriscado por falsos positivos — nomes de empresa parecidos ou coincidentes) — ver secção 7.
 
 ---
 
@@ -672,9 +675,8 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 | "Percentagem dos 57%" | Não usada por falta de fonte; entra no texto se houver estudo | Fora do texto |
 | Identidades no PDF assinado | O PDF não tem nomes, por causa do anonimato — confirmar que está bem assim | Sem nomes |
 | **Algoritmo de fee dinâmico (ponto 1, 18-23%)** | Decidir os pesos finais (hoje "propostas para teste" no documento), desenhar os ecrãs de C/E/F/M/J, decidir o indicador S, decidir como compõe com os códigos de adesão | Motor pronto, não ligado (secção 5.8) |
-| **Percentagem do levantamento por vendedor** | `SURVEY_SHARE_BP_PROVISIONAL` (10%) é um valor meu, provisório — confirmar antes de qualquer pagamento real; a decisão de 23/10 de a tornar dinâmica (pesos 40/30/15/15, secção 6.5) ainda não decide o valor/escala de base sobre o qual esses pesos se aplicam | 10% fixo, a substituir pela fórmula dinâmica quando construída (secção 6.5) |
-| "% do valor adjudicado" ao vendedor | Comunicação pedida pelo promotor — é um número independente, ou fica internamente limitado pela comissão real da plataforma (que nunca se revela)? | Em aberto, perguntado ao promotor em 23/10/2026, sem resposta ainda |
-| Bloqueio cruzado por nome/NIPC (strikes) | Hoje só por NIF (`src/lib/strikes.ts`) — o promotor pediu também por nome de empresa/pessoa e por NIPC para o novo canal de esclarecimento (secção 6.5) | Confirmar com o Code antes de estender, para não duplicar |
+| **Percentagem do levantamento por vendedor** | Confirmar antes de qualquer pagamento real: a fórmula dinâmica (40/30/15/15, 5%-15%, secção 6.5) está construída e ligada ao pagamento — falta só o promotor validar a banda (5%-15%) e os pesos num caso real antes de ligar a dinheiro verdadeiro | Fórmula dinâmica em vigor no código (secção 6.5), por validar com dinheiro real |
+| Bloqueio por nome (strikes) | NIPC já está coberto pelo bloqueio por NIF existente (são o mesmo número) — falta só decidir se quer também bloqueio por **nome** de empresa/pessoa, mais arriscado por falsos positivos | Em aberto, perguntado ao promotor em 23/10/2026 |
 | Contabilista | Validar o desenho completo (`docs/CONTABILIDADE.md`), o momento da fatura, a natureza fiscal da caução retida, retenção na fonte aos fornecedores, CAE | Desenho aplicado sem validação formal |
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | Por fazer |
 | Piloto | Convidar 5-10 pintores e 2-3 fornecedores de Viana do Castelo para testar antes dos clientes | Por fazer |
