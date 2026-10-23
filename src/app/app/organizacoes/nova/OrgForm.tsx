@@ -31,9 +31,20 @@ interface Props {
   kinds?: OrgKind[];
   /** Email da conta, sugerido como contacto da entidade nova. */
   defaultEmail?: string;
+  /** Código de um convite de adesão de um fornecedor (/convite-fornecedor/[code]), pré-preenchido. */
+  defaultCodigoConvite?: string;
 }
 
-export function OrgForm({ action: submit, administradoras, initial, initialKind, initialGeridaPor, kinds, defaultEmail }: Props) {
+export function OrgForm({
+  action: submit,
+  administradoras,
+  initial,
+  initialKind,
+  initialGeridaPor,
+  kinds,
+  defaultEmail,
+  defaultCodigoConvite,
+}: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const [kind, setKind] = useState<OrgKind | ''>(initial?.kind ?? initialKind ?? '');
   const e = state.errors;
@@ -134,6 +145,22 @@ export function OrgForm({ action: submit, administradoras, initial, initialKind,
         >
           <input
             name="codigoReferencia"
+            maxLength={14}
+            autoComplete="off"
+            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base uppercase tracking-wider"
+          />
+        </Field>
+      )}
+
+      {!initial && kind === 'pintor' && (
+        <Field
+          name="codigoConvite"
+          label="Código de convite de um fornecedor (opcional)"
+          hint="Se um fornecedor o convidou, indique aqui o código e fica ligado a ele."
+        >
+          <input
+            name="codigoConvite"
+            defaultValue={defaultCodigoConvite}
             maxLength={14}
             autoComplete="off"
             className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base uppercase tracking-wider"

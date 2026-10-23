@@ -94,6 +94,17 @@ export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; praz
   ],
 });
 
+/** Convite de adesão enviado por um fornecedor a um pintor que ainda não está na plataforma (decisão de
+ * 23/10/2026, docs/DECISOES.md) — o único aviso desta lista endereçado a quem ainda não é utilizador. */
+export const SUPPLIER_INVITE_NOTICE = (p: { fornecedor: string }) => ({
+  subject: `${p.fornecedor} convidou-o para a Quem Pinta`,
+  lines: [
+    `${p.fornecedor} é fornecedor de tintas e materiais na Quem Pinta e convidou-o a juntar-se como pintor.`,
+    'Ao aceitar, fica ligado a esta empresa: os seus orçamentos passam a ter um desconto na comissão da plataforma quando usar produtos dela.',
+    'Juntar-se não tem nenhum custo.',
+  ],
+});
+
 // Avisos ao fornecedor sobre os códigos de adesão. Dizem só o que o fornecedor pode saber: a empresa que usou o código e o
 // concelho da obra; nunca o cliente, a morada nem o valor da obra (só a comissão a que tem direito).
 export const REFERRAL_NOTICES = {

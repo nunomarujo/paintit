@@ -1052,6 +1052,55 @@ desse cliente) — e que a interface permitisse compor várias linhas seguidas, 
   `desconto_cliente_premium` (`20261023153053`) — ficheiros locais renomeados a par, `get_advisors` sem avisos
   novos, `database.types.ts` confirmado campo a campo contra o gerado pelo Supabase.
 
+## 23/10/2026 — convite de adesão enviado pelo fornecedor a um pintor fora da plataforma
+
+O separador `/clientes` estava vazio para qualquer fornecedor sem carteira ainda construída: nada nele dizia
+o que fazer. Pedido do promotor: nesse estado vazio, dar ao fornecedor uma forma de preencher o nome e o
+email de um pintor que já conhece (ex.: um cliente antigo, fora da plataforma) e convidá-lo a aderir — sem
+ele ter de descobrir por fora um código de adesão já existente.
+
+- **Reaproveitado por inteiro o mecanismo de código de adesão** (`referral_codes`,
+  `20261021070000_codigos_de_adesao.sql`), em vez de inventar um segundo sistema de convites: o botão
+  "Convidar" cria um `referral_codes` normal (mesma coluna `code`, gerado por `newReferralCode()`, já
+  testado) e o acrescento é só uma segunda forma de o ligar a uma entidade de pintura — fora de uma proposta
+  — mais uma tabela leve (`supplier_painter_invites`) só para o fornecedor ver a quem já convidou e se já
+  aceitou. Um código ligado desta forma funciona depois exatamente como um código aplicado numa proposta:
+  aparece de imediato no seletor "fornecedores já ligados" do pintor.
+- **Duas formas de aceitar, as duas já tinham gémeo no código**: `/convite-fornecedor/[code]` (nova) é quase
+  linha a linha `/convite/[code]` ("traga o seu pintor", 23/10/2026 mais cedo) — mesmo redirecionamento para
+  `/entrar?seguinte=`, mesma mensagem para quem ainda não tem entidade de pintura, mesma forma de escolher
+  entre várias; e o campo `codigoConvite` no registo de uma entidade de pintura nova espelha o
+  `codigoReferencia` que já existia para o lado do fornecedor em `createOrganization` — aplicado de forma
+  silenciosa (um código inválido não impede o registo, só não liga nada).
+- **`claim_supplier_invite(p_code, p_org)` em vez de reutilizar `apply_referral_code`**: a função existente
+  está presa à existência de uma proposta em rascunho (`p_proposal`) — aqui não há proposta nenhuma, só uma
+  entidade de pintura. Escrita de novo, mas com a mesma validação (código ativo, não se reatribui a outra
+  empresa depois de aceite) e sem o auto-uso defensivo (`supplier_org_id = p_org`) nunca testado em
+  `apply_referral_code` pela mesma razão: o `kind` de uma organização é fixo, por isso um fornecedor nunca
+  passa a verificação `is_painter_org` que vem antes.
+- **Primeiro envio de email desta lista para um endereço que não é de nenhum utilizador da plataforma**
+  (`notifySupplierInvite`, `src/lib/notify.ts`) — todos os anteriores resolviam o destinatário por
+  `recipients(orgId)` ou `email_contacto` de uma organização já existente; aqui o endereço vem direto do
+  formulário porque é precisamente a pessoa que ainda não tem conta nenhuma para resolver.
+- **Construído:** migração `20261023161107_convite_de_adesao_do_fornecedor.sql` (tabela
+  `supplier_painter_invites`, RLS — só o gestor do fornecedor cria e vê, ninguém altera nem apaga; funções
+  `claim_supplier_invite` e `supplier_invite_info`, esta última a mostrar só o nome do fornecedor e se já foi
+  aceite, nunca quem foi convidado); `SUPPLIER_INVITE_NOTICE` (`src/domain/notifications.ts`);
+  `inviteSupplierPainter` (`clientes/actions.ts`) + `InviteForm.tsx`; estado vazio de `/clientes` reescrito
+  para mostrar o formulário e a lista de convites (aceite/a aguardar) quando o fornecedor ainda não tem
+  nenhum cliente; rota `/convite-fornecedor/[code]` (`page.tsx`, `ClaimForm.tsx`, `actions.ts`); campo
+  `codigoConvite` em `OrgForm.tsx`, passado por `nova/page.tsx` via `?convite=` e aplicado em
+  `createOrganization`.
+- Testado em `supabase/tests/rls.test.ts` (+4 casos, bloco novo): só um gestor do fornecedor cria/vê os
+  convites; `supplier_invite_info` nunca revela o nome/email escrito no formulário; `claim_supplier_invite`
+  rejeita quem não gere a entidade de pintura, código inválido, e não se reatribui depois de aceite; é
+  idempotente para a mesma empresa. tsc, lint, 438 testes, build — zero.
+- **Aplicada à base real**: `convite_de_adesao_do_fornecedor` (versão real `20261023161107`) — ficheiro local
+  renomeado a par, `get_advisors` sem categorias novas de aviso (as funções `security definer` executáveis
+  por `authenticated` e o índice novo "nunca usado" são o mesmo padrão já presente em toda a lista de
+  convites/códigos, não algo que este convite introduz), `database.types.ts` confirmado campo a campo contra
+  o gerado pelo Supabase.
+
 ## 23/10/2026 — levantamento automático: deixa de ser o cliente a pedir ajuda, passa a ser sempre aberto por omissão
 
 Pedido do promotor, ao reler o documento-fonte "Quem Pinta — a oferta" (`e46e664a-offer.md`, o mesmo que

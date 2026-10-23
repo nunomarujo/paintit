@@ -1,7 +1,7 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { engagementNotices, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES } from '@/domain/notifications';
+import { engagementNotices, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SUPPLIER_INVITE_NOTICE } from '@/domain/notifications';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
@@ -75,6 +75,14 @@ async function recipients(orgId: string, banned: Set<string> = new Set()): Promi
     [...new Set((members ?? []).map((m) => m.user_id).filter((id) => !banned.has(id)))].map(async (id) => (await db.auth.admin.getUserById(id)).data.user?.email ?? null),
   );
   return [...new Set(emails.filter((e): e is string => !!e))];
+}
+
+/** Convite de adesão enviado por um fornecedor a um pintor que ainda não está na plataforma — único
+ * caso nesta lista em que o destinatário vem direto do formulário (navegador), não de `recipients()`:
+ * é precisamente a pessoa que ainda não tem conta nenhuma para resolver. */
+export async function notifySupplierInvite(email: string, fornecedorNome: string, code: string): Promise<void> {
+  const n = SUPPLIER_INVITE_NOTICE({ fornecedor: fornecedorNome });
+  await sendEmail([email], n.subject, n.lines, `/convite-fornecedor/${code}`, { cta: 'Aceitar o convite' });
 }
 
 export async function notifyEngagementChange(engagementId: string, before: EngagementStatus, after: EngagementStatus): Promise<void> {
