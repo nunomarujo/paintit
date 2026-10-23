@@ -709,3 +709,26 @@ armazenamento com esse rótulo e podia mais tarde ser servido como se fosse PDF 
   interpreta o conteúdo como texto — um ficheiro que não seja um extrato simplesmente falha a interpretar-se,
   não há um rótulo de tipo a confiar cegamente.
 - Testado (`src/domain/fileSignature.test.ts`) e tsc, lint, 397 testes, build, zero.
+
+## 23/10/2026 — litígio resolvido passa a avisar as duas partes
+
+Levantamento contra o documento de requisitos (secção 24.1, COM-05, lista de eventos que merecem aviso).
+`engagementNotices` (`src/domain/notifications.ts`) já cobria a abertura de um litígio (`em_litigio`), mas não a
+sua resolução com culpa atribuída (`litigio_culpa_cliente`/`litigio_culpa_pintor`) — as duas partes só saberiam
+o resultado abrindo a app, sem nenhum gatilho a avisar que havia novidade. São estados com dinheiro a mudar de
+mãos (a caução ou a comissão ficam retidas, conforme o lado — ver `engagement.ts`, `resolveDispute`), por isso
+pareceu-me claramente a faltar, não uma decisão de negócio nova: o resultado (quem perde o quê) já estava
+decidido pela função pura; faltava só dizê-lo.
+
+- Dois casos novos no `switch` de `engagementNotices`, no mesmo formato dos já existentes: cada parte sabe se
+  o seu lado fica retido ou devolvido, nunca o que a outra parte especificamente perdeu ou ganhou em termos que
+  não sejam os seus próprios.
+- `notifyEngagementChange` (`src/lib/notify.ts`) já chama `engagementNotices` genericamente a cada evento
+  registado (incluindo a resolução de um litígio, em `contratacoes/actions.ts`) — não precisou de nenhuma
+  alteração para os novos casos chegarem a quem deve.
+- Testado em `src/domain/notifications.test.ts`. tsc, lint, 398 testes, build, zero.
+- **Não acrescentado, por decisão própria e não por esquecimento:** `encerrado_sem_contrato` continua sem aviso
+  próprio — acontece só depois de o pintor já ter falhado (o que já gerou um aviso) e de o cliente, pela sua
+  própria ação na app, escolher não continuar; um novo email aí informaria cada parte de algo que já sabe (o
+  cliente, porque é ele que o faz; o pintor, porque já sabia que tinha falhado). Se preferires avisar mesmo
+  assim, é uma linha igual às outras.

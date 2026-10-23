@@ -59,6 +59,16 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
       return both('O cliente desistiu', ['O cliente desistiu depois de conhecer a empresa de pintura.']);
     case 'em_litigio':
       return both('Contratação em litígio', ['Foi aberto um litígio nesta contratação. A equipa da plataforma analisa o caso.']);
+    case 'litigio_culpa_cliente':
+      return [
+        { to: 'cliente', subject: 'Litígio resolvido: a caução não é devolvida', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado do cliente.', 'A caução depositada fica retida.'] },
+        { to: 'pintor', subject: 'Litígio resolvido a seu favor', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado do cliente.', 'A comissão paga é devolvida.'] },
+      ];
+    case 'litigio_culpa_pintor':
+      return [
+        { to: 'cliente', subject: 'Litígio resolvido a seu favor', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado da empresa de pintura.', 'A caução depositada é devolvida.'] },
+        { to: 'pintor', subject: 'Litígio resolvido: a comissão não é devolvida', lines: ['A equipa da plataforma decidiu o litígio com responsabilidade do lado da empresa de pintura.', 'A comissão paga fica retida.'] },
+      ];
     default:
       return [];
   }

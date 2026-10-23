@@ -24,6 +24,15 @@ describe('avisos por email', () => {
     );
     for (const n of all) expect(n.lines.join(' ')).not.toMatch(/@|\d{9}|rua /i);
   });
+  it('o litígio resolvido avisa as duas partes, com o lado que ganha e o que perde', () => {
+    const culpaCliente = engagementNotices('em_litigio', 'litigio_culpa_cliente', 8);
+    expect(culpaCliente.map((n) => n.to).sort()).toEqual(['cliente', 'pintor']);
+    expect(culpaCliente.find((n) => n.to === 'cliente')!.lines.join(' ')).toMatch(/retida/);
+    expect(culpaCliente.find((n) => n.to === 'pintor')!.lines.join(' ')).toMatch(/devolvida/);
+    const culpaPintor = engagementNotices('em_litigio', 'litigio_culpa_pintor', 8);
+    expect(culpaPintor.find((n) => n.to === 'cliente')!.lines.join(' ')).toMatch(/devolvida/);
+    expect(culpaPintor.find((n) => n.to === 'pintor')!.lines.join(' ')).toMatch(/retida/);
+  });
   it('nova proposta não identifica a empresa', () => {
     expect(NEW_PROPOSAL_NOTICE('Fachadas 2027').lines.join(' ')).toContain('Fachadas 2027');
   });
