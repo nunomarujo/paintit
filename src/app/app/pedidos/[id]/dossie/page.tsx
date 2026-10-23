@@ -32,7 +32,17 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
   const committedProductIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => !!x))];
   const materialProducts = Object.fromEntries(await productsFor(supabase, committedProductIds));
   const linesOf = (pid: string) => (lines ?? []).filter((l) => l.proposal_id === pid).map((l) => ({ id: l.id, ...toLine(l) }));
-  const replays = await Promise.all((engagements ?? []).map(async (e) => ({ e, r: await loadReplay(supabase, e) })));
+  // Uma contratação malformada não pode derrubar o dossiê inteiro — fica marcada em vez de rebentar a página
+  // (mesmo princípio de pendingEngagements em backofficeCounts.ts).
+  const replays = await Promise.all(
+    (engagements ?? []).map(async (e) => {
+      try {
+        return { e, r: await loadReplay(supabase, e), error: null as string | null };
+      } catch (err) {
+        return { e, r: null, error: err instanceof Error ? err.message : String(err) };
+      }
+    }),
+  );
   const painters = await Promise.all(
     (engagements ?? []).map(async (e) => (await supabase.from('organizations').select('id, nome, nif').eq('id', e.painter_org_id).maybeSingle()).data),
   );
@@ -81,7 +91,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
         <h2 className={h2}>Propostas recebidas ({(proposals ?? []).length})</h2>
         {(proposals ?? []).map((p, i) => {
           const eng = (engagements ?? []).findIndex((e) => e.proposal_id === p.id);
-          const named = eng >= 0 && replays[eng]!.r.replay.engagement.feePaid ? painters[eng]?.nome : null;
+          const named = eng >= 0 && replays[eng]?.r?.replay.engagement.feePaid ? painters[eng]?.nome : null;
           return (
             <section key={p.id} className="mt-5 break-inside-avoid">
               <h3 className="font-semibold">
@@ -99,24 +109,30 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
           );
         })}
 
-        {replays.map(({ e, r }, i) => (
+        {replays.map(({ e, r, error }, i) => (
           <section key={e.id} className="break-inside-avoid">
             <h2 className={h2}>Contratação {e.id.slice(0, 8).toUpperCase()}</h2>
-            <p>
-              {STATUS_LABELS[r.replay.engagement.status]}
-              {r.replay.engagement.feePaid && painters[i] ? ` · pintor: ${painters[i]!.nome}${painters[i]!.nif ? `, NIF ${painters[i]!.nif}` : ''}` : ''}
-            </p>
-            <ol className="mt-2 space-y-1">
-              {r.events.map((v) => (
-                <li key={v.id}>
-                  {dt(v.at)} — {EVENT_LABELS[v.kind]}
-                  {(v.payload as { signatario?: string }).signatario ? ` por ${(v.payload as { signatario?: string }).signatario}` : ''}
-                  {(v.payload as { documentHash?: string }).documentHash ? (
-                    <span className="block break-all text-xs text-slate-500">SHA-256 {(v.payload as { documentHash: string }).documentHash}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
+            {r ? (
+              <>
+                <p>
+                  {STATUS_LABELS[r.replay.engagement.status]}
+                  {r.replay.engagement.feePaid && painters[i] ? ` · pintor: ${painters[i]!.nome}${painters[i]!.nif ? `, NIF ${painters[i]!.nif}` : ''}` : ''}
+                </p>
+                <ol className="mt-2 space-y-1">
+                  {r.events.map((v) => (
+                    <li key={v.id}>
+                      {dt(v.at)} — {EVENT_LABELS[v.kind]}
+                      {(v.payload as { signatario?: string }).signatario ? ` por ${(v.payload as { signatario?: string }).signatario}` : ''}
+                      {(v.payload as { documentHash?: string }).documentHash ? (
+                        <span className="block break-all text-xs text-slate-500">SHA-256 {(v.payload as { documentHash: string }).documentHash}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <p className="text-red-700">Não foi possível reconstruir esta contratação{error ? `: ${error}` : ''}.</p>
+            )}
           </section>
         ))}
       </article>

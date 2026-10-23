@@ -51,10 +51,17 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       (engagementRows ?? []).map(async (r) => {
         const side = myOrgIds.has(r.client_org_id) ? 'cliente' : myOrgIds.has(r.painter_org_id) ? 'pintor' : null;
         if (!side) return null;
-        const e = (await loadReplay(supabase, r)).replay.engagement;
-        return availableActions(e, side).length > 0 || ['aguarda_deposito', 'aguarda_fee'].includes(e.status)
-          ? { id: r.id, label: STATUS_LABELS[e.status] }
-          : null;
+        // Uma contratação malformada (dados antigos, coluna aditiva ainda por chegar) não pode derrubar o
+        // Início — a página de maior tráfego da app — por isso fica fora da lista em vez de rebentar a página
+        // (ver docs/ESTADO.md, "server-side exception" no backoffice, 22-23/10/2026).
+        try {
+          const e = (await loadReplay(supabase, r)).replay.engagement;
+          return availableActions(e, side).length > 0 || ['aguarda_deposito', 'aguarda_fee'].includes(e.status)
+            ? { id: r.id, label: STATUS_LABELS[e.status] }
+            : null;
+        } catch {
+          return null;
+        }
       }),
     )
   ).filter((x): x is { id: string; label: string } => x !== null);

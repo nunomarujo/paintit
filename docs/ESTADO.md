@@ -1,7 +1,7 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 23/10/2026 (fim do dia, sessão de verificação de acessos Vercel/Supabase e aplicação das migrações
-pendentes).
+Atualizado a 23/10/2026 (fim do dia, sessão de verificação de acessos Vercel/Supabase, aplicação das migrações
+pendentes, e verificação cruzada com a sessão original antes de esta tomar a frente do projeto — secção 6.2).
 
 **Como usar este ficheiro:** é feito para que uma sessão nova (Claude, ou o promotor) fique **completamente
 inteirada só com esta leitura**, sem precisar de abrir mais nada. Não é um índice de apontadores — o essencial de
@@ -467,7 +467,12 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as migrações
+3. **Uma migração escrita e não aplicada**: `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de
+   defesa em profundidade em `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o
+   DELETE já está bloqueado por omissão da política RLS, confirmado ao vivo), só está no repositório à espera de
+   "sim, aplica" do promotor.
+
+Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
 
 ### 6.1 Resolvido nesta sessão (23/10/2026, sessão de verificação de acessos)
@@ -516,6 +521,41 @@ escritas até agora estão aplicadas — ver 6.1) — ver também a correção a
   por omissão na base de dados; e um `check` em SQL (`supplier_discounts.perfil`) nunca alargado quando
   `'cliente_premium'` entrou só no TypeScript — `tsc`/lint/build não apanham nenhum dos dois, só um teste a
   inserir a sério.
+
+### 6.2 Verificação cruzada entre as duas sessões em paralelo (23/10/2026, mesma tarde)
+
+O promotor pediu uma ronda de perguntas e dúvidas entre esta sessão e a sessão original (`<>code`) antes de esta
+tomar a frente do projeto, avisando explicitamente que a outra sessão já tinha sido apanhada a alucinar e a
+esquecer decisões já tomadas. A outra sessão reportou 5 pontos de crash sem proteção e duas verificações ainda não
+confirmadas ao vivo (lógica nova de `daily_maintenance()` antes do disparo das 05:00 UTC, e RLS de
+`request_surveys`/`supplier_customers`). Tudo foi corrigido e/ou confirmado diretamente — nada do que a outra
+sessão reportou era alucinação:
+
+- **Os mesmos 5 pontos de crash** que já tinham sido corrigidos em `pendingEngagements` (secção 10, 23/10/2026)
+  faltavam em mais 5 sítios que também chamam `loadReplay` por linha: Início (`src/app/app/page.tsx`),
+  Contratações (`src/app/app/contratacoes/page.tsx`), dossiê do pedido (`src/app/app/pedidos/[id]/dossie/page.tsx`),
+  conciliação do backoffice (`src/app/app/backoffice/contabilidade/contratacoes/page.tsx` e o seu export CSV) e a
+  fila de faturação (`src/lib/invoicing.ts`). Todos isolam agora a linha malformada com try/catch, pelo mesmo
+  padrão. `test`/`typecheck`/`lint`/`build` com saída 0; comentado onde a seguir este mesmo mecanismo.
+- **`daily_maintenance()` (bloco novo de libertar reservas vencidas) e `notify_survey_status`** verificados ao
+  vivo na base real com utilizadores `zz-test-*` (padrão do `CLAUDE.md`, bloco `do $$ … raise exception … $$`):
+  reserva vencida liberta-se por completo, reserva ainda ativa não é tocada, levantamento já concluído é excluído
+  pelo estado (não pelo prazo), e o aviso ao cliente sai com o texto e a hiperligação certos. Confirmado por
+  consulta a seguir que não ficou nenhuma linha `zz-test` gravada.
+- **RLS de `request_surveys` verificado ao vivo** (23 asserções, 0 falhas): pedido de levantamento só por quem tem
+  acesso ao pedido; pré-visualização e reserva atómica respeitam a zona de cobertura; só quem reservou vê a morada
+  real, e deixa de a ver depois de concluído (a janela de anonimato fecha-se mesmo); grant de coluna bloqueia
+  escrita direta em `vendedor_org_id`; avaliação só pelo cliente, sobre levantamento concluído.
+- **RLS de `supplier_customers` verificado ao vivo** (12 asserções, 0 falhas): insert exige ser gestor da própria
+  entidade *e* ela ser fornecedora; select visível aos dois lados da relação, invisível a terceiros; update só
+  pelo lado fornecedor; **DELETE confirmado bloqueado** mesmo com o grant de tabela presente (RLS sem política
+  para esse comando nega por omissão) — mas faltava a revogação explícita do grant, que o resto do código sempre
+  acrescenta como segunda camada (`material_orders`, `products`, `reviews`, `bank_imports`/`bank_lines`,
+  `supplier_reviews` — todos com `revoke delete ... from authenticated`). Escrita a migração
+  `20261023160000_revoke_delete_clientes_fornecedor.sql`, mas **ainda não aplicada à Supabase**: o modo automático
+  bloqueou a aplicação direta ("Production Deploy" pede aprovação explícita do promotor). **Fica pendente —
+  qualquer sessão que leia isto antes de a aplicar: confirmar com o promotor primeiro, o ficheiro no repositório
+  não significa que já está em vigor na base real.**
 
 ---
 
@@ -652,4 +692,8 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   campo contra a base real, env vars da Vercel confirmadas já corretas — secção 6.1), o que resolve de vez a causa
   do erro do backoffice acima; **carteira de clientes do fornecedor** — descontos por vários artigos e/ou um
   cliente específico, classificação "cliente premium", ficha do cliente (secção 5.5), construída em paralelo,
-  nesta sessão, sem saber ainda da transferência nem da aplicação das migrações acima (reconciliado a seguir).
+  nesta sessão, sem saber ainda da transferência nem da aplicação das migrações acima (reconciliado a seguir); e,
+  depois de uma ronda de perguntas entre as duas sessões em paralelo, **verificação cruzada completa** (secção
+  6.2): mais 5 pontos de crash isolados (mesmo padrão do `pendingEngagements` acima), lógica nova de
+  `daily_maintenance()` e RLS de `request_surveys`/`supplier_customers` confirmados ao vivo na base real, sem
+  nenhuma falha — e uma migração de reforço (grant de DELETE) escrita mas a aguardar aprovação antes de aplicar.
