@@ -56,7 +56,7 @@ export const CURRENT_RULES = RULES_2026_10_20;
 
 /**
  * 22/10/2026: "traga o seu pintor" — o cliente convida diretamente a empresa da sua confiança para a sua própria
- * obra (código ou QR, src/domain/painterTerms.ts não se aplica aqui; ver supabase/migrations/20261022070000).
+ * obra (código ou QR, src/domain/painterTerms.ts não se aplica aqui; ver supabase/migrations/20261023143445).
  * A comissão fica em 9%, não por ser um valor novo, mas por ser o piso que o documento "Algoritmo de
  * determinação de fee QuemPinta v1" já estabelece como mínimo absoluto do próprio modelo dinâmico — mesmo
  * empilhando todos os seus descontos ao mesmo tempo (18% de base − 3 p.p. de resposta inicial − 2 p.p. de

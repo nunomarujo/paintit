@@ -1517,6 +1517,8 @@ export type Database = {
       engagement_event_kind: EngagementEventKind;
       report_status: ReportStatus;
       product_type: ProductType;
+      order_status: OrderStatus;
+      worksite_entry_kind: WorksiteEntryKind;
     };
     CompositeTypes: { [_ in never]: never };
   };

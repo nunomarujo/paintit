@@ -3,7 +3,7 @@ import { create as createQrMatrix } from 'qrcode';
 /**
  * SVG do código QR de um convite, construída a partir do link no momento em que a página é pedida — nunca
  * guardada como ficheiro. A proteção contra distribuição em massa vive no código por trás (amarrado a uma só
- * obra e, depois de resgatado, a uma só empresa — ver supabase/migrations/20261022070000), não nesta imagem:
+ * obra e, depois de resgatado, a uma só empresa — ver supabase/migrations/20261023143445), não nesta imagem:
  * é só a representação visual do mesmo link de sempre.
  */
 export function qrCodeSvg(text: string): string {

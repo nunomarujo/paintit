@@ -34,11 +34,28 @@ export async function queueCounts(supabase: Client) {
 }
 export type QueueCounts = Awaited<ReturnType<typeof queueCounts>>;
 
-/** Contratações à espera de uma confirmação da equipa (reconstrói cada uma: só no painel e na secção). */
+/**
+ * Contratações à espera de uma confirmação da equipa (reconstrói cada uma: só no painel e na secção).
+ *
+ * Reconstruir uma contratação pode falhar (dados antigos de uma versão de regras já retirada, uma coluna
+ * aditiva ainda por chegar à base real, etc.). Isto corre a cada visita ao painel: uma linha malformada não
+ * pode derrubar a página inteira (22/10/2026 — ver docs/ESTADO.md, "server-side exception"), por isso cada
+ * contratação é reconstruída isoladamente; a que falhar fica marcada com `error` e `pending: true`, para a
+ * equipa a ver e investigar, em vez de desaparecer ou impedir as restantes de aparecer.
+ */
 export async function pendingEngagements(supabase: Client) {
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at', { ascending: false });
-  const items = await Promise.all((rows ?? []).map(async (r) => ({ r, e: (await loadReplay(supabase, r)).replay.engagement })));
-  return items.map((i) => ({ ...i, pending: availableActions(i.e, 'plataforma').length > 0 }));
+  const items = await Promise.all(
+    (rows ?? []).map(async (r) => {
+      try {
+        const { replay } = await loadReplay(supabase, r);
+        return { r, e: replay.engagement, error: undefined as string | undefined };
+      } catch (err) {
+        return { r, e: null, error: err instanceof Error ? err.message : String(err) };
+      }
+    }),
+  );
+  return items.map((i) => ({ ...i, pending: i.e ? availableActions(i.e, 'plataforma').length > 0 : true }));
 }
 
 /** Documentos fiscais por emitir (só a contagem; barato o suficiente para a barra lateral). */
