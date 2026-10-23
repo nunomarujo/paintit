@@ -1393,3 +1393,57 @@ parte, só se o promotor a pedir depois.
 - Testado: `npm test` (453), `typecheck`, `lint`, `build` — os quatro com saída 0.
 - **Ainda não aplicada à Supabase** (mesmas quatro migrações pendentes de antes) e **sem nenhuma peça de
   UI** para o avaliador ver a sua própria %.
+
+## 23/10/2026 — reconfirmado o fluxo do avaliador; proposta detalhada para a garantia de execução (ainda não construída)
+
+O promotor confirmou, nas suas palavras, o fluxo já construído do avaliador: *"o alerta de trabalho de avaliador
+fica lançado assim que o cliente submete o requisito do serviço, por defeito e se não o quiser dispensar e
+fazê-lo ele mesmo, vai em simultâneo para os vendedores/avaliadores da zona. o que responde primeiro fica com o
+trabalho, desaparece dos outros... a menos que haja pintor(es) que venha(m) a pedir mais info e o avaliador não
+cumpra a regra"* — bate certo com o que já está em produção/por aplicar: abertura automática ao publicar o
+pedido (`work_requests_create_survey`), notificação simultânea aos fornecedores da zona, reserva atómica
+("primeiro a chegar, avança", `reserve_survey`), e a escalada por incumprimento de prazo quer no próprio
+levantamento (reserva de 48h) quer no pedido de esclarecimento de um pintor (dois marcos de 24h+24h,
+`claim_clarification`).
+
+Também partilhou de novo o documento-fonte completo ("Quem Pinta — a oferta: problemas, soluções e porquês",
+painel de compradores + board — [link no Claude Docs](https://claude.ai/artifact/J8TGcaAn21a1ZFZFPZL5Yc)), já
+citado em decisões anteriores como origem do mecanismo do vendedor/avaliador. Lido de novo nesta sessão, de
+ponta a ponta:
+
+- **Confirma, sem contradizer nada do que está construído**: o fluxo 3.1 (publicação → notificação simultânea →
+  só um avança → prazo "horas à vista" → rede de segurança self-service se ninguém reservar a tempo) é
+  exatamente o que `reserve_survey`/`levantamento_automatico` já fazem. A nota "`'Traga o seu pintor' —
+  (...) como mais uma das 3 (sem etiqueta visível)`" no documento confirma, por fora, o que já se tinha
+  verificado por código: a proposta do convite direto aparece no comparador sem nenhuma marca distintiva
+  (`Pintor A, B, C…`, mesma regra das outras).
+- **Secção 7, "A garantia de execução, em detalhe"** — continua por construir (é o maior risco apontado pelo
+  painel/board nas quatro rondas, "ainda não é 8-9 porque a garantia de execução continua sem resposta
+  aplicada"), mas o documento tem agora uma proposta detalhada, em quatro peças que se encadeiam, nenhuma delas
+  "a plataforma garante a obra" no sentido legal:
+  1. **Escrow por fases** (7.1): o valor da obra (além do sinal de 3%) fica depositado no mesmo parceiro de
+     pagamentos, libertado por marcos (materiais, preparação, 1.ª demão, demão final, limpeza) com fotos
+     datadas; o condomínio confirma cada fase em 48-72h (silêncio = aprovação automática; contestação aciona a
+     mediação); as percentagens de cada fase são propostas pelo próprio pintor, dentro de limites da
+     plataforma; retenção final de garantia (5-10%) ~30 dias após a entrega. **Nota própria**: isto implica
+     dinheiro a circular pela plataforma/parceiro de pagamentos de forma continuada ao longo da obra, não só no
+     momento da adjudicação como hoje — possível licença de intermediário de pagamentos a confirmar, o
+     documento já o assinala como questão em aberto.
+  2. **Reputação pós-obra** (7.2): dentro do prazo de garantia legal da proposta, o condomínio abre um "chamado
+     de garantia"; a empresa tem prazo para responder; não responder ou recusar sem razão fica visível no
+     perfil (métrica agregada) e pode levar a suspensão do catálogo — pressão reputacional/económica, nunca
+     coerção legal.
+  3. **Mediação estruturada** (7.3): uma contestação do escrow ou um chamado de garantia não resolvido em 5-7
+     dias vai a um perito técnico independente (nunca funcionário da Quem Pinta), pago pela parte considerada
+     em erro; parecer não vinculativo como sentença, mas decide o desfecho prático dentro da app.
+  4. **Seguro privado em parceria** (7.4) — para mais tarde: distribuição de produtos de seguro de
+     caução/bom cumprimento já existentes no mercado, nunca um fundo mutualizado próprio; só faz sentido com
+     dados reais de volume/incumprimento que 7.1-7.3 ajudam a gerar entretanto.
+- **Também no documento, secção "6. O que fica em aberto"**, por decidir: a % da comissão partilhada com o
+  avaliador (já resolvido nesta sessão, 1%-2,7% do valor adjudicado — ver entrada anterior), o prazo exato do
+  avaliador para agendar/atualizar (`RESERVE_WINDOW_HOURS = 48`, ainda provisório), e as implicações
+  regulatórias do escrow por fases, se avançar.
+
+**Nada disto está construído** — fica registado aqui como a proposta de referência para quando o promotor
+quiser avançar com a garantia de execução, sem repetir a leitura do documento. Acrescentado à tabela de
+questões em aberto, `docs/ESTADO.md`, secção 7.
