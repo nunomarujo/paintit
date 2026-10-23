@@ -2,7 +2,7 @@
 
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
-import { cancelSurveyHelp, rateSurveyVendor, requestSurveyHelp } from './survey-actions';
+import { cancelSurveyHelp, rateSurveyVendor } from './survey-actions';
 
 export interface SurveyInfo {
   id: string;
@@ -22,34 +22,14 @@ function msg(state: FormState) {
 const ratingText = (r: { n: number; media: number | null }) =>
   r.n === 0 ? ' (primeira obra na plataforma)' : ` (${r.media!.toFixed(1)}★, ${r.n} ${r.n === 1 ? 'obra avaliada' : 'obras avaliadas'})`;
 
-/** Pedir ajuda de um profissional qualificado para o levantamento — grátis para o cliente, nunca
- * obrigatório (docs/DECISOES.md, 23/10/2026). Sem pedido ainda (ou desistido/expirado): mostra o
- * convite; a partir daí, mostra o estado. */
+/** Ajuda de um profissional qualificado para o levantamento — grátis para o cliente, sempre aberta por
+ * omissão desde que o pedido é criado (gatilho `work_requests_create_survey`, 23/10/2026), nunca
+ * obrigatória: pode desistir e preencher sozinho em qualquer momento. `survey === null` só devia
+ * acontecer para pedidos de antes desta mudança que o backfill da migração já cobriu — por segurança,
+ * não mostra nada em vez de um erro. Desistido/expirado: também não mostra nada. */
 export function RequestSurveyCard({ requestId, survey }: { requestId: string; survey: SurveyInfo | null }) {
-  if (!survey) return <RequestHelpForm requestId={requestId} />;
-  if (survey.status === 'cancelado' || survey.status === 'expirado') return null;
+  if (!survey || survey.status === 'cancelado' || survey.status === 'expirado') return null;
   return <ActiveSurveyStatus requestId={requestId} survey={survey} />;
-}
-
-function RequestHelpForm({ requestId }: { requestId: string }) {
-  const { state, pending, formProps } = useFormAction<FormState>(requestSurveyHelp.bind(null, requestId), { errors: {} });
-  return (
-    <section className={card}>
-      <h2 className="font-semibold">Ajuda de um profissional para o levantamento</h2>
-      <p className="mt-1 text-slate-700">
-        Um profissional qualificado, de um fornecedor da plataforma, pode visitar a obra e preencher as superfícies e
-        fotografias em seu lugar. <strong>Não acrescenta nenhum custo à obra.</strong> É só uma ajuda: a responsabilidade
-        pelos dados continua sua, como se os preenchesse sozinho. Se não houver nenhum disponível na zona a tempo, pode
-        continuar a preencher sozinho, sem perder nada.
-      </p>
-      <form {...formProps} className="mt-4 space-y-2">
-        {msg(state)}
-        <button type="submit" disabled={pending} className="rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60">
-          {pending ? 'A pedir…' : 'Pedir ajuda de um profissional'}
-        </button>
-      </form>
-    </section>
-  );
 }
 
 function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: SurveyInfo }) {
@@ -60,11 +40,19 @@ function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: 
       <h2 className="font-semibold">Ajuda de um profissional para o levantamento</h2>
       {survey.status === 'aberto' && (
         <>
-          <p className="mt-1 text-slate-700">À espera de um profissional disponível na zona reservar a visita.</p>
+          <p className="mt-1 text-slate-700">
+            Um profissional qualificado de um fornecedor da plataforma pode visitar a obra em breve e preencher as
+            superfícies e fotografias em seu lugar. <strong>Não acrescenta nenhum custo à obra</strong> — é só uma
+            ajuda, e a responsabilidade pelos dados continua sua, como se os preenchesse sozinho.
+          </p>
+          <p className="mt-2 text-slate-700">
+            Pode continuar a preencher sozinho entretanto, a qualquer momento, sem perder nada — ou, se preferir não
+            receber esta ajuda, desistir abaixo.
+          </p>
           <form {...cancel.formProps} className="mt-3">
             {msg(cancel.state)}
             <button type="submit" disabled={cancel.pending} className={button}>
-              Desistir e preencher sozinho
+              Prefiro preencher sozinho
             </button>
           </form>
         </>

@@ -223,9 +223,13 @@ login normal à sua entidade (`can_access_org` inclui `'vendedor'`), mas não ge
 **O mecanismo, ponta a ponta:**
 
 1. O cliente pode **sempre** preencher superfícies e fotografias sozinho — isto é uma rede de segurança, **nunca
-   uma obrigação**. Num pedido ainda em rascunho, um cartão destacado (`RequestSurveyCard.tsx`) oferece pedir a
-   visita de um profissional, com o texto exigido pelo promotor: **não acrescenta nenhum custo à obra**, e a
-   responsabilidade pelos dados continua do cliente, como se os tivesse preenchido sozinho.
+   uma obrigação**. **Desde 23/10/2026 (revisão à tarde, depois de reler o documento-fonte), já não é preciso
+   pedir**: ao criar o pedido em rascunho, o levantamento abre-se logo por omissão (gatilho
+   `work_requests_create_survey`), com um aviso (`RequestSurveyCard.tsx`) com o texto exigido pelo promotor:
+   **não acrescenta nenhum custo à obra**, e a responsabilidade pelos dados continua do cliente, como se os
+   tivesse preenchido sozinho. Pode sempre desistir ("Prefiro preencher sozinho") e preencher à mesma. Antes
+   desta revisão, era o cliente a ter de pedir — o documento-fonte sempre descreveu isto como automático; a
+   versão por pedido foi um desvio, corrigido no mesmo dia (`docs/DECISOES.md`).
 2. O pedido fica **aberto** (`request_surveys`, uma linha por pedido) a qualquer fornecedor cuja zona cubra o
    concelho da obra (`supplier_survey_coverage`: sem linha, ou lista vazia, cobre **todo o país** — mesma
    convenção já usada em `supplier_delivery`). Antes de reservar, um fornecedor só vê uma pré-visualização segura
@@ -264,12 +268,16 @@ administradoras e condomínios continuam a ver a lista completa.
 **Onde está no código:** domínio `src/domain/survey.ts` + `survey.test.ts` (puro, 6 testes); migrações
 `20261023143532_papel_vendedor.sql` (o valor novo do enum `member_role` tem de estar numa migração à parte —
 `alter type ... add value` não pode ser usado na mesma transação que o consome), `20261023143643_levantamento_
-por_vendedor.sql` (esquema, RLS, RPCs) e `20261023143658_levantamento_avisos_e_expiracao.sql` (aviso ao cliente,
-extensão da manutenção diária); `src/lib/surveys.ts` (liga-se a `contratacoes/actions.ts` no momento em que a
-comissão é confirmada); páginas em `src/app/app/pedidos/[id]/` (cartão do cliente, `RequestSurveyCard.tsx`) e
+por_vendedor.sql` (esquema, RLS, RPCs), `20261023143658_levantamento_avisos_e_expiracao.sql` (aviso ao cliente,
+extensão da manutenção diária) e `20261023170000_levantamento_automatico.sql` (abertura automática ao criar o
+pedido, cancelamento ao publicar sem reserva — **escrita, testada em PGlite, ainda não aplicada à base real**,
+ver secção 6); `src/lib/surveys.ts` (liga-se a `contratacoes/actions.ts` no momento em que a comissão é
+confirmada); páginas em `src/app/app/pedidos/[id]/` (aviso ao cliente, `RequestSurveyCard.tsx`) e
 `src/app/app/levantamentos/` (lista do vendedor, workspace por obra com termos, formulários de contacto e
-conclusão). 7 casos novos em `supabase/tests/rls.test.ts` (reserva atómica, pré-visualização segura, morada real
-só para quem reservou, avaliação com "primeira obra", aviso ao concluir, reserva vencida liberta-se e avisa).
+conclusão). 9 casos em `supabase/tests/rls.test.ts` (reserva atómica, pré-visualização segura, morada real só
+para quem reservou, avaliação com "primeira obra", aviso ao concluir, reserva vencida liberta-se e avisa,
+abertura automática ao criar o pedido, cancelamento ao publicar sem reserva, reserva ativa não se cancela ao
+publicar).
 
 **Decisões de desenho a registar (para não se repetirem os mesmos erros):**
 - Quatro políticas RLS (`buildings_select`, `work_requests_select`, `request_surfaces_select`,
@@ -478,10 +486,16 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Uma migração escrita e não aplicada**: `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de
-   defesa em profundidade em `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o
-   DELETE já está bloqueado por omissão da política RLS, confirmado ao vivo), só está no repositório à espera de
-   "sim, aplica" do promotor.
+3. **Duas migrações escritas e não aplicadas**, ambas bloqueadas pelo modo automático ("Production Deploy", pede
+   aprovação explícita do promotor):
+   - `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de defesa em profundidade em
+     `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o DELETE já está
+     bloqueado por omissão da política RLS, confirmado ao vivo).
+   - `20261023170000_levantamento_automatico.sql` (secção 5.3): esta sim **muda o comportamento** — enquanto não
+     for aplicada, o levantamento por vendedor continua a funcionar como antes (o cliente tem de pedir), mesmo
+     que o código da app já tenha deixado de ter o formulário de pedido (`RequestSurveyCard.tsx` já não mostra
+     nenhum). **Não publicar esta alteração de código sem aplicar a migração a par** — sem o gatilho, nenhum
+     pedido novo teria levantamento nenhum, nem automático nem por pedido.
 
 Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.

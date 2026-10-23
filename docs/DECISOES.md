@@ -1141,3 +1141,45 @@ funciona" e perguntas frequentes.
 - Testes RLS ajustados (telefone/morada agora obrigatórios no insert do bloco já existente). `tsc`, lint,
   438 testes, build — zero. Migração aplicada à base real (`20261023171829`), ficheiro renomeado a par,
   `get_advisors` sem categorias novas, `database.types.ts` confirmado campo a campo.
+
+## 23/10/2026 — levantamento automático: deixa de ser o cliente a pedir ajuda, passa a ser sempre aberto por omissão
+
+Pedido do promotor, ao reler o documento-fonte "Quem Pinta — a oferta" (`e46e664a-offer.md`, o mesmo que
+originou o mecanismo em 5.3 do `ESTADO.md`) lado a lado com o que tinha ficado implementado: a secção 3.1 do
+documento descreve o levantamento como **automático** — todo o pedido publicado passa logo a concurso entre os
+vendedores da zona, e o preenchimento pelo próprio cliente só entra como rede de segurança se nenhum vendedor
+reclamar a vaga a tempo. O que tinha ficado construído (23/10/2026, mais cedo no mesmo dia) era o inverso: o
+cliente tinha de clicar num cartão a pedir a ajuda, com o preenchimento sozinho como opção sempre disponível
+por omissão. A tabela da equação de valor do próprio documento (secção 4) só atribui nota 7 ao esforço porque
+"o condomínio só publica o pedido básico" — ou seja, sem mais nenhuma ação depois disso. Com pedido explícito,
+o esforço só desaparece para quem repara no cartão e decide pedir; para os restantes, o problema #3 (esforço)
+que este mecanismo foi inventado para matar continua por resolver.
+
+- **Porque o automático não custa privacidade a mais:** o que um vendedor vê antes de reservar
+  (`survey_preview`: só concelho e tipo de obra) já é visível a **todos os pintores da plataforma** a partir
+  do momento da publicação. Abrir o levantamento desde o rascunho, em vez de depois de um clique, não expõe
+  nada que não fosse já exposto, só mais cedo.
+- **O desenho de reserva já estava pronto para um modelo automático, só faltava o gatilho:** a reserva
+  atómica, com janela de 48h e libertação automática (`RESERVE_WINDOW_HOURS`, `reserve_survey`,
+  `daily_maintenance`) só faz sentido a sério com vários vendedores da zona a competir pelo mesmo pedido ao
+  mesmo tempo — exatamente o cenário que o pedido explícito nunca garantia (podia não haver concorrência
+  nenhuma, por o cliente nem saber que podia pedir).
+- **Construído:** dois gatilhos novos em `work_requests` (migração `20261023170000_levantamento_automatico.sql`):
+  `work_requests_create_survey` (AFTER INSERT) abre sempre um `request_surveys` em `'aberto'`, com os
+  privilégios do dono da função — mesmo padrão de `private.add_creator_as_owner()` — e
+  `work_requests_cancel_survey_on_publish` (AFTER UPDATE) cancela esse levantamento se ainda estiver `'aberto'`
+  no momento de publicar (já há superfícies, senão não publicava) sem tocar numa reserva já ativa, que fica
+  para revisão humana. O insert direto por um cliente deixa de ser possível (`drop policy
+  request_surveys_insert`, `revoke insert ... from authenticated`) — só o gatilho cria a linha. Backfill para
+  pedidos já em rascunho sem levantamento ainda. `RequestSurveyCard.tsx`/`survey-actions.ts`: removida a ação
+  `requestSurveyHelp` e o formulário de pedido; o estado `'aberto'` passa a mostrar logo o aviso ("pode visitar
+  em breve, sem custo") com a opção de desistir ("Prefiro preencher sozinho") — `cancel_survey`, já existente,
+  sem alterações.
+- Testado em `supabase/tests/rls.test.ts` (2 casos novos no bloco já existente: publicar com levantamento
+  ainda aberto cancela-o; uma reserva já ativa não se toca ao publicar) e os 2 casos antigos de
+  inserção/leitura ajustados ao novo gatilho (já não se insere à mão, insere-se sozinho; o insert direto falha
+  por permissão, não por RLS). tsc, lint, 436 testes, build — zero.
+- **Ainda não aplicado à base real**: o modo automático bloqueou o `apply_migration` como "Production
+  Deploy", a pedir aprovação explícita do promotor (mesma situação já registada em `docs/ESTADO.md`, secção
+  6, para `revoke_delete_clientes_fornecedor`). Fica como ficheiro local, testado em PGlite, à espera de "sim,
+  aplica".

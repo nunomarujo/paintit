@@ -1966,10 +1966,10 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     ).id;
   });
 
-  it('o cliente pede ajuda; só um gestor da sua entidade', async () => {
-    await expect(as(B, () => db.query(`insert into public.request_surveys (request_id) values ($1)`, [requestId]))).rejects.toThrow(/row-level security/);
-    surveyId = (await as(A, () => one<{ id: string }>(`insert into public.request_surveys (request_id) values ($1) returning id`, [requestId]))).id;
+  it('o pedido de ajuda abre-se sozinho ao criar o pedido; já ninguém o insere à mão', async () => {
+    surveyId = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [requestId])).id;
     expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [surveyId])).status).toBe('aberto');
+    await expect(as(A, () => db.query(`insert into public.request_surveys (request_id) values ($1)`, [requestId]))).rejects.toThrow(/permission denied/);
   });
 
   it('um fornecedor com o papel "vendedor" vê o pedido aberto; um estranho não', async () => {
@@ -2028,7 +2028,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
         ),
       )
     ).id;
-    const survey2 = (await as(A, () => one<{ id: string }>(`insert into public.request_surveys (request_id) values ($1) returning id`, [reqId]))).id;
+    const survey2 = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
     await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [survey2, vendorOrg]));
     await db.query(`update public.request_surveys set reserve_deadline = now() - interval '1 hour' where id = $1`, [survey2]);
     await db.query('select private.daily_maintenance()');
@@ -2044,5 +2044,41 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     expect(notes).toContain(
       'O profissional que tinha reservado a visita não concluiu o levantamento a tempo: o pedido voltou a ficar disponível para outro profissional.',
     );
+  });
+
+  it('o cliente preenche sozinho e publica antes de qualquer vendedor reservar: o levantamento aberto cancela-se', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const reqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'levantamento 3', 'fachadas', 'Terceira obra, cliente preencheu sozinho.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    const survey3 = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
+    expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [survey3])).status).toBe('aberto');
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 12000)`, [reqId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [reqId]));
+    expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [survey3])).status).toBe('cancelado');
+  });
+
+  it('uma reserva já ativa não se cancela ao publicar', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    const reqId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'levantamento 4', 'fachadas', 'Quarta obra, com reserva ativa.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    const survey4 = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
+    await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [survey4, vendorOrg]));
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 12000)`, [reqId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [reqId]));
+    expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [survey4])).status).toBe('reservado');
   });
 });
