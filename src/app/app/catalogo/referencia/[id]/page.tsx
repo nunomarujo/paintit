@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ProductThumb } from '@/components/ProductThumb';
+import { ProductPhotoZoom } from '@/components/ProductPhotoZoom';
 import { PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { loadReferences, refPerLitre } from '@/lib/reference';
@@ -52,7 +52,7 @@ export default async function ReferencePage({
         ← Catálogo
       </Link>
       <div className={`${card} flex gap-5`}>
-        <ProductThumb
+        <ProductPhotoZoom
           fotoPath={r.foto_path}
           alt={`${r.marca} ${r.nome}`}
           className="h-24 w-20 shrink-0 rounded-lg border border-slate-100 bg-white object-contain"
@@ -101,14 +101,24 @@ export default async function ReferencePage({
             </div>
           ))}
         </dl>
-        <p className="mt-3 flex flex-wrap gap-4 text-sm">
+        <p className="mt-4 flex flex-wrap gap-2.5 text-sm">
           {r.url_ficha_tecnica && (
-            <a href={r.url_ficha_tecnica} target="_blank" rel="noopener noreferrer" className="font-semibold text-tinta-700 hover:underline">
+            <a
+              href={r.url_ficha_tecnica}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-tinta-700 px-4 py-2 font-semibold text-white hover:bg-tinta-800"
+            >
               Ficha técnica ↗
             </a>
           )}
           {r.url_produto && (
-            <a href={r.url_produto} target="_blank" rel="noopener noreferrer" className="text-tinta-700 hover:underline">
+            <a
+              href={r.url_produto}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border-2 border-tinta-700 px-4 py-2 font-semibold text-tinta-700 hover:bg-tinta-50"
+            >
               Página do fabricante ↗
             </a>
           )}
