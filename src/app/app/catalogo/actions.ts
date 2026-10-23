@@ -82,9 +82,12 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
   const max = parseHundredths(form.get('maxArea'));
   if (Number.isNaN(min) || Number.isNaN(max)) return { errors: { minArea: 'Áreas em m².' } };
   if (min !== null && max !== null && max < min) return { errors: { maxArea: 'O máximo tem de ser maior que o mínimo.' } };
-  const alvo = get('alvo'); // "", "tipo:<t>" ou "produto:<id>"
-  const tipo = alvo.startsWith('tipo:') ? alvo.slice(5) : null;
-  if (tipo && !(PRODUCT_TYPES as readonly string[]).includes(tipo)) return { errors: { alvo: 'Tipo inválido.' } };
+  const tipo = get('tipo') || null;
+  if (tipo && !(PRODUCT_TYPES as readonly string[]).includes(tipo)) return { errors: { tipo: 'Tipo inválido.' } };
+  // Um ou vários artigos concretos, escolhidos por checkbox (substitui o antigo seletor de um só) — vazio
+  // e sem tipo: todo o catálogo. Com artigos escolhidos, uma linha por artigo, todas com o mesmo desconto.
+  const produtos = form.getAll('produtos').map(String).filter(Boolean);
+  if (get('modo') === 'produtos' && produtos.length === 0) return { errors: { produtos: 'Escolha pelo menos um artigo.' } };
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
   const pagamento = get('pagamento') || null;
@@ -94,22 +97,30 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
   const qRaw = get('minQuantidade');
   const minQuantidade = qRaw ? Number(qRaw) : null;
   if (minQuantidade !== null && !(Number.isInteger(minQuantidade) && minQuantidade > 0)) return { errors: { minQuantidade: 'Número inteiro de embalagens.' } };
-  const { error } = await supabase.from('supplier_discounts').insert({
+  // Cliente específico (carteira de clientes do fornecedor) — vazio: vale para todos os pintores.
+  const cliente = /^[0-9a-f-]{36}$/i.test(get('cliente')) ? get('cliente') : null;
+  const base = {
     pagamento: pagamento as PaymentTerms | null,
     perfil: perfil as BuyerProfile | null,
     min_quantidade: minQuantidade,
     org_id: orgId,
-    product_id: alvo.startsWith('produto:') ? alvo.slice(8) : null,
-    tipo: tipo as ProductType | null,
     min_area_cm2: min,
     max_area_cm2: max,
     desconto_bps: bps,
     valido_ate: get('validoAte') || null,
+    painter_org_id: cliente,
     created_by: user.id,
-  });
+  };
+  const rows: (typeof base & { product_id: string | null; tipo: ProductType | null })[] =
+    produtos.length > 0
+      ? produtos.map((productId) => ({ ...base, product_id: productId, tipo: null }))
+      : [{ ...base, product_id: null, tipo: tipo as ProductType | null }];
+  const { error } = await supabase.from('supplier_discounts').insert(rows);
   if (error) return { errors: {}, message: 'Não foi possível guardar o desconto. Os descontos precisam do plano de catálogo ativo.' };
   revalidatePath(`/app/organizacoes/${orgId}/produtos`);
-  return { errors: {}, ok: true, message: 'Desconto criado.' };
+  revalidatePath(`/app/organizacoes/${orgId}/clientes`);
+  if (cliente) revalidatePath(`/app/organizacoes/${orgId}/clientes/${cliente}`);
+  return { errors: {}, ok: true, message: rows.length > 1 ? `Desconto criado para ${rows.length} artigos.` : 'Desconto criado.' };
 }
 
 export async function deleteDiscount(orgId: string, id: string) {

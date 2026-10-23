@@ -41,6 +41,36 @@ export async function linkedSupplierCodes(supabase: SupabaseClient<Database>, pa
   return (codes ?? []).map((c) => ({ id: c.id, code: c.code, supplierOrgId: c.supplier_org_id, nome: nameOf.get(c.supplier_org_id) ?? 'Fornecedor' }));
 }
 
+export interface SupplierCustomer {
+  id: string;
+  nome: string;
+  deliveredOrders: number;
+  premium: boolean;
+  nota: string;
+}
+
+/** Pintores que já compraram a este fornecedor ("carteira de clientes"), com a contagem de encomendas
+ * entregues e a classificação/nota que o fornecedor lhes deu (supplier_customers) — para a página
+ * /clientes e para escolher um cliente específico ao criar um desconto (src/domain/catalog.ts). */
+export async function supplierCustomers(supabase: SupabaseClient<Database>, orgId: string): Promise<SupplierCustomer[]> {
+  const [{ data: orders }, { data: profiles }] = await Promise.all([
+    supabase.from('material_orders').select('painter_org_id, estado').eq('supplier_org_id', orgId),
+    supabase.from('supplier_customers').select('painter_org_id, premium, nota').eq('org_id', orgId),
+  ]);
+  const ids = [...new Set((orders ?? []).map((o) => o.painter_org_id))];
+  if (ids.length === 0) return [];
+  const { data: orgs } = await supabase.from('organizations').select('id, nome').in('id', ids);
+  const nameOf = new Map((orgs ?? []).map((o) => [o.id, o.nome]));
+  const profileOf = new Map((profiles ?? []).map((p) => [p.painter_org_id, p]));
+  return ids
+    .map((id) => {
+      const delivered = (orders ?? []).filter((o) => o.painter_org_id === id && o.estado === 'entregue').length;
+      const profile = profileOf.get(id);
+      return { id, nome: nameOf.get(id) ?? 'Pintor', deliveredOrders: delivered, premium: profile?.premium ?? false, nota: profile?.nota ?? '' };
+    })
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT'));
+}
+
 export interface PainterDiscountBreakdown {
   linkedCount: number;
   linkedBp: number;

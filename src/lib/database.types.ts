@@ -535,7 +535,7 @@ export type Database = {
           painter_org_id: string | null;
           pagamento: 'pronto' | 'diferido' | null;
           min_quantidade: number | null;
-          perfil: 'primeira_compra' | 'cliente_frequente' | null;
+          perfil: 'primeira_compra' | 'cliente_frequente' | 'cliente_premium' | null;
           product_id: string | null;
           tipo: ProductType | null;
           valido_ate: string | null;
@@ -549,12 +549,18 @@ export type Database = {
           painter_org_id?: string | null;
           pagamento?: 'pronto' | 'diferido' | null;
           min_quantidade?: number | null;
-          perfil?: 'primeira_compra' | 'cliente_frequente' | null;
+          perfil?: 'primeira_compra' | 'cliente_frequente' | 'cliente_premium' | null;
           product_id?: string | null;
           tipo?: ProductType | null;
           valido_ate?: string | null;
         };
         Update: Partial<Database['public']['Tables']['supplier_discounts']['Insert']>;
+        Relationships: [];
+      };
+      supplier_customers: {
+        Row: { nota: string; org_id: string; painter_org_id: string; premium: boolean; updated_at: string; updated_by: string | null };
+        Insert: { nota?: string; org_id: string; painter_org_id: string; premium?: boolean; updated_at?: string; updated_by?: string | null };
+        Update: Partial<Database['public']['Tables']['supplier_customers']['Insert']>;
         Relationships: [];
       };
       reference_products: {

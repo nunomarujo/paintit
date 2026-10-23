@@ -91,6 +91,12 @@ describe('descontos e entregas dos fornecedores', () => {
     ]);
   });
 
+  it('perfil "cliente premium": classificação manual (supplier_customers), não contagem de encomendas', () => {
+    const r = [...rules, rule({ id: 'premium', bps: 3500, perfil: 'cliente_premium' })];
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 50 })?.id).toBe('a'); // muitas obras, mas não classificado
+    expect(bestDiscount(tinta, 50000, '2026-10-19', r, { deliveredOrders: 0, premium: true })?.id).toBe('premium');
+  });
+
   it('desconto ao cêntimo', () => {
     expect(discounted(8990, 1000)).toBe(8091);
     expect(discounted(8990, 0)).toBe(8990);

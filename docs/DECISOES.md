@@ -986,3 +986,66 @@ continuar — o que fiz (grep ao transcript bruto da sessão por palavra-chave, 
   erro meu nessa manutenção manual foi encontrado e corrigido nesta mesma sessão: `survey_terms_acceptances`
   tinha `user_id` marcado como opcional no tipo `Insert`, quando a coluna não tem valor por omissão na base de
   dados — teria deixado passar no `tsc` um `insert` que falharia sempre em produção).
+
+## 23/10/2026 — carteira de clientes do fornecedor: descontos por vários artigos, por cliente específico e "cliente premium"
+
+Pedido do promotor, a olhar diretamente para `/produtos` em produção (captura de ecrã): a secção "Descontos
+para pintores" mostrava "Sem descontos." sem nenhuma forma de criar um. Pediu dois eixos — **artigo** (um
+tipo, vários artigos concretos à escolha, ou o catálogo inteiro) e **cliente** (todos os pintores, um grupo por
+classificação — novo/frequente/**premium** — ou um cliente específico, "personalizado", a partir da ficha
+desse cliente) — e que a interface permitisse compor várias linhas seguidas, cada uma cobrindo o que faltava.
+
+- **A maior descoberta desta tarefa foi o que já existia, por baixo da interface que faltava:**
+  `DiscountRule.painterOrgId`, `bestDiscount`/`baseMatch` (`src/domain/catalog.ts`) e a própria coluna
+  `supplier_discounts.painter_org_id` com a RLS certa (visível só ao fornecedor e ao cliente visado, nunca a
+  terceiros) já estavam construídos e testados desde 20/10/2026 (`20261019103652_subscricao_fornecedores.sql`)
+  — só nunca tinham chegado a nenhum formulário. O mesmo para a visibilidade do nome do cliente: a política
+  `organizations_select` já deixa um fornecedor ver um pintor que lhe tenha comprado
+  (`private.ordered_from_me`, `20261019013353_fornecedor_ve_pintor.sql`) — não foi preciso nenhuma RLS nova
+  para a ficha do cliente mostrar o nome e os contactos. **Confirmar isto primeiro, a grep e a ler as
+  migrações, evitou reconstruir em duplicado um mecanismo que já estava certo** — ficou só por construir a
+  interface e, de novo, a classificação manual (abaixo), essa sim nova.
+- **"Cliente premium" é classificação manual do fornecedor, nunca contada pelas encomendas** — ao contrário de
+  "primeira compra"/"cliente frequente" (que se deduzem de `material_orders`), não há nenhum número óbvio para
+  a tornar automática, e o pedido não trouxe nenhum. Tabela nova `supplier_customers` (um par
+  fornecedor↔pintor, `premium boolean`, `nota text`) — é também onde fica a "ficha" com condições específicas
+  em texto livre ("personalizado"). Decidi não esconder a nota do próprio cliente (RLS: visível aos dois
+  lados, só editável pelo fornecedor) — reli o pedido como descrevendo condições combinadas (ex.: "pagamento a
+  30 dias"), não comentário interno a esconder; se um dia servir para notas privadas, isso muda a RLS, não o
+  resto.
+- **"Não precisa de gravar, grava a cada alteração" — interpretado, não citado à letra:** um clique por linha
+  ("Criar desconto"), que fica imediatamente guardada e pronta para a próxima (o formulário limpa-se sozinho,
+  `resetOnSuccess`), em vez de um botão único de "Guardar tudo" no fim da página. Um verdadeiro gravar a cada
+  tecla (cada checkbox marcado) não é o que as `server actions` deste projeto fazem (regra 9 do `CLAUDE.md`,
+  `useFormAction`) nem pareceu ganho real para um ecrã de configuração usado ocasionalmente — fica como
+  decisão minha, a corrigir se não for isto que se pretendia.
+- **Construído:**
+  - `src/domain/catalog.ts`: `BUYER_PROFILES` ganha `'cliente_premium'`; `BuyerContext.premium`; `baseMatch`
+    casa-o com `supplier_customers.premium`, nunca com a contagem de encomendas.
+  - Migrações `20261023050000_clientes_do_fornecedor.sql` (tabela `supplier_customers`, RLS) e
+    `20261023051000_desconto_cliente_premium.sql` (alarga o `check` de `supplier_discounts.perfil` — teria
+    ficado esquecida sem os testes RLS novos, ver abaixo).
+  - `src/lib/materials.ts` (`materialOptions`, `pricedProduct`): consulta `supplier_customers` e passa
+    `premium` ao calcular o preço, exatamente como já fazia para `deliveredOrders`.
+  - `addDiscount` (`catalogo/actions.ts`): aceita vários `produtos` (uma linha por artigo, no mesmo desconto)
+    e um `cliente` opcional — reaproveita o campo `painter_org_id` já existente, nunca inventa um segundo
+    mecanismo para "desconto só para alguém".
+  - `DiscountForm` (`SupplierRules.tsx`) redesenhado: três modos de artigo (catálogo/tipo/artigos
+    específicos, estes com etiqueta do desconto já atribuído) e dois de cliente (todos/um específico);
+    reaproveitado tal e qual na ficha do cliente, com `fixedCliente` a esconder o seletor.
+  - Páginas novas `/app/organizacoes/[id]/clientes` (carteira, a partir de `material_orders`) e
+    `/clientes/[painterOrgId]` (ficha: histórico de encomendas, classificação e nota, descontos só para este
+    cliente) — `supplierCustomers`, novo em `src/lib/queries.ts`, serve as duas e também o seletor de cliente
+    no formulário geral. Nav do fornecedor ganha "Clientes".
+- **Dois erros meus, apanhados só pelos testes novos, não pelo resto da verificação:** o `check` de
+  `supplier_discounts.perfil` em SQL não tinha sido alargado quando acrescentei `'cliente_premium'` só no
+  TypeScript (tsc/lint/build não o apanham — só um teste a inserir a sério); e a minha primeira asserção para
+  "o cliente não pode alterar a própria classificação" esperava que a base rejeitasse — sob RLS, um `update`
+  cujo `using` exclui a linha não rejeita, afeta zero linhas em silêncio; corrigido para confirmar o efeito
+  (nada mudou), não um erro.
+- Testado em `src/domain/catalog.test.ts` (+1: `cliente_premium` só casa com `ctx.premium`, nunca com muitas
+  encomendas) e `supabase/tests/rls.test.ts` (+2 casos no bloco já existente, um deles a corrigir uma lacuna
+  real: o teste anterior "desconto visível só ao cliente escolhido" só verificava a exclusão de terceiros,
+  nunca confirmava que o próprio cliente visado o via). tsc, lint, 430 testes, build — zero.
+- **Mesmo travão de sempre:** mais duas migrações (`20261023050000`, `20261023051000`) ficam só locais —
+  somam-se às 10 já pendentes, agora 12 (ver `docs/ESTADO.md`, secção 6, lista atualizada).

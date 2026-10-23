@@ -1316,18 +1316,63 @@ describe('códigos promocionais dos fornecedores', () => {
 });
 
 describe('subscrições e descontos por cliente', () => {
-  it('lista de fornecedores ativos e desconto visível só ao cliente escolhido', async () => {
+  const PAINTER3 = '00000000-0000-4000-8000-0000000000f3'; // cliente novo, só para o desconto/carteira por cliente
+  it('lista de fornecedores ativos; desconto visível ao fornecedor e ao cliente escolhido, nunca a terceiros', async () => {
     const supplier = (await one<{ id: string }>(`select id from public.organizations where nome = 'Tintas Exemplo'`)).id;
     const active = await as(A, async () => (await db.query<{ s: string }>(`select public.active_suppliers('catalogo') s`)).rows.map((r) => r.s));
     expect(active).toContain(supplier);
-    const painter = (await one<{ id: string }>(`select id from public.organizations where kind = 'pintor' order by created_at limit 1`)).id;
-    await db.query(`insert into public.supplier_discounts (org_id, painter_org_id, desconto_bps, created_by) values ($1, $2, 2500, $3)`, [
-      supplier,
-      painter,
-      '00000000-0000-4000-8000-0000000000f1',
-    ]);
-    const seen = await as(A, async () => (await db.query(`select id from public.supplier_discounts where painter_org_id is not null`)).rows);
-    expect(seen).toHaveLength(0);
+
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [PAINTER3, email(PAINTER3)]);
+    const painter = (await createOrg(PAINTER3, 'pintor', 'Pinturas da Carteira Lda', '610000039')).id;
+    const F = '00000000-0000-4000-8000-0000000000f1';
+    await as(F, () => db.query(`insert into public.supplier_discounts (org_id, painter_org_id, desconto_bps) values ($1, $2, 2500)`, [supplier, painter]));
+
+    expect(await as(A, async () => (await db.query(`select id from public.supplier_discounts where painter_org_id = $1`, [painter])).rows)).toHaveLength(0);
+    expect(await as(F, async () => (await db.query(`select id from public.supplier_discounts where painter_org_id = $1`, [painter])).rows)).toHaveLength(1);
+    expect(await as(PAINTER3, async () => (await db.query(`select id from public.supplier_discounts where painter_org_id = $1`, [painter])).rows)).toHaveLength(
+      1,
+    );
+  });
+
+  it('carteira de clientes: só o fornecedor classifica; a ficha é visível aos dois lados, nunca a terceiros', async () => {
+    const supplier = (await one<{ id: string }>(`select id from public.organizations where nome = 'Tintas Exemplo'`)).id;
+    const painter = (await one<{ id: string }>(`select id from public.organizations where nome = 'Pinturas da Carteira Lda'`)).id;
+    const F = '00000000-0000-4000-8000-0000000000f1';
+    await expect(
+      as(A, () => db.query(`insert into public.supplier_customers (org_id, painter_org_id, premium, nota) values ($1, $2, true, 'x')`, [supplier, painter])),
+    ).rejects.toThrow(/row-level security/);
+    await as(F, () =>
+      db.query(`insert into public.supplier_customers (org_id, painter_org_id, premium, nota) values ($1, $2, true, 'Paga sempre a pronto.')`, [
+        supplier,
+        painter,
+      ]),
+    );
+    const seenBySupplier = await as(F, () =>
+      one<{ premium: boolean; nota: string }>('select premium, nota from public.supplier_customers where org_id = $1 and painter_org_id = $2', [
+        supplier,
+        painter,
+      ]),
+    );
+    expect(seenBySupplier).toEqual({ premium: true, nota: 'Paga sempre a pronto.' });
+    const seenByClient = await as(PAINTER3, () =>
+      one<{ premium: boolean }>('select premium from public.supplier_customers where org_id = $1 and painter_org_id = $2', [supplier, painter]),
+    );
+    expect(seenByClient).toEqual({ premium: true });
+    expect(await as(B, async () => (await db.query('select org_id from public.supplier_customers where painter_org_id = $1', [painter])).rows)).toEqual([]);
+    // Sob RLS, um update cujo "using" exclui a linha não rejeita — afeta zero linhas, em silêncio; por
+    // isso confirma-se o efeito (nada mudou), não um erro.
+    await as(PAINTER3, () => db.query(`update public.supplier_customers set premium = false where org_id = $1 and painter_org_id = $2`, [supplier, painter]));
+    expect(
+      await as(F, () =>
+        one<{ premium: boolean }>('select premium from public.supplier_customers where org_id = $1 and painter_org_id = $2', [supplier, painter]),
+      ),
+    ).toEqual({ premium: true });
+  });
+
+  it('desconto "cliente premium": perfil aceite como os outros (a condição em si liga-se em src/lib/materials.ts)', async () => {
+    const supplier = (await one<{ id: string }>(`select id from public.organizations where nome = 'Tintas Exemplo'`)).id;
+    const F = '00000000-0000-4000-8000-0000000000f1';
+    await as(F, () => db.query(`insert into public.supplier_discounts (org_id, desconto_bps, perfil) values ($1, 2000, 'cliente_premium')`, [supplier]));
   });
 });
 

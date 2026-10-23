@@ -192,11 +192,12 @@ export const PAYMENT_TERMS_LABELS: Record<PaymentTerms, string> = {
   pronto: 'pronto pagamento',
   diferido: 'pagamento diferido (crédito)',
 };
-export const BUYER_PROFILES = ['primeira_compra', 'cliente_frequente'] as const;
+export const BUYER_PROFILES = ['primeira_compra', 'cliente_frequente', 'cliente_premium'] as const;
 export type BuyerProfile = (typeof BUYER_PROFILES)[number];
 export const BUYER_PROFILE_LABELS: Record<BuyerProfile, string> = {
   primeira_compra: 'primeira compra a este fornecedor',
   cliente_frequente: 'cliente frequente',
+  cliente_premium: 'cliente premium (classificado manualmente)',
 };
 /** Encomendas entregues a partir das quais o pintor é cliente frequente de um fornecedor. */
 export const FREQUENT_MIN_ORDERS = 3;
@@ -228,6 +229,10 @@ export interface BuyerContext {
   deliveredOrders?: number;
   pagamento?: PaymentTerms;
   quantidade?: number;
+  /** Classificado como "cliente premium" por este fornecedor (supplier_customers.premium) — ao contrário de
+   * primeira_compra/cliente_frequente, não se deduz das encomendas: é o fornecedor que o decide, na ficha do
+   * cliente (decisão de 23/10/2026, docs/DECISOES.md). */
+  premium?: boolean;
 }
 
 const baseMatch = (r: DiscountRule, product: { id: string; tipo: ProductType }, area: AreaCm2, today: string, ctx: BuyerContext) =>
@@ -239,7 +244,8 @@ const baseMatch = (r: DiscountRule, product: { id: string; tipo: ProductType }, 
   (r.validUntil === null || r.validUntil >= today) &&
   (!r.perfil ||
     (r.perfil === 'primeira_compra' && ctx.deliveredOrders === 0) ||
-    (r.perfil === 'cliente_frequente' && (ctx.deliveredOrders ?? 0) >= FREQUENT_MIN_ORDERS));
+    (r.perfil === 'cliente_frequente' && (ctx.deliveredOrders ?? 0) >= FREQUENT_MIN_ORDERS) ||
+    (r.perfil === 'cliente_premium' && ctx.premium === true));
 
 /** Condições de compra que a regra exige e o contexto ainda não confirma. */
 function pending(r: DiscountRule, ctx: BuyerContext): string[] {

@@ -303,16 +303,33 @@ trabalhos pedidos (mostra se cada proposta responde ao que foi pedido), sem aval
 menos de 3 obras avaliadas ("histórico insuficiente"). Métodos de trabalho (modelos próprios do pintor) para não
 reescrever as mesmas condições em cada proposta. Detalhe de desenho: `docs/PROPOSTA.md`.
 
-### 5.5 Fornecedores: catálogo, descontos, encomendas — Feito
+### 5.5 Fornecedores: catálogo, descontos, carteira de clientes, encomendas — Feito
 
 O fornecedor sobe fichas técnicas (PDF), rendimento e preço de referência datado ao catálogo; liga produtos a
-fichas de referência (aparece em "Onde comprar", por concelho). Descontos por produto/tipo, escalões de área,
-forma de pagamento, quantidade mínima, primeira compra ou cliente frequente — nunca por quem é a pessoa. Entregas
-por concelho (convenção "sem linha, ou vazio = todo o país", reutilizada no levantamento, 5.3). Pintor encomenda
-materiais com confirmação do fornecedor; avalia o fornecedor depois (e agora o fornecedor também responde a essa
-avaliação — paridade com a avaliação cliente↔pintor, 23/10/2026, secção 5.10). Dois planos pagos (Stripe
-Billing, modo de teste): listagem de vendedores (39 €/mês+IVA) e catálogo de produtos completo (49 €/mês+IVA,
-inclui descontos). Sem plano de catálogo ativo, não cria produtos nem descontos.
+fichas de referência (aparece em "Onde comprar", por concelho). Entregas por concelho (convenção "sem linha, ou
+vazio = todo o país", reutilizada no levantamento, 5.3). Pintor encomenda materiais com confirmação do
+fornecedor; avalia o fornecedor depois (e agora o fornecedor também responde a essa avaliação — paridade com a
+avaliação cliente↔pintor, 23/10/2026, secção 5.10). Dois planos pagos (Stripe Billing, modo de teste): listagem
+de vendedores (39 €/mês+IVA) e catálogo de produtos completo (49 €/mês+IVA, inclui descontos). Sem plano de
+catálogo ativo, não cria produtos nem descontos.
+
+**Descontos (`/produtos`, secção "Descontos para pintores"), redesenhados a 23/10/2026:** cada regra combina um
+eixo de **artigo** (todo o catálogo, um tipo, ou um ou vários artigos concretos escolhidos por checkbox — a
+lista mostra o que cada um já tem assinalado, para compor várias linhas seguidas sem repetir cobertura) com um
+eixo de **cliente** (todos os pintores, ou um específico — carteira de clientes do fornecedor) e condições de
+compra (escalão de área, forma de pagamento, quantidade mínima, classificação do cliente). **Classificação do
+cliente**, três valores: *primeira compra* e *cliente frequente* (3+ encomendas entregues) deduzem-se sozinhos
+de `material_orders`; ***cliente premium* é uma classificação manual do fornecedor**, sem número automático —
+só se define na ficha do cliente. Sem data de validade, um desconto fica em vigor até se alterar.
+
+**Carteira de clientes (`/clientes`, novo 23/10/2026):** lista os pintores que já encomendaram a este fornecedor
+(derivada de `material_orders`), com a classificação e um atalho para a **ficha de cada um**
+(`/clientes/[painterOrgId]`): histórico de encomendas, "cliente premium" (checkbox), uma nota de condições
+específicas em texto livre (visível aos dois lados da relação, só editável pelo fornecedor), e descontos só
+para esse cliente — mesmo mecanismo da secção acima, só pré-escolhido. Nada disto precisou de RLS nova para
+ver o nome do cliente: a política `organizations_select` já deixa um fornecedor ver quem lhe comprou
+(`private.ordered_from_me`, migração de 19/10/2026) — só a tabela de classificação/nota
+(`supplier_customers`) é mesmo nova.
 
 ### 5.6 Os dois programas de referência — não confundir (Feito, em produção)
 
@@ -444,10 +461,11 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
 1. **Ligação MCP ao Supabase sem permissão nesta sessão**, desde meio da sessão autónoma de 23/10/2026 (antes
    funcionava — várias migrações desse dia e do dia anterior foram aplicadas com sucesso). Voltei a tentar
-   (`list_migrations`) ao escrever este documento: **o erro é o mesmo**, não se resolveu por si só. Em
-   consequência, **há 10 migrações escritas e testadas localmente (PGlite, `supabase/tests/`) que nunca chegaram
-   ao projeto real**, por esta ordem exata (as duas primeiras do lote de 22/10 já estavam aplicadas antes do
-   bloqueio; a partir da 3.ª é que ficou tudo pendente):
+   (`list_migrations`) várias vezes ao longo do dia, a última ao escrever esta versão do documento: **o erro é
+   sempre o mesmo**, não se resolveu por si só. Em consequência, **há 12 migrações escritas e testadas
+   localmente (PGlite, `supabase/tests/`) que nunca chegaram ao projeto real**, por esta ordem exata (as duas
+   primeiras do lote de 22/10 já estavam aplicadas antes do bloqueio; a partir da 3.ª é que ficou tudo
+   pendente):
    - ~~`20261022010000_documentos_fiscais.sql`~~ — aplicada e confirmada
    - ~~`20261022020000_moloni_token.sql`~~ — aplicada e confirmada
    - `20261022030000_nif_unico_fornecedores.sql`
@@ -460,16 +478,21 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
    - `20261023030000_papel_vendedor.sql`
    - `20261023031000_levantamento_por_vendedor.sql`
    - `20261023040000_levantamento_avisos_e_expiracao.sql`
+   - `20261023050000_clientes_do_fornecedor.sql`
+   - `20261023051000_desconto_cliente_premium.sql`
 
    **Antes de confirmar sem NIFs duplicados**, correr primeiro:
    `select nif, count(*) from organizations where kind='fornecedor' and nif is not null group by nif having count(*)>1;`
-   Depois aplicar as 10 por ordem, correr `mcp__Supabase__get_advisors` (zero avisos novos de segurança, os de
+   Depois aplicar as 12 por ordem, correr `mcp__Supabase__get_advisors` (zero avisos novos de segurança, os de
    desempenho são esperados — SECURITY DEFINER e índices em tabelas ainda vazias), e **regenerar
    `src/lib/database.types.ts`** (`generate_typescript_types`) — hoje é **mantido à mão**, campo a campo, desde
-   que a ligação falhou; já se encontrou e corrigiu nesta sessão um erro numa dessas edições manuais
-   (`survey_terms_acceptances.user_id` marcado como opcional no tipo `Insert` sem ter valor por omissão na base
-   de dados — teria deixado passar no `tsc` um `insert` que falharia sempre em produção real).
-   **Para resolver:** confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar.
+   que a ligação falhou; já se encontraram e corrigiram nesta sessão dois erros deste tipo de manutenção manual
+   — `survey_terms_acceptances.user_id` marcado como opcional no tipo `Insert` sem ter valor por omissão na
+   base de dados (teria deixado passar no `tsc` um `insert` que falharia sempre em produção real), e um
+   `check` em SQL (`supplier_discounts.perfil`) nunca alargado quando um valor novo entrou só no TypeScript
+   (`tsc`/lint/build não apanham isto — só um teste a inserir a sério, o que é a prova de que a verificação
+   com PGlite, não só tipos, é mesmo necessária). **Para resolver:** confirmar a ligação em claude.ai →
+   Connectors → Supabase e voltar a autorizar.
 
 2. **Moloni sem ambiente de demonstração** — pedido enviado, sem resposta confirmada (ver histórico em
    `docs/FATURACAO.md`). Não emitir nenhum documento fiscal real até isto se confirmar: a conta não tem sandbox,
@@ -609,4 +632,5 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   encomendas passam a avisar; fila de litígios no backoffice; **litígio com repartição**; **avaliação de obra
   cancelada**; **fornecedor responde a avaliações**; **levantamento da obra por um vendedor do fornecedor**
   (mecanismo completo, secção 5.3) e reorganização do workspace do fornecedor; **este documento**, reescrito do
-  zero para ser completo e autossuficiente.
+  zero para ser completo e autossuficiente; **carteira de clientes do fornecedor** — descontos por vários
+  artigos e/ou um cliente específico, classificação "cliente premium", ficha do cliente (secção 5.5).

@@ -44,6 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (fornecedorId) {
     more.push(
       { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos' },
+      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes' },
       { href: `/app/organizacoes/${fornecedorId}/referencias`, label: 'Referências' },
       { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão' },
     );

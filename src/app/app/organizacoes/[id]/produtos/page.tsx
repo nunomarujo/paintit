@@ -7,6 +7,7 @@ import { formatArea } from '@/domain/request';
 import { ProductCard } from '@/components/ProductCard';
 import { canManage, myRole } from '@/lib/access';
 import { loadReferences } from '@/lib/reference';
+import { supplierCustomers } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { ProductForm } from './ProductForm';
 import { DeliveryForm, DiscountForm } from './SupplierRules';
@@ -20,11 +21,12 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: sub }] = await Promise.all([
+  const [{ data: products }, { data: discounts }, { data: deliveries }, { data: sub }, clientes] = await Promise.all([
     supabase.from('products').select('*').eq('org_id', id).order('marca').order('nome'),
     supabase.from('supplier_discounts').select('*').eq('org_id', id).order('created_at'),
     supabase.from('supplier_delivery').select('*').eq('org_id', id).order('created_at'),
     supabase.from('supplier_subscriptions').select('*').eq('org_id', id).maybeSingle(),
+    supplierCustomers(supabase, id),
   ]);
   const plan = sub?.status === 'ativa' ? sub.plan : null;
   const catalogo = planAllows(plan, 'catalogo');
@@ -32,6 +34,16 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   const productName = (pid: string | null) => {
     const p = (products ?? []).find((x) => x.id === pid);
     return p ? productLabel(p) : '';
+  };
+  const clienteName = (pid: string | null) => clientes.find((c) => c.id === pid)?.nome ?? null;
+  // Melhor desconto já em vigor para um artigo, sem olhar ao cliente nem à área da obra (sinal, não preço
+  // final): mostra ao fornecedor o que já está coberto antes de escolher o que falta atribuir.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentBpsFor = (p: { id: string; tipo: string }) => {
+    const matches = (discounts ?? []).filter(
+      (d) => !d.painter_org_id && (!d.valido_ate || d.valido_ate >= todayStr) && (d.product_id === p.id || d.tipo === p.tipo || (!d.product_id && !d.tipo)),
+    );
+    return matches.length ? Math.max(...matches.map((d) => d.desconto_bps)) : null;
   };
   const smallDel = 'text-red-700 hover:underline';
 
@@ -96,6 +108,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
                   {d.perfil ? ` · ${BUYER_PROFILE_LABELS[d.perfil]}` : ''}
                   {d.pagamento ? ` · ${PAYMENT_TERMS_LABELS[d.pagamento]}` : ''}
                   {d.min_quantidade ? ` · a partir de ${d.min_quantidade} embalagens` : ''}
+                  {d.painter_org_id ? ` · só para ${clienteName(d.painter_org_id) ?? 'um cliente específico'}` : ''}
                 </span>
                 {manager && (
                   <form action={deleteDiscount.bind(null, id, d.id)}>
@@ -112,7 +125,8 @@ export default async function SupplierProductsPage({ params }: { params: Promise
           <div className="mt-6 border-t border-slate-100 pt-6">
             <DiscountForm
               orgId={id}
-              products={(products ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, label: productLabel(p) }))}
+              products={(products ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, label: productLabel(p), currentBps: currentBpsFor(p) }))}
+              clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
             />
           </div>
         )}

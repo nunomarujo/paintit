@@ -52,6 +52,12 @@ export async function materialOptions(
     ? await supabase.from('material_orders').select('supplier_org_id').eq('painter_org_id', obra.painterOrgId).eq('estado', 'entregue')
     : { data: [] };
   const delivered = (supplier: string) => (orders ?? []).filter((o) => o.supplier_org_id === supplier).length;
+  // "Cliente premium" é classificação manual do fornecedor (supplier_customers), nunca deduzida das
+  // encomendas — ao contrário de primeira_compra/cliente_frequente, acima (src/domain/catalog.ts).
+  const { data: customers } = obra.painterOrgId
+    ? await supabase.from('supplier_customers').select('org_id').eq('painter_org_id', obra.painterOrgId).eq('premium', true)
+    : { data: [] };
+  const premiumSuppliers = new Set((customers ?? []).map((c) => c.org_id));
   const withPlan = new Set(active ?? []);
   const options = (products ?? []).filter((p) => withPlan.has(p.org_id)).map((p): [number, MaterialOption] => {
     const rules: DiscountRule[] = (discounts ?? [])
@@ -69,7 +75,7 @@ export async function materialOptions(
         minQuantidade: d.min_quantidade,
         perfil: d.perfil,
       }));
-    const ctx = { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: delivered(p.org_id) };
+    const ctx = { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: delivered(p.org_id), premium: premiumSuppliers.has(p.org_id) };
     const d = bestDiscount(p, obra.area, obra.today, rules, ctx);
     const ofertas = conditionalOffers(p, obra.area, obra.today, rules, ctx).map(
       (o) => `−${(o.bps / 100).toLocaleString('pt-PT')}% com ${o.condicoes.join(' e ')}`,
@@ -140,6 +146,9 @@ export async function pricedProduct(
         .eq('supplier_org_id', p.org_id)
         .eq('estado', 'entregue')
     : { count: undefined };
+  const { data: customer } = obra.painterOrgId
+    ? await supabase.from('supplier_customers').select('premium').eq('org_id', p.org_id).eq('painter_org_id', obra.painterOrgId).maybeSingle()
+    : { data: null };
   const d = bestDiscount(
     p,
     obra.area,
@@ -157,7 +166,7 @@ export async function pricedProduct(
       minQuantidade: x.min_quantidade,
       perfil: x.perfil,
     })),
-    { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: deliveredCount ?? undefined },
+    { painterOrgId: obra.painterOrgId ?? null, deliveredOrders: deliveredCount ?? undefined, premium: customer?.premium === true },
   );
   return { label: productLabel(p), precoFornecedor: p.preco_fornecedor_cents, descontoBps: d?.bps ?? 0 };
 }
