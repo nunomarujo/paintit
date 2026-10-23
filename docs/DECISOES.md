@@ -830,3 +830,44 @@ binários. Faltava decidir **para onde vai cada fração — não só que existe
   `engagement_events` é `jsonb` sem restrição de esquema.
 - Testado em `engagement.test.ts` (37% e 60%, incluindo o fecho exato ao cêntimo e a rejeição de percentagens
   fora de 1-99) e `notifications.test.ts`. tsc, lint, 407 testes, build, zero.
+
+## 23/10/2026 — avaliação de uma obra cancelada (AVA-01), decidido com julgamento próprio
+
+Segunda das 3 questões ("continua, resolve as 3 questões com o teu melhor julgamento"). O documento (AVA-01)
+pede avaliações de uma obra concluída e de um cancelamento em categorias distinguíveis; `reviews` só aceitava
+uma avaliação quando `pintor_assinou` tinha acontecido.
+
+- **Quando é possível avaliar um cancelamento (a decisão em falta):** só depois de as partes se terem
+  conhecido — `reviewCategory` (`contracting.ts`) usa `isRevealed` (o mesmo `feePaid`) e uma lista explícita de
+  estados finais (`pintor_nao_assinou`, `cliente_desistiu`, os três desfechos de litígio, `encerrado_sem_contrato`,
+  `transitado`), devolvendo `'concluida'` só para `assinado` e `'cancelamento'` para o resto, ou `null` se ainda
+  não há nada a avaliar (litígio aberto sem desfecho, ou nunca revelado). Antes da apresentação não há o que
+  avaliar — ninguém conheceu ninguém; um litígio só é avaliável depois de resolvido.
+  - **Porque não dava para usar só o estado, no SQL da política de inserção:** `pintor_nao_assinou`/
+    `pintor_nao_pagou` são estados calculados pela passagem do tempo (`expire()`), sem nenhum acontecimento
+    próprio gravado — não há forma barata de os reconstruir em SQL puro (o motivo, já conhecido neste projeto,
+    por que `backofficeCounts.ts` teve de voltar a `loadReplay`). Por isso a política RLS (`reviews_insert`)
+    ficou mais larga que a regra exata — exige só `engagement_signed() OR engagement_revealed()` (a marca
+    `reveal` já existe em `engagement_events`) — e a regra precisa (os estados finais de cima) fica em
+    `saveReview` (`extras-actions.ts`), que já carrega o replay para outras verificações. É a mesma repartição
+    que o resto do projeto já usa: SQL protege a identidade de quem faz o quê, `engagement.ts`/`contracting.ts`
+    decide se o estado é válido.
+- **Com que efeito na reputação (a outra decisão em falta):** a categoria fica gravada em
+  `reviews.obra_concluida` (calculada no servidor, no gatilho de inserção — nunca escolhida pelo cliente, como
+  já acontecia a `painter_org_id`), e `painter_rating()` (a média que o comparador mostra) passa a somar só
+  `obra_concluida = true`. Decidi não misturar: um cancelamento depois da apresentação é um sinal diferente de
+  "qualidade do trabalho" — fica visível na íntegra na própria contratação (comentário incluído, com rótulo
+  "obra cancelada"), mas não entra numa média de 1 a 5 pensada para trabalho executado.
+- **Construído:** migração `20261023010000_avaliacao_cancelamento.sql` (coluna `obra_concluida`, função
+  `private.engagement_revealed`, `review_guard`/`reviews_insert`/`painter_rating` atualizados); `reviewCategory`
+  em `contracting.ts`; `saveReview` passa a verificar a categoria antes de gravar; `/app/contratacoes/[id]`
+  mostra o rótulo da categoria e já não esconde a secção fora de `assinado`.
+- Testado em `contracting.test.ts` (5 casos novos: concluída, cancelamento por prazo do pintor, sem categoria
+  antes da apresentação, sem categoria em litígio aberto, cancelamento por litígio) e um teste novo em
+  `supabase/tests/rls.test.ts` (avaliação revelada-mas-não-assinada aceite, excluída da média, pintor continua
+  sem poder avaliar). tsc, lint, 413 testes, build, zero.
+- **Travão genuíno, não lacuna de código:** a ligação MCP ao Supabase passou a devolver "sem permissão" a meio
+  desta sessão (via `list_migrations`/`apply_migration`, que tinham funcionado antes nesta mesma sessão) — a
+  migração está escrita e testada localmente (PGlite, `supabase/tests/`), mas **não chegou ao projeto real**;
+  falta também regenerar `src/lib/database.types.ts` e correr os avisos de segurança/desempenho. Ver
+  `docs/ESTADO.md`, "Pendente do promotor".

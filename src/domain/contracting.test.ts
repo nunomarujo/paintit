@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS_LABELS, availableActions, contractDraft, draftText, isRevealed, ledger, plainSummary, replay, type EngagementEvent, type EngagementRecord } from './contracting';
+import {
+  STATUS_LABELS,
+  availableActions,
+  contractDraft,
+  draftText,
+  isRevealed,
+  ledger,
+  plainSummary,
+  replay,
+  reviewCategory,
+  type EngagementEvent,
+  type EngagementRecord,
+} from './contracting';
 import { held } from './engagement';
 import { euros } from './money';
 
@@ -135,6 +147,86 @@ describe('resumo em linguagem simples', () => {
     expect(s).not.toMatch(/3\s690/);
     expect(plainSummary(e, { duracao: '', materiais: 0 }, 'pintor').join(' ')).toMatch(/comissão/);
     for (const label of Object.values(STATUS_LABELS)) expect(label).not.toMatch(/comiss/i);
+  });
+});
+
+describe('categoria de avaliação (AVA-01: obra concluída e cancelamento em categorias distinguíveis)', () => {
+  const upToFeePaid = () =>
+    replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+      ],
+      new Date('2026-10-23T00:00:00Z'),
+    ).engagement;
+
+  it('obra assinada: categoria "concluida"', () => {
+    const e = replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+        ev('pintor_assinou', '2026-10-23T10:00:00Z'),
+      ],
+      new Date('2026-10-24T00:00:00Z'),
+    ).engagement;
+    expect(reviewCategory(e)).toBe('concluida');
+  });
+
+  it('pintor não assina no prazo depois de revelado: categoria "cancelamento"', () => {
+    expect(upToFeePaid().status).toBe('aguarda_assinatura_pintor');
+    const r = replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+      ],
+      new Date('2026-11-05T00:00:00Z'),
+    );
+    expect(r.engagement.status).toBe('pintor_nao_assinou');
+    expect(isRevealed(r.engagement)).toBe(true);
+    expect(reviewCategory(r.engagement)).toBe('cancelamento');
+  });
+
+  it('pintor não paga no prazo, antes da apresentação: sem categoria (nada a avaliar)', () => {
+    const r = replay(rec, [ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)), ev('cliente_assinou', '2026-10-20T10:00:00Z')], new Date('2026-10-29T00:00:00Z'));
+    expect(r.engagement.status).toBe('pintor_nao_pagou');
+    expect(reviewCategory(r.engagement)).toBeNull();
+  });
+
+  it('litígio aberto, sem desfecho ainda: sem categoria', () => {
+    const r = replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+        ev('litigio_aberto', '2026-10-23T09:00:00Z', null, { reason: 'desacordo' }),
+      ],
+      new Date('2026-10-23T12:00:00Z'),
+    );
+    expect(r.engagement.status).toBe('em_litigio');
+    expect(reviewCategory(r.engagement)).toBeNull();
+  });
+
+  it('litígio resolvido: categoria "cancelamento", mesmo com culpa do cliente', () => {
+    const r = replay(
+      rec,
+      [
+        ev('deposito_confirmado', '2026-10-19T10:00:00Z', euros(13_000)),
+        ev('cliente_assinou', '2026-10-20T10:00:00Z'),
+        ev('fee_recebido', '2026-10-22T10:00:00Z', euros(3_690)),
+        ev('litigio_aberto', '2026-10-23T09:00:00Z', null, { reason: 'desacordo' }),
+        ev('litigio_resolvido', '2026-11-01T09:00:00Z', null, { outcome: 'culpa_cliente' }),
+      ],
+      new Date('2026-11-02T00:00:00Z'),
+    );
+    expect(r.engagement.status).toBe('litigio_culpa_cliente');
+    expect(reviewCategory(r.engagement)).toBe('cancelamento');
   });
 });
 

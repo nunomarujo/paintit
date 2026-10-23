@@ -845,6 +845,26 @@ describe('contratação', () => {
     expect(rival).toEqual([]);
   });
 
+  it('avaliação de cancelamento (AVA-01): revelada mas não assinada já pode ser avaliada, sem entrar na média', async () => {
+    // A seguir ao teste anterior: engagementId está revelado (fee_recebido com reveal=true) mas
+    // ainda não assinado — o caso que falta a AVA-01 (avaliação de obra cancelada, não só concluída).
+    await expect(
+      as(P, () => db.query(`insert into public.reviews (engagement_id, qualidade, prazo, comunicacao, comentario) values ($1, 5, 5, 5, 'x')`, [engagementId])),
+    ).rejects.toThrow(/row-level security/); // o pintor não avalia, só o cliente
+    await as(A, () =>
+      db.query(
+        `insert into public.reviews (engagement_id, qualidade, prazo, comunicacao, comentario) values ($1, 1, 2, 3, 'Desistiu depois de me conhecer.')`,
+        [engagementId],
+      ),
+    );
+    const saved = await one<{ obra_concluida: boolean }>('select obra_concluida from public.reviews where engagement_id = $1', [engagementId]);
+    expect(saved.obra_concluida).toBe(false); // calculado no servidor: não há "pintor_assinou"
+    const proposalId = (await one<{ proposal_id: string }>('select proposal_id from public.engagements where id = $1', [engagementId])).proposal_id;
+    const rating = await as(P, () => one<{ n: number; media: number | null }>('select n, media from public.painter_rating($1)', [proposalId]));
+    expect(rating).toEqual({ n: 0, media: null }); // excluída da média: é um sinal de cancelamento, não de qualidade do trabalho
+    await db.query('delete from public.reviews where engagement_id = $1', [engagementId]); // não interfere com os testes seguintes
+  });
+
   it('saldo e resgate: regime validado pela equipa, uma fatura por resgate, pagamento líquido de retenção', async () => {
     const S = '00000000-0000-4000-8000-0000000000f5';
     const pay = await one<{ id: string; supplier_org_id: string; fee_recebido_em: string | null; amount_cents: number }>(

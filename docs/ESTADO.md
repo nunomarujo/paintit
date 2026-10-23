@@ -92,10 +92,10 @@ A seguir, sem depender do promotor:
 7. **Advogado:** enviar `docs/advogado/Pedido_minuta_contrato.docx` com o seu contacto preenchido.
 8. ~~Litígio com repartição (DIS-07)~~: resolvido com julgamento próprio a 23/10/2026 — outcome `repartido` +
    percentagem de culpa do cliente (1-99), ver `docs/DECISOES.md`.
-9. **Avaliação de uma obra cancelada, não só concluída:** o documento (AVA-01) prevê avaliações de cancelamentos
-   em categoria distinta; hoje `reviews` só aceita uma avaliação por `engagement_id` quando a obra foi assinada
-   (implícito na política de inserção). Se quiseres isto, é sobretudo decidir quem pode avaliar um cancelamento
-   e com que efeito (reputação de quem desistiu?), não só esquema novo. Encontrado a 23/10/2026, sessão autónoma.
+9. ~~Avaliação de uma obra cancelada (AVA-01)~~: resolvido com julgamento próprio a 23/10/2026 —
+   `reviewCategory` em `contracting.ts`, coluna `obra_concluida`, excluída da média pública. Ver
+   `docs/DECISOES.md`. **Falta aplicar a migração `20261023010000_avaliacao_cancelamento.sql` ao Supabase real**
+   (ligação MCP sem permissão nesta sessão — ver secção "Pendente do promotor").
 10. **Responder a uma avaliação de fornecedor:** o pintor já pode responder a avaliações que recebe
     (`reviews.resposta`); `supplier_reviews` nunca teve esse campo. Pode ter sido deliberado na migração
     original ou só não ter chegado lá — se quiseres paridade, é uma migração pequena. Encontrado a 23/10/2026.
@@ -259,6 +259,7 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
 - Convidar 5 a 10 pintores e 2 a 3 fornecedores de Viana do Castelo para testarem antes dos clientes.
 
 - **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
+- **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo). Fica pelo menos uma migração só escrita e testada localmente (`supabase/tests/`), sem chegar ao projeto real — ver a lista em `docs/DECISOES.md`, secção de hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as migrações pendentes (`supabase db push` ou pelo MCP) e regenerar `src/lib/database.types.ts`.
 
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,
 alojamento).

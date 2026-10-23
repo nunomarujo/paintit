@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { EVENT_LABELS, STATUS_LABELS, availableActions, clientDepositDue, isRevealed } from '@/domain/contracting';
+import { EVENT_LABELS, STATUS_LABELS, availableActions, clientDepositDue, isRevealed, reviewCategory } from '@/domain/contracting';
 import { held, settlement } from '@/domain/engagement';
 import { formatEuros } from '@/domain/money';
 import { alias, proposalTotals } from '@/domain/proposal';
@@ -61,7 +61,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
   const condoMissing = side === 'cliente' && partyActions.includes('cliente_assinou') ? await missingCondoDocs(supabase, row) : [];
   const { data: orders } = e.status === 'assinado' ? await supabase.from('material_orders').select('*').eq('engagement_id', id).neq('estado', 'cancelada') : { data: [] };
-  const { data: review } = e.status === 'assinado' ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
+  const category = reviewCategory(e);
+  const { data: review } = category ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
   return (
     <div className="space-y-8">
@@ -306,9 +307,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </section>
       )}
 
-      {e.status === 'assinado' && side !== 'plataforma' && (
+      {category && side !== 'plataforma' && (
         <section className={card}>
-          <h2 className="font-semibold">Avaliação</h2>
+          <h2 className="font-semibold">Avaliação — {category === 'concluida' ? 'obra concluída' : 'obra cancelada'}</h2>
           {review && (
             <div className="mt-3 text-sm">
               <p>
@@ -334,7 +335,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             {side === 'pintor' && !review && <p className="text-sm text-slate-600">O cliente ainda não avaliou.</p>}
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            A avaliação entra no histórico do pintor e aparece, sem o nome do cliente, quando o pintor faz novas propostas.
+            {category === 'concluida'
+              ? 'A avaliação entra na nota média do pintor e aparece, sem o nome do cliente, quando o pintor faz novas propostas.'
+              : 'Por ser uma obra cancelada, esta avaliação não entra na nota média do pintor; fica visível só nesta contratação, para as duas partes.'}
           </p>
         </section>
       )}

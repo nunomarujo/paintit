@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { reviewCategory } from '@/domain/contracting';
+import { loadReplay } from '@/lib/engagements';
 import { guardContact } from '@/lib/strikes';
 import { notifyNewReview } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
@@ -32,6 +34,10 @@ export async function saveReview(engagementId: string, _prev: FormState, form: F
   if (!qualidade || !prazo || !comunicacao) return { errors: {}, message: 'Dê uma nota de 1 a 5 a cada critério.' };
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
+  const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
+  if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+  const { replay } = await loadReplay(supabase, row);
+  if (!reviewCategory(replay.engagement)) return { errors: {}, message: 'Esta contratação ainda não pode ser avaliada.' };
   const { data: existing } = await supabase.from('reviews').select('id').eq('engagement_id', engagementId).maybeSingle();
   const { error } = existing
     ? await supabase.from('reviews').update({ qualidade, prazo, comunicacao, comentario }).eq('id', existing.id)

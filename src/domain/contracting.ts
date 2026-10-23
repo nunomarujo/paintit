@@ -165,6 +165,27 @@ export function replay(rec: EngagementRecord, events: EngagementEvent[], now: Da
 /** A identidade e os contactos são revelados quando o fee entra (CLI-19); depois disso não se desfaz. */
 export const isRevealed = (e: Engagement) => e.feePaid;
 
+/** Estados finais em que a avaliação é possível: a obra ficou concluída, ou cancelada depois de
+ * as partes se terem conhecido (AVA-01). Antes da apresentação não há o que avaliar; em litígio
+ * aberto, ainda não há desfecho. */
+const REVIEWABLE_STATUSES: EngagementStatus[] = [
+  'assinado',
+  'pintor_nao_assinou',
+  'cliente_desistiu',
+  'litigio_culpa_cliente',
+  'litigio_culpa_pintor',
+  'litigio_repartido',
+  'encerrado_sem_contrato',
+  'transitado',
+];
+
+/** Categoria de avaliação desta contratação, ou null se ainda não há nada a avaliar (AVA-01: as
+ * avaliações de obra concluída e de cancelamento aparecem em categorias distinguíveis). */
+export function reviewCategory(e: Engagement): 'concluida' | 'cancelamento' | null {
+  if (!isRevealed(e) || !REVIEWABLE_STATUSES.includes(e.status)) return null;
+  return e.status === 'assinado' ? 'concluida' : 'cancelamento';
+}
+
 export const STATUS_LABELS: Record<EngagementStatus, string> = {
   aguarda_deposito: 'À espera do depósito do cliente',
   aguarda_adiantamento: 'Partes apresentadas: à espera do adiantamento do cliente',
