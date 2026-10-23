@@ -13,9 +13,22 @@ const dt = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 'E
 export default async function ReconciliationPage() {
   const { supabase } = await getUser();
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at');
-  const items = await Promise.all((rows ?? []).map(async (r) => ({ r, e: (await loadReplay(supabase, r)).replay.engagement })));
-  const l = ledger(items.map((i) => i.e));
-  const instructions = items
+  // Uma contratação malformada não pode derrubar a conciliação inteira — fica fora dos totais e marcada aqui;
+  // aparece de qualquer forma na fila de pendingEngagements do backoffice, onde o erro é visível.
+  const items = (
+    await Promise.all(
+      (rows ?? []).map(async (r) => {
+        try {
+          return { r, e: (await loadReplay(supabase, r)).replay.engagement, error: null as string | null };
+        } catch (err) {
+          return { r, e: null, error: err instanceof Error ? err.message : String(err) };
+        }
+      }),
+    )
+  );
+  const ok = items.filter((i): i is { r: (typeof items)[number]['r']; e: NonNullable<(typeof items)[number]['e']>; error: null } => i.e !== null);
+  const l = ledger(ok.map((i) => i.e));
+  const instructions = ok
     .flatMap(({ r, e }) =>
       e.movements
         .filter((m) => PARTNER_INSTRUCTIONS[m.kind])
@@ -65,8 +78,8 @@ export default async function ReconciliationPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {items.map(({ r, e }) => {
-                const h = held(e);
+              {items.map(({ r, e, error }) => {
+                const h = e ? held(e) : null;
                 return (
                   <tr key={r.id}>
                     <td className="py-1.5">
@@ -74,8 +87,8 @@ export default async function ReconciliationPage() {
                         {r.id.slice(0, 8).toUpperCase()}
                       </Link>
                     </td>
-                    <td className="py-1.5">{STATUS_LABELS[e.status]}</td>
-                    <td className="py-1.5 text-right">{formatEuros(h.guarantee + h.advance + h.fee)}</td>
+                    <td className="py-1.5">{h && e ? STATUS_LABELS[e.status] : <span className="text-red-700">erro{error ? `: ${error}` : ''}</span>}</td>
+                    <td className="py-1.5 text-right">{h ? formatEuros(h.guarantee + h.advance + h.fee) : '—'}</td>
                   </tr>
                 );
               })}

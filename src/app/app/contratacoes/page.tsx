@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { STATUS_LABELS, availableActions } from '@/domain/contracting';
+import type { Engagement } from '@/domain/engagement';
 import { formatEuros } from '@/domain/money';
 import { isPlatformAdmin } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
+import type { Database } from '@/lib/database.types';
 import { getUser } from '@/lib/supabase/server';
+
+type EngagementRow = Database['public']['Tables']['engagements']['Row'];
 
 // Contratações em que o utilizador participa. Para a equipa da plataforma, todas,
 // com as que esperam uma confirmação sua primeiro.
@@ -11,12 +15,20 @@ export default async function EngagementsPage() {
   const { supabase, user } = await getUser();
   const admin = await isPlatformAdmin(supabase, user!.id);
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at', { ascending: false });
-  const items = await Promise.all(
-    (rows ?? []).map(async (r) => {
-      const e = (await loadReplay(supabase, r)).replay.engagement;
-      return { r, e, pending: admin && availableActions(e, 'plataforma').length > 0 };
-    }),
-  );
+  // Uma contratação malformada não pode derrubar a lista inteira — ficaria invisível aqui, mas visível na
+  // fila do backoffice (pendingEngagements, que já isola e reporta o erro).
+  const items = (
+    await Promise.all(
+      (rows ?? []).map(async (r) => {
+        try {
+          const e = (await loadReplay(supabase, r)).replay.engagement;
+          return { r, e, pending: admin && availableActions(e, 'plataforma').length > 0 };
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter((x): x is { r: EngagementRow; e: Engagement; pending: boolean } => x !== null);
   items.sort((a, b) => Number(b.pending) - Number(a.pending));
 
   return (

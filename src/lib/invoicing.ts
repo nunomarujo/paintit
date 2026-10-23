@@ -47,7 +47,15 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
   for (const id of [...new Set((deposits ?? []).map((d) => d.engagement_id))]) {
     const { data: row } = await db.from('engagements').select('*').eq('id', id).maybeSingle();
     if (!row) continue;
-    const { replay } = await loadReplay(db, row);
+    // Uma contratação malformada não pode impedir o cálculo das restantes — esta fila alimenta a contagem da
+    // barra lateral de todo o backoffice (invoicingCount), por isso uma falha aqui já derrubou páginas antes
+    // (mesmo princípio de pendingEngagements em backofficeCounts.ts).
+    let replay: Awaited<ReturnType<typeof loadReplay>>['replay'];
+    try {
+      replay = (await loadReplay(db, row)).replay;
+    } catch {
+      continue;
+    }
     const kept = replay.engagement.movements.filter((m) => m.kind === 'retencao_garantia');
     const total = kept.reduce((n, m) => n + m.amount, 0);
     if (total <= 0 || done.has(`engagement|${id}:${total}`)) continue;
