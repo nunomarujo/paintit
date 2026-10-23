@@ -296,7 +296,8 @@ Pintores veem pedidos abertos filtrados por tipo e zona; recebem email ao ser pu
 é guiado**, em passos: Trabalhos (13 tipos, com os seus campos e estado — base/opcional/a confirmar/não incluído),
 Preços (por unidade, por trabalho, ou um preço global da obra; IVA livre), Condições (seguros, plano de
 pagamentos por fases, garantias) e Rever (folha A4). Zonas por fachada, soluções partilhadas por várias fachadas
-e "duplicar solução". Catálogo de 39 produtos de referência (CIN, Robbialac, Barbot, Dyrup, Sika…) sugere produtos
+e "duplicar solução". Catálogo de 267 produtos de referência (CIN, Robbialac, Barbot, Dyrup, Titan/Titanlux,
+Luxens, Bondex, Xylophene e outros; preços da Leroy Merlin PT, atualizado 23/10/2026) sugere produtos
 nos campos certos; "ou equivalente" aguarda ligar (`NEXT_PUBLIC_EQUIVALENTE`, parecer jurídico). **Sinal de demãos
 acima do esperado** (22/10/2026): nunca bloqueia, só avisa o cliente se as demãos declaradas excedem em mais de
 uma as recomendadas pelo produto. O comparador do cliente é anónimo, lado a lado, com cobertura dos produtos E dos
