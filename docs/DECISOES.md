@@ -775,3 +775,23 @@ Mesmo levantamento (COM-05: "avaliação" e "compra confirmada"). Duas partes:
   uma migração pequena, mas é uma decisão a confirmar, não só uma lacuna a fechar.
 - Testado por tsc, lint, 398 testes, build (sem teste direto novo: a secção é leitura simples e as funções de
   aviso são `server-only`, como as outras). Smoke-test confirma o mesmo erro ambiental de sempre, sem erro novo.
+
+## 23/10/2026 — fila de litígios no backoffice (não existia nenhuma)
+
+A secção "5. Backoffice: filas, denúncias, litígios, conciliação, auditoria" de `docs/ESTADO.md` diz "Feito",
+mas ao construir a fila de avisos (acima) notei que resolver um litígio (`litigio_resolvido`, única ação por
+`contratacoes/[id]/page.tsx`) não tinha nenhuma fila a levar a equipa até lá — uma contratação em litígio só
+aparecia a quem já soubesse o seu ID, ou a quem percorresse "Todas" uma a uma. DIS-05 (documento de requisitos)
+pede precisamente que a equipa consiga reunir e encontrar os casos.
+
+- `/app/backoffice/contratacoes/litigios`, novo separador junto de "Assinaturas a conferir": lista as
+  contratações em litígio, reaproveitando `EngagementList`/`pendingEngagements` já existentes — nenhuma
+  consulta nova à base de dados, só um filtro sobre o que a página "Todas" já calcula.
+- A contagem no Painel principal usa a mesma reconstrução já feita por `pendingEngagements` (sem custo extra).
+  **Não foi posta em `queueCounts`/`backofficeCounts.ts`** (tentei primeiro; `status` não é uma coluna real —
+  reconstrói-se sempre a partir de `engagement_events`, CLAUDE.md já o explica — e esse ficheiro existe
+  precisamente para contagens baratas, uma coluna direta; adicionar uma reconstrução completa ali tornaria cara
+  a barra lateral em todas as páginas do backoffice, não só nesta). Por isso o separador em si não tem número
+  (como o separador "Todas", ao lado, também não tem) — só o Painel principal, que já paga esse custo de
+  qualquer forma.
+- Testado por tsc, lint, 398 testes, build, zero; smoke-test com o mesmo erro ambiental de sempre.
