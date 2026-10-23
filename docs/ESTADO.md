@@ -261,6 +261,15 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
 - **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
 - **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo). Ficam duas migrações só escritas e testadas localmente (`supabase/tests/`), sem chegar ao projeto real — ver a lista em `docs/DECISOES.md`, secção de hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as migrações pendentes (`supabase db push` ou pelo MCP) e regenerar `src/lib/database.types.ts` — **entretanto editado à mão** (só os campos novos de `reviews.obra_concluida` e `supplier_reviews.resposta`/`resposta_at`, para o código compilar sem acesso ao gerador); a regeneração real substitui-o sem problema, mas convém confirmar que bate certo.
 
+- **Conector Gmail desta sessão ligado a `nunomarujo@gmail.com`, não a `nm@quempinta.pt` (23/10/2026):** descoberto
+  ao tentar confirmar se a Moloni tinha respondido ao pedido de ambiente de demonstração (ver acima, linha ~132)
+  — a pesquisa caiu numa caixa de email de outros negócios do promotor, sem nenhuma relação com o Quem Pinta
+  (violaria a regra de isolamento deste documento se continuasse a usar essa ligação). O promotor já ligou o
+  conector a `nm@quempinta.pt` em claude.ai → Connectors, mas **os conectores só são lidos no arranque da
+  sessão** — esta sessão continua presa à ligação antiga; só uma sessão nova vê a correção. Falta, nessa sessão
+  nova: confirmar se a Moloni respondeu e decidir reenviar o pedido ou avançar com a emissão real do documento
+  de teste pendente (Pintor Teste Lda, 188,40 €) — decisão do promotor, não de quem verificar o email.
+
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,
 alojamento).
 
