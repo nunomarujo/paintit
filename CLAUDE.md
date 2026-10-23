@@ -22,8 +22,9 @@ vive neste repositório.
 
 ## Stack
 
-Next.js 15 (App Router), TypeScript estrito, Tailwind 3, Vitest. Pagamentos: instituição de pagamento autorizada,
-ainda por escolher.
+Next.js 15 (App Router), TypeScript estrito, Tailwind 3, Vitest. Pagamentos: **Stripe** (Connect, modo de teste —
+`src/lib/stripe.ts`, `src/lib/payments.ts`, migração `pagamentos_stripe`), ainda por confirmar em modo real
+(ver `docs/PAGAMENTOS_E_ASSINATURA.md`).
 
 **Base de dados: só o projeto Supabase "Paint it"** (`phkfrabrjqbpnmocrrvj`, região eu-west-1), desde 23/10/2026 na
 organização dedicada **`Quem Pinta`** (`eehwjlguffmcpaudqspy`) — transferido nesse dia para fora de `mar-nordico`

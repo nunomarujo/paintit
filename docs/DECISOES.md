@@ -1482,3 +1482,98 @@ Quatro peças:
 
 **Nada disto está construído.** Fica registado como proposta de referência — mesmo padrão do que se fez para a
 garantia de execução (entrada anterior desta mesma data). Acrescentado a `docs/ESTADO.md`, secção 7.
+
+## 23/10/2026 — ronda de confirmação do promotor sobre `docs/ESTADO.md` secção 7 (19 pontos)
+
+O promotor respondeu a uma lista de 19 perguntas preparadas a partir das questões em aberto de `docs/ESTADO.md`
+e de decisões que a sessão Code tomou sozinha nesse intervalo, sinalizando em vários pontos que **a sessão Code
+não foi atualizada com o trabalho desta sessão** (fórmula do avaliador, por exemplo) e pode não refletir o
+estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
+
+**Dinheiro e comissões**
+1. **Algoritmo de fee dinâmico (18-23%)**: mantém-se **desligado**, 3% fixos, até o promotor decidir os pesos
+   finais — não ligar sem essa decisão.
+2. **`SURVEY_SHARE_BP_PROVISIONAL` (10%)**: pergunta desatualizada — este número já não existe no código. Foi
+   substituído nesta mesma sessão (ver entradas anteriores de 23/10/2026) pela fórmula dinâmica 40/30/15/15,
+   **1%-2,7% do valor adjudicado**, com teto na comissão líquida recebida (`surveyorShareBp`/
+   `surveyorPayoutAmount`, `src/domain/survey.ts`). A sessão Code precisa de ler isto antes de continuar a
+   trabalhar na área do avaliador.
+3. **Parceiro de pagamentos**: já é o **Stripe** (Connect, modo de teste) — `src/lib/stripe.ts`,
+   `src/lib/payments.ts`, migração `pagamentos_stripe` (aplicada desde 20/10/2026). O `CLAUDE.md` tinha uma
+   linha desatualizada ("ainda por escolher"), **corrigida nesta sessão**. Falta só confirmar com a Stripe e o
+   advogado que o modelo de retenção (reter semanas, devolver por instrução) é aceite — ver
+   `docs/PAGAMENTOS_E_ASSINATURA.md`.
+4. **Assimetria de comissão no convite de adesão** (fornecedor não ganha nada; pintor que indica um fornecedor
+   ganha 1-2%): o promotor confirma a assimetria, mas quer compensar o fornecedor de outra forma — **não por
+   comissão de adesão**, por um bónus no próprio fee de avaliador, **ou** por ser avisado 2 horas antes de
+   qualquer outro avaliador da zona sempre que entra um pedido de orçamento (uma vez, não repetível). Condição
+   explícita: para não desperdiçar essa vantagem, exige **telefone ativo e email com autorização de envio de
+   alertas** registados. **Nada construído** — é uma funcionalidade nova (campos de contacto + consentimento de
+   alerta, mecanismo de notificação antecipada, e decidir entre bónus de fee vs. janela de 2h, ou os dois) que
+   fica para uma sessão dedicada, não implementada nesta ronda.
+
+**Decisões do Code a confirmar**
+5. **Código de adesão escolhido no convite do fornecedor**: confirmado — é exatamente o que o Code construiu
+   (`supplier_painter_invites`/`claim_supplier_invite`, migração `convite_de_adesao_do_fornecedor`): o fornecedor
+   pode escolher o código (texto livre, 6-12 carateres, valida formato e unicidade) ou deixar gerar ao acaso; o
+   desconto continua a ser sempre o automático e igual de qualquer código de adesão — não há desconto à parte
+   por ser convite direto. Leitura certa, nada a mudar.
+6. **Telefone e morada obrigatórios** no mesmo convite: confirmado, mantêm-se **obrigatórios**. Nada a mudar.
+7. **Levantamento automático ao criar o pedido**: promotor deu luz verde para aplicar a migração
+   `20261023170000_levantamento_automatico.sql`. **Tentativa de aplicação nesta sessão bloqueada pelo
+   classificador "Production Deploy"** (o mesmo bloqueio de sempre, independente de aprovação em chat) —
+   continua à espera de aprovação direta do promotor na própria ferramenta/ambiente, não só aqui. Junta-se às
+   outras três já na fila (`20261023160000_revoke_delete_clientes_fornecedor.sql`,
+   `20261023190000_pedido_esclarecimento_ao_vendedor.sql`, `20261023200000_avaliacao_informacao_pelo_pintor.sql`)
+   — as quatro já testadas, só à espera da aprovação direta.
+
+**Jurídico e conformidade**
+8-9. Rondas 1 e 2 do parecer jurídico: sem resposta nova do promotor nesta ronda — continuam em aberto.
+10. **Minuta do contrato**: o promotor vai pedir ao advogado para reenviar — ação dele, não há nada a fazer no
+    código.
+11. **Pintores sem documentos aprovados**: mantêm-se a poder orçamentar, mas os avisos devem ficar **muito mais
+    evidentes** — no comparador do cliente e, ainda mais, **ao próprio pintor enquanto elabora a proposta**:
+    pedido um texto do tipo "a maioria dos orçamentos sem estes dados é eliminada pelos clientes antes da
+    consulta, preencha já os dados em falta", com um botão que leva diretamente aos campos por preencher,
+    destacados visualmente. **Não construído nesta ronda** — fica como próximo passo de UI (localizar onde o
+    aviso a vermelho já existe hoje no rascunho do pintor e reforçá-lo com este texto + navegação direta aos
+    campos).
+12. **Certificado de assinatura "por confirmar"**: o promotor quer que a assinatura seja sempre feita com e
+    verificada pela Autenticação.gov — **isto já é exatamente como está construído** (`docs/
+    PAGAMENTOS_E_ASSINATURA.md`, `src/lib/pades.ts`): a parte assina na app gratuita Autenticação.gov (Chave
+    Móvel Digital/Cartão de Cidadão) e a plataforma verifica a cadeia de certificados contra as entidades do
+    Estado, com consulta de revogação por OCSP. **O que fica por decidir** é só o que acontece quando essa
+    cadeia não valida: hoje é **aceite na mesma**, marcado "por confirmar" para a equipa rever à mão; a
+    resposta do promotor aponta para **recusar logo**. Antes de mudar isso: a cadeia pode falhar a validar não
+    só por o certificado não ser mesmo do Cartão de Cidadão, mas também por uma falha de rede a buscar o
+    certificado do emissor (AIA) no momento da verificação — ao contrário da revogação (OCSP), que já "falha
+    aberto" de propósito nesse caso, a validação da cadeia hoje não distingue as duas situações. Recusar logo,
+    sem tratar essa distinção primeiro, arrisca recusar assinaturas legítimas por uma falha de rede transitória.
+    **Fica para confirmar com o promotor antes de mudar**: aceitar o risco (recusar já, como está) ou primeiro
+    tornar a verificação da cadeia mais robusta a falhas de rede (ver nota técnica na próxima sessão).
+13. **Identidades fora do PDF assinado**: sem resposta nova do promotor — mantém-se como está (sem nomes),
+    por decidir confirmação explícita mais tarde.
+14. **Contabilista**: o promotor pediu o `docs/CONTABILIDADE.md` num formato que possa reencaminhar — convertido
+    para PDF e enviado nesta sessão (`pandoc` → `.docx` → `soffice --convert-to pdf`, sem alterar o conteúdo).
+
+**Lançamento**
+15. **Piloto de Viana do Castelo**: confirmado que vai precisar de ajuda a identificar contactos, mas só depois
+    de tudo pronto (incluindo marketing) — a app ainda está longe disso. Sem ação agora.
+16. **`PERMITIR_ACEITACAO_SIMPLES`**: o promotor não sabe se ainda está ligada na Vercel e pediu a minha
+    opinião. **Não consegui verificar o valor atual** — a mesma classificação "Production Deploy" bloqueou
+    também a leitura de projetos Vercel nesta sessão. Recomendação, independente do valor atual: é uma
+    variável só de teste (o próprio código avisa "nunca em produção", e `diagnostics.ts` já a sinaliza como
+    problema se estiver ligada) — **não há urgência em apagá-la já**, visto que o piloto ainda está longe
+    (ponto 15), mas deve ser a última coisa a confirmar antes de abrir a utilizadores reais, não antes disso.
+17. **Pesquisa de marca INPI/EUIPO**: adiada por pedido do promotor — o domínio já é dele, fica para mais tarde.
+18. **"Percentagem dos 57%"**: perguntei e não encontrei, em nenhum ficheiro deste repositório, a que estudo ou
+    estatística esta linha se refere — só existe como uma linha órfã na tabela de questões em aberto, sem
+    nenhuma entrada de decisão correspondente nem uso no texto do site. O promotor também não reconhece do que
+    se trata. **Removida da tabela de questões em aberto** (`docs/ESTADO.md`) por não haver nada a decidir sem
+    saber a que se refere — se aparecer memória do contexto original, volta a entrar com a fonte identificada.
+19. **Indicador "S" e pesos do fee dinâmico**: mesma situação do ponto 1 — continua desligado, por decisão do
+    promotor nesta ronda (não decide sozinho, espera dados reais do piloto).
+
+**Bloqueios desta sessão**: a tentativa de aplicar a migração do ponto 7 e a leitura dos projetos Vercel (ponto
+16) foram ambas recusadas pelo classificador automático "Production Deploy", independentemente da aprovação já
+dada em conversa — precisam de aprovação direta do promotor na própria ferramenta/ambiente.
