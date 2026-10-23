@@ -24,11 +24,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const lastWarning = strikes === 2 ? await appealView(supabase, user.id) : null;
   const [admin, { data: memberships }, { count: unread }] = await Promise.all([
     isPlatformAdmin(supabase, user.id),
-    supabase.from('org_members').select('organizations!inner(kind)').eq('user_id', user.id),
+    supabase.from('org_members').select('organizations!inner(id, kind)').eq('user_id', user.id),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).is('lida_em', null),
   ]);
   const kinds = new Set((memberships ?? []).map((m) => m.organizations.kind));
   const client = kinds.has('condominio') || kinds.has('administradora') || kinds.has('particular');
+  // Uma conta de fornecedor é sempre uma só entidade (allowedOrgKinds em organization.ts).
+  const fornecedorId = (memberships ?? []).find((m) => m.organizations.kind === 'fornecedor')?.organizations.id;
 
   // Cada conta vê o que lhe diz respeito; uma conta sem entidades vê só o início.
   const work: NavItem[] = [{ href: '/app', label: 'Início', count: unread ?? 0 }];
@@ -36,8 +38,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (kinds.has('pintor')) work.push({ href: '/app/oportunidades', label: 'Oportunidades' });
   if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
+  if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });
   const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
   if (kinds.has('pintor')) more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
+  if (fornecedorId) {
+    more.push(
+      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos' },
+      { href: `/app/organizacoes/${fornecedorId}/referencias`, label: 'Referências' },
+      { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão' },
+    );
+  }
   // Equipa da plataforma: o backoffice organizado por secções, com o que espera por uma pessoa em cada uma.
   const q = admin ? await queueCounts(supabase) : null;
   const backoffice: NavItem[] = q

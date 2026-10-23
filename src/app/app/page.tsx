@@ -163,43 +163,61 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </section>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">As suas entidades</h1>
-        {!mine.some((o) => o.kind === 'pintor' || o.kind === 'fornecedor') && (
-          <Link
-            href="/app/organizacoes/nova"
-            className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
-          >
-            {mine.some((o) => o.kind === 'administradora') ? 'Adicionar condomínio ou entidade' : 'Adicionar entidade'}
-          </Link>
-        )}
-      </div>
-
-      {mine.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="font-semibold">Comece por registar a sua entidade</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Um condomínio, uma empresa de administração, um particular, um pintor ou um fornecedor. Os dados fiscais
-            servem para o contrato e nunca são mostrados à outra parte antes da apresentação.
-          </p>
-        </div>
+      {/* Pintor ou fornecedor: a conta é uma só entidade (allowedOrgKinds em organization.ts) — uma
+          lista para um único item não ajuda ninguém; só um atalho direto. Administradoras e
+          condomínios podem ter várias, por isso continuam a ver a lista completa abaixo. */}
+      {mine.length === 1 && (mine[0]!.kind === 'pintor' || mine[0]!.kind === 'fornecedor') ? (
+        <Link
+          href={`/app/organizacoes/${mine[0]!.id}`}
+          className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-5 hover:bg-slate-50"
+        >
+          <span>
+            <span className="text-sm text-slate-500">A sua entidade</span>
+            <span className="block font-semibold">{mine[0]!.nome}</span>
+          </span>
+          <span className="text-sm text-tinta-700">Abrir →</span>
+        </Link>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-          {mine.map((o) => (
-            <li key={o.id}>
-              <Link href={`/app/organizacoes/${o.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
-                <span>
-                  <span className="font-semibold">{o.nome}</span>
-                  <span className="block text-sm text-slate-600">
-                    {ORG_KIND_LABELS[o.kind]}
-                    {o.gerida_por ? ' · gerido por uma administradora' : ''}
-                  </span>
-                </span>
-                <span className="text-sm text-slate-500">{o.localidade ?? ''}</span>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold">As suas entidades</h1>
+            {!mine.some((o) => o.kind === 'pintor' || o.kind === 'fornecedor') && (
+              <Link
+                href="/app/organizacoes/nova"
+                className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+              >
+                {mine.some((o) => o.kind === 'administradora') ? 'Adicionar condomínio ou entidade' : 'Adicionar entidade'}
               </Link>
-            </li>
-          ))}
-        </ul>
+            )}
+          </div>
+
+          {mine.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 className="font-semibold">Comece por registar a sua entidade</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Um condomínio, uma empresa de administração, um particular, um pintor ou um fornecedor. Os dados
+                fiscais servem para o contrato e nunca são mostrados à outra parte antes da apresentação.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+              {mine.map((o) => (
+                <li key={o.id}>
+                  <Link href={`/app/organizacoes/${o.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
+                    <span>
+                      <span className="font-semibold">{o.nome}</span>
+                      <span className="block text-sm text-slate-600">
+                        {ORG_KIND_LABELS[o.kind]}
+                        {o.gerida_por ? ' · gerido por uma administradora' : ''}
+                      </span>
+                    </span>
+                    <span className="text-sm text-slate-500">{o.localidade ?? ''}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );
