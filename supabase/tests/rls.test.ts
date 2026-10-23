@@ -1193,6 +1193,23 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     await as(painterOwner, () => db.query(`update public.supplier_reviews set entrega = 5 where supplier_org_id = $1`, [supplier]));
   });
 
+  it('o fornecedor responde a uma avaliação, sem alterar a nota (paridade com reviews.resposta)', async () => {
+    await as(F, () => db.query(`update public.supplier_reviews set resposta = 'Obrigado pela compra.' where supplier_org_id = $1`, [supplier]));
+    const saved = await one<{ resposta: string; resposta_at: string | null }>(
+      'select resposta, resposta_at from public.supplier_reviews where supplier_org_id = $1',
+      [supplier],
+    );
+    expect(saved.resposta).toBe('Obrigado pela compra.');
+    expect(saved.resposta_at).not.toBeNull();
+    await expect(
+      as(F, () => db.query(`update public.supplier_reviews set produto = 1, resposta = 'y' where supplier_org_id = $1`, [supplier])),
+    ).rejects.toThrow(/responde, mas não altera/);
+    // O pintor continua a poder atualizar a sua avaliação; a resposta do fornecedor não se perde nem se altera.
+    await as(painterOwner, () => db.query(`update public.supplier_reviews set entrega = 4 where supplier_org_id = $1`, [supplier]));
+    const after = await one<{ entrega: number; resposta: string }>('select entrega, resposta from public.supplier_reviews where supplier_org_id = $1', [supplier]);
+    expect(after).toEqual({ entrega: 4, resposta: 'Obrigado pela compra.' });
+  });
+
   it('ferramentas de obra: só a equipa do pintor', async () => {
     await as(painterOwner, () =>
       db.query(`insert into public.worksite_entries (engagement_id, painter_org_id, tipo, valor_cents, categoria) values ($1, $1, 'custo', 15000, 'material')`, [engagementId]),

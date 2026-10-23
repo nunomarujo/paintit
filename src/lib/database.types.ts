@@ -498,6 +498,7 @@ export type Database = {
           created_by: string;
           engagement_id: string;
           id: string;
+          obra_concluida: boolean;
           painter_org_id: string;
           prazo: number;
           qualidade: number;
@@ -942,6 +943,8 @@ export type Database = {
           id: string;
           painter_org_id: string;
           produto: number;
+          resposta: string | null;
+          resposta_at: string | null;
           supplier_org_id: string;
           updated_at: string;
         };
@@ -954,7 +957,7 @@ export type Database = {
           produto: number;
           supplier_org_id: string;
         };
-        Update: { atendimento?: number; comentario?: string; entrega?: number; produto?: number };
+        Update: { atendimento?: number; comentario?: string; entrega?: number; produto?: number; resposta?: string | null };
         Relationships: [];
       };
       worksite_members: {

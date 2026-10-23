@@ -249,6 +249,12 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                         A sua avaliação: produto {r.produto}/5 · entrega {r.entrega}/5 · atendimento {r.atendimento}/5. Pode alterá-la.
                       </p>
                     )}
+                    {r?.resposta && (
+                      <p className="mt-1 rounded-lg bg-slate-50 p-2 text-slate-700">
+                        <span className="text-slate-500">Resposta do fornecedor: </span>
+                        {r.resposta}
+                      </p>
+                    )}
                     <div className="mt-2">
                       <MiniForm
                         action={reviewSupplier.bind(null, id, sid, org.id)}

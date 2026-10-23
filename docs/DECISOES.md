@@ -871,3 +871,30 @@ uma avaliação quando `pintor_assinou` tinha acontecido.
   migração está escrita e testada localmente (PGlite, `supabase/tests/`), mas **não chegou ao projeto real**;
   falta também regenerar `src/lib/database.types.ts` e correr os avisos de segurança/desempenho. Ver
   `docs/ESTADO.md`, "Pendente do promotor".
+
+## 23/10/2026 — fornecedor responde a uma avaliação (paridade com `reviews.resposta`)
+
+Terceira e última das 3 questões. Simples como o item 10 de `docs/ESTADO.md` já previa: `supplier_reviews`
+nunca teve `resposta`/`resposta_at`, só `reviews` (cliente ↔ pintor) os tinha.
+
+- **Mesmo mecanismo, não um novo:** migração `20261023020000_resposta_avaliacao_fornecedor.sql` acrescenta as
+  duas colunas e um gatilho `private.supplier_review_guard()` que é a mesma lógica de `private.review_guard()`
+  aplicada a `supplier_reviews` — o pintor (dono da avaliação) atualiza a nota sem tocar na resposta; o
+  fornecedor só altera a resposta, nunca a nota (erro claro se tentar as duas coisas na mesma atualização). A
+  política `supplier_reviews_update` passou a aceitar também `can_manage_org(supplier_org_id)`, antes só o
+  pintor podia sequer atualizar a linha.
+- **Sem `guardContact` na resposta** (ao contrário de `answerReview`, do lado cliente/pintor): confirmei que
+  `reviewSupplier`, o lado que já existia, também nunca lhe aplicou esse filtro ao `comentario` — não há regra
+  de anonimato nesta relação (confirmado na decisão de 23/10/2026 sobre as avaliações de fornecedor, acima), por
+  isso segui o precedente da própria tabela, não o de uma tabela de outra relação.
+- **Sem aviso novo ao pintor quando o fornecedor responde**, pela mesma razão por que `answerReview` (o espelho
+  do lado cliente/pintor) também não avisa: seria uma funcionalidade a mais, não paridade.
+- `answerSupplierReview` (`obras/actions.ts`); formulário novo `SupplierReviewAnswer.tsx` em
+  `/app/organizacoes/[id]` (secção "Avaliações de pintores", já existente); a resposta também passou a
+  aparecer do lado do pintor, em `/app/obras/[id]`, onde já via a própria avaliação.
+- **`src/lib/database.types.ts` editado à mão** (campos `reviews.obra_concluida` e `supplier_reviews.resposta`/
+  `resposta_at`): sem este ficheiro ao corrente, `tsc` recusava compilar as consultas tipadas a estas duas
+  colunas novas — o mesmo travão de ligação ao Supabase da decisão anterior. A regenerar quando a ligação
+  voltar (deve substituir sem diferença, mas confirmar).
+- Testado em `supabase/tests/rls.test.ts` (fornecedor responde; não pode alterar a nota pela resposta; a
+  resposta sobrevive a uma atualização do pintor). tsc, lint, 414 testes, build, zero.

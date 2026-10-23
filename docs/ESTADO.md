@@ -96,9 +96,9 @@ A seguir, sem depender do promotor:
    `reviewCategory` em `contracting.ts`, coluna `obra_concluida`, excluída da média pública. Ver
    `docs/DECISOES.md`. **Falta aplicar a migração `20261023010000_avaliacao_cancelamento.sql` ao Supabase real**
    (ligação MCP sem permissão nesta sessão — ver secção "Pendente do promotor").
-10. **Responder a uma avaliação de fornecedor:** o pintor já pode responder a avaliações que recebe
-    (`reviews.resposta`); `supplier_reviews` nunca teve esse campo. Pode ter sido deliberado na migração
-    original ou só não ter chegado lá — se quiseres paridade, é uma migração pequena. Encontrado a 23/10/2026.
+10. ~~Responder a uma avaliação de fornecedor~~: resolvido a 23/10/2026 — `supplier_reviews.resposta`,
+    mesmo mecanismo de guarda que `reviews`. Ver `docs/DECISOES.md`. **Falta aplicar a migração
+    `20261023020000_resposta_avaliacao_fornecedor.sql` ao Supabase real** (mesmo travão do item 9, acima).
 
 ## Como funciona a contratação
 
@@ -259,7 +259,7 @@ Tarefas que só o promotor pode fazer (nem o Claude do código nem o do navegado
 - Convidar 5 a 10 pintores e 2 a 3 fornecedores de Viana do Castelo para testarem antes dos clientes.
 
 - **Antes de abrir a utilizadores reais: apagar `PERMITIR_ACEITACAO_SIMPLES` na Vercel** (ligada a 20/10/2026 só para testes; uma aceitação simples não é assinatura de contrato) e fazer redeploy.
-- **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo). Fica pelo menos uma migração só escrita e testada localmente (`supabase/tests/`), sem chegar ao projeto real — ver a lista em `docs/DECISOES.md`, secção de hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as migrações pendentes (`supabase db push` ou pelo MCP) e regenerar `src/lib/database.types.ts`.
+- **Ligação ao Supabase sem permissão nesta sessão (23/10/2026):** `mcp__Supabase__list_migrations`/`apply_migration` passaram a devolver "sem permissão" a meio da sessão autónoma, depois de terem funcionado antes (ver `docs/DECISOES.md`, migrações aplicadas mais cedo). Ficam duas migrações só escritas e testadas localmente (`supabase/tests/`), sem chegar ao projeto real — ver a lista em `docs/DECISOES.md`, secção de hoje. Confirmar a ligação em claude.ai → Connectors → Supabase e voltar a autorizar; depois aplicar as migrações pendentes (`supabase db push` ou pelo MCP) e regenerar `src/lib/database.types.ts` — **entretanto editado à mão** (só os campos novos de `reviews.obra_concluida` e `supplier_reviews.resposta`/`resposta_at`, para o código compilar sem acesso ao gerador); a regeneração real substitui-o sem problema, mas convém confirmar que bate certo.
 
 Ver a tabela "Passos pendentes do promotor" em `docs/DECISOES.md` (endereços de autenticação, serviço de email,
 alojamento).

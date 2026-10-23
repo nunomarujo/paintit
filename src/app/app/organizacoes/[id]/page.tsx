@@ -13,6 +13,7 @@ import { getUser } from '@/lib/supabase/server';
 import { DocumentUpload } from './DocumentUpload';
 import { InviteForm } from './InviteForm';
 import { DeleteOrg } from './DeleteOrg';
+import { SupplierReviewAnswer } from './SupplierReviewAnswer';
 
 const STATUS_LABELS: Record<string, string> = {
   submetido: 'Submetido',
@@ -72,7 +73,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
       org.kind === 'fornecedor'
         ? supabase
             .from('supplier_reviews')
-            .select('painter_org_id, produto, entrega, atendimento, comentario, created_at')
+            .select('id, painter_org_id, produto, entrega, atendimento, comentario, resposta, created_at')
             .eq('supplier_org_id', id)
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: null }),
@@ -180,6 +181,13 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
                   </div>
                   <p className="mt-1 text-xs text-slate-500">Produto {r.produto}/5 · Entrega {r.entrega}/5 · Atendimento {r.atendimento}/5</p>
                   {r.comentario && <p className="mt-1 text-slate-700">{r.comentario}</p>}
+                  {r.resposta && (
+                    <p className="mt-2 rounded-lg bg-slate-50 p-2 text-slate-700">
+                      <span className="text-slate-500">Resposta: </span>
+                      {r.resposta}
+                    </p>
+                  )}
+                  {manager && <SupplierReviewAnswer reviewId={r.id} supplierOrgId={id} initial={r.resposta} />}
                 </li>
               ))}
             </ul>

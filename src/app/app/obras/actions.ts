@@ -162,3 +162,15 @@ export async function reviewSupplier(engagementId: string, supplierId: string, p
   if (!existing) await notifyNewSupplierReview(supplierId).catch(() => undefined);
   return done(engagementId, 'Avaliação guardada.');
 }
+
+/** O fornecedor responde a uma avaliação de um pintor (paridade com reviews.resposta). */
+export async function answerSupplierReview(reviewId: string, supplierOrgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const resposta = String(form.get('resposta') ?? '').trim().slice(0, 2000);
+  if (!resposta) return fail('resposta', 'Escreva a resposta.');
+  const { supabase, user } = await getUser();
+  if (!user) return { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+  const { error } = await supabase.from('supplier_reviews').update({ resposta }).eq('id', reviewId);
+  if (error) return { errors: {}, message: 'Não foi possível guardar a resposta.' };
+  revalidatePath(`/app/organizacoes/${supplierOrgId}`);
+  return { errors: {}, ok: true, message: 'Resposta guardada.' };
+}
