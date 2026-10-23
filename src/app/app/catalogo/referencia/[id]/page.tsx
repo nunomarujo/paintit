@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { TinIcon } from '@/components/TinIcon';
+import { ProductThumb } from '@/components/ProductThumb';
 import { PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { loadReferences, refPerLitre } from '@/lib/reference';
@@ -52,7 +52,11 @@ export default async function ReferencePage({
         ← Catálogo
       </Link>
       <div className={`${card} flex gap-5`}>
-        <TinIcon />
+        <ProductThumb
+          fotoPath={r.foto_path}
+          alt={`${r.marca} ${r.nome}`}
+          className="h-24 w-20 shrink-0 rounded-lg border border-slate-100 bg-white object-contain"
+        />
         <div className="space-y-2 text-sm">
           <h1 className="text-2xl font-semibold">
             {r.marca} {r.nome}
