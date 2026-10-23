@@ -1223,3 +1223,28 @@ em obra, `/produtos`) e "Concelhos" (zona de cobertura do levantamento, `/levant
   e depois de clicar no "+" de um distrito) — abre/fecha, mostra a contagem de selecionados, e o distrito com
   um concelho já marcado (`defaultValue`) começa aberto. Página removida a seguir; não ficou nenhum vestígio
   (`git status --porcelain` confirmado vazio dela).
+
+## 23/10/2026 — catálogo de referência: nota pública deixa de mostrar rasto de importação, produtos sem ficha confiável ficam escondidos, rendimento passa a ter estimativa quando não há valor oficial
+
+- **Problema apanhado pelo promotor:** o campo `nota` de `reference_products` é mostrado tal e qual na página
+  pública do produto (`src/app/app/catalogo/referencia/[id]/page.tsx`). Continha texto interno de importação
+  ("Importado da Leroy Merlin PT (api-anything) em ..., SKU: ...") e o raciocínio do agente que foi buscar as
+  fichas técnicas ("Ficha tecnica (agente): ...", incluindo referências a ids internos em alguns casos) — nada
+  disto é apropriado para um visitante do site.
+- **Decisão do promotor:** nunca mostrar texto deste tipo publicamente; produtos sem informação suficiente do
+  fabricante ficam escondidos (não eliminados) até haver mais confiança; e, quando possível, estimar o
+  rendimento (m²/L) mesmo sem ficha técnica oficial, usando valores típicos do setor por tipo de produto.
+- **Construído:** migração `20261023180000_limpeza_notas_e_estimativa_rendimento.sql` — três colunas novas em
+  `reference_products`: `nota_interna` (guarda o texto antigo completo, nunca lido pela interface pública),
+  `visivel` (default `true`; passa a `false` nos 33 produtos em que não foi possível confirmar com confiança
+  nenhum produto oficial do fabricante — ficam fora de listagens, do catálogo e dos formulários de pedido, mas
+  os dados continuam na base) e `rendimento_estimado` (marca quando `rendimento_m2_l` é uma estimativa, não um
+  valor de ficha técnica). A nota pública foi limpa de qualquer rasto de importação/SKU/raciocínio interno;
+  64 produtos (tintas de interior/exterior, primários e esmaltes, sem valor oficial e ainda visíveis) receberam
+  um rendimento estimado pelo extremo mais baixo do intervalo típico do setor.
+- **Código:** `loadReferences` (`src/lib/reference.ts`) e a página de referência individual passam a filtrar
+  `visivel = true`; a página de referência mostra "(estimativa típica, não confirmada pelo fabricante)" junto
+  do rendimento quando `rendimento_estimado` é verdadeiro. `database.types.ts` atualizado à mão com os três
+  campos novos (a geração automática de tipos trouxe uma versão do gerador incompatível com o resto do código
+  e foi descartada).
+- Testado: tsc, lint, 440 testes de domínio + 138 de RLS — zero.

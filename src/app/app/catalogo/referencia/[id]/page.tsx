@@ -19,7 +19,7 @@ export default async function ReferencePage({
   const { id } = await params;
   const { concelho } = await searchParams;
   const { supabase } = await getUser();
-  const { data: r } = await supabase.from('reference_products').select('*').eq('id', id).maybeSingle();
+  const { data: r } = await supabase.from('reference_products').select('*').eq('id', id).eq('visivel', true).maybeSingle();
   if (!r) notFound();
 
   const all = await loadReferences(supabase);
@@ -74,7 +74,12 @@ export default async function ReferencePage({
             [
               ['Embalagens', r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Não indicadas'],
               ['Cores', r.cores ?? 'Não indicadas'],
-              ['Rendimento', r.rendimento_m2_l ? `${r.rendimento_m2_l.toLocaleString('pt-PT')} m²/L por demão` : 'Não indicado'],
+              [
+                'Rendimento',
+                r.rendimento_m2_l
+                  ? `${r.rendimento_m2_l.toLocaleString('pt-PT')} m²/L por demão${r.rendimento_estimado ? ' (estimativa típica, não confirmada pelo fabricante)' : ''}`
+                  : 'Não indicado',
+              ],
               ['Demãos', r.demaos ?? 'Não indicadas'],
               ['Secagem para repintura', r.secagem_horas ? `${r.secagem_horas.toLocaleString('pt-PT')} h` : 'Não indicada'],
               ['Diluição', r.diluicao ?? 'Não indicada'],
