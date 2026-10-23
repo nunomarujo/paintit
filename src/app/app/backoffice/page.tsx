@@ -40,7 +40,7 @@ export default async function BackofficeDashboard() {
       items: [
         { href: '/app/backoffice/contratacoes', label: 'À espera de confirmação da plataforma', n: engagements.filter((e) => e.pending).length },
         { href: '/app/backoffice/contratacoes/assinaturas', label: 'Assinaturas a conferir', n: c.assinaturas },
-        { href: '/app/backoffice/contratacoes/litigios', label: 'Em litígio', n: engagements.filter((e) => e.e.status === 'em_litigio').length },
+        { href: '/app/backoffice/contratacoes/litigios', label: 'Em litígio', n: engagements.filter((e) => e.e?.status === 'em_litigio').length },
       ],
     },
     { title: 'Moderação', items: [{ href: '/app/backoffice/moderacao', label: 'Pedidos de revisão por decidir', n: c.revisoes }] },

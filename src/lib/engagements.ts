@@ -2,6 +2,7 @@ import { hasEquivalent } from '@/domain/equivalence';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { toEngagementRecord } from '@/domain/engagementRecord';
 import { formatEuros, percentOf } from '@/domain/money';
 import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
@@ -54,15 +55,7 @@ export async function loadReplay(
     }
   }
   const events = await eventsOf(supabase, row.id);
-  const record: EngagementRecord = {
-    id: row.id,
-    base: row.base_cents,
-    advance: row.advance_cents,
-    rulesVersion: row.rules_version,
-    referralDiscountBp: row.referral_discount_bp,
-    createdAt: row.created_at,
-    carried,
-  };
+  const record = toEngagementRecord(row, carried);
   return { replay: replay(record, [...events.map(toEvent), ...extra], now), events, record };
 }
 

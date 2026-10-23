@@ -442,6 +442,16 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
 ## 6. Travões ativos agora (o que impede avançar, não é falta de código)
 
+0. **Projeto Supabase transferido de organização, 23/10/2026 (fim do dia):** "Paint it" (`phkfrabrjqbpnmocrrvj`)
+   passou de `mar-nordico` (partilhada com outros negócios do promotor) para a organização dedicada **`Quem Pinta`**
+   (`eehwjlguffmcpaudqspy`), por pedido do promotor — cumprir a regra de isolamento do `CLAUDE.md` também ao nível
+   da organização Supabase, não só do código. Feito pela sessão "Claude do navegador", autenticada no dashboard;
+   confirmado depois: `Quem Pinta` tem 1 projeto (Paint it), `mar-nordico` manteve intacto o seu próprio projeto de
+   imóveis, e URL/chaves API/connection string não mudaram (nada a atualizar na Vercel). **O conector MCP Supabase
+   desta sessão continua preso a uma organização terceira sem relação com o Quem Pinta** — o bloqueio do ponto 1
+   abaixo pode já não se dever à mesma causa; confirmar numa sessão nova se a ligação em claude.ai → Connectors →
+   Supabase já aponta para `Quem Pinta`.
+
 1. **Ligação MCP ao Supabase sem permissão nesta sessão**, desde meio da sessão autónoma de 23/10/2026 (antes
    funcionava — várias migrações desse dia e do dia anterior foram aplicadas com sucesso). Voltei a tentar
    (`list_migrations`) ao escrever este documento: **o erro é o mesmo**, não se resolveu por si só. Em
@@ -609,4 +619,11 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   encomendas passam a avisar; fila de litígios no backoffice; **litígio com repartição**; **avaliação de obra
   cancelada**; **fornecedor responde a avaliações**; **levantamento da obra por um vendedor do fornecedor**
   (mecanismo completo, secção 5.3) e reorganização do workspace do fornecedor; **este documento**, reescrito do
-  zero para ser completo e autossuficiente.
+  zero para ser completo e autossuficiente; **"server-side exception" em `/app/backoffice` em produção
+  (quempinta.pt) encontrado e corrigido** — a única linha real de `engagements` não tinha a coluna aditiva
+  `referral_discount_bp` (migração `20261022040000` nunca aplicada à base real), o que entrava como `undefined`
+  na matemática de dinheiro (`NaN`) e derrubava a página inteira, sem try/catch, a cada visita; corrigido em dois
+  níveis — `toEngagementRecord` (`src/domain/engagementRecord.ts`, testado) usa `?? 0` como a própria coluna terá
+  por omissão quando a migração lá chegar, e `pendingEngagements` isola a reconstrução de cada contratação, para
+  uma linha malformada nunca mais derrubar as outras. tsc, lint, 431 testes, build — zero; **projeto Supabase
+  "Paint it" transferido de `mar-nordico` para a organização dedicada `Quem Pinta`** (ver secção 6, ponto 0).

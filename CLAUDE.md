@@ -25,8 +25,10 @@ vive neste repositório.
 Next.js 15 (App Router), TypeScript estrito, Tailwind 3, Vitest. Pagamentos: instituição de pagamento autorizada,
 ainda por escolher.
 
-**Base de dados: só o projeto Supabase "Paint it"** (`phkfrabrjqbpnmocrrvj`, organização `mar-nordico`, região
-eu-west-1). A organização tem outros projetos: nunca os ler nem alterar.
+**Base de dados: só o projeto Supabase "Paint it"** (`phkfrabrjqbpnmocrrvj`, região eu-west-1), desde 23/10/2026 na
+organização dedicada **`Quem Pinta`** (`eehwjlguffmcpaudqspy`) — transferido nesse dia para fora de `mar-nordico`
+(organização partilhada com outros negócios do promotor, imóveis), precisamente para cumprir esta regra de
+isolamento. URL, chaves API e connection string não mudaram (dependem do project ref, não da organização).
 
 - Migrações em `supabase/migrations/`, com o nome igual à versão registada no Supabase.
 - Antes de aplicar: `npm test` corre as migrações numa base Postgres em memória (`supabase/tests/`) e verifica as
