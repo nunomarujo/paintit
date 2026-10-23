@@ -189,6 +189,7 @@ export type Database = {
       };
       organizations: {
         Row: {
+          alertas_autorizados: boolean;
           atendimento_publico: string | null;
           codigo_postal: string | null;
           created_at: string;
@@ -206,6 +207,7 @@ export type Database = {
           zonas_servico: string[];
         };
         Insert: {
+          alertas_autorizados?: boolean;
           atendimento_publico?: string | null;
           codigo_postal?: string | null;
           created_at?: string;
@@ -754,6 +756,20 @@ export type Database = {
         Row: { comentario: string; created_at: string; nota: number; painter_user_id: string; request_survey_id: string; updated_at: string };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      avaliador_bonus_credits: {
+        Row: {
+          created_at: string;
+          estado: 'disponivel' | 'usado';
+          id: string;
+          invite_id: string;
+          org_id: string;
+          usado_em: string | null;
+          usado_em_payout: string | null;
+        };
+        Insert: { org_id: string; invite_id: string };
+        Update: { estado?: 'disponivel' | 'usado'; usado_em?: string | null; usado_em_payout?: string | null };
         Relationships: [];
       };
       survey_payouts: {

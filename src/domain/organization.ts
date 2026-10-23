@@ -188,6 +188,10 @@ export interface OrganizationInput {
   telefone: string | null;
   atendimentoPublico: string | null;
   geridaPor: string | null;
+  /** Autorização para receber alertas por telefone/email (bónus de adesão do avaliador, ponto 4,
+   * 23/10/2026, docs/DECISOES.md) — só aparece no formulário a fornecedores, mas guarda-se para
+   * qualquer entidade sem diferença de esquema. */
+  alertasAutorizados: boolean;
 }
 
 export interface BuildingInput {
@@ -261,6 +265,7 @@ export function parseOrganization(form: FormData): { value?: OrganizationInput; 
       telefone: text(form.get('telefone')),
       atendimentoPublico: text(form.get('atendimentoPublico')),
       geridaPor,
+      alertasAutorizados: text(form.get('alertasAutorizados')) === 'sim',
     },
   };
 }

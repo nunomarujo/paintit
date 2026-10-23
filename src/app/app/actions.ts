@@ -36,6 +36,7 @@ function orgColumns(v: OrganizationInput) {
     telefone: v.telefone,
     atendimento_publico: v.atendimentoPublico,
     gerida_por: v.geridaPor,
+    alertas_autorizados: v.alertasAutorizados,
   };
 }
 

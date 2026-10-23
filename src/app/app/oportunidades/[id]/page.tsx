@@ -120,9 +120,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
     proposal && terms
       ? submitBlockers({ terms, lines: domainLines, today: todayIso, requestOpen: listing?.aberto ?? false, viaPublica: listing?.ocupacao_via_publica })
       : [];
+  // Aviso de documento em falta (licença/certificado IMPIC), reforçado a pedido do promotor
+  // (23/10/2026): bem evidente e visível em todos os passos do orçamento (não só na revisão), com
+  // atalho direto para o campo em falta, destacado na página da entidade (`#documentos`, mais abaixo).
   const licenseWarning =
     proposal && totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
-      ? `Para uma obra deste valor é exigido ${licenseLabel(requiredLicense(totals.base))}, e não há nenhum validado na página da sua empresa. Pode submeter: o cliente verá a falta assinalada a vermelho e quem continuar assume a responsabilidade.`
+      ? `Para uma obra deste valor é exigido ${licenseLabel(requiredLicense(totals.base))}, e a sua empresa não tem nenhum validado.`
       : null;
   const path = `/app/oportunidades/${id}`;
   // Orçamento guiado: trabalhos -> preços -> condições -> rever (src/domain/works.ts).
@@ -261,6 +264,22 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </h2>
               <span className="text-sm text-slate-600">{STATUS[proposal.status]}</span>
             </div>
+            {licenseWarning && (
+              <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm text-red-900" role="alert">
+                <p className="font-semibold">Em falta: {licenseWarning}</p>
+                <p className="mt-1">
+                  A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos — preencha já os
+                  dados em falta. Pode submeter mesmo assim: o cliente verá a falta assinalada a vermelho e quem continuar
+                  assume a responsabilidade.
+                </p>
+                <Link
+                  href={`/app/organizacoes/${org.id}#documentos`}
+                  className="mt-2 inline-block rounded-lg border-2 border-red-500 bg-white px-3 py-1.5 font-semibold text-red-700 hover:bg-red-100"
+                >
+                  Preencher documento em falta →
+                </Link>
+              </div>
+            )}
             {engagement && (
               <Link
                 href={`/app/contratacoes/${engagement.id}`}
@@ -425,7 +444,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         </section>
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>
-                        {licenseWarning && <p className="mb-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{licenseWarning}</p>}
+                        {licenseWarning && (
+                          <p className="mb-3 rounded border-2 border-red-400 bg-red-50 p-3 text-sm font-semibold text-red-900" role="alert">
+                            Em falta: {licenseWarning} Ver aviso e atalho no topo da página.
+                          </p>
+                        )}
                         <SubmitProposal proposalId={proposal.id} requestId={id} blockers={blockers} />
                       </section>
                     </>

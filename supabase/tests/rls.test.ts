@@ -1943,6 +1943,24 @@ describe('convite de adesão do fornecedor (fornecedor convida um pintor que ain
     const otherPainterOrg = (await createOrg(IP2, 'pintor', 'Outra Empresa de Pintura', '606226745')).id;
     await expect(as(IP2, () => db.query(`select public.claim_supplier_invite('CONVF1234', $1)`, [otherPainterOrg]))).rejects.toThrow(/já foi associado a outra empresa/);
   });
+
+  it('bónus de adesão: um convite aceite dá exatamente um crédito ao fornecedor, nunca repetido', async () => {
+    // O convite acima (código CONVF1234) já foi aceite nos testes anteriores, incluindo uma segunda
+    // chamada idempotente — mesmo assim, só pode haver um crédito (unique em invite_id).
+    const inviteId = (await one<{ id: string }>('select id from public.supplier_painter_invites where referral_code_id = $1', [codeId])).id;
+    const credits = await db.query('select org_id, estado from public.avaliador_bonus_credits where invite_id = $1', [inviteId]);
+    expect(credits.rows).toEqual([{ org_id: supplierOrg, estado: 'disponivel' }]);
+
+    // Só a plataforma concede e gasta créditos: o fornecedor vê o seu, não o altera nem o apaga.
+    expect(await as(FM, async () => (await db.query('select estado from public.avaliador_bonus_credits where org_id = $1', [supplierOrg])).rows)).toEqual([
+      { estado: 'disponivel' },
+    ]);
+    expect(await as(IP, async () => (await db.query('select 1 from public.avaliador_bonus_credits where org_id = $1', [supplierOrg])).rows)).toEqual([]);
+    await expect(
+      as(FM, () => db.query(`update public.avaliador_bonus_credits set estado = 'usado' where org_id = $1`, [supplierOrg])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(as(FM, () => db.query(`delete from public.avaliador_bonus_credits where org_id = $1`, [supplierOrg]))).rejects.toThrow(/permission denied/);
+  });
 });
 
 describe('levantamento por vendedor (reserva por zona, prazo, repartição)', () => {

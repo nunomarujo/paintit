@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coversZone, surveyorPayoutAmount, surveyorShareBp, vendorRatingSummary } from './survey';
+import { applyAvaliadorBonus, coversZone, surveyorPayoutAmount, surveyorShareBp, vendorRatingSummary } from './survey';
 import { euros as eurosHelper } from './money';
 
 describe('fórmula dinâmica da fração do vendedor (40/30/15/15, 1%-2,7% do valor adjudicado)', () => {
@@ -49,6 +49,21 @@ describe('cobertura por concelho (mesma convenção de supplier_delivery)', () =
   it('lista não vazia só cobre os concelhos indicados', () => {
     expect(coversZone(['Viana do Castelo', 'Ponte de Lima'], 'Viana do Castelo')).toBe(true);
     expect(coversZone(['Viana do Castelo'], 'Faro')).toBe(false);
+  });
+});
+
+describe('bónus de adesão do avaliador (ponto 4, crédito único por convite aceite)', () => {
+  it('sem crédito, a fração não muda', () => {
+    expect(applyAvaliadorBonus(185, false)).toBe(185);
+  });
+
+  it('com crédito, soma +30 pontos-base', () => {
+    expect(applyAvaliadorBonus(185, true)).toBe(215);
+  });
+
+  it('com crédito, nunca excede o topo da banda (2,7%)', () => {
+    expect(applyAvaliadorBonus(270, true)).toBe(270);
+    expect(applyAvaliadorBonus(260, true)).toBe(270);
   });
 });
 

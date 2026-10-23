@@ -1,7 +1,26 @@
 import 'server-only';
-import { surveyorPayoutAmount, surveyorShareBp } from '@/domain/survey';
+import { applyAvaliadorBonus, surveyorPayoutAmount, surveyorShareBp } from '@/domain/survey';
 import type { Cents } from '@/domain/money';
 import { adminClient } from './supabase/admin';
+
+/**
+ * Crédito de bónus de adesão disponível (src/domain/survey.ts, applyAvaliadorBonus) para este
+ * fornecedor, se tiver telefone e autorização de alertas registados (condição do promotor). O mais
+ * antigo primeiro (`order('created_at')`), para não deixar créditos esquecidos indefinidamente.
+ */
+async function availableBonusCredit(db: NonNullable<ReturnType<typeof adminClient>>, orgId: string) {
+  const { data: org } = await db.from('organizations').select('telefone, email_contacto, alertas_autorizados').eq('id', orgId).maybeSingle();
+  if (!org?.telefone || !org?.email_contacto || !org?.alertas_autorizados) return null;
+  const { data: credit } = await db
+    .from('avaliador_bonus_credits')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('estado', 'disponivel')
+    .order('created_at')
+    .limit(1)
+    .maybeSingle();
+  return credit ?? null;
+}
 
 /**
  * Os quatro números da fórmula dinâmica (src/domain/survey.ts, surveyorShareBp), lidos com
@@ -49,11 +68,22 @@ export async function settleSurveyPayout(engagementId: string, requestId: string
   const { data: existing } = await db.from('survey_payouts').select('id').eq('request_survey_id', survey.id).maybeSingle();
   if (existing) return;
   const performance = await surveyorPerformance(db, survey.id, survey.vendedor_org_id, survey.vendedor_user_id);
-  await db.from('survey_payouts').insert({
-    request_survey_id: survey.id,
-    supplier_org_id: survey.vendedor_org_id,
-    engagement_id: engagementId,
-    amount_cents: surveyorPayoutAmount(valorAdjudicado, surveyorShareBp(performance), feeNet),
-    fee_recebido_em: at.toISOString(),
-  });
+  const credit = await availableBonusCredit(db, survey.vendedor_org_id);
+  const shareBp = applyAvaliadorBonus(surveyorShareBp(performance), credit !== null);
+  const { data: payout } = await db
+    .from('survey_payouts')
+    .insert({
+      request_survey_id: survey.id,
+      supplier_org_id: survey.vendedor_org_id,
+      engagement_id: engagementId,
+      amount_cents: surveyorPayoutAmount(valorAdjudicado, shareBp, feeNet),
+      fee_recebido_em: at.toISOString(),
+    })
+    .select('id')
+    .single();
+  // Gasta-se o crédito só depois de o pagamento ficar gravado (nunca antes: se o insert falhar, o
+  // crédito continua disponível para a próxima obra).
+  if (credit && payout) {
+    await db.from('avaliador_bonus_credits').update({ estado: 'usado', usado_em: at.toISOString(), usado_em_payout: payout.id }).eq('id', credit.id);
+  }
 }

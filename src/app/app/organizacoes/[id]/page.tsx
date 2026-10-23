@@ -355,18 +355,24 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         )}
       </section>
 
-      <section className={card}>
+      {/* id/scroll-mt: destino do atalho "Preencher documento em falta" nas oportunidades
+          (ProposalForms.tsx/[id]/page.tsx) — pedido do promotor, 23/10/2026, para quem vem de lá
+          cair exatamente aqui, sem ter de procurar a secção. */}
+      <section id="documentos" className={`${card} scroll-mt-6`}>
         <h2 className="font-semibold">Documentos de verificação</h2>
         {missing.length > 0 ? (
-          <div className="mt-3 rounded-xl bg-amber-50 p-4 text-sm">
-            <p className="font-medium">
+          <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm">
+            <p className="font-semibold text-red-900">
               {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
             </p>
-            <ul className="mt-2 list-disc pl-5">
+            <ul className="mt-2 list-disc pl-5 text-red-900">
               {missing.map((group) => (
                 <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
               ))}
             </ul>
+            <p className="mt-2 text-red-800">
+              A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos. Submeta-o já aqui abaixo.
+            </p>
           </div>
         ) : (
           org.kind !== 'particular' && (

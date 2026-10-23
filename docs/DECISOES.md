@@ -1599,3 +1599,49 @@ estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
 **Bloqueios desta sessão**: a tentativa de aplicar a migração do ponto 7 e a leitura dos projetos Vercel (ponto
 16) foram ambas recusadas pelo classificador automático "Production Deploy", independentemente da aprovação já
 dada em conversa — precisam de aprovação direta do promotor na própria ferramenta/ambiente.
+
+## 23/10/2026 — construídos os dois pontos deferidos (4 e 11): avisos de documentos ao pintor, e bónus de adesão ao avaliador
+
+O promotor confirmou explicitamente ("SIm, quero") que queria avançar com os dois pontos que tinham ficado
+registados como "por construir" na ronda anterior, "para não apressar código sensível a dinheiro/assinatura/
+notificações". Com a confirmação, deixou de haver razão para esperar.
+
+**Ponto 11 — avisos mais evidentes ao pintor, com atalho para os campos em falta.** O aviso de licença/
+certificado IMPIC em falta (`licenseWarning`, `src/app/app/oportunidades/[id]/page.tsx`) só aparecia no último
+passo do orçamento ("rever"), com um texto ameno. Passou a aparecer logo no topo da página da oportunidade,
+visível em todos os passos do orçamento guiado (não só na revisão), com borda vermelha, o texto pedido pelo
+promotor ("a maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos —
+preencha já os dados em falta") e um botão que leva direto a `/app/organizacoes/{id}#documentos`. Essa secção
+(`src/app/app/organizacoes/[id]/page.tsx`) ganhou `id="documentos"` como destino do atalho e passou a destacar-se
+a vermelho (antes era amarelo) enquanto faltar algum documento, com o mesmo texto de urgência. O aviso breve que
+ficava na revisão mantém-se, mas reduzido a um apontador para o aviso principal, para não duplicar o texto.
+
+**Ponto 4 — compensação ao avaliador pelo convite de adesão que não paga comissão.** O convite de adesão do
+fornecedor a um pintor (`supplier_painter_invites`) continua sem comissão nenhuma (só carteira de clientes e
+descontos) — ao contrário do pintor que indica um fornecedor (1-2%). O promotor propôs duas alternativas, como
+"ou": um bónus no fee de avaliador, ou avisar este fornecedor 2h antes de todos os outros sempre que surge um
+pedido na sua zona (ambas condicionadas a ter telefone e email com autorização de alertas registados).
+
+Escolhi e construí a do **bónus**, por decisão própria (o promotor deixou as duas em aberto, sem fechar qual):
+- A plataforma **não tem hoje nenhum aviso push** aos avaliadores quando um levantamento abre — descobrem-no
+  navegando a lista (`/app/levantamentos`). Dar a um só fornecedor uma janela de exclusividade de 2h exigiria
+  também **bloquear a reserva dos outros avaliadores** durante essa janela, uma mudança bem maior à regra "quem
+  chega primeiro" do levantamento (`reserve_survey`) — e mais uma peça nova (lógica de bloqueio temporal) por
+  cima de outra ainda por construir (o próprio aviso push).
+- O bónus reaproveita por inteiro a fórmula já construída e testada (`surveyorShareBp`, 1%-2,7% do valor
+  adjudicado) — só soma pontos-base dentro da mesma banda, sem tocar na reserva nem exigir nenhum mecanismo de
+  notificação novo.
+- Se o bónus não se mostrar suficiente para o promotor, a alternativa da janela de aviso fica registada aqui
+  para decidir construir depois — não foi descartada, só adiada por ser a opção mais simples e de menor risco
+  das duas, dado que o próprio promotor pediu "não apressar" este código.
+
+Desenho: cada convite de adesão aceite (`claim_supplier_invite` liga com sucesso um pintor novo) dá um crédito
+único ("por uma vez") de **+30 pontos-base**, consumido na próxima obra em que o avaliador do fornecedor for
+pago (`settleSurveyPayout`), sem exceder o topo da banda (2,7%). Só concedido/gasto se o fornecedor tiver
+telefone **e** email de contacto **e** uma nova autorização de alertas (`organizations.alertas_autorizados`,
+checkbox no formulário da entidade, só visível a fornecedores) — exigência do próprio promotor. Migração
+`20261023210000_bonus_adesao_avaliador.sql` (nova coluna, nova tabela `avaliador_bonus_credits` com RLS e
+testes próprios, função `claim_supplier_invite` substituída por inteiro para conceder o crédito) — pendente de
+aplicar, bloqueada pelo mesmo classificador "Production Deploy" das migrações anteriores.
+
+Verificado: `npm test` (457 testes, incluindo RLS novo), `typecheck`, `lint`, `build`, todos a zero.

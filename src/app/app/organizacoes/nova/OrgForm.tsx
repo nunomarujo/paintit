@@ -18,6 +18,7 @@ export interface OrgInitial {
   telefone: string | null;
   atendimento_publico: string | null;
   gerida_por: string | null;
+  alertas_autorizados: boolean;
 }
 
 interface Props {
@@ -49,7 +50,7 @@ export function OrgForm({
   const [kind, setKind] = useState<OrgKind | ''>(initial?.kind ?? initialKind ?? '');
   const e = state.errors;
   const hasShop = kind === 'pintor' || kind === 'fornecedor';
-  const v = (field: keyof OrgInitial) => initial?.[field] ?? undefined;
+  const v = (field: keyof Omit<OrgInitial, 'alertas_autorizados'>) => initial?.[field] ?? undefined;
 
   return (
     <form {...formProps} className="space-y-5">
@@ -135,6 +136,19 @@ export function OrgForm({
           defaultValue={v('atendimento_publico')}
           error={e.atendimentoPublico}
         />
+      )}
+
+      {kind === 'fornecedor' && (
+        <label className="flex items-start gap-2 rounded-xl bg-slate-50 p-4 text-sm">
+          <input type="checkbox" name="alertasAutorizados" value="sim" defaultChecked={initial?.alertas_autorizados} className="mt-1" />
+          <span>
+            Autorizo o envio de mensagens e alertas por telefone e email.{' '}
+            <span className="text-slate-600">
+              Necessário, junto com o telefone e o email de contacto preenchidos acima, para gozar o bónus de adesão do
+              avaliador quando um convite de adesão a um pintor é aceite.
+            </span>
+          </span>
+        </label>
       )}
 
       {!initial && kind === 'fornecedor' && (

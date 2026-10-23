@@ -488,7 +488,7 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Quatro migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
+3. **Cinco migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
    aprovação explícita do promotor):
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de defesa em profundidade em
      `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o DELETE já está
@@ -501,6 +501,10 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
    - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` (secção 6.5): sem efeito nenhum enquanto não for
      aplicada — não há ainda nenhum caminho de UI que a use (ver 6.5).
    - `20261023200000_avaliacao_informacao_pelo_pintor.sql` (secção 6.5): idem — sem efeito nenhum, sem UI.
+   - `20261023210000_bonus_adesao_avaliador.sql` (secção 7, "Bónus de adesão ao avaliador"): sem efeito nenhum
+     enquanto não for aplicada — `claim_supplier_invite` continua sem conceder créditos, e a coluna
+     `organizations.alertas_autorizados` não existe ainda na base real (o formulário já a lê/escreve, mas a
+     atualização falha silenciosamente até a migração ser aplicada, como qualquer coluna em falta).
 
 Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
@@ -685,7 +689,7 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 | Advogado | O promotor já tinha pedido a minuta (`docs/advogado/Pedido_minuta_contrato.docx`); 23/10/2026, vai pedir-lhe para reenviar o contrato | A aguardar o advogado |
 | Email transacional | Confirmar Resend como definitivo para os avisos de negócio | Resend já escolhido, `RESEND_API_KEY` já colada (secção 6.1) |
 | Certificado de assinatura não confirmado | 23/10/2026, o promotor quer recusar logo (não aceitar "por confirmar") — mas a validação da cadeia hoje não distingue um certificado mesmo inválido de uma falha de rede a buscar o emissor (AIA), ao contrário da revogação OCSP, que já "falha aberto" nesse caso. Antes de mudar: tornar a validação da cadeia robusta a essa falha, ou aceitar o risco de recusar assinaturas legítimas por falha transitória — decisão do promotor, por confirmar | Aceite, marcado (mudança pedida, ainda não feita) |
-| Pintores sem documentos aprovados | 23/10/2026, confirmado: mantêm-se a poder propor, mas os avisos devem ficar muito mais evidentes — no comparador e, sobretudo, ao próprio pintor ao elaborar a proposta (texto de alerta + atalho direto aos campos em falta, destacados) | Podem propor; UI do aviso reforçado por construir |
+| Pintores sem documentos aprovados | 23/10/2026, confirmado e construído: mantêm-se a poder propor, com o aviso agora bem evidente logo no topo da página da oportunidade (não só na revisão final), texto reforçado ("a maioria dos orçamentos sem este documento é eliminada antes de serem lidos") e atalho direto (`/app/organizacoes/{id}#documentos`) para a secção de documentos da entidade, destacada a vermelho enquanto faltar algum (`src/app/app/oportunidades/[id]/page.tsx`, `src/app/app/organizacoes/[id]/page.tsx`) | Construído e testado (`npm test`/`typecheck`/`lint`/`build` a zero) |
 | Identidades no PDF assinado | O PDF não tem nomes, por causa do anonimato — confirmar que está bem assim | Sem nomes |
 | **Algoritmo de fee dinâmico (ponto 1, 18-23%)** | Decidir os pesos finais (hoje "propostas para teste" no documento), desenhar os ecrãs de C/E/F/M/J, decidir o indicador S, decidir como compõe com os códigos de adesão | Motor pronto, não ligado (secção 5.8) |
 | **Percentagem do levantamento por avaliador** | Confirmar antes de qualquer pagamento real: a fórmula dinâmica (40/30/15/15, **1%-2,7% do valor adjudicado**, com teto na comissão líquida recebida, secção 6.5) já reflete os números que o promotor propôs em 23/10/2026 — falta só validar os pesos e a banda num caso real antes de ligar a dinheiro verdadeiro | Fórmula dinâmica em vigor no código (secção 6.5), por validar com dinheiro real |
@@ -696,7 +700,7 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | 23/10/2026, adiado por pedido do promotor — o domínio já é dele |
 | Piloto | Convidar 5-10 pintores e 2-3 fornecedores de Viana do Castelo para testar antes dos clientes | 23/10/2026, confirmado: só depois de tudo pronto, incluindo marketing — a app ainda está longe disso |
 | `PERMITIR_ACEITACAO_SIMPLES` | Apagar da Vercel antes de abrir a utilizadores reais (só serve para testar sem CMD) | 23/10/2026, promotor não sabe o estado atual — não foi possível confirmar na Vercel nesta sessão (classificador "Production Deploy" bloqueou a leitura); sem urgência enquanto o piloto estiver longe (ver linha acima), mas é a última coisa a confirmar antes de utilizadores reais |
-| **Bónus/alerta antecipado ao avaliador** | O convite de adesão do fornecedor a um pintor não paga comissão nenhuma (só carteira de clientes); o promotor quer compensar de outra forma — bónus no fee de avaliador, ou aviso 2h antes de qualquer outro avaliador quando entra um pedido (exige telefone + email com autorização de alertas registados) | Nada construído; decisão de 23/10/2026, `docs/DECISOES.md` |
+| **Bónus de adesão ao avaliador** | O convite de adesão do fornecedor a um pintor não paga comissão nenhuma (só carteira de clientes); o promotor propôs duas alternativas — bónus no fee de avaliador, ou aviso 2h antes de qualquer outro avaliador quando entra um pedido. Escolhida e construída a do bónus (23/10/2026, ver `docs/DECISOES.md` para a justificação): cada convite aceite dá +30 pontos-base (até ao topo da banda, 2,7%) na próxima obra paga ao avaliador do fornecedor, só se tiver telefone e autorização de alertas registados. A alternativa do aviso 2h fica por construir, se o promotor a quiser mais tarde (exigiria também bloquear a reserva dos outros avaliadores nessa janela) | Bónus construído e testado; migração `20261023210000_bonus_adesao_avaliador.sql` pendente de aplicar (bloqueada por "Production Deploy", como as outras já registadas) |
 
 ---
 

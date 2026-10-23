@@ -76,6 +76,31 @@ export function surveyorPayoutAmount(valorAdjudicado: Cents, shareBp: number, pl
   return Math.min(percentOf(valorAdjudicado, shareBp), platformFeeNet);
 }
 
+/**
+ * Bónus de adesão ao avaliador (ponto 4, pedido do promotor, 23/10/2026): hoje, um fornecedor que
+ * convida um pintor a aderir (`supplier_painter_invites`) não ganha nenhuma comissão nesse programa —
+ * só a carteira de clientes e os descontos que pode aplicar, ao contrário do pintor que indica um
+ * fornecedor (1-2%, `referral_payouts`). Em vez disso, cada convite aceite dá um crédito único
+ * ("por uma vez") de +30 pontos-base na próxima obra em que o seu avaliador for pago — gasto e marcado
+ * no mesmo momento (`settleSurveyPayout`, src/lib/surveys.ts). Só concedido/gasto se o fornecedor tiver
+ * telefone e autorização de alertas registados (organizations.telefone, alertas_autorizados): exigência
+ * do próprio promotor, para o bónus não ficar por reclamar sem forma de avisar quem o ganhou.
+ *
+ * O promotor propôs esta alternativa: avisar este fornecedor 2 horas antes de todos os outros sempre
+ * que houver um novo pedido na sua zona. Optei pelo bónus porque a plataforma hoje não tem nenhum aviso
+ * push aos avaliadores quando um levantamento abre (descobrem navegando a lista, /app/levantamentos) —
+ * dar uma janela de exclusividade a um só exigiria também bloquear a reserva dos outros durante essa
+ * janela, uma mudança bem maior à regra "quem chega primeiro" do levantamento (reserve_survey). O bónus
+ * dá o mesmo reconhecimento com risco e código muito menores; a janela de aviso fica por construir, se o
+ * bónus não se mostrar suficiente.
+ */
+export const AVALIADOR_BONUS_BP = 30;
+
+/** Aplica o bónus de adesão (se houver crédito) à fração calculada, sem exceder o máximo da banda. */
+export function applyAvaliadorBonus(shareBp: number, hasBonusCredit: boolean): number {
+  return hasBonusCredit ? Math.min(shareBp + AVALIADOR_BONUS_BP, SURVEYOR_SHARE_OF_VALUE_BP_MAX) : shareBp;
+}
+
 /** O fornecedor serve este concelho? Lista vazia = todo o país (mesma convenção de `supplier_delivery`,
  * já em produção: "Separados por vírgulas. Vazio = todo o país"). */
 export function coversZone(coverageConcelhos: string[], concelho: string): boolean {
