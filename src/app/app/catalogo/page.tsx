@@ -1,4 +1,5 @@
 import { ProductCard } from '@/components/ProductCard';
+import { AutoSubmit } from '@/components/AutoSubmit';
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS, consumption, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { parseHundredths } from '@/domain/request';
@@ -11,9 +12,9 @@ import { ProductThumb } from '@/components/ProductThumb';
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; area?: string; demaos?: string }>;
+  searchParams: Promise<{ q?: string; tipo?: string; area?: string; demaos?: string; ordenar?: string; touched?: string }>;
 }) {
-  const { q, tipo, area, demaos } = await searchParams;
+  const { q, tipo, area, demaos, ordenar, touched } = await searchParams;
   const { supabase } = await getUser();
   let query = supabase.from('products').select('*').eq('ativo', true).order('marca').order('nome').limit(200);
   if (tipo && (PRODUCT_TYPES as readonly string[]).includes(tipo)) query = query.eq('tipo', tipo as ProductType);
@@ -21,15 +22,39 @@ export default async function CatalogPage({
   if (term) query = query.or(`nome.ilike.%${term}%,marca.ilike.%${term}%,referencia.ilike.%${term}%`);
   const [{ data: all }, { data: active }] = await Promise.all([query, supabase.rpc('active_suppliers', { p_plan: 'catalogo' })]);
   const withPlan = new Set(active ?? []);
-  const refs = (await loadReferences(supabase)).filter(
-    (r) =>
-      (!tipo || r.tipo === tipo) &&
-      (!term || `${r.marca} ${r.nome}`.toLowerCase().includes(term.toLowerCase())),
+  const refsAll = (await loadReferences(supabase)).filter(
+    (r) => (!tipo || r.tipo === tipo) && (!term || `${r.marca} ${r.nome}`.toLowerCase().includes(term.toLowerCase())),
   );
   const products = (all ?? []).filter((p) => withPlan.has(p.org_id));
   const areaCm2 = parseHundredths(area ?? null);
   const coats = Math.max(1, Math.min(5, Number(demaos) || 2));
   const field = 'mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2';
+
+  // Estimativa de consumo e custo por produto de referência, quando há área e rendimento conhecido —
+  // o mesmo cálculo usado abaixo para os produtos dos fornecedores (CMP-06).
+  const refsCalc = refsAll.map((r) => {
+    const pl = refPerLitre(r);
+    const estimativa =
+      areaCm2 && !Number.isNaN(areaCm2) && r.rendimento_m2_l && r.preco_embalagem_l && r.preco_referencia_cents
+        ? consumption(areaCm2, coats, {
+            rendimento: Math.round(r.rendimento_m2_l * 100),
+            embalagemMl: Math.round(r.preco_embalagem_l * 1000),
+            precoReferencia: r.preco_referencia_cents,
+          })
+        : null;
+    return { r, pl, estimativa };
+  });
+  const sortByPrice = ordenar === 'preco';
+  const refsSorted = sortByPrice
+    ? [...refsCalc].sort((a, b) => (a.estimativa?.custo ?? a.pl ?? Infinity) - (b.estimativa?.custo ?? b.pl ?? Infinity))
+    : refsCalc; // ordem por marca/nome já vem de loadReferences
+
+  // Primeira visita, sem qualquer escolha: mostra uma seleção em vez do catálogo todo, para não
+  // expor todos os produtos de uma vez. Qualquer interação com o formulário (procurar, mudar o
+  // tipo — mesmo para "Todos" — ou ordenar) liga `touched` e passa a mostrar a lista filtrada.
+  // Por agora a seleção é aleatória; no futuro pode ser um lugar pago pelos fornecedores.
+  const curated = !touched && !term && !tipo;
+  const picks = curated ? [...refsCalc].sort(() => Math.random() - 0.5).slice(0, 6) : [];
 
   return (
     <div className="space-y-6">
@@ -41,20 +66,23 @@ export default async function CatalogPage({
         </p>
       </div>
       <form autoComplete="off" className="flex flex-wrap items-end gap-3 text-sm">
+        <input type="hidden" name="touched" value="1" />
         <label>
           Procurar
           <input name="q" defaultValue={q ?? ''} className={field} />
         </label>
         <label>
           Tipo
-          <select name="tipo" defaultValue={tipo ?? ''} className={field}>
-            <option value="">Todos</option>
-            {PRODUCT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {PRODUCT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
+          <AutoSubmit>
+            <select name="tipo" defaultValue={tipo ?? ''} className={field}>
+              <option value="">Todos</option>
+              {PRODUCT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {PRODUCT_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+          </AutoSubmit>
         </label>
         <label>
           Área (m²)
@@ -64,23 +92,78 @@ export default async function CatalogPage({
           Demãos
           <input name="demaos" defaultValue={String(coats)} className={`${field} w-20`} />
         </label>
+        <label>
+          Ordenar por
+          <AutoSubmit>
+            <select name="ordenar" defaultValue={sortByPrice ? 'preco' : 'marca'} className={field}>
+              <option value="marca">Marca</option>
+              <option value="preco">Preço{areaCm2 && !Number.isNaN(areaCm2) ? ' estimado' : ' por litro'}</option>
+            </select>
+          </AutoSubmit>
+        </label>
         <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50">
           Aplicar
         </button>
       </form>
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Produtos de referência do mercado</h2>
-        <p className="text-sm text-slate-600">
-          Fichas públicas dos fabricantes, para comparar e indicar no pedido. O preço de referência é de tabela, sem
-          descontos nem entrega; quando não há fonte pública fica “não indicado”.
-        </p>
-        {refs.length === 0 ? (
-          <p className="text-sm text-slate-600">Sem produtos de referência com estes filtros.</p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {refs.map((r) => {
-              const pl = refPerLitre(r);
-              return (
+
+      {curated ? (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold">Escolhas e descobertas do mês</h2>
+            <p className="text-sm text-slate-600">
+              Uma amostra do catálogo de referência. Para ver todos os produtos, escolha um tipo acima (ou “Todos”).
+            </p>
+          </div>
+          {picks.length === 0 ? (
+            <p className="text-sm text-slate-600">Ainda sem produtos de referência no catálogo.</p>
+          ) : (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {picks.map(({ r, pl }) => (
+                <li key={r.id}>
+                  <Link
+                    href={`/app/catalogo/referencia/${r.id}`}
+                    className="flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm hover:border-tinta-600"
+                  >
+                    <ProductThumb
+                      fotoPath={r.foto_path}
+                      alt={`${r.marca} ${r.nome}`}
+                      className="h-32 w-28 self-center rounded-lg border border-slate-100 bg-white object-contain"
+                    />
+                    <div>
+                      <span className="block font-semibold">
+                        {r.marca} {r.nome}
+                      </span>
+                      <span className="block text-slate-600">
+                        {PRODUCT_TYPE_LABELS[r.tipo]}
+                        {r.acabamento ? ` · ${r.acabamento}` : ''}
+                      </span>
+                    </div>
+                    <p className="flex-1 text-xs text-slate-600">
+                      {r.descricao ??
+                        `${PRODUCT_TYPE_LABELS[r.tipo]}${r.uso ? ` para uso ${r.uso}` : ''}${r.cores ? `, em ${r.cores.toLowerCase()}` : ''}.`}
+                    </p>
+                    <span className="text-xs text-slate-500">
+                      {r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Embalagens não indicadas'}
+                      {pl !== null ? ` · ${formatEuros(pl)}/L` : ''}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Produtos de referência do mercado</h2>
+          <p className="text-sm text-slate-600">
+            Fichas públicas dos fabricantes, para comparar e indicar no pedido. O preço de referência é de tabela, sem
+            descontos nem entrega; quando não há fonte pública fica “não indicado”.
+          </p>
+          {refsSorted.length === 0 ? (
+            <p className="text-sm text-slate-600">Sem produtos de referência com estes filtros.</p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {refsSorted.map(({ r, pl, estimativa }) => (
                 <li key={r.id}>
                   <Link
                     href={`/app/catalogo/referencia/${r.id}`}
@@ -88,20 +171,33 @@ export default async function CatalogPage({
                   >
                     <ProductThumb fotoPath={r.foto_path} alt={`${r.marca} ${r.nome}`} />
                     <span>
-                      <span className="block font-semibold">{r.marca} {r.nome}</span>
-                      <span className="block text-slate-600">{PRODUCT_TYPE_LABELS[r.tipo]}{r.acabamento ? ` · ${r.acabamento}` : ''}</span>
+                      <span className="block font-semibold">
+                        {r.marca} {r.nome}
+                      </span>
+                      <span className="block text-slate-600">
+                        {PRODUCT_TYPE_LABELS[r.tipo]}
+                        {r.acabamento ? ` · ${r.acabamento}` : ''}
+                      </span>
                       <span className="mt-1 block text-xs text-slate-500">
                         {r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Embalagens não indicadas'}
                         {pl !== null ? ` · ${formatEuros(pl)}/L` : ''}
                       </span>
+                      {estimativa && (
+                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-xs">
+                          Para {area} m² com {coats} demão{coats > 1 ? 's' : ''}:{' '}
+                          {(estimativa.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L
+                          {estimativa.embalagens !== null ? `, ${estimativa.embalagens} embalage${estimativa.embalagens > 1 ? 'ns' : 'm'}` : ''}
+                          {estimativa.custo !== null ? `, cerca de ${formatEuros(estimativa.custo)} sem IVA` : ''}
+                        </span>
+                      )}
                     </span>
                   </Link>
                 </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <h2 className="text-lg font-semibold">Produtos dos fornecedores</h2>
       {!products || products.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Sem produtos com estes filtros.</p>
@@ -131,4 +227,3 @@ export default async function CatalogPage({
     </div>
   );
 }
-
