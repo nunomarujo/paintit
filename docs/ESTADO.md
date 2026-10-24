@@ -1,9 +1,12 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 23/10/2026 (fim do dia, sessão de verificação de acessos Vercel/Supabase, aplicação das migrações
-pendentes, verificação cruzada com a sessão original antes de esta tomar a frente do projeto — secção 6.2 —,
-recuperação de duas migrações aplicadas sem ficheiro, e desenho do pedido de esclarecimento ao vendedor —
-secção 6.5, ainda só base de dados, sem UI).
+Atualizado a 24/10/2026 (sessão de auditoria de UX/UI com conta de cliente nova: causa raiz do bug crítico
+"Nova entidade nunca grava" encontrada e corrigida — três migrações em falta aplicadas — e a questão de acesso
+a admin das auditorias anteriores esclarecida, sem falha real; secção 6.6). Estado anterior, 23/10/2026 (fim do
+dia, sessão de verificação de acessos Vercel/Supabase, aplicação das migrações pendentes, verificação cruzada
+com a sessão original antes de esta tomar a frente do projeto — secção 6.2 —, recuperação de duas migrações
+aplicadas sem ficheiro, e desenho do pedido de esclarecimento ao vendedor — secção 6.5, ainda só base de
+dados, sem UI).
 
 **Como usar este ficheiro:** é feito para que uma sessão nova (Claude, ou o promotor) fique **completamente
 inteirada só com esta leitura**, sem precisar de abrir mais nada. Não é um índice de apontadores — o essencial de
@@ -488,23 +491,23 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Cinco migrações escritas e não aplicadas**, todas bloqueadas pelo modo automático ("Production Deploy", pede
-   aprovação explícita do promotor):
-   - `20261023160000_revoke_delete_clientes_fornecedor.sql` (reforço de defesa em profundidade em
-     `supplier_customers`, sem efeito funcional — ver 6.2). Não é risco de segurança (o DELETE já está
-     bloqueado por omissão da política RLS, confirmado ao vivo).
-   - `20261023170000_levantamento_automatico.sql` (secção 5.3): esta sim **muda o comportamento** — enquanto não
-     for aplicada, o levantamento por vendedor continua a funcionar como antes (o cliente tem de pedir), mesmo
-     que o código da app já tenha deixado de ter o formulário de pedido (`RequestSurveyCard.tsx` já não mostra
-     nenhum). **Não publicar esta alteração de código sem aplicar a migração a par** — sem o gatilho, nenhum
-     pedido novo teria levantamento nenhum, nem automático nem por pedido.
-   - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` (secção 6.5): sem efeito nenhum enquanto não for
-     aplicada — não há ainda nenhum caminho de UI que a use (ver 6.5).
-   - `20261023200000_avaliacao_informacao_pelo_pintor.sql` (secção 6.5): idem — sem efeito nenhum, sem UI.
-   - `20261023210000_bonus_adesao_avaliador.sql` (secção 7, "Bónus de adesão ao avaliador"): sem efeito nenhum
-     enquanto não for aplicada — `claim_supplier_invite` continua sem conceder créditos, e a coluna
-     `organizations.alertas_autorizados` não existe ainda na base real (o formulário já a lê/escreve, mas a
-     atualização falha silenciosamente até a migração ser aplicada, como qualquer coluna em falta).
+3. **Migrações pendentes, todas agora aplicadas** (24/10/2026, sessão de correção das auditorias de UX —
+   ver também 6.1/6.6). As duas primeiras já tinham sido aplicadas antes desta sessão:
+   - `20261023160000_revoke_delete_clientes_fornecedor.sql` — aplicada.
+   - `20261023170000_levantamento_automatico.sql` — aplicada.
+
+   As três seguintes **não tinham sido aplicadas e eram a causa raiz do bug crítico reportado por duas
+   auditorias de UX independentes** ("Nova entidade" nunca gravava, com qualquer combinação de dados): o
+   código em produção (commit `d09ee3e`) já escrevia a coluna `organizations.alertas_autorizados`, criada só
+   pela terceira migração abaixo, que nunca tinha chegado à base real — todo o insere falhava com
+   `PGRST204` ("Could not find the 'alertas_autorizados' column"), escondido atrás da mensagem genérica até
+   essa correção de texto (que só tornou visível o `P0001`, não esta causa, que não é `P0001`). Aplicadas
+   via `apply_migration`, confirmado ao vivo em quempinta.pt (criação de entidade "Particular" com sucesso,
+   entidade de teste eliminada a seguir):
+   - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
+   - `20261023200000_avaliacao_informacao_pelo_pintor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
+   - `20261023210000_bonus_adesao_avaliador.sql` — aplicada. `claim_supplier_invite` já concede créditos e
+     `organizations.alertas_autorizados` existe na base real.
 
 Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
 escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
@@ -678,6 +681,44 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
   cobre o NIPC. Fica só em aberto, por decidir, se o promotor quer também bloqueio por **nome** de empresa
   ou pessoa (mais arriscado por falsos positivos — nomes de empresa parecidos ou coincidentes) — ver secção 7.
 
+### 6.6 Causa raiz do bug "Nova entidade nunca grava" encontrada e corrigida (24/10/2026, sessão de auditoria)
+
+Duas auditorias de UX/UI independentes (23/10 e 24/10/2026), cada uma com uma conta de cliente nova,
+reportaram o mesmo: o formulário "Nova entidade" falhava sempre a gravar, com qualquer combinação de
+dados (tipo "Condomínio" ou "Particular", com ou sem NIF/morada/código postal). O commit `d09ee3e` (23/10,
+tarde) só tinha trocado a mensagem genérica por uma mais específica quando o erro é `P0001` — mas a causa
+real não é `P0001`, por isso continuava invisível.
+
+**Causa real**, encontrada pela resposta do servidor interceptada no browser (`response.headers.proxy_status:
+PostgREST; error=PGRST204`) e confirmada por SQL direto em produção: `orgColumns()`
+(`src/app/app/actions.ts`) já escrevia a coluna `organizations.alertas_autorizados` desde o commit que
+implementou o bónus de adesão do avaliador (secção 7) — mas a migração que cria essa coluna,
+`20261023210000_bonus_adesao_avaliador.sql`, nunca tinha chegado à base de dados real (projeto Supabase
+`phkfrabrjqbpnmocrrvj`), tal como outras duas migrações a seguir a ela
+(`20261023190000_pedido_esclarecimento_ao_vendedor.sql`, `20261023200000_avaliacao_informacao_pelo_
+pintor.sql`). `list_migrations` confirmou a base parada em `20261023182946`, três migrações atrás do que os
+ficheiros em `supabase/migrations/` já tinham. Resultado: todo `insert` em `organizations` falhava sempre,
+para qualquer conta, por uma coluna inexistente — nada a ver com os dados introduzidos no formulário.
+
+**Corrigido**: as três migrações em falta aplicadas via `apply_migration`, pela ordem correta. Confirmado
+ao vivo em quempinta.pt, com a conta `info@quempinta.pt`: criação de entidade "Particular" com sucesso,
+entidade de teste eliminada a seguir pelo próprio fluxo "Eliminar entidade" (confirma também que esse
+fluxo funciona). `get_advisors` sem alertas novos além dos já existentes (funções `SECURITY DEFINER`
+chamáveis por `authenticated` — padrão já usado em toda a base de código, por desenho).
+
+**A pergunta da auditoria sobre acesso a admin, também resolvida**: ambas as auditorias usaram
+`nm@quempinta.pt` como "conta de cliente partilhada" e viram o backoffice. Confirmado por SQL
+(`public.platform_admins`) que essa conta **é mesmo um administrador da plataforma** (registada em
+20/10/2026, junto com `nunomarujo@gmail.com`) — não há nenhuma falha de autorização. `/app/backoffice`
+(`BackofficeLayout`) e `isPlatformAdmin` (`src/lib/access.ts`) foram revistos e estão corretos: só
+mostram o backoffice a quem está em `platform_admins`, protegido por RLS (`platform_admins_self`, só o
+próprio utilizador se vê a si mesmo nessa tabela). Testado com uma conta nova e genuína
+(`info@quempinta.pt`, sem entrada em `platform_admins`): `/admin`, `/app/admin`, `/app/backoffice` e
+variantes devolvem sempre 404 ("a sua conta não tem acesso a ela"), sem nenhum menu ou atalho visível.
+**Recomendação para as próximas auditorias**: nunca reutilizar `nm@quempinta.pt` nem qualquer email que já
+exista em `platform_admins` como "conta de cliente de teste" — criar sempre uma conta nova, como se fez
+aqui.
+
 ---
 
 ## 7. Decisões e questões em aberto para o promotor (lista consolidada, substitui listas antigas e dispersas)
@@ -700,7 +741,7 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | 23/10/2026, adiado por pedido do promotor — o domínio já é dele |
 | Piloto | Convidar 5-10 pintores e 2-3 fornecedores de Viana do Castelo para testar antes dos clientes | 23/10/2026, confirmado: só depois de tudo pronto, incluindo marketing — a app ainda está longe disso |
 | `PERMITIR_ACEITACAO_SIMPLES` | Apagar da Vercel antes de abrir a utilizadores reais (só serve para testar sem CMD) | 23/10/2026, promotor não sabe o estado atual — não foi possível confirmar na Vercel nesta sessão (classificador "Production Deploy" bloqueou a leitura); sem urgência enquanto o piloto estiver longe (ver linha acima), mas é a última coisa a confirmar antes de utilizadores reais |
-| **Bónus de adesão ao avaliador** | O convite de adesão do fornecedor a um pintor não paga comissão nenhuma (só carteira de clientes); o promotor propôs duas alternativas — bónus no fee de avaliador, ou aviso 2h antes de qualquer outro avaliador quando entra um pedido. Escolhida e construída a do bónus (23/10/2026, ver `docs/DECISOES.md` para a justificação): cada convite aceite dá +30 pontos-base (até ao topo da banda, 2,7%) na próxima obra paga ao avaliador do fornecedor, só se tiver telefone e autorização de alertas registados. A alternativa do aviso 2h fica por construir, se o promotor a quiser mais tarde (exigiria também bloquear a reserva dos outros avaliadores nessa janela) | Bónus construído e testado; migração `20261023210000_bonus_adesao_avaliador.sql` pendente de aplicar (bloqueada por "Production Deploy", como as outras já registadas) |
+| **Bónus de adesão ao avaliador** | O convite de adesão do fornecedor a um pintor não paga comissão nenhuma (só carteira de clientes); o promotor propôs duas alternativas — bónus no fee de avaliador, ou aviso 2h antes de qualquer outro avaliador quando entra um pedido. Escolhida e construída a do bónus (23/10/2026, ver `docs/DECISOES.md` para a justificação): cada convite aceite dá +30 pontos-base (até ao topo da banda, 2,7%) na próxima obra paga ao avaliador do fornecedor, só se tiver telefone e autorização de alertas registados. A alternativa do aviso 2h fica por construir, se o promotor a quiser mais tarde (exigiria também bloquear a reserva dos outros avaliadores nessa janela) | Bónus construído e testado; migração `20261023210000_bonus_adesao_avaliador.sql` aplicada em 24/10/2026 (ver 3 e 6.6) |
 | **Auditorias de UX/UI (duas, independentes, 23/10/2026)** | Ambas convergem: modelo de negócio e validação de dados mais sofisticados do que a experiência à volta. Um bug crítico real foi encontrado, confirmado e corrigido nesta sessão ("Nova entidade" escondia a mensagem de erro real da regra "um perfil por conta"; link "Referências" partido no menu do fornecedor) — detalhe em `docs/DECISOES.md`. Vitórias rápidas de texto/marcação já aplicadas: estados vazios, ícone do seletor de concelhos, parágrafo de "Comissões de adesão", resposta a "a plataforma garante a obra?" subida para junto do CTA. **Fica por decidir** (nenhuma destas é bug, são decisões de produto/design para uma ronda dedicada): deixar explorar antes de pedir conta (maior perda de conversão apontada pelas duas auditorias), prova social mínima (nº de empresas/obras, avaliações), fotografia real em vez de só ilustração, escolha de perfil antes da conta em vez de depois, identidade visual distinta para o backoffice, automação da validação de documentos de pintores. "Cliente vê o backoffice" é quase certamente mistura de credenciais de teste (`nm@quempinta.pt` é a própria conta de admin do promotor), não um bug de isolamento — a confirmar, não a corrigir às pressas. Pintor: nenhuma das duas auditorias conseguiu validar o percurso (credenciais sem acesso à caixa de correio) — repetir com conta funcional antes de redesenhar esse perfil | Bug e vitórias rápidas corrigidos e testados; decisões estruturais em aberto para ronda dedicada de design |
 
 ---
