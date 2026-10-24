@@ -1133,6 +1133,20 @@ Construído agora, sem dependências novas:
 a partir da zona de contacto para fora, com um gradiente calculado na direção certa para cada ângulo.
 Assim vê-se que o alçado está encostado sem o vizinho esconder a empena.
 
+**Como se escolhe a forma** (24/10/2026): não se escolhe. Comparar cinco miniaturas obriga a imaginar
+o prédio visto de cima, que é a parte difícil. Em vez disso (`src/domain/footprint.ts`, puro e testado,
+e `src/components/FormaWizard.tsx`):
+
+1. a aplicação propõe a forma mais provável do que já está declarado (fachadas livres, moradia) e pede
+   só confirmação — na maioria dos casos ninguém escolhe nada;
+2. se estiver errada, pergunta-se **quantos cantos tem o prédio**, contados a andar à volta: 4 é
+   retângulo ou quadrado (conforme esteja encostado), 6 é L, 8 leva a uma segunda pergunta (pátio
+   aberto = U, corpo que avança = T);
+3. quem preferir desenha a planta numa grelha de 4×4, que é comparada com as formas canónicas, de
+   frente e espelhadas.
+
+O desenho do volume aparece como **confirmação** do que foi respondido, nunca como pergunta.
+
 **Por aplicar:** `supabase/migrations/20261024120000_forma_de_implantacao.sql` (coluna
 `forma_implantacao` em `buildings` e `request_listings`, e a cópia no gatilho de publicação). O
 classificador do modo automático voltou a recusar DDL (`[Production Deploy]`). Passa nos testes em
