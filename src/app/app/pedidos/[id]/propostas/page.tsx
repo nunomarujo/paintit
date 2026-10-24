@@ -166,9 +166,14 @@ export default async function ProposalsPage({
                     </b>
                   </span>
                 </div>
-                <a href={`#${r.id}`} className="btn-secondary mt-auto">
-                  Ver proposta e mensagens
-                </a>
+                <div className="mt-auto flex gap-2">
+                  <a href={`#${r.id}`} className="btn-secondary flex-1">
+                    Ver proposta e mensagens
+                  </a>
+                  <Link href={`${path}/${r.id}/documento`} className="btn-secondary" target="_blank">
+                    Documento
+                  </Link>
+                </div>
               </li>
             );
           })}
@@ -350,7 +355,12 @@ export default async function ProposalsPage({
           <section key={r.id} className={card} id={r.id}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-semibold">{r.alias}</h2>
-              <span className="text-sm text-slate-600">{STATUS[p.status]}</span>
+              <span className="flex items-center gap-3 text-sm text-slate-600">
+                {STATUS[p.status]}
+                <Link href={`${path}/${r.id}/documento`} className="text-tinta-600 hover:underline" target="_blank">
+                  Ver documento →
+                </Link>
+              </span>
             </div>
             <div className="mt-4">
               <ProposalView

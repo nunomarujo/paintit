@@ -1218,3 +1218,48 @@ cortiça, a maioria das redes e a maioria dos isolantes (só um produto por cate
 catálogo publicado). Um produto de cortiça ficou de fora por a ficha técnica pública (PDF) não ser
 legível para extrair dados com confiança. Fotografias dos produtos novos ainda não existem (mesma
 situação dos produtos de tinta sem foto — direitos de imagem).
+
+
+### Documento de orçamento para imprimir/PDF (24/10/2026)
+
+Pedido do Nuno: um documento A4, HTML + Tailwind, pronto para imprimir ou guardar em PDF pela impressão
+do navegador (sem bibliotecas de PDF), que o pintor entrega ao cliente e que o cliente usa para
+comparar propostas — o nome e o logótipo da empresa de pintura a dominar o cabeçalho, a referência da
+proposta como informação discreta, marca de água suave da Quem Pinta e rodapé de atribuição
+(quempinta.pt), sem nunca mostrar a comissão da plataforma (regra 13 do CLAUDE.md) nem a morada ou
+identidade do cliente. Depois de duas rondas de protótipos isolados (com dados fictícios, só para
+escolher a direção visual), o Nuno aprovou uma delas e pediu para a aplicar aos dados reais, imagem
+exatamente igual.
+
+**Feito:**
+
+- `src/domain/proposalDocument.ts` (testado em `proposalDocument.test.ts`): `proposalIntro()` compõe o
+  parágrafo de apresentação só com os campos que a proposta já tem (capoto, mão-de-obra, duração,
+  garantia) — nunca inventa anos de experiência nem nenhum outro facto não declarado. `linesForZone()`
+  filtra as linhas incluídas de uma zona (ou da obra toda, quando a linha não tem zonas).
+- `src/components/ProposalDocument.tsx`: o documento em si, com a direção visual editorial aprovada
+  (serifa no cabeçalho, paleta `tinta`/`slate`/`paper` já existente em `tailwind.config.ts`, marca de água
+  a 3,5% de opacidade para nunca sair escura numa impressora laser). Reutiliza por completo o domínio já
+  testado — `CapotoCorte` (`CapotoFigure.tsx`) para o corte da parede, `ISOLANTE_INFO`/`ACABAMENTO_INFO`/
+  `camadasDe`/`resumoCapoto` de `etics.ts` para a página de materiais — em vez de reinventar uma ficha de
+  capoto nova.
+- **Identidade do pintor vs. anonimato até à apresentação (regra 6 do CLAUDE.md):** o componente recebe
+  um prop `identity` (`label`/`nif`/`telefone`/`emailContacto`), nunca o nome real diretamente. A rota
+  (`src/app/app/pedidos/[id]/propostas/[proposalId]/documento/page.tsx`) decide o que lá vai: se quem vê
+  o documento pertence (por `org_members`, nunca por confiar numa consulta a `organizations` — regra 11)
+  à organização do pintor, vê sempre a sua própria identidade; senão, só a vê depois de
+  `engagement.feePaid` (replay de `loadReplay`, o mesmo sinal de "apresentação" já usado em
+  `dossie/page.tsx`) — até lá aparece como `alias(i)` ("Pintor A", "Pintor B"…), na mesma ordem do
+  comparador. Preço, condições, zonas e materiais aparecem sempre — só a identidade é que espera pela
+  apresentação.
+- Ligado ao comparador do cliente (`propostas/page.tsx`): cada proposta tem agora um link "Documento"
+  que abre a página em separador novo.
+- `npm run typecheck`/`test` (inclui o novo `proposalDocument.test.ts`)/`lint`/`build`, todos verificados
+  pelo código de saída (regra 7 do CLAUDE.md).
+
+**Por fazer:** as duas direções visuais originais (`orcamento-direcao-a-tecnica.html`,
+`orcamento-direcao-b-moderna.html`, fora do repositório — ficheiros entregues ao Nuno) ficaram só como
+protótipos de escolha; não foram portadas para o código, porque a direção aprovada já está em
+`ProposalDocument.tsx` com dados reais. Falta também decidir com o Nuno se o pintor deve conseguir gerar
+este documento antes de submeter a proposta (ex.: pré-visualização no ecrã "Rever e enviar" de
+`PROPOSTA.md`) — hoje a rota só funciona para uma proposta já submetida (`status !== 'rascunho'`).

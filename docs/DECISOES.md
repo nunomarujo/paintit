@@ -1970,3 +1970,26 @@ que agora coincidem com o piso.
 nova nas contratações que nascem a partir daí. Enquanto não for aplicada, o ecrã do pintor mostra
 18% mas a contratação nasce com a versão antiga, de 3% — a plataforma cobra a menos. É a primeira
 coisa a aplicar.
+
+
+## 24/10/2026 — Documento de orçamento para imprimir/PDF
+
+O Nuno pediu um documento A4 (HTML + Tailwind, impressão do navegador, sem bibliotecas de PDF) que o
+pintor entrega ao cliente e que serve para comparar propostas, com a empresa de pintura a dominar o
+cabeçalho e a Quem Pinta presente com uma marca de água discreta e uma linha de rodapé. Depois de ver
+dois protótipos com dados fictícios e pedir ajustes (tipografia demasiado grande, aspeto de "startup"),
+aprovou uma terceira versão e pediu: continuar a partir dela, aplicar o mesmo acabamento aos outros
+protótipos, e ligar tudo a dados reais — mantendo a imagem exatamente igual.
+
+Decisão: `src/components/ProposalDocument.tsx` + `src/domain/proposalDocument.ts`, com dados que vêm
+sempre de campos reais da proposta (nunca inventados) e uma regra nova sobre identidade: o documento
+não recebe o nome do pintor diretamente, recebe um `identity` que a rota resolve — o pintor vê sempre a
+sua própria identidade; o cliente só a vê depois da apresentação (`engagement.feePaid`), exatamente como
+já acontece no dossiê e no comparador. Antes disso, o documento mostra o alias ("Pintor A", …). Isto
+evita que um documento pensado para "o pintor enviar ao cliente" se torne, sem querer, uma forma de
+contornar o anonimato até à apresentação (regra 6 do CLAUDE.md) quando é visto a partir da plataforma.
+
+Em aberto: as duas direções visuais descartadas (técnica e moderna) não foram portadas para código —
+ficaram só como protótipos de escolha fora do repositório. Também por decidir: se o pintor deve poder
+gerar/pré-visualizar este documento antes de submeter a proposta (ecrã "Rever e enviar",
+`docs/PROPOSTA.md`), ou só depois de submetida, como está agora.

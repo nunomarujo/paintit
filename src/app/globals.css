@@ -63,3 +63,44 @@ input[type='radio'] {
     transition: none !important;
   }
 }
+
+/* Documento de orçamento (ProposalDocument.tsx): folhas A4 para imprimir ou guardar em PDF com a
+   impressão do navegador (mesmo princípio da minuta e do dossiê: sem @page próprio, para não mudar
+   as margens de impressão do resto da aplicação). Isolado por classe própria. */
+.proposal-doc {
+  @apply mx-auto max-w-[210mm];
+}
+.proposal-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 16mm 15mm;
+  margin: 0 auto 10mm;
+  box-shadow: 0 2px 20px rgb(0 0 0 / 0.12);
+}
+.proposal-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 90px;
+  color: #173f42;
+  opacity: 0.035;
+  transform: rotate(-26deg);
+  white-space: nowrap;
+}
+@media print {
+  .proposal-sheet {
+    box-shadow: none;
+    margin: 0;
+    break-after: page;
+  }
+  .proposal-sheet:last-child {
+    break-after: auto;
+  }
+  .proposal-footer {
+    break-inside: avoid;
+  }
+}
