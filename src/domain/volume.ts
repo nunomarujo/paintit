@@ -50,11 +50,17 @@ export interface VolumeInput {
   };
 }
 
-export type FaceKind = 'frente' | 'lado' | 'topo' | 'varanda' | 'vizinho' | 'janela' | 'grade' | 'muro' | 'beiral' | 'pala';
+export type FaceKind = 'frente' | 'lado' | 'empena' | 'topo' | 'varanda' | 'vizinho' | 'janela' | 'grade' | 'muro' | 'beiral' | 'pala';
 export interface Face {
   kind: FaceKind;
   /** Pontos já rodados e projetados (axonometria), em unidades do desenho. */
   points: [number, number][];
+  /**
+   * Só nos prédios vizinhos: direção em que o volume se desvanece, já projetada. Começa na empena
+   * (onde encosta ao prédio da obra) e acaba no extremo oposto. Serve para o vizinho se representar
+   * sem esconder a empena, que é a face que o pintor precisa de ver (pedido do promotor, 24/10/2026).
+   */
+  fade?: { de: [number, number]; ate: [number, number] };
 }
 export interface Volume {
   faces: Face[];
@@ -102,6 +108,8 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 interface Quad {
   kind: FaceKind;
+  /** Vizinhos: x da empena (contacto) e x do extremo oposto, por rodar. */
+  fade?: { contacto: number; fim: number };
   /** Pontos em 3D, por rodar. */
   pts: [number, number, number][];
   /** Normal exterior em 3D, por rodar. */
@@ -147,11 +155,23 @@ export function buildingVolume(input: VolumeInput): Volume {
   const el = input.elementos ?? {};
 
   // Corpos da implantação. O primeiro leva a fachada principal.
-  plan.forEach(([x0, y0, x1, y1], i) => quads.push(...box(x0, y0, 0, x1, y1, height, undefined, i === 0)));
+  const corpo: Quad[][] = plan.map(([x0, y0, x1, y1], i) => box(x0, y0, 0, x1, y1, height, undefined, i === 0));
+
+  // Empenas: as faces do próprio prédio que encostam a um vizinho. Desenham-se noutra cor, porque
+  // existem e têm área, mas não são fachada à vista (pedido do promotor, 24/10/2026).
+  const empena = (q: Quad, lado: -1 | 1) => {
+    if (q.n[0] === lado && q.n[1] === 0 && q.n[2] === 0) q.kind = 'empena';
+  };
+  const principal = corpo[0] ?? [];
+  if (livres <= 3) principal.forEach((q) => empena(q, -1));
+  if (livres <= 2) principal.forEach((q) => empena(q, 1));
+  corpo.forEach((qs) => quads.push(...qs));
 
   // Prédios encostados: com 3 fachadas livres há um vizinho; com 1 ou 2, dois (prédio em banda).
-  if (livres <= 3) quads.push(...box(px0 - 6, py0, 0, px0, front, height * 0.8, 'vizinho'));
-  if (livres <= 2) quads.push(...box(px1, py0, 0, px1 + 6, front, height * 0.7, 'vizinho'));
+  const encostado = (qs: Quad[], contacto: number, fim: number) =>
+    quads.push(...qs.map((q) => ({ ...q, fade: { contacto, fim } })));
+  if (livres <= 3) encostado(box(px0 - 6, py0, 0, px0, front, height * 0.8, 'vizinho'), px0, px0 - 6);
+  if (livres <= 2) encostado(box(px1, py0, 0, px1 + 6, front, height * 0.7, 'vizinho'), px1, px1 + 6);
 
   // Vãos da fachada principal, em ritmo fixo: iguais em todos os prédios, por isso não identificam
   // nenhum, e dão escala — sem eles o volume é um paralelepípedo e não se percebe a altura.
@@ -218,8 +238,19 @@ export function buildingVolume(input: VolumeInput): Volume {
       const [rx, ry] = rot(x, y);
       return { rx, ry, z };
     });
+    let fade: Face['fade'];
+    if (q.fade) {
+      // A direção do esbatimento é a mesma face, do lado da empena para o lado de fora.
+      const cy2 = q.pts.reduce((n, p) => n + p[1], 0) / q.pts.length;
+      const cz2 = q.pts.reduce((n, p) => n + p[2], 0) / q.pts.length;
+      const ponto = (x: number): [number, number] => {
+        const [rx, ry] = rot(x, cy2);
+        return iso(rx, ry, cz2);
+      };
+      fade = { de: ponto(q.fade.contacto), ate: ponto(q.fade.fim) };
+    }
     visible.push({
-      face: { kind: q.kind, points: pts.map(({ rx, ry, z }) => iso(rx, ry, z)) },
+      face: { kind: q.kind, points: pts.map(({ rx, ry, z }) => iso(rx, ry, z)), ...(fade ? { fade } : {}) },
       depth: pts.reduce((n, p) => n + p.ry * COS_E + p.z * SIN_E, 0) / pts.length,
     });
   }

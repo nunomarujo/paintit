@@ -128,3 +128,36 @@ describe('forma de implantação', () => {
     expect(buildingVolume({ ...base, forma: 'U', angulo: 60 })).toEqual(buildingVolume({ ...base, forma: 'U', angulo: 60 }));
   });
 });
+
+describe('prédios encostados', () => {
+  it('o vizinho traz a direção do esbatimento, da empena para fora; o prédio da obra não', () => {
+    const v = buildingVolume({ ...base, fachadas: 2 });
+    const vizinhos = v.faces.filter((f) => f.kind === 'vizinho');
+    expect(vizinhos.length).toBeGreaterThan(0);
+    expect(vizinhos.every((f) => f.fade)).toBe(true);
+    expect(v.faces.filter((f) => f.kind !== 'vizinho').every((f) => f.fade === undefined)).toBe(true);
+  });
+
+  it('o esbatimento começa num ponto e acaba noutro (tem direção)', () => {
+    const f = buildingVolume({ ...base, fachadas: 2 }).faces.find((x) => x.kind === 'vizinho');
+    expect(f?.fade?.de).not.toEqual(f?.fade?.ate);
+  });
+
+  it('sem vizinhos não há esbatimento nenhum', () => {
+    expect(buildingVolume({ ...base, fachadas: 4 }).faces.some((f) => f.fade)).toBe(false);
+  });
+});
+
+describe('empenas', () => {
+  it('só há empena onde há prédio encostado', () => {
+    const tem = (fachadas: number) => buildingVolume({ ...base, fachadas, angulo: 30 }).faces.some((f) => f.kind === 'empena');
+    expect(tem(4)).toBe(false);
+    expect(tem(2)).toBe(true);
+  });
+
+  it('a empena é do prédio da obra, não do vizinho: não se desvanece', () => {
+    const empenas = buildingVolume({ ...base, fachadas: 2, angulo: 210 }).faces.filter((f) => f.kind === 'empena');
+    expect(empenas.length).toBeGreaterThan(0);
+    expect(empenas.every((f) => f.fade === undefined)).toBe(true);
+  });
+});

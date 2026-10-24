@@ -1128,6 +1128,11 @@ Construído agora, sem dependências novas:
 - `src/components/FormaPicker.tsx` — escolha da forma vista de cima, com nota para confirmar no Google
   Earth em caso de dúvida.
 
+**Alçados encostados** (24/10/2026): a empena do próprio prédio desenha-se a cinzento (`FaceKind`
+`empena`) — existe e tem área, mas não é fachada à vista — e o prédio vizinho desenha-se a desvanecer
+a partir da zona de contacto para fora, com um gradiente calculado na direção certa para cada ângulo.
+Assim vê-se que o alçado está encostado sem o vizinho esconder a empena.
+
 **Por aplicar:** `supabase/migrations/20261024120000_forma_de_implantacao.sql` (coluna
 `forma_implantacao` em `buildings` e `request_listings`, e a cópia no gatilho de publicação). O
 classificador do modo automático voltou a recusar DDL (`[Production Deploy]`). Passa nos testes em
