@@ -1740,6 +1740,71 @@ recebia levantamento desde 23/10/2026).
   bater com o Supabase, nunca o inverso** — sem efeito nenhum na base de dados, só nos quatro nomes de
   ficheiro em `supabase/migrations/`, já corrigidos.
 
+## 24/10/2026, madrugada — Gestora de condomínios, ecrãs das três funcionalidades por validar, e simulação de dados
+
+Sessão aberta com três pedidos do promotor: dados de simulação para poder ver e testar as três
+funcionalidades que nunca tinham tido dados, printscreens, e contas abertas para testar ele próprio.
+A meio, ele reportou um bug ao vivo que mudou a prioridade.
+
+**1. "Não grava os dados, não dá erro, mas não avança"** — não era gravação: era o código postal
+incompleto (`4900`), com o erro de campo a meio de um formulário longo, fora do campo de visão. Mesma
+família do bug "Nova entidade" (`d09ee3e`): a mensagem existia, não chegava à pessoa. Corrigido de
+forma genérica em `useFormAction` (serve todos os formulários): ao voltar com erros de campo, salta
+para o primeiro **pela ordem do formulário** e põe-lhe o cursor; e `OrgForm` ganhou aviso junto ao
+botão, para o botão nunca ficar mudo. Ficam identificados mais dois tropeços da mesma natureza nesse
+formulário, agora visíveis: a morada é validada contra o código postal, e o NIF de empresa é
+confirmado na nif.pt contra a denominação oficial.
+
+**2. Empresa de administração de condomínios** (pedido dele, com o desenho dele): o modelo já separava
+gestora de condomínio, mas a navegação escondia-o, e ele ficou sem saída. **Decisão mantida, tomada
+por mim a pedido dele**: quem assina o contrato e é faturado continua a ser o **condomínio**, com o
+NIPC dele, nunca a gestora — a alternativa (pôr o NIPC no prédio e a gestora contratar em nome dele)
+obrigava a mexer em contratação e faturação. O que faltava era ligação e apresentação:
+- "Condomínios geridos" (lista de texto) → **"Prédios sob administração" em cartões**, com NIPC do
+  condomínio, morada, nº de prédios e total de frações, e atalhos (editar, acrescentar prédio, novo
+  pedido). O que estiver por preencher aparece assinalado.
+- `/app/organizacoes/{gestora}/pedidos/novo` **dava 404** — passa a ser o ecrã de escolha do
+  condomínio e do prédio, com "o condomínio não está na lista → criar novo condomínio".
+- Condomínio criado por uma gestora segue **direto para a ficha do prédio**, em vez de parar numa
+  página sem passo seguinte.
+- A ficha de prédio já pedia frações, pisos, fachadas, ano, artigo matricial e acessos — não foi
+  preciso acrescentar campos.
+
+**3. O que a construção dos ecrãs revelou — e que corrige o diagnóstico de 23/10/2026.** As três
+funcionalidades não estavam só "sem UI": **o pintor não tinha leitura nenhuma sobre
+`request_surveys`**. Confirmado nas políticas da base real, não nos ficheiros. Passou despercebido
+porque `request_painter_doubt` e `rate_survey_info` são `security definer` — funcionam sem leitura, e
+os testes delas passavam na mesma; só ao fazer o ecrã é que a falta aparece, porque a aplicação nem
+sabe que há levantamento concluído para oferecer seja o que for. Migração
+`20261024030000_pintor_ve_levantamento.sql` com o mesmo critério que já guarda as funções (só pintor,
+só concluído, só com anúncio aberto), +2 casos de RLS. **Por aplicar: o classificador desta sessão
+recusa DDL ("Production Deploy"); escritas normais de dados passam.**
+
+Ecrãs construídos: lado do vendedor em `/app/levantamentos/{id}` (lista conjunta e não identificada
+via `clarification_batch`, marco 1 "confirmo que vou à obra", marco 2 resposta, estados respondido e
+expirado) — funciona já, porque o vendedor sempre teve leitura. Lado do pintor em
+`/app/oportunidades/{id}` (pedir esclarecimento com `guardContact`, ver a resposta, avaliar a
+informação de 1 a 5 e corrigir a própria nota) — só mostra conteúdo depois da migração acima.
+
+`src/lib/database.types.ts`: faltavam as **seis funções** destas duas migrações (as tabelas já lá
+estavam) — sinal de que nenhuma delas tinha sido chamada pela app alguma vez. Acrescentadas e
+confirmadas uma a uma contra o que o Supabase gera.
+
+**4. Simulação de dados, na base real** (pedido explícito; a base só tem dados de teste, zero
+utilizadores reais). Tudo prefixado `SIMULACAO`, para sair com a limpeza antes de produção (secção
+5.14). Inserido: levantamento concluído na obra publicada `9C480B95`, atribuído ao avaliador do
+fornecedor; pedido de esclarecimento em aberto no marco 1, com duas dúvidas de dois pintores
+diferentes; uma avaliação da informação (média 3,0); uma gestora de condomínios com dois condomínios
+administrados, cada um com NIPC próprio e prédio com frações. O **bónus de adesão foi concedido pela
+função real** `claim_supplier_invite` (com a identidade do pintor, como nos testes), não inserido à
+mão — é a primeira vez que esse caminho correu: deu exatamente um crédito "disponivel". Para isso foi
+preciso ligar `alertas_autorizados` no fornecedor de teste, que estava desligado (é condição do
+bónus).
+
+**Nota de método:** não aceitei os termos de confidencialidade do levantamento em nome do promotor —
+é uma aceitação de termos, fica para ele, com um clique. É o único passo que falta para ver o ecrã do
+esclarecimento.
+
 ## 24/10/2026, mais tarde — Regra obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada
 
 Pedido explícito do promotor, verbatim: "`PERMITIR_ACEITACAO_SIMPLES` ligado > lembra-me / exigi-o como

@@ -517,10 +517,14 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      de pedido já tinha sido removido do código a pressupor o gatilho que ainda não existia na base real).
    - `get_advisors` sem categorias novas de aviso. `npm test` (464), `typecheck`, `lint`, `build` — zero.
 
-   **Só esta continua por aplicar**, sem pedido do promotor para o fazer ainda:
+   **Continuam por aplicar**:
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
      profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
-     omissão, confirmado).
+     omissão, confirmado). Sem pedido do promotor para o fazer ainda.
+   - `20261024030000_pintor_ve_levantamento.sql` — **esta tem efeito real**: sem ela, os ecrãs do pintor
+     para pedir esclarecimento e avaliar a informação do levantamento não mostram nada (ver 6.9). DDL
+     recusado pelo classificador desta sessão; aplicar pela sessão do Code, pelo editor do Supabase, ou
+     com o modo automático desligado.
 
 4. **`PERMITIR_ACEITACAO_SIMPLES`, confirmado na Vercel (24/10/2026)**: existe, tipo `sensitive`, só no
    ambiente **Production** (não está em Preview nem Development — o inverso do que fazia sentido para uma
@@ -654,7 +658,41 @@ certo, carácter a carácter, com o que `buildings.concelho` já guarda. Só a c
 migração, sem alteração ao domínio. Verificado visualmente com Playwright (abre/fecha, contagem por
 distrito). Detalhe completo em `docs/DECISOES.md`.
 
-### 6.5 Pedido de esclarecimento ao vendedor sobre o levantamento (23/10/2026) — só base de dados, sem UI
+### 6.9 Ecrãs das três funcionalidades, gestora de condomínios e simulação de dados (24/10/2026, madrugada)
+
+Detalhe completo em `docs/DECISOES.md`, entrada "24/10/2026, madrugada". O essencial, porque **corrige
+o que as secções 6.5 e 7 diziam**:
+
+- **As três funcionalidades não estavam só "sem UI"**: o pintor **não tinha leitura nenhuma** sobre
+  `request_surveys` (confirmado nas políticas da base real). As funções dele são `security definer` e
+  por isso funcionavam sem leitura — os testes passavam, mas nenhum ecrã as podia oferecer. Migração
+  `20261024030000_pintor_ve_levantamento.sql`, +2 casos de RLS, **por aplicar** (DDL recusado nesta
+  sessão, ver 6.7; escritas de dados passam).
+- **Ecrãs construídos**: vendedor em `/app/levantamentos/{id}` (lista conjunta, marco 1, marco 2,
+  estados) — **funciona já**; pintor em `/app/oportunidades/{id}` (pedir esclarecimento, ver resposta,
+  avaliar 1-5) — só mostra conteúdo depois daquela migração.
+- **`src/lib/database.types.ts`**: faltavam as seis funções destas migrações — nunca tinham sido
+  chamadas pela app. Acrescentadas e confirmadas contra o gerado pelo Supabase.
+- **Gestora de condomínios**: "Prédios sob administração" em cartões (NIPC, morada, prédios, frações);
+  `/app/organizacoes/{gestora}/pedidos/novo` deixou de dar 404 e é o ecrã de escolha do condomínio,
+  com "criar novo condomínio"; condomínio novo segue direto para a ficha do prédio. **Quem assina e é
+  faturado continua a ser o condomínio, nunca a gestora** — decisão mantida.
+- **Formulários**: erro de validação deixou de ser mudo (`useFormAction` salta para o primeiro campo
+  com erro; `OrgForm` avisa junto ao botão). Era a causa do "não grava, não dá erro" reportado.
+- **Dados de simulação na base real**, todos prefixados `SIMULACAO` (a limpar antes de produção, ver
+  5.14): levantamento concluído na obra `9C480B95`, esclarecimento aberto com duas dúvidas, uma
+  avaliação (média 3,0), uma gestora com dois condomínios (NIPC próprio e prédio com frações), e um
+  crédito de bónus de adesão **concedido pela função real** `claim_supplier_invite` — primeira vez que
+  esse caminho correu. Obrigou a ligar `alertas_autorizados` no fornecedor de teste (é condição do
+  bónus).
+- **Contas para testar** (todas do promotor, entrada por link mágico, sem palavra-passe):
+  `nm+cliente1@` (condomínio), `nm+pintor1@` (Pintor Teste Lda), `nm+teste_fornecedor@` (Exotictarget,
+  fornecedor/avaliador), `info@` (agora dona da gestora de simulação). Os reencaminhamentos `nm+*` e
+  `info@` chegam a `quempinta.pt@gmail.com`.
+- **Falta um clique do promotor** para ver o ecrã do esclarecimento: os termos de confidencialidade do
+  levantamento, por aceitar na conta do fornecedor. Não os aceitei em nome dele de propósito.
+
+### 6.5 Pedido de esclarecimento ao vendedor sobre o levantamento (23/10/2026) — base de dados feita; UI construída a 24/10 (ver 6.9)
 
 Depois de o levantamento estar concluído, qualquer pintor com acesso ao pedido publicado pode achar a
 informação insuficiente para orçamentar e pedir o que falta. Desenhado em detalhe (e com duas correções
