@@ -55,13 +55,20 @@ nos dois lados), `MOLONI_COMPANY_ID`. Mais três, já confirmados na conta real 
 tipos), `MOLONI_TAX_ID_NORMAL` (IVA Normal 23%) e `MOLONI_FINAL_CONSUMER_CUSTOMER_ID` (o cliente "Consumidor Final"
 que a Moloni cria por omissão).
 
-## ⚠ Não emitir nada até a sandbox existir
+## ⚠ Não emitir nada com a conta real
 
-Esta conta não tem ambiente de demonstração: pedido ao apoio@moloni.pt em 22/10/2026, ainda sem resposta. Enquanto não
-vier, qualquer documento emitido é **real**, na única série da conta ("M"), e não se apaga — só se anula com nota de
-crédito, deixando sempre um número gasto. Não usar o botão "Emitir" na fila do backoffice até a sandbox estar confirmada.
+A conta real (a das variáveis em `.env.example`, `MOLONI_COMPANY_ID=517588676`) não tem ambiente de demonstração:
+qualquer documento emitido com ela é **real**, na única série da conta ("M"), e não se apaga — só se anula com nota de
+crédito, deixando sempre um número gasto. Não usar o botão "Emitir" na fila do backoffice com esta conta até os pontos
+abaixo estarem confirmados numa conta de testes.
 
-## ◆ Pontos por confirmar (com a sandbox, quando existir)
+**Resposta da Moloni (ticket J98-JYQ-L177, 23/10/2026):** não há sandbox a pedir. O caminho é criar uma **conta
+separada**, pelo registo normal (`https://www.moloni.pt/registo`), com um NIF fictício (sugestão deles:
+`NIF_XPTO_TESTE_API`). Fica com o plano experimental de 30 dias e **acesso total à API**; se for preciso mais tempo,
+pede-se pelo mesmo ticket antes de expirar. Essa conta de testes é a "sandbox" — nunca misturar as credenciais dela
+com as da conta real (nem na Vercel de produção, nem em `moloni_token`).
+
+## ◆ Pontos por confirmar (na conta de testes)
 
 1. **Nomes dos campos em `customers/getByVat`/`customers/insert`** e se `country_id: 1` é mesmo Portugal nessa conta.
 2. **Se a resposta de `invoices/insert`/`creditNotes/insert` já traz `number`/`atcud`**, ou só depois de `getOne`.
@@ -74,14 +81,15 @@ crédito, deixando sempre um número gasto. Não usar o botão "Emitir" na fila 
 
 ## Testar
 
-1. Pedido da conta de demonstração ao apoio@moloni.pt: feito a 22/10/2026, a aguardar resposta.
-2. Ativar a API na conta (Configurações > Developers > Configuração da API e Plugins), com o callback
-   `https://quempinta.pt/api/moloni/callback`; anotar o Client ID e o Client Secret (não vão para o repositório).
-3. Preencher as variáveis na Vercel e fazer deploy.
-4. Com a conta de administrador, abrir `/api/moloni/connect` e autorizar: confirma a ligação (token guardado).
-5. **Só depois de a sandbox vir confirmada pela Moloni**: no backoffice, Contabilidade → Faturação, com um pagamento
-   de teste pendente, tentar emitir um documento e corrigir o código conforme o erro devolvido (ver a lista de pontos acima).
-6. Confirmar o PDF, o número e o ATCUD gravados.
+1. ~~Pedido da conta de demonstração~~ — respondido a 23/10/2026: criar conta de testes própria (ver acima).
+2. **Promotor:** registar a conta de testes em `moloni.pt/registo` (NIF fictício), ativar a API nela
+   (Configurações > Developers > Configuração da API e Plugins) e anotar Client ID, Client Secret, `company_id` e os
+   IDs da série, da taxa de IVA normal e do cliente "Consumidor Final" dessa conta. Nada disto vai para o repositório.
+3. Testar **fora da produção** — num ambiente local ou de pré-visualização com as variáveis da conta de testes, nunca
+   trocando as variáveis de produção da Vercel (que ficam com a conta real) nem gravando o token de testes na
+   `moloni_token` da base real.
+4. Emitir FT e NC de teste, corrigir o código conforme os erros devolvidos e fechar os 7 pontos acima.
+5. Confirmar o PDF, o número e o ATCUD gravados. Só então ligar a conta real.
 
 ## Falta
 
