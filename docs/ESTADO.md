@@ -467,9 +467,10 @@ anúncios com prazo de propostas ultrapassado, e desde 23/10/2026 **liberta rese
   separador Contabilidade no backoffice. **Falta:** IVA trimestral e fecho formal, acesso do contabilista
   (Nuno Branco), limpar dados de teste antes de produção real. Detalhe: `docs/CONTABILIDADE.md`.
 - **Faturação certificada:** Moloni escolhida (preço, fase inicial). Código pronto (OAuth, emissão de FT/NC para
-  comissão do pintor, subscrição do fornecedor e caução retida), mas **esta conta não tem ambiente de
-  demonstração** — pedido enviado a `apoio@moloni.pt` em 22/10/2026, **ainda sem resposta confirmada** (ver
-  secção 6). **Não emitir nenhum documento real até isso se confirmar.** Detalhe: `docs/FATURACAO.md`.
+  comissão do pintor, subscrição do fornecedor e caução retida), mas **nunca testado contra a API real**. A
+  Moloni respondeu a 23/10/2026: não há sandbox a pedir — cria-se uma **conta de testes separada** pelo registo
+  normal, com NIF fictício (30 dias, API completa). **Não emitir nenhum documento com a conta real até a
+  integração estar confirmada nessa conta de testes.** Detalhe: `docs/FATURACAO.md`.
 - **A comissão de adesão a fornecedores nunca passa pela Moloni** — é o fornecedor que fatura a plataforma (fluxo
   inverso, já feito, sem depender de nenhuma integração externa).
 
@@ -489,9 +490,10 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
 ## 6. Travões ativos agora (o que impede avançar, não é falta de código)
 
-1. **Moloni sem ambiente de demonstração** — pedido enviado, sem resposta confirmada (ver histórico em
-   `docs/FATURACAO.md`). Não emitir nenhum documento fiscal real até isto se confirmar: a conta não tem sandbox,
-   um documento emitido é real e não se apaga (só se anula com nota de crédito).
+1. **Moloni: falta a conta de testes** — a Moloni respondeu a 23/10/2026 (ticket J98-JYQ-L177): registo normal em
+   `moloni.pt/registo` com NIF fictício dá 30 dias de API completa, e é essa a "sandbox". Falta o promotor criar
+   essa conta e passar as credenciais dela (nunca as da conta real) para se testar fora da produção. Até lá, não
+   emitir nenhum documento com a conta real: é real e não se apaga (só se anula com nota de crédito).
 
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
