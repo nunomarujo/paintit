@@ -59,6 +59,24 @@ export function signedBytes(pdf: Uint8Array, f: SignatureField): Uint8Array {
   return out;
 }
 
+export interface SignerTrust {
+  trusted: boolean;
+  /** `true` só quando a cadeia ficou indeterminada por uma falha de rede a obter um certificado do emissor
+   * (AIA), nunca quando foi mesmo avaliada e recusada (ver `src/lib/pades.ts`, `validateChain`). */
+  indeterminate?: boolean;
+}
+
+/**
+ * Recusar logo uma assinatura com certificado não confiável, ou aceitá-la para revisão manual da equipa
+ * (decisão de 24/10/2026, item 12 do `docs/DECISOES.md`, a pedido do promotor): recusa-se só quando a
+ * cadeia foi mesmo avaliada e recusada para pelo menos uma assinatura — nunca só por a avaliação ter
+ * ficado indeterminada por uma falha de rede transitória a obter um certificado do emissor, para não
+ * recusar assinaturas legítimas do Cartão de Cidadão/Chave Móvel Digital por esse motivo.
+ */
+export function shouldRejectUntrustedSignature(signers: SignerTrust[]): boolean {
+  return signers.some((s) => !s.trusted && !s.indeterminate);
+}
+
 export function hexToBytes(hex: string): Uint8Array {
   const out = new Uint8Array(hex.length / 2);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);

@@ -1560,19 +1560,13 @@ estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
     destacados visualmente. **Não construído nesta ronda** — fica como próximo passo de UI (localizar onde o
     aviso a vermelho já existe hoje no rascunho do pintor e reforçá-lo com este texto + navegação direta aos
     campos).
-12. **Certificado de assinatura "por confirmar"**: o promotor quer que a assinatura seja sempre feita com e
-    verificada pela Autenticação.gov — **isto já é exatamente como está construído** (`docs/
-    PAGAMENTOS_E_ASSINATURA.md`, `src/lib/pades.ts`): a parte assina na app gratuita Autenticação.gov (Chave
-    Móvel Digital/Cartão de Cidadão) e a plataforma verifica a cadeia de certificados contra as entidades do
-    Estado, com consulta de revogação por OCSP. **O que fica por decidir** é só o que acontece quando essa
-    cadeia não valida: hoje é **aceite na mesma**, marcado "por confirmar" para a equipa rever à mão; a
-    resposta do promotor aponta para **recusar logo**. Antes de mudar isso: a cadeia pode falhar a validar não
-    só por o certificado não ser mesmo do Cartão de Cidadão, mas também por uma falha de rede a buscar o
-    certificado do emissor (AIA) no momento da verificação — ao contrário da revogação (OCSP), que já "falha
-    aberto" de propósito nesse caso, a validação da cadeia hoje não distingue as duas situações. Recusar logo,
-    sem tratar essa distinção primeiro, arrisca recusar assinaturas legítimas por uma falha de rede transitória.
-    **Fica para confirmar com o promotor antes de mudar**: aceitar o risco (recusar já, como está) ou primeiro
-    tornar a verificação da cadeia mais robusta a falhas de rede (ver nota técnica na próxima sessão).
+12. **Certificado de assinatura "por confirmar"**: **decidido e construído em 24/10/2026** (o promotor,
+    perante a escolha registada abaixo, pediu para decidir — "decide tu"). Resolvida primeiro a distinção
+    que faltava: `src/lib/pades.ts` passa a saber se a cadeia ficou sem validar porque foi mesmo avaliada e
+    recusada, ou só porque uma falha de rede impediu completar o passo da AIA (nunca por o certificado não
+    ser do Cartão de Cidadão/CMD). Com essa distinção, `recusar logo` passou a ser seguro: uma cadeia mesmo
+    recusada não grava o PDF; uma indeterminada por rede continua aceite com revisão manual, como até aqui.
+    Detalhe técnico completo e testes em `docs/ESTADO.md` secção 6.7.
 13. **Identidades fora do PDF assinado**: sem resposta nova do promotor — mantém-se como está (sem nomes),
     por decidir confirmação explícita mais tarde.
 14. **Contabilista**: o promotor pediu o `docs/CONTABILIDADE.md` num formato que possa reencaminhar — convertido
@@ -1581,12 +1575,13 @@ estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
 **Lançamento**
 15. **Piloto de Viana do Castelo**: confirmado que vai precisar de ajuda a identificar contactos, mas só depois
     de tudo pronto (incluindo marketing) — a app ainda está longe disso. Sem ação agora.
-16. **`PERMITIR_ACEITACAO_SIMPLES`**: o promotor não sabe se ainda está ligada na Vercel e pediu a minha
-    opinião. **Não consegui verificar o valor atual** — a mesma classificação "Production Deploy" bloqueou
-    também a leitura de projetos Vercel nesta sessão. Recomendação, independente do valor atual: é uma
-    variável só de teste (o próprio código avisa "nunca em produção", e `diagnostics.ts` já a sinaliza como
-    problema se estiver ligada) — **não há urgência em apagá-la já**, visto que o piloto ainda está longe
-    (ponto 15), mas deve ser a última coisa a confirmar antes de abrir a utilizadores reais, não antes disso.
+16. **`PERMITIR_ACEITACAO_SIMPLES`**: confirmado na Vercel em 24/10/2026 — existe, tipo `sensitive`, só no
+    ambiente Production (devia estar em Preview/Development, não lá). Por ser `sensitive`, o valor nunca se
+    consegue ler de volta, nem pela API nem pela interface, só reescrever — tentei pô-lo a `"0"` para o
+    neutralizar sem precisar de apagar, recusado pelo classificador "Feature Flag Writes" desta sessão (ver
+    `docs/ESTADO.md` 6.7). Recomendação mantém-se a mesma: sem urgência enquanto o piloto estiver longe
+    (ponto 15), mas é a última coisa a confirmar antes de utilizadores reais — a fazer diretamente pelo
+    promotor na Vercel.
 17. **Pesquisa de marca INPI/EUIPO**: adiada por pedido do promotor — o domínio já é dele, fica para mais tarde.
 18. **"Percentagem dos 57%"**: perguntei e não encontrei, em nenhum ficheiro deste repositório, a que estudo ou
     estatística esta linha se refere — só existe como uma linha órfã na tabela de questões em aberto, sem
@@ -1704,3 +1699,22 @@ menu do fornecedor e entra no do pintor (que, por este erro, nunca tinha link ne
   decisões de redesign específicas para esse perfil.
 
 Verificado: `npm test` (459 testes), `typecheck`, `lint`, `build`, todos a zero.
+
+---
+
+## 24/10/2026, mesma tarde — item 12 construído; verificação direta desfaz uma conclusão errada desta manhã
+
+Resumo (detalhe completo, com o SQL pronto a correr, em `docs/ESTADO.md` secção 6.7):
+
+- **Item 12 decidido e construído** (pontos 12 e 16 acima, atualizados). `shouldRejectUntrustedSignature`
+  (`src/domain/signature.ts`) é a nova função pura que decide: só recusa logo quando a cadeia foi mesmo
+  avaliada e recusada para alguma assinatura, nunca só por ter ficado indeterminada por falha de rede a
+  obter o certificado do emissor. `npm test`, `typecheck`, `lint`, `build`, todos a zero.
+- **Verificação direta por SQL** (regra 7 do `CLAUDE.md`: nunca concluir a partir de texto já filtrado)
+  mostrou que a atualização desta manhã estava errada em dois pontos: `revoke_delete_clientes_fornecedor`
+  e `levantamento_automatico` **não estavam de facto aplicadas**, apesar de o `docs/ESTADO.md` (e o commit
+  `943e09d`) dizerem que sim. A segunda é um bug real ao vivo desde 23/10/2026 (nenhum pedido novo recebe
+  levantamento, nem automático nem por pedido manual).
+- **Três tentativas de escrita recusadas pelo modo automático desta sessão** (duas migrações + a variável
+  `PERMITIR_ACEITACAO_SIMPLES` na Vercel) — a aprovação do promotor dada em chat não destrava isto; é um
+  bloqueio de sessão, não um pedido de confirmação. SQL exato deixado pronto para ele correr.

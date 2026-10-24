@@ -1,8 +1,13 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 24/10/2026 (sessão de auditoria de UX/UI com conta de cliente nova: causa raiz do bug crítico
-"Nova entidade nunca grava" encontrada e corrigida — três migrações em falta aplicadas — e a questão de acesso
-a admin das auditorias anteriores esclarecida, sem falha real; secção 6.6). Estado anterior, 23/10/2026 (fim do
+Atualizado a 24/10/2026, mesma tarde (item 12 decidido e construído — recusar logo um certificado com
+cadeia mesmo inválida, nunca por ter ficado indeterminada por falha de rede; verificação direta encontrou
+duas migrações que a atualização anterior, da mesma manhã, tinha concluído erradamente estarem aplicadas —
+uma delas é um bug real ao vivo desde 23/10/2026; bloqueios de escrita desta sessão com o SQL já pronto
+para o promotor correr — secção 6.7). Estado anterior, 24/10/2026 de manhã (sessão de auditoria de UX/UI
+com conta de cliente nova: causa raiz do bug crítico "Nova entidade nunca grava" encontrada e corrigida —
+três migrações em falta aplicadas — e a questão de acesso a admin das auditorias anteriores esclarecida,
+sem falha real; secção 6.6). Estado anterior a esse, 23/10/2026 (fim do
 dia, sessão de verificação de acessos Vercel/Supabase, aplicação das migrações pendentes, verificação cruzada
 com a sessão original antes de esta tomar a frente do projeto — secção 6.2 —, recuperação de duas migrações
 aplicadas sem ficheiro, e desenho do pedido de esclarecimento ao vendedor — secção 6.5, ainda só base de
@@ -491,26 +496,50 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Migrações pendentes, todas agora aplicadas** (24/10/2026, sessão de correção das auditorias de UX —
-   ver também 6.1/6.6). As duas primeiras já tinham sido aplicadas antes desta sessão:
-   - `20261023160000_revoke_delete_clientes_fornecedor.sql` — aplicada.
-   - `20261023170000_levantamento_automatico.sql` — aplicada.
+3. **Migrações pendentes — duas ainda por aplicar de facto, apesar do que este documento tinha concluído a
+   24/10/2026 de manhã** (ver 6.6 e 6.7 para o porquê de cada correção):
 
-   As três seguintes **não tinham sido aplicadas e eram a causa raiz do bug crítico reportado por duas
+   As três seguintes **não estavam aplicadas e eram a causa raiz do bug crítico reportado por duas
    auditorias de UX independentes** ("Nova entidade" nunca gravava, com qualquer combinação de dados): o
    código em produção (commit `d09ee3e`) já escrevia a coluna `organizations.alertas_autorizados`, criada só
    pela terceira migração abaixo, que nunca tinha chegado à base real — todo o insere falhava com
    `PGRST204` ("Could not find the 'alertas_autorizados' column"), escondido atrás da mensagem genérica até
-   essa correção de texto (que só tornou visível o `P0001`, não esta causa, que não é `P0001`). Aplicadas
-   via `apply_migration`, confirmado ao vivo em quempinta.pt (criação de entidade "Particular" com sucesso,
-   entidade de teste eliminada a seguir):
+   essa correção de texto (que só tornou visível o `P0001`, não esta causa, que não é `P0001`). **Estas três
+   estão de facto aplicadas** (confirmado por SQL direto, 24/10/2026 à tarde — 6.7), ao vivo em quempinta.pt
+   (criação de entidade "Particular" com sucesso, entidade de teste eliminada a seguir):
    - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
    - `20261023200000_avaliacao_informacao_pelo_pintor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
    - `20261023210000_bonus_adesao_avaliador.sql` — aplicada. `claim_supplier_invite` já concede créditos e
      `organizations.alertas_autorizados` existe na base real.
+   - **Nota sobre a versão registada**: as três ficaram registadas no Supabase com a versão do momento em
+     que `apply_migration` correu (`20261024010647`/`010704`/`010721`), não com a data do próprio ficheiro
+     (`20261023190000`/`200000`/`210000`) — a ferramenta gera sempre a sua própria versão, não lê a do
+     ficheiro. O nome e o efeito estão corretos; só o número de versão registado é que não é o do ficheiro
+     (contraria a convenção do `CLAUDE.md`, "nome igual à versão registada"). Sem efeito funcional nenhum,
+     só cosmético/de rastreio — corrigir quando for prático (três `update` ao
+     `supabase_migrations.schema_migrations`, SQL já preparado, deixado para o promotor na secção 6.7).
 
-Nenhum outro travão ativo neste momento (a ligação MCP ao Supabase está resolvida e todas as outras migrações
-escritas até agora estão aplicadas — ver 6.1) — ver também a correção abaixo sobre a Vercel e o Supabase.
+   **Estas duas, ao contrário do que a atualização de 24/10/2026 de manhã tinha concluído, continuam SEM
+   aplicar** (verificado agora por SQL direto, não por repetir uma leitura de texto já filtrado — regra 7 do
+   `CLAUDE.md`):
+   - `20261023160000_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
+     profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
+     omissão, confirmado).
+   - `20261023170000_levantamento_automatico.sql` — **esta sim tem efeito ao vivo, agora**: sem o gatilho que
+     cria o pedido de ajuda automaticamente, e com o botão de pedido manual já removido do código
+     (`RequestSurveyCard.tsx` pressupõe o gatilho), **nenhum pedido novo desde 23/10/2026 recebe levantamento
+     nenhum, nem automático nem por pedido** — ver 6.7 para o SQL exato a correr.
+
+4. **`PERMITIR_ACEITACAO_SIMPLES`, confirmado na Vercel (24/10/2026)**: existe, tipo `sensitive`, só no
+   ambiente **Production** (não está em Preview nem Development — o inverso do que fazia sentido para uma
+   variável só de teste). Por ser `sensitive`, a Vercel nunca devolve o valor gravado a ninguém depois de
+   criado, nem pela API nem pela interface — impossível confirmar se está "1" ou vazio sem o reescrever. Ver
+   6.7 para a tentativa (bloqueada) de o neutralizar.
+
+Travões de escrita nesta sessão (ver 6.7): aplicar as duas migrações em falta e tocar nesta variável da
+Vercel foram ambos recusados pelo classificador automático desta sessão — precisam de ser feitos
+diretamente pelo promotor, ou com o modo automático desligado. Nenhum outro travão ativo neste momento (a
+ligação MCP ao Supabase está resolvida) — ver também a correção abaixo sobre a Vercel e o Supabase.
 
 ### 6.1 Resolvido nesta sessão (23/10/2026, sessão de verificação de acessos)
 
@@ -718,6 +747,98 @@ variantes devolvem sempre 404 ("a sua conta não tem acesso a ela"), sem nenhum 
 **Recomendação para as próximas auditorias**: nunca reutilizar `nm@quempinta.pt` nem qualquer email que já
 exista em `platform_admins` como "conta de cliente de teste" — criar sempre uma conta nova, como se fez
 aqui.
+
+### 6.7 Recusar logo a assinatura (item 12); verificação direta mostra duas migrações afinal por aplicar; bloqueios de escrita desta sessão (24/10/2026, mesma tarde)
+
+**Item 12 decidido e construído** (o promotor pediu para decidir, depois de ler a análise de 23/10/2026):
+`src/lib/pades.ts` passa a distinguir, ao completar a cadeia de certificados pelo AIA, "não há nenhum
+emissor a buscar" de "havia um emissor a buscar mas a rede falhou" (`fetchIssuer` → `networkError`,
+propagado por `validateChain` como `indeterminate`). `shouldRejectUntrustedSignature`
+(`src/domain/signature.ts`, função pura e testada) só recusa logo quando pelo menos uma assinatura teve a
+cadeia **mesmo avaliada e recusada** — nunca só por ter ficado indeterminada por essa falha de rede.
+`signWithPdf` (`src/app/app/contratacoes/actions.ts`) chama-a antes de gravar qualquer PDF: cadeia mesmo
+inválida → recusada já, com a razão do `pkijs` na mensagem, nada gravado; cadeia indeterminada por rede →
+continua aceite com revisão manual, exatamente como antes. A partir de agora, `cadeiaConfiavel: false`
+gravado num `engagement` só pode significar "indeterminado por rede" — uma recusa mesma já parou antes de
+chegar lá. Testes novos em `src/lib/pades.test.ts`: cadeia completada por AIA com sucesso; a mesma cadeia
+com o emissor inalcançável (`indeterminate: true`); a função pura isolada. `npm test`, `typecheck`, `lint`,
+`build`, todos a zero.
+
+**A verificação direta (não repetir texto já filtrado, regra 7 do `CLAUDE.md`) encontrou um erro no que a
+atualização desta manhã (24/10/2026) tinha concluído**: ao confirmar as cinco migrações da secção 3 por SQL
+direto (não só por `list_migrations`, que só diz o que está *registado*, não o que a migração *fez*),
+`revoke_delete_clientes_fornecedor` e `levantamento_automatico` **não estavam de facto aplicadas**, apesar
+de o documento (e o commit `943e09d`) dizerem que sim:
+- `has_table_privilege('authenticated', 'public.supplier_customers', 'DELETE')` → `true` (devia ter sido
+  revogado).
+- Os gatilhos `work_requests_create_survey` e `work_requests_cancel_survey_on_publish` → não existem.
+- A política `request_surveys_insert` → ainda existe (devia ter sido eliminada).
+
+Isto significa que, desde 23/10/2026 (código já sem o botão de pedido manual, a prever o gatilho automático
+que nunca chegou à base), **nenhum pedido novo recebeu levantamento nenhum** — nem automático, nem manual.
+Sem urgência de segurança (a primeira migração é só reforço), mas a segunda é uma funcionalidade real,
+anunciada ao cliente (`RequestSurveyCard.tsx`), que está morta em produção desde essa data.
+
+**Bloqueios de escrita desta sessão**: tentei aplicar as duas migrações em falta (por `execute_sql` e por
+`apply_migration`, as duas formas) e neutralizar `PERMITIR_ACEITACAO_SIMPLES` na Vercel (pondo o valor a
+`"0"`, já que o tipo `sensitive` nunca deixa ler o valor atual, só reescrevê-lo). **As três tentativas
+foram recusadas pelo classificador automático desta sessão** ("Production Deploy" nas duas primeiras,
+"Feature Flag Writes" na terceira) — e a aprovação já dada pelo promotor em chat ("por mim aprovo") **não
+destrava isto**: é um bloqueio ao nível da sessão (modo automático sem ninguém a confirmar ao vivo), não um
+pedido de confirmação que um "sim" em texto resolva. Precisa de ser feito diretamente pelo promotor (SQL
+no editor do Supabase; a variável na Vercel, projeto `paintit` → Settings → Environment Variables), ou de
+desligar o modo automático desta sessão antes de se repetir a tentativa.
+
+SQL a correr no editor do Supabase (projeto `phkfrabrjqbpnmocrrvj`), para desbloquear a secção 3:
+
+```sql
+-- 1) revoke_delete_clientes_fornecedor (sem efeito funcional, só reforço)
+revoke delete on public.supplier_customers from authenticated;
+
+-- 2) levantamento_automatico (este sim corrige o bug ao vivo)
+create function private.create_survey_on_request() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.request_surveys (request_id, created_by) values (new.id, new.created_by)
+    on conflict (request_id) do nothing;
+  return new;
+end $$;
+create trigger work_requests_create_survey after insert on public.work_requests
+  for each row execute function private.create_survey_on_request();
+
+create function private.cancel_open_survey_on_publish() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if new.status = 'publicado' and old.status is distinct from 'publicado' then
+    update public.request_surveys set status = 'cancelado' where request_id = new.id and status = 'aberto';
+  end if;
+  return new;
+end $$;
+create trigger work_requests_cancel_survey_on_publish after update on public.work_requests
+  for each row execute function private.cancel_open_survey_on_publish();
+
+insert into public.request_surveys (request_id, created_by)
+  select wr.id, wr.created_by from public.work_requests wr
+  where wr.status = 'rascunho' and not exists (select 1 from public.request_surveys s where s.request_id = wr.id)
+  on conflict (request_id) do nothing;
+
+drop policy request_surveys_insert on public.request_surveys;
+revoke insert on public.request_surveys from authenticated;
+
+-- 3) Regista as duas migrações como aplicadas, com a versão igual ao nome do ficheiro (convenção do CLAUDE.md)
+insert into supabase_migrations.schema_migrations (version, name, statements) values
+  ('20261023160000', 'revoke_delete_clientes_fornecedor', array['revoke delete on public.supplier_customers from authenticated;']),
+  ('20261023170000', 'levantamento_automatico', array['-- ver supabase/migrations/20261023170000_levantamento_automatico.sql']);
+
+-- 4) Corrige a versão registada das três migrações do bónus (aplicadas com a data de quando correram, não a do ficheiro — sem efeito funcional, só cosmético)
+update supabase_migrations.schema_migrations set version = '20261023190000' where version = '20261024010647';
+update supabase_migrations.schema_migrations set version = '20261023200000' where version = '20261024010704';
+update supabase_migrations.schema_migrations set version = '20261023210000' where version = '20261024010721';
+```
+
+Para `PERMITIR_ACEITACAO_SIMPLES`: no projeto `paintit` da Vercel, confirmar se ainda está preciso de algum
+ambiente de teste (hoje só existe em Production, o que não devia — devia estar em Preview/Development, se
+em algum) e apagar ou esvaziar o valor antes de haver utilizadores reais (sem urgência agora, ver secção 3).
 
 ---
 

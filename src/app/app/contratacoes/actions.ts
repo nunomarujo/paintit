@@ -13,9 +13,8 @@ import type { Json } from '@/lib/database.types';
 import { isPlatformAdmin } from '@/lib/access';
 import { contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
 import { verifySignature } from '@/lib/pades';
-import { findSignatures } from '@/domain/signature';
+import { checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
-import { checkSignedPdf } from '@/domain/signature';
 import { getUser } from '@/lib/supabase/server';
 import { notifyEngagementChange, notifyReferralWon } from '@/lib/notify';
 import { settleRefunds } from '@/lib/payments';
@@ -195,9 +194,23 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
   );
   const invalid = signers.find((x) => !x.valid);
   if (invalid) return { errors: { pdf: `Uma assinatura não é válida${invalid.reason ? ` (${invalid.reason})` : ''}.` } };
+  // Recusar logo um certificado cuja cadeia foi mesmo avaliada e recusada (decisão de 24/10/2026, item 12
+  // do docs/DECISOES.md) — nunca só por a avaliação ter ficado indeterminada por uma falha de rede
+  // transitória a obter um certificado do emissor (`indeterminate`, src/lib/pades.ts): esses continuam
+  // aceites com revisão manual da equipa, como antes.
+  if (shouldRejectUntrustedSignature(signers)) {
+    const reason = signers.find((x) => !x.trusted && !x.indeterminate)?.trustReason;
+    return {
+      errors: {
+        pdf: `O certificado da assinatura não corresponde ao Cartão de Cidadão nem à Chave Móvel Digital do Estado português${reason ? ` (${reason})` : ''}. Assine de novo na aplicação Autenticação.gov.`,
+      },
+    };
+  }
   const signer = {
     name: signers.map((x) => x.name ?? 'titular do certificado').join(' e '),
     serialNumber: signers.map((x) => x.serialNumber ?? '—').join(', '),
+    // Chegado aqui, `trusted: false` só pode significar "indeterminado por falha de rede" — uma cadeia
+    // mesmo recusada já foi devolvida acima, antes de qualquer gravação.
     trusted: signers.every((x) => x.trusted),
   };
 

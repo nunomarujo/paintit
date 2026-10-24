@@ -17,6 +17,10 @@ export interface SignerInfo {
   /** O certificado do signatário encadeia numa entidade "Cartão de Cidadão" do Estado (CC ou CMD). */
   trusted: boolean;
   trustReason?: string;
+  /** `true` só quando `trusted: false` ficou por uma falha de rede a completar a cadeia, nunca quando foi
+   * mesmo avaliada e recusada — ver `validateChain` e `shouldRejectUntrustedSignature`
+   * (`src/domain/signature.ts`). */
+  indeterminate?: boolean;
   /** Nome do titular (CN do certificado). */
   name: string | null;
   /** Número de série do titular (no Cartão de Cidadão / CMD: identificação civil). */
@@ -62,6 +66,7 @@ export async function verifySignature(pdf: Uint8Array, index: number): Promise<S
       valid: result.signatureVerified === true,
       trusted: chain.trusted,
       trustReason: chain.reason,
+      indeterminate: chain.indeterminate,
       name: cert ? attr(cert.subject, OID.CN) : null,
       serialNumber: cert ? attr(cert.subject, OID.SERIAL) : null,
       issuer: cert ? attr(cert.issuer, OID.CN) : null,
@@ -95,16 +100,21 @@ const aiaUrl = (cert: pkijs.Certificate, accessMethod: string): string | undefin
   return url && /^https?:\/\//.test(url) ? url : undefined;
 };
 
-/** Certificado do emissor indicado no próprio certificado (Authority Information Access), se a cadeia não vier no PDF. */
-async function fetchIssuer(cert: pkijs.Certificate): Promise<pkijs.Certificate | null> {
+/** Certificado do emissor indicado no próprio certificado (Authority Information Access), se a cadeia não
+ * vier no PDF. `networkError: true` distingue uma falha a obter esse certificado (sem rede, sem resposta a
+ * tempo, resposta malformada) de simplesmente não haver nenhum AIA a seguir — só a primeira deixa a cadeia
+ * "indeterminada" em vez de recusada (ver `validateChain` e a decisão de 24/10/2026 sobre "recusar logo",
+ * item 12 do `docs/DECISOES.md`): sem esta distinção, uma falha de rede transitória a buscar este
+ * certificado ficava indistinguível de a cadeia ser mesmo inválida. */
+async function fetchIssuer(cert: pkijs.Certificate): Promise<{ cert: pkijs.Certificate | null; networkError: boolean }> {
   const url = aiaUrl(cert, CA_ISSUERS);
-  if (!url) return null;
+  if (!url) return { cert: null, networkError: false };
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
-    return parseCert(new Uint8Array(await res.arrayBuffer()));
+    if (!res.ok) return { cert: null, networkError: true };
+    return { cert: parseCert(new Uint8Array(await res.arrayBuffer())), networkError: false };
   } catch {
-    return null;
+    return { cert: null, networkError: true };
   }
 }
 
@@ -153,18 +163,33 @@ async function checkRevocation(
   }
 }
 
+/**
+ * `indeterminate: true` (decisão de 24/10/2026, item 12 do `docs/DECISOES.md`): a cadeia não chegou a ser
+ * avaliada e recusada de facto — ficou por completar só porque uma falha de rede impediu obter um
+ * certificado do emissor por AIA (`fetchIssuer`). Quem chama decide o que fazer com isto
+ * (`shouldRejectUntrustedSignature`, `src/domain/signature.ts`): nunca se recusa uma assinatura só por
+ * `indeterminate`, porque a cadeia podia muito bem ser válida — só se recusa quando a cadeia foi mesmo
+ * avaliada e recusada (`indeterminate` ausente/`false`).
+ */
 export async function validateChain(
   cert: pkijs.Certificate,
   included: pkijs.Certificate[],
   at?: Date,
   anchors: pkijs.Certificate[] = ANCHORS,
-): Promise<{ trusted: boolean; reason?: string }> {
+): Promise<{ trusted: boolean; reason?: string; indeterminate?: boolean }> {
   const pool = [...included];
+  let indeterminate = false;
   // Completa a cadeia pelo AIA, no máximo três níveis.
   let current = cert;
   for (let i = 0; i < 4; i++) {
     if (anchors.some((c) => c.subject.isEqual(current.issuer))) break;
-    const next = pool.find((c) => c.subject.isEqual(current.issuer)) ?? (await fetchIssuer(current));
+    const found = pool.find((c) => c.subject.isEqual(current.issuer));
+    if (found) {
+      current = found;
+      continue;
+    }
+    const { cert: next, networkError } = await fetchIssuer(current);
+    if (networkError) indeterminate = true;
     if (!next) break;
     if (!pool.includes(next)) pool.push(next);
     current = next;
@@ -176,11 +201,17 @@ export async function validateChain(
       checkDate: at ?? new Date(),
     });
     const r = await engine.verify();
-    if (!r.result) return { trusted: false, reason: r.resultMessage || 'Cadeia de certificados não confiável.' };
+    if (!r.result) {
+      return { trusted: false, reason: r.resultMessage || 'Cadeia de certificados não confiável.', indeterminate: indeterminate || undefined };
+    }
     const issuer = [...pool, ...anchors].find((c) => c.subject.isEqual(cert.issuer));
     const revoked = await checkRevocation(cert, issuer, anchors, pool);
     return revoked ? { trusted: false, reason: 'Certificado revogado.' } : { trusted: true };
   } catch (err) {
-    return { trusted: false, reason: err instanceof Error ? err.message : 'Cadeia de certificados não confiável.' };
+    return {
+      trusted: false,
+      reason: err instanceof Error ? err.message : 'Cadeia de certificados não confiável.',
+      indeterminate: indeterminate || undefined,
+    };
   }
 }

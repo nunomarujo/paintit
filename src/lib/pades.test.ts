@@ -1,7 +1,7 @@
 import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
 import { describe, expect, it } from 'vitest';
-import { checkIncrement, checkSignedPdf, findSignatures } from '@/domain/signature';
+import { checkIncrement, checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { validateChain, verifyLastSignature } from './pades';
 
 // Constrói um PDF "assinado" como a Autenticação.gov faz: acrescenta ao fim um
@@ -175,9 +175,108 @@ describe('cadeia de confiança', () => {
     await leaf.sign(ca.key, 'SHA-256');
     const at = new Date('2026-10-19');
     expect((await validateChain(leaf, [], at, [ca.cert])).trusted).toBe(true);
-    expect((await validateChain(leaf, [], at)).trusted).toBe(false);
+    const semAncora = await validateChain(leaf, [], at);
+    expect(semAncora.trusted).toBe(false);
+    // Sem extensão AIA nenhuma no certificado, nunca se tentou rede nenhuma — recusada mesmo, não indeterminada.
+    expect(semAncora.indeterminate).toBeUndefined();
     expect((await validateChain(leaf, [], new Date('2031-01-01'), [ca.cert])).trusted).toBe(false);
   }, 30_000);
+});
+
+describe('cadeia completada por AIA (certificado do emissor não incluído no PDF)', () => {
+  async function intermediateSignedBy(root: Awaited<ReturnType<typeof testCertificate>>) {
+    const keys = (await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify'],
+    )) as CryptoKeyPair;
+    const inter = new pkijs.Certificate();
+    inter.version = 2;
+    inter.serialNumber = new asn1js.Integer({ value: 20 });
+    inter.issuer = root.cert.subject;
+    inter.subject.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.3', value: new asn1js.Utf8String({ value: 'EC INTERMEDIA TESTE' }) }));
+    inter.notBefore.value = new Date('2026-01-01');
+    inter.notAfter.value = new Date('2030-01-01');
+    const bc = new pkijs.BasicConstraints({ cA: true });
+    inter.extensions = [new pkijs.Extension({ extnID: '2.5.29.19', critical: true, extnValue: bc.toSchema().toBER(false), parsedValue: bc })];
+    await inter.subjectPublicKeyInfo.importKey(keys.publicKey);
+    await inter.sign(root.key, 'SHA-256');
+    return { cert: inter, key: keys.privateKey };
+  }
+
+  async function leafViaAia(inter: Awaited<ReturnType<typeof intermediateSignedBy>>, aiaUrl: string) {
+    const leafKeys = (await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true,
+      ['sign', 'verify'],
+    )) as CryptoKeyPair;
+    const leaf = new pkijs.Certificate();
+    leaf.version = 2;
+    leaf.serialNumber = new asn1js.Integer({ value: 21 });
+    leaf.issuer = inter.cert.subject;
+    leaf.subject.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.3', value: new asn1js.Utf8String({ value: 'RUI' }) }));
+    leaf.notBefore.value = new Date('2026-01-01');
+    leaf.notAfter.value = new Date('2029-01-01');
+    const infoAccess = new pkijs.InfoAccess({
+      accessDescriptions: [
+        new pkijs.AccessDescription({ accessMethod: '1.3.6.1.5.5.7.48.2', accessLocation: new pkijs.GeneralName({ type: 6, value: aiaUrl }) }),
+      ],
+    });
+    leaf.extensions = [new pkijs.Extension({ extnID: '1.3.6.1.5.5.7.1.1', critical: false, extnValue: infoAccess.toSchema().toBER(false), parsedValue: infoAccess })];
+    await leaf.subjectPublicKeyInfo.importKey(leafKeys.publicKey);
+    await leaf.sign(inter.key, 'SHA-256');
+    return leaf;
+  }
+
+  async function withAiaServer(cert: pkijs.Certificate, run: (url: string) => Promise<void>) {
+    const http = await import('node:http');
+    const der = Buffer.from(cert.toSchema().toBER(false));
+    const server = http.createServer((_req, res) => res.end(der));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as { port: number }).port;
+    try {
+      await run(`http://127.0.0.1:${port}/ec.cer`);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }
+
+  it('vai buscar o certificado intermédio por AIA e confia na cadeia completa', async () => {
+    const root = await testCertificate('EC RAIZ TESTE');
+    const inter = await intermediateSignedBy(root);
+    await withAiaServer(inter.cert, async (url) => {
+      const leaf = await leafViaAia(inter, url);
+      const result = await validateChain(leaf, [], new Date('2026-10-19'), [root.cert]);
+      expect(result).toEqual({ trusted: true });
+    });
+  }, 30_000);
+
+  it('sem conseguir ir buscar o emissor por falha de rede, fica indeterminada — nunca recusada por omissão', async () => {
+    const root = await testCertificate('EC RAIZ TESTE 2');
+    const inter = await intermediateSignedBy(root);
+    const leaf = await leafViaAia(inter, 'http://127.0.0.1:1/ec.cer');
+    const result = await validateChain(leaf, [], new Date('2026-10-19'), [root.cert]);
+    expect(result.trusted).toBe(false);
+    expect(result.indeterminate).toBe(true);
+  }, 30_000);
+});
+
+describe('shouldRejectUntrustedSignature (recusar logo ou aceitar para revisão manual)', () => {
+  it('não recusa quando todas as assinaturas são de confiança', () => {
+    expect(shouldRejectUntrustedSignature([{ trusted: true }, { trusted: true }])).toBe(false);
+  });
+
+  it('não recusa quando a falta de confiança ficou indeterminada por falha de rede', () => {
+    expect(shouldRejectUntrustedSignature([{ trusted: false, indeterminate: true }])).toBe(false);
+    expect(shouldRejectUntrustedSignature([{ trusted: true }, { trusted: false, indeterminate: true }])).toBe(false);
+  });
+
+  it('recusa quando a cadeia foi mesmo avaliada e recusada para pelo menos uma assinatura', () => {
+    expect(shouldRejectUntrustedSignature([{ trusted: false }])).toBe(true);
+    expect(shouldRejectUntrustedSignature([{ trusted: true }, { trusted: false }])).toBe(true);
+    // Mesmo com outra indeterminada ao lado, uma recusa mesmo avaliada basta para recusar logo.
+    expect(shouldRejectUntrustedSignature([{ trusted: false, indeterminate: true }, { trusted: false }])).toBe(true);
+  });
 });
 
 describe('revogação por OCSP', () => {
