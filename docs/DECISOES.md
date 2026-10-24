@@ -1889,3 +1889,33 @@ lançamento beta avança sem reescrever/apagar esta variável na Vercel (o tipo 
 confirmar o valor atual por leitura) e, se ainda for precisa para testes, movê-la para Preview/Development —
 nunca Production. Esta sessão continua sem conseguir executar essa escrita (mesmo bloqueio "Feature Flag
 Writes" de antes) — fica para o promotor, ou para uma sessão com o modo automático desligado.
+
+## 24/10/2026, mais tarde (segunda parte) — Catálogo alargado a isolamento (capoto) e acessórios
+
+Pedido do Nuno, verbatim: alargar o catálogo de referência aos materiais de sistema de capoto (ETICS) —
+isolantes (EPS, EPS grafitado, XPS, lã mineral/lã de rocha, cortiça ICB) e acessórios (fixadores mecânicos,
+rede/malha de fibra de vidro, rebocos próprios) — "com as diferentes espessuras disponíveis... faz um
+trabalho como fizeste nas tintas... tudo igual". Decisões tomadas:
+
+- **8 tipos novos no enum `product_type`** (`isolamento_eps`, `isolamento_eps_grafitado`, `isolamento_xps`,
+  `isolamento_la_mineral`, `isolamento_cortica`, `fixador_capoto`, `rede_fibra_vidro`, `reboco_capoto`), em
+  migração própria (`20261024090000_catalogo_isolamento_capoto.sql`) separada da que insere produtos
+  (`20261024130000_...produtos.sql`) — o Postgres não deixa usar um valor de enum na mesma transação em que
+  foi criado.
+- **Seis colunas aditivas em `reference_products`**, todas `null`/vazias por omissão e por isso inofensivas
+  para os produtos de tinta existentes: `espessuras_mm` (array), `dimensoes`, `m2_por_embalagem`,
+  `condutividade_termica_w_mk`, `reacao_fogo`, `unidade_venda`. Estes produtos não se medem em litros: os
+  campos de tinta (`rendimento_m2_l`, `diluicao`, `secagem_horas`, `cores`, `base_aquosa`, `preco_embalagem_l`)
+  ficam `null` para eles, tal como já acontecia com `massa_reparacao`/`outro`.
+- **`ISOLAMENTO_E_ACESSORIOS`** (`src/domain/catalog.ts`) marca estes 8 tipos como "ficha de placa/rolo/
+  acessório" — usado pela interface (`/app/catalogo` e a ficha do produto) para mostrar espessuras,
+  dimensões, condutividade térmica (λ) e reação ao fogo em vez dos campos de tinta, e para calcular
+  quantidade/custo por m² de embalagem (`boardQuantity`, `src/domain/catalog.ts`) em vez de litros/demãos
+  (`consumption`) — não há "demãos" numa placa.
+- **29 produtos reais inseridos** (investigação em paralelo, por categoria: 4 EPS, 2 EPS grafitado, 3 XPS,
+  4 lã mineral, 2 cortiça, 4 fixadores, 5 redes de fibra de vidro, 5 rebocos ETICS), com a mesma disciplina
+  da tinta: preço só quando confirmado por fonte pública e datado, nunca estimado; campos sem confirmação
+  ficam em branco, nunca adivinhados. Sem preço público confirmado: todos os fixadores e rebocos, a cortiça,
+  a maioria das redes e a maioria dos isolantes (só um produto por categoria tinha preço de catálogo
+  publicado). Um produto de cortiça (ficha da Weber/Saint-Gobain) ficou de fora por a ficha técnica pública
+  não ser legível para extrair dados com confiança.

@@ -1,9 +1,9 @@
 import { ProductCard } from '@/components/ProductCard';
 import { AutoSubmit } from '@/components/AutoSubmit';
-import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS, consumption, type ProductType } from '@/domain/catalog';
+import { ISOLAMENTO_E_ACESSORIOS, PRODUCT_TYPES, PRODUCT_TYPE_LABELS, boardQuantity, consumption, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { parseHundredths } from '@/domain/request';
-import { loadReferences, refPerLitre } from '@/lib/reference';
+import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { ProductThumb } from '@/components/ProductThumb';
@@ -45,19 +45,23 @@ export default async function CatalogPage({
   const coats = Math.max(1, Math.min(5, Number(demaos) || 2));
   const field = 'mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2';
 
-  // Estimativa de consumo e custo por produto de referência, quando há área e rendimento conhecido —
-  // o mesmo cálculo usado abaixo para os produtos dos fornecedores (CMP-06).
+  // Estimativa de consumo/quantidade e custo por produto de referência, quando há área conhecida — o mesmo
+  // cálculo usado abaixo para os produtos dos fornecedores (CMP-06). Isolamento e acessórios não se medem em
+  // litros nem levam demãos: a quantidade vem de m² por embalagem (ISOLAMENTO_E_ACESSORIOS, docs/DECISOES.md).
   const refsCalc = refsAll.map((r) => {
-    const pl = refPerLitre(r);
-    const estimativa =
-      areaCm2 && !Number.isNaN(areaCm2) && r.rendimento_m2_l && r.preco_embalagem_l && r.preco_referencia_cents
+    const isBoard = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
+    const pl = isBoard ? refPerM2(r) : refPerLitre(r);
+    const areaM2 = areaCm2 && !Number.isNaN(areaCm2) ? areaCm2 / 100 : null;
+    const estimativa = isBoard
+      ? areaM2 ? boardQuantity(areaM2, { m2PorEmbalagem: r.m2_por_embalagem, precoReferencia: r.preco_referencia_cents }) : null
+      : areaCm2 && !Number.isNaN(areaCm2) && r.rendimento_m2_l && r.preco_embalagem_l && r.preco_referencia_cents
         ? consumption(areaCm2, coats, {
             rendimento: Math.round(r.rendimento_m2_l * 100),
             embalagemMl: Math.round(r.preco_embalagem_l * 1000),
             precoReferencia: r.preco_referencia_cents,
           })
         : null;
-    return { r, pl, estimativa };
+    return { r, pl, isBoard, estimativa };
   });
   const sortByPrice = ordenar === 'preco';
   const refsSorted = sortByPrice
@@ -149,7 +153,7 @@ export default async function CatalogPage({
             <p className="text-sm text-slate-600">Ainda sem produtos de referência no catálogo.</p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {picks.map(({ r, pl }) => (
+              {picks.map(({ r, pl, isBoard }) => (
                 <li key={r.id}>
                   <Link
                     href={`/app/catalogo/referencia/${r.id}`}
@@ -171,11 +175,17 @@ export default async function CatalogPage({
                     </div>
                     <p className="flex-1 text-xs text-slate-600">
                       {r.descricao ??
-                        `${PRODUCT_TYPE_LABELS[r.tipo]}${r.uso ? ` para uso ${r.uso}` : ''}${r.cores ? `, em ${r.cores.toLowerCase()}` : ''}.`}
+                        `${PRODUCT_TYPE_LABELS[r.tipo]}${r.uso ? ` para uso ${r.uso}` : ''}${!isBoard && r.cores ? `, em ${r.cores.toLowerCase()}` : ''}.`}
                     </p>
                     <span className="text-xs text-slate-500">
-                      {r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Embalagens não indicadas'}
-                      {pl !== null ? ` · ${formatEuros(pl)}/L` : ''}
+                      {isBoard
+                        ? r.espessuras_mm.length
+                          ? `${r.espessuras_mm.map((e) => e.toLocaleString('pt-PT')).join(' / ')} mm`
+                          : r.dimensoes ?? 'Espessuras não indicadas'
+                        : r.embalagens_l.length
+                          ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L`
+                          : 'Embalagens não indicadas'}
+                      {pl !== null ? ` · ${formatEuros(pl)}/${isBoard ? 'm²' : 'L'}` : ''}
                     </span>
                   </Link>
                 </li>
@@ -194,7 +204,7 @@ export default async function CatalogPage({
             <p className="text-sm text-slate-600">Sem produtos de referência com estes filtros.</p>
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {refsSorted.map(({ r, pl, estimativa }) => (
+              {refsSorted.map(({ r, pl, isBoard, estimativa }) => (
                 <li key={r.id}>
                   <Link
                     href={`/app/catalogo/referencia/${r.id}`}
@@ -210,10 +220,22 @@ export default async function CatalogPage({
                         {r.acabamento ? ` · ${r.acabamento}` : ''}
                       </span>
                       <span className="mt-1 block text-xs text-slate-500">
-                        {r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Embalagens não indicadas'}
-                        {pl !== null ? ` · ${formatEuros(pl)}/L` : ''}
+                        {isBoard
+                          ? r.espessuras_mm.length
+                            ? `${r.espessuras_mm.map((e) => e.toLocaleString('pt-PT')).join(' / ')} mm`
+                            : r.dimensoes ?? 'Espessuras não indicadas'
+                          : r.embalagens_l.length
+                            ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L`
+                            : 'Embalagens não indicadas'}
+                        {pl !== null ? ` · ${formatEuros(pl)}/${isBoard ? 'm²' : 'L'}` : ''}
                       </span>
-                      {estimativa && (
+                      {estimativa && isBoard && !('ml' in estimativa) && (
+                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-xs">
+                          Para {area} m²: {estimativa.embalagens} embalage{estimativa.embalagens > 1 ? 'ns' : 'm'}
+                          {estimativa.custo !== null ? `, cerca de ${formatEuros(estimativa.custo)} sem IVA` : ''}
+                        </span>
+                      )}
+                      {estimativa && !isBoard && 'ml' in estimativa && (
                         <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-xs">
                           Para {area} m² com {coats} demão{coats > 1 ? 's' : ''}:{' '}
                           {(estimativa.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L

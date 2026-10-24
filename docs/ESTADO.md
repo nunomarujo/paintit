@@ -1195,3 +1195,26 @@ implantação — estavam escondidos pelo ficheiro desatualizado. Por categorias
 Decisão: não varrer à pressa. São ficheiros de dinheiro e faturação, e silenciar erros de tipos nesse
 código é pior do que tê-los à vista. Repôs-se o ficheiro anterior com `forma_implantacao` acrescentada
 à mão, para o repositório compilar, e fica esta tarefa por fazer — a começar pelas inserções.
+
+
+### Catálogo alargado a isolamento (capoto/ETICS) e acessórios (24/10/2026)
+
+Pedido do Nuno: "faz um trabalho como fizeste nas tintas" para os materiais de sistema de capoto —
+isolantes (EPS, EPS grafitado, XPS, lã mineral, cortiça ICB) e acessórios (fixadores, redes de fibra de
+vidro, rebocos ETICS). Ver `docs/DECISOES.md`, "Catálogo alargado a isolamento (capoto) e acessórios",
+para a decisão completa.
+
+**Feito:** 8 tipos novos no enum `product_type` e 6 colunas aditivas em `reference_products`
+(`supabase/migrations/20261024090000_...` e `20261024130000_...produtos.sql`, já aplicadas na base real
+e confirmadas por SQL direto — 29 produtos, contagem por tipo conferida); `database.types.ts` atualizado
+à mão; `ISOLAMENTO_E_ACESSORIOS` e `boardQuantity` em `src/domain/catalog.ts`; `/app/catalogo` e a ficha
+do produto (`/app/catalogo/referencia/[id]`) já mostram espessuras, dimensões, condutividade térmica (λ)
+e reação ao fogo para estes tipos, em vez dos campos de tinta, e calculam quantidade/custo por m² de
+embalagem em vez de litros/demãos. `npm run typecheck`/`test`/`lint`/`build` todos verificados pelo
+código de saída.
+
+**Por fazer / honesto com o Nuno:** sem preço público confirmado — todos os fixadores e rebocos, a
+cortiça, a maioria das redes e a maioria dos isolantes (só um produto por categoria tinha preço de
+catálogo publicado). Um produto de cortiça ficou de fora por a ficha técnica pública (PDF) não ser
+legível para extrair dados com confiança. Fotografias dos produtos novos ainda não existem (mesma
+situação dos produtos de tinta sem foto — direitos de imagem).

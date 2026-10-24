@@ -86,6 +86,18 @@ export interface Consumption {
   custo: Cents | null;
 }
 
+export interface BoardQuantity {
+  embalagens: number;
+  custo: Cents | null;
+}
+
+/** Quantidade de placas/rolos/sacos (isolamento e acessórios, vendidos por m² de embalagem, não por litro). */
+export function boardQuantity(areaM2: number, p: { m2PorEmbalagem: number | null; precoReferencia: Cents | null }): BoardQuantity | null {
+  if (!p.m2PorEmbalagem || p.m2PorEmbalagem <= 0 || areaM2 <= 0) return null;
+  const embalagens = Math.ceil(areaM2 / p.m2PorEmbalagem);
+  return { embalagens, custo: p.precoReferencia !== null ? embalagens * p.precoReferencia : null };
+}
+
 /** Quantidade para uma área e número de demãos; as embalagens arredondam para cima. */
 export function consumption(area: AreaCm2, demaos: number, p: Pick<ProductInput, 'rendimento' | 'embalagemMl' | 'precoReferencia'>): Consumption | null {
   if (!p.rendimento || p.rendimento <= 0 || area <= 0 || demaos <= 0) return null;

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProductPhotoZoom } from '@/components/ProductPhotoZoom';
-import { PRODUCT_TYPE_LABELS } from '@/domain/catalog';
+import { ISOLAMENTO_E_ACESSORIOS, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
-import { loadReferences, refPerLitre } from '@/lib/reference';
+import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
@@ -44,7 +44,8 @@ export default async function ReferencePage({
   const sellers = (orgs ?? [])
     .map((o) => ({ ...o, entrega: (delivery ?? []).find((d) => d.org_id === o.id), items: sellerProducts.filter((p) => p.org_id === o.id) }))
     .filter((o) => !place || o.localidade?.toLowerCase() === place || o.entrega?.concelhos.some((c) => c.toLowerCase() === place));
-  const pl = refPerLitre(r);
+  const isBoard = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
+  const pl = isBoard ? refPerM2(r) : refPerLitre(r);
 
   return (
     <div className="space-y-6">
@@ -65,7 +66,7 @@ export default async function ReferencePage({
             {PRODUCT_TYPE_LABELS[r.tipo]}
             {r.acabamento ? ` · ${r.acabamento}` : ''}
             {r.uso ? ` · ${r.uso}` : ''}
-            {r.base_aquosa === true ? ' · base aquosa' : r.base_aquosa === false ? ' · base solvente' : ''}
+            {!isBoard && (r.base_aquosa === true ? ' · base aquosa' : r.base_aquosa === false ? ' · base solvente' : '')}
           </p>
           {r.descricao && <p>{r.descricao}</p>}
         </div>
@@ -75,25 +76,42 @@ export default async function ReferencePage({
         <h2 className="font-semibold">Detalhes</h2>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
           {(
-            [
-              ['Embalagens', r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Não indicadas'],
-              ['Cores', r.cores ?? 'Não indicadas'],
-              [
-                'Rendimento',
-                r.rendimento_m2_l
-                  ? `${r.rendimento_m2_l.toLocaleString('pt-PT')} m²/L por demão${r.rendimento_estimado ? ' (estimativa típica, não confirmada pelo fabricante)' : ''}`
-                  : 'Não indicado',
-              ],
-              ['Demãos', r.demaos ?? 'Não indicadas'],
-              ['Secagem para repintura', r.secagem_horas ? `${r.secagem_horas.toLocaleString('pt-PT')} h` : 'Não indicada'],
-              ['Diluição', r.diluicao ?? 'Não indicada'],
-              [
-                'Preço de referência',
-                r.preco_referencia_cents
-                  ? `${formatEuros(r.preco_referencia_cents)} (${r.preco_embalagem_l?.toLocaleString('pt-PT')} L)${pl !== null ? ` · ${formatEuros(pl)}/L` : ''}${r.preco_fonte ? ` · fonte: ${r.preco_fonte}` : ''}${r.preco_data ? `, ${r.preco_data}` : ''}`
-                  : 'Não indicado',
-              ],
-            ] as const
+            isBoard
+              ? ([
+                  ['Espessuras', r.espessuras_mm.length ? `${r.espessuras_mm.map((e) => e.toLocaleString('pt-PT')).join(' / ')} mm` : 'Não indicadas'],
+                  ['Dimensões', r.dimensoes ?? 'Não indicadas'],
+                  ['Unidade de venda', r.unidade_venda ?? (r.m2_por_embalagem ? `embalagem de ${r.m2_por_embalagem.toLocaleString('pt-PT')} m²` : 'Não indicada')],
+                  [
+                    'Condutividade térmica (λ)',
+                    r.condutividade_termica_w_mk ? `${r.condutividade_termica_w_mk.toLocaleString('pt-PT')} W/(m·K)` : 'Não indicada',
+                  ],
+                  ['Reação ao fogo', r.reacao_fogo ?? 'Não indicada'],
+                  [
+                    'Preço de referência',
+                    r.preco_referencia_cents
+                      ? `${formatEuros(r.preco_referencia_cents)}${r.m2_por_embalagem ? ` (${r.m2_por_embalagem.toLocaleString('pt-PT')} m²)` : ''}${pl !== null ? ` · ${formatEuros(pl)}/m²` : ''}${r.preco_fonte ? ` · fonte: ${r.preco_fonte}` : ''}${r.preco_data ? `, ${r.preco_data}` : ''}`
+                      : 'Não indicado',
+                  ],
+                ] as const)
+              : ([
+                  ['Embalagens', r.embalagens_l.length ? `${r.embalagens_l.map((l) => l.toLocaleString('pt-PT')).join(' / ')} L` : 'Não indicadas'],
+                  ['Cores', r.cores ?? 'Não indicadas'],
+                  [
+                    'Rendimento',
+                    r.rendimento_m2_l
+                      ? `${r.rendimento_m2_l.toLocaleString('pt-PT')} m²/L por demão${r.rendimento_estimado ? ' (estimativa típica, não confirmada pelo fabricante)' : ''}`
+                      : 'Não indicado',
+                  ],
+                  ['Demãos', r.demaos ?? 'Não indicadas'],
+                  ['Secagem para repintura', r.secagem_horas ? `${r.secagem_horas.toLocaleString('pt-PT')} h` : 'Não indicada'],
+                  ['Diluição', r.diluicao ?? 'Não indicada'],
+                  [
+                    'Preço de referência',
+                    r.preco_referencia_cents
+                      ? `${formatEuros(r.preco_referencia_cents)} (${r.preco_embalagem_l?.toLocaleString('pt-PT')} L)${pl !== null ? ` · ${formatEuros(pl)}/L` : ''}${r.preco_fonte ? ` · fonte: ${r.preco_fonte}` : ''}${r.preco_data ? `, ${r.preco_data}` : ''}`
+                      : 'Não indicado',
+                  ],
+                ] as const)
           ).map(([k, v]) => (
             <div key={k} className="contents">
               <dt className="text-slate-500">{k}</dt>

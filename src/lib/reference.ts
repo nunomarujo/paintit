@@ -8,6 +8,10 @@ export type ReferenceProduct = Database['public']['Tables']['reference_products'
 export const refPerLitre = (r: Pick<ReferenceProduct, 'preco_referencia_cents' | 'preco_embalagem_l'>) =>
   pricePerLitre({ preco: r.preco_referencia_cents, litros: r.preco_embalagem_l });
 
+/** Preço de referência por m² de embalagem (isolamento e acessórios vendidos por área, não por litro). */
+export const refPerM2 = (r: Pick<ReferenceProduct, 'preco_referencia_cents' | 'm2_por_embalagem'>) =>
+  pricePerLitre({ preco: r.preco_referencia_cents, litros: r.m2_por_embalagem });
+
 export async function loadReferences(supabase: SupabaseClient<Database>, ids?: string[]): Promise<ReferenceProduct[]> {
   if (ids && ids.length === 0) return [];
   // Produtos sem confirmação suficiente dos dados do fabricante (visivel = false) ficam fora
