@@ -1805,6 +1805,57 @@ bónus).
 é uma aceitação de termos, fica para ele, com um clique. É o único passo que falta para ver o ecrã do
 esclarecimento.
 
+## 24/10/2026, madrugada (segunda parte) — Cinco pontos do levantamento, e a gestora reorganizada
+
+Pedidos do promotor, por ordem de chegada, com o que ficou feito:
+
+1. **Submissão da informação pelo avaliador** — os campos ganharam um `(i)` que abre a explicação do
+   campo (`Field`, propriedade `info`, com `<details>` nativo: sem estado, funciona sem JavaScript). O
+   envio de fotografias ("**fotos originais**", o nome que o promotor lhes dá) avisa a vermelho que nada
+   na imagem pode identificar o prédio, e tem popup "Instruções das fotografias" com três regras, cada
+   uma com um desenho: zona representativa de 2-5 m², fotografias próximas das anomalias, e o que nunca
+   fotografar. Pouco texto, como ele exigiu.
+2. **Pedido de esclarecimento** — já construído na entrada anterior.
+3. **A resposta soma ao dossiê** — `survey_addenda` (migração 20261024040000) devolve todas as rondas,
+   com perguntas e resposta de cada uma, pela ordem em que aconteceram. Nada substitui o anterior.
+   Aparece ao pintor e ao cliente. **Não devolve quem perguntou**: abrir
+   `survey_clarification_items` aos pintores mostraria a concorrentes quem perguntou o quê, contra a
+   decisão de 23/10/2026.
+4. **Prazos e avisos** — `Countdown` com a contagem a correr, a vermelho abaixo de duas horas, nas duas
+   etapas do vendedor e na espera do pintor. E `respond_clarification` passa a avisar as entidades de
+   pintura que perguntaram e o cliente: **até aqui não avisava ninguém**, pelo que a resposta chegava
+   sem sinal a quem esperava por ela.
+5. **Ganho previsto** — cartão no ecrã do levantamento com a fração atual na banda 1%-2,7%, as quatro
+   parcelas (40/30/15/15) com o valor de cada uma, o bónus quando há crédito, e a tradução em euros para
+   obras de 10k/25k/50k. **Não inventa um valor para a obra concreta**: quando o levantamento se faz
+   ainda não há proposta escolhida, e um número inventado seria prometer o que a plataforma não sabe.
+   `surveyorEarningView` lê com privilégios próprios (o vendedor não vê notas individuais dos pintores,
+   só a média) e a página confirma à mão que quem vê pertence à entidade do vendedor.
+
+**Reorganização do ecrã da gestora**, depois de ele olhar para o cartão "Dados da entidade":
+- Ícone de configuração junto ao nome — é aí que se editam os dados da própria gestora.
+- O cartão de cima passa a ser do **prédio selecionado** (morada, condomínio, NIPC, pisos/frações/
+  fachadas/ano), com "Configurar prédio". Os prédios são botões: clica-se, fica marcado, e a escolha
+  vive no endereço (`?predio=`), para aguentar um recarregar e poder ser partilhada.
+- **Gravação à medida que se escreve**, sem botão (`AutoSaveField`): características do prédio, obras
+  pretendidas e área aproximada. **A morada ficou de fora disto**, com gravação explícita: é validada
+  contra o código postal real e meio código postal é um código postal inválido — gravar a cada tecla daria
+  erro a cada tecla.
+- Duas armadilhas evitadas: `saveBuildingCharacteristic` não constrói consulta nenhuma com o nome do
+  campo vindo do navegador (regra 10) e repete os limites de `parseBuilding` em vez de inventar outros; e
+  criou-se `updateBuildingIdentity` porque o formulário da morada, a escrever o prédio inteiro, **apagava**
+  as características que já não vinham nele.
+
+**Decisão tomada por omissão, e anunciada antes de avançar — obras fora da pintura.** O promotor pediu
+que a ficha do prédio deixasse descrever "pinturas, revestimento, caleiras, telhado, etc". A plataforma é
+**só de pintura** (CLAUDE.md, tipos de obra, alvarás IMPIC exigidos ao pintor). Pus-lhe as duas leituras à
+frente — (1) registar tudo e orçamentar só pintura; (2) alargar o âmbito, com alvarás, quem orçamenta e
+comissão a decidir — e disse que assumiria a 1 na ausência de resposta, por ser a reversível. Ele mandou
+continuar sem responder: **está construída a 1**. `src/domain/buildingNeeds.ts` guarda a lista e a regra de
+quais se orçamentam (pintura e impermeabilização); as restantes ficam registadas para o avaliador saber o
+que vai encontrar, e o ecrã diz isso por escrito em vez de as esconder. Alargar o âmbito continua
+disponível, sem nada por desfazer.
+
 ## 24/10/2026, mais tarde — Regra obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada
 
 Pedido explícito do promotor, verbatim: "`PERMITIR_ACEITACAO_SIMPLES` ligado > lembra-me / exigi-o como

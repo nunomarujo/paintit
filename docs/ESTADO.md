@@ -517,7 +517,8 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      de pedido já tinha sido removido do código a pressupor o gatilho que ainda não existia na base real).
    - `get_advisors` sem categorias novas de aviso. `npm test` (464), `typecheck`, `lint`, `build` — zero.
 
-   **Continuam por aplicar**:
+   **Continuam por aplicar** (as três últimas são desta madrugada; sem elas, os ecrãs correspondentes
+   mostram aviso ou vêm vazios, nunca rebentam — ver 6.9 e 6.10):
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
      profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
      omissão, confirmado). Sem pedido do promotor para o fazer ainda.
@@ -525,6 +526,12 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      para pedir esclarecimento e avaliar a informação do levantamento não mostram nada (ver 6.9). DDL
      recusado pelo classificador desta sessão; aplicar pela sessão do Code, pelo editor do Supabase, ou
      com o modo automático desligado.
+   - `20261024040000_adendas_ao_dossie_e_avisos.sql` — `survey_addenda` (a resposta ao esclarecimento a
+     somar ao dossiê, sem apagar o anterior) e os avisos a quem perguntou e ao cliente. Sem ela, as
+     adendas vêm vazias e ninguém é avisado quando a resposta chega.
+   - `20261024050000_obras_pretendidas_no_predio.sql` — `buildings.obras_pretendidas` e
+     `area_aproximada_cm2`. Sem ela, a ficha do prédio mostra um aviso no lugar desse bloco (e por isso
+     também não aparece o cartão "Quer iniciar pedidos de orçamentos?").
 
 4. **`PERMITIR_ACEITACAO_SIMPLES`, confirmado na Vercel (24/10/2026)**: existe, tipo `sensitive`, só no
    ambiente **Production** (não está em Preview nem Development — o inverso do que fazia sentido para uma
@@ -878,6 +885,31 @@ secção 3). Não voltar a correr as partes 2 e 4 deste bloco.
 
 Para `PERMITIR_ACEITACAO_SIMPLES`: **regra obrigatória antes do lançamento beta, não um "sem urgência"** — ver
 secção 6.8.
+
+### 6.10 Levantamento explicado, adendas, prazos, ganho previsto, e a gestora reorganizada (24/10/2026, madrugada, segunda parte)
+
+Detalhe em `docs/DECISOES.md`, entrada "24/10/2026, madrugada (segunda parte)". O que convém saber de
+cor:
+
+- **Fotografias do levantamento** chamam-se "**fotos originais**" na linguagem do promotor. O ecrã tem
+  popup de instruções com três regras desenhadas (zona de 2-5 m², próximas das anomalias, nada que
+  identifique o prédio) e cada campo tem um `(i)` com a sua explicação.
+- **A resposta ao esclarecimento soma ao dossiê** (`survey_addenda`), nunca substitui, e nunca diz quem
+  perguntou. **Responder passa a avisar** quem perguntou e o cliente — antes não avisava ninguém.
+- **Contagem de tempo à vista** (`Countdown`) nas duas etapas do vendedor e na espera do pintor.
+- **Ganho previsto do avaliador** no ecrã do levantamento: a fração na banda 1%-2,7%, as quatro parcelas,
+  o bónus, e exemplos em euros. Não inventa valor para a obra concreta — ainda não há proposta escolhida.
+- **Gestora**: dados dela no ícone junto ao nome; o cartão de cima é do prédio selecionado; prédios
+  clicáveis com a escolha no endereço; ficha do prédio a gravar sozinha. **A morada continua com botão**,
+  porque é validada contra o código postal real.
+- **Obras fora da pintura**: registam-se, não se orçamentam — decisão tomada por omissão e anunciada ao
+  promotor antes de avançar (ver `docs/DECISOES.md`). `src/domain/buildingNeeds.ts` tem a lista e a regra.
+- **Armadilha de unidade, para quem vier a seguir**: as colunas de área com sufixo `_cm2`
+  (`request_surfaces.area_cm2`, `buildings.area_aproximada_cm2`) guardam **centésimos de m²**, não cm². O
+  nome engana; `formatArea` divide por 100. Confirmado ao pôr dados de simulação 100× acima por confiar
+  no nome.
+- **Plantas do prédio**: ainda por construir, mas **não precisam de tabela nova** — `org_documents` já tem
+  `building_id` e o balde `documentos` já existe.
 
 ### 6.8 Condição obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada (24/10/2026, a pedido explícito do promotor)
 
