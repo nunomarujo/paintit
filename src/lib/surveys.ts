@@ -45,6 +45,41 @@ async function surveyorPerformance(db: NonNullable<ReturnType<typeof adminClient
   };
 }
 
+export interface SurveyorEarningView {
+  /** Posição atual na banda 1%-2,7%, em pontos-base, já com o bónus de adesão se houver crédito. */
+  shareBp: number;
+  /** A mesma posição sem o bónus, para se perceber o que o bónus acrescentou. */
+  shareBpSemBonus: number;
+  temBonus: boolean;
+  componentes: {
+    qualificacaoGeral: number | null;
+    notaInformacao: number | null;
+    respostaAtempada: boolean | null;
+    notaCliente: number | null;
+  };
+}
+
+/**
+ * O mesmo cálculo de `settleSurveyPayout`, mas para **mostrar ao próprio avaliador** antes de haver
+ * obra adjudicada (pedido do promotor, 24/10/2026: "onde refere o ganho previsto se a obra for
+ * adjudicada"). Lê-se com privilégios próprios porque o vendedor, de propósito, não tem acesso às notas
+ * individuais dos pintores (só à média) — e é só a média que sai daqui. Quem chama tem de confirmar
+ * primeiro que quem está a ver pertence mesmo à entidade do vendedor deste levantamento.
+ */
+export async function surveyorEarningView(surveyId: string, vendedorOrgId: string, vendedorUserId: string | null): Promise<SurveyorEarningView | null> {
+  const db = adminClient();
+  if (!db) return null;
+  const performance = await surveyorPerformance(db, surveyId, vendedorOrgId, vendedorUserId);
+  const credit = await availableBonusCredit(db, vendedorOrgId);
+  const semBonus = surveyorShareBp(performance);
+  return {
+    shareBp: applyAvaliadorBonus(semBonus, credit !== null),
+    shareBpSemBonus: semBonus,
+    temBonus: credit !== null,
+    componentes: performance,
+  };
+}
+
 /**
  * Paga ao fornecedor do vendedor a sua fração do valor adjudicado, no momento em que a plataforma recebe
  * a comissão do pintor — só se este pedido teve um levantamento concluído por um vendedor

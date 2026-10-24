@@ -1,13 +1,17 @@
 'use client';
 
 import type { FormState } from '@/app/app/actions';
+import { Countdown } from '@/components/Countdown';
+import { SurveyAddenda, type Addendum } from '@/components/SurveyAddenda';
 import { useFormAction } from '@/components/useFormAction';
 import { askSurveyClarification, rateSurveyInfo } from '../survey-actions';
 
 export interface SurveyInfoView {
   surveyId: string;
   /** O pedido de esclarecimento a que este pintor já se juntou, se houver. */
-  pedido: { status: 'aberto' | 'respondido' | 'expirado'; resposta: string | null } | null;
+  pedido: { status: 'aberto' | 'respondido' | 'expirado'; resposta: string | null; prazo: string | null } | null;
+  /** Todas as rondas de dúvidas e respostas desta obra, do mais antigo para o mais recente. */
+  adendas: Addendum[];
   /** A nota que este pintor já deu, se já deu alguma. */
   minhaNota: number | null;
 }
@@ -37,26 +41,30 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
         coisa para conseguir orçamentar, peça — ele volta lá e responde. Não fica a saber quem perguntou.
       </p>
 
-      {info.pedido ? (
-        <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm">
-          {info.pedido.status === 'respondido' && info.pedido.resposta ? (
-            <>
-              <p className="font-medium">Resposta ao que foi perguntado</p>
-              <p className="mt-1 whitespace-pre-line text-slate-700">{info.pedido.resposta}</p>
-            </>
-          ) : info.pedido.status === 'expirado' ? (
-            <p className="text-slate-700">
-              Ninguém respondeu dentro do prazo. Se houver outro profissional disponível na zona, a plataforma passa-lhe
-              o pedido; é avisado quando houver resposta.
-            </p>
-          ) : (
-            <p className="text-slate-700">
-              Pedido registado, à espera de resposta. O profissional tem um dia para confirmar a ida à obra e mais um
-              para responder.
-            </p>
-          )}
+      {info.adendas.length > 0 && (
+        <div className="mt-5">
+          <SurveyAddenda addenda={info.adendas} />
         </div>
-      ) : null}
+      )}
+
+      {info.pedido?.status === 'aberto' && (
+        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+          À espera de resposta — o profissional tem um dia para confirmar a ida à obra e mais um para lá ir e responder.
+          {info.pedido.prazo && (
+            <>
+              {' '}
+              Para a etapa atual, <Countdown deadline={info.pedido.prazo} />.
+            </>
+          )}{' '}
+          É avisado aqui e no início da sua área de trabalho assim que a resposta chegar.
+        </p>
+      )}
+      {info.pedido?.status === 'expirado' && (
+        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+          Ninguém respondeu dentro do prazo. Se houver outro profissional disponível na zona, a plataforma passa-lhe o
+          pedido e as dúvidas por responder seguem com ele.
+        </p>
+      )}
 
       <form {...ask.formProps} className="mt-4 space-y-2">
         <label className="block text-sm font-medium text-slate-700">

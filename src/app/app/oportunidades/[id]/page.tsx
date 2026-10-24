@@ -199,19 +199,30 @@ export default async function OpportunityPage({ params, searchParams }: { params
     : { data: null };
   let surveyInfo: SurveyInfoView | null = null;
   if (surveyRow) {
-    const [{ data: clarification }, { data: minha }] = await Promise.all([
+    const [{ data: clarification }, { data: minha }, { data: adendas }] = await Promise.all([
       supabase
         .from('survey_clarifications')
-        .select('status, resposta')
+        .select('status, resposta, confirmed_at, confirm_deadline, respond_deadline')
         .eq('request_survey_id', surveyRow.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       supabase.from('survey_info_reviews').select('nota').eq('request_survey_id', surveyRow.id).eq('painter_user_id', user!.id).maybeSingle(),
+      // Adendas: todas as rondas, com perguntas e respostas, sem identificar quem perguntou
+      // (migração 20261024040000). Vazio enquanto essa migração não estiver aplicada.
+      supabase.rpc('survey_addenda', { p_request_survey_id: surveyRow.id }),
     ]);
     surveyInfo = {
       surveyId: surveyRow.id,
-      pedido: clarification ? { status: clarification.status as 'aberto' | 'respondido' | 'expirado', resposta: clarification.resposta } : null,
+      pedido: clarification
+        ? {
+            status: clarification.status as 'aberto' | 'respondido' | 'expirado',
+            resposta: clarification.resposta,
+            // A etapa a decorrer: confirmar a ida, ou já confirmada e a contar para responder.
+            prazo: clarification.confirmed_at ? clarification.respond_deadline : clarification.confirm_deadline,
+          }
+        : null,
+      adendas: adendas ?? [],
       minhaNota: minha?.nota ?? null,
     };
   }

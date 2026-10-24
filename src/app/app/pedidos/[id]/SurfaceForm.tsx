@@ -18,7 +18,13 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
     <form {...formProps} className="space-y-4">
       <h3 className="text-sm font-semibold">Acrescentar superfície</h3>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field name="kind" label="Superfície" required error={e.kind}>
+        <Field
+          name="kind"
+          label="Superfície"
+          required
+          error={e.kind}
+          info="O que é esta zona: uma fachada, um interior, um teto, uma varanda. Uma linha por zona que se pinte em separado — não some fachadas diferentes numa só."
+        >
           <select name="kind" required defaultValue="fachada" className={selectClass}>
             {SURFACE_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -27,8 +33,19 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
             ))}
           </select>
         </Field>
-        <Field name="descricao" label="Nome da fachada ou zona" error={e.descricao} hint="Ex.: fachada principal; tardoz, com fissuras. Não indique a morada." />
-        <Field name="origem" label="Origem da medida" error={e.origem}>
+        <Field
+          name="descricao"
+          label="Nome da fachada ou zona"
+          error={e.descricao}
+          hint="Ex.: fachada principal; tardoz, com fissuras."
+          info="Como o pintor vai reconhecer esta zona na lista e nas fotografias. Descreva a zona e o seu estado — nunca a morada, o nome do prédio nem o número de porta."
+        />
+        <Field
+          name="origem"
+          label="Origem da medida"
+          error={e.origem}
+          info="Como chegou a esta área: medida no local, tirada da planta, ou estimada à vista. O pintor usa isto para saber com que margem pode contar — uma estimativa honesta vale mais do que uma medida inventada."
+        >
           <select name="origem" defaultValue="estimativa" className={selectClass}>
             {AREA_SOURCES.map((s) => (
               <option key={s} value={s}>
@@ -40,11 +57,31 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
       </div>
       <p className="text-xs text-slate-600">Indique a área, ou a largura e a altura (os vãos são descontados).</p>
       <div className="grid gap-4 sm:grid-cols-5">
-        <Field name="area" label="Área (m²)" inputMode="text" error={e.area} />
-        <Field name="largura" label="Largura (m)" inputMode="text" error={e.largura} />
-        <Field name="altura" label="Altura (m)" inputMode="text" error={e.altura} />
-        <Field name="vaos" label="Vãos (m²)" inputMode="text" error={e.vaos} hint="Janelas e portas." />
-        <Field name="quantidade" label="Quantidade" inputMode="numeric" defaultValue="1" error={e.quantidade} />
+        <Field
+          name="area"
+          label="Área (m²)"
+          inputMode="text"
+          error={e.area}
+          info="A área a pintar desta zona. Se não a tiver direta, deixe em branco e preencha a largura e a altura."
+        />
+        <Field name="largura" label="Largura (m)" inputMode="text" error={e.largura} info="Usada só se não indicar a área." />
+        <Field name="altura" label="Altura (m)" inputMode="text" error={e.altura} info="Do chão ao remate da zona, não do prédio inteiro." />
+        <Field
+          name="vaos"
+          label="Vãos (m²)"
+          inputMode="text"
+          error={e.vaos}
+          hint="Janelas e portas."
+          info="Soma das janelas e portas desta zona. É descontada da área: sem isto, o pintor orçamenta parede a mais."
+        />
+        <Field
+          name="quantidade"
+          label="Quantidade"
+          inputMode="numeric"
+          defaultValue="1"
+          error={e.quantidade}
+          info="Para zonas repetidas e iguais (ex.: 8 varandas com a mesma medida). A área indicada é multiplicada por este número."
+        />
       </div>
       {modo === 'diferencas' && (
         <fieldset className="rounded-xl bg-slate-50 p-4">

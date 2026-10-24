@@ -2266,6 +2266,59 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     await db.query(`update public.request_listings set aberto = true where request_id = $1`, [requestId]);
   });
 
+  // Adendas ao dossiê e avisos (20261024040000).
+  it('a resposta soma ao dossiê sem apagar a ronda anterior, e nunca diz quem perguntou', async () => {
+    const addendas = await as(CP, async () =>
+      (
+        await db.query<{ ronda: number; duvidas: string[]; resposta: string | null; estado: string }>(
+          'select ronda, duvidas, resposta, estado from public.survey_addenda($1)',
+          [surveyId],
+        )
+      ).rows,
+    );
+    // As rondas anteriores continuam lá, pela ordem em que aconteceram.
+    expect(addendas.length).toBeGreaterThanOrEqual(2);
+    expect(addendas.map((a) => a.ronda)).toEqual(addendas.map((_, i) => i + 1));
+    // A primeira ronda expirou (teste do dia 1 falhado, acima) e fica no histórico com o seu estado.
+    // As dúvidas que ficaram por responder seguiram para a ronda seguinte — é o que a escalada faz
+    // (`daily_maintenance`, 20261024010647): não se perdem, mudam de ronda.
+    expect(addendas[0]!.estado).toBe('expirado');
+    expect(addendas[addendas.length - 1]!.duvidas).toContain('Falta saber se há andaime montado.');
+    // Nenhuma coluna identifica quem perguntou: a função devolve só os textos.
+    expect(Object.keys(addendas[0]!).sort()).toEqual(['duvidas', 'estado', 'resposta', 'ronda']);
+    // O cliente vê o mesmo; um estranho não vê nada.
+    expect(await as(A, async () => (await db.query('select ronda from public.survey_addenda($1)', [surveyId])).rows)).toHaveLength(addendas.length);
+    expect(await as(B, async () => (await db.query('select ronda from public.survey_addenda($1)', [surveyId])).rows)).toEqual([]);
+  });
+
+  it('ao responder, avisa as entidades de pintura que perguntaram e o cliente', async () => {
+    // Garante uma ronda em aberto sem depender do que os testes anteriores deixaram: pedir de novo
+    // junta-se à que estiver aberta, ou abre uma atribuída ao vendedor atual (VEND2, depois da escalada).
+    await as(CP, () => db.query('select public.request_painter_doubt($1, $2)', [surveyId, 'E o acesso ao tardoz, dá para balancé?']));
+    const aberta = await one<{ id: string; confirmed_at: string | null }>(
+      `select id, confirmed_at from public.survey_clarifications where request_survey_id = $1 and status = 'aberto'`,
+      [surveyId],
+    );
+    if (!aberta.confirmed_at) await as(VEND2, () => db.query('select public.confirm_clarification($1)', [aberta.id]));
+    const antes = await one<{ n: string }>('select count(*)::text as n from public.notifications', []);
+    await as(VEND2, () => db.query('select public.respond_clarification($1, $2)', [aberta.id, 'Há andaime montado até ao 2.º piso; o resto é com balancé.']));
+
+    const novas = await (
+      await db.query<{ texto: string; org_id: string }>('select texto, org_id from public.notifications order by created_at desc limit 10')
+    ).rows;
+    expect(Number((await one<{ n: string }>('select count(*)::text as n from public.notifications', [])).n)).toBeGreaterThan(Number(antes.n));
+    const paraPintores = novas.filter((n) => n.texto.includes('Chegou resposta'));
+    expect(paraPintores.length).toBeGreaterThanOrEqual(1);
+    expect(novas.some((n) => n.texto.includes('ficou mais completo'))).toBe(true);
+
+    // E a resposta aparece na última adenda, sem apagar as anteriores.
+    const addendas = await as(CP, async () =>
+      (await db.query<{ resposta: string | null }>('select resposta from public.survey_addenda($1) order by ronda', [surveyId])).rows,
+    );
+    expect(addendas[addendas.length - 1]!.resposta).toContain('andaime montado até ao 2.º piso');
+    expect(addendas[0]!.resposta).toBeNull();
+  });
+
   it('um levantamento ainda por concluir nunca é visível ao pintor', async () => {
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
     // Fica em rascunho de propósito: publicar cancelaria o levantamento ainda aberto

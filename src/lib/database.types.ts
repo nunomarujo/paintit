@@ -1572,6 +1572,12 @@ export type Database = {
       respond_clarification: { Args: { p_id: string; p_resposta: string }; Returns: undefined };
       claim_clarification: { Args: { p_id: string; p_org: string }; Returns: Database['public']['Tables']['survey_clarifications']['Row'] };
       rate_survey_info: { Args: { p_request_survey_id: string; p_nota: number; p_comentario: string }; Returns: undefined };
+      // Adendas ao dossiê (migração 20261024040000): todas as rondas de esclarecimento desta obra, com as
+      // perguntas e a resposta de cada uma, sem nunca identificar quem perguntou.
+      survey_addenda: {
+        Args: { p_request_survey_id: string };
+        Returns: { ronda: number; aberta_em: string; estado: string; duvidas: string[]; resposta: string | null; respondido_em: string | null }[];
+      };
     };
     Enums: {
       building_kind: BuildingKind;

@@ -4,7 +4,9 @@ import { PhotoUpload } from '@/app/app/pedidos/[id]/PhotoUpload';
 import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
+import { surveyorEarningView } from '@/lib/surveys';
 import { getUser } from '@/lib/supabase/server';
+import { EarningCard } from './EarningCard';
 import { AcceptTerms } from './AcceptTerms';
 import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { ConcludeButton, ContactForm } from './ContactForm';
@@ -13,7 +15,7 @@ const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 
 export default async function SurveyWorkspacePage({ params }: { params: Promise<{ surveyId: string }> }) {
   const { surveyId } = await params;
-  const { supabase } = await getUser();
+  const { supabase, user } = await getUser();
   const { data: survey } = await supabase.from('request_surveys').select('*').eq('id', surveyId).maybeSingle();
   if (!survey || (survey.status !== 'reservado' && survey.status !== 'concluido')) notFound();
 
@@ -59,6 +61,14 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   const { data: duvidas } = clarificationRow
     ? await supabase.rpc('clarification_batch', { p_clarification_id: clarificationRow.id })
     : { data: null };
+  // Ganho previsto: só a quem pertence à entidade do vendedor deste levantamento. A leitura por baixo
+  // usa privilégios próprios (as notas individuais dos pintores não são visíveis ao vendedor, só a
+  // média), por isso a autorização confirma-se aqui, explicitamente, e não se delega na RLS.
+  const { data: euSouDoVendedor } = survey.vendedor_org_id
+    ? await supabase.from('org_members').select('role').eq('org_id', survey.vendedor_org_id).eq('user_id', user!.id).maybeSingle()
+    : { data: null };
+  const earning = euSouDoVendedor ? await surveyorEarningView(survey.id, survey.vendedor_org_id!, survey.vendedor_user_id) : null;
+
   const clarification: ClarificationView | null = clarificationRow
     ? {
         id: clarificationRow.id,
@@ -95,6 +105,8 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
       {/* Esclarecimento primeiro: tem prazo a correr e custa a comissão de toda a obra se falhar. */}
       {clarification && <ClarificationCard surveyId={survey.id} clarification={clarification} />}
+
+      {earning && <EarningCard earning={earning} />}
 
       {request.descricao && (
         <section className={card}>

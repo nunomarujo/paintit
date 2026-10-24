@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormState } from '@/app/app/actions';
+import { Countdown } from '@/components/Countdown';
 import { useFormAction } from '@/components/useFormAction';
 import { confirmClarification, respondClarification } from '../actions';
 
@@ -17,9 +18,6 @@ export interface ClarificationView {
 
 const card = 'rounded-2xl border border-amber-200 bg-amber-50 p-6';
 const button = 'rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
-
-const prazo = (iso: string) =>
-  new Date(iso).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
@@ -77,9 +75,9 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
       {c.status === 'aberto' && !c.confirmadoEm && (
         <div className="mt-5 border-t border-amber-200 pt-5">
           <p className="text-sm text-amber-900">
-            Primeiro passo: confirmar que vai à obra.
-            {c.prazoConfirmar && <strong> Até {prazo(c.prazoConfirmar)}.</strong>} A partir da confirmação fica com mais um
-            dia para lá ir e responder. Falhar qualquer um dos dois prazos custa a comissão de toda a obra, sem valor
+            <strong>Etapa 1 de 2: confirmar que vai à obra.</strong>{' '}
+            {c.prazoConfirmar && <Countdown deadline={c.prazoConfirmar} />}. A partir da confirmação fica com mais um dia
+            para lá ir e responder. Falhar qualquer um dos dois prazos custa a comissão de toda a obra, sem valor
             parcial.
           </p>
           <form {...confirm.formProps} className="mt-3 space-y-2">
@@ -94,8 +92,9 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
       {c.status === 'aberto' && c.confirmadoEm && (
         <div className="mt-5 border-t border-amber-200 pt-5">
           <p className="text-sm text-amber-900">
-            Ida confirmada. Responda à lista toda de uma vez.
-            {c.prazoResponder && <strong> Até {prazo(c.prazoResponder)}.</strong>}
+            <strong>Etapa 2 de 2: responder à lista toda de uma vez.</strong>{' '}
+            {c.prazoResponder && <Countdown deadline={c.prazoResponder} />}. A resposta junta-se ao dossiê da obra, sem
+            apagar nada do que lá está.
           </p>
           <form {...respond.formProps} className="mt-3 space-y-2">
             <textarea

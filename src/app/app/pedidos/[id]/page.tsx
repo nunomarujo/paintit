@@ -16,6 +16,7 @@ import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
 import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
+import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { SurfaceForm } from './SurfaceForm';
 
@@ -69,6 +70,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       rated: !!ratedRow,
     };
   }
+  // Adendas ao levantamento (migração 20261024040000): perguntas dos pintores e respostas dadas na obra.
+  // Lido independentemente de o pedido estar em rascunho — ao contrário do cartão de ajuda acima, isto
+  // interessa sobretudo depois de publicado, que é quando os pintores perguntam. Vem vazio enquanto essa
+  // migração não estiver aplicada.
+  const { data: surveyForAddenda } = await supabase.from('request_surveys').select('id').eq('request_id', id).maybeSingle();
+  const { data: adendas } = surveyForAddenda ? await supabase.rpc('survey_addenda', { p_request_survey_id: surveyForAddenda.id }) : { data: null };
+
   const { data: rawInvites } = req.status === 'publicado' ? await supabase.from('request_invites').select('*').eq('request_id', id).order('created_at', { ascending: false }) : { data: [] };
   const invitePainterIds = [...new Set((rawInvites ?? []).map((i) => i.painter_org_id).filter((x): x is string => !!x))];
   const { data: invitePainters } = invitePainterIds.length ? await supabase.from('organizations').select('id, nome').in('id', invitePainterIds) : { data: [] };
@@ -171,6 +179,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </section>
 
       {manager && draft && <RequestSurveyCard requestId={req.id} survey={survey} />}
+
+      {(adendas ?? []).length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          <SurveyAddenda addenda={adendas!} />
+        </section>
+      )}
 
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
