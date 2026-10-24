@@ -92,10 +92,33 @@ input[type='radio'] {
   white-space: nowrap;
 }
 @media print {
+  /* Sem isto, a margem do navegador soma-se ao padding da folha e o conteúdo transborda para a página
+     seguinte — era o "muito desformatado" que o promotor viu (24/10/2026). A folha passa a ocupar a
+     página inteira e as margens são as do próprio desenho. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff;
+  }
+  .proposal-doc {
+    max-width: none;
+    margin: 0;
+  }
   .proposal-sheet {
+    width: 100%;
+    min-height: auto;
+    padding: 14mm 13mm;
     box-shadow: none;
     margin: 0;
     break-after: page;
+  }
+  .proposal-sheet table,
+  .proposal-sheet section,
+  .proposal-sheet figure {
+    break-inside: avoid;
   }
   .proposal-sheet:last-child {
     break-after: auto;

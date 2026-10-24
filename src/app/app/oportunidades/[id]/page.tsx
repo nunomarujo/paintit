@@ -405,7 +405,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             )}
             {fee && (
               <div className="mt-4">
-                <FeeSummary fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
+                <FeeSummary base={totals?.base ?? 0} fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
               </div>
             )}
             {proposal.status === 'submetida' && org.manager && (
@@ -523,7 +523,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       </article>
                       {fee && (
                         <div className="mx-auto max-w-[210mm]">
-                          <FeeSummary fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
+                          <FeeSummary base={totals?.base ?? 0} fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
                         </div>
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>

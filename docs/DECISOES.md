@@ -2017,3 +2017,31 @@ Em aberto: as duas direções visuais descartadas (técnica e moderna) não fora
 ficaram só como protótipos de escolha fora do repositório. Também por decidir: se o pintor deve poder
 gerar/pré-visualizar este documento antes de submeter a proposta (ecrã "Rever e enviar",
 `docs/PROPOSTA.md`), ou só depois de submetida, como está agora.
+
+## 24/10/2026 — Como se apresenta ao pintor o custo da plataforma
+
+**Problema.** O ecrã final do orçamento mostrava primeiro a etiqueta "Grátis para orçamentar", depois um
+número grande (comissão + IVA) sem dizer de que total se tratava, e a comissão verdadeira em letra pequena
+por baixo. Leitores externos disseram ao promotor que "não é perceptível o valor da plataforma, está
+disfarçado". Estava — sem intenção, por ordem de leitura.
+
+**Decisão.** `src/components/FeeSummary.tsx` passa a obedecer a cinco regras, que não se revertem sem nova
+decisão aqui:
+
+1. O número grande é a **comissão sem IVA**. O IVA não é custo para o pintor (deduz-o); mostrá-lo em corpo
+   grande sobredimensionava o custo real em 23%. O desembolso total aparece na mesma caixa, na linha
+   "A transferir".
+2. A comissão aparece **sempre ao lado do valor da obra e do líquido** que fica para a empresa. Um número
+   isolado não tem escala e o leitor inventa-lhe uma.
+3. A condição vem na **mesma frase** do valor, afirmativa: "Se o cliente escolher esta proposta, paga X + IVA.
+   Se escolher outra, não paga nada." Sem "grátis", "só" ou "apenas" — minimizadores apagam o número que
+   acompanham.
+4. Nada essencial atrás de acordeão, tooltip ou "ver detalhe".
+5. O momento de pagamento diz-se por inteiro, **incluindo a parte incómoda**: paga-se 8 dias após a caução,
+   isto é, antes de assinar e antes de receber do cliente qualquer valor da obra. Era o único custo
+   verdadeiramente disfarçado do ecrã.
+
+**Por fazer (decisão em aberto).** A percentagem e o valor em euros deviam aparecer também ao abrir o pedido
+de obra, antes de horas de medição e orçamentação, e não só no fim: revelar o custo depois do esforço feito
+converte por custo irrecuperável, o que produz ressentimento diferido num mercado pequeno. O ecrã final
+passaria a confirmar em vez de revelar.

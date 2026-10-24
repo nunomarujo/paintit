@@ -74,6 +74,7 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
         terms={toTerms(proposal)}
         capoto={parseCapoto((proposal as { capoto?: unknown }).capoto)}
         submittedAt={proposal.submitted_at}
+        revelado={presented}
       />
     </div>
   );

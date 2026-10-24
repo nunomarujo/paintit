@@ -41,6 +41,7 @@ export function ProposalDocument({
   terms,
   capoto,
   submittedAt,
+  revelado = false,
 }: {
   /**
    * Quem assina o documento. Antes da apresentação (docs/MODELO.md) `label` é o alias anónimo
@@ -55,6 +56,13 @@ export function ProposalDocument({
   terms: ProposalTerms;
   capoto: CapotoSpec | null;
   submittedAt: string | null;
+  /**
+   * A identidade do pintor já foi revelada ao cliente? Enquanto não for, o documento **impresso ou
+   * descarregado** não leva nome, logótipo nem contactos dele: no lugar vai a Quem Pinta. No ecrã,
+   * a própria empresa continua a ver-se — o que não pode é sair daqui um ficheiro que a identifique
+   * antes da apresentação (CLAUDE.md, regra 6; pedido do promotor, 24/10/2026).
+   */
+  revelado?: boolean;
 }) {
   const totals = proposalTotals(lines, terms.ivaBps);
   const included = lines.filter((l) => l.inclusao === 'incluido');
@@ -68,7 +76,7 @@ export function ProposalDocument({
       {/* Página 1 — capa, obra, apresentação, trabalhos discriminados */}
       <Sheet page={1} of={capoto ? 3 : 2} footer>
         <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-4">
-          <div className="flex items-start gap-3">
+          <div className={`flex items-start gap-3 ${revelado ? '' : 'print:hidden'}`}>
             <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
               {initials(painter.label)}
             </div>
@@ -81,12 +89,33 @@ export function ProposalDocument({
               </p>
             </div>
           </div>
+          {/* No ficheiro impresso ou descarregado, enquanto a obra não for ganha, é a plataforma que
+              assina o documento: o nome, o logótipo e os contactos do pintor não saem daqui. */}
+          {!revelado && (
+            <div className="hidden items-start gap-3 print:flex">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
+                QP
+              </div>
+              <div>
+                <h1 className="font-serif text-[19px] leading-tight text-slate-900">QuemPinta.pt</h1>
+                <p className="eyebrow mt-1">Proposta preparada por empresa de pintura verificada</p>
+              </div>
+            </div>
+          )}
           <div className="shrink-0 text-right text-[11px] text-slate-500">
             <p className="eyebrow">Ref. do pedido</p>
             <p className="font-mono text-slate-700">{request.ref}</p>
             {submittedAt && <p className="mt-1">Enviada a {pt(submittedAt.slice(0, 10))}</p>}
           </div>
         </header>
+        {!revelado && (
+          <p className="mt-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-snug text-slate-600 print:bg-white">
+            Esta proposta foi preparada por uma empresa de pintura verificada pela Quem Pinta. O nome e os contactos
+            dela substituem este cabeçalho assim que a obra lhe for adjudicada; até lá, as duas partes comunicam pela
+            plataforma.
+          </p>
+        )}
+
 
         <dl className="grid grid-cols-4 gap-4 border-b border-slate-200 py-4 text-[12px]">
           <div>
@@ -168,7 +197,7 @@ export function ProposalDocument({
       {/* Página de materiais — só quando a obra leva capoto */}
       {capoto && (
         <Sheet page={2} of={3} footer>
-          <RunningHeader painter={painter} request={request} />
+          <RunningHeader painter={painter} request={request} revelado={revelado} />
           <h2 className="mt-5 font-serif text-[16px] text-slate-900">{resumoCapoto(capoto)}</h2>
           <p className="mt-1 text-[11px] text-slate-500">{SITUACAO_LABELS[capoto.situacao]}.</p>
 
@@ -260,7 +289,7 @@ export function ProposalDocument({
 
       {/* Última página — preço e condições */}
       <Sheet page={capoto ? 3 : 2} of={capoto ? 3 : 2} footer>
-        <RunningHeader painter={painter} request={request} />
+        <RunningHeader painter={painter} request={request} revelado={revelado} />
         <h2 className="mt-5 font-serif text-[16px] text-slate-900">Preço e condições</h2>
 
         <table className="mt-4 w-full text-[11.5px]">
@@ -353,10 +382,23 @@ export function ProposalDocument({
   );
 }
 
-function RunningHeader({ painter, request }: { painter: { label: string }; request: { ref: string } }) {
+// O cabeçalho corrido das páginas seguintes é tão identificativo como o da primeira: enquanto a
+// identidade não estiver revelada, o que sai impresso é a plataforma (regra 6).
+function RunningHeader({
+  painter,
+  request,
+  revelado,
+}: {
+  painter: { label: string };
+  request: { ref: string };
+  revelado: boolean;
+}) {
   return (
     <div className="flex items-center justify-between border-b border-slate-300 pb-3">
-      <p className="font-serif text-[14px]">{painter.label}</p>
+      <p className="font-serif text-[14px]">
+        <span className={revelado ? '' : 'print:hidden'}>{painter.label}</span>
+        {!revelado && <span className="hidden print:inline">QuemPinta.pt</span>}
+      </p>
       <p className="eyebrow">Ref. {request.ref}</p>
     </div>
   );

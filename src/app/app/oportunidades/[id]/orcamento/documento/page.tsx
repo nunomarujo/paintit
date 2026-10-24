@@ -4,6 +4,7 @@ import { PrintButton } from '@/components/PrintButton';
 import { ProposalDocument } from '@/components/ProposalDocument';
 import { SURFACE_KIND_LABELS } from '@/domain/request';
 import { parseCapoto } from '@/lib/capoto';
+import { loadReplay } from '@/lib/engagements';
 import { toLine, toTerms } from '@/lib/proposals';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
@@ -32,6 +33,8 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
   if (!proposal || !listing) notFound();
 
   const { data: lines } = await supabase.from('proposal_lines').select('*').eq('proposal_id', proposal.id).order('created_at');
+  const { data: engagement } = await supabase.from('engagements').select('*').eq('proposal_id', proposal.id).maybeSingle();
+  const presented = engagement ? (await loadReplay(supabase, engagement)).replay.engagement.feePaid : false;
   const { data: org } = await supabase
     .from('organizations')
     .select('nome, nif, telefone, email_contacto')
@@ -68,6 +71,7 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
         lines={(lines ?? []).map((l) => ({ id: l.id, ...toLine(l) }))}
         terms={toTerms(proposal)}
         capoto={parseCapoto((proposal as { capoto?: unknown }).capoto)}
+        revelado={presented}
         submittedAt={proposal.submitted_at}
       />
     </div>
