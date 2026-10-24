@@ -1,8 +1,12 @@
 # Vendedores / avaliadores — estrutura proposta
 
-**Estado: proposta, nada construído.** Escrito a 24/10/2026 a pedido do promotor ("preciso da tua ajuda
-para orquestrar"). Fixa o problema, o que existe hoje, duas arquitecturas possíveis com os seus custos, e
-as decisões que faltam. Nada aqui está em vigor: `docs/MODELO.md` e `docs/ESTADO.md` continuam a valer.
+**Estado: desenho decidido, nada construído.** Escrito a 24/10/2026 a pedido do promotor ("preciso da tua
+ajuda para orquestrar") e **revisto no mesmo dia** com duas decisões dele que mudaram a arquitectura
+escolhida (secção 3). Nada aqui está em vigor: `docs/MODELO.md` e `docs/ESTADO.md` continuam a valer.
+
+**Em duas linhas:** o avaliador passa a ser uma entidade só dele, com o saldo das avaliações a ser dele e a
+empresa a nunca o ver; o catálogo **fica onde está**, da empresa e com a mensalidade que já existe, e serve
+ao vendedor de argumento para convencer o patrão a subscrever.
 
 ---
 
@@ -87,54 +91,104 @@ ser um só, da empresa; as comissões ficam privadas por viverem noutra identida
 "**pode** criar perfil", ou seja, é opcional. Obriga ainda a abrir uma excepção explícita à regra "uma
 conta, um perfil".
 
-### Recomendação: A, com a empresa criada "por reclamar"
+### Decidido a 24/10/2026, pelo promotor: nem A nem B — o híbrido barato
 
-O "pode" do ponto 11 é o que decide. Se o perfil da empresa é opcional, o vendedor tem de conseguir ter
-catálogo **antes e sem** a empresa existir na plataforma — e isso só a A permite. Propõe-se a variante:
+As duas respostas dele desfizeram a parte cara da recomendação anterior (que era a A, com o catálogo a
+mudar de dono). Pela ordem em que importam:
 
-1. O primeiro vendedor que declara o NIF **cria a empresa por reclamar** e a sua loja.
-2. Enquanto a empresa não for reclamada, **os vendedores da loja gerem o catálogo e os descontos dela**.
-3. Quando a empresa se regista e reclama o NIF, ganha os tetos, a equipa e as métricas; os vendedores
-   continuam a poder mexer nos descontos dentro dos tetos, com os dois avisos do ponto 12.
-4. Os levantamentos, as comissões e os resgates **nunca** mudam de dono: são da conta pessoal, e a empresa
-   não os vê em caso nenhum.
+**1. O dinheiro da avaliação é do vendedor, e ele decide como o recebe.** Palavras dele: *"se o vendedor
+não ganhar diretamente não terá a mesma motivação, pois a empresa pode-lhe ficar com tudo — por isso
+criamos o saldo em que ele resgata quando quiser, ou registado como recibo verde, ou ato único, mas ele
+decide"*. A plataforma aceita **fatura-recibo de qualquer pessoa**, desde que refira o **código interno**
+da plataforma e a descrição bata certo com o serviço (tipo "prestação de serviços de análise para a
+plataforma quempinta.pt"). **A confirmar com o contabilista** — é o único ponto deste bloco que não está
+fechado.
+
+**2. O catálogo fica onde está, e passa a ser argumento de venda.** Palavras dele: *"o catálogo fica, não
+espero que o paguem pois é mensalidade, mas como uma dica para apresentarem à empresa as vantagens de
+aderirem e subscreverem, para os seus produtos passarem à frente"*. Ou seja: **o vendedor não paga
+catálogo nenhum e não precisa de ter um**. O catálogo continua a ser da empresa, com a mensalidade que já
+existe, e o papel do vendedor é **convencer o próprio patrão a subscrever**.
+
+E é isto que muda tudo: a razão pela qual se tinha escolhido a arquitectura A era o vendedor precisar de
+catálogo antes de a empresa existir na plataforma. **Deixou de precisar.** Logo, o catálogo, os descontos,
+as entregas, os clientes e as encomendas **não mudam de dono** — morre a parte cara, e com ela o risco de
+mexer em dados que já estão em produção.
+
+### O que fica, então
+
+| Camada | O que é | O que guarda |
+| --- | --- | --- |
+| **Conta pessoal do avaliador** | Entidade só dele: um proprietário, sem convites | Zonas cobertas, reservas, levantamentos, **saldo, comissões e resgates**, classificação |
+| **Entidade da empresa** | O que já existe hoje, sem alterações | Catálogo, preços, descontos, entregas, clientes, encomendas, subscrição |
+| **Declaração de vínculo** | Termo assinado pelo vendedor | Que empresa (NIF e nome) ele declara, versão e data |
+| **Loja** | Só se as lojas precisarem de descontos ou zonas diferentes | Fica para depois; não bloqueia nada |
+
+As comissões ficam privadas **por construção**: vivem noutra entidade, e não há política nenhuma a mexer.
+A empresa não as vê porque não lhe pertencem — não porque se escondeu alguma coisa.
+
+Nota sobre o ponto 10 (descontos iguais entre vendedores): **resolve-se sozinho**. Se o desconto continua a
+ser da empresa, há um só conjunto de descontos, igual para todos por definição. O que falta é só o **rasto
+de quem alterou e quando**, que não existe hoje e continua a ser o primeiro passo a construir.
 
 ---
 
 ## 4. Quem vê o quê (proposta)
 
-| Dado | Vendedor (conta pessoal) | Outro vendedor da mesma loja | Empresa-mãe reclamada |
-| --- | --- | --- | --- |
-| Catálogo, preços, descontos da loja | Vê e edita (dentro dos tetos) | Vê e edita (dentro dos tetos) | Vê e edita; define tetos |
-| Quem alterou o desconto e quando | Vê | Vê | Vê |
-| Encomendas de pintores | Vê as da sua loja | Vê as da sua loja | Vê todas |
-| Carteira de clientes (pintores) | Vê a da loja | Vê a da loja | Vê todas |
-| **Oportunidades de avaliação** | Vê as da sua zona | Vê as da sua zona, **em concorrência** | **Não participa** |
-| **Comissões de avaliação e resgates** | Só ele | **Não vê** | **Nunca vê** |
-| Classificação do avaliador na app | Vê a sua | Não vê a do outro | Vê a dos seus (métrica de equipa) |
-| Métricas de materiais | Vê as da loja | Vê as da loja | Vê todas |
+Atualizada com as decisões de 24/10/2026. "Empresa" é a entidade que já existe hoje; o vendedor acede-lhe
+como membro, com o papel `vendedor`.
 
-Duas notas que valem a pena discutir, porque não vinham no pedido:
+| Dado | Onde vive | Vendedor | Outro vendedor da mesma empresa | Empresa |
+| --- | --- | --- | --- | --- |
+| Catálogo, preços, descontos, entregas | Empresa | Vê e edita (dentro dos tetos) | Vê e edita (dentro dos tetos) | Vê e edita; define tetos |
+| Quem alterou o desconto e quando | Empresa | Vê | Vê | Vê |
+| Encomendas de pintores | Empresa | Vê | Vê | Vê |
+| Carteira de clientes (pintores) | Empresa | Vê | Vê | Vê |
+| Métricas de materiais | Empresa | Vê | Vê | Vê |
+| **Oportunidades de avaliação** | Conta pessoal | Vê as da sua zona | Vê as da sua zona, **em concorrência** | **Não participa** |
+| **Saldo, comissões e resgates** | Conta pessoal | Só ele | **Não vê** | **Nunca vê** |
+| Classificação como avaliador | Conta pessoal | Vê a sua | Não vê a do outro | Ver 4.1 |
 
-- **Entre vendedores da mesma loja**, as comissões de avaliação ficam privadas um do outro? A tabela acima
-  assume que sim (são concorrentes na reserva, ponto 8). Se o promotor quiser equipa a sério, isto muda.
-- A **classificação** do avaliador é visível à empresa como métrica de equipa (ponto 11 pede), mas isso
-  revela indiretamente quantas obras ele fez. Se o sigilo tiver de ser total, a métrica tem de ser só
-  qualitativa (estrelas), nunca contagem.
+### 4.1 A tensão que sobra, e que o promotor ainda não resolveu
+
+O ponto 11 pede duas coisas que se mordem uma à outra: a empresa **vê métricas de performance da equipa**,
+mas **nunca vê as comissões**. Só que as comissões do avaliador são uma função direta do trabalho que ele
+fez — a fórmula é 1%-2,7% do valor adjudicado (`src/domain/survey.ts`). Logo:
+
+- mostrar à empresa **quantas obras** ele avaliou, ou o valor delas, é mostrar-lhe a comissão por via
+  indireta — basta uma multiplicação;
+- mostrar só a **classificação em estrelas** não revela nada de dinheiro, e continua a servir para a
+  empresa saber se a sua equipa trabalha bem.
+
+Proposta: a empresa vê **estrelas e mais nada** — nunca contagem de obras, nunca valores, nunca datas. Se o
+promotor quiser que veja volume de trabalho, então tem de aceitar que o sigilo da comissão é aproximado, e
+isso devia ser dito ao vendedor no termo que ele assina, não escondido dele.
 
 ---
 
 ## 5. Decisões que faltam, por ordem de impacto
 
-### 5.1 Vale a pena mover o catálogo (arquitectura A) ou aceitar a dependência da empresa (B)?
-É a decisão estruturante. Tudo o resto depende dela.
+### 5.1 ~~Mover o catálogo?~~ — **Decidido a 24/10/2026: não se move.**
+O catálogo fica da empresa, com a mensalidade que já existe. O vendedor não paga e não precisa de ter um;
+usa-o como argumento para a empresa subscrever. Morre a parte cara desta mudança.
 
-### 5.2 A comissão da avaliação é paga a quem, fiscalmente?
-Se o dinheiro é do vendedor e não da empresa, é o **vendedor** que fatura a plataforma — a título pessoal,
-com recibo verde ou atividade aberta. Isso muda `supplier_payout_details` (IBAN e `cobra_iva` deixam de
-ser da empresa), muda a faturação (`docs/FATURACAO.md`) e tem consequências fiscais que não são minhas
-para decidir. **Em aberto para o promotor e o contabilista.** Enquanto não estiver decidido, não se mexe no
-pagamento.
+### 5.2 A comissão da avaliação é paga a quem, fiscalmente? — **decidido no desenho, por fechar com o contabilista**
+Decidido: é do **vendedor**, em saldo que ele resgata quando quiser, por recibo verde ou ato único, à
+escolha dele. A plataforma aceita fatura-recibo de qualquer pessoa desde que refira o **código interno** e
+a descrição corresponda ao serviço.
+
+O que isto obriga a mudar, e ainda não está construído:
+- `supplier_payout_details` (IBAN, titular, `cobra_iva`) é hoje **por entidade**; passa a ser da conta
+  pessoal — o titular é a pessoa, não a empresa.
+- Passa a ser preciso um **código interno por resgate**, para casar a fatura-recibo recebida com o
+  movimento — é o que o promotor pediu para a gestão interna.
+- `cobra_iva` deixa de ser uma caixa: um ato isolado e uma atividade aberta têm tratamentos diferentes, e
+  há quem esteja isento. Isto é precisamente a parte do contabilista.
+- A verificação da fatura-recibo (código presente, descrição coerente) é **humana**, na equipa da
+  plataforma, como já acontece com as faturas de adesão.
+
+**Por fechar com o contabilista**, e até lá não se mexe em pagamentos reais (que continuam travados pela
+Stripe em modo de teste e pela Moloni sem conta de testes — `docs/ESTADO.md`, secção 6).
 
 ### 5.3 A empresa pode contestar uma declaração falsa?
 O termo do ponto 5 resolve a responsabilidade legal, mas não o caso prático: alguém declara trabalhar numa
@@ -157,15 +211,32 @@ de dados (custo e dependência novos). Proposta: só o nome, e o resto à mão.
 
 ---
 
+### 5.7 "Produtos a passar à frente" — o que isso quer dizer ao certo
+O promotor referiu, como vantagem a vender à empresa, que os produtos dela **passam à frente**. Falta
+definir: à frente onde (catálogo, sugestões de material no orçamento, listagem de vendedores), por que
+ordem entre subscritores, e se o pintor percebe que aquela ordem é paga. Esta última não é detalhe: uma
+ordenação paga que se apresente como neutra é publicidade encapotada, e a página Transparência existe
+precisamente para a plataforma não fazer isso.
+
+---
+
 ## 6. Ordem de construção sugerida
 
-Cada passo é útil por si, e nenhum obriga o seguinte:
+Cada passo é útil por si, e nenhum obriga o seguinte. **Nada disto se começa antes de as quatro migrações
+pendentes entrarem** (`docs/ESTADO.md`, secção 6) — a fila já não anda, e acrescentar-lhe peças só as
+torna invisíveis.
 
-1. **Rasto de alterações nos descontos** (`quem mudou e quando`) — não depende de nenhuma decisão acima,
-   resolve metade do ponto 10 e é uma lacuna real mesmo no modelo de hoje.
-2. **Termo de declaração de vínculo** (ponto 5), no padrão já existente das outras aceitações.
-3. **Empresa e loja** como registos, com a declaração a criá-las por reclamar (depende de 5.1).
-4. **Conta pessoal de avaliador** e a separação das comissões (depende de 5.1 e 5.2).
-5. **Perfil da empresa-mãe**: equipa, métricas, tetos (depende de 3).
-6. **Os dois avisos** sobre o teto (depende de 5 e de 5.5).
-7. **Mensagem às duas contas da mesma loja** para entrarem como equipa (ponto 9).
+1. **Rasto de alterações nos descontos** (`quem mudou e quando`) — não depende de decisão nenhuma, resolve
+   o ponto 10 por inteiro agora que o desconto fica da empresa, e é uma lacuna real mesmo no modelo de
+   hoje. **É por aqui que se começa.**
+2. **Termo de declaração de vínculo** (ponto 5), no padrão já existente de `painter_terms_acceptances` e
+   `survey_terms_acceptances`: versão, data, e o NIF e nome que o vendedor declarou.
+3. **Conta pessoal de avaliador**: entidade só dele, com as zonas, os levantamentos e o saldo a mudarem-se
+   para lá. É a peça central, e a única que mexe em dados existentes (os levantamentos e comissões do
+   fornecedor de teste).
+4. **Código interno por resgate** e dados de pagamento pessoais (depende de 3; fecho com o contabilista
+   antes de valer para dinheiro real).
+5. **Perfil da empresa**: equipa, métricas, tetos de desconto (depende de 1 e 2).
+6. **Os dois avisos** ao exceder o teto (depende de 5 e da decisão 5.5).
+7. **Mensagem às duas contas da mesma loja** para entrarem como equipa (ponto 9) — e só aqui é que a
+   **loja** passa a ser precisa como registo.
