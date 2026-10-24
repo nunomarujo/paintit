@@ -14,6 +14,14 @@ export const PRODUCT_TYPES = [
   'impermeabilizante',
   'esmalte',
   'massa_reparacao',
+  'isolamento_eps',
+  'isolamento_eps_grafitado',
+  'isolamento_xps',
+  'isolamento_la_mineral',
+  'isolamento_cortica',
+  'fixador_capoto',
+  'rede_fibra_vidro',
+  'reboco_capoto',
   'outro',
 ] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
@@ -24,8 +32,28 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   impermeabilizante: 'Impermeabilizante',
   esmalte: 'Esmalte (metais, madeiras)',
   massa_reparacao: 'Massa de reparação',
+  isolamento_eps: 'Isolamento — EPS',
+  isolamento_eps_grafitado: 'Isolamento — EPS grafitado',
+  isolamento_xps: 'Isolamento — XPS',
+  isolamento_la_mineral: 'Isolamento — lã mineral',
+  isolamento_cortica: 'Isolamento — cortiça (ICB)',
+  fixador_capoto: 'Fixador (bucha) para capoto',
+  rede_fibra_vidro: 'Rede / malha de fibra de vidro',
+  reboco_capoto: 'Reboco para capoto (ETICS)',
   outro: 'Outro',
 };
+
+/** Tipos cuja "ficha" é placa/rolo/acessório (não tinta): sem rendimento em m²/L nem diluição. */
+export const ISOLAMENTO_E_ACESSORIOS: readonly ProductType[] = [
+  'isolamento_eps',
+  'isolamento_eps_grafitado',
+  'isolamento_xps',
+  'isolamento_la_mineral',
+  'isolamento_cortica',
+  'fixador_capoto',
+  'rede_fibra_vidro',
+  'reboco_capoto',
+];
 
 export interface ProductInput {
   nome: string;
