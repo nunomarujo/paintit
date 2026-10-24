@@ -7,7 +7,7 @@ import type { BudgetPending } from '@/domain/works';
 import { applyTemplate, deleteTemplate, saveTemplate } from '@/app/app/oportunidades/orcamento-actions';
 import { BudgetContext, outcome, type StepSaver } from './BudgetContext';
 import { BudgetSteps } from './BudgetSteps';
-import { PendingBar } from './PendingBar';
+import { BudgetPendingBar } from './PendingBar';
 import { STEP_IDS, STEP_LABELS, type StepId } from './steps';
 
 export interface TemplateOption {
@@ -210,7 +210,7 @@ export function BudgetShell({
       <BudgetSteps current={step} done={done} onSelect={go} />
       {pendings && pendings.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-amber-200">
-          <PendingBar pendings={pendings} />
+          <BudgetPendingBar pendings={pendings} />
         </div>
       )}
       {warning && (

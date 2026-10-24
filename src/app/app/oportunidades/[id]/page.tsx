@@ -34,7 +34,7 @@ import { linkedSupplierCodes, painterDiscountBreakdown, painterOrgs } from '@/li
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
-import { Workspace } from './Workspace';
+import { Workspace } from '@/components/Workspace';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';

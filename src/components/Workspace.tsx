@@ -5,7 +5,8 @@ import { useState, type ReactNode } from 'react';
 
 export interface WorkspaceTab {
   id: string;
-  label: string;
+  /** Pode levar um contador ou um sinal, não só texto. */
+  label: ReactNode;
   content: ReactNode;
   /** Separador sem conteúdo nenhum não aparece. */
   vazio?: boolean;
@@ -15,6 +16,12 @@ export interface WorkspaceTab {
    * a pessoa precisa de perceber.
    */
   bloqueado?: string;
+  /**
+   * Separador com relógio a correr: aparece em cor de aviso, não pálido. É o inverso do bloqueado —
+   * ali dizia "ainda não", aqui diz "está a correr". No ecrã do avaliador isto importa: um separador
+   * que ele não abra pode custar-lhe a comissão da obra toda.
+   */
+  destaque?: boolean;
 }
 
 /**
@@ -33,6 +40,7 @@ export function Workspace({
   documentoHref,
   tabs,
   inicial,
+  barra,
 }: {
   titulo: string;
   /** Referência do pedido. Não se chama `ref`: o React reserva esse nome e recusa-o na fronteira
@@ -44,6 +52,9 @@ export function Workspace({
   documentoHref?: string | null;
   tabs: WorkspaceTab[];
   inicial?: string;
+  /** Faixa logo abaixo dos separadores: pendências, prazos. Fica fora deles de propósito, para não
+   * se esconder atrás de um separador fechado. */
+  barra?: ReactNode;
 }) {
   const visiveis = tabs.filter((t) => !t.vazio);
   const [atual, setAtual] = useState(inicial && visiveis.some((t) => t.id === inicial) ? inicial : (visiveis.find((t) => !t.bloqueado)?.id ?? visiveis[0]?.id ?? ''));
@@ -82,7 +93,15 @@ export function Workspace({
             aria-current={t.id === atual ? 'page' : undefined}
             className={`rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold ${
               t.id === atual ? 'border-tinta-200 bg-sage text-tinta-600' : 'border-transparent hover:text-slate-700'
-            } ${t.bloqueado ? 'text-slate-400' : t.id === atual ? '' : 'text-slate-500'}`}
+            } ${
+              t.bloqueado
+                ? 'text-slate-400'
+                : t.destaque
+                  ? 'border-amber-300 bg-amber-50 text-amber-800'
+                  : t.id === atual
+                    ? ''
+                    : 'text-slate-500'
+            }`}
           >
             {t.bloqueado && (
               <span aria-hidden className="mr-1.5">
@@ -93,7 +112,9 @@ export function Workspace({
           </button>
         ))}
       </nav>
-      <div className="rounded-b-2xl rounded-tr-2xl border border-slate-200 bg-white p-5">
+      <div className="overflow-hidden rounded-b-2xl rounded-tr-2xl border border-slate-200 bg-white">
+        {barra}
+        <div className="p-5">
         {visiveis.map((t) => (
           <div key={t.id} hidden={t.id !== atual} className="space-y-6">
             {t.bloqueado ? (
@@ -108,6 +129,7 @@ export function Workspace({
             )}
           </div>
         ))}
+        </div>
       </div>
     </div>
   );

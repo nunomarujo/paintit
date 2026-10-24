@@ -4,11 +4,13 @@ import { PhotoUpload } from '@/app/app/pedidos/[id]/PhotoUpload';
 import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
+import { surveyPendings } from '@/domain/surveyPendings';
 import { surveyorEarningView } from '@/lib/surveys';
 import { getUser } from '@/lib/supabase/server';
 import { EarningCard } from './EarningCard';
 import { AcceptTerms } from './AcceptTerms';
 import { ClarificationCard, type ClarificationView } from './ClarificationCard';
+import { SurveyWorkspace } from './SurveyWorkspace';
 import { ConcludeButton, ContactForm } from './ContactForm';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
@@ -81,50 +83,44 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       }
     : null;
 
+  // O que falta para o levantamento estar pronto a entregar. Vale mais aqui do que no orçamento: ele
+  // está no local, e saber o que falta enquanto lá está poupa-lhe uma segunda ida.
+  const pendings = done
+    ? []
+    : surveyPendings({
+        superficies: list.map((s) => ({
+          id: s.id,
+          label: `${SURFACE_KIND_LABELS[s.kind]}${s.descricao ? ` · ${s.descricao}` : ''}`,
+          areaCm2: s.area_cm2 ?? 0,
+        })),
+        fotografias: (photos ?? []).length,
+        esclarecimentoPorResponder: !!clarification && clarification.status !== 'respondido',
+      });
+
   return (
-    <div className="space-y-8">
-      <div>
-        <Link href="/app/levantamentos" className="text-sm text-slate-600 hover:underline">
-          ← Levantamentos
-        </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Levantamento da obra</h1>
-        {building && (
-          <p className="mt-1 text-sm text-slate-600">
-            {building.morada}, {building.codigo_postal} {building.localidade} ({building.concelho}).{' '}
-            {building.pisos ? `${building.pisos} pisos. ` : ''}
-            {building.fachadas ? `${building.fachadas} fachadas. ` : ''}
-            {building.tem_varandas ? 'Com varandas.' : 'Sem varandas.'}
-          </p>
-        )}
-      </div>
+    <div className="space-y-4">
+      <Link href="/app/levantamentos" className="text-sm text-slate-600 hover:underline">
+        ← Levantamentos
+      </Link>
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        A morada e os dados desta obra são confidenciais: não os partilhe fora da aplicação, nem indique esta obra a
-        nenhum pintor ou terceiro fora do fluxo normal da plataforma.
-      </section>
-
-      {/* Esclarecimento primeiro: tem prazo a correr e custa a comissão de toda a obra se falhar. */}
-      {clarification && <ClarificationCard surveyId={survey.id} clarification={clarification} />}
-
-      {earning && <EarningCard earning={earning} />}
-
-      {request.descricao && (
-        <section className={card}>
-          <h2 className="font-semibold">Descrição do cliente</h2>
-          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{request.descricao}</p>
-        </section>
-      )}
-
-      <section className={card}>
-        <h2 className="font-semibold">Contacto e agendamento</h2>
-        <div className="mt-3">
-          <ContactForm surveyId={survey.id} initial={{ notas: survey.contact_notes, agendado: survey.scheduled_at?.slice(0, 16) ?? null }} />
-        </div>
-      </section>
-
+      <SurveyWorkspace
+        morada={building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null}
+        concelho={building?.concelho ?? null}
+        caracteristicas={[
+          building?.pisos ? `${building.pisos} pisos` : null,
+          building?.fachadas ? `${building.fachadas} fachadas` : null,
+          building?.tem_varandas ? 'com varandas' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        concluido={done}
+        prazo={clarification && clarification.status !== 'respondido' ? (clarification.prazoResponder ?? clarification.prazoConfirmar) : null}
+        pendings={pendings}
+        levantamento={
+          <>
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">Superfícies e áreas</h2>
+          <h2 id="superficies" className="scroll-mt-4 font-semibold">Superfícies e áreas</h2>
           <span className="text-sm text-slate-600">Total: {formatArea(total)}</span>
         </div>
         {list.length > 0 ? (
@@ -151,7 +147,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       </section>
 
       <section className={card}>
-        <h2 className="font-semibold">Fotografias</h2>
+        <h2 id="fotografias" className="scroll-mt-4 font-semibold">Fotografias</h2>
         {!done && (
           <p className="mt-2 text-sm text-amber-900">
             Não fotografe nada que identifique a localização do prédio ou dos vizinhos — números de porta, placas
@@ -180,6 +176,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
         )}
       </section>
 
+
       {!done && (
         <section className={card}>
           <h2 className="font-semibold">Concluir</h2>
@@ -192,6 +189,39 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
           </div>
         </section>
       )}
+          </>
+        }
+        esclarecimentos={
+          <>
+      {/* Esclarecimento primeiro: tem prazo a correr e custa a comissão de toda a obra se falhar. */}
+      {clarification && <ClarificationCard surveyId={survey.id} clarification={clarification} />}
+          </>
+        }
+        obra={
+          <>
+      {request.descricao && (
+        <section className={card}>
+          <h2 className="font-semibold">Descrição do cliente</h2>
+          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{request.descricao}</p>
+        </section>
+      )}
+
+      <section className={card}>
+        <h2 className="font-semibold">Contacto e agendamento</h2>
+        <div className="mt-3">
+          <ContactForm surveyId={survey.id} initial={{ notas: survey.contact_notes, agendado: survey.scheduled_at?.slice(0, 16) ?? null }} />
+        </div>
+      </section>
+
+      {earning && <EarningCard earning={earning} />}
+
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        A morada e os dados desta obra são confidenciais: não os partilhe fora da aplicação, nem indique esta obra a
+        nenhum pintor ou terceiro fora do fluxo normal da plataforma.
+      </section>
+          </>
+        }
+      />
     </div>
   );
 }
