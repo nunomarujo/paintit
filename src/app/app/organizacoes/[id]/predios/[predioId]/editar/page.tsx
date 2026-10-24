@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { updateBuilding } from '@/app/app/actions';
+import { updateBuildingIdentity } from '@/app/app/actions';
 import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { BuildingForm } from '../../novo/BuildingForm';
+import { Characteristics } from './Characteristics';
 
 export default async function EditBuildingPage({ params }: { params: Promise<{ id: string; predioId: string }> }) {
   const { id, predioId } = await params;
@@ -19,10 +20,29 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
       <Link href={`/app/organizacoes/${org.id}`} className="text-sm text-slate-600 hover:underline">
         ← {org.nome}
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold">Editar {building.nome_interno}</h1>
+      <h1 className="mt-3 text-2xl font-semibold">{building.nome_interno}</h1>
+      <p className="mt-1 text-sm text-slate-600">Ficha do prédio. As características gravam-se à medida que escreve.</p>
+
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-        <BuildingForm action={updateBuilding.bind(null, org.id, building.id)} defaultKind={building.tipo} initial={building} />
+        <Characteristics orgId={org.id} buildingId={building.id} initial={building} />
       </div>
+
+      {/* A morada fica no formulário com gravação explícita: é validada contra o código postal real, e
+          não se pode gravar a meio de ser escrita (ver saveBuildingCharacteristic). */}
+      <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <summary className="cursor-pointer font-semibold">Identificação e morada</summary>
+        <p className="mt-1 text-sm text-slate-600">
+          Estes dados são confirmados contra o código postal, por isso guardam-se de uma vez, com o botão.
+        </p>
+        <div className="mt-4">
+          <BuildingForm
+            action={updateBuildingIdentity.bind(null, org.id, building.id)}
+            defaultKind={building.tipo}
+            initial={building}
+            semCaracteristicas
+          />
+        </div>
+      </details>
     </div>
   );
 }

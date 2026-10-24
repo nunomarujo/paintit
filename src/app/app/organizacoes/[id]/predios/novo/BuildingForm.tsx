@@ -14,11 +14,14 @@ interface Props {
   defaultKind: string;
   /** Ao editar: os valores atuais. */
   initial?: Building;
+  /** Esconde as características (pisos, frações, …) — na ficha do prédio elas gravam-se sozinhas,
+   * campo a campo, fora deste formulário (`Characteristics`). */
+  semCaracteristicas?: boolean;
 }
 
 const str = (n: number | null | undefined) => (n === null || n === undefined ? undefined : String(n));
 
-export function BuildingForm({ action: submit, defaultKind, initial }: Props) {
+export function BuildingForm({ action: submit, defaultKind, initial, semCaracteristicas }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
 
@@ -64,7 +67,7 @@ export function BuildingForm({ action: submit, defaultKind, initial }: Props) {
         />
       </fieldset>
 
-      <fieldset className="space-y-4">
+      <fieldset className={`space-y-4 ${semCaracteristicas ? 'hidden' : ''}`}>
         <legend className="text-sm font-semibold">Características</legend>
         <div className="grid gap-4 sm:grid-cols-4">
           <Field name="pisos" label="Pisos" inputMode="numeric" defaultValue={str(initial?.pisos)} error={e.pisos} />

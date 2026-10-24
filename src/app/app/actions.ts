@@ -22,6 +22,7 @@ import {
 import { isPlatformAdmin } from '@/lib/access';
 import { addressProblem } from '@/domain/address';
 import type { StrikeInfo } from '@/domain/strikes';
+import type { Database } from '@/lib/database.types';
 import { lookupPostalCode } from '@/lib/postalCodes';
 import { getUser } from '@/lib/supabase/server';
 
@@ -165,6 +166,105 @@ export async function updateOrganization(orgId: string, _prev: FormState, form: 
   }
   revalidatePath(`/app/organizacoes/${orgId}`);
   redirect(`/app/organizacoes/${orgId}`);
+}
+
+/**
+ * Guarda **um** campo das características do prédio, à medida que a pessoa escreve (pedido do promotor,
+ * 24/10/2026: "sem botão gravar, grava à medida que se mete"). Propositadamente separado de
+ * `updateBuilding`: esse valida o prédio inteiro (morada obrigatória, código postal contra a lista real),
+ * e uma gravação a cada tecla não pode exigir que tudo o resto esteja válido ao mesmo tempo.
+ *
+ * O nome do campo chega do navegador por argumento ligado e **não é de confiança** (CLAUDE.md, regra 10):
+ * por isso não se constrói nenhuma consulta com ele. Cada campo permitido tem aqui o seu próprio ramo,
+ * com a sua própria leitura do valor; qualquer outro nome é recusado sem tocar na base de dados.
+ */
+export async function saveBuildingCharacteristic(
+  orgId: string,
+  buildingId: string,
+  campo: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const bruto = String(form.get('valor') ?? '').trim();
+  const inteiro = (max: number): number | null | 'erro' => {
+    if (bruto === '') return null;
+    const n = Number(bruto);
+    return Number.isInteger(n) && n >= 0 && n <= max ? n : 'erro';
+  };
+
+  // Os mesmos limites de `parseBuilding` (src/domain/organization.ts): dois caminhos a gravar o mesmo
+  // campo com regras diferentes seria um bug à espera de acontecer.
+  const LIMITES: Record<string, [number, number]> = { pisos: [0, 100], fracoes: [0, 2000], fachadas: [0, 8], ano_construcao: [1500, 2100] };
+
+  let patch: Database['public']['Tables']['buildings']['Update'];
+  switch (campo) {
+    case 'pisos':
+    case 'fracoes':
+    case 'fachadas':
+    case 'ano_construcao': {
+      const [min, max] = LIMITES[campo]!;
+      const v = inteiro(max);
+      if (v === 'erro' || (typeof v === 'number' && v < min)) return { errors: { valor: `Valor entre ${min} e ${max}.` } };
+      patch = { [campo]: v };
+      break;
+    }
+    case 'acessos':
+    case 'artigo_matricial': {
+      if (bruto.length > 500) return { errors: { valor: 'Até 500 caracteres.' } };
+      patch = { [campo]: bruto || null };
+      break;
+    }
+    case 'tem_varandas':
+    case 'tem_elevador':
+      patch = { [campo]: bruto === 'sim' };
+      break;
+    default:
+      return { errors: {}, message: 'Campo desconhecido.' };
+  }
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data, error } = await supabase.from('buildings').update(patch).eq('id', buildingId).eq('org_id', orgId).select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar. Só proprietários e gestores podem alterar o prédio.' };
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  return { errors: {}, ok: true, message: 'Guardado.' };
+}
+
+/**
+ * Identificação e morada do prédio, só isso. Existe porque a ficha do prédio passou a gravar as
+ * características sozinha, campo a campo (`saveBuildingCharacteristic`): se o formulário da morada
+ * continuasse a escrever o prédio inteiro, cada gravação da morada **apagava** as características que
+ * não vêm nesse formulário — os campos ausentes chegam a `parseBuilding` como vazios e `buildingColumns`
+ * escreve-os a null.
+ */
+export async function updateBuildingIdentity(orgId: string, buildingId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseBuilding(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const addrErr = await addressErrors(parsed.value.morada, parsed.value.codigoPostal, 'morada');
+  if (Object.keys(addrErr).length) return { errors: addrErr };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const v = parsed.value;
+  const { data, error } = await supabase
+    .from('buildings')
+    .update({
+      nome_interno: v.nomeInterno,
+      tipo: v.tipo,
+      morada: v.morada,
+      codigo_postal: v.codigoPostal,
+      localidade: v.localidade,
+      concelho: v.concelho,
+    })
+    .eq('id', buildingId)
+    .eq('org_id', orgId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar. Só proprietários e gestores podem alterar o prédio.' };
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
 export async function updateBuilding(

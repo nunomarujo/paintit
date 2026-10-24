@@ -34,8 +34,33 @@ const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
-export default async function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+function Sumario({ rotulo, valor }: { rotulo: string; valor: number | null }) {
+  return (
+    <div>
+      <dt className="text-slate-500">{rotulo}</dt>
+      <dd className={valor === null ? 'text-amber-800' : 'font-medium'}>{valor ?? 'por preencher'}</dd>
+    </div>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5" />
+    </svg>
+  );
+}
+
+export default async function OrganizationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ predio?: string }>;
+}) {
   const { id } = await params;
+  const { predio: predioSelecionado } = await searchParams;
   const { supabase, user } = await getUser();
 
   const { data: org } = await supabase.from('organizations').select('*').eq('id', id).maybeSingle();
@@ -101,9 +126,21 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   // estes prédios pela própria política RLS (`can_access_org` inclui quem gere a entidade).
   const managedIds = (managed ?? []).map((c) => c.id);
   const { data: managedBuildings } = managedIds.length
-    ? await supabase.from('buildings').select('id, org_id, nome_interno, concelho, fracoes').in('org_id', managedIds).order('nome_interno')
+    ? await supabase
+        .from('buildings')
+        .select('id, org_id, nome_interno, tipo, morada, codigo_postal, localidade, concelho, pisos, fracoes, fachadas, ano_construcao, tem_elevador, tem_varandas')
+        .in('org_id', managedIds)
+        .order('nome_interno')
     : { data: [] };
   const buildingsOf = (orgId: string) => (managedBuildings ?? []).filter((b) => b.org_id === orgId);
+
+  // Prédio em foco (pedido do promotor, 24/10/2026): clica-se num cartão, fica marcado, e é dele que o
+  // cartão de cima passa a falar. Fica no endereço (`?predio=`) e não em estado do navegador, para
+  // aguentar um recarregar e poder ser partilhado com um colega da equipa. Sem escolha, mostra o
+  // primeiro — a gestora tem quase sempre mais do que um, e um ecrã que começa vazio não ajuda ninguém.
+  const predios = managedBuildings ?? [];
+  const predioEmFoco = predios.find((b) => b.id === predioSelecionado) ?? predios[0] ?? null;
+  const condominioEmFoco = predioEmFoco ? (managed ?? []).find((c) => c.id === predioEmFoco.org_id) ?? null : null;
 
   return (
     <div className="space-y-8">
@@ -122,8 +159,16 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           </div>
           {manager && (
             <div className="flex flex-col items-end gap-2">
-              <Link href={`/app/organizacoes/${org.id}/editar`} className={smallButton}>
-                Editar dados
+              {/* Os dados da própria entidade editam-se aqui, junto ao nome — não no cartão de baixo,
+                  que na gestora passou a ser do prédio selecionado (promotor, 24/10/2026). */}
+              <Link
+                href={`/app/organizacoes/${org.id}/editar`}
+                aria-label={`Configurar os dados de ${org.nome}`}
+                title="Configurar os dados desta entidade"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+              >
+                <GearIcon />
+                <span className={org.kind === 'administradora' ? 'sr-only sm:not-sr-only' : ''}>Configurar</span>
               </Link>
               {role === 'proprietario' && <DeleteOrg orgId={org.id} nome={org.nome} />}
             </div>
@@ -168,6 +213,58 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         </div>
       )}
 
+      {/* Numa gestora, o cartão de cima fala do **prédio selecionado**, não da gestora: é com prédios que
+          ela trabalha o dia todo, e os dados dela prória editam-se no ícone junto ao nome (promotor,
+          24/10/2026). Nas outras entidades, continua a mostrar os dados da própria entidade. */}
+      {org.kind === 'administradora' ? (
+        <section className={card}>
+          {predioEmFoco && condominioEmFoco ? (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Prédio selecionado</p>
+                  <h2 className="mt-1 font-semibold">{predioEmFoco.nome_interno}</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {[predioEmFoco.morada, predioEmFoco.codigo_postal, predioEmFoco.localidade].filter(Boolean).join(', ')}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {condominioEmFoco.nome}
+                    {condominioEmFoco.nif ? ` · NIPC ${condominioEmFoco.nif}` : ''}
+                  </p>
+                </div>
+                {manager && (
+                  <Link
+                    href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/editar`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-tinta-600 px-3 py-1.5 text-sm font-semibold text-tinta-700 hover:bg-tinta-50"
+                  >
+                    <GearIcon />
+                    Configurar prédio
+                  </Link>
+                )}
+              </div>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+                <Sumario rotulo="Pisos" valor={predioEmFoco.pisos} />
+                <Sumario rotulo="Frações" valor={predioEmFoco.fracoes} />
+                <Sumario rotulo="Fachadas" valor={predioEmFoco.fachadas} />
+                <Sumario rotulo="Ano" valor={predioEmFoco.ano_construcao} />
+              </dl>
+              <p className="mt-3 text-xs text-slate-600">
+                {BUILDING_KIND_LABELS[predioEmFoco.tipo]} · {predioEmFoco.concelho}
+                {predioEmFoco.tem_elevador ? ' · com elevador' : ''}
+                {predioEmFoco.tem_varandas ? ' · com varandas' : ''}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold">Nenhum prédio selecionado</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Acrescente o primeiro condomínio e o seu prédio em “Prédios sob administração”, aqui abaixo. Os dados da
+                gestora editam-se no ícone junto ao nome, lá em cima.
+              </p>
+            </>
+          )}
+        </section>
+      ) : (
       <section className={card}>
         <h2 className="font-semibold">Dados da entidade</h2>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -187,6 +284,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           )}
         </dl>
       </section>
+      )}
 
       {org.kind === 'fornecedor' && (
         <section className={card}>
@@ -243,8 +341,12 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
               {managed.map((c) => {
                 const bs = buildingsOf(c.id);
                 const fracoes = bs.reduce((n, b) => n + (b.fracoes ?? 0), 0);
+                const emFoco = predioEmFoco?.org_id === c.id;
                 return (
-                  <li key={c.id} className="rounded-xl border border-slate-200 p-4 text-sm">
+                  <li
+                    key={c.id}
+                    className={`rounded-xl border p-4 text-sm ${emFoco ? 'border-tinta-600 bg-tinta-50/60 ring-1 ring-tinta-600' : 'border-slate-200'}`}
+                  >
                     <Link href={`/app/organizacoes/${c.id}`} className="font-semibold hover:underline">
                       {c.nome}
                     </Link>
@@ -276,6 +378,29 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
                         </dd>
                       </div>
                     </dl>
+                    {/* Selecionar: é o que põe este prédio no cartão de cima. Um prédio por cartão é o
+                        caso normal; havendo mais, escolhe-se qual. */}
+                    {bs.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {bs.map((b) => {
+                          const marcado = predioEmFoco?.id === b.id;
+                          return (
+                            <Link
+                              key={b.id}
+                              href={`/app/organizacoes/${org.id}?predio=${b.id}`}
+                              scroll={false}
+                              aria-current={marcado ? 'true' : undefined}
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                                marcado ? 'border-tinta-600 bg-tinta-600 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              {marcado ? '✓ ' : ''}
+                              {b.nome_interno}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
                     {manager && (
                       <div className="mt-3 flex flex-wrap gap-3 font-medium text-tinta-700">
                         <Link href={`/app/organizacoes/${c.id}/editar`} className="hover:underline">
