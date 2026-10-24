@@ -18,5 +18,6 @@ export function parseCapoto(valor: unknown): CapotoSpec | null {
     espessuraMm: espessura,
     acabamento: isAcabamento(o.acabamento) ? o.acabamento : null,
     demaos,
+    cor: typeof o.cor === 'string' && o.cor.trim() ? o.cor.trim().slice(0, 60) : null,
   };
 }

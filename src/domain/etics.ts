@@ -157,6 +157,8 @@ export interface CapotoSpec {
   acabamento: Acabamento | null;
   /** Demãos do acabamento ou da tinta final. */
   demaos: number | null;
+  /** Cor da tinta de acabamento, como o cliente a pediu ou o pintor a propõe. */
+  cor?: string | null;
 }
 
 export const isIsolante = (v: unknown): v is Isolante => typeof v === 'string' && (ISOLANTES as readonly string[]).includes(v);
@@ -203,5 +205,6 @@ export function resumoCapoto(spec: CapotoSpec): string {
   const iso = spec.isolante ? ISOLANTE_INFO[spec.isolante].label : 'isolante por definir';
   const esp = spec.espessuraMm ? `${spec.espessuraMm} mm` : 'espessura por definir';
   const ac = spec.acabamento ? ACABAMENTO_INFO[spec.acabamento].label.toLowerCase() : 'acabamento por definir';
-  return `Capoto novo: ${iso}, ${esp}, acabamento ${ac}`;
+  const cor = spec.cor?.trim() ? `, cor ${spec.cor.trim()}` : '';
+  return `Capoto novo: ${iso}, ${esp}, acabamento ${ac}${cor}`;
 }

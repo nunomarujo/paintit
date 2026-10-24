@@ -13,6 +13,7 @@ export const BUILDING_NEEDS = [
   'pintura_exterior',
   'pintura_interior',
   'revestimento_fachada',
+  'isolamento_capoto',
   'impermeabilizacao',
   'caleiras_algerozes',
   'telhado_cobertura',
@@ -25,7 +26,8 @@ export type BuildingNeed = (typeof BUILDING_NEEDS)[number];
 export const BUILDING_NEED_LABELS: Record<BuildingNeed, string> = {
   pintura_exterior: 'Pintura exterior (fachadas, varandas, muros)',
   pintura_interior: 'Pintura interior (escadas, átrios, zonas comuns)',
-  revestimento_fachada: 'Revestimento de fachada (ETICS, reboco, cerâmico)',
+  revestimento_fachada: 'Revestimento de fachada (reboco, cerâmico)',
+  isolamento_capoto: 'Isolamento pelo exterior (capoto)',
   impermeabilizacao: 'Impermeabilização (terraços, varandas)',
   caleiras_algerozes: 'Caleiras e algerozes',
   telhado_cobertura: 'Telhado ou cobertura',
@@ -35,7 +37,7 @@ export const BUILDING_NEED_LABELS: Record<BuildingNeed, string> = {
 };
 
 /** Trabalhos que a plataforma orçamenta hoje. Os restantes registam-se, mas não geram pedido. */
-const QUOTABLE: readonly BuildingNeed[] = ['pintura_exterior', 'pintura_interior', 'impermeabilizacao'];
+const QUOTABLE: readonly BuildingNeed[] = ['pintura_exterior', 'pintura_interior', 'impermeabilizacao', 'isolamento_capoto'];
 
 export function isQuotableNeed(need: BuildingNeed): boolean {
   return QUOTABLE.includes(need);

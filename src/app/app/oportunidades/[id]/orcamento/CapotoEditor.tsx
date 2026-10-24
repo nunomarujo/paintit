@@ -50,7 +50,8 @@ export function CapotoEditor({
   /** A coluna ainda não existe na base: mostra-se o aviso em vez do formulário. */
   indisponivel?: boolean;
 }) {
-  const [tem, setTem] = useState(inicial !== null);
+  // A obra já foi declarada com capoto: o ecrã especifica-o, não volta a perguntar se o leva.
+  const tem = true;
   const [spec, setSpec] = useState<CapotoSpec>(
     inicial ?? { situacao: 'novo_sobre_pintura', isolante: null, espessuraMm: 60, acabamento: null, demaos: 2 },
   );
@@ -76,7 +77,8 @@ export function CapotoEditor({
 
   return (
     <form {...formProps} className="space-y-6">
-      <input type="hidden" name="tem" value={tem ? 'sim' : 'nao'} />
+      <input type="hidden" name="tem" value="sim" />
+      <input type="hidden" name="cor" value={spec.cor ?? ''} />
       <input type="hidden" name="situacao" value={spec.situacao} />
       <input type="hidden" name="isolante" value={spec.isolante ?? ''} />
       <input type="hidden" name="espessura" value={spec.espessuraMm ?? ''} />
@@ -84,27 +86,11 @@ export function CapotoEditor({
       <input type="hidden" name="demaos" value={spec.demaos ?? ''} />
 
       <section className={card}>
-        <h3 className="font-semibold">Esta obra leva capoto?</h3>
+        <h3 className="font-semibold">Capoto</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Um capoto muda a natureza da empreitada e aparece identificado no cabeçalho da proposta, para o cliente não
-          comparar uma pintura com um isolamento.
+          Esta obra foi declarada com isolamento pelo exterior. Indique o tipo, a espessura e a cor — sem isso, duas
+          propostas com preços muito diferentes podem estar a falar de obras diferentes.
         </p>
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setTem(false)}
-            className={`rounded-lg px-4 py-2 text-sm ${!tem ? 'bg-tinta-700 text-white' : 'border border-slate-300'}`}
-          >
-            Só pintura
-          </button>
-          <button
-            type="button"
-            onClick={() => setTem(true)}
-            className={`rounded-lg px-4 py-2 text-sm ${tem ? 'bg-tinta-700 text-white' : 'border border-slate-300'}`}
-          >
-            Leva capoto
-          </button>
-        </div>
       </section>
 
       {tem && (
@@ -271,7 +257,8 @@ export function CapotoEditor({
                 );
               })}
             </ul>
-            <label className="mt-4 block text-sm">
+            <div className="mt-4 flex flex-wrap gap-4">
+            <label className="block text-sm">
               Demãos do acabamento
               <input
                 inputMode="numeric"
@@ -280,6 +267,16 @@ export function CapotoEditor({
                 className="mt-1 block w-24 rounded-lg border border-slate-300 px-3 py-2"
               />
             </label>
+            <label className="block text-sm">
+              Cor
+              <input
+                value={spec.cor ?? ''}
+                onChange={(e) => setSpec({ ...spec, cor: e.target.value })}
+                placeholder="Ex.: branco, ou a cor existente"
+                className="mt-1 block w-64 rounded-lg border border-slate-300 px-3 py-2"
+              />
+            </label>
+            </div>
           </section>
 
           <section className={card}>

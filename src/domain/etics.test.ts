@@ -136,3 +136,14 @@ describe('ligação ao catálogo', () => {
     }
   });
 });
+
+describe('cor do acabamento', () => {
+  it('entra no resumo quando foi indicada', () => {
+    expect(resumoCapoto({ ...novo, cor: 'Branco sujo' })).toContain('cor Branco sujo');
+  });
+
+  it('não inventa cor nenhuma quando falta', () => {
+    expect(resumoCapoto(novo)).not.toContain('cor ');
+    expect(resumoCapoto({ ...novo, cor: '   ' })).not.toContain('cor ');
+  });
+});

@@ -6,8 +6,15 @@ describe('obras pretendidas no prédio', () => {
     for (const n of BUILDING_NEEDS) expect(BUILDING_NEED_LABELS[n]).toBeTruthy();
   });
 
-  it('só a pintura e a impermeabilização se orçamentam aqui', () => {
-    expect(BUILDING_NEEDS.filter(isQuotableNeed)).toEqual(['pintura_exterior', 'pintura_interior', 'impermeabilizacao']);
+  it('orçamentam-se pintura, impermeabilização e capoto', () => {
+    // O capoto entrou em 24/10/2026, por decisão do promotor ao pedir o separador do capoto no
+    // orçamento. As restantes especialidades continuam a registar-se sem se orçamentarem aqui.
+    expect(BUILDING_NEEDS.filter(isQuotableNeed)).toEqual([
+      'pintura_exterior',
+      'pintura_interior',
+      'isolamento_capoto',
+      'impermeabilizacao',
+    ]);
     // As que o promotor nomeou e estão fora do âmbito registam-se, mas não geram pedido.
     expect(isQuotableNeed('telhado_cobertura')).toBe(false);
     expect(isQuotableNeed('caleiras_algerozes')).toBe(false);

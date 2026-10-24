@@ -1280,3 +1280,22 @@ A rota do lado do pintor (`/app/oportunidades/[id]/orcamento/documento`) manteve
 respondia ao pedido de ter o ficheiro à mão depois de submeter, mas passou a desenhar o
 `ProposalDocument`. A única diferença entre os dois lados é a identidade que o componente recebe: a
 verdadeira quando é a própria empresa a ver o seu orçamento, o alias quando é o cliente.
+
+
+### 24/10/2026, fim do dia — migrações aplicadas e capoto ligado
+
+As quatro migrações do dia estão **aplicadas em produção** (as três últimas correram no SQL Editor,
+pelo promotor, depois de o classificador me recusar o DDL). Verificado na base:
+`current_rules_version() = 2026-10-24`, `proposals.capoto` existe, e as três restrições aceitam
+capoto.
+
+Com isso ligou-se o que estava à espera:
+
+- A comissão de 18% com piso de 9% passa a valer nas contratações que nascem agora. Antes desta
+  aplicação, o ecrã dizia 18% e a contratação nascia com 3%.
+- `isolamento_capoto` nas obras do prédio e `capoto` nos trabalhos do pedido: o cliente e o avaliador
+  passam a poder declará-lo. O capoto é **orçamentável** — decisão do promotor ao pedir o separador;
+  as outras especialidades (telhado, caleiras, revestimento) continuam só registadas.
+- O capoto deixou de ser separador fixo: é um campo dentro de Trabalhos, e **só aparece quando foi
+  declarado antes**. Ganhou a cor do acabamento, além do tipo e da espessura.
+- O passo "Trabalhos" só se dá por completo se o capoto, quando a obra o leva, estiver especificado.

@@ -264,6 +264,7 @@ export async function saveCapoto(proposalId: string, requestId: string, _prev: F
       espessuraMm: manutencao ? null : espessura,
       acabamento,
       demaos: Number.isFinite(demaos) && demaos > 0 && demaos <= 5 ? demaos : null,
+      cor: String(form.get('cor') ?? '').trim().slice(0, 60) || null,
     };
   }
 

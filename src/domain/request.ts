@@ -57,6 +57,7 @@ export const DESIRED_WORKS = [
   'pintura',
   'impermeabilizacao',
   'tratamento_metais',
+  'capoto',
 ] as const;
 export type DesiredWork = (typeof DESIRED_WORKS)[number];
 export const DESIRED_WORK_LABELS: Record<DesiredWork, string> = {
@@ -67,6 +68,7 @@ export const DESIRED_WORK_LABELS: Record<DesiredWork, string> = {
   pintura: 'Pintura',
   impermeabilizacao: 'Impermeabilização',
   tratamento_metais: 'Tratamento de metais',
+  capoto: 'Capoto (isolamento pelo exterior)',
 };
 
 /** Os trabalhos pretendidos são iguais em todas as zonas (fachadas)? */

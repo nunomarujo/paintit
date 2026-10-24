@@ -162,15 +162,19 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const { data: capotoRow, error: capotoErro } = proposal
     ? await supabase.from('proposals').select('capoto').eq('id', proposal.id).maybeSingle()
     : { data: null, error: null };
+  // O capoto só aparece se tiver sido declarado antes, pelo cliente ou pelo avaliador (pedido do
+  // promotor, 24/10/2026). Sem declaração, o campo nem existe.
+  const levaCapoto = (listing?.trabalhos ?? []).includes('capoto');
   const capotoPorAplicar = !proposal || !!capotoErro;
   const capotoSpec = parseCapoto(capotoRow?.capoto);
 
   const termsOk = blockers.filter((b) => /validade|dura|mão-de-obra|seguros|pagamentos|adiantamento/i.test(b)).length === 0;
   const done: Record<StepId, boolean> = {
-    trabalhos: items.length > 0 && items.every((i) => isComplete(i, wizardZones)),
+    trabalhos:
+      items.length > 0 &&
+      items.every((i) => isComplete(i, wizardZones)) &&
+      (!levaCapoto || (capotoSpec !== null && capotoEmFalta(capotoSpec).length === 0)),
     precos: modoPreco === 'global' ? (globalLine?.preco_unitario_cents ?? 0) > 0 : priceRows.length > 0 && !pendings.some((p) => p.id.startsWith('preco:')),
-    // O capoto dá-se por tratado quando a escolha foi feita: ou não leva, ou está completo.
-    capoto: !capotoPorAplicar && (capotoSpec === null || capotoEmFalta(capotoSpec).length === 0),
     condicoes: termsOk,
     rever: false,
   };
@@ -432,10 +436,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 pendings={pendings}
                 steps={{
                   trabalhos: (
-                    <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
-                  ),
-                  capoto: (
-                    <CapotoEditor proposalId={proposal.id} requestId={id} inicial={capotoSpec} indisponivel={capotoPorAplicar} catalogo={catalogue} />
+                    <>
+                      {levaCapoto && (
+                        <CapotoEditor proposalId={proposal.id} requestId={id} inicial={capotoSpec} indisponivel={capotoPorAplicar} catalogo={catalogue} />
+                      )}
+                      <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
+                    </>
                   ),
                   precos: (
                     <>
