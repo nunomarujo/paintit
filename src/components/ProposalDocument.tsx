@@ -117,7 +117,7 @@ export function ProposalDocument({
         )}
 
 
-        <dl className="grid grid-cols-4 gap-4 border-b border-slate-200 py-4 text-[12px]">
+        <dl className="grid grid-cols-4 gap-4 border-b border-slate-200 py-4 text-[12.5px]">
           <div>
             <dt className="eyebrow">Concelho</dt>
             <dd className="mt-0.5">{request.concelho}</dd>
@@ -138,12 +138,12 @@ export function ProposalDocument({
 
         <div className="border-b border-slate-200 py-4" style={{ minHeight: '22mm' }}>
           <p className="eyebrow mb-1.5">Nota da proposta</p>
-          <p className="max-w-[68ch] text-[12px] leading-relaxed text-slate-700">{intro}</p>
+          <p className="max-w-[68ch] text-[12.5px] leading-relaxed text-slate-700">{intro}</p>
         </div>
 
         {zones.length > 1 && (
           <div className="border-b border-slate-200 py-4">
-            <p className="eyebrow mb-2">Âmbito por zona</p>
+            <h2 className="mb-2 font-serif text-[15px] text-slate-900">Âmbito por zona</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px]">
               {zones.map((z) => {
                 const n = linesForZone(lines, z.id).length;
@@ -161,32 +161,32 @@ export function ProposalDocument({
         )}
 
         <div className="py-4">
-          <p className="eyebrow mb-2">Trabalhos discriminados</p>
-          <table className="w-full text-[11px]">
+          <h2 className="mb-2 font-serif text-[15px] text-slate-900">Trabalhos discriminados</h2>
+          <table className="w-full text-[11.5px]">
             <thead>
-              <tr className="border-b border-slate-900 text-left text-slate-500">
-                <th className="w-[46%] pb-1.5 font-medium">Trabalho</th>
-                <th className="w-[18%] pb-1.5 font-medium text-right">Quantidade</th>
-                <th className="w-[18%] pb-1.5 font-medium text-right">Preço unit.</th>
-                <th className="w-[18%] pb-1.5 font-medium text-right">Total</th>
+              <tr className="bg-slate-100 text-left text-[10px] uppercase tracking-[0.08em] text-slate-600 print:bg-slate-100">
+                <th className="w-[46%] px-2 py-1.5 font-semibold">Trabalho</th>
+                <th className="w-[18%] px-2 py-1.5 text-right font-semibold">Quantidade</th>
+                <th className="w-[18%] px-2 py-1.5 text-right font-semibold">Preço unit.</th>
+                <th className="w-[18%] px-2 py-1.5 text-right font-semibold">Total</th>
               </tr>
             </thead>
             <tbody>
               {included.map((l) => (
                 <tr key={l.id} className="border-b border-slate-200">
-                  <td className="py-1.5 pr-2">
-                    <span className="font-medium">{l.descricao}</span>
+                  <td className="py-2 pl-2 pr-2">
+                    <span className="font-semibold text-slate-900">{l.descricao}</span>
                     <span className="block text-[10px] text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria].split(' (')[0]}
                       {l.produto ? ` · ${l.produto}` : ''}
                       {l.demaos ? ` · ${l.demaos} demão${l.demaos > 1 ? 's' : ''}` : ''}
                     </span>
                   </td>
-                  <td className="py-1.5 text-right font-mono">
+                  <td className="px-2 py-2 text-right font-mono tabular-nums">
                     {(l.quantidade / 100).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} {UNIT_LABELS[l.unidade]}
                   </td>
-                  <td className="py-1.5 text-right font-mono">{formatEuros(l.precoUnitario)}</td>
-                  <td className="py-1.5 text-right font-mono">{formatEuros(lineTotal(l))}</td>
+                  <td className="px-2 py-2 text-right font-mono tabular-nums">{formatEuros(l.precoUnitario)}</td>
+                  <td className="px-2 py-2 text-right font-mono font-semibold tabular-nums text-slate-900">{formatEuros(lineTotal(l))}</td>
                 </tr>
               ))}
             </tbody>
@@ -314,12 +314,16 @@ export function ProposalDocument({
               <td className="py-0.5 text-slate-500">IVA ({terms.ivaBps / 100}%)</td>
               <td className="py-0.5 text-right font-mono text-slate-500">{formatEuros(totals.iva)}</td>
             </tr>
-            <tr className="border-t border-slate-900">
-              <td className="pt-1.5 font-serif text-[13px]">Total</td>
-              <td className="pt-1.5 text-right font-serif text-[13px]">{formatEuros(totals.totalComIva)}</td>
-            </tr>
           </tbody>
         </table>
+
+        <div className="mt-3 flex items-baseline justify-between gap-4 bg-tinta-50 px-4 py-3 print:bg-tinta-50">
+          <div>
+            <p className="eyebrow text-tinta-700">Total da proposta</p>
+            <p className="mt-0.5 text-[10.5px] text-slate-600">Com IVA incluído, à taxa de {terms.ivaBps / 100}%</p>
+          </div>
+          <p className="font-serif text-[26px] leading-none text-tinta-800">{formatEuros(totals.totalComIva)}</p>
+        </div>
 
         {(terms.adiantamentoBps > 0 || terms.fases.length > 0) && (
           <div className="mt-4 grid grid-cols-3 gap-3">
@@ -408,6 +412,7 @@ function RunningHeader({
 function Sheet({ children, page, of, footer }: { children: React.ReactNode; page: number; of: number; footer?: boolean }) {
   return (
     <article className="proposal-sheet relative bg-white" aria-label={`Página ${page} de ${of}`}>
+      <span aria-hidden className="proposal-rule" />
       <span aria-hidden className="proposal-watermark">
         quempinta.pt
       </span>

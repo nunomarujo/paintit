@@ -113,17 +113,35 @@ input[type='radio'] {
     padding: 14mm 13mm;
     box-shadow: none;
     margin: 0;
-    break-after: page;
+  }
+  /* Quebrar ANTES de cada folha seguinte, e não depois de cada uma: com break-after, os 4px do fio de
+     cor da folha seguinte ficavam no rodapé da página anterior. */
+  .proposal-sheet + .proposal-sheet {
+    break-before: page;
   }
   .proposal-sheet table,
   .proposal-sheet section,
   .proposal-sheet figure {
     break-inside: avoid;
   }
-  .proposal-sheet:last-child {
-    break-after: auto;
-  }
   .proposal-footer {
     break-inside: avoid;
   }
+}
+
+/* Fio de cor no topo de cada folha do orçamento: assinatura visual do documento, imprimível. */
+.proposal-rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #173f42, #35807a 60%, #cdbb9a);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.proposal-sheet thead tr,
+.proposal-sheet .bg-tinta-50 {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
