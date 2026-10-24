@@ -18,16 +18,22 @@ import {
   supplierCommissionBpAt,
   supplierCommissionVat,
 } from './referral';
-import { CURRENT_RULES, RULES_BY_VERSION } from './rules';
+import { CURRENT_RULES, RULES_2026_10_24_REF, RULES_BY_VERSION } from './rules';
 
 describe('códigos de adesão', () => {
-  it('a comissão do pintor desce de 3% para 2,75%, com o mesmo mínimo', () => {
+  it('o código de adesão desce 0,25 pontos à comissão, com o mesmo mínimo', () => {
+    // A versão de 20/10 fica como foi, para reconstruir contratações dessa altura.
     expect(RULES_2026_10_20_REF.commissionBp).toBe(275);
-    expect(commissionFor(1_000_000, CURRENT_RULES)).toBe(30_000);
     expect(commissionFor(1_000_000, RULES_2026_10_20_REF)).toBe(27_500);
-    // Obra pequena: o mínimo de 150 € mantém-se e o desconto não se nota.
-    expect(commissionFor(300_000, RULES_2026_10_20_REF)).toBe(15_000);
     expect(painterFee(1_000_000, RULES_2026_10_20_REF).gross).toBe(33_825);
+
+    // Em vigor desde 24/10: 18%, e com código 17,75%.
+    expect(commissionFor(1_000_000, CURRENT_RULES)).toBe(180_000);
+    expect(RULES_2026_10_24_REF.commissionBp).toBe(1_775);
+    expect(commissionFor(1_000_000, RULES_2026_10_24_REF)).toBe(177_500);
+
+    // Obra pequena: o mínimo de 150 € mantém-se e o desconto não se nota.
+    expect(commissionFor(50_000, RULES_2026_10_20_REF)).toBe(15_000);
   });
 
   it('a versão com desconto está registada, para reconstruir a contratação', () => {
@@ -100,9 +106,10 @@ describe('desconto do pintor por fornecedores com código ligado', () => {
     expect(MAX_COMBINED_PAINTER_DISCOUNT_BP).toBe(800);
   });
 
-  it('aplica o desconto à comissão, sem nunca a tornar negativa', () => {
+  it('aplica o desconto à comissão, sem nunca atravessar o piso de 9%', () => {
     expect(applyPainterDiscount(CURRENT_RULES, 50).commissionBp).toBe(CURRENT_RULES.commissionBp - 50);
-    expect(applyPainterDiscount(CURRENT_RULES, 10_000).commissionBp).toBe(0);
+    // Desconto absurdo: para no piso, nunca em zero nem em negativo.
+    expect(applyPainterDiscount(CURRENT_RULES, 10_000).commissionBp).toBe(900);
   });
 });
 

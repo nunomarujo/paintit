@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clientGuarantee, commissionFor, effectiveRate, painterFee } from './commission';
+import { applyPainterDiscount } from './referral';
+import { CURRENT_RULES, RULES_2026_10_20, RULES_2026_10_24 } from './rules';
 import { euros, formatEuros, percentOf } from './money';
 import { RULES_2026_10 as rules, RULES_2026_10_20_CONVITE } from './rules';
 
@@ -56,5 +58,34 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     expect(RULES_2026_10_20_CONVITE.version).toBe('2026-10-20+convite');
     expect(commissionFor(euros(100_000), RULES_2026_10_20_CONVITE)).toBe(euros(9_000));
     expect(commissionFor(euros(1_000), RULES_2026_10_20_CONVITE)).toBe(euros(150));
+  });
+});
+
+// 24/10/2026: comissão a 18% com piso de 9%.
+describe('comissão de 24/10/2026', () => {
+  it('são 18% do valor sem IVA', () => {
+    expect(commissionFor(euros(34_800), RULES_2026_10_24)).toBe(euros(6_264));
+    expect(RULES_2026_10_24.commissionBp).toBe(1_800);
+  });
+
+  it('nenhum desconto desce abaixo dos 9%, nem todos empilhados', () => {
+    const tudo = applyPainterDiscount(RULES_2026_10_24, 300 + 200 + 400);
+    expect(tudo.commissionBp).toBe(900);
+    const exagero = applyPainterDiscount(RULES_2026_10_24, 5_000);
+    expect(exagero.commissionBp).toBe(900);
+  });
+
+  it('um desconto pequeno aplica-se na mesma', () => {
+    expect(applyPainterDiscount(RULES_2026_10_24, 25).commissionBp).toBe(1_775);
+  });
+
+  it('as versões antigas não ganham piso: continuam a reconstruir-se como foram', () => {
+    expect(applyPainterDiscount(RULES_2026_10_20, 300).commissionBp).toBe(0);
+    expect(RULES_2026_10_20.commissionFloorBp).toBeUndefined();
+  });
+
+  it('a versão em vigor é a de 24/10', () => {
+    expect(CURRENT_RULES.version).toBe('2026-10-24');
+    expect(CURRENT_RULES.commissionBp).toBe(1_800);
   });
 });

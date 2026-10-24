@@ -92,7 +92,11 @@ export function combinedPainterDiscountBp(linkedCodesBp: number, referralsBp: nu
 /** As regras comerciais com o desconto do pintor já aplicado à comissão, nunca abaixo de zero (o mínimo em euros,
  * `commissionMinCents`, continua a proteger a plataforma de uma comissão ínfima — ver `commission.ts`). */
 export function applyPainterDiscount(rules: CommercialRules, discountBp: number): CommercialRules {
-  return { ...rules, commissionBp: Math.max(0, rules.commissionBp - discountBp) };
+  // O piso é da versão das regras: nenhum desconto, nem todos empilhados, o atravessa (24/10/2026).
+  // Versões antigas não tinham piso e continuam a descer até zero, para que contratações já
+  // iniciadas se reconstruam exatamente como foram.
+  const piso = rules.commissionFloorBp ?? 0;
+  return { ...rules, commissionBp: Math.max(piso, rules.commissionBp - discountBp) };
 }
 
 // Comissão do fornecedor nos códigos de adesão: sobe de 1% para 2% ao alcançar a 3.ª obra — de qualquer pintor que

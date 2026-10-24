@@ -9,6 +9,12 @@ export interface CommercialRules {
   /** Comissão do pintor, em pontos-base sobre o valor sem IVA. */
   commissionBp: number;
   commissionMinCents: Cents;
+  /**
+   * Piso da comissão, em pontos-base: nenhum desconto — nem todos empilhados — a faz descer abaixo
+   * disto. Ausente nas versões antigas, que não tinham piso; `applyPainterDiscount` lê 0 nesse caso,
+   * para que contratações já iniciadas continuem a reconstruir-se exatamente como foram.
+   */
+  commissionFloorBp?: number;
   /** Caução do cliente, em pontos-base sobre o valor sem IVA. */
   guaranteeBp: number;
   /** Mínimo da caução (150 €, igual ao da comissão). */
@@ -52,7 +58,44 @@ export const RULES_2026_10_20: CommercialRules = { ...RULES_2026_10_19, version:
  */
 export const RULES_2026_10_20_REF: CommercialRules = { ...RULES_2026_10_20, version: `${RULES_2026_10_20.version}+ref`, commissionBp: RULES_2026_10_20.commissionBp - 25 };
 
-export const CURRENT_RULES = RULES_2026_10_20;
+/**
+ * 24/10/2026: a comissão passa a 18% com piso de 9%, por decisão do promotor — os 3% em vigor até
+ * aqui eram interinos e estavam, nas suas palavras, "abaixo do mínimo estabelecido". Os 18% são a
+ * base do documento "Algoritmo de determinação de fee QuemPinta v1"; os 9% são o piso que o mesmo
+ * documento fixa como mínimo absoluto, com todos os descontos empilhados (18 − 3 de resposta inicial
+ * − 2 de fidelização − 4 de referências).
+ *
+ * O piso é agora cumprido pelo código, e não só pela aritmética de quem configura os descontos:
+ * `applyPainterDiscount` nunca desce abaixo dele.
+ *
+ * Como manda a regra 3 do CLAUDE.md, isto é uma versão nova: as contratações já iniciadas continuam
+ * com a versão que aplicaram e não mudam de preço a meio.
+ */
+export const RULES_2026_10_24: CommercialRules = {
+  ...RULES_2026_10_20,
+  version: '2026-10-24',
+  commissionBp: 1_800,
+  commissionFloorBp: 900,
+};
+
+/** O código de adesão de um fornecedor desce 0,25 pontos, agora sobre a base nova. */
+export const RULES_2026_10_24_REF: CommercialRules = {
+  ...RULES_2026_10_24,
+  version: `${RULES_2026_10_24.version}+ref`,
+  commissionBp: RULES_2026_10_24.commissionBp - 25,
+};
+
+/**
+ * "Traga o seu pintor" com a base de 24/10: mantém-se nos 9%, que agora coincidem exatamente com o
+ * piso. O canal já estava nesse valor por ser o mínimo do modelo; a subida da base não lhe toca.
+ */
+export const RULES_2026_10_24_CONVITE: CommercialRules = {
+  ...RULES_2026_10_24,
+  version: `${RULES_2026_10_24.version}+convite`,
+  commissionBp: 900,
+};
+
+export const CURRENT_RULES = RULES_2026_10_24;
 
 /**
  * 22/10/2026: "traga o seu pintor" — o cliente convida diretamente a empresa da sua confiança para a sua própria
@@ -75,4 +118,7 @@ export const RULES_BY_VERSION: Record<string, CommercialRules> = {
   [RULES_2026_10_20.version]: RULES_2026_10_20,
   [RULES_2026_10_20_REF.version]: RULES_2026_10_20_REF,
   [RULES_2026_10_20_CONVITE.version]: RULES_2026_10_20_CONVITE,
+  [RULES_2026_10_24.version]: RULES_2026_10_24,
+  [RULES_2026_10_24_REF.version]: RULES_2026_10_24_REF,
+  [RULES_2026_10_24_CONVITE.version]: RULES_2026_10_24_CONVITE,
 };

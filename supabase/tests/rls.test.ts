@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
 import { referralDiscountBp } from '../../src/domain/referralEligibility';
-import { CURRENT_RULES } from '../../src/domain/rules';
+import { CURRENT_RULES, RULES_BY_VERSION } from '../../src/domain/rules';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
 // Supabase simulado (papéis, auth.uid(), storage), e verifica as regras de
@@ -1855,7 +1855,7 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     await expect(as(IC2, () => db.query(`select public.redeem_request_invite($1, $2)`, [inviteCode, other]))).rejects.toThrow(/já foi associado/);
   });
 
-  it('ganhar a obra por este caminho aplica a comissão do convite direto (9%, o piso do algoritmo), não a normal (3%)', async () => {
+  it('ganhar a obra por este caminho aplica a comissão do convite direto (9%, o piso do algoritmo), não a base', async () => {
     const propId = (
       await as(IC, () =>
         one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id, validade, duracao_dias) values ($1, $2, current_date + 30, 20) returning id`, [reqId, painterOrg]),
@@ -1877,7 +1877,9 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
     await as(IC, () => db.query(`update public.proposals set status = 'submetida' where id = $1`, [propId]));
     await as(A, () => db.query('select public.select_proposal($1)', [propId]));
     const e = await one<{ rules_version: string }>('select rules_version from public.engagements where proposal_id = $1', [propId]);
-    expect(e.rules_version).toBe('2026-10-20+convite');
+    // A versão acompanha a que estiver em vigor; o sufixo é que marca o canal.
+    expect(e.rules_version).toBe(`${CURRENT_RULES.version}+convite`);
+    expect(RULES_BY_VERSION[e.rules_version]?.commissionBp).toBe(900);
   });
 
   it('convite numa obra que deixou de estar publicada: nem a pré-visualização nem o resgate funcionam', async () => {

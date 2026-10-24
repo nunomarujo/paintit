@@ -1947,3 +1947,26 @@ A pesquisa passou a correr em memória (antes do tipo de produto já filtrado na
 `ilike` na base de dados, nas duas listas do catálogo (`/app/catalogo`): produtos de referência e produtos
 dos fornecedores. Visitas com muitos produtos ativos podem, no limite, ficar menos eficientes do que um
 `ilike` indexado — aceitável à escala atual do catálogo; revisitar se um dia isso pesar.
+
+
+## 24/10/2026 — Comissão do pintor: 18% com piso de 9%
+
+O promotor viu uma proposta de 34 800 € a cobrar ~3,5% e disse: "a comissão ficou abaixo do mínimo
+estabelecido, apenas 3,5% e não 18% ou 20%… mínimo 9%".
+
+Decisão: nova versão de regras `2026-10-24`, com `commissionBp` 1800 (18%) e um campo novo,
+`commissionFloorBp` 900 (9%). Os 18% são a base do documento "Algoritmo de determinação de fee
+QuemPinta v1"; os 9% são o piso que esse documento fixa com todos os descontos empilhados
+(18 − 3 de resposta inicial − 2 de fidelização − 4 de referências).
+
+O piso passa a ser cumprido pelo código: `applyPainterDiscount` nunca desce abaixo dele. Antes
+limitava-se a não ficar negativo, e por isso dependia de quem configurava os descontos não se enganar.
+
+As versões anteriores ficam como estavam, sem piso, para que contratações já iniciadas se
+reconstruam exatamente como foram (regra 3 do CLAUDE.md). O canal "traga o seu pintor" mantém os 9%,
+que agora coincidem com o piso.
+
+**Por aplicar:** `supabase/migrations/20261024170000_comissao_18_porcento.sql`, que carimba a versão
+nova nas contratações que nascem a partir daí. Enquanto não for aplicada, o ecrã do pintor mostra
+18% mas a contratação nasce com a versão antiga, de 3% — a plataforma cobra a menos. É a primeira
+coisa a aplicar.
