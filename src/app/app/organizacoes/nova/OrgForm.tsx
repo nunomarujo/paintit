@@ -82,23 +82,54 @@ export function OrgForm({
         </Field>
       )}
 
+      {/* Administradora: os campos são da **empresa gestora**, não de nenhum condomínio que ela administre
+          (cada prédio tem ficha própria, com o NIPC do próprio condomínio — ver "Prédios sob administração"
+          na página da entidade). Dizê-lo nos rótulos, a pedido do promotor em 24/10/2026: sem isso não se
+          percebe de quem é o nome nem de quem é o NIF que se está a preencher. */}
+      {kind === 'administradora' && !initial && (
+        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm text-slate-700">
+          Estes dados são <strong>da empresa gestora</strong>. Os condomínios que administra registam-se a
+          seguir, um a um, em “Prédios sob administração” — cada um com a sua morada e o seu próprio NIPC.
+        </p>
+      )}
+
       <Field
         name="nome"
-        label={kind === 'particular' ? 'Nome' : kind === 'condominio' ? 'Designação do condomínio' : 'Denominação social'}
+        label={
+          kind === 'particular'
+            ? 'Nome'
+            : kind === 'condominio'
+              ? 'Designação do condomínio'
+              : kind === 'administradora'
+                ? 'Denominação social da empresa gestora'
+                : 'Denominação social'
+        }
         required
         defaultValue={v('nome')}
         error={e.nome}
-        hint={kind === 'condominio' ? 'Por exemplo: Condomínio do prédio da Rua das Flores, 12.' : undefined}
+        hint={
+          kind === 'condominio'
+            ? 'Por exemplo: Condomínio do prédio da Rua das Flores, 12.'
+            : kind === 'administradora'
+              ? 'A empresa de administração em si — não o nome de nenhum dos condomínios que gere.'
+              : undefined
+        }
       />
 
       <Field
         name="nif"
-        label={kind === 'condominio' ? 'NIF do condomínio' : 'NIF'}
+        label={kind === 'condominio' ? 'NIF do condomínio' : kind === 'administradora' ? 'NIF da empresa gestora' : 'NIF'}
         inputMode="numeric"
         required={kind !== 'particular' && kind !== ''}
         defaultValue={v('nif')}
         error={e.nif}
-        hint={kind === 'particular' ? 'Opcional agora; é pedido quando contratar.' : undefined}
+        hint={
+          kind === 'particular'
+            ? 'Opcional agora; é pedido quando contratar.'
+            : kind === 'administradora'
+              ? 'O NIPC da própria empresa gestora. O NIPC de cada condomínio é pedido na ficha do prédio.'
+              : undefined
+        }
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -207,6 +238,16 @@ export function OrgForm({
       {state.message && (
         <p className="text-sm text-red-700" role="alert">
           {state.message}
+        </p>
+      )}
+
+      {/* Sem isto, um erro só de campo (ex.: código postal incompleto) deixava o botão mudo: a página
+          não se mexia e parecia que o formulário não gravava nem dava erro (promotor, 24/10/2026). */}
+      {!state.message && Object.values(e).some(Boolean) && (
+        <p className="text-sm text-red-700" role="alert">
+          {Object.values(e).filter(Boolean).length === 1
+            ? 'Falta corrigir um campo, assinalado a vermelho acima.'
+            : `Faltam corrigir ${Object.values(e).filter(Boolean).length} campos, assinalados a vermelho acima.`}
         </p>
       )}
 

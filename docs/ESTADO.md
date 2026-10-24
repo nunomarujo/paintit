@@ -828,9 +828,44 @@ update supabase_migrations.schema_migrations set version = '20261023200000' wher
 update supabase_migrations.schema_migrations set version = '20261023210000' where version = '20261024010721';
 ```
 
-Para `PERMITIR_ACEITACAO_SIMPLES`: no projeto `paintit` da Vercel, confirmar se ainda está preciso de algum
-ambiente de teste (hoje só existe em Production, o que não devia — devia estar em Preview/Development, se
-em algum) e apagar ou esvaziar o valor antes de haver utilizadores reais (sem urgência agora, ver secção 3).
+**Nota (24/10/2026, mais tarde — ver commit `fdbaa31`):** a parte 2 deste SQL (`levantamento_automatico`) ficou
+**superada**: o promotor destravou a sessão seguinte e a migração real foi aplicada por `apply_migration` (não
+por este SQL à mão) — versão registada `20261024015834`. A correção de versão dos três ficheiros do bónus
+(parte 4) também ficou superada, mas ao contrário do que este bloco propunha: em vez de mudar a versão
+registada no Supabase para bater com o nome do ficheiro, os **ficheiros locais foram renomeados** para bater
+com a versão já registada (é essa a convenção certa do `CLAUDE.md`, "nome igual à versão registada" — nunca o
+inverso). **A parte 1 (`revoke_delete_clientes_fornecedor`) continua válida e por aplicar** — sem efeito
+funcional, à espera só de o promotor confirmar que quer mesmo esta reforço de defesa em profundidade (ver
+secção 3). Não voltar a correr as partes 2 e 4 deste bloco.
+
+Para `PERMITIR_ACEITACAO_SIMPLES`: **regra obrigatória antes do lançamento beta, não um "sem urgência"** — ver
+secção 6.8.
+
+### 6.8 Condição obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada (24/10/2026, a pedido explícito do promotor)
+
+O promotor pediu explicitamente, nesta data, que isto fique registado como **regra**, não como lembrete
+leve: "`PERMITIR_ACEITACAO_SIMPLES` ligado → lembra-me / exigi-o como regra antes do lançamento versão
+beta". Esta variável bate a exigência de assinatura por Chave Móvel Digital/Cartão de Cidadão por uma
+simples caixa de confirmação (`src/app/app/contratacoes/actions.ts`, `partyAction`) — só serve para testar
+sem CMD (`docs/PAGAMENTOS_E_ASSINATURA.md`) e é perigosa se ficar ativa com utilizadores reais: qualquer
+pessoa podia "assinar" um contrato sem assinatura nenhuma.
+
+**Regra:** nenhum lançamento beta (nem piloto com utilizadores reais fora da equipa) pode avançar sem
+confirmar, nesse momento, que `PERMITIR_ACEITACAO_SIMPLES` não está a `"1"` em produção. Checklist:
+
+1. Confirmar o valor atual na Vercel (projeto `paintit` → Settings → Environment Variables) — hoje
+   impossível de ler por ser tipo `sensitive` (secção 6, item 4), por isso o passo seguinte é obrigatório
+   independentemente do que se "acha" que está lá.
+2. Reescrever o valor para vazio (ou apagar a variável) antes de qualquer lançamento — único jeito de ter
+   a certeza, já que `sensitive` nunca devolve o valor gravado.
+3. Mover a variável para Preview/Development (nunca Production) se ainda for precisa para testes internos
+   sem Chave Móvel Digital.
+4. Repetir esta confirmação em qualquer sessão que prepare um lançamento, mesmo que já tenha sido feita
+   antes — é barato confirmar e caro assumir.
+
+Esta sessão não conseguiu executar os passos 1-3 (bloqueio "Feature Flag Writes" do classificador
+automático, secção 6.7) — ficam para o promotor ou para uma sessão com o modo automático desligado.
+Detalhe completo em `docs/DECISOES.md`, entrada 24/10/2026.
 
 ---
 
@@ -853,7 +888,7 @@ em algum) e apagar ou esvaziar o valor antes de haver utilizadores reais (sem ur
 | Contabilista | Validar o desenho completo (`docs/CONTABILIDADE.md`), o momento da fatura, a natureza fiscal da caução retida, retenção na fonte aos fornecedores, CAE — 23/10/2026, documento convertido para PDF e entregue ao promotor para reencaminhar | Desenho aplicado sem validação formal |
 | Registo da marca | Pesquisa INPI/EUIPO do nome "Quem Pinta" | 23/10/2026, adiado por pedido do promotor — o domínio já é dele |
 | Piloto | Convidar 5-10 pintores e 2-3 fornecedores de Viana do Castelo para testar antes dos clientes | 23/10/2026, confirmado: só depois de tudo pronto, incluindo marketing — a app ainda está longe disso |
-| `PERMITIR_ACEITACAO_SIMPLES` | Apagar da Vercel antes de abrir a utilizadores reais (só serve para testar sem CMD) | 23/10/2026, promotor não sabe o estado atual — não foi possível confirmar na Vercel nesta sessão (classificador "Production Deploy" bloqueou a leitura); sem urgência enquanto o piloto estiver longe (ver linha acima), mas é a última coisa a confirmar antes de utilizadores reais |
+| `PERMITIR_ACEITACAO_SIMPLES` | **Regra obrigatória, pedida explicitamente pelo promotor em 24/10/2026**: confirmar que não está a `"1"` em produção antes de qualquer lançamento beta — ver checklist na secção 6.8 | Ainda por confirmar/reescrever — bloqueado nesta sessão pelo classificador "Feature Flag Writes" (secção 6.7); é um travão de lançamento, não uma tarefa de limpeza eventual |
 | **Bónus de adesão ao avaliador** | O convite de adesão do fornecedor a um pintor não paga comissão nenhuma (só carteira de clientes); o promotor propôs duas alternativas — bónus no fee de avaliador, ou aviso 2h antes de qualquer outro avaliador quando entra um pedido. Escolhida e construída a do bónus (23/10/2026, ver `docs/DECISOES.md` para a justificação): cada convite aceite dá +30 pontos-base (até ao topo da banda, 2,7%) na próxima obra paga ao avaliador do fornecedor, só se tiver telefone e autorização de alertas registados. A alternativa do aviso 2h fica por construir, se o promotor a quiser mais tarde (exigiria também bloquear a reserva dos outros avaliadores nessa janela) | Bónus construído e testado; migração `20261023210000_bonus_adesao_avaliador.sql` aplicada em 24/10/2026 (ver 3 e 6.6) |
 | **Auditorias de UX/UI (duas, independentes, 23/10/2026)** | Ambas convergem: modelo de negócio e validação de dados mais sofisticados do que a experiência à volta. Um bug crítico real foi encontrado, confirmado e corrigido nesta sessão ("Nova entidade" escondia a mensagem de erro real da regra "um perfil por conta"; link "Referências" partido no menu do fornecedor) — detalhe em `docs/DECISOES.md`. Vitórias rápidas de texto/marcação já aplicadas: estados vazios, ícone do seletor de concelhos, parágrafo de "Comissões de adesão", resposta a "a plataforma garante a obra?" subida para junto do CTA. **Fica por decidir** (nenhuma destas é bug, são decisões de produto/design para uma ronda dedicada): deixar explorar antes de pedir conta (maior perda de conversão apontada pelas duas auditorias), prova social mínima (nº de empresas/obras, avaliações), fotografia real em vez de só ilustração, escolha de perfil antes da conta em vez de depois, identidade visual distinta para o backoffice, automação da validação de documentos de pintores. "Cliente vê o backoffice" é quase certamente mistura de credenciais de teste (`nm@quempinta.pt` é a própria conta de admin do promotor), não um bug de isolamento — a confirmar, não a corrigir às pressas. Pintor: nenhuma das duas auditorias conseguiu validar o percurso (credenciais sem acesso à caixa de correio) — repetir com conta funcional antes de redesenhar esse perfil | Bug e vitórias rápidas corrigidos e testados; decisões estruturais em aberto para ronda dedicada de design |
 

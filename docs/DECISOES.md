@@ -1579,9 +1579,9 @@ estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
     ambiente Production (devia estar em Preview/Development, não lá). Por ser `sensitive`, o valor nunca se
     consegue ler de volta, nem pela API nem pela interface, só reescrever — tentei pô-lo a `"0"` para o
     neutralizar sem precisar de apagar, recusado pelo classificador "Feature Flag Writes" desta sessão (ver
-    `docs/ESTADO.md` 6.7). Recomendação mantém-se a mesma: sem urgência enquanto o piloto estiver longe
-    (ponto 15), mas é a última coisa a confirmar antes de utilizadores reais — a fazer diretamente pelo
-    promotor na Vercel.
+    `docs/ESTADO.md` 6.7). **Atualizado mais tarde no mesmo dia, 24/10/2026 — ver entrada "Regra obrigatória
+    antes do lançamento beta" ao fundo deste documento: o promotor pediu explicitamente que isto deixe de
+    ser recomendação e passe a regra.**
 17. **Pesquisa de marca INPI/EUIPO**: adiada por pedido do promotor — o domínio já é dele, fica para mais tarde.
 18. **"Percentagem dos 57%"**: perguntei e não encontrei, em nenhum ficheiro deste repositório, a que estudo ou
     estatística esta linha se refere — só existe como uma linha órfã na tabela de questões em aberto, sem
@@ -1739,3 +1739,14 @@ recebia levantamento desde 23/10/2026).
   estabelecida desde a reconciliação de 23/10/2026 (secção 6.1): **o ficheiro local é que se renomeia para
   bater com o Supabase, nunca o inverso** — sem efeito nenhum na base de dados, só nos quatro nomes de
   ficheiro em `supabase/migrations/`, já corrigidos.
+
+## 24/10/2026, mais tarde — Regra obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada
+
+Pedido explícito do promotor, verbatim: "`PERMITIR_ACEITACAO_SIMPLES` ligado > lembra-me / exigi-o como
+regra antes do lançamento versão beta". Até aqui (ponto 16 acima) isto estava registado como recomendação
+"sem urgência enquanto o piloto estiver longe" — deixa de ser isso e passa a **condição de lançamento**,
+registada com checklist em `docs/ESTADO.md` secção 6.8 e na tabela da secção 7. Resumo da regra: nenhum
+lançamento beta avança sem reescrever/apagar esta variável na Vercel (o tipo `sensitive` nunca deixa
+confirmar o valor atual por leitura) e, se ainda for precisa para testes, movê-la para Preview/Development —
+nunca Production. Esta sessão continua sem conseguir executar essa escrita (mesmo bloqueio "Feature Flag
+Writes" de antes) — fica para o promotor, ou para uma sessão com o modo automático desligado.

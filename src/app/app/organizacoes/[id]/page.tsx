@@ -54,7 +54,11 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         .eq('org_id', id)
         .order('created_at', { ascending: false }),
       org.kind === 'administradora'
-        ? supabase.from('organizations').select('id, nome, localidade').eq('gerida_por', id).order('nome')
+        ? supabase
+            .from('organizations')
+            .select('id, nome, nif, morada_fiscal, codigo_postal, localidade')
+            .eq('gerida_por', id)
+            .order('nome')
         : Promise.resolve({ data: null }),
       supabase.from('org_members').select('user_id, role, created_at').eq('org_id', id).order('created_at'),
       owner
@@ -92,6 +96,15 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   const missing = missingDocs(org.kind, docs ?? []);
   const ownsBuildings = org.kind === 'condominio' || org.kind === 'particular';
 
+  // Prédios dos condomínios administrados, para o cartão de cada um mostrar morada, frações e nº de
+  // prédios sem se ter de entrar lá dentro (promotor, 24/10/2026). A gestora tem acesso de leitura a
+  // estes prédios pela própria política RLS (`can_access_org` inclui quem gere a entidade).
+  const managedIds = (managed ?? []).map((c) => c.id);
+  const { data: managedBuildings } = managedIds.length
+    ? await supabase.from('buildings').select('id, org_id, nome_interno, concelho, fracoes').in('org_id', managedIds).order('nome_interno')
+    : { data: [] };
+  const buildingsOf = (orgId: string) => (managedBuildings ?? []).filter((b) => b.org_id === orgId);
+
   return (
     <div className="space-y-8">
       <div>
@@ -128,6 +141,16 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           </Link>
           <Link href={`/app/organizacoes/${org.id}/adesoes`} className="hover:underline">
             Descontos a novos aderentes →
+          </Link>
+        </div>
+      )}
+      {org.kind === 'administradora' && (
+        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
+          <Link href={`/app/organizacoes/${org.id}/pedidos/novo`} className="hover:underline">
+            Novo pedido de orçamento →
+          </Link>
+          <Link href="#predios" className="font-normal text-slate-600 hover:underline">
+            Prédios sob administração
           </Link>
         </div>
       )}
@@ -195,30 +218,87 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         </section>
       )}
 
+      {/* Prédios sob administração, em cartões (promotor, 24/10/2026): a lista de texto de antes não
+          mostrava o NIPC do condomínio, a morada nem as frações, e obrigava a entrar em cada um para
+          ver o que quer que fosse. Cada condomínio continua a ser entidade própria, com o seu NIPC — é
+          ele que assina e é faturado, nunca a gestora. */}
       {org.kind === 'administradora' && (
-        <section className={card}>
+        <section className={card} id="predios">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold">Condomínios geridos</h2>
+            <div>
+              <h2 className="font-semibold">Prédios sob administração</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Um cartão por condomínio administrado. Cada um tem o seu NIPC, os seus prédios e os seus pedidos, sem
+                se misturar com os outros nem com os dados da gestora.
+              </p>
+            </div>
             {manager && (
               <Link href={`/app/organizacoes/nova?tipo=condominio&gerida_por=${org.id}`} className={smallButton}>
-                Adicionar condomínio
+                Acrescentar condomínio
               </Link>
             )}
           </div>
           {managed && managed.length > 0 ? (
-            <ul className="mt-4 divide-y divide-slate-100 text-sm">
-              {managed.map((c) => (
-                <li key={c.id} className="py-2">
-                  <Link href={`/app/organizacoes/${c.id}`} className="font-medium hover:underline">
-                    {c.nome}
-                  </Link>
-                  {c.localidade && <span className="text-slate-500"> · {c.localidade}</span>}
-                </li>
-              ))}
+            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+              {managed.map((c) => {
+                const bs = buildingsOf(c.id);
+                const fracoes = bs.reduce((n, b) => n + (b.fracoes ?? 0), 0);
+                return (
+                  <li key={c.id} className="rounded-xl border border-slate-200 p-4 text-sm">
+                    <Link href={`/app/organizacoes/${c.id}`} className="font-semibold hover:underline">
+                      {c.nome}
+                    </Link>
+                    <dl className="mt-2 space-y-1 text-slate-600">
+                      <div>
+                        <dt className="inline text-slate-500">NIPC do condomínio: </dt>
+                        <dd className="inline">{c.nif ?? <span className="text-amber-800">por preencher</span>}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline text-slate-500">Morada: </dt>
+                        <dd className="inline">
+                          {[c.morada_fiscal, c.codigo_postal, c.localidade].filter(Boolean).join(', ') || (
+                            <span className="text-amber-800">por preencher</span>
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="inline text-slate-500">Prédios: </dt>
+                        <dd className="inline">
+                          {bs.length === 0 ? (
+                            <span className="text-amber-800">nenhum registado</span>
+                          ) : (
+                            <>
+                              {bs.length}
+                              {fracoes > 0 ? ` · ${fracoes} ${fracoes === 1 ? 'fração' : 'frações'}` : ''}
+                              {bs[0]?.concelho ? ` · ${bs[0].concelho}` : ''}
+                            </>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+                    {manager && (
+                      <div className="mt-3 flex flex-wrap gap-3 font-medium text-tinta-700">
+                        <Link href={`/app/organizacoes/${c.id}/editar`} className="hover:underline">
+                          Editar dados
+                        </Link>
+                        <Link href={`/app/organizacoes/${c.id}/predios/novo`} className="hover:underline">
+                          {bs.length === 0 ? 'Registar prédio' : 'Acrescentar prédio'}
+                        </Link>
+                        {bs.length > 0 && (
+                          <Link href={`/app/organizacoes/${c.id}/pedidos/novo`} className="hover:underline">
+                            Novo pedido
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="mt-3 text-sm text-slate-600">
-              Cada condomínio tem o seu NIF, os seus prédios e os seus pedidos, sem se misturar com os outros.
+              Ainda sem nenhum condomínio. Acrescente o primeiro: pede-se a designação, o NIPC do próprio condomínio e,
+              a seguir, a morada completa e o número de frações do prédio.
             </p>
           )}
         </section>
