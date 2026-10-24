@@ -34,6 +34,7 @@ import { linkedSupplierCodes, painterDiscountBreakdown, painterOrgs } from '@/li
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
+import { Workspace } from './Workspace';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
@@ -246,22 +247,34 @@ export default async function OpportunityPage({ params, searchParams }: { params
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
-          ← Oportunidades
-        </Link>
-        {/* O orçamento fica sempre à mão, sem disputar o ecrã (pedido do promotor, 24/10/2026). */}
-        {proposal && domainLines.length > 0 && (
-          <Link
-            href={`/app/oportunidades/${id}/orcamento/documento`}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-          >
-            Ver orçamento (PDF)
-          </Link>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
+        ← Oportunidades
+      </Link>
 
+      <Workspace
+        titulo={listing ? `${WORK_TYPE_LABELS[listing.tipo_obra]} · ${listing.concelho}` : 'Pedido'}
+        ref={listing?.ref ?? '—'}
+        resumo={[
+          { label: 'Área', valor: formatArea(listing?.area_total_cm2 ?? 0) },
+          { label: 'Propostas até', valor: listing?.prazo_propostas ? listing.prazo_propostas.split('-').reverse().join('/') : '—' },
+          {
+            label: 'Execução',
+            valor:
+              listing?.execucao_desde || listing?.execucao_ate
+                ? `${(listing?.execucao_desde ?? '—').split('-').reverse().slice(0, 2).join('/')} — ${(listing?.execucao_ate ?? '—').split('-').reverse().slice(0, 2).join('/')}`
+                : 'A combinar',
+          },
+        ]}
+        documentoHref={proposal && domainLines.length > 0 ? `/app/oportunidades/${id}/orcamento/documento` : null}
+        inicial={proposal ? 'proposta' : 'obra'}
+        tabs={[
+          {
+            id: 'obra',
+            label: 'Obra e levantamento',
+            vazio: !listing,
+            content: (
+              <>
       {listing && (
         <ListingPreview
           l={{
@@ -287,7 +300,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
           }}
         />
       )}
-
+              </>
+            ),
+          },
+          {
+            id: 'proposta',
+            label: 'Proposta',
+            content: (
+              <>
       {listing?.aberto && (
         <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
           <strong>Dica:</strong> ao escolher materiais de um fornecedor registado na plataforma, o fornecedor confirma a
@@ -296,18 +316,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
           esta obra.
         </p>
       )}
-      {surveyInfo && <SurveyInfoCard requestId={id} info={surveyInfo} />}
-
-      {listing?.aberto && (
-        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
-          <span aria-hidden className="font-bold">(!)</span>
-          <span>
-            <b>É proibida a identificação das partes</b> (nomes ou moradas). Não forneça contactos: tentar fazê-lo conta como aviso e pode levar ao
-            bloqueio da conta.
-          </span>
-        </p>
-      )}
-
       {!proposal ? (
         <section className={card}>
           <h2 className="font-semibold">Fazer proposta</h2>
@@ -508,7 +516,23 @@ export default async function OpportunityPage({ params, searchParams }: { params
               />
             </section>
           )}
-
+        </>
+      )}
+              </>
+            ),
+          },
+          {
+            id: 'esclarecimentos',
+            label: 'Esclarecimentos',
+            vazio: !surveyInfo,
+            content: surveyInfo ? <SurveyInfoCard requestId={id} info={surveyInfo} /> : null,
+          },
+          {
+            id: 'mensagens',
+            label: 'Mensagens com o cliente',
+            vazio: !proposal,
+            content: !proposal ? null : (
+              <>
           <section className={card}>
             <h2 className="font-semibold">Mensagens com o cliente</h2>
             <p className="mt-1 text-sm text-slate-600">
@@ -525,7 +549,20 @@ export default async function OpportunityPage({ params, searchParams }: { params
               />
             </div>
           </section>
-        </>
+              </>
+            ),
+          },
+        ]}
+      />
+
+      {listing?.aberto && (
+        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+          <span aria-hidden className="font-bold">(!)</span>
+          <span>
+            <b>É proibida a identificação das partes</b> (nomes ou moradas). Não forneça contactos: tentar fazê-lo conta como aviso e pode levar ao
+            bloqueio da conta.
+          </span>
+        </p>
       )}
     </div>
   );
