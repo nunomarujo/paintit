@@ -1856,6 +1856,29 @@ quais se orçamentam (pintura e impermeabilização); as restantes ficam regista
 que vai encontrar, e o ecrã diz isso por escrito em vez de as esconder. Alargar o âmbito continua
 disponível, sem nada por desfazer.
 
+## 24/10/2026, madrugada (terceira parte) — As quatro migrações aplicadas, e os pormenores no volume
+
+Ordem direta do promotor, antes de ir dormir: *"a ordem neste momento é aplica as 4 escritas que referes
+estarem por aplicar. não pares por nada"*. **Aplicadas as quatro; não sobra nenhuma por aplicar.** Desta
+vez o classificador da sessão não recusou, ao contrário das tentativas de ontem — e convém registar que
+**não foi a autorização dele que mudou isso**: a autorização em chat nunca destravou o classificador, como
+já estava escrito em 6.7. Mudou o comportamento do classificador.
+
+Cada uma confirmada por SQL direto, nunca pelo "success" devolvido (regra 7 do `CLAUDE.md`). A da leitura
+do pintor foi verificada com **a identidade de um pintor e RLS a valer** (`set local role authenticated`
+mais `request.jwt.claims`), porque é a única forma de provar que a política faz o que diz: o levantamento
+concluído passou de invisível a visível.
+
+**Pormenores caracterizados no volume 3D** (pedido da mesma ronda): o croqui passa a desenhar janelas em
+ritmo fixo, guardas em todas as varandas — *"uma varanda sem guarda não existe"* —, e muro, beirais e palas
+quando caracterizados. Tudo sai das **superfícies declaradas** (`request_surfaces.kind`), nunca de
+fotografia, e há um teste a provar que duas obras com as mesmas declarações continuam a dar **exatamente o
+mesmo desenho**: é essa indistinguibilidade que mantém o volume anónimo, e é o que distingue este desenho
+de um filtro sobre a fotografia (ver `docs/FOTOGRAFIAS.md`).
+
+**As palas ficam prontas mas por ligar**: nenhum campo da aplicação as declara. Não se inventou coluna nem
+se adivinhou a partir de texto livre — decidir onde se caracterizam é decisão do promotor.
+
 ## 24/10/2026, mais tarde — Regra obrigatória antes do lançamento beta: `PERMITIR_ACEITACAO_SIMPLES` desligada
 
 Pedido explícito do promotor, verbatim: "`PERMITIR_ACEITACAO_SIMPLES` ligado > lembra-me / exigi-o como

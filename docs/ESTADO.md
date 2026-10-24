@@ -517,21 +517,19 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
      de pedido já tinha sido removido do código a pressupor o gatilho que ainda não existia na base real).
    - `get_advisors` sem categorias novas de aviso. `npm test` (464), `typecheck`, `lint`, `build` — zero.
 
-   **Continuam por aplicar** (as três últimas são desta madrugada; sem elas, os ecrãs correspondentes
-   mostram aviso ou vêm vazios, nunca rebentam — ver 6.9 e 6.10):
-   - `20261024034052_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
-     profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
-     omissão, confirmado). Sem pedido do promotor para o fazer ainda.
-   - `20261024034105_pintor_ve_levantamento.sql` — **esta tem efeito real**: sem ela, os ecrãs do pintor
-     para pedir esclarecimento e avaliar a informação do levantamento não mostram nada (ver 6.9). DDL
-     recusado pelo classificador desta sessão; aplicar pela sessão do Code, pelo editor do Supabase, ou
-     com o modo automático desligado.
-   - `20261024034129_adendas_ao_dossie_e_avisos.sql` — `survey_addenda` (a resposta ao esclarecimento a
-     somar ao dossiê, sem apagar o anterior) e os avisos a quem perguntou e ao cliente. Sem ela, as
-     adendas vêm vazias e ninguém é avisado quando a resposta chega.
-   - `20261024034142_obras_pretendidas_no_predio.sql` — `buildings.obras_pretendidas` e
-     `area_aproximada_cm2`. Sem ela, a ficha do prédio mostra um aviso no lugar desse bloco (e por isso
-     também não aparece o cartão "Quer iniciar pedidos de orçamentos?").
+   **As outras quatro foram aplicadas a 24/10/2026, de madrugada, por ordem direta do promotor** ("a ordem
+   neste momento é aplica as 4 escritas que referes estarem por aplicar"). Desta vez o classificador não
+   recusou, ao contrário das tentativas anteriores. **Não sobra nenhuma migração por aplicar.** Todas
+   confirmadas por SQL direto, não pelo "success" devolvido (ver 6.11):
+   - `20261024034052_revoke_delete_clientes_fornecedor.sql` — `has_table_privilege` para DELETE em
+     `supplier_customers` passou a `false`.
+   - `20261024034105_pintor_ve_levantamento.sql` — a política já contém `is_painter`, e com a identidade de
+     um pintor e RLS a valer o levantamento concluído passou a ser visível (era invisível).
+   - `20261024034129_adendas_ao_dossie_e_avisos.sql` — `survey_addenda` existe e devolve a ronda com as
+     duas dúvidas da simulação; `respond_clarification` já avisa quem perguntou e o cliente.
+   - `20261024034142_obras_pretendidas_no_predio.sql` — as duas colunas existem, gravam valores válidos, e
+     a restrição recusa um valor inventado.
+   - `get_advisors` sem categorias novas de aviso. `npm test` (484), `typecheck`, `lint`, `build` — zero.
 
 4. **`PERMITIR_ACEITACAO_SIMPLES`, confirmado na Vercel (24/10/2026)**: existe, tipo `sensitive`, só no
    ambiente **Production** (não está em Preview nem Development — o inverso do que fazia sentido para uma
@@ -885,6 +883,31 @@ secção 3). Não voltar a correr as partes 2 e 4 deste bloco.
 
 Para `PERMITIR_ACEITACAO_SIMPLES`: **regra obrigatória antes do lançamento beta, não um "sem urgência"** — ver
 secção 6.8.
+
+### 6.11 As quatro migrações aplicadas, e os pormenores no volume (24/10/2026, madrugada, por ordem direta)
+
+O promotor mandou aplicar as quatro que estavam escritas e pendentes, e foi dormir ("não pares por nada").
+**Aplicadas as quatro, e nenhuma ficou por aplicar.** O que interessa guardar:
+
+- **O que destravaram**: o lado do pintor (pedir esclarecimento e avaliar a informação do levantamento)
+  deixou de estar às escuras; as adendas ao dossiê passaram a aparecer ao pintor e ao cliente; responder
+  passou a avisar quem perguntou; e a ficha do prédio ganhou as obras pretendidas e a área aproximada, com
+  o cartão "Quer iniciar pedidos de orçamentos?".
+- **Verificação**: cada uma confirmada por SQL direto contra a base real, nunca pelo "success" da
+  ferramenta (regra 7). A da leitura do pintor foi verificada com a **identidade de um pintor e RLS a
+  valer** (`set local role authenticated` mais `request.jwt.claims`), que é a única forma de provar que a
+  política faz o que diz.
+- **Nomes dos ficheiros** renomeados para a versão registada, e todas as referências em documentos e
+  código atualizadas — a convenção de sempre, ficheiro segue o Supabase e nunca o inverso.
+- **A guarda defensiva da ficha do prédio fica**, mesmo com as colunas já aplicadas: se um dia faltarem
+  (base nova, reposição), a página mostra o aviso em vez de rebentar.
+
+**Pormenores caracterizados no volume 3D**, pedidos na mesma ronda: o croqui passa a desenhar janelas em
+ritmo fixo, guardas em todas as varandas, e muro, beirais e palas quando caracterizados. Saem das
+**superfícies declaradas** (`request_surfaces.kind`), nunca de fotografia, e há um teste a provar que duas
+obras com as mesmas declarações continuam a dar **exatamente o mesmo desenho** — é essa indistinguibilidade
+que mantém o volume anónimo (ver `docs/FOTOGRAFIAS.md`). **As palas ficam prontas mas por ligar**: nenhum
+campo da aplicação as declara ainda, e decidir onde se caracterizam é decisão do promotor.
 
 ### 6.10 Levantamento explicado, adendas, prazos, ganho previsto, e a gestora reorganizada (24/10/2026, madrugada, segunda parte)
 
