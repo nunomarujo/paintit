@@ -258,7 +258,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
       <Workspace
         titulo={listing ? `${WORK_TYPE_LABELS[listing.tipo_obra]} · ${listing.concelho}` : 'Pedido'}
-        ref={listing?.ref ?? '—'}
+        referencia={listing?.ref ?? '—'}
         resumo={[
           { label: 'Área', valor: formatArea(listing?.area_total_cm2 ?? 0) },
           { label: 'Propostas até', valor: listing?.prazo_propostas ? listing.prazo_propostas.split('-').reverse().join('/') : '—' },

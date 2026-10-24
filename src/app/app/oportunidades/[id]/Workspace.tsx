@@ -22,14 +22,16 @@ export interface WorkspaceTab {
  */
 export function Workspace({
   titulo,
-  ref: referencia,
+  referencia,
   resumo,
   documentoHref,
   tabs,
   inicial,
 }: {
   titulo: string;
-  ref: string;
+  /** Referência do pedido. Não se chama `ref`: o React reserva esse nome e recusa-o na fronteira
+   * servidor→cliente ("Refs cannot be used in Server Components"). */
+  referencia: string;
   /** Pares etiqueta/valor do cabeçalho: área, prazos. */
   resumo: { label: string; valor: string }[];
   /** Ligação para o orçamento em PDF, quando já existe orçamento. */
