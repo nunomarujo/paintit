@@ -5,7 +5,7 @@ import { STEP_IDS, STEP_LABELS, type StepId } from './steps';
 /** Separadores do orçamento. Verde: passo preenchido; escuro: passo atual. */
 export function BudgetSteps({ current, done, onSelect }: { current: StepId; done: Record<StepId, boolean>; onSelect: (id: StepId) => void }) {
   return (
-    <nav aria-label="Passos do orçamento" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <nav aria-label="Passos do orçamento" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
       {STEP_IDS.map((id, i) => {
         const active = id === current;
         return (

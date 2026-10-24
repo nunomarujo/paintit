@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { isAcabamento, isIsolante, isSituacao } from '@/domain/etics';
 import { parseEuros } from '@/domain/proposal';
 import { parseHundredths } from '@/domain/request';
 import { buildTemplate, parseTemplate, templateToItems } from '@/domain/templates';
@@ -229,4 +230,47 @@ export async function applyReferral(proposalId: string, requestId: string, code:
   revalidatePath(`/app/oportunidades/${requestId}`);
   if (!text) return { errors: {}, ok: true, applied: false, message: 'Nenhum fornecedor associado a esta obra.' };
   return { errors: {}, ok: true, applied: true, message: `${data ?? 'Fornecedor'} associado a esta obra.` };
+}
+
+/**
+ * Capoto do orçamento (24/10/2026). Guarda o sistema inteiro — situação, isolante, espessura,
+ * acabamento e demãos — num só objeto, porque as cinco escolhas só fazem sentido juntas.
+ *
+ * Nada do que vem do navegador manda: cada valor é confrontado com a lista do domínio (CLAUDE.md,
+ * regra 10). Uma proposta sem capoto guarda um objeto vazio, que é como se diz "esta obra é só pintura".
+ */
+export async function saveCapoto(proposalId: string, requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const tem = String(form.get('tem') ?? '') === 'sim';
+  let capoto: Json = {};
+  if (tem) {
+    const situacao = String(form.get('situacao') ?? '');
+    const isolante = String(form.get('isolante') ?? '');
+    const acabamento = String(form.get('acabamento') ?? '');
+    const espessura = Number(form.get('espessura'));
+    const demaos = Number(form.get('demaos'));
+    if (!isSituacao(situacao)) return { errors: { situacao: 'Escolha a situação da fachada.' } };
+    const manutencao = situacao === 'manutencao';
+    if (!manutencao && !isIsolante(isolante)) return { errors: { isolante: 'Escolha o isolante.' } };
+    if (!manutencao && (!Number.isFinite(espessura) || espessura < 20 || espessura > 300)) {
+      return { errors: { espessura: 'Espessura entre 20 e 300 mm.' } };
+    }
+    if (!isAcabamento(acabamento)) return { errors: { acabamento: 'Escolha o acabamento.' } };
+    capoto = {
+      situacao,
+      isolante: manutencao ? null : isolante,
+      espessuraMm: manutencao ? null : espessura,
+      acabamento,
+      demaos: Number.isFinite(demaos) && demaos > 0 && demaos <= 5 ? demaos : null,
+    };
+  }
+
+  const { data, error } = await supabase.from('proposals').update({ capoto }).eq('id', proposalId).select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar o capoto. Verifique se a proposta ainda é editável.' };
+  }
+  revalidatePath(`/app/oportunidades/${requestId}`);
+  return { errors: {}, ok: true, message: tem ? 'Capoto guardado.' : 'Guardado: obra só de pintura.' };
 }

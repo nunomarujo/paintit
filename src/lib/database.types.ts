@@ -1241,6 +1241,7 @@ export type Database = {
           seguro_rc: string | null;
           seguro_at: string | null;
           modo_preco: string;
+          capoto: Json;
         };
         Insert: {
           adiantamento_bps?: number;
@@ -1262,6 +1263,7 @@ export type Database = {
           seguro_rc?: string | null;
           seguro_at?: string | null;
           modo_preco?: string;
+          capoto?: Json;
         };
         Update: Partial<Database['public']['Tables']['proposals']['Insert']>;
         Relationships: [

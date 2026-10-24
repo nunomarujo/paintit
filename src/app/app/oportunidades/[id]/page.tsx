@@ -1,4 +1,7 @@
 import type { Forma } from '@/domain/volume';
+import { capotoEmFalta } from '@/domain/etics';
+import { parseCapoto } from '@/lib/capoto';
+import { CapotoEditor } from './orcamento/CapotoEditor';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/oportunidades/actions';
@@ -149,10 +152,18 @@ export default async function OpportunityPage({ params, searchParams }: { params
     zones: wizardZones,
     requested: (listing?.trabalhos ?? []) as DesiredWork[],
   });
+  // Capoto (migração 20261024160000). Consulta própria com o erro tratado: se a coluna ainda não
+  // existir na base, o separador mostra o aviso em vez de a página rebentar.
+  const { data: capotoRow, error: capotoErro } = await supabase.from('proposals').select('capoto').eq('id', proposal.id).maybeSingle();
+  const capotoPorAplicar = !!capotoErro;
+  const capotoSpec = parseCapoto(capotoRow?.capoto);
+
   const termsOk = blockers.filter((b) => /validade|dura|mão-de-obra|seguros|pagamentos|adiantamento/i.test(b)).length === 0;
   const done: Record<StepId, boolean> = {
     trabalhos: items.length > 0 && items.every((i) => isComplete(i, wizardZones)),
     precos: modoPreco === 'global' ? (globalLine?.preco_unitario_cents ?? 0) > 0 : priceRows.length > 0 && !issues.some((m) => m.includes('falta o preço')),
+    // O capoto dá-se por tratado quando a escolha foi feita: ou não leva, ou está completo.
+    capoto: !capotoPorAplicar && (capotoSpec === null || capotoEmFalta(capotoSpec).length === 0),
     condicoes: termsOk,
     rever: false,
   };
@@ -415,6 +426,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 steps={{
                   trabalhos: (
                     <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
+                  ),
+                  capoto: (
+                    <CapotoEditor proposalId={proposal.id} requestId={id} inicial={capotoSpec} indisponivel={capotoPorAplicar} />
                   ),
                   precos: (
                     <>
