@@ -1718,3 +1718,24 @@ Resumo (detalhe completo, com o SQL pronto a correr, em `docs/ESTADO.md` secçã
 - **Três tentativas de escrita recusadas pelo modo automático desta sessão** (duas migrações + a variável
   `PERMITIR_ACEITACAO_SIMPLES` na Vercel) — a aprovação do promotor dada em chat não destrava isto; é um
   bloqueio de sessão, não um pedido de confirmação. SQL exato deixado pronto para ele correr.
+
+## 24/10/2026 — `levantamento_automatico` aplicada; quatro ficheiros de migração renomeados para a versão real
+
+Pedido direto do promotor: "tenta aplicar a migração do levantamento automático". Esta sessão não teve o
+bloqueio "Production Deploy" que travou a sessão anterior — `apply_migration` correu sem pedir confirmação
+extra e aplicou com sucesso, resolvendo o bug ao vivo descrito na entrada anterior (nenhum pedido novo
+recebia levantamento desde 23/10/2026).
+
+- **Aplicada**: `levantamento_automatico` — versão real `20261024015834`. `get_advisors` sem categorias
+  novas de aviso (mesmo padrão de sempre). `npm test` (464), `typecheck`, `lint`, `build` — zero, com o
+  ficheiro já renomeado.
+- **Aproveitado para corrigir a "nota sobre a versão registada"** que a entrada de 24/10/2026 de manhã
+  tinha deixado pronta mas por fazer: as três migrações que a outra sessão aplicou mais cedo
+  (`pedido_esclarecimento_ao_vendedor`, `avaliacao_informacao_pelo_pintor`, `bonus_adesao_avaliador`)
+  tinham ficado com o nome do ficheiro local (`20261023190000`/`200000`/`210000`), não com a versão
+  realmente registada no Supabase (`20261024010647`/`010704`/`010721`) — contrariando a convenção do
+  `CLAUDE.md`. Em vez de reescrever `supabase_migrations.schema_migrations` para corresponder aos
+  ficheiros (a alternativa que a outra sessão tinha deixado pronta, SQL incluído), segui a convenção já
+  estabelecida desde a reconciliação de 23/10/2026 (secção 6.1): **o ficheiro local é que se renomeia para
+  bater com o Supabase, nunca o inverso** — sem efeito nenhum na base de dados, só nos quatro nomes de
+  ficheiro em `supabase/migrations/`, já corrigidos.

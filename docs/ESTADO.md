@@ -496,39 +496,29 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 2. **Stripe em modo de teste** — falta ativar a conta em modo real (dados da empresa) antes de qualquer
    pagamento real.
 
-3. **Migrações pendentes — duas ainda por aplicar de facto, apesar do que este documento tinha concluído a
-   24/10/2026 de manhã** (ver 6.6 e 6.7 para o porquê de cada correção):
+3. **Migrações — `levantamento_automatico` aplicada a 24/10/2026, à tarde, a pedido direto do promotor**
+   ("tenta aplicar a migração do levantamento automático"). Esta sessão não teve o bloqueio "Production
+   Deploy" que travou a sessão anterior (ver histórico abaixo) — correu sem pedir confirmação extra.
 
-   As três seguintes **não estavam aplicadas e eram a causa raiz do bug crítico reportado por duas
-   auditorias de UX independentes** ("Nova entidade" nunca gravava, com qualquer combinação de dados): o
-   código em produção (commit `d09ee3e`) já escrevia a coluna `organizations.alertas_autorizados`, criada só
-   pela terceira migração abaixo, que nunca tinha chegado à base real — todo o insere falhava com
-   `PGRST204` ("Could not find the 'alertas_autorizados' column"), escondido atrás da mensagem genérica até
-   essa correção de texto (que só tornou visível o `P0001`, não esta causa, que não é `P0001`). **Estas três
-   estão de facto aplicadas** (confirmado por SQL direto, 24/10/2026 à tarde — 6.7), ao vivo em quempinta.pt
-   (criação de entidade "Particular" com sucesso, entidade de teste eliminada a seguir):
-   - `20261023190000_pedido_esclarecimento_ao_vendedor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
-   - `20261023200000_avaliacao_informacao_pelo_pintor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
-   - `20261023210000_bonus_adesao_avaliador.sql` — aplicada. `claim_supplier_invite` já concede créditos e
-     `organizations.alertas_autorizados` existe na base real.
-   - **Nota sobre a versão registada**: as três ficaram registadas no Supabase com a versão do momento em
-     que `apply_migration` correu (`20261024010647`/`010704`/`010721`), não com a data do próprio ficheiro
-     (`20261023190000`/`200000`/`210000`) — a ferramenta gera sempre a sua própria versão, não lê a do
-     ficheiro. O nome e o efeito estão corretos; só o número de versão registado é que não é o do ficheiro
-     (contraria a convenção do `CLAUDE.md`, "nome igual à versão registada"). Sem efeito funcional nenhum,
-     só cosmético/de rastreio — corrigir quando for prático (três `update` ao
-     `supabase_migrations.schema_migrations`, SQL já preparado, deixado para o promotor na secção 6.7).
+   Estas quatro **estão todas aplicadas**, confirmado por SQL direto, e com o **ficheiro local já renomeado
+   para a versão realmente registada no Supabase** (regra do `CLAUDE.md`, "nome igual à versão registada" —
+   corrigido de vez, nunca o inverso, ver `docs/DECISOES.md`, 24/10/2026):
+   - `20261024010647_pedido_esclarecimento_ao_vendedor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
+   - `20261024010704_avaliacao_informacao_pelo_pintor.sql` — aplicada. Ainda sem caminho de UI (ver 6.5).
+   - `20261024010721_bonus_adesao_avaliador.sql` — aplicada. `claim_supplier_invite` já concede créditos e
+     `organizations.alertas_autorizados` existe na base real — era a causa raiz do bug crítico "Nova
+     entidade" nunca gravava (duas auditorias de UX independentes, commit `d09ee3e`): o código em produção já
+     escrevia esta coluna antes de ela existir na base real, com todo o insere a falhar com `PGRST204`,
+     escondido atrás da mensagem genérica.
+   - `20261024015834_levantamento_automatico.sql` — aplicada agora. Resolve o bug ao vivo desde 23/10/2026
+     (nenhum pedido novo recebia levantamento nenhum, nem automático nem por pedido manual, porque o botão
+     de pedido já tinha sido removido do código a pressupor o gatilho que ainda não existia na base real).
+   - `get_advisors` sem categorias novas de aviso. `npm test` (464), `typecheck`, `lint`, `build` — zero.
 
-   **Estas duas, ao contrário do que a atualização de 24/10/2026 de manhã tinha concluído, continuam SEM
-   aplicar** (verificado agora por SQL direto, não por repetir uma leitura de texto já filtrado — regra 7 do
-   `CLAUDE.md`):
+   **Só esta continua por aplicar**, sem pedido do promotor para o fazer ainda:
    - `20261023160000_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
      profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
      omissão, confirmado).
-   - `20261023170000_levantamento_automatico.sql` — **esta sim tem efeito ao vivo, agora**: sem o gatilho que
-     cria o pedido de ajuda automaticamente, e com o botão de pedido manual já removido do código
-     (`RequestSurveyCard.tsx` pressupõe o gatilho), **nenhum pedido novo desde 23/10/2026 recebe levantamento
-     nenhum, nem automático nem por pedido** — ver 6.7 para o SQL exato a correr.
 
 4. **`PERMITIR_ACEITACAO_SIMPLES`, confirmado na Vercel (24/10/2026)**: existe, tipo `sensitive`, só no
    ambiente **Production** (não está em Preview nem Development — o inverso do que fazia sentido para uma
