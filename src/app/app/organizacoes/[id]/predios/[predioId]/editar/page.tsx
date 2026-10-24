@@ -16,11 +16,10 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
   ]);
   if (!org || !building || !canManage(await myRole(supabase, user!.id, org))) notFound();
 
-  // Obras pretendidas e área aproximada (migração 20261024050000). Lidas numa consulta própria e com o
-  // erro engolido de propósito: enquanto essa migração não estiver aplicada, as colunas não existem e
-  // uma consulta que as peça falha. Foi exatamente assim que nasceu o bug do "Nova entidade" — código em
-  // produção a escrever uma coluna que ainda não existia na base real. Aqui, em vez de rebentar a
-  // página, mostra-se o aviso.
+  // Obras pretendidas e área aproximada (migração 20261024034142, aplicada a 24/10/2026). A leitura fica
+  // numa consulta própria, com o erro tratado, como rede de segurança: se um dia estas colunas faltarem
+  // (base nova, reposição), a página mostra o aviso em vez de rebentar. Foi assim que nasceu o bug do
+  // "Nova entidade" — código em produção a escrever uma coluna que ainda não existia na base real.
   const { data: extra, error: extraErro } = await supabase
     .from('buildings')
     .select('obras_pretendidas, area_aproximada_cm2')
@@ -51,9 +50,9 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
           <>
             <h2 className="font-semibold">Que obras quer fazer neste prédio</h2>
             <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-              Este bloco está construído, mas a migração que cria os campos na base de dados
-              (<code>20261024050000_obras_pretendidas_no_predio.sql</code>) ainda não foi aplicada. Assim que o for,
-              aparece aqui a lista de obras e o convite a pedir orçamentos.
+              Os campos desta secção não existem nesta base de dados. Falta aplicar a migração
+              <code>20261024034142_obras_pretendidas_no_predio.sql</code>. Assim que o for, aparece aqui a lista de
+              obras e o convite a pedir orçamentos.
             </p>
           </>
         ) : (

@@ -70,7 +70,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       rated: !!ratedRow,
     };
   }
-  // Adendas ao levantamento (migração 20261024040000): perguntas dos pintores e respostas dadas na obra.
+  // Adendas ao levantamento (migração 20261024034129): perguntas dos pintores e respostas dadas na obra.
   // Lido independentemente de o pedido estar em rascunho — ao contrário do cartão de ajuda acima, isto
   // interessa sobretudo depois de publicado, que é quando os pintores perguntam. Vem vazio enquanto essa
   // migração não estiver aplicada.

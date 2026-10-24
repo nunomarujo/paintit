@@ -33,7 +33,7 @@ export function Characteristics({
   initial: BuildingCharacteristics;
   /** Centésimos de m², como o resto do projeto. Mostra-se em m². */
   areaAproximadaCm2?: number | null;
-  /** A coluna da área ainda não existe na base real (migração 20261024050000 por aplicar). */
+  /** A coluna da área ainda não existe na base real (migração 20261024034142 por aplicar). */
   semAreaAproximada?: boolean;
 }) {
   const campo = (nome: string) => saveBuildingCharacteristic.bind(null, orgId, buildingId, nome);

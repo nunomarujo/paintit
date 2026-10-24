@@ -519,17 +519,17 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
    **Continuam por aplicar** (as três últimas são desta madrugada; sem elas, os ecrãs correspondentes
    mostram aviso ou vêm vazios, nunca rebentam — ver 6.9 e 6.10):
-   - `20261023160000_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
+   - `20261024034052_revoke_delete_clientes_fornecedor.sql` — **sem efeito funcional** (defesa em
      profundidade; `supplier_customers` já não tem política RLS nenhuma para DELETE, logo já bloqueado por
      omissão, confirmado). Sem pedido do promotor para o fazer ainda.
-   - `20261024030000_pintor_ve_levantamento.sql` — **esta tem efeito real**: sem ela, os ecrãs do pintor
+   - `20261024034105_pintor_ve_levantamento.sql` — **esta tem efeito real**: sem ela, os ecrãs do pintor
      para pedir esclarecimento e avaliar a informação do levantamento não mostram nada (ver 6.9). DDL
      recusado pelo classificador desta sessão; aplicar pela sessão do Code, pelo editor do Supabase, ou
      com o modo automático desligado.
-   - `20261024040000_adendas_ao_dossie_e_avisos.sql` — `survey_addenda` (a resposta ao esclarecimento a
+   - `20261024034129_adendas_ao_dossie_e_avisos.sql` — `survey_addenda` (a resposta ao esclarecimento a
      somar ao dossiê, sem apagar o anterior) e os avisos a quem perguntou e ao cliente. Sem ela, as
      adendas vêm vazias e ninguém é avisado quando a resposta chega.
-   - `20261024050000_obras_pretendidas_no_predio.sql` — `buildings.obras_pretendidas` e
+   - `20261024034142_obras_pretendidas_no_predio.sql` — `buildings.obras_pretendidas` e
      `area_aproximada_cm2`. Sem ela, a ficha do prédio mostra um aviso no lugar desse bloco (e por isso
      também não aparece o cartão "Quer iniciar pedidos de orçamentos?").
 
@@ -621,7 +621,7 @@ sessão reportou era alucinação:
   para esse comando nega por omissão) — mas faltava a revogação explícita do grant, que o resto do código sempre
   acrescenta como segunda camada (`material_orders`, `products`, `reviews`, `bank_imports`/`bank_lines`,
   `supplier_reviews` — todos com `revoke delete ... from authenticated`). Escrita a migração
-  `20261023160000_revoke_delete_clientes_fornecedor.sql`, mas **ainda não aplicada à Supabase**: o modo automático
+  `20261024034052_revoke_delete_clientes_fornecedor.sql`, mas **ainda não aplicada à Supabase**: o modo automático
   bloqueou a aplicação direta ("Production Deploy" pede aprovação explícita do promotor). **Fica pendente —
   qualquer sessão que leia isto antes de a aplicar: confirmar com o promotor primeiro, o ficheiro no repositório
   não significa que já está em vigor na base real.**
@@ -673,7 +673,7 @@ o que as secções 6.5 e 7 diziam**:
 - **As três funcionalidades não estavam só "sem UI"**: o pintor **não tinha leitura nenhuma** sobre
   `request_surveys` (confirmado nas políticas da base real). As funções dele são `security definer` e
   por isso funcionavam sem leitura — os testes passavam, mas nenhum ecrã as podia oferecer. Migração
-  `20261024030000_pintor_ve_levantamento.sql`, +2 casos de RLS, **por aplicar** (DDL recusado nesta
+  `20261024034105_pintor_ve_levantamento.sql`, +2 casos de RLS, **por aplicar** (DDL recusado nesta
   sessão, ver 6.7; escritas de dados passam).
 - **Ecrãs construídos**: vendedor em `/app/levantamentos/{id}` (lista conjunta, marco 1, marco 2,
   estados) — **funciona já**; pintor em `/app/oportunidades/{id}` (pedir esclarecimento, ver resposta,
@@ -864,7 +864,7 @@ revoke insert on public.request_surveys from authenticated;
 
 -- 3) Regista as duas migrações como aplicadas, com a versão igual ao nome do ficheiro (convenção do CLAUDE.md)
 insert into supabase_migrations.schema_migrations (version, name, statements) values
-  ('20261023160000', 'revoke_delete_clientes_fornecedor', array['revoke delete on public.supplier_customers from authenticated;']),
+  ('20261024034052', 'revoke_delete_clientes_fornecedor', array['revoke delete on public.supplier_customers from authenticated;']),
   ('20261023170000', 'levantamento_automatico', array['-- ver supabase/migrations/20261023170000_levantamento_automatico.sql']);
 
 -- 4) Corrige a versão registada das três migrações do bónus (aplicadas com a data de quando correram, não a do ficheiro — sem efeito funcional, só cosmético)

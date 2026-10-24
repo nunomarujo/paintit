@@ -67,6 +67,14 @@ export function ListingPreview({ l }: { l: ListingView }) {
             fachadas={l.fachadas}
             temVarandas={l.temVarandas}
             moradia={l.tipoImovel === 'moradia'}
+            // Pormenores tal como caracterizados: vêm das superfícies que foram mesmo declaradas nesta
+            // obra, nunca de fotografia (promotor, 24/10/2026). O desenho continua a ser o mesmo para
+            // duas obras com as mesmas declarações, que é o que o mantém anónimo.
+            elementos={{
+              metalicos: l.surfaces.some((s) => s.kind === 'elementos_metalicos'),
+              muro: l.surfaces.some((s) => s.kind === 'muro'),
+              beirais: l.surfaces.some((s) => s.kind === 'beirais_cobertura'),
+            }}
             className="h-32 w-full"
           />
           <figcaption className="text-center text-xs text-slate-500">Volume genérico, não à escala</figcaption>

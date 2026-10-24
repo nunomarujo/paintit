@@ -34,4 +34,36 @@ describe('volume do prédio', () => {
     expect(count(buildingVolume({ ...base, fachadas: 1 }), 'vizinho')).toBe(6);
     expect(count(buildingVolume({ ...base, fachadas: 3 }), 'vizinho')).toBe(3);
   });
+
+  // Pormenores caracterizados (24/10/2026).
+  it('desenha janelas em ritmo fixo, duas por piso acima do rés-do-chão', () => {
+    expect(count(buildingVolume(base), 'janela')).toBe(4 * 2);
+    expect(count(buildingVolume({ ...base, pisos: 2 }), 'janela')).toBe(1 * 2);
+  });
+
+  it('toda a varanda leva guarda: uma por piso com varanda, nenhuma sem varandas', () => {
+    expect(count(buildingVolume({ ...base, temVarandas: true }), 'grade')).toBe(4);
+    expect(count(buildingVolume(base), 'grade')).toBe(0);
+  });
+
+  it('só desenha muro, beirais e palas quando foram caracterizados', () => {
+    expect(count(buildingVolume(base), 'muro')).toBe(0);
+    expect(count(buildingVolume(base), 'beiral')).toBe(0);
+    expect(count(buildingVolume(base), 'pala')).toBe(0);
+    expect(count(buildingVolume({ ...base, elementos: { muro: true } }), 'muro')).toBe(3);
+    expect(count(buildingVolume({ ...base, elementos: { beirais: true } }), 'beiral')).toBe(3);
+    // Uma pala por vão: dois vãos por piso, quatro pisos acima do rés-do-chão.
+    expect(count(buildingVolume({ ...base, elementos: { palas: true } }), 'pala')).toBe(4 * 2 * 3);
+  });
+
+  it('os pormenores não quebram o anonimato: as mesmas declarações dão o mesmo desenho', () => {
+    const declaracoes = { ...base, temVarandas: true, elementos: { muro: true, beirais: true, palas: true, metalicos: true } };
+    expect(buildingVolume(declaracoes)).toEqual(buildingVolume({ ...declaracoes, elementos: { ...declaracoes.elementos } }));
+  });
+
+  it('o desenho cresce com o que foi caracterizado, nunca encolhe', () => {
+    const semNada = buildingVolume(base).faces.length;
+    const comTudo = buildingVolume({ ...base, temVarandas: true, elementos: { muro: true, beirais: true, palas: true } }).faces.length;
+    expect(comTudo).toBeGreaterThan(semNada);
+  });
 });

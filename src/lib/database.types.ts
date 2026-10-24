@@ -72,7 +72,7 @@ export type Database = {
         Row: {
           acessos: string | null;
           ano_construcao: number | null;
-          // Obras pretendidas e área aproximada: migração 20261024050000, **ainda por aplicar à base
+          // Obras pretendidas e área aproximada: migração 20261024034142, **ainda por aplicar à base
           // real**. Declaradas aqui para o código compilar; quem as lê fá-lo numa consulta própria, com
           // o erro tratado, e quem as escreve só aparece depois de a migração estar aplicada (ver
           // predios/[predioId]/editar/page.tsx). Sem esse cuidado, era o bug do "Nova entidade" outra vez.
@@ -1580,7 +1580,7 @@ export type Database = {
       respond_clarification: { Args: { p_id: string; p_resposta: string }; Returns: undefined };
       claim_clarification: { Args: { p_id: string; p_org: string }; Returns: Database['public']['Tables']['survey_clarifications']['Row'] };
       rate_survey_info: { Args: { p_request_survey_id: string; p_nota: number; p_comentario: string }; Returns: undefined };
-      // Adendas ao dossiê (migração 20261024040000): todas as rondas de esclarecimento desta obra, com as
+      // Adendas ao dossiê (migração 20261024034129): todas as rondas de esclarecimento desta obra, com as
       // perguntas e a resposta de cada uma, sem nunca identificar quem perguntou.
       survey_addenda: {
         Args: { p_request_survey_id: string };

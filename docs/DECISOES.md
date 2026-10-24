@@ -1545,7 +1545,7 @@ estado real. Registo ponto a ponto, para as duas sessões lerem o mesmo:
    `20261023170000_levantamento_automatico.sql`. **Tentativa de aplicação nesta sessão bloqueada pelo
    classificador "Production Deploy"** (o mesmo bloqueio de sempre, independente de aprovação em chat) —
    continua à espera de aprovação direta do promotor na própria ferramenta/ambiente, não só aqui. Junta-se às
-   outras três já na fila (`20261023160000_revoke_delete_clientes_fornecedor.sql`,
+   outras três já na fila (`20261024034052_revoke_delete_clientes_fornecedor.sql`,
    `20261023190000_pedido_esclarecimento_ao_vendedor.sql`, `20261023200000_avaliacao_informacao_pelo_pintor.sql`)
    — as quatro já testadas, só à espera da aprovação direta.
 
@@ -1776,7 +1776,7 @@ funcionalidades não estavam só "sem UI": **o pintor não tinha leitura nenhuma
 porque `request_painter_doubt` e `rate_survey_info` são `security definer` — funcionam sem leitura, e
 os testes delas passavam na mesma; só ao fazer o ecrã é que a falta aparece, porque a aplicação nem
 sabe que há levantamento concluído para oferecer seja o que for. Migração
-`20261024030000_pintor_ve_levantamento.sql` com o mesmo critério que já guarda as funções (só pintor,
+`20261024034105_pintor_ve_levantamento.sql` com o mesmo critério que já guarda as funções (só pintor,
 só concluído, só com anúncio aberto), +2 casos de RLS. **Por aplicar: o classificador desta sessão
 recusa DDL ("Production Deploy"); escritas normais de dados passam.**
 
@@ -1816,7 +1816,7 @@ Pedidos do promotor, por ordem de chegada, com o que ficou feito:
    uma com um desenho: zona representativa de 2-5 m², fotografias próximas das anomalias, e o que nunca
    fotografar. Pouco texto, como ele exigiu.
 2. **Pedido de esclarecimento** — já construído na entrada anterior.
-3. **A resposta soma ao dossiê** — `survey_addenda` (migração 20261024040000) devolve todas as rondas,
+3. **A resposta soma ao dossiê** — `survey_addenda` (migração 20261024034129) devolve todas as rondas,
    com perguntas e resposta de cada uma, pela ordem em que aconteceram. Nada substitui o anterior.
    Aparece ao pintor e ao cliente. **Não devolve quem perguntou**: abrir
    `survey_clarification_items` aos pintores mostraria a concorrentes quem perguntou o quê, contra a

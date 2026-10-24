@@ -97,7 +97,7 @@ fotografias associadas). É a quinta migração por aplicar — ver secção 5.
 
 ## 5. O travão a montante
 
-Há **quatro migrações escritas e por aplicar** (`20261023160000`, `20261024030000`, `20261024040000`,
-`20261024050000`). Acrescentar a quinta antes de as anteriores entrarem só aumenta uma fila que já não
+Há **quatro migrações escritas e por aplicar** (`20261024034052`, `20261024034105`, `20261024034129`,
+`20261024034142`). Acrescentar a quinta antes de as anteriores entrarem só aumenta uma fila que já não
 anda, e cada peça nova fica invisível na mesma. Por isso a anotação de estado ficou **em domínio puro e
 testado, sem tabela**: entra no dia em que a fila for drenada, e até lá não finge estar a funcionar.

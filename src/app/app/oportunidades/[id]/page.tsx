@@ -191,7 +191,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
       ? await supabase.from('engagements').select('id').eq('proposal_id', proposal.id).maybeSingle()
       : { data: null };
 
-  // Levantamento concluído desta obra (migração 20261024030000, que deu leitura ao pintor): enquanto
+  // Levantamento concluído desta obra (migração 20261024034105, que deu leitura ao pintor): enquanto
   // essa migração não estiver aplicada à base real, isto vem sempre vazio e o cartão não aparece — em
   // vez de rebentar. O mesmo critério da política: só concluído, só com o anúncio aberto.
   const { data: surveyRow } = listing?.aberto
@@ -209,7 +209,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         .maybeSingle(),
       supabase.from('survey_info_reviews').select('nota').eq('request_survey_id', surveyRow.id).eq('painter_user_id', user!.id).maybeSingle(),
       // Adendas: todas as rondas, com perguntas e respostas, sem identificar quem perguntou
-      // (migração 20261024040000). Vazio enquanto essa migração não estiver aplicada.
+      // (migração 20261024034129). Vazio enquanto essa migração não estiver aplicada.
       supabase.rpc('survey_addenda', { p_request_survey_id: surveyRow.id }),
     ]);
     surveyInfo = {

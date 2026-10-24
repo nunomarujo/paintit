@@ -2248,7 +2248,7 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     expect(seenByClient).toHaveLength(2);
   });
 
-  // Leitura do levantamento pelo pintor (20261024030000): sem isto, as duas funcionalidades acima
+  // Leitura do levantamento pelo pintor (20261024034105): sem isto, as duas funcionalidades acima
   // funcionavam por serem `security definer`, mas nenhum ecrã as podia oferecer — a aplicação não
   // conseguia saber que havia um levantamento concluído nesta obra.
   it('o pintor vê o levantamento concluído da obra publicada; um pintor sem anúncio aberto e um estranho, não', async () => {
@@ -2266,7 +2266,7 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     await db.query(`update public.request_listings set aberto = true where request_id = $1`, [requestId]);
   });
 
-  // Adendas ao dossiê e avisos (20261024040000).
+  // Adendas ao dossiê e avisos (20261024034129).
   it('a resposta soma ao dossiê sem apagar a ronda anterior, e nunca diz quem perguntou', async () => {
     const addendas = await as(CP, async () =>
       (
