@@ -271,7 +271,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
           },
         ]}
         documentoHref={proposal && domainLines.length > 0 ? `/app/oportunidades/${id}/orcamento/documento` : null}
-        inicial={proposal ? 'proposta' : 'obra'}
+        inicial={proposal && wizard ? 'orcamento' : proposal ? 'proposta' : 'obra'}
         tabs={[
           {
             id: 'obra',
@@ -304,14 +304,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
           }}
         />
       )}
-              </>
-            ),
-          },
-          {
-            id: 'proposta',
-            label: 'Proposta',
-            content: (
-              <>
       {listing?.aberto && (
         <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
           <strong>Dica:</strong> ao escolher materiais de um fornecedor registado na plataforma, o fornecedor confirma a
@@ -320,6 +312,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
           esta obra.
         </p>
       )}
+              </>
+            ),
+          },
+          {
+            id: 'proposta',
+            label: 'Proposta',
+            content: (
+              <>
       {!proposal ? (
         <section className={card}>
           <h2 className="font-semibold">Fazer proposta</h2>
@@ -415,7 +415,17 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </div>
             )}
           </section>
-
+        </>
+      )}
+              </>
+            ),
+          },
+          {
+            id: 'orcamento',
+            label: 'Orçamento',
+            vazio: !(proposal && terms && wizard),
+            content: (
+              <>
           {wizard && proposal && terms && (
             <section className="space-y-4" aria-labelledby="orcamento">
               <div>
@@ -522,8 +532,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
               />
             </section>
           )}
-        </>
-      )}
               </>
             ),
           },
