@@ -1107,3 +1107,29 @@ secção 5.3), `backoffice` (equipa da plataforma), `revisao`, `validacao`, `fic
   e, logo a seguir, **convite de adesão enviado pelo fornecedor a um pintor fora da plataforma** a partir do
   separador `/clientes` vazio (secção 5.5 e 6.3), reaproveitando por inteiro o mecanismo de código de adesão já
   em produção.
+
+## 24/10/2026 — Rodar o volume e forma de implantação
+
+**Rodar o volume** (requisitos PIN-06, MOD-06, ECR-C04) estava **especificado e nunca construído**.
+A procura anterior que concluiu "nunca existiu" foi feita sobre um clone *shallow* deste repositório
+(64 de 219 commits): a conclusão foi tirada sobre história cortada. Com a história completa
+(`git fetch --unshallow`), mais a cópia local do promotor e o resto da máquina, confirma-se que
+nenhum commit alguma vez teve rotação — e que os únicos visualizadores 3D que rodam são os do
+projeto Predial (three.js com OrbitControls), que por regra de isolamento não se tocam.
+
+Construído agora, sem dependências novas:
+
+- `src/domain/volume.ts` — câmara de prato giratório (elevação fixa de 30°, azimute livre), faces
+  escondidas removidas pela normal e ordenação por profundidade. O ângulo é um **parâmetro puro**:
+  as mesmas declarações dão o mesmo desenho em todos os ângulos, por isso rodar não quebra o anonimato.
+- `src/domain/volume.ts` — **forma de implantação** (`quadrado`, `I`, `L`, `U`, `T`), extrudida da planta.
+- `src/components/VolumeViewer.tsx` — arrastar, setas do teclado e botões. Sem JavaScript fica a fachada
+  de frente; a lista e as medidas nunca dependem desta navegação (exigência do próprio requisito).
+- `src/components/FormaPicker.tsx` — escolha da forma vista de cima, com nota para confirmar no Google
+  Earth em caso de dúvida.
+
+**Por aplicar:** `supabase/migrations/20261024120000_forma_de_implantacao.sql` (coluna
+`forma_implantacao` em `buildings` e `request_listings`, e a cópia no gatilho de publicação). O
+classificador do modo automático voltou a recusar DDL (`[Production Deploy]`). Passa nos testes em
+Postgres em memória. **Enquanto não for aplicada, nenhum `select` da aplicação pede a coluna** e o
+`FormaPicker` não está ligado a ecrã nenhum — produção não parte. Ligar é um commit pequeno depois.

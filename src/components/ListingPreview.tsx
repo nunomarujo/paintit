@@ -1,5 +1,6 @@
-import { BuildingVolume } from '@/components/BuildingVolume';
+import { VolumeViewer } from '@/components/VolumeViewer';
 import { BUILDING_KIND_LABELS, type BuildingKind } from '@/domain/organization';
+import type { Forma } from '@/domain/volume';
 import {
   DESIRED_WORK_LABELS,
   SURFACE_KIND_LABELS,
@@ -18,6 +19,8 @@ export interface ListingView {
   pisos: number | null;
   fachadas: number | null;
   temVarandas: boolean;
+  /** Forma de implantação escolhida de entre as canónicas, quando foi caracterizada. */
+  forma?: Forma | null;
   descricao: string;
   trabalhos: string[];
   corAcabamento: string | null;
@@ -61,11 +64,12 @@ export function ListingPreview({ l }: { l: ListingView }) {
           </h3>
           <p className="text-slate-600">{caracteristicas.join(' · ')}</p>
         </div>
-        <figure className="w-40 shrink-0">
-          <BuildingVolume
+        <figure className="w-44 shrink-0">
+          <VolumeViewer
             pisos={l.pisos}
             fachadas={l.fachadas}
             temVarandas={l.temVarandas}
+            forma={l.forma ?? null}
             moradia={l.tipoImovel === 'moradia'}
             // Pormenores tal como caracterizados: vêm das superfícies que foram mesmo declaradas nesta
             // obra, nunca de fotografia (promotor, 24/10/2026). O desenho continua a ser o mesmo para
@@ -76,8 +80,9 @@ export function ListingPreview({ l }: { l: ListingView }) {
               beirais: l.surfaces.some((s) => s.kind === 'beirais_cobertura'),
             }}
             className="h-32 w-full"
+            legenda={false}
           />
-          <figcaption className="text-center text-xs text-slate-500">Volume genérico, não à escala</figcaption>
+          <figcaption className="text-center text-xs text-slate-500">Volume genérico, não à escala. Arrastar para rodar.</figcaption>
         </figure>
       </div>
 

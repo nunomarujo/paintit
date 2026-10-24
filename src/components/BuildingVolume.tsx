@@ -2,19 +2,23 @@ import { buildingVolume, type FaceKind, type VolumeInput } from '@/domain/volume
 
 const FILL: Record<FaceKind, string> = {
   frente: 'fill-tinta-100 stroke-tinta-700',
-  lado: 'fill-tinta-500/40 stroke-tinta-700',
+  lado: 'fill-tinta-200 stroke-tinta-700',
   topo: 'fill-tinta-50 stroke-tinta-700',
   varanda: 'fill-slate-300 stroke-slate-600',
   vizinho: 'fill-slate-100 stroke-slate-300',
   // Pormenores caracterizados: cinzentos, para lerem como pormenor e não competirem com o volume.
-  janela: 'fill-slate-500/70 stroke-slate-700',
-  grade: 'fill-slate-400/50 stroke-slate-700',
+  janela: 'fill-slate-500 stroke-slate-700',
+  grade: 'fill-slate-400 stroke-slate-700',
   muro: 'fill-slate-200 stroke-slate-500',
   beiral: 'fill-slate-200 stroke-slate-600',
   pala: 'fill-slate-200 stroke-slate-600',
 };
 
-/** Volume genérico do prédio, desenhado a partir dos dados declarados. Nunca de fotografias. */
+/**
+ * Volume genérico do prédio, desenhado a partir dos dados declarados. Nunca de fotografias.
+ * As faces são opacas de propósito: com a rotação, qualquer transparência deixaria ver o que está
+ * escondido atrás do volume.
+ */
 export function BuildingVolume(props: VolumeInput & { className?: string }) {
   const v = buildingVolume(props);
   return (
