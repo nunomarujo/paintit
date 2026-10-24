@@ -1,3 +1,4 @@
+import type { Forma } from '@/domain/volume';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeRequestStatus, deletePhoto, deleteSurface, updateRequest } from '@/app/app/pedidos/actions';
@@ -40,7 +41,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }, { count: proposalCount }] =
     await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
-    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas').eq('id', req.building_id).single(),
+    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
     supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
@@ -289,6 +290,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             pisos: building.pisos,
             fachadas: building.fachadas,
             temVarandas: building.tem_varandas,
+            forma: (building.forma_implantacao as Forma | null) ?? null,
             descricao: req.descricao,
             trabalhos: req.trabalhos,
             corAcabamento: req.cor_acabamento,

@@ -1147,8 +1147,31 @@ e `src/components/FormaWizard.tsx`):
 
 O desenho do volume aparece como **confirmação** do que foi respondido, nunca como pergunta.
 
-**Por aplicar:** `supabase/migrations/20261024120000_forma_de_implantacao.sql` (coluna
+**Aplicada** a 24/10/2026: `supabase/migrations/20261024124439_forma_de_implantacao.sql` (coluna
 `forma_implantacao` em `buildings` e `request_listings`, e a cópia no gatilho de publicação). O
 classificador do modo automático voltou a recusar DDL (`[Production Deploy]`). Passa nos testes em
 Postgres em memória. **Enquanto não for aplicada, nenhum `select` da aplicação pede a coluna** e o
 `FormaPicker` não está ligado a ecrã nenhum — produção não parte. Ligar é um commit pequeno depois.
+
+
+### Teste dos três perfis na base real (24/10/2026)
+
+Com a migração aplicada e a forma ligada aos ecrãs:
+
+- **Cliente** grava a forma no seu prédio; um cliente de outra entidade a alterar o mesmo prédio
+  afeta zero linhas.
+- **Pintor** lê a forma no anúncio anónimo (copiada pelo gatilho na publicação) e continua sem
+  qualquer acesso a `buildings`: zero registos. O campo novo não abriu brecha no anonimato.
+- **Avaliador** lê a ficha do prédio do levantamento que reservou, com a forma, e zero prédios
+  alheios.
+
+Achados, por decidir:
+
+- `private.can_access_as_surveyor` exige o levantamento em `reservado`. Quando passa a `concluido` o
+  avaliador deixa de ver morada e características; o ecrã não rebenta (o bloco está protegido por
+  `building &&`) mas desaparece sem aviso. Decidir se é mesmo o pretendido.
+- A cobertura do fornecedor vive em `supplier_survey_coverage`, **não** em
+  `organizations.zonas_servico`. A conta de teste cobria só Caminha e por isso não conseguia reservar
+  levantamentos em Viana do Castelo; acrescentou-se Viana do Castelo para poder testar.
+- O prédio "lote 14" tem o concelho gravado como "Viana do Castel": um concelho mal escrito torna o
+  prédio invisível para quem serve esse concelho.

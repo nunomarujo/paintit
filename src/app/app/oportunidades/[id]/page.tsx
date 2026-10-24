@@ -1,3 +1,4 @@
+import type { Forma } from '@/domain/volume';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/oportunidades/actions';
@@ -243,6 +244,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             pisos: listing.pisos,
             fachadas: listing.fachadas,
             temVarandas: listing.tem_varandas,
+            forma: (listing.forma_implantacao as Forma | null) ?? null,
             descricao: listing.descricao,
             trabalhos: listing.trabalhos,
             corAcabamento: listing.cor_acabamento,

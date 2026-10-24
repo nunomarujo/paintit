@@ -2,6 +2,8 @@
 
 import { saveBuildingCharacteristic } from '@/app/app/actions';
 import { AutoSaveField } from '@/components/AutoSaveField';
+import { FormaWizard } from '@/components/FormaWizard';
+import type { Forma } from '@/domain/volume';
 
 export interface BuildingCharacteristics {
   pisos: number | null;
@@ -11,10 +13,19 @@ export interface BuildingCharacteristics {
   tem_varandas: boolean;
   tem_elevador: boolean;
   acessos: string | null;
+  forma_implantacao?: string | null;
+  tipo?: string | null;
   artigo_matricial: string | null;
 }
 
 const str = (n: number | null) => (n === null ? '' : String(n));
+
+/** O assistente devolve a forma escolhida; a acção de gravação espera um formulário, como os restantes campos. */
+const formData = (valor: string) => {
+  const f = new FormData();
+  f.set('valor', valor);
+  return f;
+};
 
 /**
  * Características do prédio, gravadas à medida que se escrevem — sem botão (pedido do promotor,
@@ -57,6 +68,13 @@ export function Characteristics({
         <AutoSaveField label="Fachadas" inputMode="numeric" valorInicial={str(initial.fachadas)} guardar={campo('fachadas')} />
         <AutoSaveField label="Ano de construção" inputMode="numeric" valorInicial={str(initial.ano_construcao)} guardar={campo('ano_construcao')} />
       </div>
+      <FormaWizard
+        valorInicial={(initial.forma_implantacao as Forma | null) ?? null}
+        fachadasLivres={initial.fachadas}
+        moradia={initial.tipo === 'moradia'}
+        pisos={initial.pisos}
+        guardar={(forma) => campo('forma_implantacao')({ errors: {} }, formData(forma))}
+      />
       <div className="flex flex-wrap gap-6">
         <AutoSaveField label="Tem varandas" tipo="checkbox" valorInicial={initial.tem_varandas ? 'sim' : 'nao'} guardar={campo('tem_varandas')} />
         <AutoSaveField label="Tem elevador" tipo="checkbox" valorInicial={initial.tem_elevador ? 'sim' : 'nao'} guardar={campo('tem_elevador')} />

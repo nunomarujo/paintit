@@ -21,6 +21,7 @@ import {
 } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
 import { addressProblem } from '@/domain/address';
+import { isForma } from '@/domain/volume';
 import { isBuildingNeed } from '@/domain/buildingNeeds';
 import type { StrikeInfo } from '@/domain/strikes';
 import type { Database } from '@/lib/database.types';
@@ -232,6 +233,13 @@ export async function saveBuildingCharacteristic(
       // restrição por baixo.
       const escolhidas = form.getAll('obras').map(String).filter(isBuildingNeed);
       patch = { obras_pretendidas: [...new Set(escolhidas)] };
+      break;
+    }
+    case 'forma_implantacao': {
+      // Uma das cinco formas canónicas. O que vier do navegador fora da lista é recusado (regra 10);
+      // a restrição da base de dados repete a verificação por baixo.
+      if (!isForma(bruto)) return { errors: { valor: 'Forma desconhecida.' } };
+      patch = { forma_implantacao: bruto };
       break;
     }
     case 'tem_varandas':
