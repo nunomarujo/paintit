@@ -2247,4 +2247,39 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     const seenByClient = await as(A, async () => (await db.query('select nota from public.survey_info_reviews where request_survey_id = $1', [surveyId])).rows);
     expect(seenByClient).toHaveLength(2);
   });
+
+  // Leitura do levantamento pelo pintor (20261024030000): sem isto, as duas funcionalidades acima
+  // funcionavam por serem `security definer`, mas nenhum ecrã as podia oferecer — a aplicação não
+  // conseguia saber que havia um levantamento concluído nesta obra.
+  it('o pintor vê o levantamento concluído da obra publicada; um pintor sem anúncio aberto e um estranho, não', async () => {
+    const seen = await as(CP, async () => (await db.query<{ status: string }>('select status from public.request_surveys where id = $1', [surveyId])).rows);
+    expect(seen).toEqual([{ status: 'concluido' }]);
+
+    // Estranho que não é pintor: continua sem ver nada.
+    expect(await as(B, async () => (await db.query('select status from public.request_surveys where id = $1', [surveyId])).rows)).toEqual([]);
+
+    // Anúncio fechado: o pintor deixa de ver, pelo mesmo critério que fecha as duas funções. O anúncio
+    // não se altera pela mão do cliente (sem permissão de escrita em `request_listings`, de propósito) —
+    // aqui mexe-se diretamente, como faria o fecho por prazo do `daily_maintenance`.
+    await db.query(`update public.request_listings set aberto = false where request_id = $1`, [requestId]);
+    expect(await as(CP, async () => (await db.query('select status from public.request_surveys where id = $1', [surveyId])).rows)).toEqual([]);
+    await db.query(`update public.request_listings set aberto = true where request_id = $1`, [requestId]);
+  });
+
+  it('um levantamento ainda por concluir nunca é visível ao pintor', async () => {
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    // Fica em rascunho de propósito: publicar cancelaria o levantamento ainda aberto
+    // (`work_requests_cancel_survey_on_publish`), e o que se quer testar é mesmo o estado "aberto".
+    const outro = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'levantamento por concluir', 'fachadas', 'Obra com levantamento ainda aberto.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+    const abertoId = (await one<{ id: string; status: string }>('select id, status from public.request_surveys where request_id = $1', [outro])).id;
+    expect(await as(CP, async () => (await db.query('select status from public.request_surveys where id = $1', [abertoId])).rows)).toEqual([]);
+  });
 });
