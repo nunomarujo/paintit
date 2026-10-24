@@ -1263,3 +1263,20 @@ protótipos de escolha; não foram portadas para o código, porque a direção a
 `ProposalDocument.tsx` com dados reais. Falta também decidir com o Nuno se o pintor deve conseguir gerar
 este documento antes de submeter a proposta (ex.: pré-visualização no ecrã "Rever e enviar" de
 `PROPOSTA.md`) — hoje a rota só funciona para uma proposta já submetida (`status !== 'rascunho'`).
+
+
+### 24/10/2026 — Um só documento de orçamento
+
+Três sessões trabalharam o mesmo ecrã ao mesmo tempo e nasceram dois documentos de orçamento:
+`QuoteDocument` (lado do pintor, com marca de água e página de materiais) e `ProposalDocument`
+(lado do cliente, com a identidade do pintor protegida até à apresentação, folhas A4 numeradas,
+cabeçalho corrido e totais por categoria).
+
+Ficou o `ProposalDocument`: é mais completo e, sobretudo, é o único que trata o anonimato — mostra o
+alias enquanto a apresentação não aconteceu (`engagement.feePaid`, docs/MODELO.md). O `QuoteDocument`
+foi apagado.
+
+A rota do lado do pintor (`/app/oportunidades/[id]/orcamento/documento`) manteve-se, porque era a que
+respondia ao pedido de ter o ficheiro à mão depois de submeter, mas passou a desenhar o
+`ProposalDocument`. A única diferença entre os dois lados é a identidade que o componente recebe: a
+verdadeira quando é a própria empresa a ver o seu orçamento, o alias quando é o cliente.
