@@ -1919,3 +1919,31 @@ trabalho como fizeste nas tintas... tudo igual". Decisões tomadas:
   a maioria das redes e a maioria dos isolantes (só um produto por categoria tinha preço de catálogo
   publicado). Um produto de cortiça (ficha da Weber/Saint-Gobain) ficou de fora por a ficha técnica pública
   não ser legível para extrair dados com confiança.
+
+## 24/10/2026, mais tarde (terceira parte) — Pesquisa do catálogo entende gíria e tolera erros de escrita
+
+O Nuno escreveu "capoto" na pesquisa do catálogo (com e sem o tipo "Isolamento — EPS" já escolhido) e não
+apareceu nenhum produto, apesar de "capoto" ser como toda a gente trata o sistema de isolamento térmico pelo
+exterior (ETICS) em Portugal — nenhuma ficha de produto tem essa palavra escrita. Pedido dele, verbatim:
+"Não esquecemos que existe gíria profissional, além que muitos users podem se enganar a escrever... temos
+que auxiliar a encontrar e não criar este atrito". Pesquisa confirmou "capoto" como termo coloquial corrente
+nos fóruns de construção portugueses para isolamento térmico pelo exterior (forumdacasa.com), e as técnicas
+padrão para tolerância a erros de escrita em bases de dados (pg_trgm/unaccent do Postgres).
+
+Decisão: não instalar `pg_trgm`/full-text search no Postgres (exigiria extensão nova, índices e mais uma
+camada de infraestrutura para um catálogo ainda pequeno) — construiu-se antes **`src/domain/search.ts`**,
+função pura e testada (regra 2 do `CLAUDE.md`), com duas partes:
+
+1. **Dicionário de gíria do setor** (`CATALOG_JARGON`): mapeia palavras como "capoto", "esferovite", "bucha",
+   "reboco", "massa" aos tipos de produto correspondentes — encontra o produto mesmo que a palavra escrita
+   nunca apareça em nenhuma ficha. Alargar esta lista é a forma correta de resolver uma futura "a pesquisa de
+   X não encontra nada".
+2. **Tolerância a erros de escrita** (distância de Levenshtein, como a generalidade dos motores de pesquisa):
+   sem tolerância em palavras muito curtas (3 carateres ou menos, para não confundir "eps" com "xps"), um
+   erro em palavras até 7, dois a partir daí — aplica-se tanto ao texto do produto como ao próprio termo de
+   gíria escrito com erro (ex.: "kapoto").
+
+A pesquisa passou a correr em memória (antes do tipo de produto já filtrado na consulta SQL) em vez de um
+`ilike` na base de dados, nas duas listas do catálogo (`/app/catalogo`): produtos de referência e produtos
+dos fornecedores. Visitas com muitos produtos ativos podem, no limite, ficar menos eficientes do que um
+`ilike` indexado — aceitável à escala atual do catálogo; revisitar se um dia isso pesar.

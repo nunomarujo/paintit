@@ -3,6 +3,7 @@ import { AutoSubmit } from '@/components/AutoSubmit';
 import { ISOLAMENTO_E_ACESSORIOS, PRODUCT_TYPES, PRODUCT_TYPE_LABELS, boardQuantity, consumption, type ProductType } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { parseHundredths } from '@/domain/request';
+import { matchesSearch } from '@/domain/search';
 import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
@@ -31,16 +32,23 @@ export default async function CatalogPage({
     return s ? `?${s}` : '';
   };
   const { supabase } = await getUser();
-  let query = supabase.from('products').select('*').eq('ativo', true).order('marca').order('nome').limit(200);
+  // A pesquisa (gíria do setor e tolerância a erros de escrita, src/domain/search.ts) corre em
+  // memória, não no SQL: "capoto" tem de encontrar isolamento mesmo que a palavra não esteja em
+  // nenhuma ficha (decisão de 24/10/2026, docs/DECISOES.md). Por isso o filtro de tipo aplica-se na
+  // consulta, mas o termo escrito só depois de carregados os produtos desse tipo (ou todos, sem tipo).
+  let query = supabase.from('products').select('*').eq('ativo', true).order('marca').order('nome').limit(500);
   if (tipo && (PRODUCT_TYPES as readonly string[]).includes(tipo)) query = query.eq('tipo', tipo as ProductType);
-  const term = (q ?? '').trim().replace(/[%,()]/g, '');
-  if (term) query = query.or(`nome.ilike.%${term}%,marca.ilike.%${term}%,referencia.ilike.%${term}%`);
+  const term = (q ?? '').trim();
   const [{ data: all }, { data: active }] = await Promise.all([query, supabase.rpc('active_suppliers', { p_plan: 'catalogo' })]);
   const withPlan = new Set(active ?? []);
   const refsAll = (await loadReferences(supabase)).filter(
-    (r) => (!tipo || r.tipo === tipo) && (!term || `${r.marca} ${r.nome}`.toLowerCase().includes(term.toLowerCase())),
+    (r) =>
+      (!tipo || r.tipo === tipo) &&
+      (!term || matchesSearch(term, { tipo: r.tipo, texto: `${r.marca} ${r.nome} ${r.descricao ?? ''} ${r.cores ?? ''}` })),
   );
-  const products = (all ?? []).filter((p) => withPlan.has(p.org_id));
+  const products = (all ?? [])
+    .filter((p) => withPlan.has(p.org_id))
+    .filter((p) => !term || matchesSearch(term, { tipo: p.tipo, texto: `${p.marca} ${p.nome} ${p.referencia ?? ''} ${p.descricao ?? ''}` }));
   const areaCm2 = parseHundredths(area ?? null);
   const coats = Math.max(1, Math.min(5, Number(demaos) || 2));
   const field = 'mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2';

@@ -153,9 +153,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
     requested: (listing?.trabalhos ?? []) as DesiredWork[],
   });
   // Capoto (migração 20261024160000). Consulta própria com o erro tratado: se a coluna ainda não
-  // existir na base, o separador mostra o aviso em vez de a página rebentar.
-  const { data: capotoRow, error: capotoErro } = await supabase.from('proposals').select('capoto').eq('id', proposal.id).maybeSingle();
-  const capotoPorAplicar = !!capotoErro;
+  // existir na base, o separador mostra o aviso em vez de a página rebentar. Sem proposta ainda
+  // (anúncio aberto, ninguém orçamentou), não há onde guardar o capoto — fica por aplicar.
+  const { data: capotoRow, error: capotoErro } = proposal
+    ? await supabase.from('proposals').select('capoto').eq('id', proposal.id).maybeSingle()
+    : { data: null, error: null };
+  const capotoPorAplicar = !proposal || !!capotoErro;
   const capotoSpec = parseCapoto(capotoRow?.capoto);
 
   const termsOk = blockers.filter((b) => /validade|dura|mão-de-obra|seguros|pagamentos|adiantamento/i.test(b)).length === 0;
