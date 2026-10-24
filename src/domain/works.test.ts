@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { productSuggestions, type CatalogueProduct, budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, requestedCoverage, suggestedQuantity, workDef, type WorkItem, type Zone } from './works';
+import { productSuggestions, type CatalogueProduct, budgetIssues, describeItem, isComplete, linesFromItems, parseWorkItems, requestedCoverage, suggestedQuantity, workDef, type WorkItem, type Zone, budgetPendings } from './works';
 
 const zones: Zone[] = [
   { id: 'a', label: 'Fachada principal (420 m²)', area: 42000 },
@@ -124,5 +124,37 @@ describe('sugestões do catálogo por trabalho', () => {
     expect(names('selagem_remates', 'material', 'fachadas')).toEqual([]);
     expect(names('rede_barramento', 'rede', 'fachadas')).toEqual([]);
     expect(names('acessos', 'meio', 'fachadas')).toEqual([]);
+  });
+});
+
+// Barra de pendências que leva ao campo (24/10/2026).
+describe('pendências com destino', () => {
+  const zonas = [{ id: 'z1', label: 'Fachada', area: 100_00 }];
+  const base = { prices: {}, globalMode: false, zones: zonas, requested: [] as never[] };
+
+  it('o mesmo texto de sempre, agora com o passo e o trabalho', () => {
+    const items = parseWorkItems([{ key: 'lavagem', code: 'lavagem', estado: 'base', zonas: [], campos: {}, notas: '' }], zonas).items ?? [];
+    const pend = budgetPendings({ ...base, items });
+    const texto = budgetIssues({ ...base, items });
+    expect(pend.map((x) => x.texto)).toEqual(texto);
+    expect(pend[0]?.passo).toBe('trabalhos');
+    expect(pend[0]?.key).toBe('lavagem');
+  });
+
+  it('cada pendência tem identificador próprio, para se poder andar entre elas', () => {
+    const items =
+      parseWorkItems(
+        [
+          { key: 'lavagem', code: 'lavagem', estado: 'base', zonas: [], campos: {}, notas: '' },
+          { key: 'primario', code: 'primario', estado: 'base', zonas: [], campos: {}, notas: '' },
+        ],
+        zonas,
+      ).items ?? [];
+    const ids = budgetPendings({ ...base, items }).map((x) => x.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('sem pendências, a lista é vazia', () => {
+    expect(budgetPendings({ ...base, items: [] })).toEqual([]);
   });
 });

@@ -164,6 +164,16 @@ export function WorksEditor({
   const { state, pending, formProps } = useFormAction<FormState>(saveWorks.bind(null, proposalId, requestId), { errors: {} });
   const [items, setItems] = useState<WorkItem[]>(initial);
   const [current, setCurrent] = useState<string | null>(initial[0]?.key ?? null);
+  // A barra de pendências aponta para um trabalho pela âncora (#trabalho-<key>): abre-se esse.
+  useEffect(() => {
+    const abrir = () => {
+      const key = decodeURIComponent(window.location.hash).replace('#trabalho-', '');
+      if (key && key !== window.location.hash) setCurrent(key);
+    };
+    abrir();
+    window.addEventListener('hashchange', abrir);
+    return () => window.removeEventListener('hashchange', abrir);
+  }, []);
   const payload = JSON.stringify(items);
   const saved = useRef(payload);
   const sent = useRef(payload);

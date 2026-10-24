@@ -23,7 +23,7 @@ import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
 import { parseTemplate } from '@/domain/templates';
-import { budgetIssues, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
+import { budgetPendings, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
 import { parsePreferences } from '@/domain/reference';
 import type { DesiredWork } from '@/domain/request';
 import { SURFACE_KIND_LABELS, WORK_TYPE_LABELS, formatArea } from '@/domain/request';
@@ -148,7 +148,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   });
   const globalLine = (lines ?? []).find((l) => l.trabalho === 'global');
   const modoPreco = terms?.modoPreco ?? 'detalhado';
-  const issues = budgetIssues({
+  const pendings = budgetPendings({
     items,
     prices: Object.fromEntries(priceRows.map((r) => [r.key, lineOf(r.key)?.preco_unitario_cents ?? 0])),
     globalMode: modoPreco === 'global',
@@ -167,7 +167,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const termsOk = blockers.filter((b) => /validade|dura|mão-de-obra|seguros|pagamentos|adiantamento/i.test(b)).length === 0;
   const done: Record<StepId, boolean> = {
     trabalhos: items.length > 0 && items.every((i) => isComplete(i, wizardZones)),
-    precos: modoPreco === 'global' ? (globalLine?.preco_unitario_cents ?? 0) > 0 : priceRows.length > 0 && !issues.some((m) => m.includes('falta o preço')),
+    precos: modoPreco === 'global' ? (globalLine?.preco_unitario_cents ?? 0) > 0 : priceRows.length > 0 && !pendings.some((p) => p.id.startsWith('preco:')),
     // O capoto dá-se por tratado quando a escolha foi feita: ou não leva, ou está completo.
     capoto: !capotoPorAplicar && (capotoSpec === null || capotoEmFalta(capotoSpec).length === 0),
     condicoes: termsOk,
@@ -421,6 +421,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 done={done}
                 templates={templates}
                 hasWork={items.length > 0}
+                pendings={pendings}
                 steps={{
                   trabalhos: (
                     <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
@@ -488,16 +489,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         </p>
                         <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} capoto={capotoSpec} />
                       </article>
-                      {issues.length > 0 && (
-                        <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
-                          <p className="font-medium">Pendências do orçamento:</p>
-                          <ul className="mt-1 list-disc pl-5">
-                            {issues.map((m) => (
-                              <li key={m}>{m}</li>
-                            ))}
-                          </ul>
-                        </section>
-                      )}
                       {fee && (
                         <div className="mx-auto max-w-[210mm]">
                           <FeeSummary fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />

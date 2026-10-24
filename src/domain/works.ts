@@ -255,29 +255,63 @@ export function linesFromItems(items: WorkItem[], prices: Record<string, number>
 }
 
 /** Pendências do orçamento, antes de enviar. Vazio = sem pendências. */
-export function budgetIssues(p: {
+/** Onde se resolve uma pendência. Corresponde aos passos do orçamento. */
+export type PendingStep = 'trabalhos' | 'precos';
+
+export interface BudgetPending {
+  /** Estável entre renderizações: serve de âncora para a navegação. */
+  id: string;
+  texto: string;
+  passo: PendingStep;
+  /** Trabalho a abrir, quando a pendência é de um trabalho concreto. */
+  key?: string;
+}
+
+/**
+ * Pendências do orçamento, com o sítio onde cada uma se resolve (pedido do promotor, 24/10/2026:
+ * a barra de avisos tem de levar lá, com setas para andar entre elas). Antes eram só frases, e quem
+ * as lia tinha de procurar o campo à mão.
+ */
+export function budgetPendings(p: {
   items: WorkItem[];
   prices: Record<string, number>;
   globalMode: boolean;
   zones: Zone[];
   /** Trabalhos que o cliente pediu. */
   requested: DesiredWork[];
-}): string[] {
-  const out: string[] = [];
+}): BudgetPending[] {
+  const out: BudgetPending[] = [];
   for (const i of p.items) {
     const def = workDef(i.code)!;
     const name = def.label + (i.key.includes('#') ? ` (${i.key.split('#')[1]})` : '');
-    if (!isComplete(i, p.zones)) out.push(`${name}: faltam dados.`);
-    else if (!p.globalMode && (i.estado === 'base' || i.estado === 'opcional') && !((p.prices[i.key] ?? 0) > 0)) out.push(`${name}: falta o preço.`);
+    if (!isComplete(i, p.zones)) out.push({ id: `dados:${i.key}`, texto: `${name}: faltam dados.`, passo: 'trabalhos', key: i.key });
+    else if (!p.globalMode && (i.estado === 'base' || i.estado === 'opcional') && !((p.prices[i.key] ?? 0) > 0))
+      out.push({ id: `preco:${i.key}`, texto: `${name}: falta o preço.`, passo: 'precos', key: i.key });
   }
   for (const w of p.requested) {
     const def = workForRequested(w);
     if (!def) continue;
     const mine = p.items.filter((i) => i.code === def.code);
-    if (mine.length === 0) out.push(`${def.label}: o cliente pediu este trabalho e a proposta não diz se o inclui.`);
-    else if (mine.every((i) => i.estado === 'nao_incluido' && i.notas.trim() === '')) out.push(`${def.label}: justificar porque não está incluído.`);
+    if (mine.length === 0)
+      out.push({
+        id: `pedido:${def.code}`,
+        texto: `${def.label}: o cliente pediu este trabalho e a proposta não diz se o inclui.`,
+        passo: 'trabalhos',
+      });
+    else if (mine.every((i) => i.estado === 'nao_incluido' && i.notas.trim() === ''))
+      out.push({
+        id: `justificar:${def.code}`,
+        texto: `${def.label}: justificar porque não está incluído.`,
+        passo: 'trabalhos',
+        key: mine[0]!.key,
+      });
   }
   return out;
+}
+
+/** As mesmas pendências, só o texto. Mantida para quem só precisa da lista. */
+export function budgetIssues(p: Parameters<typeof budgetPendings>[0]): string[] {
+  return budgetPendings(p).map((x) => x.texto);
 }
 
 /** Reconstrói os trabalhos guardados nas linhas (campo `detalhes`), pela ordem em que foram guardados. */

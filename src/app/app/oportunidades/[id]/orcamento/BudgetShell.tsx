@@ -3,9 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { FormState } from '@/app/app/actions';
+import type { BudgetPending } from '@/domain/works';
 import { applyTemplate, deleteTemplate, saveTemplate } from '@/app/app/oportunidades/orcamento-actions';
 import { BudgetContext, outcome, type StepSaver } from './BudgetContext';
 import { BudgetSteps } from './BudgetSteps';
+import { PendingBar } from './PendingBar';
 import { STEP_IDS, STEP_LABELS, type StepId } from './steps';
 
 export interface TemplateOption {
@@ -29,6 +31,7 @@ export function BudgetShell({
   steps,
   templates,
   hasWork,
+  pendings,
 }: {
   proposalId: string;
   requestId: string;
@@ -37,6 +40,8 @@ export function BudgetShell({
   steps: Record<StepId, ReactNode>;
   templates: TemplateOption[];
   hasWork: boolean;
+  /** Pendências do orçamento. A barra fica logo abaixo dos separadores e leva ao campo. */
+  pendings?: BudgetPending[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState<StepId>(initial);
@@ -203,6 +208,11 @@ export function BudgetShell({
       </section>
 
       <BudgetSteps current={step} done={done} onSelect={go} />
+      {pendings && pendings.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-amber-200">
+          <PendingBar pendings={pendings} />
+        </div>
+      )}
       {warning && (
         <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
           {warning}
