@@ -164,6 +164,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
     : { data: null, error: null };
   // O capoto só aparece se tiver sido declarado antes, pelo cliente ou pelo avaliador (pedido do
   // promotor, 24/10/2026). Sem declaração, o campo nem existe.
+  // As mensagens com o cliente só abrem com a obra ganha (pedido do promotor, 24/10/2026).
+  const ganhou = proposal?.status === 'selecionada';
   const levaCapoto = (listing?.trabalhos ?? []).includes('capoto');
   const capotoPorAplicar = !proposal || !!capotoErro;
   const capotoSpec = parseCapoto(capotoRow?.capoto);
@@ -314,6 +316,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
       )}
               </>
             ),
+          },
+          {
+            id: 'esclarecimentos',
+            label: 'Esclarecimentos',
+            vazio: !surveyInfo,
+            content: surveyInfo ? <SurveyInfoCard requestId={id} info={surveyInfo} /> : null,
           },
           {
             id: 'proposta',
@@ -536,15 +544,12 @@ export default async function OpportunityPage({ params, searchParams }: { params
             ),
           },
           {
-            id: 'esclarecimentos',
-            label: 'Esclarecimentos',
-            vazio: !surveyInfo,
-            content: surveyInfo ? <SurveyInfoCard requestId={id} info={surveyInfo} /> : null,
-          },
-          {
             id: 'mensagens',
             label: 'Mensagens com o cliente',
             vazio: !proposal,
+            bloqueado: ganhou
+              ? undefined
+              : 'As mensagens com o cliente abrem quando a obra lhe for adjudicada. Até lá, as dúvidas sobre a obra fazem-se em Esclarecimentos, pelo avaliador que a levantou — sem que ninguém saiba quem perguntou.',
             content: !proposal ? null : (
               <>
           <section className={card}>

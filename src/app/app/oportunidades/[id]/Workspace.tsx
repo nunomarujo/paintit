@@ -9,6 +9,12 @@ export interface WorkspaceTab {
   content: ReactNode;
   /** Separador sem conteúdo nenhum não aparece. */
   vazio?: boolean;
+  /**
+   * Separador ainda fechado: aparece pálido, com cadeado, e ao ser carregado explica porquê em vez de
+   * mostrar o conteúdo. Fica visível de propósito — saber que existe, e quando abre, faz parte do que
+   * a pessoa precisa de perceber.
+   */
+  bloqueado?: string;
 }
 
 /**
@@ -40,7 +46,7 @@ export function Workspace({
   inicial?: string;
 }) {
   const visiveis = tabs.filter((t) => !t.vazio);
-  const [atual, setAtual] = useState(inicial && visiveis.some((t) => t.id === inicial) ? inicial : (visiveis[0]?.id ?? ''));
+  const [atual, setAtual] = useState(inicial && visiveis.some((t) => t.id === inicial) ? inicial : (visiveis.find((t) => !t.bloqueado)?.id ?? visiveis[0]?.id ?? ''));
 
   return (
     <div>
@@ -75,9 +81,14 @@ export function Workspace({
             onClick={() => setAtual(t.id)}
             aria-current={t.id === atual ? 'page' : undefined}
             className={`rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold ${
-              t.id === atual ? 'border-tinta-200 bg-sage text-tinta-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+              t.id === atual ? 'border-tinta-200 bg-sage text-tinta-600' : 'border-transparent hover:text-slate-700'
+            } ${t.bloqueado ? 'text-slate-400' : t.id === atual ? '' : 'text-slate-500'}`}
           >
+            {t.bloqueado && (
+              <span aria-hidden className="mr-1.5">
+                🔒
+              </span>
+            )}
             {t.label}
           </button>
         ))}
@@ -85,7 +96,16 @@ export function Workspace({
       <div className="rounded-b-2xl rounded-tr-2xl border border-slate-200 bg-white p-5">
         {visiveis.map((t) => (
           <div key={t.id} hidden={t.id !== atual} className="space-y-6">
-            {t.content}
+            {t.bloqueado ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <span aria-hidden className="mr-1.5">
+                  🔒
+                </span>
+                {t.bloqueado}
+              </p>
+            ) : (
+              t.content
+            )}
           </div>
         ))}
       </div>
