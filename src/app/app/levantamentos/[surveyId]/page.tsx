@@ -6,6 +6,7 @@ import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/re
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { getUser } from '@/lib/supabase/server';
 import { AcceptTerms } from './AcceptTerms';
+import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { ConcludeButton, ContactForm } from './ContactForm';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6';
@@ -45,6 +46,31 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   const total = list.reduce((n, s) => n + s.area_cm2, 0);
   const done = survey.status === 'concluido';
 
+  // Pedido de esclarecimento desta obra (migração 20261024010647): a tentativa mais recente, com a lista
+  // conjunta de dúvidas. `clarification_batch` é a única forma de as ler — não há política de leitura
+  // sobre os itens para o vendedor, de propósito, para nunca se saber quem perguntou o quê.
+  const { data: clarificationRow } = await supabase
+    .from('survey_clarifications')
+    .select('id, status, confirmed_at, confirm_deadline, respond_deadline, resposta')
+    .eq('request_survey_id', survey.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data: duvidas } = clarificationRow
+    ? await supabase.rpc('clarification_batch', { p_clarification_id: clarificationRow.id })
+    : { data: null };
+  const clarification: ClarificationView | null = clarificationRow
+    ? {
+        id: clarificationRow.id,
+        status: clarificationRow.status as ClarificationView['status'],
+        confirmadoEm: clarificationRow.confirmed_at,
+        prazoConfirmar: clarificationRow.confirm_deadline,
+        prazoResponder: clarificationRow.respond_deadline,
+        resposta: clarificationRow.resposta,
+        duvidas: (duvidas ?? []) as ClarificationView['duvidas'],
+      }
+    : null;
+
   return (
     <div className="space-y-8">
       <div>
@@ -66,6 +92,9 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
         A morada e os dados desta obra são confidenciais: não os partilhe fora da aplicação, nem indique esta obra a
         nenhum pintor ou terceiro fora do fluxo normal da plataforma.
       </section>
+
+      {/* Esclarecimento primeiro: tem prazo a correr e custa a comissão de toda a obra se falhar. */}
+      {clarification && <ClarificationCard surveyId={survey.id} clarification={clarification} />}
 
       {request.descricao && (
         <section className={card}>

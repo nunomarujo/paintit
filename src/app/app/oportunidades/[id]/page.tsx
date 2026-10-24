@@ -10,6 +10,7 @@ import { PricesEditor, type PriceRow } from './orcamento/PricesEditor';
 import { WorksEditor } from './orcamento/WorksEditor';
 import { ReferralField } from './orcamento/ReferralField';
 import { AcceptTerms } from './AcceptTerms';
+import { SurveyInfoCard, type SurveyInfoView } from './SurveyInfoCard';
 import { CURRENT_PAINTER_TERMS_VERSION } from '@/domain/painterTerms';
 import { applyPainterDiscount } from '@/domain/referral';
 import { painterFee } from '@/domain/commission';
@@ -190,6 +191,31 @@ export default async function OpportunityPage({ params, searchParams }: { params
       ? await supabase.from('engagements').select('id').eq('proposal_id', proposal.id).maybeSingle()
       : { data: null };
 
+  // Levantamento concluído desta obra (migração 20261024030000, que deu leitura ao pintor): enquanto
+  // essa migração não estiver aplicada à base real, isto vem sempre vazio e o cartão não aparece — em
+  // vez de rebentar. O mesmo critério da política: só concluído, só com o anúncio aberto.
+  const { data: surveyRow } = listing?.aberto
+    ? await supabase.from('request_surveys').select('id').eq('request_id', id).eq('status', 'concluido').maybeSingle()
+    : { data: null };
+  let surveyInfo: SurveyInfoView | null = null;
+  if (surveyRow) {
+    const [{ data: clarification }, { data: minha }] = await Promise.all([
+      supabase
+        .from('survey_clarifications')
+        .select('status, resposta')
+        .eq('request_survey_id', surveyRow.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from('survey_info_reviews').select('nota').eq('request_survey_id', surveyRow.id).eq('painter_user_id', user!.id).maybeSingle(),
+    ]);
+    surveyInfo = {
+      surveyId: surveyRow.id,
+      pedido: clarification ? { status: clarification.status as 'aberto' | 'respondido' | 'expirado', resposta: clarification.resposta } : null,
+      minhaNota: minha?.nota ?? null,
+    };
+  }
+
   return (
     <div className="space-y-8">
       <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
@@ -229,6 +255,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
           esta obra.
         </p>
       )}
+      {surveyInfo && <SurveyInfoCard requestId={id} info={surveyInfo} />}
+
       {listing?.aberto && (
         <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
           <span aria-hidden className="font-bold">(!)</span>

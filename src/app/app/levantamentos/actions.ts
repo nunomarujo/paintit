@@ -48,6 +48,43 @@ export async function concludeSurvey(surveyId: string): Promise<FormState> {
   return { errors: {}, ok: true, message: 'Levantamento concluído.' };
 }
 
+// --- Pedido de esclarecimento ao vendedor (migração 20261024010647) -------------------------------
+// Dois marcos fixos, sem perda parcial: um dia para confirmar que vai à obra, mais um dia para lá ir e
+// responder à lista conjunta de dúvidas (src/domain/clarification.ts). Falhar qualquer um custa a
+// comissão de toda a obra. A lista nunca identifica o pintor que perguntou cada linha.
+
+export async function confirmClarification(surveyId: string, clarificationId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.rpc('confirm_clarification', { p_id: clarificationId });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`${path}/${surveyId}`);
+  return { errors: {}, ok: true, message: 'Confirmado. Tem um dia para ir à obra e responder.' };
+}
+
+export async function respondClarification(surveyId: string, clarificationId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const resposta = String(form.get('resposta') ?? '').trim();
+  if (!resposta) return { errors: { resposta: 'Escreva a resposta às dúvidas.' } };
+  if (resposta.length > 2000) return { errors: { resposta: 'Até 2000 caracteres.' } };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.rpc('respond_clarification', { p_id: clarificationId, p_resposta: resposta });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(`${path}/${surveyId}`);
+  return { errors: {}, ok: true, message: 'Resposta enviada aos pintores que perguntaram.' };
+}
+
+/** Reserva de uma tentativa escalada (o vendedor anterior falhou um marco): primeiro a chegar, avança,
+ * e herda a comissão de todo o levantamento a partir desse momento. */
+export async function claimClarification(clarificationId: string, orgId: string): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { error } = await supabase.rpc('claim_clarification', { p_id: clarificationId, p_org: orgId });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath(path);
+  return { errors: {}, ok: true, message: 'Esclarecimento reservado. Confirme a ida à obra dentro de um dia.' };
+}
+
 export async function setSurveyCoverage(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;

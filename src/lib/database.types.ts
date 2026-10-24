@@ -1563,6 +1563,15 @@ export type Database = {
       survey_redemption_invoice: { Args: { p_redemption: string; p_numero: string; p_path: string }; Returns: undefined };
       survey_redemption_cancel: { Args: { p_redemption: string; p_motivo: string }; Returns: undefined };
       survey_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };
+      // Pedido de esclarecimento ao vendedor e avaliação da informação pelo pintor (migrações
+      // 20261024010647 e 20261024010704). As tabelas já estavam aqui desde que foram escritas; estas
+      // seis funções faltavam, porque até 24/10/2026 nenhum ecrã as chamava.
+      request_painter_doubt: { Args: { p_request_survey_id: string; p_texto: string }; Returns: undefined };
+      clarification_batch: { Args: { p_clarification_id: string }; Returns: { texto: string; created_at: string }[] };
+      confirm_clarification: { Args: { p_id: string }; Returns: undefined };
+      respond_clarification: { Args: { p_id: string; p_resposta: string }; Returns: undefined };
+      claim_clarification: { Args: { p_id: string; p_org: string }; Returns: Database['public']['Tables']['survey_clarifications']['Row'] };
+      rate_survey_info: { Args: { p_request_survey_id: string; p_nota: number; p_comentario: string }; Returns: undefined };
     };
     Enums: {
       building_kind: BuildingKind;
