@@ -92,7 +92,9 @@ beforeAll(async () => {
   adminOrg = (await createOrg(A, 'administradora', 'Gestão Exemplo Lda', '500000000')).id;
   condo = (await createOrg(A, 'condominio', 'Condomínio Rua A, 1', '901000000', adminOrg)).id;
   await db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'gestor')`, [adminOrg, C]);
-}, 60_000);
+// Arrancar o Postgres em memória e correr todas as migrações demora: numa máquina lenta, mais de um
+// minuto. O limite é só de infraestrutura do teste, não uma regra do produto.
+}, 300_000);
 
 describe('NIF na base de dados', () => {
   it('concorda com a regra do domínio', async () => {
