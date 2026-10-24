@@ -9,6 +9,8 @@
 // Os valores de condutibilidade são **indicativos**, para dar ordem de grandeza a quem lê: o valor que
 // conta é o da ficha técnica do produto escolhido. Nenhum número daqui entra em cálculo de preço.
 
+import type { ProductType } from './catalog';
+
 export const ISOLANTES = ['eps', 'eps_grafitado', 'xps', 'la_mineral', 'icb'] as const;
 export type Isolante = (typeof ISOLANTES)[number];
 
@@ -69,6 +71,22 @@ export const ISOLANTE_INFO: Record<Isolante, IsolanteInfo> = {
 };
 
 /** Espessuras correntes, em milímetros. Em Portugal continental o habitual é 60 a 80. */
+/**
+ * Que tipo de produto do catálogo corresponde a cada isolante. É o que permite ao separador do capoto
+ * mostrar produtos reais, com marca e preço, em vez de conselhos genéricos — o mesmo que já acontece
+ * com as tintas.
+ */
+export const TIPO_PRODUTO: Record<Isolante, ProductType> = {
+  eps: 'isolamento_eps',
+  eps_grafitado: 'isolamento_eps_grafitado',
+  xps: 'isolamento_xps',
+  la_mineral: 'isolamento_la_mineral',
+  icb: 'isolamento_cortica',
+};
+
+/** Tipos do catálogo que compõem o resto do sistema. */
+export const TIPO_PRODUTO_COMPLEMENTOS: ProductType[] = ['fixador_capoto', 'rede_fibra_vidro', 'reboco_capoto'];
+
 export const ESPESSURAS_MM = [40, 50, 60, 80, 100, 120, 140, 160] as const;
 export type EspessuraMm = (typeof ESPESSURAS_MM)[number];
 

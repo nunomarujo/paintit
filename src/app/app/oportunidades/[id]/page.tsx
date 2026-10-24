@@ -1,5 +1,5 @@
 import type { Forma } from '@/domain/volume';
-import { capotoEmFalta } from '@/domain/etics';
+import { cabecalhoTrabalho, capotoEmFalta } from '@/domain/etics';
 import { parseCapoto } from '@/lib/capoto';
 import { CapotoEditor } from './orcamento/CapotoEditor';
 import Link from 'next/link';
@@ -431,7 +431,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                     <WorksEditor proposalId={proposal.id} requestId={id} zones={wizardZones.map((z) => ({ ...z, label: zoneNames[z.id] ?? z.label }))} initial={items} catalogue={catalogue} tipoObra={listing?.tipo_obra ?? null} preferred={parsePreferences(listing?.produtos_preferidos)} />
                   ),
                   capoto: (
-                    <CapotoEditor proposalId={proposal.id} requestId={id} inicial={capotoSpec} indisponivel={capotoPorAplicar} />
+                    <CapotoEditor proposalId={proposal.id} requestId={id} inicial={capotoSpec} indisponivel={capotoPorAplicar} catalogo={catalogue} />
                   ),
                   precos: (
                     <>
@@ -484,12 +484,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   rever: (
                     <>
                       <article className="mx-auto max-w-[210mm] border border-slate-300 bg-white p-6 shadow-md sm:p-10" aria-label="Proposta para revisão">
-                        <p className="eyebrow">Proposta de orçamento</p>
+                        <p className="eyebrow">
+                          Proposta de orçamento · {cabecalhoTrabalho({ temPintura: items.length > 0, temCapoto: capotoSpec !== null })}
+                        </p>
                         <h3 className="mt-1 text-2xl font-semibold">Pedido {listing?.ref}</h3>
                         <p className="mb-6 text-sm text-slate-600">
                           {listing?.concelho} · {formatArea(listing?.area_total_cm2 ?? 0)}
                         </p>
-                        <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} />
+                        <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} capoto={capotoSpec} />
                       </article>
                       {issues.length > 0 && (
                         <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">

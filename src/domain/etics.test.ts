@@ -124,3 +124,15 @@ describe('como se identifica no cabeçalho', () => {
     expect(resumoCapoto({ ...novo, isolante: null })).toContain('isolante por definir');
   });
 });
+
+describe('ligação ao catálogo', () => {
+  it('cada isolante tem um tipo de produto do catálogo, e todos são diferentes', async () => {
+    const { TIPO_PRODUTO, TIPO_PRODUTO_COMPLEMENTOS } = await import('./etics');
+    const { PRODUCT_TYPES } = await import('./catalog');
+    const tipos = ISOLANTES.map((i) => TIPO_PRODUTO[i]);
+    expect(new Set(tipos).size).toBe(ISOLANTES.length);
+    for (const t of [...tipos, ...TIPO_PRODUTO_COMPLEMENTOS]) {
+      expect(PRODUCT_TYPES).toContain(t);
+    }
+  });
+});

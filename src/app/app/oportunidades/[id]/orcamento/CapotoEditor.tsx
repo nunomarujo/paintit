@@ -5,6 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { saveCapoto } from '@/app/app/oportunidades/orcamento-actions';
 import { CapotoCorte, IsolanteSwatch } from '@/components/CapotoFigure';
 import { useFormAction } from '@/components/useFormAction';
+import type { CatalogueProduct } from '@/domain/works';
 import {
   ACABAMENTOS,
   ACABAMENTO_INFO,
@@ -14,6 +15,7 @@ import {
   ISOLANTE_INFO,
   SITUACOES,
   SITUACAO_LABELS,
+  TIPO_PRODUTO,
   camadasDe,
   capotoEmFalta,
   resumoCapoto,
@@ -38,10 +40,13 @@ export function CapotoEditor({
   requestId,
   inicial,
   indisponivel,
+  catalogo = [],
 }: {
   proposalId: string;
   requestId: string;
   inicial: CapotoSpec | null;
+  /** Produtos de isolamento do catálogo, para as sugestões — os mesmos que o passo dos trabalhos usa. */
+  catalogo?: CatalogueProduct[];
   /** A coluna ainda não existe na base: mostra-se o aviso em vez do formulário. */
   indisponivel?: boolean;
 }) {
@@ -54,6 +59,7 @@ export function CapotoEditor({
   const manutencao = spec.situacao === 'manutencao';
   const falta = capotoEmFalta(spec);
   const camadas = camadasDe(spec);
+  const produtos = spec.isolante ? catalogo.filter((p) => p.tipo === TIPO_PRODUTO[spec.isolante as keyof typeof TIPO_PRODUTO]) : [];
 
   if (indisponivel) {
     return (
@@ -180,6 +186,26 @@ export function CapotoEditor({
                   );
                 })}
               </ul>
+              {spec.isolante && produtos.length > 0 && (
+                <div className="mt-4 rounded-xl border border-slate-200 p-3">
+                  <p className="text-sm font-medium">
+                    Produtos deste isolante no catálogo <span className="font-normal text-slate-500">({produtos.length})</span>
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {produtos.slice(0, 6).map((p) => (
+                      <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 py-1 last:border-0">
+                        <span>
+                          <span className="font-semibold">{p.marca}</span> {p.nome}
+                          {p.descricao && <span className="block text-xs text-slate-600">{p.descricao}</span>}
+                        </span>
+                        <a href={`/app/catalogo/referencia/${p.id}`} target="_blank" rel="noreferrer" className="text-xs text-tinta-700 hover:underline">
+                          Ver ficha
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {spec.isolante && (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>

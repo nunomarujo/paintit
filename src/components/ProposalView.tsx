@@ -1,3 +1,5 @@
+import { CapotoMateriais } from '@/components/CapotoMateriais';
+import type { CapotoSpec } from '@/domain/etics';
 import { materialCheck, type Consumption } from '@/domain/catalog';
 import { EQUIVALENT_PROPOSAL_NOTE, hasEquivalent } from '@/domain/equivalence';
 import { formatEuros, percentOf } from '@/domain/money';
@@ -25,6 +27,7 @@ export function ProposalView({
   onDelete,
   zoneNames = {},
   products = {},
+  capoto = null,
 }: {
   lines: (ProposalLine & { id: string })[];
   terms: ProposalTerms;
@@ -32,6 +35,8 @@ export function ProposalView({
   onDelete?: (lineId: string) => React.ReactNode;
   /** Nome de cada zona do pedido, para mostrar a que zonas se aplica cada linha. */
   zoneNames?: Record<string, string>;
+  /** Capoto desta proposta, quando a obra leva um. Gera a página de materiais no fim do documento. */
+  capoto?: CapotoSpec | null;
   /** Dados dos produtos comprometidos (por productId), para a conta de litros/custo esperada (materialCheck,
    * src/domain/catalog.ts) — transparência para o cliente, nunca um bloqueio ao pintor. */
   products?: Record<string, MaterialCheckProduct>;
@@ -237,6 +242,7 @@ export function ProposalView({
           <span className="whitespace-pre-line">{terms.notas}</span>
         </p>
       )}
+      {capoto && <CapotoMateriais spec={capoto} />}
     </div>
   );
 }

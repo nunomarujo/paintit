@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
+import { parseCapoto } from '@/lib/capoto';
 import { clientGuarantee } from '@/domain/commission';
 import { formatEuros, percentOf } from '@/domain/money';
 import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, SORT_LABELS, compareProposals, sortRows, type SortKey } from '@/domain/proposal';
@@ -352,7 +353,13 @@ export default async function ProposalsPage({
               <span className="text-sm text-slate-600">{STATUS[p.status]}</span>
             </div>
             <div className="mt-4">
-              <ProposalView lines={linesOf(p.id)} terms={terms} zoneNames={zoneNames} products={materialProducts} />
+              <ProposalView
+                lines={linesOf(p.id)}
+                terms={terms}
+                zoneNames={zoneNames}
+                products={materialProducts}
+                capoto={parseCapoto((p as { capoto?: unknown }).capoto)}
+              />
             </div>
             {manager && !chosen && p.status === 'submetida' && (
               <div className="mt-4">
