@@ -126,6 +126,10 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
   }
 
   revalidatePath('/app');
+  // Condomínio criado por uma gestora: o passo seguinte é sempre a ficha do prédio (morada completa,
+  // NIPC já ficou na entidade, frações, pisos) — sem isso não se consegue pedir orçamento nenhum.
+  // Levar lá diretamente, em vez de deixar a pessoa à procura do separador (promotor, 24/10/2026).
+  if (v.kind === 'condominio' && v.geridaPor) redirect(`/app/organizacoes/${data.id}/predios/novo`);
   redirect(`/app/organizacoes/${data.id}`);
 }
 
