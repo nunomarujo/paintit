@@ -73,7 +73,9 @@ export function Characteristics({
         fachadasLivres={initial.fachadas}
         moradia={initial.tipo === 'moradia'}
         pisos={initial.pisos}
-        guardar={(forma) => campo('forma_implantacao')({ errors: {} }, formData(forma))}
+        guardar={async (forma) => {
+          await campo('forma_implantacao')({ errors: {} }, formData(forma));
+        }}
       />
       <div className="flex flex-wrap gap-6">
         <AutoSaveField label="Tem varandas" tipo="checkbox" valorInicial={initial.tem_varandas ? 'sim' : 'nao'} guardar={campo('tem_varandas')} />

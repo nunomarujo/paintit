@@ -1175,3 +1175,23 @@ Achados, por decidir:
   levantamentos em Viana do Castelo; acrescentou-se Viana do Castelo para poder testar.
 - O prédio "lote 14" tem o concelho gravado como "Viana do Castel": um concelho mal escrito torna o
   prédio invisível para quem serve esse concelho.
+
+
+### Dívida: os tipos da base de dados estão atrasados (24/10/2026)
+
+`src/lib/database.types.ts` é mantido à mão e está muitas migrações atrás da base real. Regenerá-lo
+traz ~4000 linhas de diferença e **45 erros de tipos em 19 ficheiros**, nenhum causado pela forma de
+implantação — estavam escondidos pelo ficheiro desatualizado. Por categorias:
+
+- colunas de vistas e áreas que podem vir nulas (`acc_balancete`, `request_surfaces.area_cm2`, …);
+- valores de lista tratados como texto solto (estado do levantamento, ocupação da via pública, estado
+  da adesão);
+- **inserções a que falta uma coluna obrigatória** — por exemplo `engagement_ratings` sem
+  `painter_org_id` (`src/app/app/extras-actions.ts:44`), e casos semelhantes em
+  `src/app/app/obras/actions.ts` e `src/app/app/pedidos/[id]/survey-actions.ts`. Ou a coluna tem valor
+  por omissão na base e o aviso é inofensivo, ou **a inserção falha em produção**. Verificar tabela a
+  tabela antes de mexer.
+
+Decisão: não varrer à pressa. São ficheiros de dinheiro e faturação, e silenciar erros de tipos nesse
+código é pior do que tê-los à vista. Repôs-se o ficheiro anterior com `forma_implantacao` acrescentada
+à mão, para o repositório compilar, e fica esta tarefa por fazer — a começar pelas inserções.
