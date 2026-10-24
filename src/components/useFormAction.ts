@@ -27,6 +27,28 @@ export function useFormAction<S extends object>(
     if (strike) window.dispatchEvent(new CustomEvent('qp:strike', { detail: strike }));
   }, [state]);
 
+  // Erro de validação num campo fora do ecrã: sem isto, carregar no botão não mexe nada à vista e
+  // parece que o formulário "não grava e não dá erro" (relatado pelo promotor em 24/10/2026, com o
+  // código postal incompleto num formulário longo — mesma família do bug "Nova entidade" de d09ee3e).
+  // Salta para o primeiro campo com erro **pela ordem do formulário**, não pela ordem das chaves do
+  // objeto de erros, e põe-lhe o cursor.
+  useEffect(() => {
+    const errors = (state as { errors?: Record<string, string | undefined> }).errors;
+    const form = ref.current;
+    if (!form || ok || !errors) return;
+    const named = Object.keys(errors).filter((k) => errors[k]);
+    if (named.length === 0) return;
+    for (const el of Array.from(form.elements)) {
+      if (!(el instanceof HTMLElement)) continue;
+      const name = (el as { name?: string }).name;
+      if (!name || !named.includes(name)) continue;
+      // `preventScroll`: o foco não volta a deslocar a página por cima do deslocamento suave acima.
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.focus({ preventScroll: true });
+      return;
+    }
+  }, [state, ok]);
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // O botão carregado conta (ex.: Aprovar ou Rejeitar).
