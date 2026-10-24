@@ -220,15 +220,69 @@ precisamente para a plataforma não fazer isso.
 
 ---
 
+## 5bis. O que já estava decidido e este modelo contraria (levantamento de 24/10/2026)
+
+A pedido do promotor ("preciso que revejas restantes regras/ideia que já tínhamos definido"), varreram-se
+`docs/DECISOES.md`, `MODELO.md`, `ESTADO.md`, `PAGAMENTOS_E_ASSINATURA.md`, `FATURACAO.md` e os domínios.
+Seis conflitos, três deles escritos à letra. **Nenhum invalida o modelo novo — mas todos têm de ser
+revogados de propósito, não por esquecimento.**
+
+1. **"O papel `vendedor` é da pessoa que vende tintas (do fornecedor), nunca uma figura nova e
+   independente"** (`DECISOES`, 23/10/2026). É a contradição mais frontal: o modelo novo faz dele
+   precisamente uma figura independente. **Esta decisão é revogada pela de 24/10**, e fica dito aqui para
+   ninguém a reintroduzir a ler o histórico.
+
+2. **"Uma conta de fornecedor corresponde a uma só empresa"** (20/10/2026) — e isto **não é só doutrina: é
+   um gatilho ativo na base real**, `org_members_one_profile`
+   (`20261020070000_uma_empresa_por_conta.sql`, confirmado por SQL a 24/10). A segunda condição dele
+   recusa, com erro, que a mesma conta pertença a duas entidades de fornecedor. **Uma conta pessoal de
+   avaliador a par da entidade da empresa é recusada pela base de dados**, com a mensagem "use outro
+   email" — a mesma que esteve por trás da confusão do bug "Nova entidade". Sem mexer neste gatilho, o
+   modelo não arranca. É o primeiro trabalho técnico a fazer, e tem de distinguir "outra empresa do mesmo
+   tipo" (continua proibido) de "a minha conta pessoal de avaliador" (passa a permitido).
+
+3. **"Uma só fatura, emitida à empresa, por resgate"** (21/10/2026) — contrariada em cheio pela
+   fatura-recibo de pessoa singular decidida a 24/10. **Revogada**, com o fecho do contabilista pendente
+   (5.2).
+
+4. **O IBAN é por entidade** (`supplier_payout_details`) e **partilhado de propósito** entre a comissão de
+   adesão e a do levantamento — "sem segundo formulário de IBAN" (23/10). Separar o avaliador obriga a
+   quebrar essa partilha: a comissão de adesão continua da empresa, a do levantamento passa a ser da
+   pessoa. São dois titulares diferentes, e portanto dois destinos de dinheiro.
+
+5. **O papel `vendedor` não gere produtos nem descontos** (reservado a `proprietario`/`gestor`,
+   `can_manage_org`). Mas o ponto 12 do promotor tem o vendedor a **editar descontos**, com os dois avisos.
+   Ou o papel ganha essa permissão, ou os dois avisos nunca chegam a disparar porque ele não consegue
+   sequer tentar.
+
+6. **A favor, e é o precedente que sustenta tudo isto:** os termos de confidencialidade do levantamento já
+   são **por pessoa, não por entidade** — *"é a pessoa que vai a casa de alguém, não a empresa"*
+   (23/10/2026). O projeto já tratou o avaliador como indivíduo uma vez; este modelo é a continuação
+   coerente disso, não uma invenção.
+
+### Duas correções factuais ao que se assumiu
+
+- **"Produtos a passar à frente" não existe como regra.** O único efeito de ordenação alguma vez decidido é
+  **binário**: com plano a empresa aparece aos pintores, sem plano não aparece (20/10). Não há prioridade
+  entre subscritores. Se é isso que o vendedor vai prometer ao patrão, **é regra nova** e precisa da
+  decisão 5.7 — e não se deve prometer antes de existir.
+- **O "10% fixo da comissão" que o histórico regista é valor superado.** Vale a fórmula dinâmica de
+  1%-2,7% do valor adjudicado (`src/domain/survey.ts`, 23/10). Não ressuscitar o 10% ao ler entradas
+  antigas.
+
+---
+
 ## 6. Ordem de construção sugerida
 
 Cada passo é útil por si, e nenhum obriga o seguinte. **Nada disto se começa antes de as quatro migrações
 pendentes entrarem** (`docs/ESTADO.md`, secção 6) — a fila já não anda, e acrescentar-lhe peças só as
 torna invisíveis.
 
+0. **Abrir o gatilho `org_members_one_profile`** à conta pessoal de avaliador (ver 5bis.2). Sem isto nada
+   do resto sequer grava. Tem de continuar a recusar duas empresas do mesmo tipo.
 1. **Rasto de alterações nos descontos** (`quem mudou e quando`) — não depende de decisão nenhuma, resolve
    o ponto 10 por inteiro agora que o desconto fica da empresa, e é uma lacuna real mesmo no modelo de
-   hoje. **É por aqui que se começa.**
+   hoje. **É por aqui que se começa**, porque é o único passo que não espera por nada.
 2. **Termo de declaração de vínculo** (ponto 5), no padrão já existente de `painter_terms_acceptances` e
    `survey_terms_acceptances`: versão, data, e o NIF e nome que o vendedor declarou.
 3. **Conta pessoal de avaliador**: entidade só dele, com as zonas, os levantamentos e o saldo a mudarem-se
