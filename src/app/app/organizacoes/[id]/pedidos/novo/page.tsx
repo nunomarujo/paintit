@@ -98,6 +98,31 @@ export default async function NewRequestPage({
       <p className="mt-2 text-sm text-slate-600">
         Fica em rascunho até o publicar. Depois de criar, acrescenta as superfícies e as áreas.
       </p>
+
+      {/* A ajuda gratuita bem à vista, antes do formulário (pedido do promotor, 24/10/2026): quem abre um
+          processo não tem de saber medir fachadas para começar. O pedido de ajuda abre-se sozinho ao criar
+          o pedido (gatilho `work_requests_create_survey`) — aqui só se diz que existe, e o que ajuda a
+          visita a correr bem. */}
+      <section className="mt-6 rounded-2xl border border-tinta-600 bg-tinta-50 p-5">
+        <h2 className="font-semibold text-tinta-900">Não tem de medir nada sozinho — a ajuda é gratuita</h2>
+        <p className="mt-2 text-sm text-slate-700">
+          Assim que criar este pedido, um avaliador qualificado de um fornecedor da plataforma pode visitar a obra e
+          preencher as superfícies, as áreas e as fotografias por si. <strong>Não acrescenta nenhum custo à obra</strong> e
+          não o obriga a escolher ninguém.
+        </p>
+        <p className="mt-2 text-sm text-slate-700">A visita corre melhor se, antes dela:</p>
+        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <li>deixar escrito aqui o que pretende e os problemas que já conhece;</li>
+          <li>combinar que alguém — o administrador, ou um condómino — abra e mostre a obra, sobretudo as zonas de que
+            se queixam.
+          </li>
+        </ul>
+        <p className="mt-2 text-xs text-slate-600">
+          Pode preencher tudo sozinho na mesma, a qualquer momento, ou dispensar a ajuda — fica à sua escolha, no
+          próprio pedido.
+        </p>
+      </section>
+
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         {ordered.length === 0 ? (
           <p className="text-sm">

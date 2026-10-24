@@ -72,6 +72,12 @@ export type Database = {
         Row: {
           acessos: string | null;
           ano_construcao: number | null;
+          // Obras pretendidas e área aproximada: migração 20261024050000, **ainda por aplicar à base
+          // real**. Declaradas aqui para o código compilar; quem as lê fá-lo numa consulta própria, com
+          // o erro tratado, e quem as escreve só aparece depois de a migração estar aplicada (ver
+          // predios/[predioId]/editar/page.tsx). Sem esse cuidado, era o bug do "Nova entidade" outra vez.
+          obras_pretendidas: string[];
+          area_aproximada_cm2: number | null;
           artigo_matricial: string | null;
           codigo_postal: string;
           concelho: string;
@@ -93,6 +99,8 @@ export type Database = {
         Insert: {
           acessos?: string | null;
           ano_construcao?: number | null;
+          obras_pretendidas?: string[];
+          area_aproximada_cm2?: number | null;
           artigo_matricial?: string | null;
           codigo_postal: string;
           concelho: string;

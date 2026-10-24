@@ -21,6 +21,7 @@ import {
 } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
 import { addressProblem } from '@/domain/address';
+import { isBuildingNeed } from '@/domain/buildingNeeds';
 import type { StrikeInfo } from '@/domain/strikes';
 import type { Database } from '@/lib/database.types';
 import { lookupPostalCode } from '@/lib/postalCodes';
@@ -212,6 +213,25 @@ export async function saveBuildingCharacteristic(
     case 'artigo_matricial': {
       if (bruto.length > 500) return { errors: { valor: 'Até 500 caracteres.' } };
       patch = { [campo]: bruto || null };
+      break;
+    }
+    case 'area_aproximada': {
+      // Metros quadrados à vista, centésimos na base (mesma unidade do resto do projeto).
+      if (bruto === '') {
+        patch = { area_aproximada_cm2: null };
+        break;
+      }
+      const m2 = Number(bruto.replace(',', '.'));
+      if (!Number.isFinite(m2) || m2 < 0 || m2 > 1_000_000) return { errors: { valor: 'Indique a área em m².' } };
+      patch = { area_aproximada_cm2: Math.round(m2 * 100) };
+      break;
+    }
+    case 'obras_pretendidas': {
+      // Chegam as assinaladas, todas de uma vez. Qualquer valor fora da lista do domínio é descartado:
+      // o que vem do navegador não manda (CLAUDE.md, regra 10), e a base de dados ainda repete a
+      // restrição por baixo.
+      const escolhidas = form.getAll('obras').map(String).filter(isBuildingNeed);
+      patch = { obras_pretendidas: [...new Set(escolhidas)] };
       break;
     }
     case 'tem_varandas':

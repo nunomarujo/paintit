@@ -21,7 +21,21 @@ const str = (n: number | null) => (n === null ? '' : String(n));
  * 24/10/2026). Ficam fora do formulário da morada de propósito: a morada tem validação dura (confirmada
  * contra o código postal real) e não se pode gravar a meio; estes campos, sim.
  */
-export function Characteristics({ orgId, buildingId, initial }: { orgId: string; buildingId: string; initial: BuildingCharacteristics }) {
+export function Characteristics({
+  orgId,
+  buildingId,
+  initial,
+  areaAproximadaCm2,
+  semAreaAproximada,
+}: {
+  orgId: string;
+  buildingId: string;
+  initial: BuildingCharacteristics;
+  /** Centésimos de m², como o resto do projeto. Mostra-se em m². */
+  areaAproximadaCm2?: number | null;
+  /** A coluna da área ainda não existe na base real (migração 20261024050000 por aplicar). */
+  semAreaAproximada?: boolean;
+}) {
   const campo = (nome: string) => saveBuildingCharacteristic.bind(null, orgId, buildingId, nome);
   return (
     <div className="space-y-5">
@@ -47,6 +61,15 @@ export function Characteristics({ orgId, buildingId, initial }: { orgId: string;
         <AutoSaveField label="Tem varandas" tipo="checkbox" valorInicial={initial.tem_varandas ? 'sim' : 'nao'} guardar={campo('tem_varandas')} />
         <AutoSaveField label="Tem elevador" tipo="checkbox" valorInicial={initial.tem_elevador ? 'sim' : 'nao'} guardar={campo('tem_elevador')} />
       </div>
+      {!semAreaAproximada && (
+        <AutoSaveField
+          label="Área aproximada a pintar (m²)"
+          inputMode="numeric"
+          valorInicial={areaAproximadaCm2 == null ? '' : String(areaAproximadaCm2 / 100).replace('.', ',')}
+          guardar={campo('area_aproximada')}
+          info="Um valor a olho chega. Serve para dar escala ao pintor antes do levantamento; as áreas certas são medidas depois, zona a zona."
+        />
+      )}
       <AutoSaveField
         label="Acessos e condicionantes"
         valorInicial={initial.acessos ?? ''}
