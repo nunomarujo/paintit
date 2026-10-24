@@ -244,9 +244,20 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
   return (
     <div className="space-y-8">
-      <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
-        ← Oportunidades
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
+          ← Oportunidades
+        </Link>
+        {/* O orçamento fica sempre à mão, sem disputar o ecrã (pedido do promotor, 24/10/2026). */}
+        {proposal && domainLines.length > 0 && (
+          <Link
+            href={`/app/oportunidades/${id}/orcamento/documento`}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            Ver orçamento (PDF)
+          </Link>
+        )}
+      </div>
 
       {listing && (
         <ListingPreview
