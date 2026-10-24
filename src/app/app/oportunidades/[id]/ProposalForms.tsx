@@ -271,13 +271,16 @@ export function SubmitProposal({ proposalId, requestId, blockers }: { proposalId
         </div>
       )}
       {status(state)}
-      <button
-        type="submit"
-        disabled={pending || blockers.length > 0}
-        className="rounded-lg bg-tinta-600 px-5 py-2 font-semibold text-white hover:bg-tinta-700 disabled:opacity-50"
-      >
-        {pending ? 'A submeter…' : 'Submeter proposta'}
-      </button>
+      <div className="pt-2">
+        <button
+          type="submit"
+          disabled={pending || blockers.length > 0}
+          className="rounded-lg bg-tinta-600 px-5 py-2 font-semibold text-white hover:bg-tinta-700 disabled:opacity-50"
+        >
+          {pending ? 'A submeter…' : 'Submeter a proposta'}
+        </button>
+        <p className="mt-2 text-xs text-slate-500">Sem compromisso até aí.</p>
+      </div>
     </form>
   );
 }

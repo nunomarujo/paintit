@@ -5,6 +5,7 @@ import { CapotoEditor } from './orcamento/CapotoEditor';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { changeProposalStatus, createProposal, deleteLine } from '@/app/app/oportunidades/actions';
+import { FeeSummary } from '@/components/FeeSummary';
 import { ListingPreview } from '@/components/ListingPreview';
 import { MessageThread } from '@/components/MessageThread';
 import { ProposalView } from '@/components/ProposalView';
@@ -20,7 +21,6 @@ import { applyPainterDiscount } from '@/domain/referral';
 import { painterFee } from '@/domain/commission';
 import { hasLicenseFor, licenseLabel, requiredLicense } from '@/domain/license';
 import { localDate } from '@/domain/deadline';
-import { formatEuros } from '@/domain/money';
 import { proposalTotals, submitBlockers } from '@/domain/proposal';
 import { parseTemplate } from '@/domain/templates';
 import { budgetIssues, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
@@ -109,6 +109,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
   const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discount.combinedBp)) : null;
+  // Sem desconto nenhum, só para o ecrã final poder mostrar quanto cada desconto abate em euros (FeeSummary).
+  const fullFee = totals && totals.base > 0 ? painterFee(totals.base, CURRENT_RULES) : null;
+  const linkedSupplierNames = [...new Map(linkedSuppliers.map((s) => [s.supplierOrgId, s.nome])).values()];
   const { data: licenses } = proposal
     ? await supabase
         .from('org_documents')
@@ -381,27 +384,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </div>
             )}
             {fee && (
-              <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-                <p>
-                  Se for escolhido, paga à plataforma {formatEuros(fee.gross)} ({formatEuros(fee.net)} de comissão +{' '}
-                  {formatEuros(fee.vat)} de IVA), em 8 dias depois de o cliente assinar. Só depois disso assina e recebe os contactos. Não é somado ao preço
-                  do cliente.
-                </p>
-                {discount.combinedBp > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer font-medium text-tinta-700">Ver o detalhe do desconto</summary>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      <li>Comissão sem desconto: {(CURRENT_RULES.commissionBp / 100).toFixed(2)}%</li>
-                      {discount.linkedBp > 0 && (
-                        <li>Fornecedores com código ligado ({discount.linkedCount}): −{(discount.linkedBp / 100).toFixed(2)} p.p.</li>
-                      )}
-                      {discount.referralsBp > 0 && (
-                        <li>Referências de fornecedores elegíveis ({discount.eligibleCount}): −{(discount.referralsBp / 100).toFixed(2)} p.p.</li>
-                      )}
-                      <li className="font-medium">Comissão aplicada: {((CURRENT_RULES.commissionBp - discount.combinedBp) / 100).toFixed(2)}%</li>
-                    </ul>
-                  </details>
-                )}
+              <div className="mt-4">
+                <FeeSummary fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
               </div>
             )}
             {proposal.status === 'submetida' && org.manager && (
@@ -513,6 +497,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
                             ))}
                           </ul>
                         </section>
+                      )}
+                      {fee && (
+                        <div className="mx-auto max-w-[210mm]">
+                          <FeeSummary fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />
+                        </div>
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>
                         {licenseWarning && (

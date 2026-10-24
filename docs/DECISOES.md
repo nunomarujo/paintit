@@ -1948,7 +1948,6 @@ A pesquisa passou a correr em memória (antes do tipo de produto já filtrado na
 dos fornecedores. Visitas com muitos produtos ativos podem, no limite, ficar menos eficientes do que um
 `ilike` indexado — aceitável à escala atual do catálogo; revisitar se um dia isso pesar.
 
-
 ## 24/10/2026 — Comissão do pintor: 18% com piso de 9%
 
 O promotor viu uma proposta de 34 800 € a cobrar ~3,5% e disse: "a comissão ficou abaixo do mínimo
@@ -1970,3 +1969,29 @@ que agora coincidem com o piso.
 nova nas contratações que nascem a partir daí. Enquanto não for aplicada, o ecrã do pintor mostra
 18% mas a contratação nasce com a versão antiga, de 3% — a plataforma cobra a menos. É a primeira
 coisa a aplicar.
+
+## 24/10/2026, mais tarde (quarta parte) — Ecrã final do orçamento: a comissão, vendida como condicionada
+
+Trabalho de texto e UI/UX com o Nuno sobre o último ecrã do percurso de orçamentação (o passo "Rever" do
+assistente, logo antes de "Submeter a proposta") — o primeiro momento em que o pintor vê um custo, depois de
+já ter feito todo o trabalho de orçamentar. Pedido dele, com três versões de tom testadas: "a ideia é
+transmitires como se deve vender a proposta — sem pesar muito, sem passar despercebida"; escolheu a versão
+calorosa, depois pediu para cortar a repetição da palavra "ganhar" em linhas seguidas.
+
+Princípios do ecrã (**`src/components/FeeSummary.tsx`**, componente partilhado):
+
+- **A condição vem antes do número.** Uma etiqueta discreta no topo ("Grátis para orçamentar; comissão só com
+  adjudicação") enquadra tudo antes de qualquer valor aparecer.
+- **Um só número grande: o total condicionado** (`fee.gross`), nunca a comissão isolada — dois números
+  grandes a competir lia-se como "cobrado duas vezes".
+- **A comissão, o IVA e os descontos vêm por baixo, mais pequenos, sempre visíveis** — nunca atrás de um
+  "ver detalhe" a esconder a comissão (o padrão antigo, que este trabalho substituiu). Cada desconto tem o
+  nome de quem o dá (ex.: "Código de adesão — [fornecedor]"), com o valor em euros, não só em pontos-base: o
+  valor exato de cada linha reparte o desconto total (que já respeita o teto conjunto,
+  `MAX_COMBINED_PAINTER_DISCOUNT_BP`) proporcionalmente aos pontos-base de cada origem — soma sempre certa,
+  mesmo quando o teto corta.
+- Duas linhas de confiança sem ênfase de alarme: o cliente paga só o valor do orçamento; paga-se 8 dias
+  depois da assinatura, nunca antes; os contactos só se trocam depois do pagamento.
+- Nada de vermelho/laranja (cores de alarme) na comissão; desconto a verde, como única boa notícia da lista.
+- O componente é o mesmo no ecrã final do assistente e na vista de leitura de uma proposta já existente
+  (antes eram dois textos diferentes a dizer coisas ligeiramente diferentes sobre a mesma comissão).
