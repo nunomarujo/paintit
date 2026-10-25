@@ -48,21 +48,23 @@ export async function subscribePro(_prev: FormState, form: FormData): Promise<Fo
     .in('estado', ['ativa', 'por_pagar'])
     .maybeSingle();
   if (existente?.estado === 'ativa') return { errors: {}, message: 'Já tem o plano Pro activo.' };
-  const linha = {
-    plano: 'pro' as const,
-    periodicidade,
-    estado: 'por_pagar' as const,
-    preco_versao: PRECO_ATUAL.version,
-    preco_cents: precoCents,
-  };
-  if (existente) {
-    // Reaproveitar a linha é escrever-lhe a periodicidade escolhida agora. Sem isto, quem desistia a
-    // meio de uma adesão mensal e voltava a aderir à anual pagava 250 € no Stripe e ficava com
-    // "mensal, 30 €" gravado — e era esse valor que ia para a fatura (25/10/2026).
-    const { error } = await supabase.from('org_subscriptions').update(linha).eq('id', existente.id);
-    if (error) return { errors: {}, message: 'Não foi possível registar a adesão.' };
-  } else {
-    const { error } = await supabase.from('org_subscriptions').insert({ org_id: org.id, ...linha });
+  // Uma adesão por pagar que tenha ficado para trás **não se reescreve daqui**. A política de acesso
+  // da tabela só deixa o pintor fazer uma alteração à sua própria linha — cancelá-la —, e é isso que
+  // o impede de a pôr activa ou de lhe mudar o preço sem pagar. Tentar reescrevê-la dava "Não foi
+  // possível registar a adesão" (25/10/2026).
+  //
+  // Também não é preciso: a linha por pagar é só uma intenção. O que vale é o que o Stripe cobrar, e
+  // é o webhook — que fala com a chave de serviço — que lhe escreve a periodicidade e o preço pagos
+  // quando a activa. O valor cobrado sai daqui, de `PRECO_ATUAL` no servidor, nunca da linha.
+  if (!existente) {
+    const { error } = await supabase.from('org_subscriptions').insert({
+      org_id: org.id,
+      plano: 'pro',
+      periodicidade,
+      estado: 'por_pagar',
+      preco_versao: PRECO_ATUAL.version,
+      preco_cents: precoCents,
+    });
     if (error) return { errors: {}, message: 'Não foi possível registar a adesão.' };
   }
 

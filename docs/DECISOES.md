@@ -69,7 +69,10 @@ o que `src/lib/invoicing.ts` punha no descritivo do documento fiscal. Uma fatura
 periodicidade errada é um erro de contabilidade, não de interface.
 
 Corrigido nos dois lados:
-- `subscribePro` escreve sempre a periodicidade, o preço e a versão de preços na linha que reaproveita.
+- `subscribePro` **não** reescreve a linha que reaproveita: a política de acesso só deixa o pintor
+  cancelar a sua própria linha, e é isso que o impede de a pôr activa ou de lhe mudar o preço sem
+  pagar. Tentar reescrevê-la dava "Não foi possível registar a adesão". A linha por pagar é só uma
+  intenção; o valor cobrado sai de `PRECO_ATUAL` no servidor, nunca dela.
 - O webhook, que é a autoridade, grava a periodicidade dos metadados da sessão paga e o preço da
   versão que a assinatura guardou (`precoDe`, regra 3 — a versão fica presa à assinatura).
 
