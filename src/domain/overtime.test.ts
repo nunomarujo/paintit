@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIMIAR_ANUAL, avisoAnual, custoDoDia, suplementaresDe } from './overtime';
+import { LIMIAR_ANUAL, avisoAnual, custoDasHoras, custoDoDia, suplementaresDe } from './overtime';
 
 // 10 €/hora, para as contas se lerem de cabeça.
 const HORA = 1_000;
@@ -74,5 +74,55 @@ describe('contagem e avisos', () => {
     expect(avisoAnual(0)).toBeNull();
     expect(avisoAnual(8_500)).toContain('Faltam 15 horas');
     expect(avisoAnual(LIMIAR_ANUAL)).toContain('o dobro');
+  });
+});
+
+describe('o limiar anual atravessa obras', () => {
+  const linha = (id: string, memberId: string, data: string, horas: number) => ({
+    id,
+    memberId,
+    data,
+    horas,
+    custoHora: 1_200,
+    tipoDia: 'util' as const,
+  });
+
+  it('as horas de outra obra contam para o limiar desta', () => {
+    // 100 horas suplementares já feitas na obra A; o dia seguinte na obra B paga em dobro.
+    const naObraA = Array.from({ length: 50 }, (_, i) => linha(`a${i}`, 'rui', `2026-03-${String(i + 1).padStart(2, '0')}`, 1_000));
+    const naObraB = linha('b1', 'rui', '2026-06-01', 1_000);
+    const custos = custoDasHoras([...naObraA, naObraB]);
+
+    const sozinha = custoDasHoras([naObraB]).get('b1')!;
+    const comHistorico = custos.get('b1')!;
+    expect(comHistorico.custoAcrescimo).toBeGreaterThan(sozinha.custoAcrescimo);
+  });
+
+  it('conta pela ordem das datas, não pela ordem em que vêm', () => {
+    const tarde = linha('tarde', 'rui', '2026-06-01', 1_000);
+    const cedo = linha('cedo', 'rui', '2026-01-02', 1_000);
+    const a = custoDasHoras([tarde, cedo]);
+    const b = custoDasHoras([cedo, tarde]);
+    expect(a.get('cedo')!.custoTotal).toBe(b.get('cedo')!.custoTotal);
+    expect(a.get('tarde')!.custoTotal).toBe(b.get('tarde')!.custoTotal);
+  });
+
+  it('cada pessoa tem a sua contagem', () => {
+    const muitas = Array.from({ length: 50 }, (_, i) => linha(`r${i}`, 'rui', `2026-03-${String(i + 1).padStart(2, '0')}`, 1_000));
+    const doJoao = linha('j1', 'joao', '2026-06-01', 1_000);
+    const custos = custoDasHoras([...muitas, doJoao]);
+    expect(custos.get('j1')!.custoTotal).toBe(custoDasHoras([doJoao]).get('j1')!.custoTotal);
+  });
+
+  it('cada ano recomeça do zero', () => {
+    const em2025 = Array.from({ length: 50 }, (_, i) => linha(`v${i}`, 'rui', `2025-03-${String(i + 1).padStart(2, '0')}`, 1_000));
+    const em2026 = linha('n1', 'rui', '2026-01-05', 1_000);
+    const custos = custoDasHoras([...em2025, em2026]);
+    expect(custos.get('n1')!.custoTotal).toBe(custoDasHoras([em2026]).get('n1')!.custoTotal);
+  });
+
+  it('devolve um custo por cada linha que recebeu', () => {
+    const custos = custoDasHoras([linha('x', 'rui', '2026-01-01', 800), linha('y', 'joao', '2026-01-01', 800)]);
+    expect([...custos.keys()].sort()).toEqual(['x', 'y']);
   });
 });

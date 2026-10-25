@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
 import { margemDaObra } from '@/domain/margin';
-import { suplementaresDe } from '@/domain/overtime';
+import { custoDasHoras, suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
@@ -110,6 +110,31 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
   const today = localDate(new Date(), CURRENT_RULES.timeZone);
   const list = entries ?? [];
+
+  // As horas de todas as obras da empresa, porque o limiar das 100 horas anuais é por trabalhador e
+  // não por obra. Sem isto, quem anda em três obras nunca lá chega em nenhuma e o custo sai por
+  // baixo (corrigido a 25/10/2026; era uma aproximação conhecida).
+  const { data: horasDaEmpresa } = await supabase
+    .from('worksite_entries')
+    .select('id, horas, member_id, data, tipo_dia')
+    .eq('painter_org_id', w.org_id)
+    .eq('tipo', 'horas');
+  const { data: pessoasDaEmpresa } = await supabase
+    .from('worksite_members')
+    .select('id, custo_hora_cents')
+    .eq('painter_org_id', w.org_id);
+  const custoHoraDe = new Map((pessoasDaEmpresa ?? []).map((m) => [m.id, m.custo_hora_cents]));
+  const custoPorLinha = custoDasHoras(
+    (horasDaEmpresa ?? []).map((x) => ({
+      id: x.id,
+      horas: x.horas ?? 0,
+      custoHora: x.member_id ? (custoHoraDe.get(x.member_id) ?? null) : null,
+      memberId: x.member_id,
+      data: x.data,
+      tipoDia: x.tipo_dia,
+    })),
+  );
+
   const sum = summarize({
     contrato: w.valor_cents ?? e?.base_cents ?? 0,
     tranches: list.filter((x) => x.tipo === 'tranche').map((x) => ({ valor: x.valor_cents ?? 0, prevista: x.prevista, recebidaEm: x.recebida_em })),
@@ -119,6 +144,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       .filter((x) => x.tipo === 'horas')
       .sort((a, b) => a.data.localeCompare(b.data))
       .map((x) => ({
+        id: x.id,
         horas: x.horas ?? 0,
         custoHora: (members ?? []).find((m) => m.id === x.member_id)?.custo_hora_cents ?? null,
         memberId: x.member_id,
@@ -126,14 +152,14 @@ export default async function WorksitePage({ params, searchParams }: { params: P
         tipoDia: x.tipo_dia,
       })),
     today,
+    custoPorLinha,
   });
-  // Horas suplementares já feitas este ano por cada pessoa **nesta obra**. O limiar das 100 horas é
-  // legalmente por trabalhador e por ano, somando todas as obras — isto é uma aproximação por baixo,
-  // e está anotado como dívida em docs/ESTADO.md.
+  // Horas suplementares já feitas este ano por cada pessoa, em todas as obras da empresa — que é
+  // como a lei conta o limiar das 100 horas.
   const anoAtual = today.slice(0, 4);
   const suplementaresPorPessoa = new Map<string, number>();
-  for (const x of list) {
-    if (x.tipo !== 'horas' || !x.member_id || x.data.slice(0, 4) !== anoAtual) continue;
+  for (const x of horasDaEmpresa ?? []) {
+    if (!x.member_id || x.data.slice(0, 4) !== anoAtual) continue;
     const extra = suplementaresDe({ horas: x.horas ?? 0, tipoDia: x.tipo_dia ?? 'util' });
     suplementaresPorPessoa.set(x.member_id, (suplementaresPorPessoa.get(x.member_id) ?? 0) + extra);
   }

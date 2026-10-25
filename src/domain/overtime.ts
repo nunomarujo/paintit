@@ -146,3 +146,46 @@ export function avisoAnual(suplementaresNoAno: number): string | null {
   }
   return null;
 }
+
+export interface LinhaDeHoras {
+  /** Identificador da linha, para se saber a que dia pertence cada custo devolvido. */
+  id: string;
+  /** Quem fez as horas. Sem pessoa, não há contagem anual possível. */
+  memberId: string | null;
+  /** AAAA-MM-DD. A ordem das datas é o que decide quem passou o limiar e quando. */
+  data: string | null;
+  horas: number;
+  custoHora: Cents | null;
+  tipoDia: TipoDia | null;
+}
+
+/**
+ * O custo de cada dia de trabalho, calculado sobre **todas as obras da empresa**.
+ *
+ * O limiar das 100 horas anuais é por trabalhador, não por obra. Contá-lo dentro de cada obra
+ * separadamente fazia com que um pintor que anda em três obras nunca lá chegasse em nenhuma, e o
+ * custo saía por baixo — era uma aproximação conhecida desde 26/10/2026 e passa a erro assim que um
+ * dia se reparte por dois locais, que é o que a proposta de Gestão de Obra introduz.
+ *
+ * Não se consegue corrigir dentro de uma obra: o acréscimo de um dia depende das horas feitas antes
+ * **daquela data**, onde quer que tenham sido feitas. Por isso o cálculo é central e cada obra
+ * consome o que lhe toca.
+ */
+export function custoDasHoras(linhas: LinhaDeHoras[], acrescimos: Acrescimos = ACRESCIMOS_LEGAIS): Map<string, CustoDoDia> {
+  // Por data, e com a ordem original a desempatar, para o resultado não depender da base de dados.
+  const ordenadas = linhas
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => (a.l.data ?? '').localeCompare(b.l.data ?? '') || a.i - b.i)
+    .map((x) => x.l);
+
+  const acumulado = new Map<string, number>();
+  const porLinha = new Map<string, CustoDoDia>();
+  for (const l of ordenadas) {
+    const chave = `${l.memberId ?? 'sem-pessoa'}|${(l.data ?? '').slice(0, 4)}`;
+    const antes = acumulado.get(chave) ?? 0;
+    const dia = { horas: l.horas, tipoDia: l.tipoDia ?? ('util' as const) };
+    porLinha.set(l.id, custoDoDia(dia, l.custoHora ?? 0, antes, acrescimos));
+    acumulado.set(chave, antes + suplementaresDe(dia));
+  }
+  return porLinha;
+}

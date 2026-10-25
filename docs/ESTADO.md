@@ -1305,17 +1305,20 @@ Com isso ligou-se o que estava à espera:
   declarado antes**. Ganhou a cor do acabamento, além do tipo e da espessura.
 - O passo "Trabalhos" só se dá por completo se o capoto, quando a obra o leva, estiver especificado.
 
-### Limiar anual de trabalho suplementar — aproximação conhecida (25/10/2026)
+### Limiar anual de trabalho suplementar — meio corrigido (25/10/2026)
 
-O aviso das 100 horas anuais (`src/domain/overtime.ts`) conta, por pessoa, **só as horas feitas nesta
-obra**. Legalmente o limiar é por trabalhador e por ano civil, somando todas as obras da empresa.
-Quem tiver a mesma pessoa em várias obras ao mesmo tempo vê um aviso que chega tarde e um custo
-calculado por baixo.
+**O que ficou feito.** O custo de cada dia passou a ser calculado de uma vez sobre as horas de todas
+as obras da empresa, por ordem de data (`custoDasHoras`, em `src/domain/overtime.ts`), e cada obra
+consome o que lhe toca. Antes, cada obra tinha o seu contador e um dia nunca sabia do outro.
 
-Para resolver é preciso somar as horas da pessoa em todas as obras da empresa no ano. A consulta é
-simples; o que falta decidir é se o identificador da pessoa é o `worksite_members.id` (hoje, uma
-linha por obra) ou uma ficha de pessoa ao nível da empresa — a segunda é a correcta e implica juntar
-as fichas repetidas que já existam.
+**O que falta, e é a pedra de fecho.** `worksite_members.worksite_id` é obrigatório: a mesma pessoa
+em duas obras são **duas fichas com identificadores diferentes**. O contador continua a separá-las,
+e por isso quem anda em várias obras ao mesmo tempo ainda vê um custo por baixo.
+
+Resolve-se com o que a proposta de Gestão de Obra pede de qualquer maneira: **a equipa pertence à
+empresa e é atribuída a obras**, em vez de ser criada dentro de cada uma. É uma ficha de pessoa ao
+nível da empresa, com as fichas repetidas que já existam juntas por nome. Depois disso o contador
+fecha sozinho, sem mais código.
 
 ### Avisos do Supabase a 25/10/2026, depois da fase 1
 

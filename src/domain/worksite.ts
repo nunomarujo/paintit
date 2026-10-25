@@ -1,5 +1,5 @@
 import type { Cents } from './money';
-import { custoDoDia, suplementaresDe, type TipoDia } from './overtime';
+import { custoDoDia, suplementaresDe, type CustoDoDia, type TipoDia } from './overtime';
 
 // Gestão de obra do pintor (opcional, depois da contratação): equipa,
 // fases, custos, horas e tranches. São dados internos do pintor; o cliente não
@@ -50,6 +50,8 @@ export interface Cost {
   valor: Cents;
 }
 export interface Hours {
+  /** Identificador da linha, para o custo vir calculado de fora quando atravessa obras. */
+  id?: string;
   /** Horas em centésimos (7,5 h = 750). */
   horas: number;
   custoHora: Cents | null;
@@ -87,25 +89,41 @@ export interface WorksiteSummary {
  * As horas chegam já ordenadas por data, para o limiar anual das 100 horas ser aplicado pela ordem em
  * que as horas aconteceram — quem passou o limiar a meio do ano paga o dobro só de lá para a frente.
  */
-export function summarize(p: { contrato: Cents; tranches: Tranche[]; costs: Cost[]; hours: Hours[]; today: string }): WorksiteSummary {
+export function summarize(p: {
+  contrato: Cents;
+  tranches: Tranche[];
+  costs: Cost[];
+  hours: Hours[];
+  today: string;
+  /** Custo de cada dia, já calculado sobre todas as obras (overtime.ts, custoDasHoras). */
+  custoPorLinha?: Map<string, CustoDoDia>;
+}): WorksiteSummary {
   const recebido = p.tranches.filter((t) => t.recebidaEm).reduce((n, t) => n + t.valor, 0);
   const planeado = p.tranches.reduce((n, t) => n + t.valor, 0);
   const emAtraso = p.tranches.filter((t) => !t.recebidaEm && t.prevista && t.prevista < p.today).reduce((n, t) => n + t.valor, 0);
   const porCategoria: Partial<Record<CostCategory, Cents>> = {};
   for (const c of p.costs) porCategoria[c.categoria] = (porCategoria[c.categoria] ?? 0) + c.valor;
   const custosDiretos = p.costs.reduce((n, c) => n + c.valor, 0);
-  // Acumulado anual por pessoa, para o limiar das 100 horas (src/domain/overtime.ts).
+  // O custo de cada dia pode vir calculado de fora, sobre as horas de todas as obras da empresa: o
+  // limiar das 100 horas anuais é por trabalhador e não por obra, e um dia repartido por dois locais
+  // só se conta bem olhando para os dois (src/domain/overtime.ts, custoDasHoras).
+  const custoPorLinha = p.custoPorLinha;
   const acumulado = new Map<string, number>();
   let maoDeObra = 0;
   let suplementares = 0;
   for (const h of p.hours) {
-    const chave = `${h.memberId ?? 'sem-pessoa'}|${(h.data ?? '').slice(0, 4)}`;
-    const antes = acumulado.get(chave) ?? 0;
     const dia = { horas: h.horas, tipoDia: h.tipoDia ?? ('util' as const) };
-    maoDeObra += custoDoDia(dia, h.custoHora ?? 0, antes).custoTotal;
+    const jaCalculado = h.id ? custoPorLinha?.get(h.id) : undefined;
+    if (jaCalculado) {
+      maoDeObra += jaCalculado.custoTotal;
+    } else {
+      const chave = `${h.memberId ?? 'sem-pessoa'}|${(h.data ?? '').slice(0, 4)}`;
+      maoDeObra += custoDoDia(dia, h.custoHora ?? 0, acumulado.get(chave) ?? 0).custoTotal;
+    }
     const extra = suplementaresDe(dia);
     suplementares += extra;
-    acumulado.set(chave, antes + extra);
+    const chave = `${h.memberId ?? 'sem-pessoa'}|${(h.data ?? '').slice(0, 4)}`;
+    acumulado.set(chave, (acumulado.get(chave) ?? 0) + extra);
   }
   const horas = p.hours.reduce((n, h) => n + h.horas, 0);
   const custos = custosDiretos + maoDeObra;
