@@ -65,5 +65,11 @@ export async function GET(req: Request) {
     }
   }
 
+  // Escrito nos registos, e não só devolvido: quem dispara a tarefa pelo painel do Vercel vê o
+  // estado 500 mas não o corpo da resposta. Na primeira carga, a 25/10/2026, isso deixou um erro sem
+  // explicação nenhuma — havia que ir à base de dados perceber que ano tinha falhado.
+  if (erros.length > 0) console.error('contratos-publicos:', erros.join(' | '));
+  console.log('contratos-publicos: ' + JSON.stringify({ anos: feitosAgora, erros }));
+
   return Response.json({ anos: feitosAgora, erros }, { status: erros.length ? 500 : 200 });
 }

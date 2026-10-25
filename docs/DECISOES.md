@@ -4,6 +4,28 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — Quatro linhas repetidas deitavam fora o ano inteiro
+
+A primeira carga correu e devolveu 500. Gravou 4 087 contratos de 2019 a 2025 — e **zero de 2026**,
+que é o ano que interessa. O painel do Vercel não mostrava razão nenhuma: estado 500 e registos vazios.
+
+A causa estava no ficheiro, não no código do carregamento: **o ficheiro do ano em curso traz quatro
+contratos duas vezes** (482 linhas, 478 identificadores), e os anos já fechados nenhum. A gravação usa
+o identificador do BASE como chave única, e o Postgres recusa a instrução inteira quando a mesma chave
+aparece duas vezes nela — *ON CONFLICT DO UPDATE command cannot affect row a second time*. As quatro
+linhas vinham no mesmo lote de 200, e levaram o ano todo atrás.
+
+Duas correcções:
+
+- **`semRepetidos`** em `src/lib/contratosBase.ts`, aplicado a cada lote antes de gravar. Comparadas as
+  duas cópias de cada um dos quatro, são iguais campo a campo — não se perde nada. Fica a última.
+- **A tarefa passa a escrever o resultado nos registos**, e não só a devolvê-lo. Quem a dispara pelo
+  painel vê o estado mas não o corpo da resposta; foi preciso ir à base de dados perceber que ano tinha
+  falhado, o que não pode voltar a acontecer.
+
+Aviso para quem lá voltar: o 500 continua a aparecer quando **um** ano falha, mesmo que sete entrem.
+É deliberado — um ano em falta merece atenção —, mas lê-se nos registos qual foi, não no código.
+
 ## 25/10/2026 — O mapa de contratos públicos, e um número corrigido na página de venda
 
 **O ecrã.** `Obras públicas` passa a `Mapa de contratos públicos`, com duas vistas no segundo nível

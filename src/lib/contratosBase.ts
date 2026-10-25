@@ -111,6 +111,24 @@ export function linhaDe(c: Record<string, unknown>, ano: number): LinhaDeContrat
 }
 
 /**
+ * Tira os contratos repetidos de um lote, ficando com a última versão de cada um.
+ *
+ * O ficheiro do ano em curso traz o mesmo contrato mais do que uma vez — em 2026 eram quatro em 482,
+ * e nenhum nos anos já fechados. A gravação usa o identificador do BASE como chave única, e o Postgres
+ * recusa a gravação inteira quando a mesma chave aparece duas vezes na mesma instrução ("ON CONFLICT
+ * DO UPDATE command cannot affect row a second time"). Quatro linhas deitavam fora o ano todo: foi o
+ * que aconteceu na primeira carga, a 25/10/2026, em que 2025 a 2019 entraram e 2026 ficou a zero.
+ *
+ * Fica a última, e não se perde nada: comparadas as duas cópias de cada um dos quatro, são iguais
+ * campo a campo. Se um dia diferirem, a última é a que a gravação deixaria de pé.
+ */
+export function semRepetidos(linhas: LinhaDeContrato[]): LinhaDeContrato[] {
+  const por = new Map<string, LinhaDeContrato>();
+  for (const l of linhas) por.set(l.id_contrato, l);
+  return [...por.values()];
+}
+
+/**
  * Lê o zip de um ano e devolve só as linhas de pintura.
  *
  * `aoLote` é chamado a cada 200 linhas, para quem chama as ir gravando em vez de as acumular todas.
@@ -152,11 +170,11 @@ export async function lerAno(url: string, ano: number, aoLote: (linhas: LinhaDeC
     lote.push(linha);
     total++;
     if (lote.length >= 200) {
-      await aoLote(lote);
+      await aoLote(semRepetidos(lote));
       lote = [];
     }
   }
-  if (lote.length > 0) await aoLote(lote);
+  if (lote.length > 0) await aoLote(semRepetidos(lote));
   await corrido;
   return total;
 }
