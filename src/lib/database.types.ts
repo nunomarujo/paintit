@@ -1512,6 +1512,7 @@ export type Database = {
       };
       worksite_entries: {
         Row: {
+          comprovativo_path: string | null;
           categoria: string | null;
           created_at: string;
           data: string;
@@ -1529,6 +1530,7 @@ export type Database = {
           valor_cents: number | null;
         };
         Insert: {
+          comprovativo_path?: string | null;
           categoria?: string | null;
           data?: string;
           descricao?: string;

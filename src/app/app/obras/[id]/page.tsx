@@ -4,6 +4,7 @@ import { margemDaObra } from '@/domain/margin';
 import { custoDasHoras, custoHoraEm, suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
+import { ExpenseForm } from './ExpenseForm';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
@@ -635,6 +636,14 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'financeiro' && (
         <section className={`${card} space-y-6 text-sm`}>
+          {/* A despesa fica à cabeça, porque é o que se faz todos os dias; as tranches lêem-se de
+              vez em quando. */}
+          <div>
+            <h3 className="font-semibold">Lançar uma despesa</h3>
+            <div className="mt-2">
+              <ExpenseForm worksiteId={id} />
+            </div>
+          </div>
           <div>
             <h3 className="font-semibold">Tranches do cliente</h3>
             <ul className="mt-2 divide-y divide-slate-100">

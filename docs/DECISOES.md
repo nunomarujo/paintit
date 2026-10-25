@@ -4,6 +4,33 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — Primeira entrega da Gestão de Obra
+
+Os seis pontos da proposta revista, construídos. O que mudou em cada um, e porquê.
+
+**O dia confirma-se num toque.** O ecrã abria com a equipa em lista e botões de mais e menos por
+pessoa — para um dia normal, uma lista inteira para não mudar nada nela. Passa a abrir com o dia em
+palavras e um botão. Quem tem uma excepção carrega em Alterar. Depois de gravado diz "Dia registado"
+e oferece Corrigir, em vez de convidar a gravar por cima sem se dar por isso.
+
+**O dia de uma pessoa soma-se em todas as obras.** O limite de 24 horas era por linha, o que deixava
+a mesma pessoa com um dia inteiro em dois sítios. Um dia repartido continua a passar; um dia
+impossível não, e a recusa diz onde estão as outras horas.
+
+**Hoje, Equipa e Contas** no segundo nível da barra, como nos orçamentos. Equipa só passou a ser
+possível depois de a equipa pertencer à empresa.
+
+**A despesa são dois campos:** o documento e o valor. Vai para um cofre próprio e não para o da
+obra — o da obra é legível pelo cliente, por desenho, e uma factura traz os preços a que o pintor
+compra. Misturá-los dava ao cliente a margem do fornecedor.
+
+**O custo por hora tem data** e **o limiar anual atravessa obras**, ambos resolvidos pela mudança de
+fundo: `painter_people` é a pessoa e `worksite_members` a atribuição dela a uma obra.
+
+**O que ficou deliberadamente de fora**, e consta da proposta: a voz, a leitura automática de
+facturas, o trabalho sem rede, as contas de trabalhador, os cinco estados de material, a imputação a
+fases e a barra inferior no telemóvel.
+
 ## 25/10/2026 — A equipa pertence à empresa, não à obra
 
 Primeira peça da proposta revista de Gestão de Obra, e a que destranca as outras.

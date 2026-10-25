@@ -486,3 +486,49 @@ export async function removeDiaryPhoto(worksiteId: string, photoId: string, _pre
   revalidatePath(path_(worksiteId));
   return { errors: {}, ok: true };
 }
+
+/**
+ * Lançar uma despesa: a fotografia do documento e o valor.
+ *
+ * Dois campos, não um formulário. A obra já se sabe, a data é hoje e pode mudar-se depois; o que
+ * falta é quanto e de quê. A leitura automática do documento vem mais tarde — a utilização básica
+ * não pode depender de a interpretação acertar (proposta de Gestão de Obra, 25/10/2026).
+ *
+ * O documento vai para o cofre `comprovativos` e não para o da obra: o da obra é legível pelo
+ * cliente, e uma factura traz os preços a que o pintor compra.
+ */
+export async function addExpense(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const valor = parseHundredths(form.get('valor'));
+  if (valor === null || Number.isNaN(valor) || valor <= 0) return fail('valor', 'Quanto custou? Ex.: 48,30.');
+  const descricao = texto(form.get('descricao'), 200);
+
+  const { supabase, user } = await getUser();
+  if (!user) return { errors: {}, message: 'A sessão expirou.' };
+
+  let comprovativo: string | null = null;
+  const file = form.get('comprovativo');
+  if (file instanceof File && file.size > 0) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const tipo = file.type === 'application/pdf' ? 'application/pdf' : file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+    const extensao = tipo === 'application/pdf' ? 'pdf' : tipo === 'image/png' ? 'png' : 'jpg';
+    const path = `${worksiteId}/${randomUUID()}.${extensao}`;
+    const upload = await supabase.storage.from('comprovativos').upload(path, bytes, { contentType: tipo });
+    if (upload.error) return { errors: {}, message: 'Não foi possível guardar o documento. O valor não foi lançado.' };
+    comprovativo = path;
+  }
+
+  const { error } = await supabase.from('worksite_entries').insert({
+    worksite_id: worksiteId,
+    tipo: 'custo',
+    data: date(form.get('data')) ?? new Date().toISOString().slice(0, 10),
+    descricao: descricao || 'Despesa',
+    valor_cents: valor,
+    categoria: 'material',
+    comprovativo_path: comprovativo,
+  });
+  if (error) {
+    if (comprovativo) await supabase.storage.from('comprovativos').remove([comprovativo]);
+    return { errors: {}, message: 'Não foi possível lançar a despesa.' };
+  }
+  return done(worksiteId, comprovativo ? 'Despesa lançada, com o documento guardado.' : 'Despesa lançada.');
+}
