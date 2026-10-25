@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIA_NORMAL, dayErrors, diaPorOmissao, formatHoras, presencasEfetivas, resumoDoDia, totalHoras } from './dayLog';
+import { DIA_NORMAL, conflitosDoDia, dayErrors, diaPorOmissao, formatHoras, presencasEfetivas, resumoDoDia, totalHoras } from './dayLog';
 
 const equipa = [
   { id: 'a', nome: 'João Silva' },
@@ -60,5 +60,52 @@ describe('o resumo que ele confirma', () => {
 
   it('um dia sem ninguém di-lo', () => {
     expect(resumoDoDia([{ memberId: 'a', nome: 'João', horas: 0 }])).toBe('Ninguém na obra.');
+  });
+});
+
+describe('o dia de uma pessoa somado em todas as obras', () => {
+  const presenca = (horas: number) => [{ memberId: 'f1', pessoaId: 'rui', nome: 'Rui', horas }];
+
+  it('deixa passar um dia repartido, que é legítimo', () => {
+    const r = conflitosDoDia(presenca(400), [{ pessoaId: 'rui', obra: 'Obra do Mercado', horas: 400 }]);
+    expect(r).toEqual([]);
+  });
+
+  it('recusa um dia impossível, dizendo onde estão as outras horas', () => {
+    const r = conflitosDoDia(presenca(1_600), [{ pessoaId: 'rui', obra: 'Obra do Mercado', horas: 1_000 }]);
+    expect(r[0]!.erro).toContain('26 horas');
+    expect(r[0]!.erro).toContain('Obra do Mercado');
+  });
+
+  it('avisa de um dia longo sem o impedir', () => {
+    const r = conflitosDoDia(presenca(800), [{ pessoaId: 'rui', obra: 'Obra do Mercado', horas: 800 }]);
+    expect(r[0]!.aviso).toBeDefined();
+    expect(r[0]!.erro).toBeUndefined();
+  });
+
+  it('soma as obras todas e nomeia-as', () => {
+    const r = conflitosDoDia(presenca(1_000), [
+      { pessoaId: 'rui', obra: 'Obra A', horas: 800 },
+      { pessoaId: 'rui', obra: 'Obra B', horas: 800 },
+    ]);
+    expect(r[0]!.erro).toContain('Obra A e Obra B');
+  });
+
+  it('vinte e quatro horas certas ainda passam: é o máximo, não o excesso', () => {
+    const r = conflitosDoDia(presenca(800), [
+      { pessoaId: 'rui', obra: 'Obra A', horas: 800 },
+      { pessoaId: 'rui', obra: 'Obra B', horas: 800 },
+    ]);
+    expect(r[0]!.erro).toBeUndefined();
+    expect(r[0]!.aviso).toBeDefined();
+  });
+
+  it('não se mete com quem faltou nem com quem não tem pessoa ligada', () => {
+    expect(conflitosDoDia(presenca(0), [{ pessoaId: 'rui', obra: 'X', horas: 2_000 }])).toEqual([]);
+    expect(conflitosDoDia([{ memberId: 'f1', pessoaId: null, nome: 'Sem ficha', horas: 800 }], [])).toEqual([]);
+  });
+
+  it('ignora as horas de outra pessoa', () => {
+    expect(conflitosDoDia(presenca(800), [{ pessoaId: 'joao', obra: 'X', horas: 2_000 }])).toEqual([]);
   });
 });

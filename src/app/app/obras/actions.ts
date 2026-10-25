@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { addendaErrors } from '@/domain/addenda';
 import { cleanPhoto } from '@/domain/photo';
 import { diaryErrors } from '@/domain/worksiteDiary';
-import { dayErrors, presencasEfetivas, type PresencaInput } from '@/domain/dayLog';
+import { conflitosDoDia, dayErrors, presencasEfetivas, type PresencaInput } from '@/domain/dayLog';
 import type { TipoDia } from '@/domain/overtime';
 import { UNIDADES, worksiteErrors } from '@/domain/worksites';
 import { painterOrgs } from '@/lib/queries';
@@ -348,6 +348,50 @@ export async function registerDay(worksiteId: string, _prev: FormState, form: Fo
   const { supabase } = await getUser();
   const efetivas = presencasEfetivas(presencas);
 
+  // O dia de uma pessoa soma-se em todas as obras. Cada obra guardava as suas horas sem saber das
+  // outras, e o limite de 24 horas era por linha — o que deixava a mesma pessoa com um dia inteiro
+  // em dois sítios (25/10/2026). Um dia repartido é legítimo; um dia impossível não.
+  const { data: fichas } = await supabase
+    .from('worksite_members')
+    .select('id, nome, person_id')
+    .in('id', efetivas.map((p) => p.memberId));
+  const pessoas = (fichas ?? []).map((f) => f.person_id).filter((x): x is string => Boolean(x));
+  const { data: noutras } = pessoas.length
+    ? await supabase
+        .from('worksite_entries')
+        .select('horas, worksite_id, member_id')
+        .eq('tipo', 'horas')
+        .eq('data', data)
+        .neq('worksite_id', worksiteId)
+    : { data: [] };
+  const outrasFichas = (noutras ?? []).map((x) => x.member_id).filter((x): x is string => Boolean(x));
+  const [{ data: fichasDasOutras }, { data: obras }] = await Promise.all([
+    outrasFichas.length
+      ? supabase.from('worksite_members').select('id, person_id').in('id', outrasFichas)
+      : Promise.resolve({ data: [] }),
+    outrasFichas.length
+      ? supabase.from('worksites').select('id, nome').in('id', [...new Set((noutras ?? []).map((x) => x.worksite_id))])
+      : Promise.resolve({ data: [] }),
+  ]);
+  const pessoaDaFicha = new Map((fichasDasOutras ?? []).map((f) => [f.id, f.person_id]));
+  const nomeDaObra = new Map((obras ?? []).map((o) => [o.id, o.nome]));
+
+  const conflitos = conflitosDoDia(
+    efetivas.map((p) => {
+      const f = (fichas ?? []).find((x) => x.id === p.memberId);
+      return { memberId: p.memberId, pessoaId: f?.person_id ?? null, nome: f?.nome ?? 'Esta pessoa', horas: p.horas };
+    }),
+    (noutras ?? [])
+      .map((x) => ({
+        pessoaId: (x.member_id ? pessoaDaFicha.get(x.member_id) : null) ?? '',
+        obra: nomeDaObra.get(x.worksite_id) ?? 'outra obra',
+        horas: x.horas ?? 0,
+      }))
+      .filter((x) => x.pessoaId !== ''),
+  );
+  const impossivel = conflitos.find((c) => c.erro);
+  if (impossivel) return fail('horas', impossivel.erro!);
+
   // Um dia registado duas vezes não soma: apaga-se o que lá estava para aquele dia e grava-se de novo.
   await supabase.from('worksite_entries').delete().eq('worksite_id', worksiteId).eq('tipo', 'horas').eq('data', data);
 
@@ -377,7 +421,11 @@ export async function registerDay(worksiteId: string, _prev: FormState, form: Fo
     });
   }
 
-  return done(worksiteId, `Dia de ${data.split('-').reverse().join('/')} registado.`);
+  const avisos = conflitos.filter((c) => c.aviso).map((c) => c.aviso!);
+  return done(
+    worksiteId,
+    `Dia de ${data.split('-').reverse().join('/')} registado.${avisos.length > 0 ? ` ${avisos.join(' ')}` : ''}`,
+  );
 }
 
 // --- Diário fotográfico -------------------------------------------------------------------------

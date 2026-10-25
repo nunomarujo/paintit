@@ -66,3 +66,65 @@ export function resumoDoDia(presencas: Presenca[]): string {
   const ausencias = faltaram > 0 ? `, ${faltaram} ${faltaram === 1 ? 'falta' : 'faltas'}` : '';
   return `${quem}, ${horas}${ausencias}.`;
 }
+
+/** Máximo de horas que uma pessoa pode ter num dia, somando todas as obras. */
+export const MAXIMO_DIARIO = 2400;
+
+/** A partir daqui o dia é possível mas merece um olhar: ninguém pinta catorze horas por engano. */
+export const AVISO_DIARIO = 1200;
+
+export interface HorasNoutraObra {
+  pessoaId: string;
+  obra: string;
+  horas: number;
+}
+
+export interface ConflitoDeDia {
+  pessoaId: string;
+  nome: string;
+  /** Horas que esta pessoa já tem noutras obras, nesta data. */
+  noutrasObras: number;
+  total: number;
+  /** Impede guardar. */
+  erro?: string;
+  /** Deixa guardar, mas diz. */
+  aviso?: string;
+}
+
+/**
+ * O dia de uma pessoa somado em todas as obras.
+ *
+ * Cada obra guardava as suas horas sem saber das outras, e o limite de 24 horas era por linha — o
+ * que deixava passar a mesma pessoa com um dia inteiro em dois sítios. Com o dia repartido que a
+ * Gestão de Obra introduz, isto deixa de ser teórico (25/10/2026).
+ *
+ * Note-se o que **não** se faz aqui: não se recusa um dia repartido, que é legítimo e frequente.
+ * Recusa-se um dia impossível.
+ */
+export function conflitosDoDia(
+  presencas: { memberId: string; pessoaId: string | null; nome: string; horas: number }[],
+  noutrasObras: HorasNoutraObra[],
+): ConflitoDeDia[] {
+  const conflitos: ConflitoDeDia[] = [];
+  for (const p of presencas) {
+    if (!p.pessoaId || p.horas <= 0) continue;
+    const outras = noutrasObras.filter((o) => o.pessoaId === p.pessoaId);
+    const jaFeitas = outras.reduce((n, o) => n + o.horas, 0);
+    if (jaFeitas === 0) continue;
+    const total = jaFeitas + p.horas;
+    const onde = [...new Set(outras.map((o) => o.obra))].join(' e ');
+    const base = { pessoaId: p.pessoaId, nome: p.nome, noutrasObras: jaFeitas, total };
+    if (total > MAXIMO_DIARIO) {
+      conflitos.push({
+        ...base,
+        erro: `${p.nome} ficaria com ${formatHoras(total)} horas neste dia — já tem ${formatHoras(jaFeitas)} em ${onde}.`,
+      });
+    } else if (total > AVISO_DIARIO) {
+      conflitos.push({
+        ...base,
+        aviso: `${p.nome} fica com ${formatHoras(total)} horas neste dia, contando ${formatHoras(jaFeitas)} em ${onde}.`,
+      });
+    }
+  }
+  return conflitos;
+}
