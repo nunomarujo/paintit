@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIMIAR_ANUAL, avisoAnual, custoDasHoras, custoDoDia, suplementaresDe } from './overtime';
+import { LIMIAR_ANUAL, avisoAnual, custoDasHoras, custoDoDia, custoHoraEm, suplementaresDe } from './overtime';
 
 // 10 €/hora, para as contas se lerem de cabeça.
 const HORA = 1_000;
@@ -124,5 +124,34 @@ describe('o limiar anual atravessa obras', () => {
   it('devolve um custo por cada linha que recebeu', () => {
     const custos = custoDasHoras([linha('x', 'rui', '2026-01-01', 800), linha('y', 'joao', '2026-01-01', 800)]);
     expect([...custos.keys()].sort()).toEqual(['x', 'y']);
+  });
+});
+
+describe('custo por hora à data do trabalho', () => {
+  const tabela = [
+    { desde: '2025-01-01', custoHoraCents: 1_000 },
+    { desde: '2026-04-01', custoHoraCents: 1_200 },
+  ];
+
+  it('um dia de 2025 paga-se ao preço de 2025, mesmo depois do aumento', () => {
+    expect(custoHoraEm(tabela, '2025-06-10')).toBe(1_000);
+  });
+
+  it('um dia depois do aumento paga-se ao novo', () => {
+    expect(custoHoraEm(tabela, '2026-05-02')).toBe(1_200);
+  });
+
+  it('no próprio dia do aumento já vale o novo', () => {
+    expect(custoHoraEm(tabela, '2026-04-01')).toBe(1_200);
+  });
+
+  it('antes de haver qualquer custo devolve null, que não é zero', () => {
+    expect(custoHoraEm(tabela, '2024-12-31')).toBeNull();
+    expect(custoHoraEm([], '2026-01-01')).toBeNull();
+    expect(custoHoraEm(tabela, null)).toBeNull();
+  });
+
+  it('não depende da ordem em que as datas vêm', () => {
+    expect(custoHoraEm([...tabela].reverse(), '2026-05-02')).toBe(1_200);
   });
 });

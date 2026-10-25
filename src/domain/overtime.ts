@@ -189,3 +189,22 @@ export function custoDasHoras(linhas: LinhaDeHoras[], acrescimos: Acrescimos = A
   }
   return porLinha;
 }
+
+export interface CustoHoraEmVigor {
+  /** AAAA-MM-DD a partir do qual este custo vale. */
+  desde: string;
+  custoHoraCents: Cents;
+}
+
+/**
+ * O custo por hora de uma pessoa na data em que o trabalho foi feito.
+ *
+ * Um aumento não reescreve o custo das obras já feitas: cada dia é pago ao que valia nesse dia. Sem
+ * nenhum custo anterior à data, devolve `null` — e `null` não é zero: é uma lacuna que as contas têm
+ * de assinalar, em vez de fingirem que o trabalho foi de graça.
+ */
+export function custoHoraEm(tabela: CustoHoraEmVigor[], data: string | null): Cents | null {
+  if (!data) return null;
+  const aplicaveis = tabela.filter((r) => r.desde <= data).sort((a, b) => b.desde.localeCompare(a.desde));
+  return aplicaveis[0]?.custoHoraCents ?? null;
+}

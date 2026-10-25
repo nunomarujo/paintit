@@ -4,6 +4,30 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — A equipa pertence à empresa, não à obra
+
+Primeira peça da proposta revista de Gestão de Obra, e a que destranca as outras.
+
+Até aqui, uma pessoa numa obra era uma linha de `worksite_members` com `worksite_id` obrigatório: a
+mesma pessoa em duas obras eram **duas fichas com identificadores diferentes**. Isso fazia três
+estragos ao mesmo tempo.
+
+1. O limiar das 100 horas anuais de trabalho suplementar é por trabalhador e por ano civil. Com uma
+   ficha por obra, quem andava em três obras nunca lá chegava em nenhuma, e o custo saía por baixo.
+2. O custo por hora tinha de ser escrito outra vez em cada obra, e divergia.
+3. Não havia "as pessoas da empresa", só "as pessoas desta obra" — e sem isso não há separador de
+   equipa nenhum.
+
+A partir daqui, `painter_people` é a pessoa e `worksite_members` é a **atribuição** dela a uma obra.
+As fichas que já existiam foram juntas por empresa e por nome.
+
+**O custo por hora passa a ter data.** `painter_person_rates` guarda cada valor com o dia em que
+passou a valer, e `custoHoraEm` devolve o que valia na data do trabalho: um aumento não reescreve o
+custo das obras já feitas. Sem custo anterior à data devolve `null`, e **`null` não é zero** — é uma
+lacuna que as contas têm de assinalar em vez de fingirem que o trabalho foi de graça.
+
+O custo por hora é salário: as políticas de acesso fecham-no à empresa, pela mesma lógica da regra 13.
+
 ## 25/10/2026 — A página de planos lidera com a poupança, e ganha a paleta da marca
 
 Três ajustes pedidos pelo promotor, com o desenho do site como referência.

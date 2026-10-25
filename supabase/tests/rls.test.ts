@@ -2770,3 +2770,75 @@ describe('mapa de contratos públicos', () => {
     expect(apagado.affectedRows ?? 0).toBe(0);
   });
 });
+
+describe('pessoas da empresa', () => {
+  const PE = '00000000-0000-4000-8000-00000000011a'; // dono da empresa
+  const PX = '00000000-0000-4000-8000-00000000011b'; // empresa de fora
+  let minhaOrg: string;
+  let outraOrg: string;
+  let pessoaId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [PE, email(PE), PX, email(PX)]);
+    minhaOrg = (await createOrg(PE, 'pintor', 'Pinturas da Equipa', '513789413')).id;
+    outraOrg = (await createOrg(PX, 'pintor', 'Pinturas Alheias', '514567899')).id;
+    pessoaId = (
+      await as(PE, () =>
+        one<{ id: string }>(`insert into public.painter_people (painter_org_id, nome) values ($1, 'António') returning id`, [minhaOrg]),
+      )
+    ).id;
+  });
+
+  it('a pessoa é da empresa e serve várias obras', async () => {
+    const obraA = await as(PE, () => one<{ id: string }>(`insert into public.worksites (org_id, nome) values ($1, 'Obra A') returning id`, [minhaOrg]));
+    const obraB = await as(PE, () => one<{ id: string }>(`insert into public.worksites (org_id, nome) values ($1, 'Obra B') returning id`, [minhaOrg]));
+    for (const obra of [obraA, obraB]) {
+      await as(PE, () =>
+        db.query(
+          `insert into public.worksite_members (painter_org_id, worksite_id, person_id, nome, funcao)
+           values ($1, $2, $3, 'António', 'pintor')`,
+          [minhaOrg, obra.id, pessoaId],
+        ),
+      );
+    }
+    const r = await as(PE, () => db.query<{ n: string }>(`select count(*)::text as n from public.worksite_members where person_id = $1`, [pessoaId]));
+    // Duas atribuições, uma pessoa só: é isto que faz o limiar anual das 100 horas poder ser contado.
+    expect(Number(r.rows[0]!.n)).toBe(2);
+  });
+
+  it('uma empresa de fora não vê as pessoas nem lhes mexe', async () => {
+    const vistas = await as(PX, () => db.query<{ n: string }>(`select count(*)::text as n from public.painter_people where painter_org_id = $1`, [minhaOrg]));
+    expect(Number(vistas.rows[0]!.n)).toBe(0);
+    const alterado = await as(PX, () => db.query(`update public.painter_people set nome = 'Roubado' where id = $1`, [pessoaId]));
+    expect(alterado.affectedRows ?? 0).toBe(0);
+  });
+
+  it('não se cria uma pessoa numa empresa que não é a nossa', async () => {
+    await expect(
+      as(PX, () => db.query(`insert into public.painter_people (painter_org_id, nome) values ($1, 'Intruso')`, [minhaOrg])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('o custo por hora guarda a data em que passou a valer, e não se repete no mesmo dia', async () => {
+    await as(PE, () =>
+      db.query(`insert into public.painter_person_rates (person_id, desde, custo_hora_cents) values ($1, '2026-01-01', 1000)`, [pessoaId]),
+    );
+    await as(PE, () =>
+      db.query(`insert into public.painter_person_rates (person_id, desde, custo_hora_cents) values ($1, '2026-06-01', 1200)`, [pessoaId]),
+    );
+    await expect(
+      as(PE, () => db.query(`insert into public.painter_person_rates (person_id, desde, custo_hora_cents) values ($1, '2026-06-01', 1300)`, [pessoaId])),
+    ).rejects.toThrow(/duplicate key|unique/i);
+  });
+
+  it('um custo por hora negativo não entra', async () => {
+    await expect(
+      as(PE, () => db.query(`insert into public.painter_person_rates (person_id, desde, custo_hora_cents) values ($1, '2027-01-01', -5)`, [pessoaId])),
+    ).rejects.toThrow(/violates check constraint/);
+  });
+
+  it('o salário de uma pessoa não se vê de fora da empresa', async () => {
+    const r = await as(PX, () => db.query<{ n: string }>(`select count(*)::text as n from public.painter_person_rates where person_id = $1`, [pessoaId]));
+    expect(Number(r.rows[0]!.n)).toBe(0);
+  });
+});
