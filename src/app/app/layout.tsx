@@ -59,7 +59,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });
   const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
   if (kinds.has('pintor')) {
-    more.push({ href: '/app/obras', label: 'Gestão de obra' });
+    more.push({
+      href: '/app/obras',
+      label: 'Gestão de obra',
+      children: [
+        { href: '/app/obras?ver=hoje', label: 'Hoje' },
+        { href: '/app/obras?ver=equipa', label: 'Equipa' },
+        { href: '/app/obras?ver=contas', label: 'Contas' },
+      ],
+    });
     more.push({ href: '/app/subscricao', label: 'Plano da empresa' });
     // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
     // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.

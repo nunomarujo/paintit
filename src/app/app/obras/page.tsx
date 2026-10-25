@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { Dossier } from '@/components/Dossier';
 import { dossier, resumirDossier } from '@/domain/dossier';
+import { formatHoras } from '@/domain/dayLog';
 import { formatEuros } from '@/domain/money';
 import { WORKSITE_STATE_LABELS, formatQuantidade, saldos, type Consumivel, type Movimento } from '@/domain/worksites';
 import { temPro } from '@/domain/painterPlan';
-import { painterOrgs, painterSubscription } from '@/lib/queries';
+import { contasDasObras, equipaDaEmpresa, painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { CreateWorksite } from './WorksiteForms';
 
@@ -15,7 +16,9 @@ import { CreateWorksite } from './WorksiteForms';
  * toda a gente: as ferramentas existiam no código e não existiam para o utilizador. A decisão do
  * promotor foi explícita — estas ferramentas devem funcionar mesmo sem obra ganha na plataforma.
  */
-export default async function WorksitesPage() {
+export default async function WorksitesPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+  const { ver } = await searchParams;
+  const vista = ver === 'equipa' || ver === 'contas' ? ver : 'hoje';
   const { supabase, user } = await getUser();
   const orgs = await painterOrgs(supabase, user!.id);
   const org = orgs[0];
@@ -38,17 +41,87 @@ export default async function WorksitesPage() {
   );
   const repor = stock.filter((s) => s.repor);
   const emCurso = (obras ?? []).filter((o) => o.estado === 'ativa');
+  const hojeData = new Date().toISOString().slice(0, 10);
+  const equipa = org && vista === 'equipa' ? await equipaDaEmpresa(supabase, org.id, hojeData) : [];
+  const contas = org && vista === 'contas' ? await contasDasObras(supabase, org.id) : [];
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Obras</h1>
+        <h1 className="text-2xl font-semibold">
+          {vista === 'equipa' ? 'Equipa' : vista === 'contas' ? 'Contas' : 'Gestão de obra'}
+        </h1>
         <p className="mt-1 max-w-[75ch] text-sm text-slate-600">
-          Todas as obras da empresa, venham ou não da Quem Pinta: equipa e horas, cronograma, custos, consumíveis e
-          trabalhos a mais. {emCurso.length > 0 ? `${emCurso.length} em curso.` : 'Nenhuma em curso.'}
+          {vista === 'equipa'
+            ? 'Quem anda em que obra e quantas horas fez. As pessoas são da empresa e podem estar em várias obras.'
+            : vista === 'contas'
+              ? 'O que cada obra contratou, o que já custou e o que sobra. A mão de obra conta as horas extraordinárias pela lei.'
+              : `Todas as obras da empresa, venham ou não da Quem Pinta. ${emCurso.length > 0 ? `${emCurso.length} em curso.` : 'Nenhuma em curso.'}`}
         </p>
       </div>
 
+      {vista === 'equipa' && (
+        <section>
+          {equipa.length === 0 ? (
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
+              Ainda não há pessoas registadas. Acrescente-as dentro de uma obra e ficam a pertencer à empresa.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {equipa.map((p) => (
+                <li key={p.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <span className="font-semibold text-slate-900">{p.nome}</span>
+                    <span className="text-[13px] tabular-nums text-slate-600">{formatHoras(p.horasNaSemana)} h nos últimos 7 dias</span>
+                  </div>
+                  <p className="text-[12.5px] text-slate-600">
+                    {p.obras.length === 0
+                      ? 'Sem obra atribuída'
+                      : p.obras
+                          .map((o) => `${o.nome}${o.horasHoje > 0 ? ` · ${formatHoras(o.horasHoje)} h hoje` : ''}`)
+                          .join(' · ')}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {/* Dito porque é onde se engana quem lê depressa: isto mostra o que foi registado, não
+              onde as pessoas estão (proposta de Gestão de Obra, 25/10/2026). */}
+          <p className="mt-2 text-[11.5px] text-slate-500">
+            Sem obra atribuída não quer dizer disponível, ausente ou de folga, e estar atribuído não prova presença.
+            Isto mostra o que foi registado.
+          </p>
+        </section>
+      )}
+
+      {vista === 'contas' && (
+        <section>
+          {contas.length === 0 ? (
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">Ainda não há obras.</p>
+          ) : (
+            <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {contas.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/app/obras/${c.id}`} className="block px-4 py-3 hover:bg-slate-50">
+                    <div className="flex flex-wrap items-baseline justify-between gap-3">
+                      <span className="font-semibold text-slate-900">{c.nome}</span>
+                      <span className={`tabular-nums ${c.margem < 0 ? 'text-red-700' : 'text-slate-900'}`}>
+                        {formatEuros(c.margem)}
+                      </span>
+                    </div>
+                    <p className="text-[12.5px] text-slate-600">
+                      {formatEuros(c.contrato)} contratados · {formatEuros(c.custos)} de custo
+                      {!c.fiavel && ' · sem horas registadas, a conta está a meio'}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {vista === 'hoje' && (<>
       {/* O cofre com avisos de validade é do plano Pro (25/10/2026). Quem não subscreve vê o que é e
           o que lhe pouparia, em vez de um espaço vazio sem explicação. */}
       {org && pro && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
@@ -127,6 +200,7 @@ export default async function WorksitesPage() {
           </div>
         </>
       )}
+      </>)}
     </div>
   );
 }

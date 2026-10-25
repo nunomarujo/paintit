@@ -3,6 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ObraConcluida } from '@/domain/margin';
 import { isPlanoPintor, subscriberDiscountBp, type SubscricaoPintor } from '@/domain/painterPlan';
 import { orcamentosPorEnviar } from '@/domain/quoteBoard';
+import { custoDasHoras, custoHoraEm } from '@/domain/overtime';
+import { margemDaObra } from '@/domain/margin';
+import type { Cents } from '@/domain/money';
 import { summarize } from '@/domain/worksite';
 import type { Database } from '@/lib/database.types';
 import type { IsoDate } from '@/domain/deadline';
@@ -218,4 +221,119 @@ export async function contarOrcamentosPorEnviar(supabase: SupabaseClient<Databas
     };
   });
   return orcamentosPorEnviar(doPainel, new Date().toISOString().slice(0, 10)).length;
+}
+
+export interface PessoaNoDia {
+  id: string;
+  nome: string;
+  funcao: string;
+  /** Obras onde está atribuída, com as horas registadas hoje em cada uma. */
+  obras: { nome: string; horasHoje: number }[];
+  horasNaSemana: number;
+}
+
+/**
+ * As pessoas da empresa, onde estão e quanto fizeram.
+ *
+ * Nota do desenho, que a proposta de Gestão de Obra sublinha e vale a pena respeitar: **sem obra
+ * atribuída não quer dizer disponível, ausente ou de folga**, e estar atribuída não prova presença.
+ * O ecrã mostra o que foi registado, não onde a pessoa está.
+ */
+export async function equipaDaEmpresa(
+  supabase: SupabaseClient<Database>,
+  orgId: string,
+  hoje: string,
+): Promise<PessoaNoDia[]> {
+  const seteDiasAntes = new Date(Date.parse(hoje) - 6 * 86_400_000).toISOString().slice(0, 10);
+  const [{ data: pessoas }, { data: fichas }, { data: obras }, { data: horas }] = await Promise.all([
+    supabase.from('painter_people').select('id, nome, funcao').eq('painter_org_id', orgId).eq('ativo', true).order('nome'),
+    supabase.from('worksite_members').select('id, person_id, worksite_id').eq('painter_org_id', orgId).eq('ativo', true),
+    supabase.from('worksites').select('id, nome').eq('org_id', orgId),
+    supabase
+      .from('worksite_entries')
+      .select('member_id, worksite_id, horas, data')
+      .eq('painter_org_id', orgId)
+      .eq('tipo', 'horas')
+      .gte('data', seteDiasAntes)
+      .lte('data', hoje),
+  ]);
+
+  const nomeDaObra = new Map((obras ?? []).map((o) => [o.id, o.nome]));
+  const pessoaDaFicha = new Map((fichas ?? []).map((f) => [f.id, f.person_id]));
+
+  return (pessoas ?? []).map((p) => {
+    const minhasFichas = (fichas ?? []).filter((f) => f.person_id === p.id);
+    const minhasHoras = (horas ?? []).filter((h) => h.member_id && pessoaDaFicha.get(h.member_id) === p.id);
+    return {
+      id: p.id,
+      nome: p.nome,
+      funcao: p.funcao,
+      obras: minhasFichas.map((f) => ({
+        nome: nomeDaObra.get(f.worksite_id) ?? 'Obra sem nome',
+        horasHoje: minhasHoras
+          .filter((h) => h.worksite_id === f.worksite_id && h.data === hoje)
+          .reduce((n, h) => n + (h.horas ?? 0), 0),
+      })),
+      horasNaSemana: minhasHoras.reduce((n, h) => n + (h.horas ?? 0), 0),
+    };
+  });
+}
+
+export interface ContaDaObra {
+  id: string;
+  nome: string;
+  estado: string;
+  contrato: Cents;
+  custos: Cents;
+  margem: Cents;
+  /** Sem horas registadas, a margem é uma conta a meio e diz-se que é. */
+  fiavel: boolean;
+}
+
+/** As contas de cada obra, com a mão de obra calculada sobre todas as obras (overtime.ts). */
+export async function contasDasObras(supabase: SupabaseClient<Database>, orgId: string): Promise<ContaDaObra[]> {
+  const [{ data: obras }, { data: lancamentos }, { data: fichas }, { data: custosHora }] = await Promise.all([
+    supabase.from('worksites').select('id, nome, estado, valor_cents').eq('org_id', orgId).order('created_at', { ascending: false }),
+    supabase.from('worksite_entries').select('worksite_id, tipo, valor_cents, horas, member_id, data, tipo_dia, id').eq('painter_org_id', orgId),
+    supabase.from('worksite_members').select('id, person_id').eq('painter_org_id', orgId),
+    supabase.from('painter_person_rates').select('person_id, desde, custo_hora_cents, painter_people!inner(painter_org_id)').eq('painter_people.painter_org_id', orgId),
+  ]);
+
+  const pessoaDaFicha = new Map((fichas ?? []).map((f) => [f.id, f.person_id]));
+  const tabelaDe = new Map<string, { desde: string; custoHoraCents: Cents }[]>();
+  for (const r of custosHora ?? []) {
+    const lista = tabelaDe.get(r.person_id) ?? [];
+    lista.push({ desde: r.desde, custoHoraCents: r.custo_hora_cents });
+    tabelaDe.set(r.person_id, lista);
+  }
+
+  const horas = (lancamentos ?? []).filter((x) => x.tipo === 'horas');
+  const custoPorLinha = custoDasHoras(
+    horas.map((x) => {
+      const pessoa = x.member_id ? (pessoaDaFicha.get(x.member_id) ?? null) : null;
+      return {
+        id: x.id,
+        horas: x.horas ?? 0,
+        custoHora: pessoa ? custoHoraEm(tabelaDe.get(pessoa) ?? [], x.data) : null,
+        pessoaId: pessoa,
+        data: x.data,
+        tipoDia: x.tipo_dia,
+      };
+    }),
+  );
+
+  return (obras ?? []).map((o) => {
+    const minhas = (lancamentos ?? []).filter((x) => x.worksite_id === o.id);
+    const custosDiretos = minhas.filter((x) => x.tipo === 'custo').reduce((n, x) => n + (x.valor_cents ?? 0), 0);
+    const minhasHoras = minhas.filter((x) => x.tipo === 'horas');
+    const maoDeObra = minhasHoras.reduce((n, x) => n + (custoPorLinha.get(x.id)?.custoTotal ?? 0), 0);
+    const m = margemDaObra({
+      valorCents: o.valor_cents ?? 0,
+      areaCm2: null,
+      custosDiretos,
+      maoDeObra,
+      horas: minhasHoras.reduce((n, x) => n + (x.horas ?? 0), 0),
+    });
+    return { id: o.id, nome: o.nome, estado: o.estado, contrato: m.valor, custos: m.custo, margem: m.margem, fiavel: m.fiavel };
+  });
 }
