@@ -136,12 +136,17 @@ describe('acesso ao Pro', () => {
 
   it('o benefício do convite traz os números medidos, não adjectivos', () => {
     const convite = BENEFICIOS_PRO.find((b) => b.titulo.includes('Dois terços'));
-    expect(convite?.maisInfo).toContain('401');
-    expect(convite?.maisInfo).toContain('57%');
+    expect(convite?.maisInfo).toContain('482');
+    expect(convite?.maisInfo).toContain('58%');
   });
 
-  it('o plano gratuito guarda a comissão de 18% no detalhe, não no título', () => {
-    expect(BENEFICIOS_GRATUITO.some((b) => b.titulo.includes('18%'))).toBe(false);
-    expect(BENEFICIOS_GRATUITO.some((b) => b.maisInfo?.includes('18%'))).toBe(true);
+  it('a taxa da comissão não aparece em lado nenhum, só os pontos que desce', () => {
+    // Decisão do promotor, 25/10/2026: nem 18% nem 13% nem qualquer outra taxa nesta página. O que
+    // se diz é quanto desce — cinco pontos percentuais — e quanto isso vale em euros.
+    const texto = [...BENEFICIOS_GRATUITO, ...BENEFICIOS_PRO]
+      .flatMap((b) => [b.titulo, b.detalhe, b.maisInfo ?? ''])
+      .join(' ');
+    for (const taxa of ['18%', '13%', '9%']) expect(texto).not.toContain(taxa);
+    expect(texto).toContain('5 pontos percentuais');
   });
 });

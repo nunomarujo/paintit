@@ -106,7 +106,8 @@ export const BENEFICIOS_PRO: Beneficio[] = [
   {
     titulo: 'Fique com mais do que ganhou',
     detalhe: 'Numa obra de 30 000 €, ficam-lhe mais 1 500 € no bolso — mais do que quatro anos de subscrição, numa obra só.',
-    maisInfo: 'A comissão desce de 18% para 13% do valor sem IVA, e soma-se aos descontos que já tenha.',
+    maisInfo:
+      'A comissão desce 5 pontos percentuais do valor sem IVA, e soma-se aos descontos que já tenha — os de fornecedores indicados e os de códigos de adesão.',
   },
   {
     titulo: 'O cliente lembra-se de si, não da aplicação',
@@ -141,7 +142,7 @@ export const BENEFICIOS_PRO: Beneficio[] = [
     detalhe:
       'A câmara não publica concurso: convida directamente quem já conhece. Fazemos o trabalho para que seja a si que convidam — dizemos-lhe quem contrata pintura à sua volta, com que frequência e por que valores.',
     maisInfo:
-      'Em 2026 houve 401 empreitadas de pintura, fachadas e isolamento, no total de 55,2 milhões de euros. Dois terços foram por convite directo, e em 57% desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
+      'Em 2026 houve 482 empreitadas de pintura, fachadas e isolamento, no total de 63,6 milhões de euros. Dois terços foram por convite directo, e em 58% desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
     aChegar: true,
   },
   {
@@ -158,7 +159,7 @@ export const BENEFICIOS_GRATUITO: Beneficio[] = [
     titulo: 'Comece sem pagar nada',
     detalhe: 'Veja os pedidos, prepare e envie propostas à vontade. Sem mensalidade.',
     maisInfo:
-      'Só há comissão quando ganha a obra — nunca antes. A comissão base é 18%, e desce com o plano Pro e com os descontos de fornecedores indicados ou de códigos de adesão, quando os tiver.',
+      'Só há comissão quando ganha a obra — nunca antes. Com o plano Pro desce 5 pontos percentuais, e ainda há os descontos de fornecedores indicados e de códigos de adesão, quando os tiver.',
   },
   {
     titulo: 'Nunca mais orçamente às cegas',

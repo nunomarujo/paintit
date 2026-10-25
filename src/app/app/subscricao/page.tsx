@@ -10,7 +10,6 @@ import {
 } from '@/domain/painterPlan';
 import { formatEuros } from '@/domain/money';
 import { withVat } from '@/domain/subscription';
-import { CURRENT_RULES } from '@/domain/rules';
 import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { BenefitItem } from '@/components/BenefitItem';
@@ -37,8 +36,9 @@ export default async function SubscriptionPage() {
   // Exemplo com uma obra de 30 000 €: um número redondo e plausível numa fachada de prédio, para que a
   // diferença se leia em euros e não em pontos percentuais.
   const exemplo = 3_000_000;
-  const comissaoBase = (exemplo * CURRENT_RULES.commissionBp) / 10_000;
-  const comissaoPro = (exemplo * (CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP)) / 10_000;
+  // Calcula-se a poupança a partir do desconto, não da diferença entre duas comissões: assim a taxa
+  // em vigor não chega sequer a entrar nesta página.
+  const poupa = (exemplo * PRO_DISCOUNT_BP) / 10_000;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -53,8 +53,8 @@ export default async function SubscriptionPage() {
       {situacao.tipo === 'activa' && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <p>
-            <strong className="font-semibold">Plano Pro activo.</strong> A comissão das suas propostas está a{' '}
-            {(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}%.
+            <strong className="font-semibold">Plano Pro activo.</strong> A comissão das suas propostas está{' '}
+            {PRO_DISCOUNT_BP / 100} pontos percentuais mais baixa.
           </p>
           {/* Quem paga tem de ver o que paga, com que frequência e quando é a próxima cobrança, sem
               abrir o Stripe. O ecrã dizia só que o plano estava activo (25/10/2026). */}
@@ -76,23 +76,21 @@ export default async function SubscriptionPage() {
       {pendente && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <strong className="font-semibold">A adesão ficou a meio: falta o pagamento.</strong> Enquanto não estiver pago,
-          a comissão mantém-se nos {CURRENT_RULES.commissionBp / 100}% e nada muda. Carregue de novo em aderir para
-          retomar.
+          a comissão mantém-se como está e nada muda. Carregue de novo em aderir para retomar.
         </p>
       )}
 
-      {/* O número grande é a poupança, não a comissão. A versão anterior punha os 18% em corpo 26
-          no topo da página, que é exactamente o contrário do que esta página se propõe fazer: a
-          percentagem é a mecânica, os euros é que são o argumento (25/10/2026). */}
+      {/* O número grande é a poupança, e a taxa da comissão não aparece em lado nenhum desta página
+          (decisão do promotor, 25/10/2026). Não basta tirar a percentagem do título: dizer "de X € para
+          Y €" numa obra de valor conhecido revela as duas taxas por divisão. Fica só o que se poupa. */}
       <section className="rounded-2xl border border-marca-border bg-marca-cream px-6 py-5">
         <p className="eyebrow text-marca-ink-soft">Numa obra de {formatEuros(exemplo)}</p>
         <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight text-marca-orange-deep">
-          Poupa {formatEuros(comissaoBase - comissaoPro)}
+          Poupa {formatEuros(poupa)}
         </p>
         <p className="mt-2 max-w-[60ch] text-[12.5px] text-marca-muted">
-          A comissão da plataforma desce de {CURRENT_RULES.commissionBp / 100}% para{' '}
-          {(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}% do valor sem IVA — de {formatEuros(comissaoBase)} para{' '}
-          {formatEuros(comissaoPro)}. Numa obra só, mais do que quatro anos de subscrição.
+          A comissão da plataforma desce {PRO_DISCOUNT_BP / 100} pontos percentuais do valor sem IVA, e soma-se aos
+          descontos que já tenha. Numa obra só, mais do que quatro anos de subscrição.
         </p>
       </section>
 
@@ -155,8 +153,8 @@ export default async function SubscriptionPage() {
 
       <p className="text-[12px] text-slate-500">
         O desconto de subscritor soma-se aos descontos de códigos de adesão e de fornecedores indicados. Com todos
-        empilhados, a comissão nunca desce abaixo de {(CURRENT_RULES.commissionFloorBp ?? 0) / 100}%. A anual é uma só
-        cobrança por ano, renovável, e poupa {formatEuros(poupancaAnual())} face a doze meses.
+        empilhados, há um limite mínimo abaixo do qual a comissão não desce. A anual é uma só cobrança por ano,
+        renovável, e poupa {formatEuros(poupancaAnual())} face a doze meses.
       </p>
     </div>
   );
