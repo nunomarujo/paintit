@@ -4,6 +4,17 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — O preço de lançamento passa a ser oferta de lançamento
+
+Decisão do promotor. Os 30 €/mês e 250 €/ano mantêm-se, mas deixam de ser "um preço mais baixo
+porque falta lançar coisas" e passam a ser **oferta de lançamento** contra o preço normal, que é
+anunciado ao lado: 50 €/mês e 500 €/ano, riscado.
+
+A razão de ser é outra desde hoje. As funcionalidades estão no ar; o que ainda não existe é massa
+crítica de pedidos na plataforma, e sem ela o desconto de comissão vale pouco na prática. A oferta
+compensa isso, e quem subscrever durante o lançamento mantém o preço enquanto não cancelar — a
+assinatura guarda a versão de preços que aplicou (regra 3).
+
 ## 25/10/2026 — O plano Pro vendia quatro coisas e só reservava uma
 
 Ao ir avançar no que a página do plano dizia estar "Por lançar", verificou-se que estava tudo no ar

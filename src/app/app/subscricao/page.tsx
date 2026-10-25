@@ -117,16 +117,20 @@ export default async function SubscriptionPage() {
         <section className="rounded-2xl border-2 border-tinta-600 bg-white p-5">
           <div className="flex items-baseline justify-between gap-3">
             <p className="eyebrow text-tinta-700">Pro</p>
-            <span className="badge badge-amber">Preço de lançamento</span>
+            <span className="badge badge-amber">Oferta de lançamento</span>
           </div>
+          {/* O preço normal aparece riscado ao lado do de lançamento: é oferta, e uma oferta só se lê
+              como tal contra o preço que substitui. Decisão do promotor, 25/10/2026. */}
           <p className="mt-1 text-[22px] font-semibold tracking-tight text-slate-900">
+            <span className="mr-2 text-[15px] font-normal text-slate-400 line-through">{formatEuros(PRECO_ATUAL.tabelaMensalCents)}</span>
             {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-slate-600">/mês</span>
             <span className="text-[13px] font-normal text-slate-600"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
           </p>
           <p className="text-[12px] text-slate-600">
-            Com IVA: {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível
-            para a sua empresa. Preço de tabela {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês e {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano,
-            a praticar mais tarde. Quem subscrever agora mantém este preço enquanto não cancelar.
+            O preço normal é {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês ou {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano. Quem
+            subscrever durante o lançamento fica com este enquanto não cancelar. Com IVA:{' '}
+            {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível para a
+            sua empresa.
           </p>
           <ul className="mt-4 space-y-3 text-sm">
             {BENEFICIOS_PRO.map((b) => (

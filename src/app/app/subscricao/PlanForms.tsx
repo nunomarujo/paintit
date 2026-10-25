@@ -43,6 +43,9 @@ export function SubscribeForm() {
             >
               <span className="block text-[13px] font-semibold text-slate-900">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
               <span className="block text-[20px] font-semibold tracking-tight text-slate-900">
+                <span className="mr-1.5 text-[13px] font-normal text-slate-400 line-through">
+                  {formatEuros(p === 'anual' ? PRECO_ATUAL.tabelaAnualCents : PRECO_ATUAL.tabelaMensalCents)}
+                </span>
                 {formatEuros(preco)}
                 <span className="text-[12px] font-normal text-slate-600"> + IVA</span>
               </span>
