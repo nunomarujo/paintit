@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { addendaErrors } from '@/domain/addenda';
 import { dayErrors, presencasEfetivas, type PresencaInput } from '@/domain/dayLog';
+import type { TipoDia } from '@/domain/overtime';
 import { UNIDADES, worksiteErrors } from '@/domain/worksites';
 import { painterOrgs } from '@/lib/queries';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
@@ -67,6 +68,9 @@ export async function addEntry(worksiteId: string, tipo: 'custo' | 'tranche' | '
   if (tipo === 'horas') {
     const horas = parseHundredths(form.get('horas'));
     if (horas === null || Number.isNaN(horas) || horas <= 0) return fail('horas', 'Horas, ex.: 7,5.');
+    // Cada lançamento é um dia de uma pessoa, nunca um acumulado de vários dias — é o que permite
+    // distinguir as horas normais das suplementares (src/domain/overtime.ts).
+    if (horas > 2400) return fail('horas', 'Um lançamento é um dia de uma pessoa: no máximo 24 horas.');
     const memberId = String(form.get('member') ?? '') || null;
     const { error } = await supabase.from('worksite_entries').insert({ worksite_id: worksiteId, tipo, data, descricao, horas, member_id: memberId });
     return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Horas registadas.');
@@ -318,6 +322,8 @@ export async function moveConsumable(consumableId: string, _prev: FormState, for
  */
 export async function registerDay(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const data = date(form.get('data')) ?? new Date().toISOString().slice(0, 10);
+  // Num dia de descanso ou feriado não há horas normais: todas levam acréscimo (overtime.ts).
+  const tipoDia: TipoDia = form.get('tipoDia') === 'descanso' ? 'descanso' : 'util';
   const presencas: PresencaInput[] = [];
   for (const [campo, valor] of form.entries()) {
     if (!campo.startsWith('horas:')) continue;
@@ -345,6 +351,7 @@ export async function registerDay(worksiteId: string, _prev: FormState, form: Fo
       worksite_id: worksiteId,
       tipo: 'horas' as const,
       data,
+      tipo_dia: tipoDia,
       descricao: String(form.get('nota') ?? '').trim().slice(0, 500),
       horas: p.horas,
       member_id: p.memberId,

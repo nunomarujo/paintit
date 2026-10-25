@@ -1426,6 +1426,7 @@ export type Database = {
           prevista: string | null;
           recebida_em: string | null;
           tipo: WorksiteEntryKind;
+          tipo_dia: 'util' | 'descanso' | null;
           valor_cents: number | null;
         };
         Insert: {
@@ -1440,6 +1441,7 @@ export type Database = {
           prevista?: string | null;
           recebida_em?: string | null;
           tipo: WorksiteEntryKind;
+          tipo_dia?: 'util' | 'descanso' | null;
           valor_cents?: number | null;
         };
         Update: { recebida_em?: string | null; meio?: string | null };

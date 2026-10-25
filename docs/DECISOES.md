@@ -2245,3 +2245,37 @@ Decisões que acompanham:
 **Isto é uma aposta, não uma certeza.** Se não for usado duas semanas seguidas por um pintor real, a
 margem nunca aparece e metade do valor das ferramentas de obra vai com ela. É a primeira coisa a pôr
 à prova quando houver alguém a usar isto a sério, antes de se construir mais seja o que for em cima.
+
+## 25/10/2026 — Horas a mais: trabalho suplementar
+
+A pergunta do promotor — "e quem fizer horas extra?" — apanhou um buraco real: dava para escrever dez
+horas, mas a aplicação tratava-as como horas normais, ao custo normal. Isso mente na margem, que é a
+única razão por que estas horas se registam.
+
+**Acréscimos do artigo 268.º do Código do Trabalho**, confirmados na web a 25/10/2026:
+
+| | até 100 h/ano | acima de 100 h/ano |
+|---|---|---|
+| 1.ª hora em dia útil | +25% | +50% |
+| horas seguintes em dia útil | +37,5% | +75% |
+| descanso semanal ou feriado | +50% | +100% |
+
+A duplicação acima das 100 horas anuais por trabalhador vem da Lei n.º 13/2023. São **mínimos
+legais**: um contrato colectivo pode ser mais favorável, e por isso os acréscimos são parâmetros e
+não constantes espalhadas pelo código.
+
+**Decisões:**
+
+- **Uma linha de horas é um dia de uma pessoa, nunca um acumulado.** Sem isto não há como separar
+  horas normais de suplementares. O limite passou a 24 horas por lançamento, na base de dados e no
+  formulário. O teste da margem tinha uma linha de 40 horas que deixou de fazer sentido e foi
+  reescrito como cinco dias.
+- **O limiar atravessa-se hora a hora, não dia a dia.** Quem está a 1 hora das 100 anuais e faz duas
+  suplementares paga a primeira em singelo e a segunda em dobro — não o dia inteiro em dobro.
+- **Em dia de descanso ou feriado não há horas normais**: todas levam acréscimo. É um visto no ecrã
+  do dia, que avisa o que está a fazer.
+- **A plataforma calcula, não decide.** Os limites anuais de horas dependem da dimensão da empresa e
+  do contrato colectivo; o ecrã avisa e não impede.
+
+Fica uma aproximação conhecida, anotada em `docs/ESTADO.md`: o acumulado anual conta só as horas da
+mesma obra, não as da empresa toda.

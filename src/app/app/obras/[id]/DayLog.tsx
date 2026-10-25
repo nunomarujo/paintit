@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
 import { DIA_NORMAL, formatHoras, resumoDoDia, type Presenca } from '@/domain/dayLog';
+import { avisoAnual, suplementaresDe, type TipoDia } from '@/domain/overtime';
 import { registerDay } from '@/app/app/obras/actions';
 
 const passo = 50; // meia hora
@@ -15,8 +16,18 @@ const passo = 50; // meia hora
  * É a maior aposta do desenho das ferramentas de obra. Se não for usado duas semanas seguidas, a
  * margem real nunca aparece, e vale a pena saber isso cedo (docs/DECISOES.md, 25/10/2026).
  */
-export function DayLog({ worksiteId, equipa, hoje }: { worksiteId: string; equipa: { id: string; nome: string }[]; hoje: string }) {
+export function DayLog({
+  worksiteId,
+  equipa,
+  hoje,
+}: {
+  worksiteId: string;
+  /** `suplementaresNoAno` é o acumulado de cada pessoa antes de hoje, para o aviso das 100 horas. */
+  equipa: { id: string; nome: string; suplementaresNoAno: number }[];
+  hoje: string;
+}) {
   const [presencas, setPresencas] = useState<Presenca[]>(equipa.map((m) => ({ memberId: m.id, nome: m.nome, horas: DIA_NORMAL })));
+  const [tipoDia, setTipoDia] = useState<TipoDia>('util');
   const [extras, setExtras] = useState(false);
   const { state, pending, formProps } = useFormAction<FormState>(registerDay.bind(null, worksiteId), { errors: {} });
 
@@ -35,19 +46,47 @@ export function DayLog({ worksiteId, equipa, hoje }: { worksiteId: string; equip
 
   return (
     <form {...formProps} className="space-y-4">
-      <label className="block text-sm">
-        Dia
-        <input type="date" name="data" defaultValue={hoje} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2" />
-      </label>
+      <input type="hidden" name="tipoDia" value={tipoDia} />
+      <div className="flex flex-wrap items-end gap-4">
+        <label className="block text-sm">
+          Dia
+          <input type="date" name="data" defaultValue={hoje} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2" />
+        </label>
+        <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
+          <input type="checkbox" checked={tipoDia === 'descanso'} onChange={(e) => setTipoDia(e.target.checked ? 'descanso' : 'util')} />
+          Dia de descanso ou feriado
+        </label>
+      </div>
+      {tipoDia === 'descanso' && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">
+          Em dia de descanso ou feriado não há horas normais: todas as horas levam acréscimo, e é isso que vai contar
+          no custo da obra.
+        </p>
+      )}
 
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {presencas.map((p) => {
           const faltou = p.horas === 0;
           return (
-            <li key={p.memberId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-              <span className={`text-sm font-medium ${faltou ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{p.nome}</span>
+            <li key={p.memberId} className="flex items-start justify-between gap-3 px-4 py-2.5">
+              <span className="min-w-0 flex-1">
+                <span className={`block text-sm font-medium ${faltou ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{p.nome}</span>
+                {(() => {
+                  const extra = suplementaresDe({ horas: p.horas, tipoDia });
+                  const membro = equipa.find((m) => m.id === p.memberId);
+                  const aviso = avisoAnual((membro?.suplementaresNoAno ?? 0) + extra);
+                  if (extra === 0 && !aviso) return null;
+                  return (
+                    <span className="block text-[11.5px] leading-snug text-amber-800">
+                      {extra > 0 ? `${formatHoras(extra)} h a mais` : ''}
+                      {extra > 0 && aviso ? ' · ' : ''}
+                      {aviso ?? ''}
+                    </span>
+                  );
+                })()}
+              </span>
               <input type="hidden" name={`horas:${p.memberId}`} value={formatHoras(p.horas).replace('.', ',')} />
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={() => mudar(p.memberId, p.horas - passo)}

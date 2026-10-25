@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
+import { suplementaresDe } from '@/domain/overtime';
 import { DayLog } from './DayLog';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
@@ -96,11 +97,30 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     contrato: w.valor_cents ?? e?.base_cents ?? 0,
     tranches: list.filter((x) => x.tipo === 'tranche').map((x) => ({ valor: x.valor_cents ?? 0, prevista: x.prevista, recebidaEm: x.recebida_em })),
     costs: list.filter((x) => x.tipo === 'custo').map((x) => ({ categoria: x.categoria as CostCategory, valor: x.valor_cents ?? 0 })),
+    // Ordenadas por data: o limiar anual das 100 horas aplica-se pela ordem em que elas aconteceram.
     hours: list
       .filter((x) => x.tipo === 'horas')
-      .map((x) => ({ horas: x.horas ?? 0, custoHora: (members ?? []).find((m) => m.id === x.member_id)?.custo_hora_cents ?? null })),
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .map((x) => ({
+        horas: x.horas ?? 0,
+        custoHora: (members ?? []).find((m) => m.id === x.member_id)?.custo_hora_cents ?? null,
+        memberId: x.member_id,
+        data: x.data,
+        tipoDia: x.tipo_dia,
+      })),
     today,
   });
+  // Horas suplementares já feitas este ano por cada pessoa **nesta obra**. O limiar das 100 horas é
+  // legalmente por trabalhador e por ano, somando todas as obras — isto é uma aproximação por baixo,
+  // e está anotado como dívida em docs/ESTADO.md.
+  const anoAtual = today.slice(0, 4);
+  const suplementaresPorPessoa = new Map<string, number>();
+  for (const x of list) {
+    if (x.tipo !== 'horas' || !x.member_id || x.data.slice(0, 4) !== anoAtual) continue;
+    const extra = suplementaresDe({ horas: x.horas ?? 0, tipoDia: x.tipo_dia ?? 'util' });
+    suplementaresPorPessoa.set(x.member_id, (suplementaresPorPessoa.get(x.member_id) ?? 0) + extra);
+  }
+
   const memberOptions = (members ?? []).map((m) => ({ value: m.id, label: m.nome }));
   const tabs = [
     ['dia', 'Registar o dia'],
@@ -189,7 +209,13 @@ export default async function WorksitePage({ params, searchParams }: { params: P
             a margem real da obra — sem horas registadas, o custo da mão de obra é um palpite.
           </p>
           <div className="mt-4">
-            <DayLog worksiteId={id} equipa={(members ?? []).filter((m) => m.ativo).map((m) => ({ id: m.id, nome: m.nome }))} hoje={today} />
+            <DayLog
+              worksiteId={id}
+              equipa={(members ?? [])
+                .filter((m) => m.ativo)
+                .map((m) => ({ id: m.id, nome: m.nome, suplementaresNoAno: suplementaresPorPessoa.get(m.id) ?? 0 }))}
+              hoje={today}
+            />
           </div>
         </section>
       )}

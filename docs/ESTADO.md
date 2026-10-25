@@ -1299,3 +1299,15 @@ Com isso ligou-se o que estava à espera:
 - O capoto deixou de ser separador fixo: é um campo dentro de Trabalhos, e **só aparece quando foi
   declarado antes**. Ganhou a cor do acabamento, além do tipo e da espessura.
 - O passo "Trabalhos" só se dá por completo se o capoto, quando a obra o leva, estiver especificado.
+
+### Limiar anual de trabalho suplementar — aproximação conhecida (25/10/2026)
+
+O aviso das 100 horas anuais (`src/domain/overtime.ts`) conta, por pessoa, **só as horas feitas nesta
+obra**. Legalmente o limiar é por trabalhador e por ano civil, somando todas as obras da empresa.
+Quem tiver a mesma pessoa em várias obras ao mesmo tempo vê um aviso que chega tarde e um custo
+calculado por baixo.
+
+Para resolver é preciso somar as horas da pessoa em todas as obras da empresa no ano. A consulta é
+simples; o que falta decidir é se o identificador da pessoa é o `worksite_members.id` (hoje, uma
+linha por obra) ou uma ficha de pessoa ao nível da empresa — a segunda é a correcta e implica juntar
+as fichas repetidas que já existam.

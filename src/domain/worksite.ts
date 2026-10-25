@@ -1,4 +1,5 @@
 import type { Cents } from './money';
+import { custoDoDia, suplementaresDe, type TipoDia } from './overtime';
 
 // Ferramentas de obra do pintor (opcionais, depois da contratação): equipa,
 // fases, custos, horas e tranches. São dados internos do pintor; o cliente não
@@ -52,6 +53,12 @@ export interface Hours {
   /** Horas em centésimos (7,5 h = 750). */
   horas: number;
   custoHora: Cents | null;
+  /** Quem as fez, para o limiar anual de trabalho suplementar ser por pessoa. */
+  memberId?: string | null;
+  /** AAAA-MM-DD: o ano decide em que contagem anual o dia entra. */
+  data?: string | null;
+  /** Dia útil ou dia de descanso/feriado. Ausente conta como dia útil. */
+  tipoDia?: TipoDia | null;
 }
 
 export interface WorksiteSummary {
@@ -64,6 +71,8 @@ export interface WorksiteSummary {
   porCategoria: Partial<Record<CostCategory, Cents>>;
   maoDeObra: Cents;
   horas: number;
+  /** Horas suplementares da obra, em centésimos — as que custam acréscimo. */
+  suplementares: number;
   margem: Cents;
   /** Margem sobre o contrato, em pontos-base (null sem contrato). */
   margemBps: number | null;
@@ -71,6 +80,13 @@ export interface WorksiteSummary {
   semPlano: Cents;
 }
 
+/**
+ * O custo da mão de obra conta o trabalho suplementar: dez horas ao preço de oito mentiriam na
+ * margem, e a margem é a única razão por que estas horas se registam (25/10/2026).
+ *
+ * As horas chegam já ordenadas por data, para o limiar anual das 100 horas ser aplicado pela ordem em
+ * que as horas aconteceram — quem passou o limiar a meio do ano paga o dobro só de lá para a frente.
+ */
 export function summarize(p: { contrato: Cents; tranches: Tranche[]; costs: Cost[]; hours: Hours[]; today: string }): WorksiteSummary {
   const recebido = p.tranches.filter((t) => t.recebidaEm).reduce((n, t) => n + t.valor, 0);
   const planeado = p.tranches.reduce((n, t) => n + t.valor, 0);
@@ -78,7 +94,19 @@ export function summarize(p: { contrato: Cents; tranches: Tranche[]; costs: Cost
   const porCategoria: Partial<Record<CostCategory, Cents>> = {};
   for (const c of p.costs) porCategoria[c.categoria] = (porCategoria[c.categoria] ?? 0) + c.valor;
   const custosDiretos = p.costs.reduce((n, c) => n + c.valor, 0);
-  const maoDeObra = p.hours.reduce((n, h) => n + Math.round((h.horas * (h.custoHora ?? 0)) / 100), 0);
+  // Acumulado anual por pessoa, para o limiar das 100 horas (src/domain/overtime.ts).
+  const acumulado = new Map<string, number>();
+  let maoDeObra = 0;
+  let suplementares = 0;
+  for (const h of p.hours) {
+    const chave = `${h.memberId ?? 'sem-pessoa'}|${(h.data ?? '').slice(0, 4)}`;
+    const antes = acumulado.get(chave) ?? 0;
+    const dia = { horas: h.horas, tipoDia: h.tipoDia ?? ('util' as const) };
+    maoDeObra += custoDoDia(dia, h.custoHora ?? 0, antes).custoTotal;
+    const extra = suplementaresDe(dia);
+    suplementares += extra;
+    acumulado.set(chave, antes + extra);
+  }
   const horas = p.hours.reduce((n, h) => n + h.horas, 0);
   const custos = custosDiretos + maoDeObra;
   const margem = p.contrato - custos;
@@ -91,6 +119,7 @@ export function summarize(p: { contrato: Cents; tranches: Tranche[]; costs: Cost
     porCategoria,
     maoDeObra,
     horas,
+    suplementares,
     margem,
     margemBps: p.contrato > 0 ? Math.round((margem * 10000) / p.contrato) : null,
     semPlano: p.contrato - planeado,
