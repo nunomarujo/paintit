@@ -1186,15 +1186,20 @@ implantação — estavam escondidos pelo ficheiro desatualizado. Por categorias
 - colunas de vistas e áreas que podem vir nulas (`acc_balancete`, `request_surfaces.area_cm2`, …);
 - valores de lista tratados como texto solto (estado do levantamento, ocupação da via pública, estado
   da adesão);
-- **inserções a que falta uma coluna obrigatória** — por exemplo `engagement_ratings` sem
-  `painter_org_id` (`src/app/app/extras-actions.ts:44`), e casos semelhantes em
-  `src/app/app/obras/actions.ts` e `src/app/app/pedidos/[id]/survey-actions.ts`. Ou a coluna tem valor
-  por omissão na base e o aviso é inofensivo, ou **a inserção falha em produção**. Verificar tabela a
-  tabela antes de mexer.
+- ~~**inserções a que falta uma coluna obrigatória**~~ — **auditado a 25/10/2026 e resolvido: não há
+  nenhuma.** Cruzaram-se todas as chamadas `.insert()` e `.upsert()` do código com as colunas `not
+  null` sem valor por omissão da base real. As quatro que sobraram à primeira vista — `reviews`
+  (`painter_org_id`), `proposal_messages` (`request_id`), `material_orders` (`supplier_org_id`) e
+  `survey_reviews` (`vendedor_user_id`) — são todas preenchidas por gatilhos `before insert`
+  (`review_guard`, `proposal_message_request`, `material_order_guard`, `survey_review_guard`). Não é
+  omissão: é a regra 10 do CLAUDE.md a funcionar — esses valores não vêm do navegador de propósito.
 
 Decisão: não varrer à pressa. São ficheiros de dinheiro e faturação, e silenciar erros de tipos nesse
-código é pior do que tê-los à vista. Repôs-se o ficheiro anterior com `forma_implantacao` acrescentada
-à mão, para o repositório compilar, e fica esta tarefa por fazer — a começar pelas inserções.
+código é pior do que tê-los à vista.
+
+**O que resta é da categoria inofensiva**, agora que as inserções estão descartadas: colunas de vistas
+que podem vir nulas e valores de lista tratados como texto solto. Nenhum deles rebenta em produção —
+fazem o TypeScript ser menos exigente do que podia. A tarefa passa de urgente a arrumação.
 
 
 ### Catálogo alargado a isolamento (capoto/ETICS) e acessórios (24/10/2026)
