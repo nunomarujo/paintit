@@ -38,34 +38,38 @@ export function SubscribeForm() {
               onClick={() => setPeriodicidade(p)}
               aria-pressed={escolhido}
               className={`rounded-xl border p-3 text-left transition-colors ${
-                escolhido ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300 bg-white hover:bg-slate-50'
+                escolhido ? 'border-marca-ink bg-marca-cream' : 'border-marca-border bg-white hover:bg-marca-cream/60'
               }`}
             >
-              <span className="block text-[13px] font-semibold text-slate-900">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
-              <span className="block text-[20px] font-semibold tracking-tight text-slate-900">
-                <span className="mr-1.5 text-[13px] font-normal text-slate-400 line-through">
+              <span className="block text-[13px] font-semibold text-marca-ink-soft">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
+              <span className="block text-[20px] font-semibold tracking-tight text-marca-ink">
+                <span className="mr-1.5 text-[13px] font-normal text-marca-muted/60 line-through">
                   {formatEuros(p === 'anual' ? PRECO_ATUAL.tabelaAnualCents : PRECO_ATUAL.tabelaMensalCents)}
                 </span>
                 {formatEuros(preco)}
-                <span className="text-[12px] font-normal text-slate-600"> + IVA</span>
+                <span className="text-[12px] font-normal text-marca-muted"> + IVA</span>
               </span>
-              <span className="block text-[11px] text-slate-600">
+              <span className="block text-[11px] text-marca-muted">
                 {p === 'anual' ? `uma vez por ano · poupa ${formatEuros(poupancaAnual())}` : 'por mês'}
               </span>
             </button>
           );
         })}
       </div>
-      <button type="submit" disabled={pending} className="btn-primary w-full">
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-xl bg-marca-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-marca-orange disabled:opacity-60"
+      >
         {pending ? 'A registar…' : `Aderir ao plano Pro — ${formatEuros(precoEscolhido)} + IVA`}
       </button>
       {/* O que vai ser debitado, dito antes de sair daqui: o preço anunciado é sem IVA e o Stripe cobra
           o total. Decisão do promotor, 25/10/2026. */}
-      <p className="text-[11px] text-slate-600">
+      <p className="text-[11px] text-marca-muted">
         Serão debitados <strong className="font-semibold">{formatEuros(withVat(precoEscolhido))}</strong> com IVA à taxa
         normal. O IVA é dedutível para a sua empresa.
       </p>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-marca-muted/80">
         A adesão fica registada e só passa a activa depois do pagamento. Pode cancelar quando quiser; o desconto mantém-se
         até ao fim do período que já pagou.
       </p>

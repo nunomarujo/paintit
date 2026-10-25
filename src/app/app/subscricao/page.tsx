@@ -81,31 +81,26 @@ export default async function SubscriptionPage() {
         </p>
       )}
 
-      <section className="overflow-hidden rounded-2xl border border-tinta-200 bg-tinta-50/60">
-        <div className="grid gap-px bg-tinta-200/70 sm:grid-cols-3">
-          <div className="bg-white px-5 py-4">
-            <p className="eyebrow">Comissão hoje</p>
-            <p className="mt-1 text-[26px] font-semibold leading-none text-slate-700">{formatEuros(comissaoBase)}</p>
-            <p className="mt-1 text-[12px] text-slate-600">{CURRENT_RULES.commissionBp / 100}% numa obra de {formatEuros(exemplo)}</p>
-          </div>
-          <div className="bg-white px-5 py-4">
-            <p className="eyebrow text-tinta-700">Com o plano Pro</p>
-            <p className="mt-1 text-[26px] font-semibold leading-none text-tinta-800">{formatEuros(comissaoPro)}</p>
-            <p className="mt-1 text-[12px] text-slate-600">{(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}% na mesma obra</p>
-          </div>
-          <div className="bg-white px-5 py-4">
-            <p className="eyebrow">Poupa</p>
-            <p className="mt-1 text-[26px] font-semibold leading-none text-slate-900">{formatEuros(comissaoBase - comissaoPro)}</p>
-            <p className="mt-1 text-[12px] text-slate-600">numa obra só, contra {formatEuros(PRECO_ATUAL.anualCents)} de plano anual, sem IVA</p>
-          </div>
-        </div>
+      {/* O número grande é a poupança, não a comissão. A versão anterior punha os 18% em corpo 26
+          no topo da página, que é exactamente o contrário do que esta página se propõe fazer: a
+          percentagem é a mecânica, os euros é que são o argumento (25/10/2026). */}
+      <section className="rounded-2xl border border-marca-border bg-marca-cream px-6 py-5">
+        <p className="eyebrow text-marca-ink-soft">Numa obra de {formatEuros(exemplo)}</p>
+        <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight text-marca-orange-deep">
+          Poupa {formatEuros(comissaoBase - comissaoPro)}
+        </p>
+        <p className="mt-2 max-w-[60ch] text-[12.5px] text-marca-muted">
+          A comissão da plataforma desce de {CURRENT_RULES.commissionBp / 100}% para{' '}
+          {(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}% do valor sem IVA — de {formatEuros(comissaoBase)} para{' '}
+          {formatEuros(comissaoPro)}. Numa obra só, mais do que quatro anos de subscrição.
+        </p>
       </section>
 
       <div className="grid items-start gap-5 md:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="eyebrow">Gratuito</p>
-          <p className="mt-1 text-[22px] font-semibold tracking-tight text-slate-900">0 €</p>
-          <p className="text-[12px] text-slate-600">o que tem hoje</p>
+        <section className="rounded-2xl border border-marca-border bg-white p-5">
+          <p className="eyebrow text-marca-ink-soft">Gratuito</p>
+          <p className="mt-1 text-[22px] font-semibold tracking-tight text-marca-ink">0 €</p>
+          <p className="text-[12px] text-marca-muted">o que tem hoje</p>
           <ul className="mt-4 space-y-3 text-sm">
             {BENEFICIOS_GRATUITO.map((b) => (
               <BenefitItem key={b.titulo} b={b} />
@@ -113,35 +108,37 @@ export default async function SubscriptionPage() {
           </ul>
         </section>
 
-        <section className="rounded-2xl border-2 border-tinta-600 bg-white p-5">
+        <section className="rounded-2xl border-2 border-marca-ink bg-white p-5">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="eyebrow text-tinta-700">Pro</p>
-            <span className="badge badge-amber">Oferta de lançamento</span>
+            <p className="eyebrow text-marca-ink-soft">Pro</p>
+            <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+              Oferta de lançamento
+            </span>
           </div>
           {/* O preço normal aparece riscado ao lado do de lançamento: é oferta, e uma oferta só se lê
               como tal contra o preço que substitui. Decisão do promotor, 25/10/2026. */}
-          <p className="mt-1 text-[22px] font-semibold tracking-tight text-slate-900">
-            <span className="mr-2 text-[15px] font-normal text-slate-400 line-through">{formatEuros(PRECO_ATUAL.tabelaMensalCents)}</span>
-            {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-slate-600">/mês</span>
-            <span className="text-[13px] font-normal text-slate-600"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
+          <p className="mt-1 text-[22px] font-semibold tracking-tight text-marca-ink">
+            <span className="mr-2 text-[15px] font-normal text-marca-muted/60 line-through">{formatEuros(PRECO_ATUAL.tabelaMensalCents)}</span>
+            {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-marca-muted">/mês</span>
+            <span className="text-[13px] font-normal text-marca-muted"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
           </p>
           {/* Uma linha só. O valor com IVA continua a ser dito no botão de adesão, antes de se sair
               para o pagamento, que é onde faz falta (25/10/2026). */}
-          <p className="text-[12px] font-semibold text-tinta-800">
+          <p className="text-[12px] font-semibold text-marca-orange-deep">
             Desconto de lançamento −{formatEuros(descontoDeLancamento().mensalCents)}/mês ou −
             {formatEuros(descontoDeLancamento().anualCents)}/ano, por tempo limitado.
           </p>
-          <p className="mt-4 text-[13px] font-semibold text-slate-900">Tudo o que tem no Gratuito, mais:</p>
+          <p className="mt-4 text-[13px] font-semibold text-marca-ink">Tudo o que tem no Gratuito, mais:</p>
           {/* Separado em dois grupos para não prometer como feito o que ainda não entrega nada. As
               Obras Públicas e o mapa de convites têm o ecrã construído e a lista vazia — enquanto não
               houver dados lá dentro, ficam do lado de cá (25/10/2026). */}
-          <p className="eyebrow mt-3">Já disponível</p>
+          <p className="eyebrow mt-3 text-marca-ink-soft">● Já disponível</p>
           <ul className="mt-2 space-y-3 text-sm">
             {BENEFICIOS_PRO.filter((b) => !b.aChegar).map((b) => (
               <BenefitItem key={b.titulo} b={b} />
             ))}
           </ul>
-          <p className="eyebrow mt-4">A chegar em breve</p>
+          <p className="eyebrow mt-4 text-marca-muted">○ A chegar em breve</p>
           <ul className="mt-2 space-y-3 text-sm">
             {BENEFICIOS_PRO.filter((b) => b.aChegar).map((b) => (
               <BenefitItem key={b.titulo} b={b} />

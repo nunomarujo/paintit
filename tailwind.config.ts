@@ -38,6 +38,17 @@ const config: Config = {
           700: '#805b20',
           800: '#775b2c',
         },
+        // Paleta da marca (ver :root em globals.css). Usada na página de planos.
+        marca: {
+          ink: 'var(--ink)',
+          'ink-soft': 'var(--ink-soft)',
+          cream: 'var(--cream)',
+          orange: 'var(--orange)',
+          'orange-deep': 'var(--orange-deep)',
+          border: 'var(--border)',
+          muted: 'var(--muted)',
+          tag: 'var(--tag-bg)',
+        },
         sage: '#e9eee8',
         terracota: '#c4572f',
         paper: '#f6f5f0',

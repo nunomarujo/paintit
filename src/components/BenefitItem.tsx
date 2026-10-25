@@ -9,19 +9,27 @@ import type { Beneficio } from '@/domain/painterPlan';
  * que o texto do botão não acompanhava o estado por estar escrito uma vez só.
  */
 export function BenefitItem({ b }: { b: Beneficio }) {
-  // Dentro do grupo "A chegar em breve" a etiqueta por item era a mesma informação duas vezes, e
-  // partia para a linha seguinte nos títulos longos. O cabeçalho do grupo já o diz (25/10/2026).
+  // A etiqueta por item volta a existir, apesar de o cabeçalho do grupo já o dizer: numa página de
+  // vendas, uma promessa por cumprir tem de estar marcada onde é lida, não três linhas acima. O
+  // título e a etiqueta vão numa caixa que quebra, para não partir mal nos títulos longos.
   return (
-    <li className={b.destaque ? 'rounded-xl border border-tinta-200 bg-tinta-50/60 p-3' : undefined}>
-      <span className="font-semibold text-slate-900">{b.titulo}</span>
-      <span className="block text-[12.5px] leading-snug text-slate-600">{b.detalhe}</span>
+    <li className={b.destaque ? 'rounded-xl border border-marca-border bg-marca-cream p-3' : undefined}>
+      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="font-semibold text-marca-ink">{b.titulo}</span>
+        {b.aChegar && (
+          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+            Por lançar
+          </span>
+        )}
+      </span>
+      <span className="block text-[12.5px] leading-snug text-marca-muted">{b.detalhe}</span>
       {b.maisInfo && (
         <details className="group mt-1">
-          <summary className="inline-flex cursor-pointer list-none text-[12px] font-semibold text-tinta-700 underline underline-offset-4 marker:hidden [&::-webkit-details-marker]:hidden">
+          <summary className="inline-flex cursor-pointer list-none text-[12px] font-semibold text-marca-orange-deep underline underline-offset-4 marker:hidden hover:text-marca-orange [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">{b.rotuloMaisInfo ?? '+ saber mais'}</span>
             <span className="hidden group-open:inline">Mostrar menos</span>
           </summary>
-          <p className="mt-1 text-[12px] leading-snug text-slate-600">{b.maisInfo}</p>
+          <p className="mt-1 rounded-lg bg-marca-cream px-3 py-2 text-[12px] leading-snug text-marca-muted">{b.maisInfo}</p>
         </details>
       )}
     </li>

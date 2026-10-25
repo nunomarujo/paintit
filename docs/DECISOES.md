@@ -4,6 +4,33 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — A página de planos lidera com a poupança, e ganha a paleta da marca
+
+Três ajustes pedidos pelo promotor, com o desenho do site como referência.
+
+**O número grande passa a ser a poupança.** A faixa no topo mostrava "Comissão hoje 5 400 €, 18%"
+em corpo 26, logo à entrada — exactamente o contrário do que a reescrita se propunha fazer, que era
+tirar a percentagem da frente. Fica uma frase só: **Poupa 1 500,00 €**, e os 18% e 13% em texto
+pequeno por baixo. A percentagem é a mecânica; os euros é que são o argumento.
+
+**A etiqueta "Por lançar" volta a cada item.** Tinha-a tirado por se repetir com o cabeçalho do
+grupo. Numa página de vendas essa repetição paga-se: uma promessa por cumprir tem de estar marcada
+onde é lida, não três linhas acima.
+
+**A estatística dos dois terços foi verificada e fica.** Não é suposição: saiu da análise do ficheiro
+"Contratos Públicos — Portal Base — IMPIC" (dados.gov.pt, domínio público), sobre os 199 701
+contratos de 2026. Das 482 empreitadas de pintura, fachadas e isolamento, 326 foram por ajuste
+directo ou consulta prévia — 68%. Das 173 com lista de convidados publicada, 98 tinham uma única
+empresa convidada. O que ainda não existe é a funcionalidade, e por isso o item está marcado.
+
+**A paleta da marca entra, exacta.** `--ink #1F3D2E`, `--cream #F6F2E9`, `--orange-deep #C7601F` e as
+restantes, em `:root` e no tema do Tailwind como `marca`. Não são aproximações da paleta antiga: a
+aplicação usava um petróleo (`#173f42`) e a marca é um verde-escuro. O tipo de letra já era Inter.
+
+**Consequência, e é uma decisão por tomar:** a página de planos deixou de condizer com o resto da
+aplicação, que continua na paleta do protótipo v05. Ou se migra tudo, ou fica uma página diferente
+das outras. Isto é do promotor.
+
 ## 25/10/2026 — Os orçamentos arrumados em três estados, e o aviso de que ficaram por enviar
 
 Pedido do promotor, e a razão dele é a que interessa: **um orçamento preenchido e nunca enviado

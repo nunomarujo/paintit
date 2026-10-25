@@ -4,6 +4,21 @@
 
 :root {
   color-scheme: light;
+
+  /*
+   * Paleta da marca, tal como veio do desenho do site (25/10/2026). Valores exactos, não
+   * aproximações: a aplicação tinha um petróleo (#173f42) e a marca é um verde-escuro.
+   * Por agora vive na página de planos; o resto da aplicação ainda segue a paleta antiga.
+   */
+  --ink: #1f3d2e;
+  --ink-soft: #2e5240;
+  --cream: #f6f2e9;
+  --white: #ffffff;
+  --orange: #e07b39;
+  --orange-deep: #c7601f;
+  --border: #e1d9c6;
+  --muted: #5b5444;
+  --tag-bg: #ece6d4;
 }
 
 body {
