@@ -122,7 +122,7 @@ export async function painterDiscountBreakdown(supabase: SupabaseClient<Database
 export async function painterSubscription(supabase: SupabaseClient<Database>, painterOrgId: string): Promise<SubscricaoPintor | null> {
   const { data } = await supabase
     .from('org_subscriptions')
-    .select('plano, estado, periodicidade, valida_ate')
+    .select('plano, estado, periodicidade, valida_ate, preco_cents')
     .eq('org_id', painterOrgId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -133,6 +133,7 @@ export async function painterSubscription(supabase: SupabaseClient<Database>, pa
     estado: data.estado as SubscricaoPintor['estado'],
     periodicidade: data.periodicidade as SubscricaoPintor['periodicidade'],
     validaAte: data.valida_ate,
+    precoCents: data.preco_cents ?? undefined,
   };
 }
 

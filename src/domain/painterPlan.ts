@@ -116,6 +116,33 @@ export interface SubscricaoPintor {
   periodicidade: Periodicidade;
   /** AAAA-MM-DD do fim do período pago; a subscrição vale até lá mesmo depois de cancelada. */
   validaAte: string | null;
+  /** O que está a ser debitado, para o ecrã poder dizê-lo sem ir ao Stripe. */
+  precoCents?: Cents;
+}
+
+/**
+ * O que dizer a quem subscreve, em linguagem de quem paga.
+ *
+ * O ecrã dizia só "Plano Pro activo" e não dizia a periodicidade nem o valor debitado (encontrado a
+ * 25/10/2026 ao testar o cancelamento: nem o próprio subscritor conseguia ver o que pagava). Quem
+ * paga tem de poder ver quanto, com que frequência e até quando, sem abrir o Stripe.
+ */
+export type SituacaoSubscricao =
+  | { tipo: 'gratuito' }
+  | { tipo: 'por_pagar' }
+  | { tipo: 'activa'; periodicidade: Periodicidade; precoCents: Cents | null; renovaEm: string | null }
+  | { tipo: 'cancelada_ate'; validaAte: string }
+  | { tipo: 'terminada' };
+
+export function situacaoDe(s: SubscricaoPintor | null, hoje: string): SituacaoSubscricao {
+  if (!s || s.plano !== 'pro') return { tipo: 'gratuito' };
+  if (s.estado === 'por_pagar') return { tipo: 'por_pagar' };
+  const caducada = s.validaAte !== null && s.validaAte < hoje;
+  if (s.estado === 'cancelada') {
+    return !caducada && s.validaAte !== null ? { tipo: 'cancelada_ate', validaAte: s.validaAte } : { tipo: 'terminada' };
+  }
+  if (caducada) return { tipo: 'terminada' };
+  return { tipo: 'activa', periodicidade: s.periodicidade, precoCents: s.precoCents ?? null, renovaEm: s.validaAte };
 }
 
 /**

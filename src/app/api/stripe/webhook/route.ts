@@ -135,14 +135,26 @@ export async function POST(req: Request) {
     // O mesmo para o plano Pro das empresas de pintura. Uma renovação paga empurra `valida_ate` para
     // a frente; um pagamento falhado tira o desconto, que é o que o 'por_pagar' significa.
     const fim = fimDoPeriodo(sub);
-    const estado = sub.status === 'active' || sub.status === 'trialing' ? 'ativa' : sub.status === 'canceled' ? 'cancelada' : 'por_pagar';
+    // `cancel_at_period_end` é um cancelamento já pedido: no Stripe a subscrição continua `active`
+    // até ao fim do período pago. Ler só o `status` desfazia o cancelamento — cancelar no ecrã
+    // marcava-o no Stripe, o Stripe respondia com este aviso e nós voltávamos a escrever "ativa" por
+    // cima, deixando a linha em 'ativa' com `cancelada_em` preenchido. Depois disso não se conseguia
+    // nem cancelar nem voltar a aderir (encontrado a 25/10/2026, ao testar o cancelamento).
+    const estado =
+      sub.status === 'canceled' || sub.cancel_at_period_end
+        ? 'cancelada'
+        : sub.status === 'active' || sub.status === 'trialing'
+          ? 'ativa'
+          : 'por_pagar';
     await db
       .from('org_subscriptions')
       .update({
         estado,
         // Nunca apagar uma validade já conhecida: se o Stripe não a disser, fica a que lá estava.
         ...(fim ? { valida_ate: fim } : {}),
-        ...(estado === 'cancelada' ? { cancelada_em: new Date().toISOString() } : {}),
+        // Não reescrever a data de cancelamento a cada aviso: vale a primeira, que é quando o
+        // pintor cancelou. Um cancelamento desfeito no Stripe limpa-a.
+        ...(estado === 'cancelada' ? {} : { cancelada_em: null }),
       })
       .eq('stripe_subscription_id', sub.id);
   }

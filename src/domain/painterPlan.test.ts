@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_RULES } from './rules';
 import { applyPainterDiscount } from './referral';
-import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, precoDe, subscriberDiscountBp, type SubscricaoPintor } from './painterPlan';
+import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, precoDe, situacaoDe, subscriberDiscountBp, type SubscricaoPintor } from './painterPlan';
 
 const pro = (over: Partial<SubscricaoPintor> = {}): SubscricaoPintor => ({ plano: 'pro', estado: 'ativa', periodicidade: 'mensal', validaAte: '2026-12-31', ...over });
 
@@ -74,5 +74,30 @@ describe('precoDe', () => {
 
   it('recusa uma versão que não conhece, em vez de inventar um preço', () => {
     expect(precoDe('2030-01-01', 'anual')).toBeNull();
+  });
+});
+
+describe('situacaoDe', () => {
+  it('diz o que está a ser pago, com que frequência e quando renova', () => {
+    const s = situacaoDe(pro({ periodicidade: 'anual', precoCents: 25_000, validaAte: '2027-10-25' }), '2026-10-25');
+    expect(s).toEqual({ tipo: 'activa', periodicidade: 'anual', precoCents: 25_000, renovaEm: '2027-10-25' });
+  });
+
+  it('cancelada dentro do período pago diz até quando o desconto dura', () => {
+    const s = situacaoDe(pro({ estado: 'cancelada', validaAte: '2027-10-25' }), '2026-10-25');
+    expect(s).toEqual({ tipo: 'cancelada_ate', validaAte: '2027-10-25' });
+  });
+
+  it('cancelada e já fora do período é o fim, não uma subscrição activa', () => {
+    expect(situacaoDe(pro({ estado: 'cancelada', validaAte: '2026-01-01' }), '2026-10-25').tipo).toBe('terminada');
+    expect(situacaoDe(pro({ estado: 'cancelada', validaAte: null }), '2026-10-25').tipo).toBe('terminada');
+  });
+
+  it('nunca chama activa a uma adesão por pagar', () => {
+    expect(situacaoDe(pro({ estado: 'por_pagar', validaAte: null }), '2026-10-25').tipo).toBe('por_pagar');
+  });
+
+  it('sem subscrição é o plano gratuito', () => {
+    expect(situacaoDe(null, '2026-10-25').tipo).toBe('gratuito');
   });
 });

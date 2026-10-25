@@ -4,6 +4,33 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — Um cancelamento não se desfaz a si mesmo
+
+Ao testar o cancelamento, a conta ficou num estado impossível: `estado: ativa` **com**
+`cancelada_em` preenchido. Não se conseguia nem cancelar nem voltar a aderir — a adesão respondia
+"Já tem o plano Pro activo" e o ecrã, esse, já não mostrava plano nenhum.
+
+A causa: cancelar marca `cancel_at_period_end` no Stripe, onde a subscrição **continua `active`** até
+ao fim do período pago. O Stripe responde com `customer.subscription.updated`, o nosso webhook lia só
+o `status`, e escrevia "ativa" por cima do cancelamento que o tinha provocado. O cancelamento
+desfazia-se a si mesmo, meio segundo depois.
+
+O webhook passa a ler `cancel_at_period_end` como cancelamento. A data de cancelamento é a primeira,
+não a de cada aviso, e um cancelamento desfeito no Stripe limpa-a. Só o plano Pro cancela ao fim do
+período, por isso as subscrições de fornecedores não tinham este problema.
+
+Isto destapou duas lacunas no ecrã, ambas corrigidas:
+
+- **Não dizia o que se estava a pagar.** Dizia "Plano Pro activo" e mais nada: nem a periodicidade,
+  nem o valor, nem a data da próxima cobrança. Nem o próprio subscritor conseguia ver quanto lhe era
+  debitado sem abrir o Stripe. Quem paga tem de poder ver isso no sítio onde subscreveu.
+- **Oferecia cancelar uma subscrição já cancelada.** O botão seguia o desconto, que continua em vigor
+  até ao fim do período pago; o que faltava oferecer era voltar a aderir.
+
+A leitura destes estados passou a viver numa função pura, `situacaoDe` (regra 2), porque havia três
+definições diferentes de "activa" espalhadas pelo ecrã, pela adesão e pelo webhook — e era a
+divergência entre elas que produzia o estado impossível.
+
 ## 25/10/2026 — A periodicidade que vai para a fatura é a que o Stripe cobrou
 
 O primeiro pagamento de teste destapou duas coisas, uma delas séria.

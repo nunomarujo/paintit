@@ -5,7 +5,7 @@ import {
   PRECO_ATUAL,
   PRO_DISCOUNT_BP,
   poupancaAnual,
-  subscriberDiscountBp,
+  situacaoDe,
 } from '@/domain/painterPlan';
 import { formatEuros } from '@/domain/money';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -27,8 +27,9 @@ export default async function SubscriptionPage() {
 
   const subscricao = await painterSubscription(supabase, org.id);
   const hoje = new Date().toISOString().slice(0, 10);
-  const ativo = subscriberDiscountBp(subscricao, hoje) > 0;
-  const pendente = subscricao?.plano === 'pro' && subscricao.estado === 'por_pagar';
+  const situacao = situacaoDe(subscricao, hoje);
+  const pendente = situacao.tipo === 'por_pagar';
+  const emPt = (d: string) => d.split('-').reverse().join('/');
 
   // Exemplo com uma obra de 30 000 €: um número redondo e plausível numa fachada de prédio, para que a
   // diferença se leia em euros e não em pontos percentuais.
@@ -46,10 +47,27 @@ export default async function SubscriptionPage() {
         </p>
       </div>
 
-      {ativo && (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Plano Pro activo{subscricao?.validaAte ? `, pago até ${subscricao.validaAte.split('-').reverse().join('/')}` : ''}. A
-          comissão das suas propostas está a {(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}%.
+      {situacao.tipo === 'activa' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p>
+            <strong className="font-semibold">Plano Pro activo.</strong> A comissão das suas propostas está a{' '}
+            {(CURRENT_RULES.commissionBp - PRO_DISCOUNT_BP) / 100}%.
+          </p>
+          {/* Quem paga tem de ver o que paga, com que frequência e quando é a próxima cobrança, sem
+              abrir o Stripe. O ecrã dizia só que o plano estava activo (25/10/2026). */}
+          <p className="mt-1 text-emerald-800">
+            {situacao.precoCents !== null
+              ? `${formatEuros(situacao.precoCents)} ${situacao.periodicidade === 'anual' ? 'por ano' : 'por mês'}`
+              : `Pagamento ${situacao.periodicidade}`}
+            {situacao.renovaEm ? `, com a próxima cobrança a ${emPt(situacao.renovaEm)}.` : '.'}
+          </p>
+        </div>
+      )}
+      {situacao.tipo === 'cancelada_ate' && (
+        <p className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+          <strong className="font-semibold">Subscrição cancelada.</strong> Não haverá nova cobrança. O desconto de{' '}
+          {PRO_DISCOUNT_BP / 100} pontos mantém-se até {emPt(situacao.validaAte)}, o fim do período já pago. Pode voltar a
+          aderir a qualquer momento.
         </p>
       )}
       {pendente && (
@@ -118,7 +136,10 @@ export default async function SubscriptionPage() {
             ))}
           </ul>
           <div className="mt-5">
-            {ativo ? <CancelForm /> : <SubscribeForm />}
+            {/* Só quem tem a subscrição a correr pode cancelar. Já cancelada, o desconto continua até ao
+                fim do período pago (`ativo`), mas o que falta oferecer é voltar a aderir, não cancelar
+                de novo (25/10/2026). */}
+            {situacao.tipo === 'activa' ? <CancelForm /> : <SubscribeForm />}
           </div>
         </section>
       </div>
