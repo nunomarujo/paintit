@@ -161,6 +161,7 @@ export type Database = {
           validated_by: string | null;
           valido_ate: string | null;
           classe: number | null;
+          subcategorias: ('b' | 't' | 'g')[] | null;
         };
         Insert: {
           building_id?: string | null;
@@ -177,6 +178,7 @@ export type Database = {
           validated_by?: string | null;
           valido_ate?: string | null;
           classe?: number | null;
+          subcategorias?: ('b' | 't' | 'g')[] | null;
         };
         Update: Partial<Database['public']['Tables']['org_documents']['Insert']>;
         Relationships: [
@@ -656,6 +658,34 @@ export type Database = {
         Relationships: [
           { foreignKeyName: 'supplier_referral_invites_supplier_org_id_fkey'; columns: ['supplier_org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
         ];
+      };
+      public_tenders: {
+        Row: {
+          anuncio_url: string | null;
+          concelho: string | null;
+          cpv: string | null;
+          created_at: string;
+          distrito: string;
+          documentos_exigidos: string[];
+          entidade: string;
+          id: string;
+          objeto: string;
+          plataforma: string | null;
+          prazo_entrega: string;
+          publicado_em: string | null;
+          referencia: string;
+          subcategorias: ('b' | 't' | 'g')[];
+          valor_cents: number | null;
+        };
+        Insert: Omit<Database['public']['Tables']['public_tenders']['Row'], 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<Database['public']['Tables']['public_tenders']['Insert']>;
+        Relationships: [];
+      };
+      painter_tender_prefs: {
+        Row: { distritos: string[]; org_id: string; updated_at: string };
+        Insert: { distritos?: string[]; org_id: string; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['painter_tender_prefs']['Insert']>;
+        Relationships: [];
       };
       org_subscriptions: {
         Row: {

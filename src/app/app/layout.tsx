@@ -36,6 +36,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const work: NavItem[] = [{ href: '/app', label: 'Início', count: unread ?? 0 }];
   if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento' });
   if (kinds.has('pintor')) work.push({ href: '/app/oportunidades', label: 'Oportunidades' });
+  // Obra pública e obra privada são a mesma intenção — ganhar obra — com origens diferentes, por isso
+  // fica ao lado de Oportunidades e não perdida nos recursos (desenho de 25/10/2026).
+  if (kinds.has('pintor')) work.push({ href: '/app/obras-publicas', label: 'Obras públicas' });
   if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
   if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });
