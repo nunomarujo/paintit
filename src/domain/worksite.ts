@@ -1,7 +1,7 @@
 import type { Cents } from './money';
 import { custoDoDia, suplementaresDe, type TipoDia } from './overtime';
 
-// Ferramentas de obra do pintor (opcionais, depois da contratação): equipa,
+// Gestão de obra do pintor (opcional, depois da contratação): equipa,
 // fases, custos, horas e tranches. São dados internos do pintor; o cliente não
 // os vê. A plataforma não intervém na execução (docs/MODELO.md).
 

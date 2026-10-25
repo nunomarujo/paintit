@@ -45,7 +45,7 @@ const ORDER: Record<string, string> = { pedida: 'Pedida', confirmada: 'Venda con
 const SCORES = [1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }));
 const PHASE: Record<string, string> = { por_iniciar: 'Por iniciar', em_curso: 'Em curso', concluida: 'Concluída' };
 
-// Ferramentas de obra: internas do pintor, opcionais. O cliente não as vê.
+// Gestão de obra: interna do pintor, opcional. O cliente não a vê.
 export default async function WorksitePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ s?: string }> }) {
   const { id } = await params;
   const { s: section = 'resumo' } = await searchParams;
@@ -168,7 +168,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
         <Link href={`/app/contratacoes/${id}`} className="text-sm text-slate-600 hover:underline">
           ← Contratação
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Ferramentas de obra</h1>
+        <h1 className="mt-3 text-2xl font-semibold">Gestão de obra</h1>
         <p className="mt-1 text-sm text-slate-600">
           Obra {listing?.ref ?? id.slice(0, 8).toUpperCase()} · {listing?.concelho ?? ''}. Só a sua equipa vê esta página; a
           plataforma não intervém na execução.

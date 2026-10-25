@@ -155,7 +155,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           )}
           {side === 'pintor' && e.status === 'assinado' && (
             <Link href={`/app/obras/${obra?.id ?? ''}`} className="text-slate-600 hover:underline">
-              Ferramentas de obra
+              Gestão de obra
             </Link>
           )}
         </div>

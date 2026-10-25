@@ -205,7 +205,7 @@ export default async function OrganizationPage({
             Ver oportunidades de obra →
           </Link>
           <Link href="/app/obras" className="font-normal text-slate-600 hover:underline">
-            Ferramentas de obra
+            Gestão de obra
           </Link>
           <Link href={`/app/organizacoes/${org.id}/referencias`} className="hover:underline">
             Referências de fornecedores →
