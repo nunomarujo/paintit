@@ -202,10 +202,11 @@ export async function setQuoteOutcome(quoteId: string, estado: 'ganho' | 'perdid
 
   if (estado === 'ganho') {
     const { data: q } = await supabase.from('painter_quotes').select('*').eq('id', quoteId).maybeSingle();
-    const { data: linhas } = await supabase.from('painter_quote_lines').select('quantidade, preco_unitario, inclusao').eq('quote_id', quoteId);
-    const base = (linhas ?? [])
-      .filter((l) => l.inclusao === 'incluido')
-      .reduce((n, l) => n + Math.round((l.quantidade * l.preco_unitario) / 100), 0);
+    const { data: linhas } = await supabase.from('painter_quote_lines').select('quantidade, preco_unitario, inclusao, unidade').eq('quote_id', quoteId);
+    const incluidas = (linhas ?? []).filter((l) => l.inclusao === 'incluido');
+    const base = incluidas.reduce((n, l) => n + Math.round((l.quantidade * l.preco_unitario) / 100), 0);
+    // A área vem das linhas em m²: é o que depois permite comparar o preço cobrado com o custo real.
+    const area = incluidas.filter((l) => l.unidade === 'm2').reduce((n, l) => n + l.quantidade, 0);
     if (q && !q.worksite_id) {
       const { data: obra } = await supabase
         .from('worksites')
@@ -215,6 +216,7 @@ export async function setQuoteOutcome(quoteId: string, estado: 'ganho' | 'perdid
           cliente_nome: q.cliente_nome,
           local: q.local,
           valor_cents: base,
+          area_cm2: area > 0 ? area : null,
         })
         .select('id')
         .single();

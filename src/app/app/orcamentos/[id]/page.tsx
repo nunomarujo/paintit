@@ -5,7 +5,8 @@ import { formatEuros, percentOf } from '@/domain/money';
 import { cobertura, type PriceEntry } from '@/domain/priceBook';
 import { LINE_CATEGORY_LABELS, UNIT_LABELS } from '@/domain/proposal';
 import { lembretes } from '@/domain/quoteTemplates';
-import { painterOrgs } from '@/lib/queries';
+import { avisoDePreco, historico } from '@/domain/margin';
+import { painterOrgs, painterWorkHistory } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { saveQuoteTerms, markQuoteSent, setQuoteOutcome } from '../actions';
 import { ActionButton } from '../QuoteForms';
@@ -24,9 +25,10 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const { data: q } = await supabase.from('painter_quotes').select('*').eq('id', id).maybeSingle();
   if (!q) notFound();
 
-  const [{ data: linhas }, { data: book }] = await Promise.all([
+  const [{ data: linhas }, { data: book }, obrasFeitas] = await Promise.all([
     supabase.from('painter_quote_lines').select('*').eq('quote_id', id).order('ordem'),
     supabase.from('org_price_book').select('*').eq('org_id', org.id),
+    painterWorkHistory(supabase, org.id),
   ]);
 
   const incluidas = (linhas ?? []).filter((l) => l.inclusao === 'incluido');
@@ -45,6 +47,13 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const jaConhecidas = cobertura(entradas, (linhas ?? []).map((l) => ({ descricao: l.descricao, unidade: l.unidade })));
   const avisos = lembretes((linhas ?? []).map((l) => l.descricao.toLowerCase()).map((d) => (d.includes('acesso') || d.includes('andaime') ? 'acessos' : d.includes('limpeza') || d.includes('resíduo') ? 'conclusao' : d)));
   const semPreco = (linhas ?? []).filter((l) => l.preco_unitario === 0).length;
+
+  // O que as obras desta empresa têm custado por m², para o preço deste orçamento ser confrontado com
+  // a realidade dela — e não com uma média de mercado, que não lhe diz nada (docs/DECISOES.md).
+  const passado = historico(obrasFeitas);
+  const areaCm2 = incluidas.filter((l) => l.unidade === 'm2').reduce((n, l) => n + l.quantidade, 0);
+  const precoPorM2 = areaCm2 > 0 ? Math.round(base / (areaCm2 / 100)) : null;
+  const aviso = avisoDePreco(passado, precoPorM2);
 
   return (
     <div className="space-y-5">
@@ -132,6 +141,26 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         <div className="mt-4 border-t border-slate-200 pt-4">
           <AddLine quoteId={id} book={entradas} />
         </div>
+
+        {(passado.obras > 0 || aviso) && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px]">
+            {passado.custoMedioPorM2 !== null && (
+              <p className="text-slate-700">
+                As suas obras concluídas custaram, em média,{' '}
+                <strong className="font-semibold">{formatEuros(passado.custoMedioPorM2)}/m²</strong>
+                {passado.minimoPorM2 !== null && passado.maximoPorM2 !== null && passado.minimoPorM2 !== passado.maximoPorM2 && (
+                  <> (entre {formatEuros(passado.minimoPorM2)} e {formatEuros(passado.maximoPorM2)})</>
+                )}
+                , em {passado.obras} {passado.obras === 1 ? 'obra' : 'obras'}.
+                {!passado.suficiente && ' Ainda são poucas para fazer regra.'}
+                {precoPorM2 !== null && (
+                  <> Neste orçamento está a cobrar <strong className="font-semibold">{formatEuros(precoPorM2)}/m²</strong>.</>
+                )}
+              </p>
+            )}
+            {aviso && <p className="mt-1 font-semibold text-amber-800">{aviso}</p>}
+          </div>
+        )}
 
         <dl className="mt-5 ml-auto max-w-xs space-y-1 border-t border-slate-200 pt-3 text-sm">
           <div className="flex justify-between gap-4">

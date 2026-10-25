@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
+import { margemDaObra } from '@/domain/margin';
 import { suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
@@ -137,6 +138,15 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     suplementaresPorPessoa.set(x.member_id, (suplementaresPorPessoa.get(x.member_id) ?? 0) + extra);
   }
 
+  // Preço cobrado contra custo real: é isto que faz valer a pena registar o dia (25/10/2026).
+  const margem = margemDaObra({
+    valorCents: w.valor_cents ?? e?.base_cents ?? 0,
+    areaCm2: w.area_cm2,
+    custosDiretos: sum.custos - sum.maoDeObra,
+    maoDeObra: sum.maoDeObra,
+    horas: sum.horas,
+  });
+
   const grupos = porFase(fotos);
   const faltasDoDiario = faltas(fotos);
 
@@ -179,6 +189,15 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'resumo' && (
         <section className={card}>
+          {!margem.fiavel && (
+            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+              <strong className="font-semibold">A margem abaixo está incompleta:</strong> ainda não há horas registadas
+              nesta obra, por isso o custo da mão de obra é zero e a margem parece melhor do que é.{' '}
+              <Link href={`/app/obras/${id}?s=dia`} className="font-semibold underline underline-offset-4">
+                Registar o dia
+              </Link>
+            </p>
+          )}
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
             <dt className="text-slate-500">Valor do contrato (sem IVA)</dt>
             <dd className="font-semibold sm:text-right">{formatEuros(sum.contrato)}</dd>
@@ -194,13 +213,27 @@ export default async function WorksitePage({ params, searchParams }: { params: P
             )}
             <dt className="text-slate-500">Custos registados</dt>
             <dd className="sm:text-right">{formatEuros(sum.custos)}</dd>
-            <dt className="text-slate-500">dos quais mão de obra ({(sum.horas / 100).toLocaleString('pt-PT')} h)</dt>
+            <dt className="text-slate-500">
+              dos quais mão de obra ({(sum.horas / 100).toLocaleString('pt-PT')} h
+              {sum.suplementares > 0 ? `, ${(sum.suplementares / 100).toLocaleString('pt-PT')} h a mais` : ''})
+            </dt>
             <dd className="sm:text-right">{formatEuros(sum.maoDeObra)}</dd>
             <dt className="text-slate-500">Margem prevista</dt>
             <dd className={`font-semibold sm:text-right ${sum.margem < 0 ? 'text-red-700' : ''}`}>
               {formatEuros(sum.margem)}
               {sum.margemBps !== null ? ` (${(sum.margemBps / 100).toLocaleString('pt-PT')}%)` : ''}
             </dd>
+            {margem.custoPorM2 !== null && (
+              <>
+                <dt className="text-slate-500">Custou-lhe, por m²</dt>
+                <dd className="sm:text-right">
+                  <span className="tabular-nums">{formatEuros(margem.custoPorM2)}</span>
+                  {margem.precoPorM2 !== null && (
+                    <span className="text-slate-500"> · cobrou {formatEuros(margem.precoPorM2)}</span>
+                  )}
+                </dd>
+              </>
+            )}
             {sum.semPlano > 0 && (
               <>
                 <dt className="text-slate-500">Valor ainda sem tranche planeada</dt>

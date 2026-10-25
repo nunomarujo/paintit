@@ -2324,3 +2324,29 @@ Quatro caminhos bons e um mau, registados antes de se construir qualquer um dele
 **O caminho que não se toma:** juntar os preços de todos os pintores e sugerir médias. Expõe
 informação comercial de quem confiou na plataforma e devolve um preço que não é dele — e um preço
 alheio ou está abaixo e ele perde dinheiro, ou está acima e perde a obra.
+
+## 25/10/2026 — Preço cobrado contra custo real: o círculo fecha-se
+
+Sem isto, registar o dia é um favor que o pintor faz à aplicação. Com isto, é informação que ele quer:
+diz-lhe, obra a obra, se o preço a que vendeu dava lucro, e avisa-o quando o orçamento que está a
+fazer fica abaixo do que as obras dele têm custado.
+
+**Decisões:**
+
+- **Uma obra sem horas registadas não tem margem fiável, e diz-se.** O custo da mão de obra seria zero
+  e a margem apareceria excelente. Apresentá-la assim era pior do que não apresentar nada — ele
+  acreditava e repetia o preço. A obra mostra o aviso e o atalho para registar o dia.
+- **A média é ponderada pela área, não média das médias.** Uma obra de 40 m² não vale o mesmo que uma
+  de 900 na hora de dizer quanto custa um metro quadrado.
+- **Mostra-se a dispersão, não só a média.** O mínimo e o máximo por m² dizem mais sobre o risco do
+  que qualquer média sozinha.
+- **Abaixo de três obras a média aparece com a ressalva à frente**, não escondida.
+- **O aviso diz o facto e devolve a decisão.** "Este preço fica abaixo do que as suas obras têm
+  custado" — e não "suba o preço". O preço depende da obra, da concorrência e de quanto ele quer
+  aquele trabalho, e nada disso está nesta base de dados.
+- **A área vem das linhas em m²** do orçamento ou da proposta, sem perguntar nada a ninguém. Sem área
+  há margem em euros, mas não há custo por m².
+
+Com isto, a fase 1 fica completa: orçamento rápido com marca própria, cofre de documentos, obras
+próprias com equipa e consumíveis, registo do dia com trabalho suplementar, trabalhos a mais com
+aceitação do cliente, diário fotográfico, e a margem real a realimentar o orçamento seguinte.

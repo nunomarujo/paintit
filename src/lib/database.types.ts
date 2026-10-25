@@ -1358,6 +1358,7 @@ export type Database = {
       };
       worksites: {
         Row: {
+          area_cm2: number | null;
           cliente_nome: string | null;
           created_at: string;
           engagement_id: string | null;
@@ -1372,6 +1373,7 @@ export type Database = {
           valor_cents: number | null;
         };
         Insert: {
+          area_cm2?: number | null;
           cliente_nome?: string | null;
           created_at?: string;
           engagement_id?: string | null;

@@ -1,6 +1,8 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ObraConcluida } from '@/domain/margin';
 import { isPlanoPintor, subscriberDiscountBp, type SubscricaoPintor } from '@/domain/painterPlan';
+import { summarize } from '@/domain/worksite';
 import type { Database } from '@/lib/database.types';
 import type { IsoDate } from '@/domain/deadline';
 import { combinedPainterDiscountBp, linkedSupplierDiscountBp } from '@/domain/referral';
@@ -132,4 +134,52 @@ export async function painterSubscription(supabase: SupabaseClient<Database>, pa
     periodicidade: data.periodicidade as SubscricaoPintor['periodicidade'],
     validaAte: data.valida_ate,
   };
+}
+
+/**
+ * As obras concluídas da empresa, com o que custaram de facto — para comparar o preço que vai cobrar
+ * com o que as obras dela têm custado (src/domain/margin.ts).
+ *
+ * Só obras concluídas: uma obra a meio tem os custos por lançar e mentiria para baixo.
+ */
+export async function painterWorkHistory(supabase: SupabaseClient<Database>, orgId: string): Promise<ObraConcluida[]> {
+  const { data: obras } = await supabase
+    .from('worksites')
+    .select('id, nome, valor_cents, area_cm2, fim')
+    .eq('org_id', orgId)
+    .eq('estado', 'concluida');
+  if (!obras || obras.length === 0) return [];
+
+  const ids = obras.map((o) => o.id);
+  const [{ data: lancamentos }, { data: membros }] = await Promise.all([
+    supabase.from('worksite_entries').select('worksite_id, tipo, valor_cents, horas, member_id, data, tipo_dia').in('worksite_id', ids),
+    supabase.from('worksite_members').select('id, custo_hora_cents').in('worksite_id', ids),
+  ]);
+  const custoHora = new Map((membros ?? []).map((m) => [m.id, m.custo_hora_cents]));
+
+  return obras.map((o) => {
+    const meus = (lancamentos ?? []).filter((l) => l.worksite_id === o.id);
+    const custosDiretos = meus.filter((l) => l.tipo === 'custo').reduce((n, l) => n + (l.valor_cents ?? 0), 0);
+    const horasLinhas = meus
+      .filter((l) => l.tipo === 'horas')
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .map((l) => ({
+        horas: l.horas ?? 0,
+        custoHora: custoHora.get(l.member_id ?? '') ?? null,
+        memberId: l.member_id,
+        data: l.data,
+        tipoDia: l.tipo_dia,
+      }));
+    const resumo = summarize({ contrato: o.valor_cents ?? 0, tranches: [], costs: [], hours: horasLinhas, today: o.fim ?? new Date().toISOString().slice(0, 10) });
+    return {
+      id: o.id,
+      nome: o.nome,
+      valorCents: o.valor_cents ?? 0,
+      areaCm2: o.area_cm2,
+      custosDiretos,
+      maoDeObra: resumo.maoDeObra,
+      horas: resumo.horas,
+      fim: o.fim,
+    };
+  });
 }
