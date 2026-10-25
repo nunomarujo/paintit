@@ -2648,3 +2648,63 @@ describe('orçamentos a clientes próprios', () => {
     expect(await as(QP, async () => (await db.query('select preco_unitario from public.org_price_book')).rows)).toEqual([{ preco_unitario: 1180 }]);
   });
 });
+
+describe('diário fotográfico da obra', () => {
+  const DP = '00000000-0000-4000-8000-00000000010a'; // empresa dona da obra
+  const DX = '00000000-0000-4000-8000-00000000010b'; // empresa de fora
+  let minhaOrg: string;
+  let obraId: string;
+  let fotoId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [DP, email(DP), DX, email(DX)]);
+    minhaOrg = (await createOrg(DP, 'pintor', 'Pinturas Diário', '518359425')).id;
+    await createOrg(DX, 'pintor', 'Pinturas Curiosas', '519489977');
+    obraId = (
+      await as(DP, () => one<{ id: string }>(`insert into public.worksites (org_id, nome) values ($1, 'Obra do diário') returning id`, [minhaOrg]))
+    ).id;
+  });
+
+  const juntar = (user: string, fase = 'antes', path = `${Math.random()}`) =>
+    as(user, () =>
+      one<{ id: string; org_id: string; registada_em: string }>(
+        `insert into public.worksite_photos (worksite_id, org_id, storage_path, fase, registada_em)
+         values ($1, '00000000-0000-4000-8000-000000000000', $2, $3, '2001-01-01') returning id, org_id, registada_em`,
+        [obraId, path, fase],
+      ),
+    );
+
+  it('a empresa junta fotografias à sua obra; uma de fora não', async () => {
+    const r = await juntar(DP);
+    fotoId = r.id;
+    // A empresa e a data vêm do servidor, não do que o navegador mandou.
+    expect(r.org_id).toBe(minhaOrg);
+    expect(new Date(r.registada_em).getFullYear()).toBeGreaterThan(2020);
+    await expect(juntar(DX)).rejects.toThrow(/row-level security/);
+  });
+
+  it('só as fases previstas servem', async () => {
+    await expect(juntar(DP, 'inventada')).rejects.toThrow(/violates check constraint/);
+  });
+
+  it('uma empresa de fora não vê o diário', async () => {
+    expect(await as(DX, async () => (await db.query('select id from public.worksite_photos where id = $1', [fotoId])).rows)).toEqual([]);
+    expect(await as(DP, async () => (await db.query('select id from public.worksite_photos where id = $1', [fotoId])).rows)).toHaveLength(1);
+  });
+
+  it('não se altera uma fotografia depois de registada: uma etiqueta mudada não prova nada', async () => {
+    // Não há política de alteração nenhuma, por isso o update não encontra linha e não muda nada. O
+    // Postgres não levanta erro neste caso (o erro vem do `with check`), e é por isso que o que se
+    // verifica são as zero linhas afectadas e a fase intacta.
+    const r = await as(DP, () => db.query(`update public.worksite_photos set fase = 'depois' where id = $1`, [fotoId]));
+    expect(r.affectedRows ?? 0).toBe(0);
+    expect(await as(DP, async () => (await db.query('select fase from public.worksite_photos where id = $1', [fotoId])).rows)).toEqual([
+      { fase: 'antes' },
+    ]);
+  });
+
+  it('apagar pode, e é assim que se corrige um engano', async () => {
+    const r = await as(DP, () => db.query('delete from public.worksite_photos where id = $1', [fotoId]));
+    expect(r.affectedRows ?? 0).toBe(1);
+  });
+});

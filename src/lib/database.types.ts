@@ -1328,6 +1328,34 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['org_price_book']['Insert']>;
         Relationships: [];
       };
+      worksite_photos: {
+        Row: {
+          created_by: string;
+          fase: 'antes' | 'preparacao' | 'durante' | 'depois';
+          id: string;
+          legenda: string | null;
+          org_id: string;
+          produto: string | null;
+          registada_em: string;
+          storage_path: string;
+          worksite_id: string;
+          zona: string | null;
+        };
+        Insert: {
+          created_by?: string;
+          fase: 'antes' | 'preparacao' | 'durante' | 'depois';
+          id?: string;
+          legenda?: string | null;
+          org_id?: string;
+          produto?: string | null;
+          registada_em?: string;
+          storage_path: string;
+          worksite_id: string;
+          zona?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
       worksites: {
         Row: {
           cliente_nome: string | null;

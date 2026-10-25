@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { randomUUID } from 'node:crypto';
 import { addendaErrors } from '@/domain/addenda';
+import { cleanPhoto } from '@/domain/photo';
+import { diaryErrors } from '@/domain/worksiteDiary';
 import { dayErrors, presencasEfetivas, type PresencaInput } from '@/domain/dayLog';
 import type { TipoDia } from '@/domain/overtime';
 import { UNIDADES, worksiteErrors } from '@/domain/worksites';
@@ -13,8 +16,10 @@ import { notifyNewOrder, notifyNewSupplierReview, notifyOrderState } from '@/lib
 import { getUser } from '@/lib/supabase/server';
 
 const path = (id: string) => `/app/obras/${id}`;
+const path_ = path;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const fail = (field: string, message: string): FormState => ({ errors: { [field]: message } });
+const texto = (v: FormDataEntryValue | null, max: number) => String(v ?? '').trim().slice(0, max);
 const done = (id: string, message: string): FormState => {
   revalidatePath(path(id));
   return { errors: {}, ok: true, message };
@@ -373,4 +378,63 @@ export async function registerDay(worksiteId: string, _prev: FormState, form: Fo
   }
 
   return done(worksiteId, `Dia de ${data.split('-').reverse().join('/')} registado.`);
+}
+
+// --- Diário fotográfico -------------------------------------------------------------------------
+
+/**
+ * Juntar uma fotografia ao diário da obra.
+ *
+ * Os metadados da imagem são apagados antes de guardar — levam GPS e modelo do aparelho — e a data
+ * que fica é a do servidor. A data da fotografia não serviria de prova: perde-se ao exportar, muda de
+ * fuso e altera-se com facilidade.
+ */
+export async function addDiaryPhoto(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const fase = form.get('fase');
+  const legenda = texto(form.get('legenda'), 300);
+  const zona = texto(form.get('zona'), 120);
+  const produto = texto(form.get('produto'), 160);
+  const errors = diaryErrors({ fase, legenda, zona, produto });
+  if (Object.keys(errors).length > 0) {
+    const [campo, mensagem] = Object.entries(errors)[0]!;
+    return fail(campo, mensagem);
+  }
+
+  const file = form.get('ficheiro');
+  if (!(file instanceof File)) return fail('ficheiro', 'Escolha uma fotografia.');
+  const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
+  if ('error' in clean) return fail('ficheiro', clean.error);
+
+  const { supabase, user } = await getUser();
+  if (!user) return { errors: {}, message: 'A sessão expirou.' };
+
+  const path = `${worksiteId}/${randomUUID()}.${clean.type === 'image/png' ? 'png' : 'jpg'}`;
+  const upload = await supabase.storage.from('obra').upload(path, clean.bytes, { contentType: clean.type });
+  if (upload.error) return { errors: {}, message: 'Não foi possível carregar a fotografia.' };
+
+  const { error } = await supabase.from('worksite_photos').insert({
+    worksite_id: worksiteId,
+    storage_path: path,
+    fase: fase as 'antes',
+    zona: zona || null,
+    produto: produto || null,
+    legenda: legenda || null,
+  });
+  if (error) {
+    await supabase.storage.from('obra').remove([path]);
+    return { errors: {}, message: 'Não foi possível registar a fotografia.' };
+  }
+  revalidatePath(path_(worksiteId));
+  return { errors: {}, ok: true, message: 'Fotografia juntada ao diário.' };
+}
+
+/** Apagar uma fotografia do diário. Alterar não se pode: uma etiqueta mudada depois do facto não prova nada. */
+export async function removeDiaryPhoto(worksiteId: string, photoId: string, _prev: FormState, _form: FormData): Promise<FormState> {
+  const { supabase } = await getUser();
+  const { data: foto } = await supabase.from('worksite_photos').select('storage_path').eq('id', photoId).maybeSingle();
+  const { error } = await supabase.from('worksite_photos').delete().eq('id', photoId).eq('worksite_id', worksiteId);
+  if (error) return { errors: {}, message: 'Não foi possível apagar.' };
+  if (foto) await supabase.storage.from('obra').remove([foto.storage_path]);
+  revalidatePath(path_(worksiteId));
+  return { errors: {}, ok: true };
 }

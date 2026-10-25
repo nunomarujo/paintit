@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
 import { suplementaresDe } from '@/domain/overtime';
+import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
+import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
 import {
@@ -69,6 +71,20 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       e ? supabase.from('material_orders').select('*').eq('engagement_id', e.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
       e ? supabase.from('request_listings').select('ref, concelho').eq('request_id', e.request_id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
+  const { data: fotosRows } = await supabase
+    .from('worksite_photos')
+    .select('id, fase, zona, produto, legenda, registada_em')
+    .eq('worksite_id', id)
+    .order('registada_em');
+  const fotos = (fotosRows ?? []).map((f) => ({
+    id: f.id,
+    fase: f.fase,
+    zona: f.zona,
+    produto: f.produto,
+    legenda: f.legenda,
+    registadaEm: f.registada_em,
+  }));
+
   const { data: addendaRows } = await supabase
     .from('worksite_addenda')
     .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
@@ -121,6 +137,9 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     suplementaresPorPessoa.set(x.member_id, (suplementaresPorPessoa.get(x.member_id) ?? 0) + extra);
   }
 
+  const grupos = porFase(fotos);
+  const faltasDoDiario = faltas(fotos);
+
   const memberOptions = (members ?? []).map((m) => ({ value: m.id, label: m.nome }));
   const tabs = [
     ['dia', 'Registar o dia'],
@@ -130,6 +149,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     ['cronograma', 'Cronograma'],
     ['financeiro', 'Custos e tranches'],
     ['adendas', 'Trabalhos a mais'],
+    ['diario', 'Diário'],
   ] as const;
 
   return (
@@ -217,6 +237,65 @@ export default async function WorksitePage({ params, searchParams }: { params: P
               hoje={today}
             />
           </div>
+        </section>
+      )}
+
+      {section === 'diario' && (
+        <section className={card}>
+          <h2 className="text-base font-semibold">Diário da obra</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            O estado em que encontrou o suporte, o que fez por baixo da tinta e o resultado. Seis meses depois, numa
+            reclamação, é isto que a defende — e serve de portefólio quando a obra corre bem.
+          </p>
+
+          {faltasDoDiario.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+              {faltasDoDiario.map((f) => (
+                <p key={f}>{f}</p>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 space-y-5">
+            {grupos.length === 0 ? (
+              <p className="text-sm text-slate-600">Ainda não há fotografias nesta obra.</p>
+            ) : (
+              grupos.map((g) => (
+                <div key={g.fase}>
+                  <p className="eyebrow">{FASE_LABELS[g.fase]}</p>
+                  <p className="mt-0.5 text-[11.5px] text-slate-500">{FASE_PORQUE[g.fase]}</p>
+                  <ul className="mt-2 grid gap-3 sm:grid-cols-3">
+                    {g.fotos.map((f) => (
+                      <li key={f.id} className="overflow-hidden rounded-xl border border-slate-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/app/obras/foto/${f.id}`} alt={f.legenda ?? FASE_LABELS[f.fase]} className="aspect-[4/3] w-full object-cover" />
+                        <div className="px-3 py-2">
+                          <p className="text-[12px] text-slate-700">{f.legenda ?? '—'}</p>
+                          <p className="text-[11px] text-slate-500">
+                            {[f.zona, f.produto].filter(Boolean).join(' · ')}
+                            {f.zona || f.produto ? ' · ' : ''}
+                            {f.registadaEm.slice(0, 10).split('-').reverse().join('/')}
+                          </p>
+                          {manager && (
+                            <div className="mt-1">
+                              <RemoveDiaryPhoto worksiteId={id} photoId={f.id} />
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+          </div>
+
+          {manager && (
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <p className="eyebrow mb-2">Juntar uma fotografia</p>
+              <AddDiaryPhoto worksiteId={id} />
+            </div>
+          )}
         </section>
       )}
 

@@ -2279,3 +2279,48 @@ não constantes espalhadas pelo código.
 
 Fica uma aproximação conhecida, anotada em `docs/ESTADO.md`: o acumulado anual conta só as horas da
 mesma obra, não as da empresa toda.
+
+## 25/10/2026 — Diário fotográfico da obra
+
+Seis meses depois aparecem bolhas ou manchas de humidade. Sem registo do estado do suporte **antes** de
+se pintar, e sem saber que produto foi aplicado, a discussão perde-se por omissão: a empresa não
+consegue mostrar o que encontrou nem o que fez.
+
+**Decisões que fazem a diferença entre um álbum e uma prova:**
+
+- **A data é a do servidor, não a da fotografia.** Os metadados da imagem perdem-se ao exportar, mudam
+  de fuso e alteram-se com facilidade. O trigger impõe `now()` mesmo que venha preenchida.
+- **Os metadados são apagados antes de guardar**, como já acontece nas fotografias dos pedidos: levam
+  GPS e modelo do aparelho, que ninguém precisa de conservar.
+- **Apagar pode; alterar não.** Não há política de alteração nenhuma. Uma fotografia que se pudesse
+  reetiquetar depois do facto não serve de prova. Quem se enganou apaga e carrega outra vez, e a data
+  nova fica visível.
+- **Quatro fases, com a razão à frente**, para o registo não parecer burocracia: o antes é o que a
+  defende numa reclamação, a preparação prova o que ficou por baixo da tinta, o durante liga o produto
+  ao trabalho, o depois serve de prova e de portefólio.
+- **O cliente de uma obra contratada aqui também vê o diário.** É prova do trabalho feito e mostrá-lo
+  é do interesse das duas partes.
+- **Avisos, não bloqueios:** o ecrã diz quando faltam fotografias do antes ou quando nenhuma identifica
+  o produto. Não impede nada — quando a obra já começou, a fotografia do antes já não é possível.
+
+## 25/10/2026 — Como a biblioteca de preços cresce sozinha
+
+Quatro caminhos bons e um mau, registados antes de se construir qualquer um deles:
+
+1. **De lado** — aprender também das propostas ao mercado, não só dos orçamentos privados. São linhas
+   iguais e já estão na base; duplica a entrada de dados sem pedir nada ao pintor. É a lacuna mais
+   óbvia e a mais barata.
+2. **Mais densa** — hoje a chave é o texto escrito, e "Duas demãos de tinta acrílica" e "2 demãos
+   tinta acrílica" aprendem cada um metade. Quando a linha vem do orçamento guiado tem um código de
+   trabalho por trás; usar esse código como chave junta o que hoje se divide.
+3. **Mais verdadeira, e é a que vale mais** — a biblioteca guarda preços de venda, as ferramentas de
+   obra guardam custos reais. Cruzadas, deixam de dizer "cobrou 11,80 €/m²" e passam a dizer "cobrou
+   11,80 e custou-lhe 9,40; margem de 20%". É o que fecha o círculo entre registar o dia e ganhar
+   dinheiro, e o que transforma a picagem de horas de obrigação em interesse próprio.
+4. **Quente em vez de fria** — deixar importar um orçamento antigo (PDF ou Word), extrair as linhas e
+   pedir confirmação. Troca "o primeiro orçamento leva 40 minutos" por "leva 15, se importar um
+   antigo".
+
+**O caminho que não se toma:** juntar os preços de todos os pintores e sugerir médias. Expõe
+informação comercial de quem confiou na plataforma e devolve um preço que não é dele — e um preço
+alheio ou está abaixo e ele perde dinheiro, ou está acima e perde a obra.
