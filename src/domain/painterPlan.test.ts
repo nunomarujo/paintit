@@ -23,6 +23,14 @@ describe('desconto de subscritor', () => {
     expect(subscriberDiscountBp(pro({ estado: 'por_pagar' }), '2026-10-25')).toBe(0);
   });
 
+  it('cancelada sem validade conhecida não desconta — senão bastava cancelar para ficar com o desconto', () => {
+    expect(subscriberDiscountBp(pro({ estado: 'cancelada', validaAte: null }), '2026-10-25')).toBe(0);
+  });
+
+  it('activa sem validade ainda desconta: é o estado logo a seguir ao pagamento', () => {
+    expect(subscriberDiscountBp(pro({ validaAte: null }), '2026-10-25')).toBe(500);
+  });
+
   it('mantém o desconto depois de cancelada, até ao fim do período já pago', () => {
     const cancelada = pro({ estado: 'cancelada', validaAte: '2026-11-30' });
     expect(subscriberDiscountBp(cancelada, '2026-11-30')).toBe(500);

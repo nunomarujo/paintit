@@ -2431,3 +2431,23 @@ nunca pelo regresso do navegador, que qualquer pessoa consegue forjar.
 **Por confirmar quando houver um pagamento real de ponta a ponta:** que o webhook recebe o evento com
 `plano: 'pro'` nos metadados e que a validade fica preenchida. Em modo de teste do Stripe isto
 verifica-se com um cartão de teste.
+
+## 25/10/2026 — Primeiro pagamento real, e os dois erros que ele revelou
+
+O primeiro pagamento de teste passou: a subscrição ficou `ativa` e com o identificador do Stripe. Mas
+a **validade ficou vazia**, e isso destapou duas coisas.
+
+**1. O fim do período mudou de sítio na API do Stripe.** `current_period_end` vive agora **nos itens**
+da subscrição, não na subscrição. Lia-se no sítio errado, devolvia `undefined` em silêncio e a
+validade ficava nula. Passa a ler-se nos itens, com a subscrição como alternativa para versões
+antigas, e uma validade já conhecida nunca é apagada por um evento que não a traga.
+
+**2. Um buraco no desconto, que só apareceu por causa do primeiro.** `subscriberDiscountBp` dava
+desconto a uma subscrição **cancelada sem validade conhecida** — bastava cancelar antes de o Stripe
+dizer até quando o período ia para ficar com os 5 pontos para sempre. Agora cancelada sem validade
+não desconta. Activa sem validade continua a descontar, que é o estado normal no instante a seguir ao
+pagamento.
+
+Vale a pena guardar o padrão: foi um campo vazio numa linha da base — não um erro, não um teste
+vermelho — que levou ao segundo problema, que era o grave. Olhar para os dados depois de uma
+funcionalidade entrar paga-se.

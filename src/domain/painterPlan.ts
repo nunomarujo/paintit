@@ -111,6 +111,10 @@ export interface SubscricaoPintor {
 export function subscriberDiscountBp(s: SubscricaoPintor | null, hoje: string): number {
   if (!s || s.plano !== 'pro') return 0;
   if (s.estado === 'por_pagar') return 0;
+  // Cancelada sem validade conhecida não desconta. Antes descontava para sempre: bastava cancelar
+  // antes de o Stripe dizer até quando o período ia (bug encontrado a 25/10/2026, no primeiro
+  // pagamento de teste, quando a validade ficou vazia por se ler o campo no sítio errado).
+  if (s.estado === 'cancelada' && s.validaAte === null) return 0;
   if (s.validaAte !== null && s.validaAte < hoje) return 0;
   return PRO_DISCOUNT_BP;
 }

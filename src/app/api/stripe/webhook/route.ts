@@ -4,13 +4,23 @@ import { stripe } from '@/lib/stripe';
 import { adminClient } from '@/lib/supabase/admin';
 import { recordStripePayment } from '@/lib/payments';
 
-/** Fim do período já pago de uma subscrição, para o desconto durar exactamente até lá. */
+/**
+ * Fim do período já pago de uma subscrição, para o desconto durar exactamente até lá.
+ *
+ * Nas versões actuais da API do Stripe, `current_period_end` vive **nos itens** da subscrição e já não
+ * na subscrição. Ler no sítio errado devolvia `undefined` em silêncio e a validade ficava vazia — foi
+ * o que aconteceu no primeiro pagamento de teste, a 25/10/2026.
+ */
+function fimDoPeriodo(sub: Stripe.Subscription): string | null {
+  const item = sub.items?.data?.[0] as { current_period_end?: number } | undefined;
+  const fim = item?.current_period_end ?? (sub as unknown as { current_period_end?: number }).current_period_end;
+  return typeof fim === 'number' ? new Date(fim * 1000).toISOString().slice(0, 10) : null;
+}
+
 async function periodoAte(subscriptionId: string): Promise<string | null> {
   if (!stripe) return null;
   try {
-    const sub = await stripe.subscriptions.retrieve(subscriptionId);
-    const fim = (sub as unknown as { current_period_end?: number }).current_period_end;
-    return fim ? new Date(fim * 1000).toISOString().slice(0, 10) : null;
+    return fimDoPeriodo(await stripe.subscriptions.retrieve(subscriptionId));
   } catch {
     return null;
   }
@@ -101,13 +111,14 @@ export async function POST(req: Request) {
 
     // O mesmo para o plano Pro das empresas de pintura. Uma renovação paga empurra `valida_ate` para
     // a frente; um pagamento falhado tira o desconto, que é o que o 'por_pagar' significa.
-    const fim = (sub as unknown as { current_period_end?: number }).current_period_end;
+    const fim = fimDoPeriodo(sub);
     const estado = sub.status === 'active' || sub.status === 'trialing' ? 'ativa' : sub.status === 'canceled' ? 'cancelada' : 'por_pagar';
     await db
       .from('org_subscriptions')
       .update({
         estado,
-        valida_ate: fim ? new Date(fim * 1000).toISOString().slice(0, 10) : null,
+        // Nunca apagar uma validade já conhecida: se o Stripe não a disser, fica a que lá estava.
+        ...(fim ? { valida_ate: fim } : {}),
         ...(estado === 'cancelada' ? { cancelada_em: new Date().toISOString() } : {}),
       })
       .eq('stripe_subscription_id', sub.id);
