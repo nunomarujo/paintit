@@ -16,6 +16,8 @@ export const isPlanoPintor = (v: unknown): v is PlanoPintor => typeof v === 'str
 
 export const PERIODICIDADES = ['mensal', 'anual'] as const;
 export type Periodicidade = (typeof PERIODICIDADES)[number];
+export const isPeriodicidade = (v: unknown): v is Periodicidade =>
+  typeof v === 'string' && (PERIODICIDADES as readonly string[]).includes(v);
 
 /** Desconto do plano Pro na comissão, em pontos-base: 5 pontos percentuais (18% → 13%). */
 export const PRO_DISCOUNT_BP = 500;
@@ -40,6 +42,19 @@ export const PRECO_2026_10_25: PlanoPreco = {
 
 export const PRECO_ATUAL = PRECO_2026_10_25;
 export const PRECOS_POR_VERSAO: Record<string, PlanoPreco> = { [PRECO_2026_10_25.version]: PRECO_2026_10_25 };
+
+/**
+ * Preço de uma periodicidade na versão de preços que a assinatura guardou.
+ *
+ * A regra 3 do CLAUDE.md: a versão fica presa à assinatura e um preço novo não mexe em assinaturas
+ * já começadas. Devolve `null` para uma versão desconhecida — quem chama decide o que fazer, em vez
+ * de ficar um preço errado gravado em silêncio.
+ */
+export function precoDe(version: string, periodicidade: Periodicidade): Cents | null {
+  const p = PRECOS_POR_VERSAO[version];
+  if (!p) return null;
+  return periodicidade === 'anual' ? p.anualCents : p.mensalCents;
+}
 
 /** Quanto poupa, por ano, quem paga à anual em vez de mensalmente. */
 export const poupancaAnual = (p: PlanoPreco = PRECO_ATUAL): Cents => p.mensalCents * 12 - p.anualCents;

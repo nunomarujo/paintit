@@ -4,6 +4,30 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — A periodicidade que vai para a fatura é a que o Stripe cobrou
+
+O primeiro pagamento de teste destapou duas coisas, uma delas séria.
+
+O webhook do Stripe estava bem configurado: os quatro eventos ligados, `invoice.paid` entre eles,
+entregue com 200. O pagamento não ficou registado porque o evento chegou às 14:43:24 e a correcção
+que o lia no sítio certo só entrou em produção às 14:45:59 — dois minutos depois. Não havia nada a
+corrigir no Stripe.
+
+A séria foi outra. A linha da subscrição dizia "mensal, 30 €" e o Stripe tinha cobrado "anual,
+250 €". Uma adesão mensal abandonada a meio ficava em `por_pagar` e era reaproveitada pela adesão
+anual seguinte **sem lhe escrever a periodicidade nova**. O valor errado não ficava só no ecrã: era
+o que `src/lib/invoicing.ts` punha no descritivo do documento fiscal. Uma fatura emitida com a
+periodicidade errada é um erro de contabilidade, não de interface.
+
+Corrigido nos dois lados:
+- `subscribePro` escreve sempre a periodicidade, o preço e a versão de preços na linha que reaproveita.
+- O webhook, que é a autoridade, grava a periodicidade dos metadados da sessão paga e o preço da
+  versão que a assinatura guardou (`precoDe`, regra 3 — a versão fica presa à assinatura).
+
+`isPeriodicidade` e `precoDe` passaram para `src/domain/painterPlan.ts` (regra 2). `precoDe` devolve
+`null` numa versão desconhecida, em vez de gravar um preço inventado em silêncio.
+
+
 ## Decididas pelo promotor
 
 | Data | Tema | Decisão |

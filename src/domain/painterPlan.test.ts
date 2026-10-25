@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_RULES } from './rules';
 import { applyPainterDiscount } from './referral';
-import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, subscriberDiscountBp, type SubscricaoPintor } from './painterPlan';
+import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, precoDe, subscriberDiscountBp, type SubscricaoPintor } from './painterPlan';
 
 const pro = (over: Partial<SubscricaoPintor> = {}): SubscricaoPintor => ({ plano: 'pro', estado: 'ativa', periodicidade: 'mensal', validaAte: '2026-12-31', ...over });
 
@@ -63,5 +63,16 @@ describe('preço de lançamento', () => {
 
   it('a anual poupa 110 € face a doze meses', () => {
     expect(poupancaAnual()).toBe(11_000);
+  });
+});
+
+describe('precoDe', () => {
+  it('dá o preço da periodicidade na versão guardada', () => {
+    expect(precoDe('2026-10-25', 'mensal')).toBe(3_000);
+    expect(precoDe('2026-10-25', 'anual')).toBe(25_000);
+  });
+
+  it('recusa uma versão que não conhece, em vez de inventar um preço', () => {
+    expect(precoDe('2030-01-01', 'anual')).toBeNull();
   });
 });

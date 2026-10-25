@@ -1,4 +1,5 @@
 import type Stripe from 'stripe';
+import { isPeriodicidade, precoDe } from '@/domain/painterPlan';
 import { fromStripeStatus, isSupplierPlan, monthlyPrice } from '@/domain/subscription';
 import { stripe } from '@/lib/stripe';
 import { adminClient } from '@/lib/supabase/admin';
@@ -59,12 +60,29 @@ export async function POST(req: Request) {
       // — o regresso do navegador não serve de prova (25/10/2026, docs/DECISOES.md).
       const subId = typeof s.subscription === 'string' ? s.subscription : (s.subscription?.id ?? null);
       const fim = subId && stripe ? await periodoAte(subId) : null;
-      const { error } = await db
+      // A periodicidade vem dos metadados da sessão, que é a que foi paga. A linha pode ter ficado
+      // com outra — uma adesão mensal abandonada e reaproveitada por uma anual — e era a da linha que
+      // ia para a fatura (25/10/2026). O preço sai da versão que a assinatura guardou (regra 3).
+      const periodicidade = isPeriodicidade(m.periodicidade) ? m.periodicidade : null;
+      const { data: linha } = await db
         .from('org_subscriptions')
-        .update({ estado: 'ativa', stripe_subscription_id: subId, valida_ate: fim })
+        .select('id, preco_versao')
         .eq('org_id', m.org_id)
         .eq('plano', 'pro')
-        .in('estado', ['por_pagar', 'ativa']);
+        .in('estado', ['por_pagar', 'ativa'])
+        .maybeSingle();
+      if (!linha) return new Response('Subscrição desconhecida', { status: 404 });
+      const preco = periodicidade ? precoDe(linha.preco_versao, periodicidade) : null;
+      const { error } = await db
+        .from('org_subscriptions')
+        .update({
+          estado: 'ativa',
+          stripe_subscription_id: subId,
+          valida_ate: fim,
+          ...(periodicidade ? { periodicidade } : {}),
+          ...(preco !== null ? { preco_cents: preco } : {}),
+        })
+        .eq('id', linha.id);
       if (error) return new Response('Erro ao gravar', { status: 500 });
     } else if (s.mode === 'subscription' && m.org_id && isSupplierPlan(m.plan)) {
       const bps = Number(m.discount_bps) || 0;

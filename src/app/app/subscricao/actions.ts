@@ -6,11 +6,10 @@ import { redirect } from 'next/navigation';
 import { BRAND } from '@/config/brand';
 import { stripe } from '@/lib/stripe';
 import type { FormState } from '@/app/app/actions';
-import { PERIODICIDADES, PRECO_ATUAL, type Periodicidade } from '@/domain/painterPlan';
+import { PRECO_ATUAL, isPeriodicidade } from '@/domain/painterPlan';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
-const isPeriodicidade = (v: unknown): v is Periodicidade => typeof v === 'string' && (PERIODICIDADES as readonly string[]).includes(v);
 
 /**
  * Adesão ao plano Pro. Fica em 'por_pagar': quem a activa é o parceiro de pagamentos, nunca este
@@ -49,15 +48,21 @@ export async function subscribePro(_prev: FormState, form: FormData): Promise<Fo
     .in('estado', ['ativa', 'por_pagar'])
     .maybeSingle();
   if (existente?.estado === 'ativa') return { errors: {}, message: 'Já tem o plano Pro activo.' };
-  if (!existente) {
-    const { error } = await supabase.from('org_subscriptions').insert({
-      org_id: org.id,
-      plano: 'pro',
-      periodicidade,
-      estado: 'por_pagar',
-      preco_versao: PRECO_ATUAL.version,
-      preco_cents: precoCents,
-    });
+  const linha = {
+    plano: 'pro' as const,
+    periodicidade,
+    estado: 'por_pagar' as const,
+    preco_versao: PRECO_ATUAL.version,
+    preco_cents: precoCents,
+  };
+  if (existente) {
+    // Reaproveitar a linha é escrever-lhe a periodicidade escolhida agora. Sem isto, quem desistia a
+    // meio de uma adesão mensal e voltava a aderir à anual pagava 250 € no Stripe e ficava com
+    // "mensal, 30 €" gravado — e era esse valor que ia para a fatura (25/10/2026).
+    const { error } = await supabase.from('org_subscriptions').update(linha).eq('id', existente.id);
+    if (error) return { errors: {}, message: 'Não foi possível registar a adesão.' };
+  } else {
+    const { error } = await supabase.from('org_subscriptions').insert({ org_id: org.id, ...linha });
     if (error) return { errors: {}, message: 'Não foi possível registar a adesão.' };
   }
 
