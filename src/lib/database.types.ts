@@ -657,6 +657,36 @@ export type Database = {
           { foreignKeyName: 'supplier_referral_invites_supplier_org_id_fkey'; columns: ['supplier_org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
         ];
       };
+      org_subscriptions: {
+        Row: {
+          cancelada_em: string | null;
+          created_at: string;
+          estado: 'ativa' | 'por_pagar' | 'cancelada';
+          id: string;
+          inicio: string;
+          org_id: string;
+          periodicidade: 'mensal' | 'anual';
+          plano: 'gratuito' | 'pro';
+          preco_cents: number;
+          preco_versao: string;
+          valida_ate: string | null;
+        };
+        Insert: {
+          cancelada_em?: string | null;
+          created_at?: string;
+          estado?: 'ativa' | 'por_pagar' | 'cancelada';
+          id?: string;
+          inicio?: string;
+          org_id: string;
+          periodicidade: 'mensal' | 'anual';
+          plano: 'gratuito' | 'pro';
+          preco_cents: number;
+          preco_versao: string;
+          valida_ate?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['org_subscriptions']['Insert']>;
+        Relationships: [];
+      };
       painter_terms_acceptances: {
         Row: { accepted_at: string; accepted_by: string; painter_org_id: string; version: string };
         Insert: { accepted_at?: string; accepted_by?: string; painter_org_id: string; version: string };

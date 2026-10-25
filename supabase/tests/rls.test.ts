@@ -2340,3 +2340,64 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     expect(await as(CP, async () => (await db.query('select status from public.request_surveys where id = $1', [abertoId])).rows)).toEqual([]);
   });
 });
+
+describe('subscrição da empresa de pintura', () => {
+  const SP = '00000000-0000-4000-8000-0000000000fa'; // membro da empresa subscritora
+  const SX = '00000000-0000-4000-8000-0000000000fb'; // empresa de pintura concorrente
+  let subOrg: string;
+  let outraOrg: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [SP, email(SP), SX, email(SX)]);
+    subOrg = (await createOrg(SP, 'pintor', 'Pinturas Subscritora', '507110129')).id;
+    outraOrg = (await createOrg(SX, 'pintor', 'Pinturas Concorrente', '509442013')).id;
+  });
+
+  const subscrever = (user: string, orgId: string, estado = 'por_pagar') =>
+    as(user, () =>
+      db.query(
+        `insert into public.org_subscriptions (org_id, plano, periodicidade, estado, preco_versao, preco_cents)
+         values ($1, 'pro', 'mensal', $2, '2026-10-25', 3000) returning id`,
+        [orgId, estado],
+      ),
+    );
+
+  it('subscreve-se para a própria empresa, nunca para outra', async () => {
+    await expect(subscrever(SP, outraOrg)).rejects.toThrow(/row-level security/);
+    const { rows } = await subscrever(SP, subOrg);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('o navegador não activa a subscrição: isso é do lado do pagamento', async () => {
+    await expect(subscrever(SX, outraOrg, 'ativa')).rejects.toThrow(/row-level security/);
+  });
+
+  it('uma empresa de pintura não vê a subscrição de outra', async () => {
+    expect(await as(SX, async () => (await db.query('select id from public.org_subscriptions where org_id = $1', [subOrg])).rows)).toEqual([]);
+    expect(await as(SP, async () => (await db.query('select plano from public.org_subscriptions where org_id = $1', [subOrg])).rows)).toEqual([
+      { plano: 'pro' },
+    ]);
+  });
+
+  it('não há duas subscrições a correr na mesma empresa', async () => {
+    await expect(subscrever(SP, subOrg)).rejects.toThrow(/org_subscriptions_uma_ativa|duplicate key/);
+  });
+
+  it('o membro cancela a sua, mas não muda o preço nem a activa', async () => {
+    await expect(
+      as(SP, () => db.query(`update public.org_subscriptions set preco_cents = 0 where org_id = $1`, [subOrg])),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(SP, () => db.query(`update public.org_subscriptions set estado = 'ativa' where org_id = $1`, [subOrg])),
+    ).rejects.toThrow(/row-level security/);
+    await as(SP, () => db.query(`update public.org_subscriptions set estado = 'cancelada', cancelada_em = now() where org_id = $1`, [subOrg]));
+    expect(await as(SP, async () => (await db.query('select estado from public.org_subscriptions where org_id = $1', [subOrg])).rows)).toEqual([
+      { estado: 'cancelada' },
+    ]);
+  });
+
+  it('cancelada a anterior, pode subscrever de novo', async () => {
+    const { rows } = await subscrever(SP, subOrg);
+    expect(rows).toHaveLength(1);
+  });
+});

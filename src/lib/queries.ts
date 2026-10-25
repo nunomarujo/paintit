@@ -1,5 +1,6 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isPlanoPintor, subscriberDiscountBp, type SubscricaoPintor } from '@/domain/painterPlan';
 import type { Database } from '@/lib/database.types';
 import type { IsoDate } from '@/domain/deadline';
 import { combinedPainterDiscountBp, linkedSupplierDiscountBp } from '@/domain/referral';
@@ -77,6 +78,11 @@ export interface PainterDiscountBreakdown {
   eligibleCount: number;
   referralsBp: number;
   combinedBp: number;
+  /** Desconto do plano Pro (5 p.p.), fora do teto conjunto dos outros dois — soma-se por cima deles. */
+  subscriberBp: number;
+  /** Desconto total a aplicar à comissão: o teto conjunto dos dois primeiros mais o de subscritor. */
+  totalBp: number;
+  subscricao: SubscricaoPintor | null;
 }
 
 /** O desconto do pintor em vigor agora: códigos de adesão ligados (ambiente, qualquer que seja o marcado nesta
@@ -100,5 +106,30 @@ export async function painterDiscountBreakdown(supabase: SupabaseClient<Database
   const eligibleCount = countEligibleReferrals(referred, today);
   const referralsBp = referralDiscountBp(eligibleCount);
 
-  return { linkedCount, linkedBp, eligibleCount, referralsBp, combinedBp: combinedPainterDiscountBp(linkedBp, referralsBp) };
+  const combinedBp = combinedPainterDiscountBp(linkedBp, referralsBp);
+
+  // O desconto de subscritor é independente: não entra no teto conjunto dos dois de fornecedores,
+  // soma-se por cima deles, e é o piso da versão das regras que impede o conjunto de ir longe demais.
+  const subscricao = await painterSubscription(supabase, painterOrgId);
+  const subscriberBp = subscriberDiscountBp(subscricao, today);
+
+  return { linkedCount, linkedBp, eligibleCount, referralsBp, combinedBp, subscriberBp, totalBp: combinedBp + subscriberBp, subscricao };
+}
+
+/** A subscrição em vigor de uma empresa de pintura, ou null se estiver no plano gratuito. */
+export async function painterSubscription(supabase: SupabaseClient<Database>, painterOrgId: string): Promise<SubscricaoPintor | null> {
+  const { data } = await supabase
+    .from('org_subscriptions')
+    .select('plano, estado, periodicidade, valida_ate')
+    .eq('org_id', painterOrgId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data || !isPlanoPintor(data.plano)) return null;
+  return {
+    plano: data.plano,
+    estado: data.estado as SubscricaoPintor['estado'],
+    periodicidade: data.periodicidade as SubscricaoPintor['periodicidade'],
+    validaAte: data.valida_ate,
+  };
 }

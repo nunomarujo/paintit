@@ -2045,3 +2045,42 @@ decisão aqui:
 de obra, antes de horas de medição e orçamentação, e não só no fim: revelar o custo depois do esforço feito
 converte por custo irrecuperável, o que produz ressentimento diferido num mercado pequeno. O ecrã final
 passaria a confirmar em vez de revelar.
+
+## 25/10/2026 — Plano Pro das empresas de pintura
+
+**Decisão do promotor.** Dois planos: o gratuito, que é o de hoje, e o **Pro** — 30 €/mês ou 250 €/ano
+(preço de lançamento; tabela 50 €/mês ou 500 €/ano quando as funcionalidades estiverem no ar). O Pro
+desce **5 pontos percentuais** na comissão — 18% passa a 13% —, acumulável com os outros descontos e
+travado pelo piso de 9%. A linha do desconto de subscritor aparece **sempre** no cartão da comissão,
+tenha-o ou não: é assim que quem não subscreveu fica a saber que existe, no sítio onde decide.
+
+**O que o estudo mostrou e que muda o conteúdo do plano.** A pergunta "o que falta mesmo a uma empresa
+de pintura portuguesa" foi investigada antes de se escolher o que o Pro oferece. As conclusões que
+contrariam o instinto:
+
+- **As calculadoras não sustentam uma subscrição.** Rendimento de tinta, conversão de áreas e custo de
+  andaime existem de graça nos sites da CIN, Robbialac e Dyrup, e um pintor experiente estima de
+  cabeça. Um separador cheio de calculadoras demonstra bem e renova mal.
+- **O valor verdadeiro é, por ordem:** ganhar obra; orçamentar depressa e com bom aspecto (1 a 3 h por
+  orçamento hoje, e quem envia primeiro ganha vantagem desproporcionada em condomínios); não perder
+  adjudicações por papelada caducada (as declarações de não dívida às Finanças e à Segurança Social
+  valem 3 meses e ninguém controla os prazos); registar trabalhos a mais com aceitação do cliente, que
+  é onde a margem desaparece.
+- **O IVA é um problema a sério e caro.** Três regimes decididos caso a caso por quem não é
+  contabilista: verba 2.27 (6% em habitação, com os materiais só a 6% se não excederem 20% do valor
+  global), verba 2.42 do DL 97/2026 (desde 1 de Julho de 2026) e a inversão do sujeito passivo quando
+  o adquirente é sujeito passivo com direito à dedução. Facturar mal custa centenas a milhares de
+  euros, nos dois sentidos. O que a plataforma pode fazer é um questionário que devolve o regime
+  provável e **guarda a prova** — nunca garantir conformidade, e isso tem de estar escrito no ecrã.
+- **Prioridade de construção, inversa à facilidade:** orçamento → cofre de documentos com avisos de
+  validade → trabalhos a mais → diário fotográfico datado → horas e margem real → integração com um
+  software de facturação já existente (Vendus, Moloni, InvoiceXpress, Toconline — não construir
+  facturação própria) → calculadoras.
+
+**Por confirmar antes de construir:** limites em euros por classe de alvará e de certificado IMPIC e a
+subcategoria aplicável a pinturas; estado do livro de obra electrónico e se obriga o subcontratado;
+se o IMPIC permite consulta automatizada da validade de um alvará.
+
+**Em aberto.** Se os 30 €/mês cobrem as ferramentas, o acesso a obra, ou ambos. O estudo aponta para o
+acesso a obra ser o que sustenta o preço — e, se for esse o caso, vender o plano pelas ferramentas é
+vender a coisa de menor valor.

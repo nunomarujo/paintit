@@ -1,7 +1,9 @@
 import type { FeeBreakdown } from '@/domain/commission';
 import { formatEuros, type Cents } from '@/domain/money';
 import { CURRENT_RULES } from '@/domain/rules';
+import { PRECO_ATUAL, PRO_DISCOUNT_BP, linhaSubscritor } from '@/domain/painterPlan';
 import type { PainterDiscountBreakdown } from '@/lib/queries';
+import Link from 'next/link';
 
 export interface FeeSummaryProps {
   /** Valor da obra sem IVA — a base sobre a qual a comissão é calculada. */
@@ -51,18 +53,25 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
   const taxa = base > 0 ? (fee.net / base) * 100 : 0;
   const taxaTexto = taxa.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   const fica = base - fee.net;
+  const sub = linhaSubscritor(discount.subscriberBp);
+  // O que esta obra pouparia com o plano Pro, para quem ainda não o tem: é o argumento concreto, no
+  // sítio onde ele decide, e não um banner genérico noutro ecrã.
+  const piso = (base * (CURRENT_RULES.commissionFloorBp ?? 0)) / 10_000;
+  const poupancaPro = sub.ativo
+    ? Math.max(0, Math.min(fee.net + (base * PRO_DISCOUNT_BP) / 10_000, (base * CURRENT_RULES.commissionBp) / 10_000) - fee.net)
+    : Math.max(0, fee.net - Math.max(piso, fee.net - (base * PRO_DISCOUNT_BP) / 10_000));
 
   return (
-    <div className="rounded-2xl border border-slate-300 bg-white text-sm">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <p className="eyebrow">O que paga à Quem Pinta</p>
+    <div className="overflow-hidden rounded-2xl border border-tinta-200 bg-tinta-50/60 text-sm">
+      <div className="border-b border-tinta-200/70 px-5 py-4">
+        <p className="eyebrow text-tinta-700">O que pagará à plataforma Quem Pinta.pt</p>
         <p className="mt-2 text-[15px] leading-snug text-slate-900">
           Se o cliente escolher esta proposta, paga <strong className="font-semibold">{formatEuros(fee.net)} + IVA</strong>{' '}
           à Quem Pinta. Se escolher outra, não paga nada.
         </p>
       </div>
 
-      <div className="grid gap-px bg-slate-200 sm:grid-cols-2">
+      <div className="grid gap-px bg-tinta-200/70 sm:grid-cols-2">
         <div className="bg-white px-5 py-4">
           <p className="text-[34px] font-semibold leading-none tracking-tight text-slate-900">{formatEuros(fee.net)}</p>
           <p className="mt-2 text-slate-600">
@@ -75,27 +84,41 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
         </div>
       </div>
 
-      <ul className="border-t border-slate-200 px-5 py-4 text-slate-700">
-        {discountLines.length > 0 && fullFee ? (
-          <>
-            <li className="flex justify-between gap-4 py-0.5">
-              <span>Comissão à taxa base</span>
-              <span className="tabular-nums">{formatEuros(fullFee.net)}</span>
-            </li>
-            {discountLines.map((d) => (
-              <li key={d.label} className="flex justify-between gap-4 py-0.5 text-emerald-700">
-                <span>{d.label}</span>
-                <span className="tabular-nums">−{formatEuros(d.cents)}</span>
-              </li>
-            ))}
-          </>
-        ) : null}
-        <li className="flex justify-between gap-4 py-0.5 font-semibold text-slate-900">
+      <ul className="border-t border-tinta-200/70 bg-white px-5 py-4 text-slate-700">
+        <li className="flex justify-between gap-4 py-0.5">
+          <span>Comissão à taxa base ({CURRENT_RULES.commissionBp / 100}%)</span>
+          <span className="tabular-nums">{formatEuros(fullFee ? fullFee.net : fee.net)}</span>
+        </li>
+        {discountLines.map((d) => (
+          <li key={d.label} className="flex justify-between gap-4 py-0.5 text-emerald-700">
+            <span>{d.label}</span>
+            <span className="tabular-nums">−{formatEuros(d.cents)}</span>
+          </li>
+        ))}
+        {/* A linha do subscritor aparece sempre, tenha-o ou não: é assim que quem não subscreveu fica a
+            saber que o desconto existe, e no sítio onde está a decidir (pedido do promotor, 25/10/2026). */}
+        <li className="flex items-center justify-between gap-4 py-1">
+          <span className={sub.ativo ? 'text-emerald-700' : 'text-slate-500'}>
+            {sub.label}
+            {!sub.ativo && (
+              <Link
+                href="/app/subscricao"
+                className="ml-2 inline-flex items-center rounded-full border border-tinta-300 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-tinta-700 hover:bg-tinta-50"
+              >
+                Aderir e poupar {formatEuros(poupancaPro)} nesta obra
+              </Link>
+            )}
+          </span>
+          <span className={`tabular-nums ${sub.ativo ? 'text-emerald-700' : 'text-slate-400'}`}>
+            {sub.ativo ? `−${formatEuros(poupancaPro)}` : sub.valor}
+          </span>
+        </li>
+        <li className="mt-1 flex justify-between gap-4 border-t border-slate-200 pt-2 font-semibold text-slate-900">
           <span>Comissão</span>
           <span className="tabular-nums">{formatEuros(fee.net)}</span>
         </li>
-        <li className="flex justify-between gap-4 py-0.5">
-          <span>IVA, que depois deduz</span>
+        <li className="flex justify-between gap-4 py-0.5 font-normal text-slate-700">
+          <span>IVA dedutível</span>
           <span className="tabular-nums">{formatEuros(fee.vat)}</span>
         </li>
         <li className="mt-1 flex justify-between gap-4 border-t border-slate-200 pt-2 font-semibold text-slate-900">
@@ -104,7 +127,7 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
         </li>
       </ul>
 
-      <div className="border-t border-slate-200 px-5 py-4 text-slate-700">
+      <div className="border-t border-tinta-200/70 bg-white px-5 py-4 text-slate-700">
         <p className="font-semibold text-slate-900">Quando</p>
         <p className="mt-1">
           8 dias corridos depois de o cliente confirmar a caução — ou seja, antes de assinar o contrato e antes de
@@ -113,12 +136,12 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
         <p className="mt-2">O cliente paga o valor do orçamento; a comissão não se soma a esse valor.</p>
       </div>
 
-      <p className="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+      <p className="border-t border-tinta-200/70 px-5 py-3 text-xs text-slate-600">
         Taxa base {(CURRENT_RULES.commissionBp / 100).toLocaleString('pt-PT')}% do valor sem IVA
         {discountLines.length > 0 ? ', já com os descontos acima' : ''}; nunca abaixo de{' '}
         {((CURRENT_RULES.commissionFloorBp ?? 0) / 100).toLocaleString('pt-PT')}%, com um mínimo de{' '}
         {formatEuros(CURRENT_RULES.commissionMinCents)}. Condições da versão {CURRENT_RULES.version}, fixadas nesta
-        proposta.
+        proposta. Plano Pro: {formatEuros(PRECO_ATUAL.mensalCents)}/mês ou {formatEuros(PRECO_ATUAL.anualCents)}/ano.
       </p>
     </div>
   );

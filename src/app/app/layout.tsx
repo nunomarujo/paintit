@@ -42,6 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
   if (kinds.has('pintor')) {
     more.push({ href: '/app/obras', label: 'Ferramentas de obra' });
+    more.push({ href: '/app/subscricao', label: 'Plano da empresa' });
     // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
     // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.
     // Este link apontava por erro para a entidade do fornecedor (abaixo), onde dava sempre 404 — link

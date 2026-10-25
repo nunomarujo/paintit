@@ -109,7 +109,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const draft = proposal?.status === 'rascunho';
   const terms = proposal ? toTerms(proposal) : null;
   const totals = terms ? proposalTotals(domainLines, terms.ivaBps) : null;
-  const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discount.combinedBp)) : null;
+  const fee = totals && totals.base > 0 ? painterFee(totals.base, applyPainterDiscount(CURRENT_RULES, discount.totalBp)) : null;
   // Sem desconto nenhum, só para o ecrã final poder mostrar quanto cada desconto abate em euros (FeeSummary).
   const fullFee = totals && totals.base > 0 ? painterFee(totals.base, CURRENT_RULES) : null;
   const linkedSupplierNames = [...new Map(linkedSuppliers.map((s) => [s.supplierOrgId, s.nome])).values()];
