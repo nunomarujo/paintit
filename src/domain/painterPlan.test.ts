@@ -137,7 +137,17 @@ describe('acesso ao Pro', () => {
   it('o benefício do convite traz os números medidos, não adjectivos', () => {
     const convite = BENEFICIOS_PRO.find((b) => b.titulo.includes('Dois terços'));
     expect(convite?.maisInfo).toContain('482');
-    expect(convite?.maisInfo).toContain('58%');
+    expect(convite?.maisInfo).toContain('63,6 milhões');
+    expect(convite?.maisInfo).toContain('mais de um terço');
+  });
+
+  it('não volta a pôr os 58% do convite único, que são de outra base', () => {
+    // Os 58% são 124 convites a uma empresa só em 213 — só os convites cuja lista de convidados o
+    // BASE publica. Sobre os 326 convites todos são 38%, e é esse o universo de que a frase fala.
+    // Estiveram aqui como se fossem dos 326: um número verdadeiro na base errada continua a enganar
+    // quem o lê, e numa página de venda isso não passa (verificado na carga real de 25/10/2026).
+    const texto = BENEFICIOS_PRO.flatMap((b) => [b.titulo, b.detalhe, b.maisInfo ?? '']).join(' ');
+    expect(texto).not.toContain('58%');
   });
 
   it('a taxa da comissão não aparece em lado nenhum, só os pontos que desce', () => {

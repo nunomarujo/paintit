@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { classificarContrato, entidade, lugar, normalizar, porConvite, resumirEntidade } from './contratosPublicos';
+import {
+  classificarContrato,
+  entidade,
+  lugar,
+  normalizar,
+  pareceEmpresa,
+  porConvite,
+  resumirEntidade,
+} from './contratosPublicos';
 
 // Casos retirados do ficheiro real do portal BASE de 2026 (dados.gov.pt), a 25/10/2026.
 const empreitada = (objectoContrato: string, cpv: string[] = []) => ({
@@ -79,5 +87,27 @@ describe('resumo de uma entidade', () => {
 
   it('sem contratos não inventa nada', () => {
     expect(resumirEntidade([])).toEqual({ contratos: 0, totalCents: 0, porConvite: 0, conviteUnico: 0 });
+  });
+});
+
+describe('pareceEmpresa', () => {
+  it('deixa passar empresas e empresários em nome individual', () => {
+    // Dos 742 convidados de 2026, 27 não trazem NIF e quase todos são pessoas: são concorrentes
+    // verdadeiros, e tirá-los apagava do mapa os que mais ameaçam um pintor pequeno.
+    expect(pareceEmpresa('FONROD - Ar Condicionado e afins, Lda.')).toBe(true);
+    expect(pareceEmpresa('Susana Margarida Almeida Fonseca Ferrajão')).toBe(true);
+    expect(pareceEmpresa('construção civil')).toBe(true);
+  });
+
+  it('corta os rótulos de lote que a entidade pôs no campo dos concorrentes', () => {
+    expect(pareceEmpresa('Lote 2')).toBe(false);
+    expect(pareceEmpresa('lote 3')).toBe(false);
+    expect(pareceEmpresa('LOTES 10')).toBe(false);
+    expect(pareceEmpresa('   ')).toBe(false);
+  });
+
+  it('não corta uma empresa que tenha "lote" no nome', () => {
+    expect(pareceEmpresa('Lote Azul, Lda')).toBe(true);
+    expect(pareceEmpresa('Loteamentos do Sul')).toBe(true);
   });
 });

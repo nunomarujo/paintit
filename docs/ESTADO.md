@@ -1,6 +1,11 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 24/10/2026, mesma tarde (item 12 decidido e construído — recusar logo um certificado com
+Atualizado a 25/10/2026, fim do dia (**Mapa de Contratos Públicos** construído, e um número de venda
+corrigido — secção 6.12). O dia 25/10 teve várias sessões seguidas (plano Pro no Stripe, portão do Pro,
+orçamentos em separadores, Gestão de Obra renomeada e redesenhada com a sua primeira entrega, página de
+preços sem percentagens de comissão): **o registo completo, por ordem e com o raciocínio, está em
+`docs/DECISOES.md`, nas entradas de 25/10/2026** — este ficheiro ainda não as absorveu todas. Estado
+anterior, 24/10/2026, mesma tarde (item 12 decidido e construído — recusar logo um certificado com
 cadeia mesmo inválida, nunca por ter ficado indeterminada por falha de rede; verificação direta encontrou
 duas migrações que a atualização anterior, da mesma manhã, tinha concluído erradamente estarem aplicadas —
 uma delas é um bug real ao vivo desde 23/10/2026; bloqueios de escrita desta sessão com o SQL já pronto
@@ -959,6 +964,55 @@ confirmar, nesse momento, que `PERMITIR_ACEITACAO_SIMPLES` não está a `"1"` em
 Esta sessão não conseguiu executar os passos 1-3 (bloqueio "Feature Flag Writes" do classificador
 automático, secção 6.7) — ficam para o promotor ou para uma sessão com o modo automático desligado.
 Detalhe completo em `docs/DECISOES.md`, entrada 24/10/2026.
+
+
+### 6.12 Mapa de Contratos Públicos, e um número de venda corrigido (25/10/2026, fim do dia)
+
+**O ecrã.** `/app/obras-publicas` passou a **Mapa de contratos públicos**, com duas vistas: *Quem
+contrata* (por omissão) e *Concursos abertos* (a lista curada, que era a secção toda). Por entidade:
+quantas vezes contratou, a mediana do que paga, quantos contratos foram por convite, quantos a uma
+empresa só, quantos sem lista publicada, o último contrato e os concelhos. Depois, quem costuma ser
+convidado no distrito. E, à cabeça, a própria empresa — convites recebidos, obras ganhas e quem a
+convidou —, procurada **pelo NIF e nunca pelo nome**.
+
+Ficheiros: `src/domain/mapaContratos.ts` (+ testes), `src/app/app/obras-publicas/Mapa.tsx` (a consulta
+e, separada dela, a vista `MapaView`), `Concursos.tsx`, `page.tsx`. A vista foi revista antes de existir
+uma linha na base de dados, desenhando-a fora da aplicação com os 133 contratos reais de Lisboa de 2026.
+
+**O número corrigido.** A página de preços dizia que, dos convites, *58%* chamaram uma empresa só. São
+124 em 213 — só os convites cuja lista o portal publica. Sobre os **326** convites todos são **38%**, e
+era dos 326 que a frase falava. Ficou *"mais de um terço"*. Há um teste a impedir que os 58% voltem, e os
+comentários da migração e do classificador foram corrigidos, que era de lá que o número saía. Razão
+completa em `docs/DECISOES.md`, 25/10/2026.
+
+**O carregador, verificado ao vivo** contra o ficheiro do próprio dia: 482 contratos de 199 701,
+63,6 M€, 68% por convite, 17 segundos, 208 MB. Fica em `src/lib/contratosBase.live.test.ts`, fora do
+`npm test`, atrás de `CARGA_AO_VIVO=1`. Apanhou também oito linhas em que a entidade pôs rótulos de lote
+no campo dos concorrentes — filtrados por `pareceEmpresa`, que é deliberadamente estreito.
+
+**Por fazer, e é o que destranca o ecrã:** a carga nunca correu. Vercel → Cron Jobs →
+`/api/cron/contratos-publicos` → *Run now*. Até lá o mapa mostra o estado vazio, que explica a origem
+dos dados em vez de parecer avariado.
+
+**Bloqueado pelo classificador do modo automático** (SQL pronto, para o promotor correr no Supabase):
+
+```sql
+create index if not exists worksite_members_person_idx on public.worksite_members (person_id);
+insert into supabase_migrations.schema_migrations (version, name)
+values ('20261027190000', 'indice_da_pessoa')
+on conflict (version) do nothing;
+```
+
+O índice faltava à chave estrangeira criada em `pessoas_da_empresa`, e é o caminho que o contador anual
+de horas suplementares percorre em todas as obras de uma pessoa. Ficheiro já no repositório:
+`supabase/migrations/20261027190000_indice_da_pessoa.sql`.
+
+**Avisos do Supabase depois das migrações de ontem:** segurança e desempenho verificados. O lint novo
+`authenticated_security_definer_function_executable` aponta 36 funções RPC — são a superfície desenhada
+de propósito, e as nove de administração (`acc_close_period`, `referral_void`, `resolve_listing_report`
+e companhia) fecham por dentro em `platform_admins`; as duas de factura de resgate (`*_redemption_invoice`)
+estão certas como estão, porque é o fornecedor que carrega a sua própria factura, com `can_manage_org` e o
+caminho obrigado a começar no `org_id` dele. Nada a mudar.
 
 ---
 

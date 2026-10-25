@@ -4,6 +4,44 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — O mapa de contratos públicos, e um número corrigido na página de venda
+
+**O ecrã.** `Obras públicas` passa a `Mapa de contratos públicos`, com duas vistas no segundo nível
+da barra: *Quem contrata*, por omissão, e *Concursos abertos*, à parte. A inversão é a decisão: a
+lista de concursos anunciados era a secção toda, e é a minoria do mercado.
+
+Por entidade, o mapa diz quantas vezes contratou, quanto costuma pagar (a mediana, não a média — uma
+obra grande desloca a média e mente sobre o que a entidade paga de hábito), quantos contratos foram
+por convite, e os concelhos. As entidades vêm ordenadas por **frequência** e não por valor: ao pintor
+interessa a quem vale a pena bater à porta, e isso mede-se em quantas vezes contrata, não numa obra
+grande que apareceu uma vez. Depois, quem costuma ser convidado — contando convites e não obras
+ganhas, que é a lista em que vale a pena entrar. E, à cabeça, a própria empresa: quantos convites
+recebeu, quantos ganhou e quem a convidou, procurada pelo NIF e nunca pelo nome.
+
+**O número que estava errado.** A página de preços dizia *"dois terços foram por convite directo, e
+em 58% desses casos foi convidada uma única empresa"*. Os 58% são verdadeiros noutra pergunta:
+
+- 482 empreitadas de pintura em 2026, de 199 701 contratos; 63,6 M€.
+- 326 (68%) por ajuste directo ou consulta prévia, sem anúncio.
+- Desses 326, o portal **não publica a lista de convidados em 113**. Publica em 213.
+- 124 convidaram uma empresa só — **58% dos 213 com lista**, mas **38% dos 326**.
+
+A frase dizia "desses casos" referindo-se aos 326, com a conta feita sobre 213. Fica *"mais de um
+terço"*, que é o número que não precisa de rodapé. Um número verdadeiro na base errada engana quem o
+lê tanto como um inventado, e numa página de venda isso não passa. Há um teste a impedir que os 58%
+voltem (`painterPlan.test.ts`), e os comentários da migração e do classificador foram corrigidos —
+era de lá que o número saía de cada vez.
+
+**O carregador, verificado ao vivo.** Contra o ficheiro do próprio dia: 482 linhas, 17 segundos,
+208 MB de memória. Fica em `contratosBase.live.test.ts`, fora do `npm test` e atrás de
+`CARGA_AO_VIVO=1`, porque descarrega 44 MB. Existe por uma avaria silenciosa: `ficheiroDoAno` procura
+o recurso cujo título é exactamente `contratos<ano>.zip` — se o portal lhe mudar o nome, devolve
+`null`, a tarefa semanal não carrega nada e a tabela fica como estava sem ninguém dar por isso.
+
+**O que falta.** A tabela está vazia: a carga ainda não correu uma vez (Vercel → Cron Jobs →
+`/api/cron/contratos-publicos`). Até lá o ecrã mostra o estado vazio, que explica a origem dos dados
+em vez de parecer avariado.
+
 ## 25/10/2026 — Primeira entrega da Gestão de Obra
 
 Os seis pontos da proposta revista, construídos. O que mudou em cada um, e porquê.

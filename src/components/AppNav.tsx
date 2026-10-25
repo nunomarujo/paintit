@@ -16,7 +16,18 @@ export interface NavItem {
    * A aplicação já tem uma barra à esquerda: pôr outra coluna de separadores ao lado dela são duas
    * barras a competir pelo mesmo papel. O que é de dentro de uma secção vive aqui (25/10/2026).
    */
-  children?: { href: string; label: string; aviso?: boolean }[];
+  children?: {
+    href: string;
+    label: string;
+    aviso?: boolean;
+    /**
+     * O filho a assinalar quando nenhum dos outros bate — o que a secção mostra sem parâmetros.
+     *
+     * Sem isto, um filho cujo endereço não traz parâmetros fica activo em todas as vistas da secção
+     * (nada para comparar é sempre verdade), e apareciam dois seleccionados ao mesmo tempo.
+     */
+    padrao?: boolean;
+  }[];
 }
 
 /** Navegação da área de trabalho: lateral em ecrãs largos, em linha no telemóvel. */
@@ -52,7 +63,11 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
           ))}
           {g.items
             .filter((i) => active(i) && i.children?.length)
-            .map((i) => (
+            .map((i) => {
+              const algumBate = i.children!.some((c) => !c.padrao && activeChild(c.href));
+              const activo = (c: { href: string; padrao?: boolean }) =>
+                c.padrao ? !algumBate && activeChild(c.href) : activeChild(c.href);
+              return (
               // A régua fica no grupo e não em cada item: uma linha por item sai partida nos
               // espaços entre eles. No telemóvel não há régua, que a barra corre na horizontal.
               <div key={`${i.href}-filhos`} className="flex gap-1 md:ml-3 md:block md:border-l md:border-slate-200">
@@ -60,9 +75,9 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                   <Link
                     key={c.href}
                     href={c.href}
-                    aria-current={activeChild(c.href) ? 'page' : undefined}
+                    aria-current={activo(c) ? 'page' : undefined}
                     className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[12.5px] md:pl-4 ${
-                      activeChild(c.href) ? 'font-semibold text-tinta-700' : 'text-slate-500 hover:text-slate-900'
+                      activo(c) ? 'font-semibold text-tinta-700' : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
@@ -70,7 +85,8 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                   </Link>
                 ))}
               </div>
-            ))}
+              );
+            })}
         </div>
       ))}
     </nav>

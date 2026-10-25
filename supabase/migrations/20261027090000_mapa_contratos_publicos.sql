@@ -1,9 +1,14 @@
 -- Mapa de Contratos Públicos (25/10/2026, docs/DECISOES.md).
 --
--- Mede-se nos próprios dados: em 2026 houve 482 empreitadas de pintura, fachadas e isolamento; 68%
--- foram por ajuste directo ou consulta prévia, que ninguém anuncia, e em 58% desses convites foi
--- chamada uma empresa só. Listar concursos abertos entrega pouco; dizer ao pintor quem contrata
--- pintura à volta dele, e quem costuma ser convidado, entrega o que ele não consegue saber sozinho.
+-- Mede-se nos próprios dados: em 2026 houve 482 empreitadas de pintura, fachadas e isolamento; 326
+-- (68%) foram por ajuste directo ou consulta prévia, que ninguém anuncia, e em 124 delas — mais de um
+-- terço — foi chamada uma empresa só. Listar concursos abertos entrega pouco; dizer ao pintor quem
+-- contrata pintura à volta dele, e quem costuma ser convidado, entrega o que ele não consegue saber
+-- sozinho.
+--
+-- Cuidado com a base da conta: o BASE só publica a lista de convidados em 213 dos 326 convites. Sobre
+-- esses 213, o convite único dá 58% — número verdadeiro, outra pergunta. Esteve aqui como se fosse
+-- dos 326, e foi corrigido em 25/10/2026 contra a carga real.
 --
 -- Fonte: "Contratos Públicos — Portal Base — IMPIC", dados.gov.pt, domínio público, semanal. É um
 -- ficheiro feito para ser descarregado por máquinas — não se lê o portal BASE por meios automáticos,

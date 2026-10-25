@@ -134,15 +134,21 @@ export const BENEFICIOS_PRO: Beneficio[] = [
     detalhe: 'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, e o que está facturado por receber.',
   },
   // O achado de 25/10/2026, medido nos contratos públicos de 2026: dois terços das obras de pintura
-  // do Estado nunca são anunciadas, e na maioria dos convites só é chamada uma empresa. Muitos
-  // pintores não sabem sequer que isto funciona assim — daí o título explicar antes de prometer.
+  // do Estado nunca são anunciadas, e em mais de um terço dos convites só é chamada uma empresa.
+  // Muitos pintores não sabem sequer que isto funciona assim — daí o título explicar antes de prometer.
+  //
+  // Os números vêm da carga real (482 de 199 701 contratos; `src/lib/contratosBase.ts`), verificados
+  // contra o ficheiro do portal em 25/10/2026. O "mais de um terço" são 124 convites a uma empresa
+  // só, em 326 — e não os 58% que aqui estiveram: esses 58% são 124 em 213, a conta feita apenas
+  // sobre os convites em que o BASE publica a lista de convidados, que são dois terços deles. Numa
+  // página de venda fica o número que não precisa de rodapé.
   {
     titulo: 'Dois terços das obras públicas nunca são anunciadas',
     destaque: true,
     detalhe:
       'A câmara não publica concurso: convida directamente quem já conhece. Fazemos o trabalho para que seja a si que convidam — dizemos-lhe quem contrata pintura à sua volta, com que frequência e por que valores.',
     maisInfo:
-      'Em 2026 houve 482 empreitadas de pintura, fachadas e isolamento, no total de 63,6 milhões de euros. Dois terços foram por convite directo, e em 58% desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
+      'Em 2026 houve 482 empreitadas de pintura, fachadas e isolamento, no total de 63,6 milhões de euros. Dois terços foram por convite directo, sem anúncio, e em mais de um terço desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
     aChegar: true,
   },
   {

@@ -41,7 +41,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (kinds.has('pintor')) work.push({ href: '/app/oportunidades', label: 'Oportunidades' });
   // Obra pública e obra privada são a mesma intenção — ganhar obra — com origens diferentes, por isso
   // fica ao lado de Oportunidades e não perdida nos recursos (desenho de 25/10/2026).
-  if (kinds.has('pintor')) work.push({ href: '/app/obras-publicas', label: 'Obras públicas' });
+  //
+  // O nome mudou de "Obras públicas" para o mapa: dois terços das empreitadas de pintura do Estado são
+  // adjudicadas por convite, sem concurso nenhum, e é o mapa de quem contrata — não a lista de
+  // concursos abertos — que mostra esse mercado. Os concursos passam a vista de dentro.
+  if (kinds.has('pintor'))
+    work.push({
+      href: '/app/obras-publicas',
+      label: 'Mapa de contratos públicos',
+      children: [
+        { href: '/app/obras-publicas', label: 'Quem contrata', padrao: true },
+        { href: '/app/obras-publicas?ver=concursos', label: 'Concursos abertos' },
+      ],
+    });
   // Os orçamentos a clientes próprios são trabalho diário, não um recurso: ficam na área de trabalho.
   if (kinds.has('pintor'))
     work.push({

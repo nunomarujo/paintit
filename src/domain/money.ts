@@ -32,3 +32,23 @@ const formatter = new Intl.NumberFormat('pt-PT', {
 export function formatEuros(amount: Cents): string {
   return formatter.format(amount / 100);
 }
+
+const semCentimos = new Intl.NumberFormat('pt-PT', {
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 0,
+  useGrouping: 'always',
+});
+const milhoes = new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/**
+ * Montante para ler de relance, não para conferir: 22,1 M€ em vez de 22 099 629,62 €.
+ *
+ * Para somas de muitos contratos, os cêntimos são ruído — ninguém confere um total de distrito ao
+ * cêntimo, e a precisão falsa rouba atenção ao número que interessa. Onde o valor é de um contrato
+ * ou de uma factura, usa-se `formatEuros`, que mostra tudo.
+ */
+export function formatEurosCurto(amount: Cents): string {
+  const euros = amount / 100;
+  return Math.abs(euros) >= 1_000_000 ? `${milhoes.format(euros / 1_000_000)} M€` : semCentimos.format(euros);
+}

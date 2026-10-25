@@ -3,7 +3,15 @@ import { PassThrough } from 'node:stream';
 import { Unzip, UnzipInflate } from 'fflate';
 import parserStream from 'stream-json';
 import streamArray from 'stream-json/streamers/stream-array.js';
-import { classificarContrato, entidade, lugar, porConvite, type Classificacao, type ViaDeDeteccao } from '@/domain/contratosPublicos';
+import {
+  classificarContrato,
+  entidade,
+  lugar,
+  pareceEmpresa,
+  porConvite,
+  type Classificacao,
+  type ViaDeDeteccao,
+} from '@/domain/contratosPublicos';
 
 /**
  * Carregamento dos contratos públicos do portal BASE, via dados.gov.pt.
@@ -75,7 +83,9 @@ export function linhaDe(c: Record<string, unknown>, ano: number): LinhaDeContrat
   const ent = entidade((c.adjudicante as string[])?.[0]);
   const adj = entidade((c.adjudicatarios as string[])?.[0]);
   const { distrito, concelho } = lugar((c.localExecucao as string[])?.[0]);
-  const convidados = (Array.isArray(c.concorrentes) ? (c.concorrentes as string[]) : []).map(convidado);
+  const convidados = (Array.isArray(c.concorrentes) ? (c.concorrentes as string[]) : [])
+    .map(convidado)
+    .filter((x) => pareceEmpresa(x.nome));
   const procedimento = (c.tipoprocedimento as string) ?? '';
 
   return {

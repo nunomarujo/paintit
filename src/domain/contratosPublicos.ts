@@ -4,9 +4,11 @@ import { CPV_PINTURA } from './obrasPublicas';
 // Mapa de Contratos Públicos: ler os contratos de empreitada já celebrados e saber quais são de
 // pintura, para dizer ao pintor quem contrata pintura à volta dele e quem costuma ser convidado.
 //
-// A razão de ser está medida (25/10/2026, docs/DECISOES.md): em 2026 houve 401 empreitadas de
-// pintura, fachadas e isolamento; dois terços foram por ajuste directo ou consulta prévia, que
-// ninguém anuncia, e em 57% desses foi convidada uma única empresa. A lista de convidados é pública.
+// A razão de ser está medida (25/10/2026, docs/DECISOES.md), na carga real e não na exploração: em
+// 2026 houve 482 empreitadas de pintura, fachadas e isolamento, de 199 701 contratos; 326 (68%) foram
+// por ajuste directo ou consulta prévia, que ninguém anuncia, e em 124 delas — mais de um terço — foi
+// chamada uma empresa só. A lista de convidados é pública, quando a entidade a publica: falta em 113
+// dos 326 convites, e é por isso que o mapa conta essa falta à parte.
 //
 // Fonte: "Contratos Públicos — Portal Base — IMPIC", em dados.gov.pt, domínio público, semanal.
 
@@ -102,6 +104,22 @@ export function entidade(bruta: string | null | undefined): { nif: string | null
   const texto = (bruta ?? '').replace(/&amp;/g, '&').trim();
   const m = texto.match(/^(\d{9})\s*-\s*(.+)$/);
   return m ? { nif: m[1]!, nome: m[2]!.trim() } : { nif: null, nome: texto };
+}
+
+/**
+ * O nome de um concorrente é mesmo de uma empresa ou pessoa?
+ *
+ * O campo dos concorrentes é texto livre no formulário do portal, e há entidades que lá põem a
+ * repartição do procedimento em vez de quem convidaram: num concurso de 2026 repartido em lotes,
+ * os "concorrentes" de quatro contratos eram "Lote 2" e "Lote 3", com NIF e tudo. São oito linhas em
+ * 742, mas subiam ao topo da lista de quem costuma ser convidado, que é um dos ecrãs do mapa.
+ *
+ * O filtro é deliberadamente estreito — só o que é exactamente um rótulo de lote. Um contrato que
+ * fique sem convidados nenhuns passa a contar como sem lista publicada, que é o que de facto se sabe.
+ */
+export function pareceEmpresa(nome: string): boolean {
+  const limpo = normalizar(nome).trim();
+  return limpo.length > 0 && !/^lotes?\s*\d+$/.test(limpo);
 }
 
 export interface ContratoDeEntidade {
