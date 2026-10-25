@@ -9,9 +9,10 @@ import { toLine, toTerms } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
 
 // Documento de orçamento (PROPOSTA.md, "Rever e enviar"): a versão A4, para imprimir ou guardar em
-// PDF, de uma proposta submetida. O pintor vê sempre a sua própria identidade (é a sua própria
-// empresa); o cliente só a vê depois da apresentação (feePaid, docs/MODELO.md, CLAUDE.md regra 6) —
-// até lá aparece como alias, exatamente como no comparador (propostas/page.tsx) e no dossiê.
+// PDF. O pintor pode pré-visualizá-lo ainda em rascunho (pedido do Nuno, 25/10/2026) e vê sempre a sua
+// própria identidade (é a sua própria empresa); o cliente só vê propostas submetidas, e só conhece a
+// identidade depois da apresentação (feePaid, docs/MODELO.md, CLAUDE.md regra 6) — até lá aparece como
+// alias, exatamente como no comparador (propostas/page.tsx) e no dossiê.
 export default async function ProposalDocumentPage({ params }: { params: Promise<{ id: string; proposalId: string }> }) {
   const { id, proposalId } = await params;
   const { supabase, user } = await getUser();
@@ -20,7 +21,13 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
   if (!req) notFound();
 
   const { data: proposal } = await supabase.from('proposals').select('*').eq('id', proposalId).eq('request_id', id).maybeSingle();
-  if (!proposal || proposal.status === 'rascunho') notFound();
+  if (!proposal) notFound();
+
+  const role = await myRole(supabase, user!.id, { id: proposal.painter_org_id, gerida_por: null });
+  const isPainterSide = role !== null;
+  // Um rascunho só existe para a sua própria equipa (regra 11: nunca pelo que a consulta devolve, mas
+  // pelo papel real em org_members); o cliente nunca o vê, mesmo que a política RLS alguma vez mudasse.
+  if (proposal.status === 'rascunho' && !isPainterSide) notFound();
 
   const [{ data: building }, { data: surfaces }, { data: lines }, { data: painterOrg }, { data: engagement }] = await Promise.all([
     supabase.from('buildings').select('tipo, concelho').eq('id', req.building_id).maybeSingle(),
@@ -40,22 +47,28 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
     .order('submitted_at');
   const proposalIndex = (siblings ?? []).findIndex((p) => p.id === proposalId);
 
-  const role = await myRole(supabase, user!.id, { id: proposal.painter_org_id, gerida_por: null });
-  const isPainterSide = role !== null;
   const presented = engagement ? (await loadReplay(supabase, engagement)).replay.engagement.feePaid : false;
   const reveal = isPainterSide || presented;
 
   const zones = (surfaces ?? []).map((s) => ({ id: s.id, label: s.descricao?.trim() || s.kind, areaCm2: s.area_cm2 }));
   const areaTotalCm2 = (surfaces ?? []).reduce((n, s) => n + s.area_cm2, 0);
 
+  const backHref = isPainterSide ? `/app/oportunidades/${id}` : `/app/pedidos/${id}/propostas`;
+  const backLabel = isPainterSide ? '← Oportunidade' : '← Propostas recebidas';
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/pedidos/${id}/propostas`} className="text-sm text-slate-600 hover:underline">
-          ← Propostas recebidas
+        <Link href={backHref} className="text-sm text-slate-600 hover:underline">
+          {backLabel}
         </Link>
         <p className="text-sm text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
+      {proposal.status === 'rascunho' && (
+        <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 print:hidden">
+          Pré-visualização de rascunho. O cliente não vê esta página enquanto a proposta não for submetida.
+        </p>
+      )}
       <ProposalDocument
         identity={
           reveal

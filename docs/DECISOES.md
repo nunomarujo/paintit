@@ -1990,6 +1990,9 @@ evita que um documento pensado para "o pintor enviar ao cliente" se torne, sem q
 contornar o anonimato até à apresentação (regra 6 do CLAUDE.md) quando é visto a partir da plataforma.
 
 Em aberto: as duas direções visuais descartadas (técnica e moderna) não foram portadas para código —
-ficaram só como protótipos de escolha fora do repositório. Também por decidir: se o pintor deve poder
-gerar/pré-visualizar este documento antes de submeter a proposta (ecrã "Rever e enviar",
-`docs/PROPOSTA.md`), ou só depois de submetida, como está agora.
+ficaram só como protótipos de escolha fora do repositório.
+
+**25/10/2026 — decidido:** o pintor pode pré-visualizar o documento ainda em rascunho. A rota passa a
+aceitar um rascunho quando quem o vê pertence à organização do pintor (`org_members`, regra 11); o
+cliente continua sem acesso a rascunhos. Ligação nova no passo "Rever e enviar"
+(`oportunidades/[id]/page.tsx`), com aviso quando ainda é rascunho.

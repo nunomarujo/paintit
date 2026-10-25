@@ -1260,6 +1260,11 @@ exatamente igual.
 **Por fazer:** as duas direções visuais originais (`orcamento-direcao-a-tecnica.html`,
 `orcamento-direcao-b-moderna.html`, fora do repositório — ficheiros entregues ao Nuno) ficaram só como
 protótipos de escolha; não foram portadas para o código, porque a direção aprovada já está em
-`ProposalDocument.tsx` com dados reais. Falta também decidir com o Nuno se o pintor deve conseguir gerar
-este documento antes de submeter a proposta (ex.: pré-visualização no ecrã "Rever e enviar" de
-`PROPOSTA.md`) — hoje a rota só funciona para uma proposta já submetida (`status !== 'rascunho'`).
+`ProposalDocument.tsx` com dados reais.
+
+**Pré-visualização em rascunho (25/10/2026, a pedido do Nuno — "deve poder pré-visualizar"):** a rota
+já aceita uma proposta em rascunho quando quem a vê pertence (por `org_members`, regra 11) à
+organização do pintor — o cliente continua sem acesso a um rascunho, mesmo que a política RLS alguma
+vez mude. O passo "Rever e enviar" do orçamento guiado (`oportunidades/[id]/page.tsx`) tem agora uma
+ligação "Pré-visualizar o documento em A4", que abre a rota em separador novo; em rascunho mostra um
+aviso ("o cliente não vê esta página enquanto a proposta não for submetida").

@@ -493,6 +493,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         </p>
                         <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} capoto={capotoSpec} />
                       </article>
+                      <p className="mx-auto max-w-[210mm] text-right text-sm">
+                        <Link href={`/app/pedidos/${id}/propostas/${proposal.id}/documento`} className="text-tinta-600 hover:underline" target="_blank">
+                          Pré-visualizar o documento em A4 (para imprimir ou guardar em PDF) →
+                        </Link>
+                      </p>
                       {issues.length > 0 && (
                         <section className="mx-auto max-w-[210mm] rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
                           <p className="font-medium">Pendências do orçamento:</p>
