@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Dossier } from '@/components/Dossier';
+import { dossier, resumirDossier } from '@/domain/dossier';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
@@ -18,10 +20,20 @@ export default async function WorksitesPage() {
     : { data: [] };
   const obras = (rows ?? []).filter((r) => done.has(r.id));
 
+  // O cofre vem antes da lista de obras mesmo quando não há obras nenhumas: no primeiro dia há seis
+  // documentos para enviar, e é esse o trabalho que existe (desenho de 25/10/2026).
+  const org = orgs[0];
+  const { data: docs } = org
+    ? await supabase.from('org_documents').select('kind, status, valido_ate').eq('org_id', org.id)
+    : { data: [] };
+  const linhas = dossier((docs ?? []).map((d) => ({ kind: d.kind, status: d.status, validoAte: d.valido_ate })), new Date().toISOString().slice(0, 10));
+  const resumo = resumirDossier(linhas);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Ferramentas de obra</h1>
       <p className="text-sm text-slate-600">Para as obras com contrato assinado: materiais, equipa, cronograma, custos e tranches.</p>
+      {org && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
       {obras.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Ainda não há obras com contrato assinado.</p>
       ) : (

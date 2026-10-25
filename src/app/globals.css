@@ -145,3 +145,14 @@ input[type='radio'] {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+
+/* Cofre de documentos (Dossier.tsx): o rótulo do resumo segue o estado do <details> sem JavaScript. */
+.dossier-fechar {
+  display: none;
+}
+details[open] > summary .dossier-abrir {
+  display: none;
+}
+details[open] > summary .dossier-fechar {
+  display: inline;
+}
