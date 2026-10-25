@@ -2708,3 +2708,65 @@ describe('diário fotográfico da obra', () => {
     expect(r.affectedRows ?? 0).toBe(1);
   });
 });
+
+describe('mapa de contratos públicos', () => {
+  const inserir = (user: string, id = `c-${Math.random()}`) =>
+    as(user, () =>
+      one<{ id: string }>(
+        `insert into public.public_contracts
+           (id_contrato, ano, objecto, entidade_nome, procedimento, por_convite, preco_cents, via, confianca)
+         values ($1, 2026, 'Pintura de fachadas', 'Município de Exemplo', 'Consulta Prévia', true, 5463100, 'objecto', 'alta')
+         returning id`,
+        [id],
+      ),
+    );
+
+  beforeAll(async () => {
+    await db.query(
+      `insert into public.public_contracts
+         (id_contrato, ano, objecto, entidade_nif, entidade_nome, procedimento, por_convite, preco_cents, distrito, via, confianca)
+       values ('12026866', 2026, 'Reparação das fachadas do Centro de Ciência', '506359670', 'Município de Vila Real',
+               'Consulta Prévia', true, 12059400, 'Vila Real', 'objecto', 'alta')`,
+    );
+  });
+
+  it('um contrato público vê-se de qualquer conta: é do Estado, não da plataforma', async () => {
+    const vistos = await as(D, () => db.query<{ n: string }>('select count(*)::text as n from public.public_contracts'));
+    expect(Number(vistos.rows[0]!.n)).toBeGreaterThan(0);
+  });
+
+  it('um pintor não escreve no mapa, por muito que o veja', async () => {
+    await expect(inserir(D)).rejects.toThrow(/row-level security/);
+  });
+
+  it('a equipa da plataforma escreve', async () => {
+    await expect(inserir(ADMIN)).resolves.toBeTruthy();
+  });
+
+  it('não entra duas vezes o mesmo contrato do portal BASE', async () => {
+    await inserir(ADMIN, 'duplicado-1');
+    await expect(inserir(ADMIN, 'duplicado-1')).rejects.toThrow(/duplicate key|unique/i);
+  });
+
+  it('recusa uma classificação que não existe', async () => {
+    await expect(
+      as(ADMIN, () =>
+        db.query(
+          `insert into public.public_contracts
+             (id_contrato, ano, objecto, entidade_nome, procedimento, por_convite, preco_cents, via, confianca)
+           values ('x-1', 2026, 'Pintura', 'Entidade', 'Ajuste Direto', true, 100, 'adivinhacao', 'alta')`,
+        ),
+      ),
+    ).rejects.toThrow(/violates check constraint/);
+  });
+
+  it('um pintor não apaga nem altera o que lá está', async () => {
+    const alterado = await as(D, () =>
+      db.query(`update public.public_contracts set preco_cents = 1 where id_contrato = '12026866'`),
+    );
+    // A política filtra a linha: o update não afecta nada e não levanta erro (Postgres).
+    expect(alterado.affectedRows ?? 0).toBe(0);
+    const apagado = await as(D, () => db.query(`delete from public.public_contracts where id_contrato = '12026866'`));
+    expect(apagado.affectedRows ?? 0).toBe(0);
+  });
+});
