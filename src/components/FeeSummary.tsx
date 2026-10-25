@@ -141,7 +141,7 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
         {discountLines.length > 0 ? ', já com os descontos acima' : ''}; nunca abaixo de{' '}
         {((CURRENT_RULES.commissionFloorBp ?? 0) / 100).toLocaleString('pt-PT')}%, com um mínimo de{' '}
         {formatEuros(CURRENT_RULES.commissionMinCents)}. Condições da versão {CURRENT_RULES.version}, fixadas nesta
-        proposta. Plano Pro: {formatEuros(PRECO_ATUAL.mensalCents)}/mês ou {formatEuros(PRECO_ATUAL.anualCents)}/ano.
+        proposta. Plano Pro: {formatEuros(PRECO_ATUAL.mensalCents)}/mês ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA.
       </p>
     </div>
   );

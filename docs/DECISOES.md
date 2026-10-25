@@ -4,6 +4,28 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — O preço do plano Pro é sem IVA
+
+Decisão do promotor. Os 30 €/mês e 250 €/ano são **sem IVA**: cobra-se 36,90 € e 307,50 €, e a
+Relevante Planeta recebe o preço anunciado por inteiro.
+
+A alternativa era o preço ser com IVA incluído, e nesse caso a empresa receberia 203,25 € por cada
+subscrição anual e entregaria 46,75 € ao Estado. Como quem subscreve é sempre uma empresa de pintura
+com contabilidade organizada, o IVA é dedutível para ela: paga mais, deduz, e o custo real não muda.
+A diferença era toda da plataforma. É também a convenção que as subscrições de fornecedores já
+seguiam, pelo que a aplicação fica coerente consigo mesma.
+
+Encontrado ao testar o pagamento: a página do Stripe não mostrava linha de IVA nenhuma, porque
+`STRIPE_TAX_RATE_IVA` nunca foi configurada. O código tratava-a como opcional, e isso era o pior dos
+desenhos: sem taxa, o Stripe cobrava 250 € limpos e `subscriptionInvoice` extraía-lhe o IVA de
+dentro — a fatura ficava correcta e a receita desaparecia 23%, sem erro nenhum à vista.
+
+A taxa passa a ser **obrigatória**: sem ela a adesão recusa com uma mensagem, em vez de cobrar mal.
+Mais vale não haver subscrição do que haver uma que custa 23% sem ninguém perceber.
+
+Nos ecrãs, o preço aparece sempre com "+ IVA" e o total com IVA é dito antes de se sair da página,
+para que ninguém chegue ao Stripe e veja um valor diferente do que leu.
+
 ## 25/10/2026 — Um cancelamento não se desfaz a si mesmo
 
 Ao testar o cancelamento, a conta ficou num estado impossível: `estado: ativa` **com**

@@ -67,7 +67,12 @@ export async function subscribePro(_prev: FormState, form: FormData): Promise<Fo
   }
 
   const metadata = { org_id: org.id, plano: 'pro', periodicidade };
+  // O preço anunciado é sem IVA (decisão de 25/10/2026), por isso a taxa de IVA é obrigatória. Sem
+  // ela o Stripe cobrava 250 € limpos e a fatura extraía-lhe o IVA de dentro: a empresa ficava com
+  // 203,25 € e a diferença desaparecia em silêncio. Mais vale não haver adesão do que haver uma que
+  // custa 23% sem ninguém perceber.
   const taxRate = process.env.STRIPE_TAX_RATE_IVA;
+  if (!taxRate) return { errors: {}, message: 'A taxa de IVA das subscrições ainda não está configurada. Avise a equipa.' };
   const origin = (await headers()).get('origin') ?? BRAND.url;
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -80,7 +85,7 @@ export async function subscribePro(_prev: FormState, form: FormData): Promise<Fo
           recurring: { interval: periodicidade === 'anual' ? 'year' : 'month' },
         },
         quantity: 1,
-        ...(taxRate ? { tax_rates: [taxRate] } : {}),
+        tax_rates: [taxRate],
       },
     ],
     customer_email: user!.email,

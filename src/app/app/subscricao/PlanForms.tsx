@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
 import { PRECO_ATUAL, poupancaAnual, type Periodicidade } from '@/domain/painterPlan';
+import { withVat } from '@/domain/subscription';
 import { formatEuros } from '@/domain/money';
 import { cancelPro, subscribePro } from './actions';
 
@@ -12,6 +13,7 @@ const EMPTY: FormState = { errors: {} };
 /** Adesão: escolhe-se a periodicidade antes de aderir, porque é a decisão que muda o preço. */
 export function SubscribeForm() {
   const [periodicidade, setPeriodicidade] = useState<Periodicidade>('anual');
+  const precoEscolhido = periodicidade === 'anual' ? PRECO_ATUAL.anualCents : PRECO_ATUAL.mensalCents;
   const { state, formProps, pending } = useFormAction<FormState>(subscribePro, EMPTY);
 
   if (state.ok) {
@@ -40,7 +42,10 @@ export function SubscribeForm() {
               }`}
             >
               <span className="block text-[13px] font-semibold text-slate-900">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
-              <span className="block text-[20px] font-semibold tracking-tight text-slate-900">{formatEuros(preco)}</span>
+              <span className="block text-[20px] font-semibold tracking-tight text-slate-900">
+                {formatEuros(preco)}
+                <span className="text-[12px] font-normal text-slate-600"> + IVA</span>
+              </span>
               <span className="block text-[11px] text-slate-600">
                 {p === 'anual' ? `uma vez por ano · poupa ${formatEuros(poupancaAnual())}` : 'por mês'}
               </span>
@@ -49,8 +54,14 @@ export function SubscribeForm() {
         })}
       </div>
       <button type="submit" disabled={pending} className="btn-primary w-full">
-        {pending ? 'A registar…' : `Aderir ao plano Pro — ${formatEuros(periodicidade === 'anual' ? PRECO_ATUAL.anualCents : PRECO_ATUAL.mensalCents)}`}
+        {pending ? 'A registar…' : `Aderir ao plano Pro — ${formatEuros(precoEscolhido)} + IVA`}
       </button>
+      {/* O que vai ser debitado, dito antes de sair daqui: o preço anunciado é sem IVA e o Stripe cobra
+          o total. Decisão do promotor, 25/10/2026. */}
+      <p className="text-[11px] text-slate-600">
+        Serão debitados <strong className="font-semibold">{formatEuros(withVat(precoEscolhido))}</strong> com IVA à taxa
+        normal. O IVA é dedutível para a sua empresa.
+      </p>
       <p className="text-[11px] text-slate-500">
         A adesão fica registada e só passa a activa depois do pagamento. Pode cancelar quando quiser; o desconto mantém-se
         até ao fim do período que já pagou.

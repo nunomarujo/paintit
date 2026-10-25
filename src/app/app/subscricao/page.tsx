@@ -8,6 +8,7 @@ import {
   situacaoDe,
 } from '@/domain/painterPlan';
 import { formatEuros } from '@/domain/money';
+import { withVat } from '@/domain/subscription';
 import { CURRENT_RULES } from '@/domain/rules';
 import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
@@ -57,7 +58,7 @@ export default async function SubscriptionPage() {
               abrir o Stripe. O ecrã dizia só que o plano estava activo (25/10/2026). */}
           <p className="mt-1 text-emerald-800">
             {situacao.precoCents !== null
-              ? `${formatEuros(situacao.precoCents)} ${situacao.periodicidade === 'anual' ? 'por ano' : 'por mês'}`
+              ? `${formatEuros(situacao.precoCents)} ${situacao.periodicidade === 'anual' ? 'por ano' : 'por mês'} + IVA (${formatEuros(withVat(situacao.precoCents))})`
               : `Pagamento ${situacao.periodicidade}`}
             {situacao.renovaEm ? `, com a próxima cobrança a ${emPt(situacao.renovaEm)}.` : '.'}
           </p>
@@ -93,7 +94,7 @@ export default async function SubscriptionPage() {
           <div className="bg-white px-5 py-4">
             <p className="eyebrow">Poupa</p>
             <p className="mt-1 text-[26px] font-semibold leading-none text-slate-900">{formatEuros(comissaoBase - comissaoPro)}</p>
-            <p className="mt-1 text-[12px] text-slate-600">numa obra só, contra {formatEuros(PRECO_ATUAL.anualCents)} de plano anual</p>
+            <p className="mt-1 text-[12px] text-slate-600">numa obra só, contra {formatEuros(PRECO_ATUAL.anualCents)} de plano anual, sem IVA</p>
           </div>
         </div>
       </section>
@@ -120,10 +121,11 @@ export default async function SubscriptionPage() {
           </div>
           <p className="mt-1 text-[22px] font-semibold tracking-tight text-slate-900">
             {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-slate-600">/mês</span>
-            <span className="text-[13px] font-normal text-slate-600"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano</span>
+            <span className="text-[13px] font-normal text-slate-600"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
           </p>
           <p className="text-[12px] text-slate-600">
-            Preço de tabela {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês e {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano,
+            Com IVA: {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível
+            para a sua empresa. Preço de tabela {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês e {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano,
             quando tudo o que está por lançar estiver no ar. Quem subscrever agora mantém este preço enquanto não cancelar.
           </p>
           <ul className="mt-4 space-y-3 text-sm">

@@ -59,7 +59,7 @@ export default async function PublicTendersPage({ searchParams }: { searchParams
             a regra que decide quem pode concorrer — e que documentos exige.
           </p>
           <p className="mt-3 text-sm text-slate-700">
-            Faz parte do plano Pro, a partir de {formatEuros(PRECO_ATUAL.mensalCents)} por mês.
+            Faz parte do plano Pro, a partir de {formatEuros(PRECO_ATUAL.mensalCents)} por mês, + IVA.
           </p>
           <Link href="/app/subscricao" className="btn-primary mt-4">
             Ver o plano
