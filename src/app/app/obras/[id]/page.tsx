@@ -172,6 +172,10 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   });
   // Horas suplementares já feitas este ano por cada pessoa, em todas as obras da empresa — que é
   // como a lei conta o limiar das 100 horas.
+  // O que já está guardado para hoje nesta obra: com isso, a acção passa a ser corrigir e não
+  // registar outra vez por cima sem dar por isso.
+  const horasDeHoje = list.filter((x) => x.tipo === 'horas' && x.data === today);
+
   const anoAtual = today.slice(0, 4);
   const suplementaresPorPessoa = new Map<string, number>();
   for (const x of horasDaEmpresa ?? []) {
@@ -312,6 +316,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                 // Pela pessoa e não pela ficha: o limiar anual é dela e conta todas as obras.
                 .map((m) => ({ id: m.id, nome: m.nome, suplementaresNoAno: suplementaresPorPessoa.get(m.person_id ?? '') ?? 0 }))}
               hoje={today}
+              jaRegistado={horasDeHoje.length > 0 ? { pessoas: horasDeHoje.length, horas: horasDeHoje.reduce((n, x) => n + (x.horas ?? 0), 0) } : undefined}
             />
           </div>
         </section>

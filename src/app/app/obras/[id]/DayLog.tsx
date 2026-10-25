@@ -20,15 +20,21 @@ export function DayLog({
   worksiteId,
   equipa,
   hoje,
+  jaRegistado,
 }: {
   worksiteId: string;
   /** `suplementaresNoAno` é o acumulado de cada pessoa antes de hoje, para o aviso das 100 horas. */
   equipa: { id: string; nome: string; suplementaresNoAno: number }[];
   hoje: string;
+  /** O que já está guardado para hoje, se já estiver: aí a acção é corrigir, não registar. */
+  jaRegistado?: { pessoas: number; horas: number };
 }) {
   const [presencas, setPresencas] = useState<Presenca[]>(equipa.map((m) => ({ memberId: m.id, nome: m.nome, horas: DIA_NORMAL })));
   const [tipoDia, setTipoDia] = useState<TipoDia>('util');
   const [extras, setExtras] = useState(false);
+  // Fechado por omissão: quem teve um dia normal confirma sem abrir nada. Só quem tem uma excepção
+  // é que precisa de ver as pessoas uma a uma (proposta de Gestão de Obra, 25/10/2026).
+  const [aberto, setAberto] = useState(false);
   const { state, pending, formProps } = useFormAction<FormState>(registerDay.bind(null, worksiteId), { errors: {} });
 
   const mudar = (id: string, horas: number) =>
@@ -47,6 +53,9 @@ export function DayLog({
   return (
     <form {...formProps} className="space-y-4">
       <input type="hidden" name="tipoDia" value={tipoDia} />
+      {/* Com o detalhe fechado é hoje; aberto, a data escolhida no campo abaixo. */}
+      {!aberto && <input type="hidden" name="data" value={hoje} />}
+      {aberto && (
       <div className="flex flex-wrap items-end gap-4">
         <label className="block text-sm">
           Dia
@@ -57,6 +66,7 @@ export function DayLog({
           Dia de descanso ou feriado
         </label>
       </div>
+      )}
       {tipoDia === 'descanso' && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">
           Em dia de descanso ou feriado não há horas normais: todas as horas levam acréscimo, e é isso que vai contar
@@ -64,6 +74,49 @@ export function DayLog({
         </p>
       )}
 
+      {presencas.map((p) => (
+        <input key={`h-${p.memberId}`} type="hidden" name={`horas:${p.memberId}`} value={formatHoras(p.horas).replace('.', ',')} />
+      ))}
+
+      {/* O dia em palavras e um botão. É esta a diferença entre uma ferramenta que se usa todos os
+          dias e uma que se abandona à terceira semana. */}
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+        {jaRegistado && !aberto ? (
+          <>
+            <p className="text-sm font-semibold text-slate-900">
+              Dia registado — {jaRegistado.pessoas} {jaRegistado.pessoas === 1 ? 'pessoa' : 'pessoas'},{' '}
+              {formatHoras(jaRegistado.horas)} horas no total.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAberto(true)}
+              className="mt-1 text-[12.5px] font-semibold text-tinta-700 underline underline-offset-4"
+            >
+              Corrigir
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-slate-900">{resumoDoDia(presencas)}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button type="submit" disabled={pending} className="btn-primary">
+                {pending ? 'A guardar…' : 'Confirmar o dia'}
+              </button>
+              {!aberto && (
+                <button
+                  type="button"
+                  onClick={() => setAberto(true)}
+                  className="text-[12.5px] font-semibold text-tinta-700 underline underline-offset-4"
+                >
+                  Alterar
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {aberto && (
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {presencas.map((p) => {
           const faltou = p.horas === 0;
@@ -85,7 +138,6 @@ export function DayLog({
                   );
                 })()}
               </span>
-              <input type="hidden" name={`horas:${p.memberId}`} value={formatHoras(p.horas).replace('.', ',')} />
               <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
@@ -116,8 +168,9 @@ export function DayLog({
           );
         })}
       </ul>
+      )}
 
-      {!extras ? (
+      {aberto && (!extras ? (
         <button type="button" onClick={() => setExtras(true)} className="text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
           Acrescentar nota ou custo do dia
         </button>
@@ -136,14 +189,13 @@ export function DayLog({
             <input name="custo" inputMode="decimal" placeholder="0,00" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-right" />
           </label>
         </div>
-      )}
+      ))}
 
-      <div className="flex flex-wrap items-center gap-3">
+      {aberto && (
         <button type="submit" disabled={pending} className="btn-primary">
           {pending ? 'A guardar…' : 'Guardar o dia'}
         </button>
-        <span className="text-[13px] text-slate-600">{resumoDoDia(presencas)}</span>
-      </div>
+      )}
       {msg && <p className="text-[12px] text-slate-600">{msg}</p>}
       <p className="text-[11.5px] text-slate-500">
         Registar o mesmo dia outra vez substitui o que lá estava, não soma.
