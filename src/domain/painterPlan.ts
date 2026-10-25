@@ -56,6 +56,12 @@ export function precoDe(version: string, periodicidade: Periodicidade): Cents | 
   return periodicidade === 'anual' ? p.anualCents : p.mensalCents;
 }
 
+/** O desconto de lançamento, face ao preço de tabela, em cada periodicidade. */
+export const descontoDeLancamento = (p: PlanoPreco = PRECO_ATUAL) => ({
+  mensalCents: p.tabelaMensalCents - p.mensalCents,
+  anualCents: p.tabelaAnualCents - p.anualCents,
+});
+
 /** Quanto poupa, por ano, quem paga à anual em vez de mensalmente. */
 export const poupancaAnual = (p: PlanoPreco = PRECO_ATUAL): Cents => p.mensalCents * 12 - p.anualCents;
 

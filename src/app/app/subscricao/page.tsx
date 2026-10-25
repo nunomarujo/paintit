@@ -4,6 +4,7 @@ import {
   BENEFICIOS_PRO,
   PRECO_ATUAL,
   PRO_DISCOUNT_BP,
+  descontoDeLancamento,
   poupancaAnual,
   situacaoDe,
 } from '@/domain/painterPlan';
@@ -124,11 +125,11 @@ export default async function SubscriptionPage() {
             {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-slate-600">/mês</span>
             <span className="text-[13px] font-normal text-slate-600"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
           </p>
-          <p className="text-[12px] text-slate-600">
-            O preço normal é {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês ou {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano. Quem
-            subscrever durante o lançamento fica com este enquanto não cancelar. Com IVA:{' '}
-            {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível para a
-            sua empresa.
+          {/* Uma linha só. O valor com IVA continua a ser dito no botão de adesão, antes de se sair
+              para o pagamento, que é onde faz falta (25/10/2026). */}
+          <p className="text-[12px] font-semibold text-tinta-800">
+            Desconto de lançamento −{formatEuros(descontoDeLancamento().mensalCents)}/mês ou −
+            {formatEuros(descontoDeLancamento().anualCents)}/ano, por tempo limitado.
           </p>
           <p className="mt-4 text-[13px] font-semibold text-slate-900">Tudo o que tem no Gratuito, mais:</p>
           {/* Separado em dois grupos para não prometer como feito o que ainda não entrega nada. As
