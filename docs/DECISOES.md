@@ -10,9 +10,15 @@ Pedido do promotor, e a razão dele é a que interessa: **um orçamento preenchi
 parece feito**. O botão de dar como enviado fica no fim da página do orçamento, e o pintor sai de lá
 convencido de que tratou do assunto. Perde a obra por não ter carregado num botão.
 
-A secção passa a ter separadores verticais — Novo orçamento e Orçamentos feitos — e os feitos
-dividem-se em três: **em preenchimento**, **enviados** e **arquivo**. Os separadores vivem no
-endereço, sem estado de cliente, e um link partilhado abre no mesmo sítio.
+A secção divide-se em **Novo orçamento** e **Orçamentos feitos**, e os feitos em três: **em
+preenchimento**, **enviados** e **arquivo**. Os separadores vivem no endereço, sem estado de cliente,
+e um link partilhado abre no mesmo sítio.
+
+**Onde ficam, e porquê isso deu uma volta.** À primeira, puseram-se numa coluna à esquerda da página.
+O promotor corrigiu: a aplicação já tem uma barra de navegação à esquerda, e uma segunda coluna ao
+lado dela são duas barras a competir pelo mesmo papel. Os estados passaram para dentro da barra que
+já existe, por baixo de "Orçamentos", visíveis só quando se está lá dentro. A navegação ganhou um
+segundo nível (`NavItem.children`), que serve qualquer secção que venha a precisar.
 
 O arquivo são os ganhos e os perdidos: o orçamento já cumpriu o que tinha a cumprir. Não foi preciso
 estado novo nem migração.

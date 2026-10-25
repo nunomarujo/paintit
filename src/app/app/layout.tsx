@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { signOut } from '@/app/entrar/actions';
 import { AppNav, type NavItem } from '@/components/AppNav';
+import { contarOrcamentosPorEnviar } from '@/lib/queries';
 import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
 import { isPlatformAdmin } from '@/lib/access';
@@ -31,6 +32,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const client = kinds.has('condominio') || kinds.has('administradora') || kinds.has('particular');
   // Uma conta de fornecedor é sempre uma só entidade (allowedOrgKinds em organization.ts).
   const fornecedorId = (memberships ?? []).find((m) => m.organizations.kind === 'fornecedor')?.organizations.id;
+  const pintorId = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations.id;
+  const porEnviar = pintorId ? await contarOrcamentosPorEnviar(supabase, pintorId) : 0;
 
   // Cada conta vê o que lhe diz respeito; uma conta sem entidades vê só o início.
   const work: NavItem[] = [{ href: '/app', label: 'Início', count: unread ?? 0 }];
@@ -40,7 +43,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // fica ao lado de Oportunidades e não perdida nos recursos (desenho de 25/10/2026).
   if (kinds.has('pintor')) work.push({ href: '/app/obras-publicas', label: 'Obras públicas' });
   // Os orçamentos a clientes próprios são trabalho diário, não um recurso: ficam na área de trabalho.
-  if (kinds.has('pintor')) work.push({ href: '/app/orcamentos', label: 'Orçamentos' });
+  if (kinds.has('pintor'))
+    work.push({
+      href: '/app/orcamentos',
+      label: 'Orçamentos',
+      children: [
+        { href: '/app/orcamentos?ver=novo', label: 'Novo orçamento' },
+        { href: '/app/orcamentos?ver=feitos&grupo=preenchimento', label: 'Em preenchimento', aviso: porEnviar > 0 },
+        { href: '/app/orcamentos?ver=feitos&grupo=enviados', label: 'Enviados' },
+        { href: '/app/orcamentos?ver=feitos&grupo=arquivo', label: 'Arquivo' },
+      ],
+    });
   if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
   if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });

@@ -68,27 +68,6 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     : 'preenchimento';
   const doGrupo = (quotes ?? []).filter((q) => grupoDe(q.estado) === grupoActivo);
 
-  const item = (href: string, label: string, activo: boolean, contagemItem?: number, aviso?: boolean) => (
-    <Link
-      key={href}
-      href={href}
-      aria-current={activo ? 'page' : undefined}
-      className={`flex items-center justify-between gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
-        activo ? 'bg-tinta-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-      }`}
-    >
-      <span>
-        {aviso && <span aria-hidden className="mr-1.5">⚠</span>}
-        {label}
-      </span>
-      {contagemItem !== undefined && contagemItem > 0 && (
-        <span className={`rounded-full px-1.5 text-[10px] ${activo ? 'bg-white text-tinta-700' : 'bg-tinta-600 text-white'}`}>
-          {contagemItem}
-        </span>
-      )}
-    </Link>
-  );
-
   return (
     <div className="space-y-5">
       <div>
@@ -111,76 +90,54 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         </p>
       )}
 
-      <div className="grid gap-5 md:grid-cols-[15rem_1fr]">
-        <nav aria-label="Secções dos orçamentos" className="flex flex-col gap-2">
-          {item('/app/orcamentos?ver=novo', 'Novo orçamento', seccao === 'novo')}
-          {item('/app/orcamentos?ver=feitos', 'Orçamentos feitos', seccao === 'feitos', quotes?.length)}
-          {seccao === 'feitos' && (
-            <div className="mt-1 flex flex-col gap-1.5 border-l border-slate-200 pl-3">
-              {GRUPOS.map((g) =>
-                item(
-                  `/app/orcamentos?ver=feitos&grupo=${g}`,
-                  GRUPO_LABELS[g],
-                  grupoActivo === g,
-                  contagem[g],
-                  g === 'preenchimento' && avisos.length > 0,
-                ),
-              )}
-            </div>
-          )}
-        </nav>
-
-        <div>
-          {seccao === 'novo' ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 className="text-base font-semibold">Orçamento novo</h2>
-              <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
-                Um orçamento nunca começa em branco: escolha o tipo de obra e os capítulos aparecem pela ordem de
-                execução, para tirar o que não quer em vez de se lembrar do que falta.
-              </p>
-              <p className="mt-2 text-[13px] text-slate-600">
-                {guardados === 0
-                  ? 'Ainda não há preços seus guardados. O primeiro orçamento é o que os ensina à aplicação; a partir daí passam a vir sugeridos.'
-                  : `${guardados} ${guardados === 1 ? 'preço seu guardado' : 'preços seus guardados'}, a sugerir neste.`}
-              </p>
-              <div className="mt-4">
-                <CreateQuote anteriores={anteriores} />
-              </div>
-            </section>
+      {seccao === 'novo' ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-base font-semibold">Orçamento novo</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            Um orçamento nunca começa em branco: escolha o tipo de obra e os capítulos aparecem pela ordem de
+            execução, para tirar o que não quer em vez de se lembrar do que falta.
+          </p>
+          <p className="mt-2 text-[13px] text-slate-600">
+            {guardados === 0
+              ? 'Ainda não há preços seus guardados. O primeiro orçamento é o que os ensina à aplicação; a partir daí passam a vir sugeridos.'
+              : `${guardados} ${guardados === 1 ? 'preço seu guardado' : 'preços seus guardados'}, a sugerir neste.`}
+          </p>
+          <div className="mt-4">
+            <CreateQuote anteriores={anteriores} />
+          </div>
+        </section>
+      ) : (
+        <section>
+          <h2 className="text-base font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
+          <p className="mt-1 max-w-[70ch] text-[13px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
+          {doGrupo.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-600">Nada aqui.</p>
           ) : (
-            <section>
-              <h2 className="text-base font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
-              <p className="mt-1 max-w-[70ch] text-[13px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
-              {doGrupo.length === 0 ? (
-                <p className="mt-3 text-sm text-slate-600">Nada aqui.</p>
-              ) : (
-                <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  {doGrupo.map((q) => (
-                    <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
-                      <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-baseline justify-between gap-3">
-                          <span className="font-semibold text-slate-900">
-                            #{q.numero} — {q.cliente_nome}
-                          </span>
-                          <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
-                        </div>
-                        <p className="text-[12.5px] text-slate-600">
-                          {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
-                          {dataPt(q.created_at)}
-                          {avisos.some((a) => a.id === q.id) && (
-                            <span className="ml-1 font-semibold text-amber-800">· por enviar</span>
-                          )}
-                        </p>
-                      </Link>
-                      {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {doGrupo.map((q) => (
+                <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
+                  <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-3">
+                      <span className="font-semibold text-slate-900">
+                        #{q.numero} — {q.cliente_nome}
+                      </span>
+                      <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
+                    </div>
+                    <p className="text-[12.5px] text-slate-600">
+                      {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
+                      {dataPt(q.created_at)}
+                      {avisos.some((a) => a.id === q.id) && (
+                        <span className="ml-1 font-semibold text-amber-800">· por enviar</span>
+                      )}
+                    </p>
+                  </Link>
+                  {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-      </div>
+        </section>
+      )}
     </div>
   );
 }

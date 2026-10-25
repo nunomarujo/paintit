@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export interface NavItem {
   href: string;
@@ -10,12 +10,28 @@ export interface NavItem {
   count?: number;
   /** Só fica ativo no endereço exato (ex.: o painel, que é o início de uma secção com subpáginas). */
   exact?: boolean;
+  /**
+   * Secções de dentro, mostradas por baixo quando se está lá.
+   *
+   * A aplicação já tem uma barra à esquerda: pôr outra coluna de separadores ao lado dela são duas
+   * barras a competir pelo mesmo papel. O que é de dentro de uma secção vive aqui (25/10/2026).
+   */
+  children?: { href: string; label: string; aviso?: boolean }[];
 }
 
 /** Navegação da área de trabalho: lateral em ecrãs largos, em linha no telemóvel. */
 export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }[] }) {
   const path = usePathname();
+  const params = useSearchParams();
   const active = (i: NavItem) => (i.href === '/app' || i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
+  // Um filho fica activo quando o endereço bate e todos os parâmetros dele também: é assim que
+  // "?ver=feitos&grupo=enviados" se distingue de "?ver=novo" sem páginas novas.
+  const activeChild = (href: string) => {
+    const [caminho, consulta] = href.split('?');
+    if (path !== caminho) return false;
+    const pedidos = new URLSearchParams(consulta ?? '');
+    return [...pedidos].every(([k, v]) => params.get(k) === v);
+  };
   return (
     <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto md:block md:space-y-6 md:overflow-visible">
       {groups.map((g) => (
@@ -34,6 +50,27 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
               {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 text-[10px] font-semibold text-white">{i.count}</span> : null}
             </Link>
           ))}
+          {g.items
+            .filter((i) => active(i) && i.children?.length)
+            .map((i) => (
+              // A régua fica no grupo e não em cada item: uma linha por item sai partida nos
+              // espaços entre eles. No telemóvel não há régua, que a barra corre na horizontal.
+              <div key={`${i.href}-filhos`} className="flex gap-1 md:ml-3 md:block md:border-l md:border-slate-200">
+                {i.children!.map((c) => (
+                  <Link
+                    key={c.href}
+                    href={c.href}
+                    aria-current={activeChild(c.href) ? 'page' : undefined}
+                    className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[12.5px] md:pl-4 ${
+                      activeChild(c.href) ? 'font-semibold text-tinta-700' : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
+                    {c.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
         </div>
       ))}
     </nav>

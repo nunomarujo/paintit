@@ -2,6 +2,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ObraConcluida } from '@/domain/margin';
 import { isPlanoPintor, subscriberDiscountBp, type SubscricaoPintor } from '@/domain/painterPlan';
+import { orcamentosPorEnviar } from '@/domain/quoteBoard';
 import { summarize } from '@/domain/worksite';
 import type { Database } from '@/lib/database.types';
 import type { IsoDate } from '@/domain/deadline';
@@ -183,4 +184,38 @@ export async function painterWorkHistory(supabase: SupabaseClient<Database>, org
       fim: o.fim,
     };
   });
+}
+
+/**
+ * Quantos orçamentos estão feitos e nunca foram enviados, pela mesma regra do ecrã.
+ *
+ * Serve o aviso na navegação, que tem de concordar com o da página: dois números diferentes para a
+ * mesma coisa são pior do que não haver número nenhum. Só lê rascunhos, que são poucos.
+ */
+export async function contarOrcamentosPorEnviar(supabase: SupabaseClient<Database>, orgId: string): Promise<number> {
+  const { data: rascunhos } = await supabase
+    .from('painter_quotes')
+    .select('id, created_at, estado')
+    .eq('org_id', orgId)
+    .eq('estado', 'rascunho');
+  if (!rascunhos || rascunhos.length === 0) return 0;
+
+  const { data: linhas } = await supabase
+    .from('painter_quote_lines')
+    .select('quote_id, quantidade, preco_unitario, inclusao')
+    .in('quote_id', rascunhos.map((q) => q.id));
+
+  const doPainel = rascunhos.map((q) => {
+    const minhas = (linhas ?? []).filter((l) => l.quote_id === q.id);
+    return {
+      id: q.id,
+      estado: 'rascunho' as const,
+      criadoEm: q.created_at,
+      linhas: minhas.length,
+      totalCents: minhas
+        .filter((l) => l.inclusao === 'incluido')
+        .reduce((n, l) => n + Math.round((l.quantidade * l.preco_unitario) / 100), 0),
+    };
+  });
+  return orcamentosPorEnviar(doPainel, new Date().toISOString().slice(0, 10)).length;
 }
