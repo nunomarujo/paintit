@@ -2084,3 +2084,55 @@ se o IMPIC permite consulta automatizada da validade de um alvará.
 **Em aberto.** Se os 30 €/mês cobrem as ferramentas, o acesso a obra, ou ambos. O estudo aponta para o
 acesso a obra ser o que sustenta o preço — e, se for esse o caso, vender o plano pelas ferramentas é
 vender a coisa de menor valor.
+
+## 25/10/2026 — Obras Públicas: o que o levantamento mudou
+
+**O facto que muda o separador.** O DL n.º 177/2026, em vigor desde **1 de Outubro de 2026**, subiu os
+limiares das empreitadas: ajuste directo de 30 000 € para **150 000 €**, consulta prévia de 150 000 €
+para **1 000 000 €**, e uma consulta prévia especial até 2 000 000 €. Nenhum destes é anunciado
+publicamente — a publicitação no BASE é posterior e só serve de condição de eficácia dos pagamentos.
+
+Ou seja: **uma empreitada de pintura até 1 000 000 € pode hoje ser adjudicada sem qualquer anúncio
+público.** O universo de concursos anunciados em pintura vai encolher, não crescer. Um separador
+desenhado como alerta de concursos nasce num mercado em contracção.
+
+**Reorientação.** O separador deve responder a "estou qualificado para quê, e quem tenho de conhecer",
+e não a "que concursos abriram". As três peças, por ordem de valor:
+
+1. **Cálculo de elegibilidade** (`src/domain/obrasPublicas.ts`, já construído e testado). Cruza o valor
+   global da empreitada e as subcategorias exigidas com o alvará da empresa. A regra é o artigo 8.º da
+   Lei 41/2015: a classe cobre o **valor global da obra**, não a parte de pintura — um pintor de classe
+   1 não é empreiteiro de uma reabilitação de 400 000 € onde a pintura são 80 000 €. É o maior
+   desperdício de tempo do sector e nenhum concorrente genérico o faz, porque exige conhecer o regime
+   da construção.
+2. **Memória de mercado a partir dos dados abertos do BASE** (licença domínio público, actualização
+   quinzenal): quem adjudica pintura, a quem, a que preço, e sobretudo **quem é convidado
+   recorrentemente** nos ajustes directos e consultas prévias de cada câmara. Num mercado que passou a
+   ser de convite, saber quem está na lista diz à empresa onde tem de ir bater à porta. Ninguém vende
+   isto em pintura.
+3. **Alerta de concursos** — commodity, é o bilhete de entrada, não a vantagem. Fonte primária
+   confirmada: o feed RSS oficial da Parte L da 2.ª série do Diário da República
+   (`https://files.diariodarepublica.pt/rss/serie2&parte=l-html.xml`), gratuito, sem registo, com o PDF
+   de cada anúncio a trazer CPV, distrito, concelho, preço base, prazo e plataforma. O alerta tem de
+   cruzar CPV **com pesquisa de texto no objecto**: boa parte das empreitadas de pintura vem
+   classificada como recuperação ou restauro, não em 4544xxxx. Já existe concorrência directa
+   (ConcursosGov, da Caixa Mágica).
+
+**Duas crenças comuns que o levantamento desmentiu.** As plataformas electrónicas são, em regra,
+**gratuitas** para o concorrente — quem paga é a entidade adjudicante. E a **caução** deixou de ser
+exigível abaixo de 1 000 000 €, pelo que praticamente nenhuma empreitada de pintura a leva. O atrito
+real do pintor pequeno é a **assinatura digital qualificada**, documento a documento, antes do envio.
+
+**Boa notícia para a papelada.** O novo artigo 81.º, n.º 10 do CCP obriga a entidade adjudicante a
+obter **oficiosamente** as certidões de não dívida e o registo criminal. O que a plataforma deve dizer
+mudou de natureza: já não é "vá buscar sete certidões", é "garanta que a sua situação na AT e na
+Segurança Social está regularizada". Ressalva: mantém-se a Portaria 372/2017 até sair a nova portaria
+do artigo 81.º, n.º 2 — por confirmar se já saiu.
+
+**Por confirmar antes de construir a recolha:** a API do Portal BASE (anunciada em 2025; o portal
+recusa acesso automatizado por robots.txt, o que também levanta a questão dos termos de utilização);
+se existe consulta programática dos alvarás no IMPIC; e a lista actual de plataformas licenciadas (a
+página do IMPIC está datada de 2015).
+
+**O que não se oferece:** submissão de propostas em nome do cliente, garantia de resultado, e fixação
+de preço. Risco jurídico sem retorno.
