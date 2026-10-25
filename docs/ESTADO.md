@@ -1318,6 +1318,12 @@ as fichas repetidas que já existam.
 linha a linha nas três tabelas novas que não passavam pelos auxiliares `private.*`; políticas `for
 all` a duplicar o SELECT em seis tabelas; três chaves estrangeiras sem índice.
 
+**Mantido de propósito:** `worksite_addenda` tem duas políticas de UPDATE — uma do pintor, outra do
+cliente — e o Supabase assinala-o como duplicação. São regras genuinamente diferentes: o pintor
+corrige ou retira enquanto ninguém respondeu, o cliente aceita ou recusa. Fundi-las numa só daria uma
+condição difícil de ler e de verificar, num sítio onde a leitura errada custa dinheiro a alguém. O
+custo de avaliar duas políticas numa tabela desta dimensão não paga essa troca.
+
 **Explicados, sem acção:**
 
 - *48 índices por usar.* A base não tem tráfego real — um índice que nunca foi usado numa base com
