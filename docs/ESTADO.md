@@ -1311,3 +1311,21 @@ Para resolver é preciso somar as horas da pessoa em todas as obras da empresa n
 simples; o que falta decidir é se o identificador da pessoa é o `worksite_members.id` (hoje, uma
 linha por obra) ou uma ficha de pessoa ao nível da empresa — a segunda é a correcta e implica juntar
 as fichas repetidas que já existam.
+
+### Avisos do Supabase a 25/10/2026, depois da fase 1
+
+**Corrigidos** (migração `20261026200000_afinacao_das_politicas`): `auth.uid()` à solta reavaliado
+linha a linha nas três tabelas novas que não passavam pelos auxiliares `private.*`; políticas `for
+all` a duplicar o SELECT em seis tabelas; três chaves estrangeiras sem índice.
+
+**Explicados, sem acção:**
+
+- *48 índices por usar.* A base não tem tráfego real — um índice que nunca foi usado numa base com
+  uma obra e um pedido não diz nada. Reavaliar quando houver utilização a sério, não antes.
+- *36 funções `SECURITY DEFINER` executáveis por contas autenticadas.* São as RPC que constituem a
+  API da aplicação (reservar levantamento, aplicar código, resgatar saldo); é esse o desenho, e cada
+  uma valida por dentro quem a chama. Anteriores a esta fase.
+- *`moloni_token` com RLS ligado e sem políticas.* Ninguém lhe chega pela API, o que é o pretendido
+  para um segredo de integração — **mas convém confirmar que foi de propósito**.
+- *Protecção contra palavras-passe comprometidas desligada no Auth.* É um interruptor na consola e
+  vale a pena ligá-lo.
