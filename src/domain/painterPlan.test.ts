@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_RULES } from './rules';
 import { applyPainterDiscount } from './referral';
-import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, BENEFICIOS_PRO, FUNCIONALIDADES_PRO, precoDe, situacaoDe, subscriberDiscountBp, temPro, type SubscricaoPintor } from './painterPlan';
+import { BENEFICIOS_GRATUITO, BENEFICIOS_PRO, FUNCIONALIDADES_PRO, PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, precoDe, situacaoDe, subscriberDiscountBp, temPro, type SubscricaoPintor } from './painterPlan';
 
 const pro = (over: Partial<SubscricaoPintor> = {}): SubscricaoPintor => ({ plano: 'pro', estado: 'ativa', periodicidade: 'mensal', validaAte: '2026-12-31', ...over });
 
@@ -126,8 +126,22 @@ describe('acesso ao Pro', () => {
     expect(FUNCIONALIDADES_PRO).toContain('cofre_documentos');
   });
 
-  it('nenhum benefício ficou marcado como por lançar: estão todos no ar', () => {
-    expect(BENEFICIOS_PRO.every((b) => !('porLancar' in b))).toBe(true);
-    expect(BENEFICIOS_PRO.filter((b) => b.exclusivo)).toHaveLength(4);
+  it('só fica marcado como a chegar o que ainda não entrega nada ao pintor', () => {
+    // As obras públicas e o mapa de convites têm ecrã e nenhuma obra lá dentro; o resto funciona.
+    const aChegar = BENEFICIOS_PRO.filter((b) => b.aChegar).map((b) => b.titulo);
+    expect(aChegar).toHaveLength(2);
+    expect(aChegar.join(' ')).toContain('obras públicas');
+    expect(BENEFICIOS_PRO.filter((b) => !b.aChegar)).toHaveLength(6);
+  });
+
+  it('o benefício do convite traz os números medidos, não adjectivos', () => {
+    const convite = BENEFICIOS_PRO.find((b) => b.titulo.includes('Dois terços'));
+    expect(convite?.maisInfo).toContain('401');
+    expect(convite?.maisInfo).toContain('57%');
+  });
+
+  it('o plano gratuito guarda a comissão de 18% no detalhe, não no título', () => {
+    expect(BENEFICIOS_GRATUITO.some((b) => b.titulo.includes('18%'))).toBe(false);
+    expect(BENEFICIOS_GRATUITO.some((b) => b.maisInfo?.includes('18%'))).toBe(true);
   });
 });

@@ -79,10 +79,17 @@ export function temPro(s: SubscricaoPintor | null, hoje: string): boolean {
 }
 
 export interface Beneficio {
+  /** A dor do pintor, não o nome da funcionalidade. */
   titulo: string;
   detalhe: string;
-  /** Exclusivo de quem subscreve: no plano gratuito não existe, ou existe com a marca da plataforma. */
-  exclusivo?: boolean;
+  /** O que fica escondido atrás de "+ saber mais": a matemática, as condições, os números. */
+  maisInfo?: string;
+  /** Rótulo do botão, quando "+ saber mais" não é a pergunta certa. */
+  rotuloMaisInfo?: string;
+  /** Ainda não funciona para o utilizador, por melhor que esteja o código. */
+  aChegar?: boolean;
+  /** A promessa maior da página: sai do alinhamento da lista e ganha moldura própria. */
+  destaque?: boolean;
 }
 
 // A lista saiu do estudo de 25/10/2026 sobre o que falta mesmo a uma empresa de pintura portuguesa
@@ -91,45 +98,66 @@ export interface Beneficio {
 // dos fabricantes e que ninguém subscreve.
 export const BENEFICIOS_PRO: Beneficio[] = [
   {
-    titulo: 'Menos 5 pontos de comissão em cada obra ganha',
-    detalhe:
-      'A comissão da plataforma desce de 18% para 13% do valor sem IVA, e soma-se aos descontos que já tenha. Numa obra de 30 000 € são menos 1 500 € de comissão — mais do que quatro anos de subscrição, numa obra só.',
-    exclusivo: true,
+    titulo: 'Fique com mais do que ganhou',
+    detalhe: 'Numa obra de 30 000 €, ficam-lhe mais 1 500 € no bolso — mais do que quatro anos de subscrição, numa obra só.',
+    maisInfo: 'A comissão desce de 18% para 13% do valor sem IVA, e soma-se aos descontos que já tenha.',
   },
   {
-    titulo: 'Orçamentos com a marca da sua empresa',
-    detalhe:
-      'O documento sai com o logótipo e os contactos da sua empresa no topo e sem marca de água, com a plataforma apenas numa linha no fundo. No plano gratuito sai com a marca Quem Pinta.pt.',
-    exclusivo: true,
+    titulo: 'O cliente lembra-se de si, não da aplicação',
+    detalhe: 'Orçamentos com o seu logótipo e contactos — a próxima obra deste cliente pode vir ter consigo directamente.',
   },
   {
-    titulo: 'Obras Públicas',
-    detalhe:
-      'Concursos de câmaras, juntas de freguesia e outras entidades públicas, filtrados para trabalhos de pintura e isolamento, com a lista de documentos que cada um exige e o aviso de se o seu alvará chega para aquele valor.',
-    exclusivo: true,
+    titulo: 'Faça orçamentos completos em menos de 15 minutos',
+    detalhe: 'Hoje demora entre uma e três horas por orçamento.',
+    rotuloMaisInfo: 'Porquê?',
+    maisInfo:
+      'Com a Quem Pinta: 45 minutos no primeiro orçamento, 30 no segundo, menos de 15 a partir do terceiro. A aplicação aprende os seus preços e os capítulos de trabalho à medida que orça — e os pedidos vindos da Quem Pinta arrancam ainda mais depressa, porque as áreas já vêm medidas pelo avaliador.',
   },
   {
-    titulo: 'Cofre de documentos com aviso de validade',
+    titulo: 'Nunca mais perca uma obra por um documento caducado',
     detalhe:
-      'Certidão permanente, não dívida às Finanças e à Segurança Social, apólice e recibo do seguro de acidentes de trabalho, alvará. Aviso 15 dias antes de cada caducidade, para não perder uma adjudicação por um papel fora de prazo.',
-    exclusivo: true,
+      'Certidão permanente, não dívida às Finanças e à Segurança Social, seguro de acidentes de trabalho e alvará — tudo guardado, com aviso 15 dias antes de vencer.',
   },
   {
-    titulo: 'Trabalhos a mais com aceitação do cliente',
-    detalhe:
-      'A adenda escrita, com preço e fotografia, aceite pelo cliente num clique. É onde a margem desaparece quando não fica registada. Disponível em qualquer plano.',
+    titulo: 'Já fez trabalho a mais e não lhe pagaram?',
+    detalhe: 'A adenda com preço e fotografia, aceite pelo cliente num clique — é aí que a margem deixa de desaparecer.',
   },
   {
-    titulo: 'Ferramentas de gestão de obras',
+    titulo: 'Saiba sempre quanto lhe devem',
+    detalhe: 'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, e o que está facturado por receber.',
+  },
+  // O achado de 25/10/2026, medido nos contratos públicos de 2026: dois terços das obras de pintura
+  // do Estado nunca são anunciadas, e na maioria dos convites só é chamada uma empresa. Muitos
+  // pintores não sabem sequer que isto funciona assim — daí o título explicar antes de prometer.
+  {
+    titulo: 'Dois terços das obras públicas nunca são anunciadas',
+    destaque: true,
     detalhe:
-      'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, materiais e consumíveis, e o que está facturado por receber. Disponível em qualquer plano, mesmo sem obra ganha aqui.',
+      'A câmara não publica concurso: convida directamente quem já conhece. Fazemos o trabalho para que seja a si que convidam — dizemos-lhe quem contrata pintura à sua volta, com que frequência e por que valores.',
+    maisInfo:
+      'Em 2026 houve 401 empreitadas de pintura, fachadas e isolamento, no total de 55,2 milhões de euros. Dois terços foram por convite directo, e em 57% desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
+    aChegar: true,
+  },
+  {
+    titulo: 'Nunca mais perca uma obra pública por não saber que existia',
+    detalhe: 'Os concursos que são anunciados, filtrados só para pintura e isolamento — já organizados para si.',
+    maisInfo:
+      'Com a lista exacta de documentos que cada concurso exige, e o aviso imediato de se o seu alvará chega para aquele valor. Menos tempo a decifrar editais, mais tempo a concorrer.',
+    aChegar: true,
   },
 ];
 
 export const BENEFICIOS_GRATUITO: Beneficio[] = [
-  { titulo: 'Orçamentar sem custos', detalhe: 'Ver pedidos, preparar e enviar propostas. Só paga comissão se ganhar a obra.' },
-  { titulo: 'Comissão de 18%', detalhe: 'Com os descontos de códigos de adesão e de fornecedores indicados, quando os tiver.' },
-  { titulo: 'Levantamentos e esclarecimentos', detalhe: 'Acesso ao levantamento do avaliador e às perguntas ao cliente.' },
+  {
+    titulo: 'Comece sem pagar nada',
+    detalhe: 'Veja os pedidos, prepare e envie propostas à vontade. Sem mensalidade.',
+    maisInfo:
+      'Só há comissão quando ganha a obra — nunca antes. A comissão base é 18%, e desce com o plano Pro e com os descontos de fornecedores indicados ou de códigos de adesão, quando os tiver.',
+  },
+  {
+    titulo: 'Nunca mais orçamente às cegas',
+    detalhe: 'Acesso ao levantamento do avaliador e às perguntas feitas ao cliente — a mesma informação, sem ter de lá ir perguntar.',
+  },
 ];
 
 export const ESTADOS_SUBSCRICAO = ['ativa', 'por_pagar', 'cancelada'] as const;

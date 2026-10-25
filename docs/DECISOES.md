@@ -4,6 +4,33 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — A página de planos passa a falar da dor, e o convite entra como promessa maior
+
+Reescrita segundo a especificação preparada noutra sessão, com três desvios, todos por causa do que
+se mediu nos contratos públicos nesse mesmo dia.
+
+**Como ficou.** Cada título deixou de nomear a funcionalidade e passa a nomear o que custa ao pintor:
+"Nunca mais perca uma obra por um documento caducado", "Já fez trabalho a mais e não lhe pagaram?".
+Os números crus — 18%, os cinco pontos percentuais — saíram da frente e vivem atrás de "+ saber
+mais", que é `<details>` em CSS puro: estado por item, rótulo a trocar para "Mostrar menos", sem
+JavaScript de cliente. Os benefícios do Pro estão separados em "Já disponível" e "A chegar em breve",
+e cada um foi confirmado em produção antes de ser posto de um lado ou do outro.
+
+**Desvio 1: entra um benefício que a especificação não tinha.** Dois terços das obras públicas de
+pintura nunca são anunciadas — a entidade convida directamente. É a maior promessa que a plataforma
+pode fazer e muitos pintores nem sabem que o mercado funciona assim, por isso o título explica antes
+de prometer e o detalhe traz os números medidos: 401 empreitadas em 2026, 55,2 M€, dois terços por
+convite, e 57% desses com uma única empresa convidada. Tem moldura própria, por ser a única coisa na
+página que nenhum concorrente oferece.
+
+**Desvio 2: as Obras Públicas ficam em "a chegar", não em "já disponível".** O ecrã está construído e
+a tabela de concursos está vazia. Enquanto não houver dados lá dentro, prometê-las como feitas seria
+mentir ao primeiro subscritor pago.
+
+**Desvio 3: a etiqueta "Por lançar" por item saiu.** O cabeçalho do grupo já diz a mesma coisa, e nos
+títulos longos a etiqueta partia para a linha seguinte. Vê-se a renderizar a página; não se vê nos
+testes.
+
 ## 25/10/2026 — O preço de lançamento passa a ser oferta de lançamento
 
 Decisão do promotor. Os 30 €/mês e 250 €/ano mantêm-se, mas deixam de ser "um preço mais baixo

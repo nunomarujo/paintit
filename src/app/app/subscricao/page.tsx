@@ -12,6 +12,7 @@ import { withVat } from '@/domain/subscription';
 import { CURRENT_RULES } from '@/domain/rules';
 import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { BenefitItem } from '@/components/BenefitItem';
 import { CancelForm, SubscribeForm } from './PlanForms';
 
 /**
@@ -99,17 +100,14 @@ export default async function SubscriptionPage() {
         </div>
       </section>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid items-start gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <p className="eyebrow">Gratuito</p>
           <p className="mt-1 text-[22px] font-semibold tracking-tight text-slate-900">0 €</p>
           <p className="text-[12px] text-slate-600">o que tem hoje</p>
           <ul className="mt-4 space-y-3 text-sm">
             {BENEFICIOS_GRATUITO.map((b) => (
-              <li key={b.titulo}>
-                <span className="font-semibold text-slate-900">{b.titulo}</span>
-                <span className="block text-[12.5px] leading-snug text-slate-600">{b.detalhe}</span>
-              </li>
+              <BenefitItem key={b.titulo} b={b} />
             ))}
           </ul>
         </section>
@@ -132,13 +130,20 @@ export default async function SubscriptionPage() {
             {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível para a
             sua empresa.
           </p>
-          <ul className="mt-4 space-y-3 text-sm">
-            {BENEFICIOS_PRO.map((b) => (
-              <li key={b.titulo}>
-                <span className="font-semibold text-slate-900">{b.titulo}</span>
-                {b.exclusivo && <span className="badge ml-2 align-middle">Só no Pro</span>}
-                <span className="block text-[12.5px] leading-snug text-slate-600">{b.detalhe}</span>
-              </li>
+          <p className="mt-4 text-[13px] font-semibold text-slate-900">Tudo o que tem no Gratuito, mais:</p>
+          {/* Separado em dois grupos para não prometer como feito o que ainda não entrega nada. As
+              Obras Públicas e o mapa de convites têm o ecrã construído e a lista vazia — enquanto não
+              houver dados lá dentro, ficam do lado de cá (25/10/2026). */}
+          <p className="eyebrow mt-3">Já disponível</p>
+          <ul className="mt-2 space-y-3 text-sm">
+            {BENEFICIOS_PRO.filter((b) => !b.aChegar).map((b) => (
+              <BenefitItem key={b.titulo} b={b} />
+            ))}
+          </ul>
+          <p className="eyebrow mt-4">A chegar em breve</p>
+          <ul className="mt-2 space-y-3 text-sm">
+            {BENEFICIOS_PRO.filter((b) => b.aChegar).map((b) => (
+              <BenefitItem key={b.titulo} b={b} />
             ))}
           </ul>
           <div className="mt-5">
