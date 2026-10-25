@@ -125,7 +125,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     </span>
                   </td>
                   <td className="py-2">
-                    <EditLine quoteId={id} lineId={l.id} quantidade={l.quantidade} preco={l.preco_unitario} />
+                    <EditLine quoteId={id} lineId={l.id} quantidade={l.quantidade} preco={l.preco_unitario} unidade={l.unidade} />
                   </td>
                   <td className="py-2 text-right font-semibold tabular-nums">
                     {formatEuros(Math.round((l.quantidade * l.preco_unitario) / 100))}

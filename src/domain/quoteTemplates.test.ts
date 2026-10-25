@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WORKS } from './works';
-import { QUOTE_TEMPLATES, lembretes, trabalhosDoModelo, trabalhosFora } from './quoteTemplates';
+import { QUOTE_TEMPLATES, lembretes, linhasQueHerdam, trabalhosDoModelo, trabalhosFora } from './quoteTemplates';
 
 describe('modelos de orçamento', () => {
   it('todos os modelos só apontam para trabalhos que existem', () => {
@@ -40,5 +40,38 @@ describe('lembretes', () => {
 
   it('cala-se quando estão previstos', () => {
     expect(lembretes(['acessos', 'conclusao'])).toEqual([]);
+  });
+});
+
+describe('a primeira área enche as linhas por preencher', () => {
+  const linhas = [
+    { id: 'a', unidade: 'm2', quantidade: 0 },
+    { id: 'b', unidade: 'm2', quantidade: 0 },
+    { id: 'c', unidade: 'm2', quantidade: 1_250 },
+    { id: 'd', unidade: 'ml', quantidade: 0 },
+    { id: 'e', unidade: 'vg', quantidade: 0 },
+  ];
+
+  it('passa a área às outras linhas em m² que estão a zero', () => {
+    expect(linhasQueHerdam(linhas, { id: 'a', unidade: 'm2', quantidade: 3_000 })).toEqual(['b']);
+  });
+
+  it('nunca mexe numa quantidade já escrita', () => {
+    const r = linhasQueHerdam(linhas, { id: 'a', unidade: 'm2', quantidade: 3_000 });
+    expect(r).not.toContain('c');
+  });
+
+  it('não contamina metros lineares nem verbas globais', () => {
+    const r = linhasQueHerdam(linhas, { id: 'a', unidade: 'm2', quantidade: 3_000 });
+    expect(r).not.toContain('d');
+    expect(r).not.toContain('e');
+  });
+
+  it('metros lineares não herdam: a fissura e o rodapé não têm o mesmo comprimento', () => {
+    expect(linhasQueHerdam(linhas, { id: 'd', unidade: 'ml', quantidade: 500 })).toEqual([]);
+  });
+
+  it('apagar a quantidade não apaga as outras', () => {
+    expect(linhasQueHerdam(linhas, { id: 'a', unidade: 'm2', quantidade: 0 })).toEqual([]);
   });
 });

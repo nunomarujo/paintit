@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
-import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, UNITS, UNIT_LABELS } from '@/domain/proposal';
+import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, UNITS, UNIT_LABELS, type Unit } from '@/domain/proposal';
 import type { PriceEntry } from '@/domain/priceBook';
 import { addQuoteLine, removeQuoteLine, updateQuoteLine } from '../actions';
 
@@ -95,18 +95,24 @@ export function EditLine({
   lineId,
   quantidade,
   preco,
+  unidade,
 }: {
   quoteId: string;
   lineId: string;
   quantidade: number;
   preco: number;
+  unidade: Unit;
 }) {
   const { pending, formProps } = useFormAction<FormState>(updateQuoteLine.bind(null, quoteId, lineId), { errors: {} });
   const n = (v: number) => (v / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
   return (
     <form {...formProps} className="flex items-center justify-end gap-1.5">
+      {/* A unidade fica colada à quantidade: sem ela, duas caixas de números seguidas não dizem qual
+          é qual, por muito que o cabeçalho diga "quantidade e preço" (25/10/2026). */}
       <input name="quantidade" defaultValue={n(quantidade)} inputMode="decimal" className={`${input} w-20 text-right`} aria-label="Quantidade" />
+      <span className="w-16 text-[11px] text-slate-500">{UNIT_LABELS[unidade]}</span>
       <input name="preco" defaultValue={n(preco)} inputMode="decimal" className={`${input} w-24 text-right`} aria-label="Preço unitário" />
+      <span className="text-[11px] text-slate-500">€</span>
       <button type="submit" disabled={pending} className="text-[12px] font-semibold text-tinta-700 underline underline-offset-4">
         {pending ? '…' : 'Guardar'}
       </button>

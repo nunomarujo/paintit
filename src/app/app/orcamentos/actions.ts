@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { LINE_CATEGORIES, UNITS, type LineCategory, type Unit } from '@/domain/proposal';
 import { chaveDe } from '@/domain/priceBook';
-import { trabalhosDoModelo } from '@/domain/quoteTemplates';
+import { linhasQueHerdam, trabalhosDoModelo } from '@/domain/quoteTemplates';
 import { parseHundredths } from '@/domain/request';
 import { learnPrices } from '@/lib/priceBook';
 import { painterOrgs } from '@/lib/queries';
@@ -118,8 +118,30 @@ export async function updateQuoteLine(quoteId: string, lineId: string, _prev: Fo
     .eq('id', lineId)
     .eq('quote_id', quoteId);
   if (error) return { errors: {}, message: 'Não foi possível guardar.' };
+
+  // A primeira área escrita enche as linhas em m² que ainda estão por preencher. Numa fachada de
+  // 30 m², o primário e a pintura são os mesmos 30 m²: escrevê-lo sete vezes é trabalho que a
+  // aplicação pode poupar (pedido do promotor, 25/10/2026). Nunca mexe numa quantidade já escrita.
+  const { data: todas } = await supabase
+    .from('painter_quote_lines')
+    .select('id, unidade, quantidade')
+    .eq('quote_id', quoteId);
+  // A unidade lê-se da base e não do formulário: o que vem do navegador não decide nada (regra 10).
+  const origem = (todas ?? []).find((l) => l.id === lineId);
+  const herdeiras = origem ? linhasQueHerdam(todas ?? [], { ...origem, quantidade }) : [];
+  if (herdeiras.length > 0) {
+    await supabase.from('painter_quote_lines').update({ quantidade }).in('id', herdeiras);
+  }
+
   revalidatePath(`/app/orcamentos/${quoteId}`);
-  return { errors: {}, ok: true, message: 'Guardado.' };
+  return {
+    errors: {},
+    ok: true,
+    message:
+      herdeiras.length > 0
+        ? `Guardado, e a mesma quantidade foi posta ${herdeiras.length === 1 ? 'na outra linha' : `nas outras ${herdeiras.length} linhas`} em m² que estavam por preencher.`
+        : 'Guardado.',
+  };
 }
 
 export async function removeQuoteLine(quoteId: string, lineId: string, _prev: FormState, _form: FormData): Promise<FormState> {

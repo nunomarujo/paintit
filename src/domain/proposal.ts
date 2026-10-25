@@ -21,7 +21,9 @@ export const LINE_CATEGORY_LABELS: Record<LineCategory, string> = {
 
 export const UNITS = ['m2', 'ml', 'un', 'vg'] as const;
 export type Unit = (typeof UNITS)[number];
-export const UNIT_LABELS: Record<Unit, string> = { m2: 'm²', ml: 'm', un: 'un.', vg: 'vg' };
+// "vg" é verba global: um preço fechado para o trabalho todo, sem quantidade a multiplicar. Estava
+// abreviado e ninguém de fora o percebia — nem o pintor, nem o cliente que recebe o documento.
+export const UNIT_LABELS: Record<Unit, string> = { m2: 'm²', ml: 'm', un: 'un.', vg: 'verba global' };
 
 export const INCLUSIONS = ['incluido', 'opcional', 'condicionado', 'nao_incluido'] as const;
 export type Inclusion = (typeof INCLUSIONS)[number];

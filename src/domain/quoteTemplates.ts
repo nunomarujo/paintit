@@ -92,3 +92,31 @@ export function lembretes(codigosUsados: string[]): string[] {
   if (!usados.has('conclusao')) out.push('O orçamento não prevê limpeza final nem remoção de resíduos.');
   return out;
 }
+
+/**
+ * Unidades em que a quantidade da primeira linha serve as outras.
+ *
+ * Só a área. Numa fachada de 30 m², o primário, o barramento e a pintura são os mesmos 30 m² — é a
+ * mesma superfície a ser trabalhada várias vezes. Metros lineares não: a fissura a reparar e o
+ * rodapé a pintar não têm o mesmo comprimento. Unidades e verbas globais muito menos.
+ */
+export const UNIDADES_QUE_HERDAM = ['m2'] as const;
+
+export interface LinhaParaHerdar {
+  id: string;
+  unidade: string;
+  quantidade: number;
+}
+
+/**
+ * Que linhas devem receber a quantidade que acabou de ser escrita.
+ *
+ * Só as que ainda estão por preencher (quantidade a zero, como nascem de um modelo) e na mesma
+ * unidade. Nunca se mexe numa quantidade que alguém já escreveu — o automatismo serve para poupar
+ * trabalho, não para desfazer o que o pintor decidiu.
+ */
+export function linhasQueHerdam(linhas: LinhaParaHerdar[], origem: LinhaParaHerdar): string[] {
+  if (origem.quantidade <= 0) return [];
+  if (!(UNIDADES_QUE_HERDAM as readonly string[]).includes(origem.unidade)) return [];
+  return linhas.filter((l) => l.id !== origem.id && l.unidade === origem.unidade && l.quantidade === 0).map((l) => l.id);
+}
