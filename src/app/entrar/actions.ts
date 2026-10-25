@@ -2,6 +2,8 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { LIMIAR_FUGAS, mensagemDeFuga } from '@/domain/pwned';
+import { pwnedCount } from '@/lib/pwned';
 import { safeNext } from '@/lib/redirect';
 import { createClient } from '@/lib/supabase/server';
 
@@ -46,6 +48,11 @@ export async function passwordAuth(_prev: SignInState, form: FormData): Promise<
   const supabase = await createClient();
   if (mode === 'criar') {
     if (password !== String(form.get('confirmar') ?? '')) return { status: 'error', message: 'As duas palavras-passe não coincidem.', email };
+    // Palavra-passe já vista em fugas de dados. O Supabase só faz esta verificação a partir do plano
+    // Pro, por isso fazemo-la nós — e do mesmo modo, sem a palavra-passe sair do servidor
+    // (src/lib/pwned.ts). Só na criação e na mudança: a quem já tem conta não se tranca a entrada.
+    const fuga = await pwnedCount(password);
+    if (fuga.ocorrencias >= LIMIAR_FUGAS) return { status: 'error', message: mensagemDeFuga(fuga.ocorrencias), email };
     const h = await headers();
     const origin = h.get('origin') ?? `https://${h.get('host')}`;
     const { data, error } = await supabase.auth.signUp({
@@ -75,6 +82,8 @@ export async function setPassword(_prev: SignInState, form: FormData): Promise<S
   const confirm = String(form.get('confirmar') ?? '');
   if (password.length < MIN_PASSWORD) return { status: 'error', message: `Pelo menos ${MIN_PASSWORD} caracteres.` };
   if (password !== confirm) return { status: 'error', message: 'As duas palavras-passe não coincidem.' };
+  const fuga = await pwnedCount(password);
+  if (fuga.ocorrencias >= LIMIAR_FUGAS) return { status: 'error', message: mensagemDeFuga(fuga.ocorrencias) };
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { status: 'error', message: 'Não foi possível guardar. Escolha uma palavra-passe diferente e mais forte.' };

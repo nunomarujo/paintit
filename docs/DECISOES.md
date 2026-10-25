@@ -2350,3 +2350,35 @@ fazer fica abaixo do que as obras dele têm custado.
 Com isto, a fase 1 fica completa: orçamento rápido com marca própria, cofre de documentos, obras
 próprias com equipa e consumíveis, registo do dia com trabalho suplementar, trabalhos a mais com
 aceitação do cliente, diário fotográfico, e a margem real a realimentar o orçamento seguinte.
+
+## 25/10/2026 — Palavras-passe comprometidas, sem plano Pro
+
+A consola do Supabase recusou ligar a verificação: *"Configuring leaked password protection via
+HaveIBeenPwned.org is available on Pro Plans and up."* É funcionalidade paga.
+
+**Decisão: faz-se em código, e pelo mesmo método que eles usariam** (`src/lib/pwned.ts` e
+`src/domain/pwned.ts`). O modelo é o de k-anonimato do Have I Been Pwned: calcula-se o SHA-1 da
+palavra-passe e enviam-se **só os primeiros cinco caracteres** do resumo. O serviço devolve algumas
+centenas de resumos que começam por esses cinco e a comparação faz-se no nosso servidor. **A
+palavra-passe nunca sai daqui**, e quem está do outro lado não consegue saber qual deles nos
+interessava — nem sequer se algum lhe interessava. Vai com `Add-Padding`, que mistura linhas falsas
+para o tamanho da resposta também não dizer nada.
+
+Verificado contra o serviço real a 25/10/2026: `password123` aparece 2 266 543 vezes; uma palavra-passe
+inventada no momento, zero.
+
+**Decisões que acompanham:**
+
+- **Só na criação de conta e na mudança de palavra-passe.** A quem já tem conta não se tranca a
+  entrada por causa disto — seria castigar alguém por uma fuga noutro sítio, a meio do trabalho.
+- **Se o serviço não responder, deixa-se passar.** Recusar contas novas por causa de uma dependência
+  externa indisponível trocava um risco pequeno por um problema certo. Dois segundos e meio de espera,
+  e segue. O mínimo de 8 caracteres continua a ser exigido de qualquer modo.
+- **Uma única aparição chega para recusar.** Uma palavra-passe numa lista conhecida já está nos
+  dicionários que os atacantes usam, mesmo que ele a julgue só sua — e a mensagem di-lo assim.
+- **O SHA-1 aqui não guarda nada.** É o formato que aquele serviço usa e o que se compara é um
+  prefixo público; não é, nem se torna, a forma como as palavras-passe são guardadas.
+
+**Fica em aberto, e é decisão de negócio:** o plano Pro do Supabase é provavelmente necessário antes
+de haver utilizadores a sério, não por causa desta verificação — que já está resolvida — mas pelas
+cópias de segurança e por o plano gratuito suspender projetos sem actividade.
