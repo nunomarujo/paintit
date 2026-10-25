@@ -15,7 +15,9 @@
   "dependencies": {
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
+    "@types/stream-json": "^1.7.8",
     "asn1js": "3.1.0",
+    "fflate": "^0.8.3",
     "next": "15.5.28",
     "pdf-lib": "1.17.1",
     "pkijs": "3.4.1",
@@ -23,6 +25,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
+    "stream-json": "^3.7.0",
     "stripe": "^17.7.0"
   },
   "devDependencies": {

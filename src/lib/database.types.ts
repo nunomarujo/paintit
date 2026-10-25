@@ -709,6 +709,45 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['public_tenders']['Insert']>;
         Relationships: [];
       };
+      public_contracts: {
+        Row: {
+          adjudicatario_nif: string | null;
+          adjudicatario_nome: string | null;
+          ano: number;
+          carregado_em: string;
+          concelho: string | null;
+          confianca: 'alta' | 'media';
+          convidados: { nif: string | null; nome: string }[];
+          cpv: string[];
+          data_celebracao: string | null;
+          distrito: string | null;
+          entidade_nif: string | null;
+          entidade_nome: string;
+          id: string;
+          id_contrato: string;
+          n_convidados: number;
+          objecto: string;
+          por_convite: boolean;
+          preco_cents: number;
+          procedimento: string;
+          via: 'cpv' | 'objecto' | 'ambos';
+        };
+        Insert: Omit<Database['public']['Tables']['public_contracts']['Row'], 'id' | 'carregado_em' | 'convidados' | 'n_convidados' | 'cpv'> & {
+          id?: string;
+          carregado_em?: string;
+          convidados?: { nif: string | null; nome: string }[];
+          n_convidados?: number;
+          cpv?: string[];
+        };
+        Update: Partial<Database['public']['Tables']['public_contracts']['Insert']>;
+        Relationships: [];
+      };
+      public_contracts_loads: {
+        Row: { ano: number; contratos: number; corrida_em: string; origem: string | null };
+        Insert: { ano: number; contratos?: number; corrida_em?: string; origem?: string | null };
+        Update: Partial<Database['public']['Tables']['public_contracts_loads']['Insert']>;
+        Relationships: [];
+      };
       painter_tender_prefs: {
         Row: { distritos: string[]; org_id: string; updated_at: string };
         Insert: { distritos?: string[]; org_id: string; updated_at?: string };
