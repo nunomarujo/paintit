@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_RULES } from './rules';
 import { applyPainterDiscount } from './referral';
-import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, precoDe, situacaoDe, subscriberDiscountBp, type SubscricaoPintor } from './painterPlan';
+import { PRECO_ATUAL, PRO_DISCOUNT_BP, poupancaAnual, BENEFICIOS_PRO, FUNCIONALIDADES_PRO, precoDe, situacaoDe, subscriberDiscountBp, temPro, type SubscricaoPintor } from './painterPlan';
 
 const pro = (over: Partial<SubscricaoPintor> = {}): SubscricaoPintor => ({ plano: 'pro', estado: 'ativa', periodicidade: 'mensal', validaAte: '2026-12-31', ...over });
 
@@ -99,5 +99,35 @@ describe('situacaoDe', () => {
 
   it('sem subscrição é o plano gratuito', () => {
     expect(situacaoDe(null, '2026-10-25').tipo).toBe('gratuito');
+  });
+});
+
+describe('acesso ao Pro', () => {
+  it('uma subscrição a correr dá acesso', () => {
+    expect(temPro(pro(), '2026-10-25')).toBe(true);
+  });
+
+  it('cancelada dentro do período pago continua a dar, porque já foi paga', () => {
+    expect(temPro(pro({ estado: 'cancelada', validaAte: '2027-10-25' }), '2026-10-25')).toBe(true);
+  });
+
+  it('por pagar não dá acesso nenhum', () => {
+    expect(temPro(pro({ estado: 'por_pagar', validaAte: null }), '2026-10-25')).toBe(false);
+  });
+
+  it('sem subscrição não dá', () => {
+    expect(temPro(null, '2026-10-25')).toBe(false);
+  });
+
+  it('as adendas e as ferramentas de obra ficam fora do Pro, de propósito', () => {
+    expect(FUNCIONALIDADES_PRO).not.toContain('adendas');
+    expect(FUNCIONALIDADES_PRO).not.toContain('ferramentas_obra');
+    expect(FUNCIONALIDADES_PRO).toContain('marca_propria');
+    expect(FUNCIONALIDADES_PRO).toContain('cofre_documentos');
+  });
+
+  it('nenhum benefício ficou marcado como por lançar: estão todos no ar', () => {
+    expect(BENEFICIOS_PRO.every((b) => !('porLancar' in b))).toBe(true);
+    expect(BENEFICIOS_PRO.filter((b) => b.exclusivo)).toHaveLength(4);
   });
 });

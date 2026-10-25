@@ -3,12 +3,12 @@ import type { Cents } from './money';
 // Subscrição das empresas de pintura (decisão do promotor, 25/10/2026 — docs/DECISOES.md).
 //
 // Dois planos: o gratuito, que é o que todas têm hoje, e o Pro. O Pro desce 5 pontos percentuais na
-// comissão da plataforma em qualquer obra ganha, acumulável com os outros descontos, e abre os
-// separadores que estão a ser construídos (obras públicas, ferramentas de obra).
+// comissão da plataforma em qualquer obra ganha, acumulável com os outros descontos, e abre o que
+// `FUNCIONALIDADES_PRO` lista.
 //
-// Preço de lançamento mais baixo porque as funcionalidades ainda não estão todas no ar: sobe para o
-// preço de tabela quando estiverem, e quem subscrever antes disso mantém o preço de lançamento
-// enquanto não cancelar (a assinatura guarda a versão que aplicou, como as regras comerciais).
+// Preço de lançamento abaixo do preço de tabela, enquanto a plataforma não tiver massa crítica de
+// pedidos. Quem subscrever a este preço mantém-no enquanto não cancelar: a assinatura guarda a versão
+// que aplicou, como as regras comerciais (CLAUDE.md, regra 3).
 
 export const PLANOS_PINTOR = ['gratuito', 'pro'] as const;
 export type PlanoPintor = (typeof PLANOS_PINTOR)[number];
@@ -26,12 +26,12 @@ export interface PlanoPreco {
   version: string;
   mensalCents: Cents;
   anualCents: Cents;
-  /** Preço de tabela, para quando as funcionalidades por lançar estiverem no ar. */
+  /** Preço de tabela, acima do preço de lançamento em vigor. */
   tabelaMensalCents: Cents;
   tabelaAnualCents: Cents;
 }
 
-/** Preço de lançamento, em vigor enquanto obras públicas e ferramentas de obra não estiverem no ar. */
+/** Preço de lançamento, em vigor. */
 export const PRECO_2026_10_25: PlanoPreco = {
   version: '2026-10-25',
   mensalCents: 3_000,
@@ -59,11 +59,30 @@ export function precoDe(version: string, periodicidade: Periodicidade): Cents | 
 /** Quanto poupa, por ano, quem paga à anual em vez de mensalmente. */
 export const poupancaAnual = (p: PlanoPreco = PRECO_ATUAL): Cents => p.mensalCents * 12 - p.anualCents;
 
+/**
+ * O que exige plano Pro, decidido a 25/10/2026.
+ *
+ * Até essa data o plano vendia quatro coisas e só reservava uma: as outras três estavam no ar e
+ * abertas a toda a gente, incluindo o orçamento com marca própria. Esta lista é a resposta única à
+ * pergunta "isto é do Pro?", para não voltarem a existir três respostas diferentes.
+ *
+ * Ficam de fora, de propósito: as adendas de trabalhos a mais (fechá-las tiraria margem registada à
+ * plataforma) e as ferramentas de gestão de obras (são o hábito diário que traz o pintor cá; fechadas,
+ * ele não entra).
+ */
+export const FUNCIONALIDADES_PRO = ['obras_publicas', 'marca_propria', 'cofre_documentos'] as const;
+export type FuncionalidadePro = (typeof FUNCIONALIDADES_PRO)[number];
+
+/** A subscrição dá acesso às funcionalidades do Pro nesta data? Cancelada dentro do período pago, dá. */
+export function temPro(s: SubscricaoPintor | null, hoje: string): boolean {
+  return subscriberDiscountBp(s, hoje) > 0;
+}
+
 export interface Beneficio {
   titulo: string;
   detalhe: string;
-  /** Ainda por lançar: aparece com a marca de "em construção" e justifica o preço de lançamento. */
-  porLancar?: boolean;
+  /** Exclusivo de quem subscreve: no plano gratuito não existe, ou existe com a marca da plataforma. */
+  exclusivo?: boolean;
 }
 
 // A lista saiu do estudo de 25/10/2026 sobre o que falta mesmo a uma empresa de pintura portuguesa
@@ -75,29 +94,35 @@ export const BENEFICIOS_PRO: Beneficio[] = [
     titulo: 'Menos 5 pontos de comissão em cada obra ganha',
     detalhe:
       'A comissão da plataforma desce de 18% para 13% do valor sem IVA, e soma-se aos descontos que já tenha. Numa obra de 30 000 € são menos 1 500 € de comissão — mais do que quatro anos de subscrição, numa obra só.',
+    exclusivo: true,
+  },
+  {
+    titulo: 'Orçamentos com a marca da sua empresa',
+    detalhe:
+      'O documento sai com o logótipo e os contactos da sua empresa no topo e sem marca de água, com a plataforma apenas numa linha no fundo. No plano gratuito sai com a marca Quem Pinta.pt.',
+    exclusivo: true,
   },
   {
     titulo: 'Obras Públicas',
     detalhe:
       'Concursos de câmaras, juntas de freguesia e outras entidades públicas, filtrados para trabalhos de pintura e isolamento, com a lista de documentos que cada um exige e o aviso de se o seu alvará chega para aquele valor.',
-    porLancar: true,
+    exclusivo: true,
   },
   {
     titulo: 'Cofre de documentos com aviso de validade',
     detalhe:
-      'Certidão permanente, não dívida às Finanças e à Segurança Social, apólice e recibo do seguro de acidentes de trabalho, alvará. Aviso 15 dias antes de cada caducidade e um envio único para o administrador de condomínio.',
-    porLancar: true,
+      'Certidão permanente, não dívida às Finanças e à Segurança Social, apólice e recibo do seguro de acidentes de trabalho, alvará. Aviso 15 dias antes de cada caducidade, para não perder uma adjudicação por um papel fora de prazo.',
+    exclusivo: true,
   },
   {
     titulo: 'Trabalhos a mais com aceitação do cliente',
     detalhe:
-      'A adenda escrita, com preço e fotografia, aceite pelo cliente num clique. É onde a margem desaparece quando não fica registada.',
-    porLancar: true,
+      'A adenda escrita, com preço e fotografia, aceite pelo cliente num clique. É onde a margem desaparece quando não fica registada. Disponível em qualquer plano.',
   },
   {
     titulo: 'Ferramentas de gestão de obras',
-    detalhe: 'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, e o que está facturado por receber.',
-    porLancar: true,
+    detalhe:
+      'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, materiais e consumíveis, e o que está facturado por receber. Disponível em qualquer plano, mesmo sem obra ganha aqui.',
   },
 ];
 

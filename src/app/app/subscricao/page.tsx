@@ -17,8 +17,8 @@ import { CancelForm, SubscribeForm } from './PlanForms';
 /**
  * Planos da empresa de pintura (25/10/2026). A página existe para uma decisão só — aderir ou não —
  * por isso o que decide está em cima: o que a comissão passa a ser, em euros, numa obra real. O resto
- * é o que vem a seguir, com o que ainda está por lançar marcado como tal, que é o que justifica o
- * preço de lançamento estar abaixo do preço de tabela.
+ * é o que vem a seguir, com o que é exclusivo de quem subscreve marcado como tal — desde 25/10/2026,
+ * em que se verificou que o plano vendia quatro coisas e só reservava uma.
  */
 export default async function SubscriptionPage() {
   const { supabase, user } = await getUser();
@@ -126,13 +126,13 @@ export default async function SubscriptionPage() {
           <p className="text-[12px] text-slate-600">
             Com IVA: {formatEuros(withVat(PRECO_ATUAL.mensalCents))}/mês ou {formatEuros(withVat(PRECO_ATUAL.anualCents))}/ano — dedutível
             para a sua empresa. Preço de tabela {formatEuros(PRECO_ATUAL.tabelaMensalCents)}/mês e {formatEuros(PRECO_ATUAL.tabelaAnualCents)}/ano,
-            quando tudo o que está por lançar estiver no ar. Quem subscrever agora mantém este preço enquanto não cancelar.
+            a praticar mais tarde. Quem subscrever agora mantém este preço enquanto não cancelar.
           </p>
           <ul className="mt-4 space-y-3 text-sm">
             {BENEFICIOS_PRO.map((b) => (
               <li key={b.titulo}>
                 <span className="font-semibold text-slate-900">{b.titulo}</span>
-                {b.porLancar && <span className="badge ml-2 align-middle">Por lançar</span>}
+                {b.exclusivo && <span className="badge ml-2 align-middle">Só no Pro</span>}
                 <span className="block text-[12.5px] leading-snug text-slate-600">{b.detalhe}</span>
               </li>
             ))}

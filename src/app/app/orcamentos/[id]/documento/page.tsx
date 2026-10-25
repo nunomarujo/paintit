@@ -2,13 +2,18 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PrintButton } from '@/components/PrintButton';
 import { ProposalDocument } from '@/components/ProposalDocument';
-import { painterOrgs } from '@/lib/queries';
+import { temPro } from '@/domain/painterPlan';
+import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
 /**
  * O documento de um orçamento a cliente próprio. Mesmo componente do orçamento do mercado — não
- * existem dois documentos para a mesma coisa —, mas em marca própria: logótipo e contactos da
- * empresa, sem marca de água, com a plataforma só numa linha no fundo.
+ * existem dois documentos para a mesma coisa.
+ *
+ * A marca própria — logótipo e contactos da empresa, sem marca de água, com a plataforma só numa
+ * linha no fundo — é do plano Pro (decisão de 25/10/2026). Sem plano, o documento sai na mesma, com
+ * a marca Quem Pinta.pt: quem não subscreve continua a poder orçamentar e a entregar ao cliente, que
+ * é o que não se fecha nunca.
  */
 export default async function PrivateQuoteDocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,10 +25,12 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
   const { data: q } = await supabase.from('painter_quotes').select('*').eq('id', id).maybeSingle();
   if (!q) notFound();
 
-  const [{ data: linhas }, { data: empresa }] = await Promise.all([
+  const [{ data: linhas }, { data: empresa }, subscricao] = await Promise.all([
     supabase.from('painter_quote_lines').select('*').eq('quote_id', id).order('ordem'),
     supabase.from('organizations').select('nome, nif, telefone, email_contacto').eq('id', org.id).maybeSingle(),
+    painterSubscription(supabase, org.id),
   ]);
+  const pro = temPro(subscricao, new Date().toISOString().slice(0, 10));
 
   const areaTotalCm2 = (linhas ?? []).filter((l) => l.unidade === 'm2').reduce((n, l) => n + l.quantidade, 0);
 
@@ -35,8 +42,19 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
         </Link>
         <PrintButton />
       </div>
+      {/* Dito antes de imprimir, não depois: quem imprimir sem saber entrega ao cliente um documento
+          com a marca da plataforma e só percebe no fim. */}
+      {!pro && (
+        <p className="rounded-xl border border-tinta-200 bg-tinta-50/60 px-4 py-3 text-sm text-slate-800 print:hidden">
+          Este documento sai com a marca Quem Pinta.pt. Com o{' '}
+          <Link href="/app/subscricao" className="font-semibold text-tinta-800 underline">
+            plano Pro
+          </Link>{' '}
+          sai com o logótipo e os contactos da sua empresa no topo, sem marca de água.
+        </p>
+      )}
       <ProposalDocument
-        marca="propria"
+        marca={pro ? 'propria' : 'quempinta'}
         revelado
         identity={{
           label: empresa?.nome ?? 'A sua empresa',

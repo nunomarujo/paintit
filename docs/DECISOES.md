@@ -4,6 +4,38 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — O plano Pro vendia quatro coisas e só reservava uma
+
+Ao ir avançar no que a página do plano dizia estar "Por lançar", verificou-se que estava tudo no ar
+— tinha sido construído nesse mesmo dia. O problema era o inverso do anunciado: das quatro
+funcionalidades vendidas como Pro, só as Obras Públicas verificavam a subscrição. Um pintor no plano
+gratuito já tinha o cofre de documentos, as adendas, as ferramentas de obra, e já exportava
+orçamentos com o logótipo dele e sem marca de água — exactamente o que o promotor tinha dito que
+devia ser do plano pago.
+
+Não havia subscritor real nenhum, por isso ninguém perdeu nada ao fechar.
+
+**Passa a ser exclusivo do Pro** (decisão do promotor):
+- **Orçamento com marca própria.** No plano gratuito o documento sai na mesma — orçamentar e entregar
+  ao cliente nunca se fecha —, mas com a marca Quem Pinta.pt. O aviso aparece antes de imprimir, não
+  depois, para ninguém entregar ao cliente um documento com a marca errada sem saber.
+- **Cofre de documentos com aviso de validade.** Carregar documentos continua aberto, porque é o que
+  a plataforma exige para verificar um pintor; o que é do Pro é o cofre consolidado com os avisos.
+
+**Fica aberto a toda a gente, de propósito:**
+- **Trabalhos a mais.** Fechá-los tiraria margem registada à plataforma, que é o contrário do que se
+  quer.
+- **Ferramentas de gestão de obras.** São o hábito diário que traz o pintor cá. Fechadas, ele não
+  entra — e o plano vende-se a quem entra.
+
+A resposta à pergunta "isto é do Pro?" passa a viver num sítio só, `FUNCIONALIDADES_PRO` e `temPro`
+(regra 2). Era a falta disso que deixava três ecrãs a responder de maneira diferente.
+
+**Em aberto:** o preço de lançamento (30 €/mês, 250 €/ano) era justificado por as funcionalidades
+ainda não estarem no ar. Estão. A página deixou de o prometer, mas a decisão de subir para o preço de
+tabela — ou de manter o de lançamento enquanto a plataforma não tiver massa crítica de pedidos — é do
+promotor e está por tomar.
+
 ## 25/10/2026 — O preço do plano Pro é sem IVA
 
 Decisão do promotor. Os 30 €/mês e 250 €/ano são **sem IVA**: cobra-se 36,90 € e 307,50 €, e a

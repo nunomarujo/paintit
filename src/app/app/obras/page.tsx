@@ -3,7 +3,8 @@ import { Dossier } from '@/components/Dossier';
 import { dossier, resumirDossier } from '@/domain/dossier';
 import { formatEuros } from '@/domain/money';
 import { WORKSITE_STATE_LABELS, formatQuantidade, saldos, type Consumivel, type Movimento } from '@/domain/worksites';
-import { painterOrgs } from '@/lib/queries';
+import { temPro } from '@/domain/painterPlan';
+import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { CreateWorksite } from './WorksiteForms';
 
@@ -19,12 +20,14 @@ export default async function WorksitesPage() {
   const orgs = await painterOrgs(supabase, user!.id);
   const org = orgs[0];
 
-  const [{ data: obras }, { data: docs }, { data: consumiveis }, { data: movimentos }] = await Promise.all([
+  const [{ data: obras }, { data: docs }, { data: consumiveis }, { data: movimentos }, subscricao] = await Promise.all([
     org ? supabase.from('worksites').select('*').eq('org_id', org.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
     org ? supabase.from('org_documents').select('kind, status, valido_ate').eq('org_id', org.id) : Promise.resolve({ data: [] }),
     org ? supabase.from('org_consumables').select('*').eq('org_id', org.id) : Promise.resolve({ data: [] }),
     org ? supabase.from('consumable_moves').select('consumable_id, quantidade, worksite_id').eq('org_id', org.id) : Promise.resolve({ data: [] }),
+    org ? painterSubscription(supabase, org.id) : Promise.resolve(null),
   ]);
+  const pro = temPro(subscricao, new Date().toISOString().slice(0, 10));
 
   const linhas = dossier((docs ?? []).map((d) => ({ kind: d.kind, status: d.status, validoAte: d.valido_ate })), new Date().toISOString().slice(0, 10));
   const resumo = resumirDossier(linhas);
@@ -46,7 +49,24 @@ export default async function WorksitesPage() {
         </p>
       </div>
 
-      {org && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
+      {/* O cofre com avisos de validade é do plano Pro (25/10/2026). Quem não subscreve vê o que é e
+          o que lhe pouparia, em vez de um espaço vazio sem explicação. */}
+      {org && pro && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
+      {org && !pro && (
+        <div className="rounded-2xl border border-tinta-200 bg-tinta-50/60 px-5 py-4">
+          <p className="text-sm font-semibold text-slate-900">
+            Cofre de documentos <span className="badge ml-1 align-middle">Só no Pro</span>
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[13px] leading-snug text-slate-700">
+            Certidão permanente, não dívida às Finanças e à Segurança Social, apólice e recibo do seguro de acidentes de
+            trabalho e alvará, num sítio só, com aviso 15 dias antes de cada caducidade. É o que evita perder uma
+            adjudicação por um papel fora de prazo.
+          </p>
+          <Link href="/app/subscricao" className="mt-3 inline-block text-[13px] font-semibold text-tinta-800 underline underline-offset-4">
+            Ver o plano Pro
+          </Link>
+        </div>
+      )}
 
       {repor.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
