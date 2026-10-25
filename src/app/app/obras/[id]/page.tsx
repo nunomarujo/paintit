@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
+import { DayLog } from './DayLog';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
 import {
@@ -102,6 +103,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   });
   const memberOptions = (members ?? []).map((m) => ({ value: m.id, label: m.nome }));
   const tabs = [
+    ['dia', 'Registar o dia'],
     ['resumo', 'Resumo'],
     ['materiais', 'Materiais'],
     ['equipa', 'Equipa e horas'],
@@ -176,6 +178,19 @@ export default async function WorksitePage({ params, searchParams }: { params: P
               ))}
             </ul>
           )}
+        </section>
+      )}
+
+      {section === 'dia' && (
+        <section className={card}>
+          <h2 className="text-base font-semibold">Registar o dia</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            Vem preenchido com o dia normal para toda a gente: corrija só o que foi diferente e guarde. É daqui que sai
+            a margem real da obra — sem horas registadas, o custo da mão de obra é um palpite.
+          </p>
+          <div className="mt-4">
+            <DayLog worksiteId={id} equipa={(members ?? []).filter((m) => m.ativo).map((m) => ({ id: m.id, nome: m.nome }))} hoje={today} />
+          </div>
         </section>
       )}
 

@@ -87,6 +87,15 @@ export default async function WorksitesPage() {
                     {o.engagement_id ? ' · contratada pela Quem Pinta' : ' · obra própria'}
                   </p>
                 </Link>
+                {o.estado === 'ativa' && (
+                  // O registo do dia é a acção diária: fica a um toque da lista, sem abrir a obra.
+                  <Link
+                    href={`/app/obras/${o.id}?s=dia`}
+                    className="mx-4 mb-3 inline-flex items-center rounded-lg border border-tinta-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-tinta-700 hover:bg-tinta-50"
+                  >
+                    Registar o dia
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

@@ -2223,3 +2223,25 @@ Word —, ou nasce de um modelo por tipo de obra.
 
 **Avisos que a aplicação dá e não decide:** a taxa de 6% exige habitação e materiais abaixo de 20% do
 valor global. O ecrã di-lo e guarda o que ele escolher; a decisão é dele e do contabilista.
+
+## 25/10/2026 — "Registar o dia"
+
+A picagem de horas tem o maior retorno de todas as ferramentas de obra — sem ela não há margem real,
+porque ninguém sabe quantas horas foram a cada obra — e é a que corre maior risco de nunca ser usada:
+exige disciplina diária de quem não gosta de aplicações e faz isto cansado, ao fim do dia.
+
+**A aposta está toda numa ideia: pré-preencher o dia normal e pedir só as excepções.** Oito horas para
+toda a equipa activa, ‹−› e ‹+› de meia em meia hora, e um "faltou" por pessoa. Quem teve um dia
+normal faz dois toques: abrir e guardar. A nota e o custo do dia estão escondidos atrás de uma linha,
+porque são a excepção e não a regra.
+
+Decisões que acompanham:
+
+- **Zero horas é ausência, não é uma linha de zero.** Quem faltou não gera lançamento nenhum.
+- **Registar o mesmo dia outra vez substitui, não soma.** O ecrã di-lo. Sem isto, o engano mais
+  provável — carregar duas vezes — corrompia a margem em silêncio.
+- **O registo fica a um toque da lista de obras**, sem ser preciso abrir a obra: é a acção diária.
+
+**Isto é uma aposta, não uma certeza.** Se não for usado duas semanas seguidas por um pintor real, a
+margem nunca aparece e metade do valor das ferramentas de obra vai com ela. É a primeira coisa a pôr
+à prova quando houver alguém a usar isto a sério, antes de se construir mais seja o que for em cima.

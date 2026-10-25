@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { addendaErrors } from '@/domain/addenda';
+import { dayErrors, presencasEfetivas, type PresencaInput } from '@/domain/dayLog';
 import { UNIDADES, worksiteErrors } from '@/domain/worksites';
 import { painterOrgs } from '@/lib/queries';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
@@ -306,4 +307,63 @@ export async function moveConsumable(consumableId: string, _prev: FormState, for
   if (error) return { errors: {}, message: 'Não foi possível registar o movimento.' };
   revalidatePath('/app/obras/consumiveis');
   return { errors: {}, ok: true, message: sentido === 'saida' ? 'Saída registada.' : 'Entrada registada.' };
+}
+
+/**
+ * Registar o dia: as horas de toda a equipa de uma vez, numa só submissão.
+ *
+ * Quem faltou não gera lançamento nenhum — zero horas é ausência, não é uma linha de zero. É esta
+ * ferramenta que torna possível saber a margem real de uma obra, e por isso o que decide se vive é o
+ * atrito: o formulário chega aqui já preenchido com o dia normal e o pintor só corrige as excepções.
+ */
+export async function registerDay(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const data = date(form.get('data')) ?? new Date().toISOString().slice(0, 10);
+  const presencas: PresencaInput[] = [];
+  for (const [campo, valor] of form.entries()) {
+    if (!campo.startsWith('horas:')) continue;
+    const memberId = campo.slice('horas:'.length);
+    const horas = parseHundredths(valor);
+    if (horas === null || Number.isNaN(horas)) return fail('horas', 'Horas, ex.: 7,5.');
+    presencas.push({ memberId, horas });
+  }
+  if (presencas.length === 0) return { errors: {}, message: 'Sem ninguém na equipa desta obra.' };
+
+  const errors = dayErrors(presencas, data);
+  if (Object.keys(errors).length > 0) {
+    const [campo, mensagem] = Object.entries(errors)[0]!;
+    return fail(campo, mensagem);
+  }
+
+  const { supabase } = await getUser();
+  const efetivas = presencasEfetivas(presencas);
+
+  // Um dia registado duas vezes não soma: apaga-se o que lá estava para aquele dia e grava-se de novo.
+  await supabase.from('worksite_entries').delete().eq('worksite_id', worksiteId).eq('tipo', 'horas').eq('data', data);
+
+  const { error } = await supabase.from('worksite_entries').insert(
+    efetivas.map((p) => ({
+      worksite_id: worksiteId,
+      tipo: 'horas' as const,
+      data,
+      descricao: String(form.get('nota') ?? '').trim().slice(0, 500),
+      horas: p.horas,
+      member_id: p.memberId,
+    })),
+  );
+  if (error) return { errors: {}, message: 'Não foi possível guardar o dia.' };
+
+  // Um custo do dia (tinta comprada a caminho da obra, por exemplo) entra na mesma submissão.
+  const custo = parseHundredths(form.get('custo'));
+  if (custo !== null && !Number.isNaN(custo) && custo > 0) {
+    await supabase.from('worksite_entries').insert({
+      worksite_id: worksiteId,
+      tipo: 'custo',
+      data,
+      descricao: String(form.get('custoDescricao') ?? '').trim().slice(0, 500) || 'Custo do dia',
+      valor_cents: custo,
+      categoria: 'material',
+    });
+  }
+
+  return done(worksiteId, `Dia de ${data.split('-').reverse().join('/')} registado.`);
 }
