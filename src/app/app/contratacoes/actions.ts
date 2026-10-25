@@ -235,3 +235,29 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
       : `Assinado por ${signer.name ?? 'titular do certificado'}. A equipa da plataforma vai confirmar a origem do certificado.`,
   };
 }
+
+/**
+ * Resposta do cliente a um trabalho a mais. Só o lado do cliente consegue executar isto — as
+ * políticas da base de dados recusam-no ao pintor —, e a data da resposta é posta pelo servidor.
+ */
+export async function answerAddenda(
+  engagementId: string,
+  addendaId: string,
+  estado: 'aceite' | 'recusada',
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  // O estado chega ligado à action e vem do navegador: validar aqui, não confiar (CLAUDE.md, regra 10).
+  if (estado !== 'aceite' && estado !== 'recusada') return { errors: {}, message: 'Resposta inválida.' };
+  const nota = String(form.get('nota') ?? '').trim().slice(0, 600) || null;
+
+  const { supabase } = await getUser();
+  const { error } = await supabase
+    .from('worksite_addenda')
+    .update({ estado, nota_cliente: nota })
+    .eq('id', addendaId)
+    .eq('estado', 'proposta');
+  if (error) return { errors: {}, message: 'Não foi possível registar a resposta.' };
+  revalidatePath(`/app/contratacoes/${engagementId}`);
+  return { errors: {}, ok: true, message: estado === 'aceite' ? 'Trabalho a mais aceite.' : 'Trabalho a mais recusado.' };
+}

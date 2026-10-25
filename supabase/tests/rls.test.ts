@@ -2401,3 +2401,84 @@ describe('subscrição da empresa de pintura', () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+describe('adendas de trabalhos a mais', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // pintor escolhido
+  const P2 = '00000000-0000-4000-8000-0000000000e2'; // pintor de fora desta obra
+  let engagementId: string;
+  let addendaId: string;
+
+  beforeAll(async () => {
+    const e = await one<{ id: string }>(
+      `select e.id from public.engagements e join public.proposals p on p.id = e.proposal_id
+       where p.status = 'selecionada' order by e.created_at asc limit 1`,
+    );
+    engagementId = e.id;
+  });
+
+  const propor = (user: string, descricao = 'Pintura da caixa de escadas, três pisos') =>
+    as(user, () =>
+      one<{ id: string; painter_org_id: string }>(
+        `insert into public.worksite_addenda (engagement_id, painter_org_id, descricao, valor_cents)
+         values ($1, '00000000-0000-4000-8000-000000000000', $2, 32000) returning id, painter_org_id`,
+        [engagementId, descricao],
+      ),
+    );
+
+  it('só o pintor da obra propõe um trabalho a mais, e o cliente não', async () => {
+    await expect(propor(A)).rejects.toThrow(/row-level security/);
+    await expect(propor(P2)).rejects.toThrow(/row-level security/);
+    const row = await propor(P);
+    addendaId = row.id;
+    // O painter_org_id vem da contratação, não do que o navegador mandou.
+    expect(row.painter_org_id).not.toBe('00000000-0000-4000-8000-000000000000');
+  });
+
+  it('as duas partes vêem a adenda; um pintor de fora não', async () => {
+    for (const u of [A, P]) {
+      expect(await as(u, async () => (await db.query('select id from public.worksite_addenda where id = $1', [addendaId])).rows)).toHaveLength(1);
+    }
+    expect(await as(P2, async () => (await db.query('select id from public.worksite_addenda where id = $1', [addendaId])).rows)).toEqual([]);
+  });
+
+  it('o pintor não aceita a sua própria adenda, por muito que o peça', async () => {
+    await expect(
+      as(P, () => db.query(`update public.worksite_addenda set estado = 'aceite' where id = $1`, [addendaId])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('o pintor corrige ou retira enquanto o cliente não responde', async () => {
+    await as(P, () => db.query(`update public.worksite_addenda set valor_cents = 28000 where id = $1`, [addendaId]));
+    expect(
+      await as(P, async () => (await db.query('select valor_cents from public.worksite_addenda where id = $1', [addendaId])).rows),
+    ).toEqual([{ valor_cents: 28000 }]);
+  });
+
+  it('o cliente aceita, e a data da resposta é do servidor', async () => {
+    await as(A, () => db.query(`update public.worksite_addenda set estado = 'aceite', respondida_em = '2001-01-01' where id = $1`, [addendaId]));
+    const r = await one<{ estado: string; respondida_em: string }>(
+      'select estado, respondida_em from public.worksite_addenda where id = $1',
+      [addendaId],
+    );
+    expect(r.estado).toBe('aceite');
+    expect(new Date(r.respondida_em).getFullYear()).toBeGreaterThan(2020);
+  });
+
+  it('depois de respondida, nem o pintor nem o cliente lhe mexem', async () => {
+    // Uma adenda já respondida deixa de estar visível para alteração: o `using` das duas políticas
+    // exige o estado 'proposta', por isso o update não encontra linha nenhuma e não muda nada. O
+    // Postgres não levanta erro neste caso — levanta no `with check` —, e é por isso que o que se
+    // verifica aqui são as zero linhas afectadas e o valor intacto, e não uma excepção.
+    const doPintor = await as(P, () => db.query(`update public.worksite_addenda set valor_cents = 1 where id = $1`, [addendaId]));
+    expect(doPintor.affectedRows ?? 0).toBe(0);
+    const doCliente = await as(A, () => db.query(`update public.worksite_addenda set estado = 'recusada' where id = $1`, [addendaId]));
+    expect(doCliente.affectedRows ?? 0).toBe(0);
+    expect(
+      await as(P, async () => (await db.query('select estado, valor_cents from public.worksite_addenda where id = $1', [addendaId])).rows),
+    ).toEqual([{ estado: 'aceite', valor_cents: 28000 }]);
+  });
+
+  it('uma descrição vaga não serve: é o que o cliente aceita', async () => {
+    await expect(propor(P, 'escada')).rejects.toThrow(/violates check constraint/);
+  });
+});

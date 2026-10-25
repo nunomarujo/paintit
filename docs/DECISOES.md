@@ -2136,3 +2136,25 @@ página do IMPIC está datada de 2015).
 
 **O que não se oferece:** submissão de propostas em nome do cliente, garantia de resultado, e fixação
 de preço. Risco jurídico sem retorno.
+
+## 25/10/2026 — Cofre de documentos e trabalhos a mais
+
+**Cofre de documentos** (`src/domain/dossier.ts`, bloco no topo de `/app/obras`). As declarações de não
+dívida às Finanças e à Segurança Social valem três meses e ninguém controla os prazos: perder uma
+adjudicação por causa disso é o desperdício mais evitável do sector. Aviso a 15 dias, que é tempo de
+pedir uma certidão nova. Fechado quando está tudo em ordem, aberto sozinho quando há algo a resolver.
+Todos os estados com problema têm acção — o caducado era o mais urgente e era o único que não levava a
+lado nenhum.
+
+**Trabalhos a mais** (`src/domain/addenda.ts`, `worksite_addenda`). "Aproveite e pinte também a escada"
+sem adenda escrita é a fonte número um de conflito e de margem perdida. A adenda fica com descrição,
+preço e fotografia, e **quem aceita é o cliente, dentro da plataforma, com data do servidor**. As
+políticas de RLS recusam que o pintor marque como aceite uma adenda sua, por muito que o navegador lho
+peça, e depois de respondida nem uma parte nem a outra lhe mexem.
+
+Regra que não se contorna: **uma adenda só conta para o valor da obra depois de aceite**. Enquanto está
+proposta aparece em separado, para o pintor não contar com dinheiro que ainda não tem.
+
+Uma nota sobre o Postgres, para quem vier a escrever testes de RLS: um `update` cujo `using` não
+encontra a linha afecta zero linhas e **não levanta erro** — o erro vem do `with check`. Um teste que
+espere uma excepção nesse caso falha mesmo com a política correcta.

@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { AddendaList } from '@/components/AddendaList';
+import { AddendaDecision } from './AddendaDecision';
 import { notFound } from 'next/navigation';
 import { EVENT_LABELS, STATUS_LABELS, availableActions, clientDepositDue, isRevealed, reviewCategory } from '@/domain/contracting';
 import { held, settlement } from '@/domain/engagement';
@@ -38,6 +40,23 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   if (!side) notFound();
   const manager = side === 'cliente' ? canManage(clientRole) : side === 'pintor' ? canManage(painterRole) : false;
 
+  // Trabalhos a mais: o cliente responde aqui, que é onde já vem ver a contratação. O pintor vê-os
+  // nas ferramentas de obra; aqui aparecem-lhe só para acompanhar.
+  const { data: addendaRows } = await supabase
+    .from('worksite_addenda')
+    .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
+    .eq('engagement_id', id)
+    .order('criada_em', { ascending: false });
+  const addenda = (addendaRows ?? []).map((a) => ({
+    id: a.id,
+    descricao: a.descricao,
+    valorCents: a.valor_cents,
+    estado: a.estado,
+    criadaEm: a.criada_em,
+    respondidaEm: a.respondida_em,
+    temFotografia: Boolean(a.foto_path),
+  }));
+
   const { replay, events } = await loadReplay(supabase, row);
   const e = replay.engagement;
   const h = held(e);
@@ -66,6 +85,30 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-8">
+      {addenda.length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-base font-semibold">Trabalhos a mais</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            {side === 'cliente'
+              ? 'Trabalho que não estava no orçamento e que a empresa propõe fazer. Só é cobrado depois de o aceitar aqui.'
+              : 'O que propôs ao cliente além do orçamento. Só conta para o valor da obra depois de ele aceitar.'}
+          </p>
+          <div className="mt-4">
+            <AddendaList
+              addenda={addenda}
+              hoje={new Date().toISOString().slice(0, 10)}
+              vazio="Sem trabalhos a mais."
+              lado={side === 'cliente' ? 'cliente' : 'pintor'}
+              acoes={(a) =>
+                a.estado === 'proposta' && side === 'cliente' && manager ? (
+                  <AddendaDecision engagementId={id} addendaId={a.id} />
+                ) : null
+              }
+            />
+          </div>
+        </section>
+      )}
+
       <div>
         <Link
           href={side === 'cliente' ? `/app/pedidos/${row.request_id}/propostas` : '/app/contratacoes'}
@@ -113,6 +156,30 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
+
+      {addenda.length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold">Trabalhos a mais</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            {side === 'cliente'
+              ? 'Trabalho que não estava no orçamento e que a empresa propõe fazer. Só é cobrado depois de o aceitar aqui.'
+              : 'O que propôs ao cliente além do orçamento. Só conta para o valor da obra depois de ele aceitar.'}
+          </p>
+          <div className="mt-4">
+            <AddendaList
+              addenda={addenda}
+              hoje={new Date().toISOString().slice(0, 10)}
+              vazio="Sem trabalhos a mais."
+              lado={side === 'cliente' ? 'cliente' : 'pintor'}
+              acoes={(a) =>
+                a.estado === 'proposta' && side === 'cliente' && manager ? (
+                  <AddendaDecision engagementId={id} addendaId={a.id} />
+                ) : null
+              }
+            />
+          </div>
+        </section>
+      )}
 
       <section className={card}>
         <h2 className="font-semibold">Valores</h2>

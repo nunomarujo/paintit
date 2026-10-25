@@ -659,6 +659,34 @@ export type Database = {
           { foreignKeyName: 'supplier_referral_invites_supplier_org_id_fkey'; columns: ['supplier_org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
         ];
       };
+      worksite_addenda: {
+        Row: {
+          criada_em: string;
+          descricao: string;
+          engagement_id: string;
+          estado: 'proposta' | 'aceite' | 'recusada' | 'retirada';
+          foto_path: string | null;
+          id: string;
+          nota_cliente: string | null;
+          painter_org_id: string;
+          respondida_em: string | null;
+          valor_cents: number;
+        };
+        Insert: {
+          criada_em?: string;
+          descricao: string;
+          engagement_id: string;
+          estado?: 'proposta' | 'aceite' | 'recusada' | 'retirada';
+          foto_path?: string | null;
+          id?: string;
+          nota_cliente?: string | null;
+          painter_org_id?: string;
+          respondida_em?: string | null;
+          valor_cents: number;
+        };
+        Update: Partial<Database['public']['Tables']['worksite_addenda']['Insert']>;
+        Relationships: [];
+      };
       public_tenders: {
         Row: {
           anuncio_url: string | null;

@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { AddendaList } from '@/components/AddendaList';
+import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
 import {
   addEntry,
@@ -59,6 +61,20 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       supabase.from('material_orders').select('*').eq('engagement_id', id).order('created_at', { ascending: false }),
       supabase.from('request_listings').select('ref, concelho').eq('request_id', e.request_id).maybeSingle(),
     ]);
+  const { data: addendaRows } = await supabase
+    .from('worksite_addenda')
+    .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
+    .eq('engagement_id', id)
+    .order('criada_em', { ascending: false });
+  const addenda = (addendaRows ?? []).map((a) => ({
+    id: a.id,
+    descricao: a.descricao,
+    valorCents: a.valor_cents,
+    estado: a.estado,
+    criadaEm: a.criada_em,
+    respondidaEm: a.respondida_em,
+    temFotografia: Boolean(a.foto_path),
+  }));
   const productIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => Boolean(x)))];
   const { data: products } = productIds.length ? await supabase.from('products').select('*').in('id', productIds) : { data: [] };
   const supplierIds = [...new Set((products ?? []).map((p) => p.org_id))];
@@ -85,6 +101,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     ['equipa', 'Equipa e horas'],
     ['cronograma', 'Cronograma'],
     ['financeiro', 'Custos e tranches'],
+    ['adendas', 'Trabalhos a mais'],
   ] as const;
 
   return (
@@ -152,6 +169,30 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+      )}
+
+      {section === 'adendas' && (
+        <section className={card}>
+          <h2 className="text-base font-semibold">Trabalhos a mais</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+            O que o cliente pediu a mais durante a obra, com preço e aceitação registados. Sem isto escrito, ou não se
+            cobra ou cobra-se e discute-se — e só conta para o valor da obra depois de o cliente aceitar.
+          </p>
+          <div className="mt-4">
+            <AddendaList
+              addenda={addenda}
+              hoje={today}
+              vazio="Ainda não há trabalhos a mais registados nesta obra."
+              acoes={(a) => (a.estado === 'proposta' && manager ? <WithdrawAddenda engagementId={id} addendaId={a.id} /> : null)}
+            />
+          </div>
+          {manager && (
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <p className="eyebrow mb-2">Registar um trabalho a mais</p>
+              <ProposeAddenda engagementId={id} />
+            </div>
           )}
         </section>
       )}

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
+import { addendaErrors } from '@/domain/addenda';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
 import { parseHundredths } from '@/domain/request';
 import { notifyNewOrder, notifyNewSupplierReview, notifyOrderState } from '@/lib/notify';
@@ -173,4 +174,33 @@ export async function answerSupplierReview(reviewId: string, supplierOrgId: stri
   if (error) return { errors: {}, message: 'Não foi possível guardar a resposta.' };
   revalidatePath(`/app/organizacoes/${supplierOrgId}`);
   return { errors: {}, ok: true, message: 'Resposta guardada.' };
+}
+
+/**
+ * Trabalho a mais proposto ao cliente. Fica sempre em 'proposta': quem aceita é o cliente, do seu
+ * lado, e as políticas da base de dados recusam que o pintor o marque como aceite (regra 10).
+ */
+export async function proposeAddenda(engagementId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const descricao = String(form.get('descricao') ?? '').trim();
+  const valorCents = parseHundredths(form.get('valor'));
+  if (valorCents === null || Number.isNaN(valorCents)) return fail('valor', 'Indique o preço do trabalho a mais, sem IVA.');
+  const errors = addendaErrors({ descricao, valorCents });
+  if (Object.keys(errors).length > 0) {
+    const [campo, mensagem] = Object.entries(errors)[0]!;
+    return fail(campo, mensagem);
+  }
+  const { supabase } = await getUser();
+  const { error } = await supabase.from('worksite_addenda').insert({
+    engagement_id: engagementId,
+    descricao,
+    valor_cents: valorCents,
+  });
+  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Trabalho a mais enviado ao cliente.');
+}
+
+/** Retirar um trabalho a mais que ainda não foi respondido. */
+export async function withdrawAddenda(engagementId: string, addendaId: string, _prev: FormState, _form: FormData): Promise<FormState> {
+  const { supabase } = await getUser();
+  const { error } = await supabase.from('worksite_addenda').update({ estado: 'retirada' }).eq('id', addendaId).eq('estado', 'proposta');
+  return error ? { errors: {}, message: 'Não foi possível retirar.' } : done(engagementId, 'Trabalho a mais retirado.');
 }
