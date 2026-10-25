@@ -78,9 +78,9 @@ describe('contagem e avisos', () => {
 });
 
 describe('o limiar anual atravessa obras', () => {
-  const linha = (id: string, memberId: string, data: string, horas: number) => ({
+  const linha = (id: string, pessoaId: string, data: string, horas: number) => ({
     id,
-    memberId,
+    pessoaId,
     data,
     horas,
     custoHora: 1_200,

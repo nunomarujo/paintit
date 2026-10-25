@@ -748,6 +748,31 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['public_contracts_loads']['Insert']>;
         Relationships: [];
       };
+      painter_people: {
+        Row: {
+          ativo: boolean;
+          created_at: string;
+          funcao: string;
+          id: string;
+          nome: string;
+          painter_org_id: string;
+          telefone: string | null;
+        };
+        Insert: Omit<Database['public']['Tables']['painter_people']['Row'], 'id' | 'created_at' | 'ativo' | 'funcao'> & {
+          id?: string;
+          created_at?: string;
+          ativo?: boolean;
+          funcao?: string;
+        };
+        Update: Partial<Database['public']['Tables']['painter_people']['Insert']>;
+        Relationships: [];
+      };
+      painter_person_rates: {
+        Row: { created_at: string; custo_hora_cents: number; desde: string; id: string; person_id: string };
+        Insert: { created_at?: string; custo_hora_cents: number; desde: string; id?: string; person_id: string };
+        Update: Partial<Database['public']['Tables']['painter_person_rates']['Insert']>;
+        Relationships: [];
+      };
       painter_tender_prefs: {
         Row: { distritos: string[]; org_id: string; updated_at: string };
         Insert: { distritos?: string[]; org_id: string; updated_at?: string };
@@ -1447,6 +1472,7 @@ export type Database = {
       };
       worksite_members: {
         Row: {
+          person_id: string | null;
           ativo: boolean;
           created_at: string;
           custo_hora_cents: number | null;

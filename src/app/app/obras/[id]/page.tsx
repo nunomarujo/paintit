@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
 import { margemDaObra } from '@/domain/margin';
-import { custoDasHoras, suplementaresDe } from '@/domain/overtime';
+import { custoDasHoras, custoHoraEm, suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
@@ -119,17 +119,33 @@ export default async function WorksitePage({ params, searchParams }: { params: P
     .select('id, horas, member_id, data, tipo_dia')
     .eq('painter_org_id', w.org_id)
     .eq('tipo', 'horas');
-  const { data: pessoasDaEmpresa } = await supabase
-    .from('worksite_members')
-    .select('id, custo_hora_cents')
-    .eq('painter_org_id', w.org_id);
-  const custoHoraDe = new Map((pessoasDaEmpresa ?? []).map((m) => [m.id, m.custo_hora_cents]));
+  // A ficha da obra aponta para a pessoa da empresa; é a pessoa que conta para o limiar anual, e é
+  // dela que vem o custo por hora, ao valor que tinha na data do trabalho.
+  const [{ data: atribuicoes }, { data: custosPorHora }] = await Promise.all([
+    supabase.from('worksite_members').select('id, person_id').eq('painter_org_id', w.org_id),
+    supabase
+      .from('painter_person_rates')
+      .select('person_id, desde, custo_hora_cents, painter_people!inner(painter_org_id)')
+      .eq('painter_people.painter_org_id', w.org_id),
+  ]);
+  const pessoaDaFicha = new Map((atribuicoes ?? []).map((m) => [m.id, m.person_id]));
+  const tabelaDe = new Map<string, { desde: string; custoHoraCents: number }[]>();
+  for (const r of custosPorHora ?? []) {
+    const lista = tabelaDe.get(r.person_id) ?? [];
+    lista.push({ desde: r.desde, custoHoraCents: r.custo_hora_cents });
+    tabelaDe.set(r.person_id, lista);
+  }
+  const custoHoraNaData = (memberId: string | null, data: string | null) => {
+    const pessoa = memberId ? pessoaDaFicha.get(memberId) : null;
+    return pessoa ? custoHoraEm(tabelaDe.get(pessoa) ?? [], data) : null;
+  };
+
   const custoPorLinha = custoDasHoras(
     (horasDaEmpresa ?? []).map((x) => ({
       id: x.id,
       horas: x.horas ?? 0,
-      custoHora: x.member_id ? (custoHoraDe.get(x.member_id) ?? null) : null,
-      memberId: x.member_id,
+      custoHora: custoHoraNaData(x.member_id, x.data),
+      pessoaId: x.member_id ? (pessoaDaFicha.get(x.member_id) ?? null) : null,
       data: x.data,
       tipoDia: x.tipo_dia,
     })),
@@ -146,7 +162,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       .map((x) => ({
         id: x.id,
         horas: x.horas ?? 0,
-        custoHora: (members ?? []).find((m) => m.id === x.member_id)?.custo_hora_cents ?? null,
+        custoHora: custoHoraNaData(x.member_id, x.data),
         memberId: x.member_id,
         data: x.data,
         tipoDia: x.tipo_dia,
@@ -159,9 +175,10 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   const anoAtual = today.slice(0, 4);
   const suplementaresPorPessoa = new Map<string, number>();
   for (const x of horasDaEmpresa ?? []) {
-    if (!x.member_id || x.data.slice(0, 4) !== anoAtual) continue;
+    const pessoa = x.member_id ? pessoaDaFicha.get(x.member_id) : null;
+    if (!pessoa || x.data.slice(0, 4) !== anoAtual) continue;
     const extra = suplementaresDe({ horas: x.horas ?? 0, tipoDia: x.tipo_dia ?? 'util' });
-    suplementaresPorPessoa.set(x.member_id, (suplementaresPorPessoa.get(x.member_id) ?? 0) + extra);
+    suplementaresPorPessoa.set(pessoa, (suplementaresPorPessoa.get(pessoa) ?? 0) + extra);
   }
 
   // Preço cobrado contra custo real: é isto que faz valer a pena registar o dia (25/10/2026).
@@ -292,7 +309,8 @@ export default async function WorksitePage({ params, searchParams }: { params: P
               worksiteId={id}
               equipa={(members ?? [])
                 .filter((m) => m.ativo)
-                .map((m) => ({ id: m.id, nome: m.nome, suplementaresNoAno: suplementaresPorPessoa.get(m.id) ?? 0 }))}
+                // Pela pessoa e não pela ficha: o limiar anual é dela e conta todas as obras.
+                .map((m) => ({ id: m.id, nome: m.nome, suplementaresNoAno: suplementaresPorPessoa.get(m.person_id ?? '') ?? 0 }))}
               hoje={today}
             />
           </div>

@@ -1305,20 +1305,19 @@ Com isso ligou-se o que estava à espera:
   declarado antes**. Ganhou a cor do acabamento, além do tipo e da espessura.
 - O passo "Trabalhos" só se dá por completo se o capoto, quando a obra o leva, estiver especificado.
 
-### Limiar anual de trabalho suplementar — meio corrigido (25/10/2026)
+### Limiar anual de trabalho suplementar — corrigido (25/10/2026)
 
 **O que ficou feito.** O custo de cada dia passou a ser calculado de uma vez sobre as horas de todas
 as obras da empresa, por ordem de data (`custoDasHoras`, em `src/domain/overtime.ts`), e cada obra
 consome o que lhe toca. Antes, cada obra tinha o seu contador e um dia nunca sabia do outro.
 
-**O que falta, e é a pedra de fecho.** `worksite_members.worksite_id` é obrigatório: a mesma pessoa
-em duas obras são **duas fichas com identificadores diferentes**. O contador continua a separá-las,
-e por isso quem anda em várias obras ao mesmo tempo ainda vê um custo por baixo.
+**E fechado.** `painter_people` passou a ser a pessoa da empresa e `worksite_members` a atribuição
+dela a uma obra, pelo que o contador deixou de ver duas fichas onde há uma pessoa. O custo por hora
+vem de `painter_person_rates`, ao valor que tinha na data do trabalho.
 
-Resolve-se com o que a proposta de Gestão de Obra pede de qualquer maneira: **a equipa pertence à
-empresa e é atribuída a obras**, em vez de ser criada dentro de cada uma. É uma ficha de pessoa ao
-nível da empresa, com as fichas repetidas que já existam juntas por nome. Depois disso o contador
-fecha sozinho, sem mais código.
+Fica uma coisa por fazer, que é arrumação e não defeito: `worksite_members` ainda tem `nome`,
+`funcao`, `telefone` e `custo_hora_cents`, que passaram a ser cópia do que está na pessoa. O código
+já lê da pessoa; as colunas antigas saem numa migração destrutiva, que pede confirmação manual.
 
 ### Avisos do Supabase a 25/10/2026, depois da fase 1
 

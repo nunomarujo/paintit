@@ -150,8 +150,8 @@ export function avisoAnual(suplementaresNoAno: number): string | null {
 export interface LinhaDeHoras {
   /** Identificador da linha, para se saber a que dia pertence cada custo devolvido. */
   id: string;
-  /** Quem fez as horas. Sem pessoa, não há contagem anual possível. */
-  memberId: string | null;
+  /** A pessoa da empresa, não a ficha da obra: o limiar anual é dela e atravessa obras. */
+  pessoaId: string | null;
   /** AAAA-MM-DD. A ordem das datas é o que decide quem passou o limiar e quando. */
   data: string | null;
   horas: number;
@@ -181,7 +181,7 @@ export function custoDasHoras(linhas: LinhaDeHoras[], acrescimos: Acrescimos = A
   const acumulado = new Map<string, number>();
   const porLinha = new Map<string, CustoDoDia>();
   for (const l of ordenadas) {
-    const chave = `${l.memberId ?? 'sem-pessoa'}|${(l.data ?? '').slice(0, 4)}`;
+    const chave = `${l.pessoaId ?? 'sem-pessoa'}|${(l.data ?? '').slice(0, 4)}`;
     const antes = acumulado.get(chave) ?? 0;
     const dia = { horas: l.horas, tipoDia: l.tipoDia ?? ('util' as const) };
     porLinha.set(l.id, custoDoDia(dia, l.custoHora ?? 0, antes, acrescimos));
