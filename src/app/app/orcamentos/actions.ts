@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { LINE_CATEGORIES, UNITS, type LineCategory, type Unit } from '@/domain/proposal';
 import { chaveDe } from '@/domain/priceBook';
+import { podeApagar } from '@/domain/quoteBoard';
 import { linhasQueHerdam, trabalhosDoModelo } from '@/domain/quoteTemplates';
 import { parseHundredths } from '@/domain/request';
 import { learnPrices } from '@/lib/priceBook';
@@ -236,4 +237,30 @@ export async function setQuoteOutcome(quoteId: string, estado: 'ganho' | 'perdid
   await supabase.from('painter_quotes').update({ estado }).eq('id', quoteId);
   revalidatePath(`/app/orcamentos/${quoteId}`);
   return { errors: {}, ok: true, message: estado === 'ganho' ? 'Obra criada a partir do orçamento.' : 'Registado.' };
+}
+
+/**
+ * Apagar um orçamento.
+ *
+ * Só um rascunho ou um não ganho. Um enviado é a prova do que foi proposto ao cliente e um ganho deu
+ * origem a uma obra — apagá-lo deixava-a sem princípio. O estado lê-se da base, não do navegador
+ * (regra 10): quem chama isto não decide o que pode apagar.
+ */
+export async function removeQuote(quoteId: string, _prev: FormState, _form: FormData): Promise<FormState> {
+  const { supabase } = await myOrg();
+  const { data: q } = await supabase.from('painter_quotes').select('estado, numero').eq('id', quoteId).maybeSingle();
+  if (!q) return { errors: {}, message: 'Esse orçamento já não existe.' };
+  if (!podeApagar(q.estado)) {
+    return {
+      errors: {},
+      message:
+        q.estado === 'enviado'
+          ? 'Um orçamento enviado não se apaga: é a prova do que propôs ao cliente. Pode registá-lo como não ganho.'
+          : 'Este orçamento deu origem a uma obra e não se apaga. Apague a obra primeiro, se for esse o caso.',
+    };
+  }
+  const { error } = await supabase.from('painter_quotes').delete().eq('id', quoteId);
+  if (error) return { errors: {}, message: 'Não foi possível apagar.' };
+  revalidatePath('/app/orcamentos');
+  redirect('/app/orcamentos?ver=feitos');
 }

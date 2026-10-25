@@ -5,7 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { MiniForm } from '@/components/MiniForm';
 import { useFormAction } from '@/components/useFormAction';
 import { QUOTE_TEMPLATES } from '@/domain/quoteTemplates';
-import { createQuote } from './actions';
+import { createQuote, removeQuote } from './actions';
 
 /**
  * Orçamento novo. O ecrã obriga a escolher de onde parte — modelo ou orçamento anterior — porque um
@@ -103,6 +103,37 @@ export function ActionButton({
         {pending ? pendingLabel : label}
       </button>
       {state.message && <span className="text-[12px] text-slate-600">{state.message}</span>}
+    </form>
+  );
+}
+
+/**
+ * Apagar um orçamento. Confirma-se num segundo clique, no próprio botão: um diálogo do navegador
+ * não se estiliza nem se lê bem no telemóvel, e um orçamento apagado não volta.
+ */
+export function RemoveQuote({ quoteId, numero }: { quoteId: string; numero: number }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const { pending, formProps, state } = useFormAction<FormState>(removeQuote.bind(null, quoteId), { errors: {} });
+  if (!confirmar) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmar(true)}
+        className="shrink-0 text-[12px] text-slate-400 underline underline-offset-4 hover:text-red-700"
+      >
+        Apagar
+      </button>
+    );
+  }
+  return (
+    <form {...formProps} className="shrink-0 text-right">
+      <button type="submit" disabled={pending} className="text-[12px] font-semibold text-red-700 underline underline-offset-4">
+        {pending ? 'A apagar…' : `Apagar o #${numero}?`}
+      </button>
+      <button type="button" onClick={() => setConfirmar(false)} className="ml-2 text-[12px] text-slate-500 underline underline-offset-4">
+        Não
+      </button>
+      {state.message && <p className="mt-1 max-w-[28ch] text-[11px] text-red-700">{state.message}</p>}
     </form>
   );
 }

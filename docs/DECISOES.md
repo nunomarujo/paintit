@@ -4,6 +4,32 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 25/10/2026 — Os orçamentos arrumados em três estados, e o aviso de que ficaram por enviar
+
+Pedido do promotor, e a razão dele é a que interessa: **um orçamento preenchido e nunca enviado
+parece feito**. O botão de dar como enviado fica no fim da página do orçamento, e o pintor sai de lá
+convencido de que tratou do assunto. Perde a obra por não ter carregado num botão.
+
+A secção passa a ter separadores verticais — Novo orçamento e Orçamentos feitos — e os feitos
+dividem-se em três: **em preenchimento**, **enviados** e **arquivo**. Os separadores vivem no
+endereço, sem estado de cliente, e um link partilhado abre no mesmo sítio.
+
+O arquivo são os ganhos e os perdidos: o orçamento já cumpriu o que tinha a cumprir. Não foi preciso
+estado novo nem migração.
+
+**O aviso** aparece em qualquer dos separadores, porque é a coisa que não pode passar despercebida.
+Só conta um orçamento com linhas e com valor, parado há três dias ou mais: um rascunho aberto e
+abandonado no primeiro ecrã é uma desistência, não um esquecimento, e avisar sobre ele seria ruído.
+
+**O que se pode apagar.** Um rascunho e um não ganho, sim. Um enviado não — é a prova do que foi
+proposto ao cliente, e para o tirar da frente existe o "não ganhei". Um ganho também não: deu origem
+a uma obra, e apagá-lo deixava-a sem princípio. O estado lê-se da base, nunca do navegador (regra 10),
+e a recusa explica porquê em vez de esconder o botão.
+
+**Por fazer, a seguir:** o separador de Agenda, que reúne isto com os documentos a caducar e as
+adendas à espera de resposta. Ficou decidido ser **um só** e não dois (agenda e lembretes): são a
+mesma pergunta — o que tenho de fazer — e dois sítios obrigariam o pintor a verificar ambos.
+
 ## 25/10/2026 — A página de planos passa a falar da dor, e o convite entra como promessa maior
 
 Reescrita segundo a especificação preparada noutra sessão, com três desvios, todos por causa do que

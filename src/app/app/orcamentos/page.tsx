@@ -3,7 +3,17 @@ import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
-import { CreateQuote } from './QuoteForms';
+import {
+  GRUPOS,
+  GRUPO_EXPLICACOES,
+  GRUPO_LABELS,
+  contarPorGrupo,
+  grupoDe,
+  orcamentosPorEnviar,
+  podeApagar,
+  type GrupoOrcamentos,
+} from '@/domain/quoteBoard';
+import { CreateQuote, RemoveQuote } from './QuoteForms';
 
 const ESTADO_LABELS = { rascunho: 'Rascunho', enviado: 'Enviado', ganho: 'Ganho', perdido: 'Perdido' } as const;
 const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
@@ -15,7 +25,9 @@ const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
  * aplicação; do terceiro em diante, 15. Por isso o ecrã mostra quantos preços já estão guardados —
  * é a medida honesta de quanto é que o próximo vai custar em tempo.
  */
-export default async function QuotesPage() {
+/** Os separadores vivem no endereço: sem estado de cliente, e um link partilhado abre no mesmo sítio. */
+export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ ver?: string; grupo?: string }> }) {
+  const { ver, grupo } = await searchParams;
   const { supabase, user } = await getUser();
   const orgs = await painterOrgs(supabase, user!.id);
   const org = orgs[0];
@@ -38,6 +50,45 @@ export default async function QuotesPage() {
   const anteriores = (quotes ?? []).map((q) => ({ id: q.id, label: `#${q.numero} — ${q.cliente_nome}` }));
   const guardados = precos ?? 0;
 
+  const linhasDe = (id: string) => (linhas ?? []).filter((l) => l.quote_id === id).length;
+  const doPainel = (quotes ?? []).map((q) => ({
+    id: q.id,
+    estado: q.estado,
+    criadoEm: q.created_at,
+    totalCents: totalDe(q.id),
+    linhas: linhasDe(q.id),
+  }));
+  const contagem = contarPorGrupo(doPainel);
+  const avisos = orcamentosPorEnviar(doPainel, new Date().toISOString().slice(0, 10));
+
+  // Quem ainda não tem nenhum cai no ecrã de fazer o primeiro; quem já tem, no que andou a fazer.
+  const seccao = ver === 'novo' || ver === 'feitos' ? ver : (quotes ?? []).length > 0 ? 'feitos' : 'novo';
+  const grupoActivo: GrupoOrcamentos = (GRUPOS as readonly string[]).includes(grupo ?? '')
+    ? (grupo as GrupoOrcamentos)
+    : 'preenchimento';
+  const doGrupo = (quotes ?? []).filter((q) => grupoDe(q.estado) === grupoActivo);
+
+  const item = (href: string, label: string, activo: boolean, contagemItem?: number, aviso?: boolean) => (
+    <Link
+      key={href}
+      href={href}
+      aria-current={activo ? 'page' : undefined}
+      className={`flex items-center justify-between gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
+        activo ? 'bg-tinta-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+      }`}
+    >
+      <span>
+        {aviso && <span aria-hidden className="mr-1.5">⚠</span>}
+        {label}
+      </span>
+      {contagemItem !== undefined && contagemItem > 0 && (
+        <span className={`rounded-full px-1.5 text-[10px] ${activo ? 'bg-white text-tinta-700' : 'bg-tinta-600 text-white'}`}>
+          {contagemItem}
+        </span>
+      )}
+    </Link>
+  );
+
   return (
     <div className="space-y-5">
       <div>
@@ -46,44 +97,90 @@ export default async function QuotesPage() {
           Os orçamentos que faz aos seus clientes, com o seu logótipo e os seus contactos. Sem comissão e sem passar
           pelo mercado da plataforma.
         </p>
-        <p className="mt-2 text-[13px] text-slate-600">
-          {guardados === 0
-            ? 'Ainda não há preços seus guardados. O primeiro orçamento é o que os ensina à aplicação; a partir daí passam a vir sugeridos.'
-            : `${guardados} ${guardados === 1 ? 'preço seu guardado' : 'preços seus guardados'}, a sugerir no orçamento seguinte.`}
-        </p>
       </div>
 
-      {(quotes ?? []).length > 0 && (
-        <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          {(quotes ?? []).map((q) => (
-            <li key={q.id}>
-              <Link href={`/app/orcamentos/${q.id}`} className="block px-4 py-3 hover:bg-slate-50">
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <span className="font-semibold text-slate-900">
-                    #{q.numero} — {q.cliente_nome}
-                  </span>
-                  <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
-                </div>
-                <p className="text-[12.5px] text-slate-600">
-                  {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
-                  {dataPt(q.created_at)}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {/* O aviso aparece em qualquer separador: é a coisa que o pintor não pode deixar passar. */}
+      {avisos.length > 0 && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span aria-hidden className="mr-1">⚠</span>
+          <strong className="font-semibold">
+            {avisos.length === 1 ? 'Há um orçamento feito que nunca foi enviado' : `Há ${avisos.length} orçamentos feitos que nunca foram enviados`}
+          </strong>{' '}
+          — o mais antigo há {avisos[0]!.dias} dias. Enquanto não os der como enviados, o cliente não os recebeu e os
+          preços não ficam guardados.
+        </p>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold">Orçamento novo</h2>
-        <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
-          Um orçamento nunca começa em branco: escolha o tipo de obra e os capítulos aparecem pela ordem de execução,
-          para tirar o que não quer em vez de se lembrar do que falta.
-        </p>
-        <div className="mt-4">
-          <CreateQuote anteriores={anteriores} />
+      <div className="grid gap-5 md:grid-cols-[15rem_1fr]">
+        <nav aria-label="Secções dos orçamentos" className="flex flex-col gap-2">
+          {item('/app/orcamentos?ver=novo', 'Novo orçamento', seccao === 'novo')}
+          {item('/app/orcamentos?ver=feitos', 'Orçamentos feitos', seccao === 'feitos', quotes?.length)}
+          {seccao === 'feitos' && (
+            <div className="mt-1 flex flex-col gap-1.5 border-l border-slate-200 pl-3">
+              {GRUPOS.map((g) =>
+                item(
+                  `/app/orcamentos?ver=feitos&grupo=${g}`,
+                  GRUPO_LABELS[g],
+                  grupoActivo === g,
+                  contagem[g],
+                  g === 'preenchimento' && avisos.length > 0,
+                ),
+              )}
+            </div>
+          )}
+        </nav>
+
+        <div>
+          {seccao === 'novo' ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h2 className="text-base font-semibold">Orçamento novo</h2>
+              <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+                Um orçamento nunca começa em branco: escolha o tipo de obra e os capítulos aparecem pela ordem de
+                execução, para tirar o que não quer em vez de se lembrar do que falta.
+              </p>
+              <p className="mt-2 text-[13px] text-slate-600">
+                {guardados === 0
+                  ? 'Ainda não há preços seus guardados. O primeiro orçamento é o que os ensina à aplicação; a partir daí passam a vir sugeridos.'
+                  : `${guardados} ${guardados === 1 ? 'preço seu guardado' : 'preços seus guardados'}, a sugerir neste.`}
+              </p>
+              <div className="mt-4">
+                <CreateQuote anteriores={anteriores} />
+              </div>
+            </section>
+          ) : (
+            <section>
+              <h2 className="text-base font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
+              <p className="mt-1 max-w-[70ch] text-[13px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
+              {doGrupo.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-600">Nada aqui.</p>
+              ) : (
+                <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  {doGrupo.map((q) => (
+                    <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
+                      <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-3">
+                          <span className="font-semibold text-slate-900">
+                            #{q.numero} — {q.cliente_nome}
+                          </span>
+                          <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
+                        </div>
+                        <p className="text-[12.5px] text-slate-600">
+                          {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
+                          {dataPt(q.created_at)}
+                          {avisos.some((a) => a.id === q.id) && (
+                            <span className="ml-1 font-semibold text-amber-800">· por enviar</span>
+                          )}
+                        </p>
+                      </Link>
+                      {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </div>
-      </section>
+      </div>
     </div>
   );
 }
