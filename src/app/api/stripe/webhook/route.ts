@@ -4,6 +4,18 @@ import { stripe } from '@/lib/stripe';
 import { adminClient } from '@/lib/supabase/admin';
 import { recordStripePayment } from '@/lib/payments';
 
+/** Fim do período já pago de uma subscrição, para o desconto durar exactamente até lá. */
+async function periodoAte(subscriptionId: string): Promise<string | null> {
+  if (!stripe) return null;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const fim = (sub as unknown as { current_period_end?: number }).current_period_end;
+    return fim ? new Date(fim * 1000).toISOString().slice(0, 10) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Avisos do Stripe. A assinatura (STRIPE_WEBHOOK_SECRET) prova que vêm do Stripe; só depois
 // se escreve na base, com a chave secreta do Supabase.
 export async function POST(req: Request) {
@@ -32,6 +44,18 @@ export async function POST(req: Request) {
         at: new Date(event.created * 1000),
       });
       if (!r.ok) return new Response(r.reason ?? 'Erro', { status: 500 });
+    } else if (s.mode === 'subscription' && m.org_id && m.plano === 'pro') {
+      // Plano Pro de uma empresa de pintura. A linha só passa a activa aqui, com o Stripe a confirmar
+      // — o regresso do navegador não serve de prova (25/10/2026, docs/DECISOES.md).
+      const subId = typeof s.subscription === 'string' ? s.subscription : (s.subscription?.id ?? null);
+      const fim = subId && stripe ? await periodoAte(subId) : null;
+      const { error } = await db
+        .from('org_subscriptions')
+        .update({ estado: 'ativa', stripe_subscription_id: subId, valida_ate: fim })
+        .eq('org_id', m.org_id)
+        .eq('plano', 'pro')
+        .in('estado', ['por_pagar', 'ativa']);
+      if (error) return new Response('Erro ao gravar', { status: 500 });
     } else if (s.mode === 'subscription' && m.org_id && isSupplierPlan(m.plan)) {
       const bps = Number(m.discount_bps) || 0;
       const { data: promo } = m.promo_code
@@ -73,6 +97,19 @@ export async function POST(req: Request) {
     await db
       .from('supplier_subscriptions')
       .update({ status: fromStripeStatus(sub.status), updated_at: new Date().toISOString() })
+      .eq('stripe_subscription_id', sub.id);
+
+    // O mesmo para o plano Pro das empresas de pintura. Uma renovação paga empurra `valida_ate` para
+    // a frente; um pagamento falhado tira o desconto, que é o que o 'por_pagar' significa.
+    const fim = (sub as unknown as { current_period_end?: number }).current_period_end;
+    const estado = sub.status === 'active' || sub.status === 'trialing' ? 'ativa' : sub.status === 'canceled' ? 'cancelada' : 'por_pagar';
+    await db
+      .from('org_subscriptions')
+      .update({
+        estado,
+        valida_ate: fim ? new Date(fim * 1000).toISOString().slice(0, 10) : null,
+        ...(estado === 'cancelada' ? { cancelada_em: new Date().toISOString() } : {}),
+      })
       .eq('stripe_subscription_id', sub.id);
   }
   return new Response('ok');

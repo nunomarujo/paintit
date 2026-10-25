@@ -54,7 +54,9 @@ export default async function SubscriptionPage() {
       )}
       {pendente && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Adesão registada, à espera do pagamento. O desconto entra em vigor assim que o pagamento estiver confirmado.
+          <strong className="font-semibold">A adesão ficou a meio: falta o pagamento.</strong> Enquanto não estiver pago,
+          a comissão mantém-se nos {CURRENT_RULES.commissionBp / 100}% e nada muda. Carregue de novo em aderir para
+          retomar.
         </p>
       )}
 
@@ -116,7 +118,7 @@ export default async function SubscriptionPage() {
             ))}
           </ul>
           <div className="mt-5">
-            {ativo || pendente ? <CancelForm /> : <SubscribeForm />}
+            {ativo ? <CancelForm /> : <SubscribeForm />}
           </div>
         </section>
       </div>

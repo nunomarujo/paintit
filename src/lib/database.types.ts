@@ -727,6 +727,7 @@ export type Database = {
           plano: 'gratuito' | 'pro';
           preco_cents: number;
           preco_versao: string;
+          stripe_subscription_id: string | null;
           valida_ate: string | null;
         };
         Insert: {
@@ -740,6 +741,7 @@ export type Database = {
           plano: 'gratuito' | 'pro';
           preco_cents: number;
           preco_versao: string;
+          stripe_subscription_id?: string | null;
           valida_ate?: string | null;
         };
         Update: Partial<Database['public']['Tables']['org_subscriptions']['Insert']>;

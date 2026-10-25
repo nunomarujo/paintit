@@ -2400,3 +2400,34 @@ ter. Sem código, mantém-se a descrição normalizada, que é o melhor que há 
 Ficam por fazer os outros dois: o cruzamento com os custos reais está feito ao nível da obra (ver a
 entrada do preço cobrado contra custo real), falta descê-lo ao nível da linha; e a importação de um
 orçamento antigo para arrancar com a biblioteca cheia.
+
+## 25/10/2026 — O plano Pro passa a ser pago, não simulado
+
+**O que o promotor encontrou, a testar:** aderir ao plano "aceitava" e não pedia pagamento nenhum.
+Tinha razão. A adesão gravava a linha em `por_pagar` e parava aí — escrevi na altura que "a activação
+é do lado do pagamento" e **nunca construí esse lado**. A regra estava certa (por pagar não desconta
+nada), mas como não havia forma de pagar, ninguém lá chegava. Era um botão sem destino.
+
+**Agora:** a adesão cria a intenção e manda para o Stripe Checkout, no mesmo desenho das subscrições
+dos fornecedores. A linha **só passa a activa quando o Stripe confirma**, pelo webhook assinado —
+nunca pelo regresso do navegador, que qualquer pessoa consegue forjar.
+
+**Decisões que acompanham:**
+
+- **O preço vai em `price_data`, não num preço criado no painel do Stripe.** A tabela de preços da
+  aplicação (`PRECO_ATUAL`) é a fonte da verdade, e assim não há um valor no painel a divergir dela em
+  silêncio. Também evita um passo manual sempre que o preço de lançamento mudar.
+- **Uma adesão por pagar deixada para trás é reaproveitada**, para não acumularem linhas mortas de
+  cada vez que alguém desiste a meio do pagamento.
+- **Cancelar cancela no fim do período, não já.** Ele pagou aquele mês ou aquele ano e o desconto é
+  dele até ao fim; a linha fica cancelada e o desconto dura enquanto `valida_ate` não passar.
+- **Renovações e falhas de pagamento chegam pelo webhook:** uma renovação paga empurra a validade
+  para a frente, um pagamento falhado devolve a subscrição a `por_pagar` — que é precisamente o
+  estado que não desconta.
+- **O ecrã deixa de mentir.** Com a adesão por pagar mostrava "Cancelar a subscrição", como se
+  estivesse subscrito. Passa a dizer que ficou a meio, que a comissão se mantém nos 18%, e a oferecer
+  retomar o pagamento.
+
+**Por confirmar quando houver um pagamento real de ponta a ponta:** que o webhook recebe o evento com
+`plano: 'pro'` nos metadados e que a validade fica preenchida. Em modo de teste do Stripe isto
+verifica-se com um cartão de teste.
