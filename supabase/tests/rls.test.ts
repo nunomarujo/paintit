@@ -1214,14 +1214,24 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
 
   it('ferramentas de obra: só a equipa do pintor', async () => {
     await as(painterOwner, () =>
-      db.query(`insert into public.worksite_entries (engagement_id, painter_org_id, tipo, valor_cents, categoria) values ($1, $1, 'custo', 15000, 'material')`, [engagementId]),
+      db.query(
+        `insert into public.worksite_entries (worksite_id, painter_org_id, tipo, valor_cents, categoria)
+         select w.id, w.org_id, 'custo', 15000, 'material' from public.worksites w where w.engagement_id = $1`,
+        [engagementId],
+      ),
     );
     const painterOrg = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [engagementId])).painter_org_id;
     expect((await one<{ painter_org_id: string }>('select painter_org_id from public.worksite_entries limit 1')).painter_org_id).toBe(painterOrg);
     expect(await as(A, async () => (await db.query('select id from public.worksite_entries')).rows)).toEqual([]);
     expect(await as(ADMIN, async () => (await db.query('select id from public.worksite_entries')).rows)).toEqual([]);
     await expect(
-      as(A, () => db.query(`insert into public.worksite_phases (engagement_id, painter_org_id, nome) values ($1, $1, 'x')`, [engagementId])),
+      as(A, () =>
+        db.query(
+          `insert into public.worksite_phases (worksite_id, painter_org_id, nome)
+           select w.id, w.org_id, 'x' from public.worksites w where w.engagement_id = $1`,
+          [engagementId],
+        ),
+      ),
     ).rejects.toThrow(/row-level security/);
   });
 });
@@ -2405,23 +2415,26 @@ describe('subscrição da empresa de pintura', () => {
 describe('adendas de trabalhos a mais', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor escolhido
   const P2 = '00000000-0000-4000-8000-0000000000e2'; // pintor de fora desta obra
-  let engagementId: string;
+  let worksiteId: string;
   let addendaId: string;
 
   beforeAll(async () => {
-    const e = await one<{ id: string }>(
-      `select e.id from public.engagements e join public.proposals p on p.id = e.proposal_id
+    // A obra nasce da contratação por trigger; é ela, e não a contratação, que agrega os trabalhos a mais.
+    const w = await one<{ id: string }>(
+      `select w.id from public.worksites w
+       join public.engagements e on e.id = w.engagement_id
+       join public.proposals p on p.id = e.proposal_id
        where p.status = 'selecionada' order by e.created_at asc limit 1`,
     );
-    engagementId = e.id;
+    worksiteId = w.id;
   });
 
   const propor = (user: string, descricao = 'Pintura da caixa de escadas, três pisos') =>
     as(user, () =>
       one<{ id: string; painter_org_id: string }>(
-        `insert into public.worksite_addenda (engagement_id, painter_org_id, descricao, valor_cents)
+        `insert into public.worksite_addenda (worksite_id, painter_org_id, descricao, valor_cents)
          values ($1, '00000000-0000-4000-8000-000000000000', $2, 32000) returning id, painter_org_id`,
-        [engagementId, descricao],
+        [worksiteId, descricao],
       ),
     );
 
@@ -2480,5 +2493,84 @@ describe('adendas de trabalhos a mais', () => {
 
   it('uma descrição vaga não serve: é o que o cliente aceita', async () => {
     await expect(propor(P, 'escada')).rejects.toThrow(/violates check constraint/);
+  });
+});
+
+describe('obras próprias e consumíveis', () => {
+  const OP = '00000000-0000-4000-8000-0000000000fc'; // dono da empresa de pintura
+  const OX = '00000000-0000-4000-8000-0000000000fd'; // empresa de pintura concorrente
+  let minhaOrg: string;
+  let outraOrg: string;
+  let obraId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [OP, email(OP), OX, email(OX)]);
+    minhaOrg = (await createOrg(OP, 'pintor', 'Pinturas Próprias', '513644121')).id;
+    outraOrg = (await createOrg(OX, 'pintor', 'Pinturas Alheias', '514078430')).id;
+  });
+
+  it('cria uma obra sua sem contratação nenhuma — é o que destrava as ferramentas', async () => {
+    const r = await as(OP, () =>
+      one<{ id: string; engagement_id: string | null }>(
+        `insert into public.worksites (org_id, nome, local) values ($1, 'Rua das Flores, 12', 'Viana do Castelo')
+         returning id, engagement_id`,
+        [minhaOrg],
+      ),
+    );
+    obraId = r.id;
+    expect(r.engagement_id).toBeNull();
+  });
+
+  it('não cria obras na empresa de outro', async () => {
+    await expect(
+      as(OX, () => db.query(`insert into public.worksites (org_id, nome) values ($1, 'Obra alheia')`, [minhaOrg])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('o formulário não inventa uma contratação: uma obra da plataforma nasce da contratação', async () => {
+    const engagementId = (await one<{ id: string }>('select id from public.engagements limit 1')).id;
+    await expect(
+      as(OP, () => db.query(`insert into public.worksites (org_id, nome, engagement_id) values ($1, 'Obra falsa', $2)`, [minhaOrg, engagementId])),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('uma empresa não vê as obras da outra', async () => {
+    expect(await as(OX, async () => (await db.query('select id from public.worksites where id = $1', [obraId])).rows)).toEqual([]);
+    expect(await as(OP, async () => (await db.query('select id from public.worksites where id = $1', [obraId])).rows)).toHaveLength(1);
+  });
+
+  it('a equipa da obra própria funciona como a de qualquer outra, e o dono vem da obra', async () => {
+    const m = await as(OP, () =>
+      one<{ painter_org_id: string }>(
+        `insert into public.worksite_members (worksite_id, painter_org_id, nome, funcao)
+         values ($1, $2, 'João Silva', 'pintor') returning painter_org_id`,
+        [obraId, outraOrg],
+      ),
+    );
+    // O painter_org_id vem da obra, não do que o navegador mandou.
+    expect(m.painter_org_id).toBe(minhaOrg);
+  });
+
+  it('o stock de um consumível é a soma dos movimentos, e só a empresa os vê', async () => {
+    const c = await as(OP, () =>
+      one<{ id: string }>(`insert into public.org_consumables (org_id, nome, minimo) values ($1, 'Fita de pintor', 1000) returning id`, [minhaOrg]),
+    );
+    await as(OP, () =>
+      db.query(`insert into public.consumable_moves (consumable_id, org_id, quantidade) values ($1, $2, 2400)`, [c.id, minhaOrg]),
+    );
+    await as(OP, () =>
+      db.query(`insert into public.consumable_moves (consumable_id, org_id, worksite_id, quantidade) values ($1, $2, $3, -1800)`, [c.id, minhaOrg, obraId]),
+    );
+    const total = await as(OP, async () =>
+      (await db.query<{ n: string }>('select coalesce(sum(quantidade), 0) n from public.consumable_moves where consumable_id = $1', [c.id])).rows[0]!,
+    );
+    expect(Number(total.n)).toBe(600);
+    expect(await as(OX, async () => (await db.query('select id from public.consumable_moves')).rows)).toEqual([]);
+  });
+
+  it('uma obra da plataforma não se apaga daqui; uma obra própria sim', async () => {
+    const daPlataforma = (await one<{ id: string }>('select id from public.worksites where engagement_id is not null limit 1')).id;
+    const r = await as(OP, () => db.query('delete from public.worksites where id = $1', [daPlataforma]));
+    expect(r.affectedRows ?? 0).toBe(0);
   });
 });

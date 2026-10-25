@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { addendaErrors } from '@/domain/addenda';
+import { UNIDADES, worksiteErrors } from '@/domain/worksites';
+import { painterOrgs } from '@/lib/queries';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
 import { parseHundredths } from '@/domain/request';
 import { notifyNewOrder, notifyNewSupplierReview, notifyOrderState } from '@/lib/notify';
@@ -20,7 +22,7 @@ const date = (v: FormDataEntryValue | null) => {
   return s && DATE.test(s) ? s : null;
 };
 
-export async function addMember(engagementId: string, _prev: FormState, form: FormData): Promise<FormState> {
+export async function addMember(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const nome = String(form.get('nome') ?? '').trim();
   const funcao = String(form.get('funcao') ?? '');
   if (!nome) return fail('nome', 'Indique o nome.');
@@ -29,34 +31,34 @@ export async function addMember(engagementId: string, _prev: FormState, form: Fo
   if (Number.isNaN(custo)) return fail('custoHora', 'Valor em euros.');
   const { supabase } = await getUser();
   const { error } = await supabase.from('worksite_members').insert({
-    engagement_id: engagementId,
+    worksite_id: worksiteId,
     nome: nome.slice(0, 120),
     funcao,
     telefone: String(form.get('telefone') ?? '').trim().slice(0, 30) || null,
     custo_hora_cents: custo,
   });
-  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Pessoa acrescentada.');
+  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Pessoa acrescentada.');
 }
 
-export async function addPhase(engagementId: string, _prev: FormState, form: FormData): Promise<FormState> {
+export async function addPhase(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const nome = String(form.get('nome') ?? '').trim();
   if (!nome) return fail('nome', 'Indique a fase.');
   const inicio = date(form.get('inicio'));
   const fim = date(form.get('fim'));
   if (inicio && fim && fim < inicio) return fail('fim', 'O fim tem de ser depois do início.');
   const { supabase } = await getUser();
-  const { error } = await supabase.from('worksite_phases').insert({ engagement_id: engagementId, nome: nome.slice(0, 120), inicio, fim });
-  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Fase acrescentada.');
+  const { error } = await supabase.from('worksite_phases').insert({ worksite_id: worksiteId, nome: nome.slice(0, 120), inicio, fim });
+  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Fase acrescentada.');
 }
 
-export async function setPhaseState(engagementId: string, phaseId: string, estado: string) {
+export async function setPhaseState(worksiteId: string, phaseId: string, estado: string) {
   if (!(PHASE_STATES as readonly string[]).includes(estado)) return;
   const { supabase } = await getUser();
   await supabase.from('worksite_phases').update({ estado }).eq('id', phaseId);
-  revalidatePath(path(engagementId));
+  revalidatePath(path(worksiteId));
 }
 
-export async function addEntry(engagementId: string, tipo: 'custo' | 'tranche' | 'horas', _prev: FormState, form: FormData): Promise<FormState> {
+export async function addEntry(worksiteId: string, tipo: 'custo' | 'tranche' | 'horas', _prev: FormState, form: FormData): Promise<FormState> {
   if (!['custo', 'tranche', 'horas'].includes(tipo)) return { errors: {}, message: 'Tipo inválido.' };
   const descricao = String(form.get('descricao') ?? '').trim().slice(0, 500);
   const data = date(form.get('data')) ?? new Date().toISOString().slice(0, 10);
@@ -65,20 +67,20 @@ export async function addEntry(engagementId: string, tipo: 'custo' | 'tranche' |
     const horas = parseHundredths(form.get('horas'));
     if (horas === null || Number.isNaN(horas) || horas <= 0) return fail('horas', 'Horas, ex.: 7,5.');
     const memberId = String(form.get('member') ?? '') || null;
-    const { error } = await supabase.from('worksite_entries').insert({ engagement_id: engagementId, tipo, data, descricao, horas, member_id: memberId });
-    return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Horas registadas.');
+    const { error } = await supabase.from('worksite_entries').insert({ worksite_id: worksiteId, tipo, data, descricao, horas, member_id: memberId });
+    return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Horas registadas.');
   }
   const valor = parseHundredths(form.get('valor'));
   if (valor === null || Number.isNaN(valor) || valor <= 0) return fail('valor', 'Valor em euros.');
   if (tipo === 'custo') {
     const categoria = String(form.get('categoria') ?? '');
     if (!(COST_CATEGORIES as readonly string[]).includes(categoria)) return fail('categoria', 'Escolha a categoria.');
-    const { error } = await supabase.from('worksite_entries').insert({ engagement_id: engagementId, tipo, data, descricao, valor_cents: valor, categoria });
-    return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Custo registado.');
+    const { error } = await supabase.from('worksite_entries').insert({ worksite_id: worksiteId, tipo, data, descricao, valor_cents: valor, categoria });
+    return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Custo registado.');
   }
   const meio = String(form.get('meio') ?? '');
   const { error } = await supabase.from('worksite_entries').insert({
-    engagement_id: engagementId,
+    worksite_id: worksiteId,
     tipo,
     data,
     descricao,
@@ -86,36 +88,40 @@ export async function addEntry(engagementId: string, tipo: 'custo' | 'tranche' |
     prevista: date(form.get('prevista')),
     meio: (PAYMENT_METHODS as readonly string[]).includes(meio) ? meio : null,
   });
-  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Tranche acrescentada.');
+  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Tranche acrescentada.');
 }
 
-export async function markTrancheReceived(engagementId: string, entryId: string) {
+export async function markTrancheReceived(worksiteId: string, entryId: string) {
   const { supabase } = await getUser();
   await supabase.from('worksite_entries').update({ recebida_em: new Date().toISOString().slice(0, 10) }).eq('id', entryId);
-  revalidatePath(path(engagementId));
+  revalidatePath(path(worksiteId));
 }
 
 const WORKSITE_TABLES = ['worksite_members', 'worksite_phases', 'worksite_entries'] as const;
 
-export async function deleteWorksiteRow(engagementId: string, table: (typeof WORKSITE_TABLES)[number], id: string) {
+export async function deleteWorksiteRow(worksiteId: string, table: (typeof WORKSITE_TABLES)[number], id: string) {
   // Os argumentos ligados (.bind) vêm do navegador: confirmar a tabela no servidor.
   if (!(WORKSITE_TABLES as readonly string[]).includes(table)) return;
   const { supabase } = await getUser();
   await supabase.from(table).delete().eq('id', id);
-  revalidatePath(path(engagementId));
+  revalidatePath(path(worksiteId));
 }
 
 // --- Encomendas com confirmação e avaliações de fornecedores ------------------------------
 
-export async function orderMaterial(engagementId: string, productId: string, _prev: FormState, form: FormData): Promise<FormState> {
+export async function orderMaterial(worksiteId: string, productId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const n = Number(form.get('embalagens'));
   if (!Number.isInteger(n) || n < 1) return fail('embalagens', 'Número de embalagens.');
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou.' };
+  // Encomendar a um fornecedor da plataforma exige contrato assinado, logo exige contratação: numa
+  // obra própria do pintor não há a quem encomendar por aqui.
+  const { data: obra } = await supabase.from('worksites').select('engagement_id').eq('id', worksiteId).maybeSingle();
+  if (!obra?.engagement_id) return { errors: {}, message: 'Só se encomenda pela plataforma em obras contratadas aqui.' };
   const { data, error } = await supabase
     .from('material_orders')
     .insert({
-      engagement_id: engagementId,
+      engagement_id: obra.engagement_id,
       product_id: productId,
       embalagens: n,
       nota: String(form.get('nota') ?? '').trim().slice(0, 1000) || null,
@@ -125,7 +131,7 @@ export async function orderMaterial(engagementId: string, productId: string, _pr
     .single();
   if (error || !data) return { errors: {}, message: 'Não foi possível encomendar (o contrato tem de estar assinado).' };
   await notifyNewOrder(data.id).catch(() => undefined);
-  return done(engagementId, 'Encomenda enviada ao fornecedor.');
+  return done(worksiteId, 'Encomenda enviada ao fornecedor.');
 }
 
 export async function setOrderState(orderId: string, estado: 'confirmada' | 'entregue' | 'cancelada', back: string) {
@@ -136,7 +142,7 @@ export async function setOrderState(orderId: string, estado: 'confirmada' | 'ent
   revalidatePath(back);
 }
 
-export async function reviewSupplier(engagementId: string, supplierId: string, painterId: string, _prev: FormState, form: FormData): Promise<FormState> {
+export async function reviewSupplier(worksiteId: string, supplierId: string, painterId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const n = (k: string) => {
     const v = Number(form.get(k));
     return Number.isInteger(v) && v >= 1 && v <= 5 ? v : null;
@@ -161,7 +167,7 @@ export async function reviewSupplier(engagementId: string, supplierId: string, p
         .insert({ supplier_org_id: supplierId, painter_org_id: painterId, produto, entrega, atendimento, comentario, created_by: user.id });
   if (error) return { errors: {}, message: 'Só pode avaliar depois de o fornecedor confirmar uma encomenda.' };
   if (!existing) await notifyNewSupplierReview(supplierId).catch(() => undefined);
-  return done(engagementId, 'Avaliação guardada.');
+  return done(worksiteId, 'Avaliação guardada.');
 }
 
 /** O fornecedor responde a uma avaliação de um pintor (paridade com reviews.resposta). */
@@ -180,7 +186,7 @@ export async function answerSupplierReview(reviewId: string, supplierOrgId: stri
  * Trabalho a mais proposto ao cliente. Fica sempre em 'proposta': quem aceita é o cliente, do seu
  * lado, e as políticas da base de dados recusam que o pintor o marque como aceite (regra 10).
  */
-export async function proposeAddenda(engagementId: string, _prev: FormState, form: FormData): Promise<FormState> {
+export async function proposeAddenda(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const descricao = String(form.get('descricao') ?? '').trim();
   const valorCents = parseHundredths(form.get('valor'));
   if (valorCents === null || Number.isNaN(valorCents)) return fail('valor', 'Indique o preço do trabalho a mais, sem IVA.');
@@ -191,16 +197,113 @@ export async function proposeAddenda(engagementId: string, _prev: FormState, for
   }
   const { supabase } = await getUser();
   const { error } = await supabase.from('worksite_addenda').insert({
-    engagement_id: engagementId,
+    worksite_id: worksiteId,
     descricao,
     valor_cents: valorCents,
   });
-  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(engagementId, 'Trabalho a mais enviado ao cliente.');
+  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Trabalho a mais enviado ao cliente.');
 }
 
 /** Retirar um trabalho a mais que ainda não foi respondido. */
-export async function withdrawAddenda(engagementId: string, addendaId: string, _prev: FormState, _form: FormData): Promise<FormState> {
+export async function withdrawAddenda(worksiteId: string, addendaId: string, _prev: FormState, _form: FormData): Promise<FormState> {
   const { supabase } = await getUser();
   const { error } = await supabase.from('worksite_addenda').update({ estado: 'retirada' }).eq('id', addendaId).eq('estado', 'proposta');
-  return error ? { errors: {}, message: 'Não foi possível retirar.' } : done(engagementId, 'Trabalho a mais retirado.');
+  return error ? { errors: {}, message: 'Não foi possível retirar.' } : done(worksiteId, 'Trabalho a mais retirado.');
+}
+
+// --- Obras próprias e consumíveis ---------------------------------------------------------------
+
+/**
+ * Criar uma obra que não veio da plataforma. É o que destrava as ferramentas para quem ainda não
+ * ganhou nenhuma obra aqui: a gente, os custos e os consumíveis são os mesmos.
+ */
+export async function createWorksite(_prev: FormState, form: FormData): Promise<FormState> {
+  const nome = String(form.get('nome') ?? '').trim();
+  const valorRaw = form.get('valor');
+  const valorCents = String(valorRaw ?? '').trim() === '' ? null : parseHundredths(valorRaw);
+  if (valorCents !== null && Number.isNaN(valorCents)) return fail('valor', 'Valor em euros, sem IVA.');
+  const inicio = date(form.get('inicio'));
+  const errors = worksiteErrors({
+    nome,
+    clienteNome: String(form.get('cliente') ?? '').trim() || null,
+    local: String(form.get('local') ?? '').trim() || null,
+    valorCents,
+    inicio,
+  });
+  if (Object.keys(errors).length > 0) {
+    const [campo, mensagem] = Object.entries(errors)[0]!;
+    return fail(campo, mensagem);
+  }
+
+  const { supabase, user } = await getUser();
+  const orgs = await painterOrgs(supabase, user!.id);
+  const org = orgs[0];
+  if (!org) return { errors: {}, message: 'Só uma empresa de pintura cria obras.' };
+
+  const { error } = await supabase.from('worksites').insert({
+    org_id: org.id,
+    nome: nome.slice(0, 160),
+    cliente_nome: String(form.get('cliente') ?? '').trim().slice(0, 160) || null,
+    local: String(form.get('local') ?? '').trim().slice(0, 160) || null,
+    valor_cents: valorCents,
+    inicio,
+  });
+  if (error) return { errors: {}, message: 'Não foi possível criar a obra.' };
+  revalidatePath('/app/obras');
+  return { errors: {}, ok: true, message: 'Obra criada.' };
+}
+
+/** Acrescentar um consumível ao armazém da empresa. */
+export async function addConsumable(_prev: FormState, form: FormData): Promise<FormState> {
+  const nome = String(form.get('nome') ?? '').trim();
+  if (nome.length < 2) return fail('nome', 'Nome do consumível.');
+  const unidade = String(form.get('unidade') ?? 'un');
+  if (!(UNIDADES as readonly string[]).includes(unidade)) return fail('unidade', 'Escolha a unidade.');
+  const minimo = String(form.get('minimo') ?? '').trim() === '' ? 0 : parseHundredths(form.get('minimo'));
+  if (minimo === null || Number.isNaN(minimo) || minimo < 0) return fail('minimo', 'Quantidade mínima.');
+
+  const { supabase, user } = await getUser();
+  const orgs = await painterOrgs(supabase, user!.id);
+  const org = orgs[0];
+  if (!org) return { errors: {}, message: 'Só uma empresa de pintura tem armazém.' };
+
+  const { error } = await supabase.from('org_consumables').insert({
+    org_id: org.id,
+    nome: nome.slice(0, 120),
+    unidade: unidade as 'un',
+    minimo,
+  });
+  if (error) {
+    return { errors: {}, message: error.code === '23505' ? 'Já existe um consumível com esse nome.' : 'Não foi possível guardar.' };
+  }
+  revalidatePath('/app/obras/consumiveis');
+  return { errors: {}, ok: true, message: 'Consumível acrescentado.' };
+}
+
+/**
+ * Entrada ou saída de consumível. Positivo entra (compra), negativo sai para uma obra — e é a soma
+ * destes movimentos que dá o stock, que nunca se guarda em coluna nenhuma.
+ */
+export async function moveConsumable(consumableId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const quantidade = parseHundredths(form.get('quantidade'));
+  if (quantidade === null || Number.isNaN(quantidade) || quantidade === 0) return fail('quantidade', 'Quantidade diferente de zero.');
+  const sentido = String(form.get('sentido') ?? 'saida');
+  const worksiteId = String(form.get('obra') ?? '').trim() || null;
+  if (sentido === 'saida' && !worksiteId) return fail('obra', 'Diga de que obra saiu.');
+
+  const { supabase, user } = await getUser();
+  const orgs = await painterOrgs(supabase, user!.id);
+  const org = orgs[0];
+  if (!org) return { errors: {}, message: 'Sem empresa de pintura.' };
+
+  const { error } = await supabase.from('consumable_moves').insert({
+    consumable_id: consumableId,
+    org_id: org.id,
+    worksite_id: sentido === 'saida' ? worksiteId : null,
+    quantidade: sentido === 'saida' ? -Math.abs(quantidade) : Math.abs(quantidade),
+    nota: String(form.get('nota') ?? '').trim().slice(0, 300) || null,
+  });
+  if (error) return { errors: {}, message: 'Não foi possível registar o movimento.' };
+  revalidatePath('/app/obras/consumiveis');
+  return { errors: {}, ok: true, message: sentido === 'saida' ? 'Saída registada.' : 'Entrada registada.' };
 }

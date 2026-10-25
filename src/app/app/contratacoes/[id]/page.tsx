@@ -42,11 +42,15 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
   // Trabalhos a mais: o cliente responde aqui, que é onde já vem ver a contratação. O pintor vê-os
   // nas ferramentas de obra; aqui aparecem-lhe só para acompanhar.
-  const { data: addendaRows } = await supabase
-    .from('worksite_addenda')
-    .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
-    .eq('engagement_id', id)
-    .order('criada_em', { ascending: false });
+  // A obra é o que agrega os trabalhos a mais; a contratação chega-lhes por aqui.
+  const { data: obra } = await supabase.from('worksites').select('id').eq('engagement_id', id).maybeSingle();
+  const { data: addendaRows } = obra
+    ? await supabase
+        .from('worksite_addenda')
+        .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
+        .eq('worksite_id', obra.id)
+        .order('criada_em', { ascending: false })
+    : { data: [] };
   const addenda = (addendaRows ?? []).map((a) => ({
     id: a.id,
     descricao: a.descricao,
@@ -150,7 +154,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             </a>
           )}
           {side === 'pintor' && e.status === 'assinado' && (
-            <Link href={`/app/obras/${id}`} className="text-slate-600 hover:underline">
+            <Link href={`/app/obras/${obra?.id ?? ''}`} className="text-slate-600 hover:underline">
               Ferramentas de obra
             </Link>
           )}

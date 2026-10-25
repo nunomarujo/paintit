@@ -2158,3 +2158,26 @@ proposta aparece em separado, para o pintor não contar com dinheiro que ainda n
 Uma nota sobre o Postgres, para quem vier a escrever testes de RLS: um `update` cujo `using` não
 encontra a linha afecta zero linhas e **não levanta erro** — o erro vem do `with check`. Um teste que
 espere uma excepção nesse caso falha mesmo com a política correcta.
+
+## 25/10/2026 — As ferramentas de obra deixam de depender de ter ganho obra aqui
+
+**O problema, nas palavras do promotor:** "talvez exista para ti no código mas não existe para o
+utilizador que não tem obra ganha". O separador só mostrava obras contratadas na plataforma, e por
+isso estava vazio para quase toda a gente.
+
+**Decisão.** As ferramentas de obra valem por si e passam a servir **qualquer obra da empresa**, venha
+ou não da Quem Pinta. `worksites` passa a ser a entidade central: uma obra tem `engagement_id` quando
+veio da plataforma e não tem quando é obra própria. As tabelas de equipa, fases, lançamentos e adendas
+passaram a apontar para a obra em vez da contratação — mudança feita de uma vez, sem período de
+convivência, porque estavam todas vazias em produção (verificado a 25/10/2026). Uma contratação nova
+traz a sua obra por trigger, para não haver contratações sem obra nem o pintor ter de a criar à mão.
+
+**Consumíveis.** `org_consumables` com os movimentos em `consumable_moves`. O stock **não se guarda**:
+soma-se dos movimentos. Dois números a dizer o mesmo acabam sempre por discordar. Transporte não
+precisou de tabela — já era uma categoria de custo.
+
+**Encomendas a fornecedores continuam presas à contratação**, e é correcto que fiquem: exigem contrato
+assinado na plataforma. Numa obra própria não há a quem encomendar por aqui, e o ecrã di-lo.
+
+**Nota de migração, para a próxima vez:** o Postgres recusa largar uma coluna de que dependem
+políticas de RLS. As políticas antigas têm de cair **antes** da coluna, não depois.

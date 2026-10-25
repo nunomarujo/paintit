@@ -663,7 +663,7 @@ export type Database = {
         Row: {
           criada_em: string;
           descricao: string;
-          engagement_id: string;
+          worksite_id: string;
           estado: 'proposta' | 'aceite' | 'recusada' | 'retirada';
           foto_path: string | null;
           id: string;
@@ -675,7 +675,7 @@ export type Database = {
         Insert: {
           criada_em?: string;
           descricao: string;
-          engagement_id: string;
+          worksite_id: string;
           estado?: 'proposta' | 'aceite' | 'recusada' | 'retirada';
           foto_path?: string | null;
           id?: string;
@@ -1224,12 +1224,56 @@ export type Database = {
         Update: { atendimento?: number; comentario?: string; entrega?: number; produto?: number; resposta?: string | null };
         Relationships: [];
       };
+      worksites: {
+        Row: {
+          cliente_nome: string | null;
+          created_at: string;
+          engagement_id: string | null;
+          estado: 'ativa' | 'concluida' | 'cancelada';
+          fim: string | null;
+          id: string;
+          inicio: string | null;
+          local: string | null;
+          nome: string;
+          notas: string | null;
+          org_id: string;
+          valor_cents: number | null;
+        };
+        Insert: {
+          cliente_nome?: string | null;
+          created_at?: string;
+          engagement_id?: string | null;
+          estado?: 'ativa' | 'concluida' | 'cancelada';
+          fim?: string | null;
+          id?: string;
+          inicio?: string | null;
+          local?: string | null;
+          nome: string;
+          notas?: string | null;
+          org_id: string;
+          valor_cents?: number | null;
+        };
+        Update: Partial<Database['public']['Tables']['worksites']['Insert']>;
+        Relationships: [];
+      };
+      org_consumables: {
+        Row: { created_at: string; id: string; minimo: number; nome: string; org_id: string; unidade: 'un' | 'l' | 'kg' | 'm' | 'm2' | 'rolo' | 'caixa' };
+        Insert: { created_at?: string; id?: string; minimo?: number; nome: string; org_id: string; unidade?: 'un' | 'l' | 'kg' | 'm' | 'm2' | 'rolo' | 'caixa' };
+        Update: Partial<Database['public']['Tables']['org_consumables']['Insert']>;
+        Relationships: [];
+      };
+      consumable_moves: {
+        Row: { consumable_id: string; created_at: string; data: string; id: string; nota: string | null; org_id: string; quantidade: number; worksite_id: string | null };
+        Insert: { consumable_id: string; created_at?: string; data?: string; id?: string; nota?: string | null; org_id: string; quantidade: number; worksite_id?: string | null };
+        Update: Partial<Database['public']['Tables']['consumable_moves']['Insert']>;
+        Relationships: [];
+      };
       worksite_members: {
         Row: {
           ativo: boolean;
           created_at: string;
           custo_hora_cents: number | null;
-          engagement_id: string;
+          worksite_id: string;
           funcao: string;
           id: string;
           nome: string;
@@ -1239,7 +1283,7 @@ export type Database = {
         Insert: {
           ativo?: boolean;
           custo_hora_cents?: number | null;
-          engagement_id: string;
+          worksite_id: string;
           funcao: string;
           nome: string;
           painter_org_id?: string;
@@ -1251,7 +1295,7 @@ export type Database = {
       worksite_phases: {
         Row: {
           created_at: string;
-          engagement_id: string;
+          worksite_id: string;
           estado: string;
           fim: string | null;
           id: string;
@@ -1259,7 +1303,7 @@ export type Database = {
           nome: string;
           painter_org_id: string;
         };
-        Insert: { engagement_id: string; estado?: string; fim?: string | null; inicio?: string | null; nome: string; painter_org_id?: string };
+        Insert: { worksite_id: string; estado?: string; fim?: string | null; inicio?: string | null; nome: string; painter_org_id?: string };
         Update: { estado?: string; fim?: string | null; inicio?: string | null; nome?: string };
         Relationships: [];
       };
@@ -1269,7 +1313,7 @@ export type Database = {
           created_at: string;
           data: string;
           descricao: string;
-          engagement_id: string;
+          worksite_id: string;
           horas: number | null;
           id: string;
           meio: string | null;
@@ -1284,7 +1328,7 @@ export type Database = {
           categoria?: string | null;
           data?: string;
           descricao?: string;
-          engagement_id: string;
+          worksite_id: string;
           horas?: number | null;
           meio?: string | null;
           member_id?: string | null;

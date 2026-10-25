@@ -45,26 +45,32 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   const { id } = await params;
   const { s: section = 'resumo' } = await searchParams;
   const { supabase, user } = await getUser();
-  const { data: e } = await supabase.from('engagements').select('*').eq('id', id).maybeSingle();
-  if (!e) notFound();
-  const { data: org } = await supabase.from('organizations').select('id, nome, gerida_por').eq('id', e.painter_org_id).maybeSingle();
+  // O identificador da rota é o da obra. Uma obra pode ter contratação da plataforma por trás, ou ser
+  // uma obra própria do pintor, ganha por fora — as ferramentas são as mesmas (decisão de 25/10/2026).
+  const { data: w } = await supabase.from('worksites').select('*').eq('id', id).maybeSingle();
+  if (!w) notFound();
+  const { data: org } = await supabase.from('organizations').select('id, nome, gerida_por').eq('id', w.org_id).maybeSingle();
   const role = org ? await myRole(supabase, user!.id, org) : null;
   if (!org || !role) notFound();
   const manager = canManage(role);
 
+  const { data: e } = w.engagement_id
+    ? await supabase.from('engagements').select('*').eq('id', w.engagement_id).maybeSingle()
+    : { data: null };
+
   const [{ data: lines }, { data: members }, { data: phases }, { data: entries }, { data: orders }, { data: listing }] =
     await Promise.all([
-      supabase.from('proposal_lines').select('*').eq('proposal_id', e.proposal_id).order('created_at'),
-      supabase.from('worksite_members').select('*').eq('engagement_id', id).order('created_at'),
-      supabase.from('worksite_phases').select('*').eq('engagement_id', id).order('inicio', { nullsFirst: false }),
-      supabase.from('worksite_entries').select('*').eq('engagement_id', id).order('data', { ascending: false }),
-      supabase.from('material_orders').select('*').eq('engagement_id', id).order('created_at', { ascending: false }),
-      supabase.from('request_listings').select('ref, concelho').eq('request_id', e.request_id).maybeSingle(),
+      e ? supabase.from('proposal_lines').select('*').eq('proposal_id', e.proposal_id).order('created_at') : Promise.resolve({ data: [] }),
+      supabase.from('worksite_members').select('*').eq('worksite_id', id).order('created_at'),
+      supabase.from('worksite_phases').select('*').eq('worksite_id', id).order('inicio', { nullsFirst: false }),
+      supabase.from('worksite_entries').select('*').eq('worksite_id', id).order('data', { ascending: false }),
+      e ? supabase.from('material_orders').select('*').eq('engagement_id', e.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
+      e ? supabase.from('request_listings').select('ref, concelho').eq('request_id', e.request_id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
   const { data: addendaRows } = await supabase
     .from('worksite_addenda')
     .select('id, descricao, valor_cents, estado, criada_em, respondida_em, foto_path')
-    .eq('engagement_id', id)
+    .eq('worksite_id', id)
     .order('criada_em', { ascending: false });
   const addenda = (addendaRows ?? []).map((a) => ({
     id: a.id,
@@ -86,7 +92,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   const today = localDate(new Date(), CURRENT_RULES.timeZone);
   const list = entries ?? [];
   const sum = summarize({
-    contrato: e.base_cents,
+    contrato: w.valor_cents ?? e?.base_cents ?? 0,
     tranches: list.filter((x) => x.tipo === 'tranche').map((x) => ({ valor: x.valor_cents ?? 0, prevista: x.prevista, recebidaEm: x.recebida_em })),
     costs: list.filter((x) => x.tipo === 'custo').map((x) => ({ categoria: x.categoria as CostCategory, valor: x.valor_cents ?? 0 })),
     hours: list
