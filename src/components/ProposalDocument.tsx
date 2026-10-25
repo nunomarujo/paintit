@@ -42,6 +42,7 @@ export function ProposalDocument({
   capoto,
   submittedAt,
   revelado = false,
+  marca = 'quempinta',
 }: {
   /**
    * Quem assina o documento. Antes da apresentação (docs/MODELO.md) `label` é o alias anónimo
@@ -56,6 +57,13 @@ export function ProposalDocument({
   terms: ProposalTerms;
   capoto: CapotoSpec | null;
   submittedAt: string | null;
+  /**
+   * De quem é o documento. 'quempinta' é o orçamento feito a um pedido do mercado: leva marca de água
+   * da plataforma e obedece ao anonimato. 'propria' é o orçamento que a empresa faz a um cliente seu,
+   * fora do mercado: leva o logótipo e os contactos dela, sem marca de água, e a plataforma aparece
+   * só numa linha discreta no fundo (pedido do promotor, 25/10/2026).
+   */
+  marca?: 'quempinta' | 'propria';
   /**
    * A identidade do pintor já foi revelada ao cliente? Enquanto não for, o documento **impresso ou
    * descarregado** não leva nome, logótipo nem contactos dele: no lugar vai a Quem Pinta. No ecrã,
@@ -74,9 +82,9 @@ export function ProposalDocument({
   return (
     <div className="proposal-doc">
       {/* Página 1 — capa, obra, apresentação, trabalhos discriminados */}
-      <Sheet page={1} of={capoto ? 3 : 2} footer>
+      <Sheet page={1} of={capoto ? 3 : 2} footer marca={marca}>
         <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-4">
-          <div className={`flex items-start gap-3 ${revelado ? '' : 'print:hidden'}`}>
+          <div className={`flex items-start gap-3 ${revelado || marca === 'propria' ? '' : 'print:hidden'}`}>
             <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
               {initials(painter.label)}
             </div>
@@ -108,7 +116,7 @@ export function ProposalDocument({
             {submittedAt && <p className="mt-1">Enviada a {pt(submittedAt.slice(0, 10))}</p>}
           </div>
         </header>
-        {!revelado && (
+        {!revelado && marca === 'quempinta' && (
           <p className="mt-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-snug text-slate-600 print:bg-white">
             Esta proposta foi preparada por uma empresa de pintura verificada pela Quem Pinta. O nome e os contactos
             dela substituem este cabeçalho assim que a obra lhe for adjudicada; até lá, as duas partes comunicam pela
@@ -196,8 +204,8 @@ export function ProposalDocument({
 
       {/* Página de materiais — só quando a obra leva capoto */}
       {capoto && (
-        <Sheet page={2} of={3} footer>
-          <RunningHeader painter={painter} request={request} revelado={revelado} />
+        <Sheet page={2} of={3} footer marca={marca}>
+          <RunningHeader painter={painter} request={request} revelado={revelado || marca === 'propria'} />
           <h2 className="mt-5 font-serif text-[16px] text-slate-900">{resumoCapoto(capoto)}</h2>
           <p className="mt-1 text-[11px] text-slate-500">{SITUACAO_LABELS[capoto.situacao]}.</p>
 
@@ -288,8 +296,8 @@ export function ProposalDocument({
       )}
 
       {/* Última página — preço e condições */}
-      <Sheet page={capoto ? 3 : 2} of={capoto ? 3 : 2} footer>
-        <RunningHeader painter={painter} request={request} revelado={revelado} />
+      <Sheet page={capoto ? 3 : 2} of={capoto ? 3 : 2} footer marca={marca}>
+        <RunningHeader painter={painter} request={request} revelado={revelado || marca === 'propria'} />
         <h2 className="mt-5 font-serif text-[16px] text-slate-900">Preço e condições</h2>
 
         <table className="mt-4 w-full text-[11.5px]">
@@ -409,17 +417,31 @@ function RunningHeader({
 }
 
 /** Uma folha A4: marca de água discreta e rodapé com a atribuição à plataforma, nunca a comissão. */
-function Sheet({ children, page, of, footer }: { children: React.ReactNode; page: number; of: number; footer?: boolean }) {
+function Sheet({
+  children,
+  page,
+  of,
+  footer,
+  marca = 'quempinta',
+}: {
+  children: React.ReactNode;
+  page: number;
+  of: number;
+  footer?: boolean;
+  marca?: 'quempinta' | 'propria';
+}) {
   return (
     <article className="proposal-sheet relative bg-white" aria-label={`Página ${page} de ${of}`}>
       <span aria-hidden className="proposal-rule" />
-      <span aria-hidden className="proposal-watermark">
-        quempinta.pt
-      </span>
+      {marca === 'quempinta' && (
+        <span aria-hidden className="proposal-watermark">
+          quempinta.pt
+        </span>
+      )}
       <div className="relative">{children}</div>
       {footer && (
         <footer className="proposal-footer mt-6 flex items-center justify-between border-t border-slate-200 pt-2 text-[9px] text-slate-500">
-          <p>Orçamento preparado em quempinta.pt</p>
+          <p>{marca === 'propria' ? 'Suportado por QuemPinta.pt' : 'Orçamento preparado em quempinta.pt'}</p>
           <p className="font-mono">
             {page} / {of}
           </p>

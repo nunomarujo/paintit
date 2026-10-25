@@ -17,16 +17,22 @@ export function MiniForm({
   action,
   fields,
   submit,
+  hidden,
 }: {
   action: (state: FormState, form: FormData) => Promise<FormState>;
   fields: MiniField[];
   submit: string;
+  /** Valores que o formulário envia sem os mostrar (ex.: o modelo escolhido noutro sítio do ecrã). */
+  hidden?: Record<string, string>;
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(action, { errors: {} }, { resetOnSuccess: true });
   const input = 'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2';
   const msg = Object.values(state.errors)[0] ?? state.message;
   return (
     <form {...formProps} className="space-y-3 text-sm">
+      {Object.entries(hidden ?? {}).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <div className="grid gap-3 sm:grid-cols-4">
         {fields.map((f) => (
           <label key={f.name} className={f.wide || f.type === 'textarea' ? 'sm:col-span-4' : ''}>

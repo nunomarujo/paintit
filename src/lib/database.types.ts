@@ -1224,6 +1224,110 @@ export type Database = {
         Update: { atendimento?: number; comentario?: string; entrega?: number; produto?: number; resposta?: string | null };
         Relationships: [];
       };
+      painter_quotes: {
+        Row: {
+          cliente_contacto: string | null;
+          cliente_nome: string;
+          created_at: string;
+          duracao_dias: number | null;
+          enviado_em: string | null;
+          estado: 'rascunho' | 'enviado' | 'ganho' | 'perdido';
+          exclusoes: string;
+          garantia_anos: number | null;
+          id: string;
+          inicio_possivel: string | null;
+          iva_bps: number;
+          local: string | null;
+          notas: string;
+          numero: number;
+          org_id: string;
+          titulo: string | null;
+          validade: string | null;
+          worksite_id: string | null;
+        };
+        Insert: {
+          cliente_contacto?: string | null;
+          cliente_nome: string;
+          created_at?: string;
+          duracao_dias?: number | null;
+          enviado_em?: string | null;
+          estado?: 'rascunho' | 'enviado' | 'ganho' | 'perdido';
+          exclusoes?: string;
+          garantia_anos?: number | null;
+          id?: string;
+          inicio_possivel?: string | null;
+          iva_bps?: number;
+          local?: string | null;
+          notas?: string;
+          numero?: number;
+          org_id: string;
+          titulo?: string | null;
+          validade?: string | null;
+          worksite_id?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['painter_quotes']['Insert']>;
+        Relationships: [];
+      };
+      painter_quote_lines: {
+        Row: {
+          categoria: 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
+          created_at: string;
+          demaos: number | null;
+          descricao: string;
+          id: string;
+          inclusao: 'incluido' | 'opcional' | 'condicionado' | 'nao_incluido';
+          ordem: number;
+          org_id: string;
+          preco_unitario: number;
+          produto: string | null;
+          quantidade: number;
+          quote_id: string;
+          unidade: 'm2' | 'ml' | 'un' | 'vg';
+        };
+        Insert: {
+          categoria: 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
+          created_at?: string;
+          demaos?: number | null;
+          descricao: string;
+          id?: string;
+          inclusao?: 'incluido' | 'opcional' | 'condicionado' | 'nao_incluido';
+          ordem?: number;
+          org_id?: string;
+          preco_unitario?: number;
+          produto?: string | null;
+          quantidade?: number;
+          quote_id: string;
+          unidade?: 'm2' | 'ml' | 'un' | 'vg';
+        };
+        Update: Partial<Database['public']['Tables']['painter_quote_lines']['Insert']>;
+        Relationships: [];
+      };
+      org_price_book: {
+        Row: {
+          categoria: 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
+          chave: string;
+          descricao: string;
+          id: string;
+          org_id: string;
+          preco_unitario: number;
+          ultima_vez: string;
+          unidade: 'm2' | 'ml' | 'un' | 'vg';
+          vezes: number;
+        };
+        Insert: {
+          categoria: 'preparacao' | 'reparacao' | 'pintura' | 'acessos' | 'licencas' | 'outro';
+          chave: string;
+          descricao: string;
+          id?: string;
+          org_id: string;
+          preco_unitario: number;
+          ultima_vez?: string;
+          unidade: 'm2' | 'ml' | 'un' | 'vg';
+          vezes?: number;
+        };
+        Update: Partial<Database['public']['Tables']['org_price_book']['Insert']>;
+        Relationships: [];
+      };
       worksites: {
         Row: {
           cliente_nome: string | null;

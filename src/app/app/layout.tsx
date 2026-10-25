@@ -39,6 +39,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Obra pública e obra privada são a mesma intenção — ganhar obra — com origens diferentes, por isso
   // fica ao lado de Oportunidades e não perdida nos recursos (desenho de 25/10/2026).
   if (kinds.has('pintor')) work.push({ href: '/app/obras-publicas', label: 'Obras públicas' });
+  // Os orçamentos a clientes próprios são trabalho diário, não um recurso: ficam na área de trabalho.
+  if (kinds.has('pintor')) work.push({ href: '/app/orcamentos', label: 'Orçamentos' });
   if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
   if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
   if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });

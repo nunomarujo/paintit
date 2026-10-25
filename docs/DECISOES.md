@@ -2181,3 +2181,45 @@ assinado na plataforma. Numa obra própria não há a quem encomendar por aqui, 
 
 **Nota de migração, para a próxima vez:** o Postgres recusa largar uma coluna de que dependem
 políticas de RLS. As políticas antigas têm de cair **antes** da coluna, não depois.
+
+## 25/10/2026 — Orçamentos a clientes próprios, e onde estão as 3 horas
+
+**A promessa, e o que a sustenta.** O orçamento leva hoje 1 a 3 horas. O tempo não está todo onde
+parece, e só parte dele se elimina:
+
+| Onde | Hoje | Depois | Como |
+|---|---|---|---|
+| Escrever e formatar o documento | 40-50 min | 0 | Gera-se sozinho, com o logótipo dele |
+| Contas, IVA, totais | 15 min | 0 | Calculado, e com ele os erros |
+| Decidir o que entra | 45 min | 5 min | Modelos por tipo de obra, pela ordem de execução |
+| Preços | 25 min | 5 min | Biblioteca com os preços dele, a partir do 3.º orçamento |
+| Medir | 30-60 min | igual | Medir é físico. Só desaparece a *segunda* vez: reconstruir as áreas em casa |
+
+**O que se pode dizer sem mentir:** o primeiro orçamento leva cerca de 40 minutos, porque é ele que
+ensina os preços à aplicação; **a partir do terceiro, 15 minutos**. A condição diz-se à frente do
+número, não em letra pequena. Os que vêm de um pedido da plataforma arrancam em menos, porque o
+levantamento do avaliador já traz as superfícies e as áreas.
+
+**A regra que está por trás de tudo:** o orçamento **nunca começa em branco**. Ou nasce de um pedido
+com levantamento feito, ou duplica um orçamento anterior dele — que é o que já faz hoje à mão com o
+Word —, ou nasce de um modelo por tipo de obra.
+
+**Decisões de desenho que não se revertem sem nova decisão aqui:**
+
+- **A biblioteca guarda os preços dele, nunca médias de mercado.** Um preço sugerido que não seja dele
+  ou está abaixo e ele perde dinheiro, ou está acima e ele perde a obra — e nos dois casos perde a
+  confiança na aplicação. Aprende-se no momento em que ele dá o orçamento por enviado, porque é aí que
+  os preços são os definitivos.
+- **Os modelos não trazem preços nenhuns**, só capítulos pela ordem de execução. E deixam sempre
+  acrescentar o que ficou de fora: um modelo de que não se possa fugir é uma gaiola.
+- **Tabela própria, não `proposals`.** As propostas do mercado carregam anonimato, comissão, prazos e
+  selecção, e nada disso se aplica a um orçamento privado. Misturá-las era abrir caminho a que um
+  orçamento privado entrasse um dia num fluxo de mercado por engano.
+- **Marca própria no documento:** logótipo, nome e contactos dele, sem marca de água, e a plataforma
+  só na linha "Suportado por QuemPinta.pt" no rodapé. É o mesmo componente do documento do mercado —
+  não existem dois documentos para a mesma coisa.
+- **Lembretes, não bloqueios:** acessos e limpeza final são os dois capítulos que mais se esquecem e
+  os dois que saem do bolso. A aplicação avisa; não impede.
+
+**Avisos que a aplicação dá e não decide:** a taxa de 6% exige habitação e materiais abaixo de 20% do
+valor global. O ecrã di-lo e guarda o que ele escolher; a decisão é dele e do contabilista.

@@ -2574,3 +2574,77 @@ describe('obras próprias e consumíveis', () => {
     expect(r.affectedRows ?? 0).toBe(0);
   });
 });
+
+describe('orçamentos a clientes próprios', () => {
+  const QP = '00000000-0000-4000-8000-0000000000fe'; // empresa que faz o orçamento
+  const QX = '00000000-0000-4000-8000-0000000000ff'; // outra empresa de pintura
+  let minhaOrg: string;
+  let outraOrg: string;
+  let quoteId: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [QP, email(QP), QX, email(QX)]);
+    minhaOrg = (await createOrg(QP, 'pintor', 'Pinturas Orçamento', '516166450')).id;
+    outraOrg = (await createOrg(QX, 'pintor', 'Pinturas Rivais', '517228793')).id;
+  });
+
+  it('a numeração é por empresa e é o servidor que a atribui', async () => {
+    const um = await as(QP, () =>
+      one<{ id: string; numero: number }>(
+        `insert into public.painter_quotes (org_id, cliente_nome, numero) values ($1, 'Condomínio da Rua A', 999) returning id, numero`,
+        [minhaOrg],
+      ),
+    );
+    quoteId = um.id;
+    // O 999 que veio do navegador é ignorado: a numeração começa em 1 nesta empresa.
+    expect(um.numero).toBe(1);
+    const dois = await as(QP, () =>
+      one<{ numero: number }>(`insert into public.painter_quotes (org_id, cliente_nome) values ($1, 'Outro cliente') returning numero`, [minhaOrg]),
+    );
+    expect(dois.numero).toBe(2);
+    // Outra empresa recomeça no 1 — a numeração é dela.
+    const outra = await as(QX, () =>
+      one<{ numero: number }>(`insert into public.painter_quotes (org_id, cliente_nome) values ($1, 'Cliente deles') returning numero`, [outraOrg]),
+    );
+    expect(outra.numero).toBe(1);
+  });
+
+  it('um orçamento privado é da empresa e de mais ninguém', async () => {
+    expect(await as(QX, async () => (await db.query('select id from public.painter_quotes where id = $1', [quoteId])).rows)).toEqual([]);
+    expect(await as(QP, async () => (await db.query('select id from public.painter_quotes where id = $1', [quoteId])).rows)).toHaveLength(1);
+  });
+
+  it('as linhas herdam a empresa do orçamento, não do que o navegador mandar', async () => {
+    const l = await as(QP, () =>
+      one<{ org_id: string }>(
+        `insert into public.painter_quote_lines (quote_id, org_id, categoria, descricao, quantidade, preco_unitario)
+         values ($1, $2, 'pintura', 'Duas demãos de tinta acrílica', 8600, 1180) returning org_id`,
+        [quoteId, outraOrg],
+      ),
+    );
+    expect(l.org_id).toBe(minhaOrg);
+  });
+
+  it('ninguém acrescenta linhas ao orçamento de outra empresa', async () => {
+    await expect(
+      as(QX, () =>
+        db.query(
+          `insert into public.painter_quote_lines (quote_id, org_id, categoria, descricao) values ($1, $2, 'pintura', 'Linha intrusa')`,
+          [quoteId, outraOrg],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it('a biblioteca de preços é de cada empresa e não se mistura', async () => {
+    await as(QP, () =>
+      db.query(
+        `insert into public.org_price_book (org_id, chave, descricao, categoria, unidade, preco_unitario)
+         values ($1, 'duas demãos de tinta acrílica|m2', 'Duas demãos de tinta acrílica', 'pintura', 'm2', 1180)`,
+        [minhaOrg],
+      ),
+    );
+    expect(await as(QX, async () => (await db.query('select id from public.org_price_book')).rows)).toEqual([]);
+    expect(await as(QP, async () => (await db.query('select preco_unitario from public.org_price_book')).rows)).toEqual([{ preco_unitario: 1180 }]);
+  });
+});
