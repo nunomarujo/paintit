@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { aprenderDe, chaveDe, cobertura, sugerir, type PriceEntry } from './priceBook';
 
-const e = (descricao: string, vezes: number, ultimaVez: string, preco = 1200): PriceEntry => ({
-  id: descricao, descricao, categoria: 'pintura', unidade: 'm2', precoUnitario: preco, vezes, ultimaVez,
+const e = (descricao: string, vezes: number, ultimaVez: string, preco = 1200, trabalho?: string): PriceEntry => ({
+  id: descricao, chave: chaveDe(descricao, 'm2', trabalho), descricao, categoria: 'pintura', unidade: 'm2',
+  precoUnitario: preco, vezes, ultimaVez,
 });
 
 describe('biblioteca de preços', () => {
@@ -30,6 +31,13 @@ describe('biblioteca de preços', () => {
     expect(sugerir(lista, 'demãos verniz')).toHaveLength(0);
   });
 
+  it('a linha que veio do catálogo é a mesma, mesmo escrita de outra maneira', () => {
+    const doCatalogo = e('Duas demãos de tinta acrílica', 1, '2026-10-01', 1200, 'pintura_final');
+    expect(cobertura([doCatalogo], [{ descricao: '2 demãos tinta acrílica', unidade: 'm2', trabalho: 'pintura_final' }])).toBe(1);
+    // Sem código, o texto diferente é outro item — é o melhor que há para o que se escreve à mão.
+    expect(cobertura([e('Duas demãos de tinta acrílica', 1, '2026-10-01')], [{ descricao: '2 demãos tinta acrílica', unidade: 'm2', trabalho: null }])).toBe(0);
+  });
+
   it('a mesma descrição noutra unidade é outro item', () => {
     expect(chaveDe('Rodapé', 'm2')).not.toBe(chaveDe('Rodapé', 'ml'));
     expect(chaveDe(' duas  DEMÃOS ', 'm2')).toBe(chaveDe('Duas demãos', 'm2'));
@@ -40,13 +48,13 @@ describe('quanto a biblioteca já poupa', () => {
   const lista = [e('Duas demãos de tinta acrílica', 9, '2026-10-01')];
 
   it('é zero no primeiro orçamento', () => {
-    expect(cobertura([], [{ descricao: 'Duas demãos de tinta acrílica', unidade: 'm2' }])).toBe(0);
+    expect(cobertura([], [{ descricao: 'Duas demãos de tinta acrílica', unidade: 'm2', trabalho: null }])).toBe(0);
   });
 
   it('conta as linhas que já conhece', () => {
     const linhas = [
-      { descricao: 'Duas demãos de tinta acrílica', unidade: 'm2' as const },
-      { descricao: 'Andaime', unidade: 'vg' as const },
+      { descricao: 'Duas demãos de tinta acrílica', unidade: 'm2' as const, trabalho: null },
+      { descricao: 'Andaime', unidade: 'vg' as const, trabalho: null },
     ];
     expect(cobertura(lista, linhas)).toBe(0.5);
   });
@@ -57,14 +65,21 @@ describe('quanto a biblioteca já poupa', () => {
 });
 
 describe('o que a biblioteca aprende', () => {
-  const linha = (descricao: string, precoUnitario: number, unidade: 'm2' | 'ml' = 'm2') => ({
-    descricao, precoUnitario, unidade, categoria: 'pintura' as const,
+  const linha = (descricao: string, precoUnitario: number, unidade: 'm2' | 'ml' = 'm2', trabalho: string | null = null) => ({
+    descricao, precoUnitario, unidade, categoria: 'pintura' as const, trabalho,
   });
 
   it('guarda uma linha por trabalho, com o preço praticado', () => {
     expect(aprenderDe([linha('Duas demãos', 1180)])).toEqual([
       { chave: chaveDe('Duas demãos', 'm2'), descricao: 'Duas demãos', categoria: 'pintura', unidade: 'm2', precoUnitario: 1180 },
     ]);
+  });
+
+  it('com código de trabalho, duas redacções do mesmo item aprendem para a mesma chave', () => {
+    const r = aprenderDe([linha('Duas demãos de tinta acrílica', 1100, 'm2', 'pintura_final'), linha('2 demãos acrílica', 1250, 'm2', 'pintura_final')]);
+    expect(r).toHaveLength(1);
+    expect(r[0]!.precoUnitario).toBe(1250);
+    expect(r[0]!.descricao).toBe('2 demãos acrílica');
   });
 
   it('ignora linhas sem descrição útil ou sem preço', () => {

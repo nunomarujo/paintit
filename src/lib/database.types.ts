@@ -1282,6 +1282,7 @@ export type Database = {
           produto: string | null;
           quantidade: number;
           quote_id: string;
+          trabalho: string | null;
           unidade: 'm2' | 'ml' | 'un' | 'vg';
         };
         Insert: {
@@ -1297,6 +1298,7 @@ export type Database = {
           produto?: string | null;
           quantidade?: number;
           quote_id: string;
+          trabalho?: string | null;
           unidade?: 'm2' | 'ml' | 'un' | 'vg';
         };
         Update: Partial<Database['public']['Tables']['painter_quote_lines']['Insert']>;

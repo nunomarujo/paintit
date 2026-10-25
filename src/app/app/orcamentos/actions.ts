@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
 import { LINE_CATEGORIES, UNITS, type LineCategory, type Unit } from '@/domain/proposal';
-import { aprenderDe, chaveDe } from '@/domain/priceBook';
+import { chaveDe } from '@/domain/priceBook';
 import { trabalhosDoModelo } from '@/domain/quoteTemplates';
 import { parseHundredths } from '@/domain/request';
+import { learnPrices } from '@/lib/priceBook';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
@@ -68,7 +69,8 @@ export async function createQuote(_prev: FormState, form: FormData): Promise<For
           categoria: w.categoria,
           descricao: w.label,
           unidade: w.unit,
-          preco_unitario: precos.get(chaveDe(w.label, w.unit)) ?? 0,
+          trabalho: w.code,
+          preco_unitario: precos.get(chaveDe(w.label, w.unit, w.code)) ?? 0,
           ordem: i,
         })),
       );
@@ -160,34 +162,19 @@ export async function markQuoteSent(quoteId: string, _prev: FormState, _form: Fo
 
   const { data: linhas } = await supabase
     .from('painter_quote_lines')
-    .select('categoria, descricao, unidade, preco_unitario')
+    .select('categoria, descricao, unidade, preco_unitario, trabalho')
     .eq('quote_id', quoteId);
-  const aprendidas = aprenderDe(
-    (linhas ?? []).map((l) => ({ categoria: l.categoria, descricao: l.descricao, unidade: l.unidade, precoUnitario: l.preco_unitario })),
+  await learnPrices(
+    supabase,
+    org.id,
+    (linhas ?? []).map((l) => ({
+      categoria: l.categoria,
+      descricao: l.descricao,
+      unidade: l.unidade,
+      precoUnitario: l.preco_unitario,
+      trabalho: l.trabalho,
+    })),
   );
-
-  if (aprendidas.length > 0) {
-    const { data: existentes } = await supabase
-      .from('org_price_book')
-      .select('chave, vezes')
-      .eq('org_id', org.id)
-      .in('chave', aprendidas.map((a) => a.chave));
-    const vezesDe = new Map((existentes ?? []).map((e) => [e.chave, e.vezes]));
-    const hoje = new Date().toISOString().slice(0, 10);
-    await supabase.from('org_price_book').upsert(
-      aprendidas.map((a) => ({
-        org_id: org.id,
-        chave: a.chave,
-        descricao: a.descricao,
-        categoria: a.categoria,
-        unidade: a.unidade,
-        preco_unitario: a.precoUnitario,
-        vezes: (vezesDe.get(a.chave) ?? 0) + 1,
-        ultima_vez: hoje,
-      })),
-      { onConflict: 'org_id,chave' },
-    );
-  }
 
   await supabase.from('painter_quotes').update({ estado: 'enviado', enviado_em: new Date().toISOString() }).eq('id', quoteId);
   revalidatePath(`/app/orcamentos/${quoteId}`);

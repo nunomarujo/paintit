@@ -2382,3 +2382,21 @@ inventada no momento, zero.
 **Fica em aberto, e é decisão de negócio:** o plano Pro do Supabase é provavelmente necessário antes
 de haver utilizadores a sério, não por causa desta verificação — que já está resolvida — mas pelas
 cópias de segurança e por o plano gratuito suspender projetos sem actividade.
+
+## 25/10/2026 — A biblioteca de preços aprende de duas origens, e por código de trabalho
+
+Dois dos quatro caminhos escritos ontem, construídos:
+
+**De lado:** a biblioteca passa a aprender também das **propostas submetidas ao mercado**, não só dos
+orçamentos privados. São linhas iguais, já estavam na base, e deixá-las de fora desperdiçava metade
+dos dados. A aprendizagem vive agora num auxiliar partilhado (`src/lib/priceBook.ts`), chamado nos
+dois sítios onde um orçamento sai das mãos do pintor.
+
+**Mais densa:** quando a linha veio do catálogo de trabalhos, a chave da biblioteca passa a ser o
+**código do trabalho** e não o texto escrito. "Duas demãos de tinta acrílica" e "2 demãos tinta
+acrílica" eram dois itens e cada um aprendia metade — e o pintor nunca via a sugestão que já devia
+ter. Sem código, mantém-se a descrição normalizada, que é o melhor que há para texto à mão.
+
+Ficam por fazer os outros dois: o cruzamento com os custos reais está feito ao nível da obra (ver a
+entrada do preço cobrado contra custo real), falta descê-lo ao nível da linha; e a importação de um
+orçamento antigo para arrancar com a biblioteca cheia.

@@ -37,6 +37,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
   const entradas: PriceEntry[] = (book ?? []).map((b) => ({
     id: b.id,
+    chave: b.chave,
     descricao: b.descricao,
     categoria: b.categoria,
     unidade: b.unidade,
@@ -44,7 +45,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     vezes: b.vezes,
     ultimaVez: b.ultima_vez,
   }));
-  const jaConhecidas = cobertura(entradas, (linhas ?? []).map((l) => ({ descricao: l.descricao, unidade: l.unidade })));
+  const jaConhecidas = cobertura(entradas, (linhas ?? []).map((l) => ({ descricao: l.descricao, unidade: l.unidade, trabalho: l.trabalho })));
   const avisos = lembretes((linhas ?? []).map((l) => l.descricao.toLowerCase()).map((d) => (d.includes('acesso') || d.includes('andaime') ? 'acessos' : d.includes('limpeza') || d.includes('resíduo') ? 'conclusao' : d)));
   const semPreco = (linhas ?? []).filter((l) => l.preco_unitario === 0).length;
 

@@ -12,6 +12,7 @@ import { pricedProduct } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { notifyNewMessage, notifyProposalSubmitted, notifyReferralCandidacy, notifyReferralWon } from '@/lib/notify';
 import { guardContact } from '@/lib/strikes';
+import { learnPrices } from '@/lib/priceBook';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -156,6 +157,9 @@ export async function submitProposal(proposalId: string, requestId: string): Pro
   // A base de dados repete as verificações e fixa a base, a versão do pedido e a verificação.
   const { error } = await supabase.from('proposals').update({ status: 'submetida' }).eq('id', proposalId);
   if (error) return { errors: {}, message: error.message };
+  // A biblioteca de preços aprende também das propostas ao mercado: são linhas iguais às dos
+  // orçamentos privados, e deixá-las de fora desperdiçava metade dos dados (25/10/2026).
+  await learnPrices(supabase, p.painter_org_id, (lines ?? []).map(toLine)).catch(() => undefined);
   await notifyProposalSubmitted(requestId).catch(() => undefined);
   await notifyReferralCandidacy(proposalId).catch(() => undefined);
   revalidatePath(`/app/oportunidades/${requestId}`);

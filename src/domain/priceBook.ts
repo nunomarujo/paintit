@@ -11,6 +11,8 @@ import type { LineCategory, ProposalLine, Unit } from './proposal';
 
 export interface PriceEntry {
   id: string;
+  /** A chave com que foi guardada — por código de trabalho, quando a linha o tinha. */
+  chave: string;
   descricao: string;
   categoria: LineCategory;
   unidade: Unit;
@@ -22,9 +24,15 @@ export interface PriceEntry {
   ultimaVez: string;
 }
 
-/** Chave de uma linha para efeitos de biblioteca: a mesma descrição na mesma unidade é o mesmo item. */
-export const chaveDe = (descricao: string, unidade: Unit): string =>
-  `${descricao.trim().toLowerCase().replace(/\s+/g, ' ')}|${unidade}`;
+/**
+ * Chave de uma linha para efeitos de biblioteca.
+ *
+ * Quando a linha veio do catálogo de trabalhos, a chave é o **código do trabalho** — e aí "Duas demãos
+ * de tinta acrílica" e "2 demãos tinta acrílica" são o mesmo item, como devem ser. Sem código, usa-se
+ * a descrição normalizada, que é o melhor que há para texto escrito à mão.
+ */
+export const chaveDe = (descricao: string, unidade: Unit, trabalho?: string | null): string =>
+  trabalho ? `#${trabalho}|${unidade}` : `${descricao.trim().toLowerCase().replace(/\s+/g, ' ')}|${unidade}`;
 
 /**
  * As sugestões para um campo de descrição, ordenadas pelo que é mais provável ele querer: primeiro o
@@ -41,10 +49,10 @@ export function sugerir(entradas: PriceEntry[], termo: string, limite = 8): Pric
  * Quanto é que a biblioteca já cobre deste orçamento — a medida honesta de quanto tempo ela vai
  * poupar. Zero no primeiro orçamento, perto de um ao terceiro ou quarto.
  */
-export function cobertura(entradas: PriceEntry[], linhas: Pick<ProposalLine, 'descricao' | 'unidade'>[]): number {
+export function cobertura(entradas: PriceEntry[], linhas: Pick<ProposalLine, 'descricao' | 'unidade' | 'trabalho'>[]): number {
   if (linhas.length === 0) return 0;
-  const conhecidas = new Set(entradas.map((e) => chaveDe(e.descricao, e.unidade)));
-  return linhas.filter((l) => conhecidas.has(chaveDe(l.descricao, l.unidade))).length / linhas.length;
+  const conhecidas = new Set(entradas.map((e) => e.chave));
+  return linhas.filter((l) => conhecidas.has(chaveDe(l.descricao, l.unidade, l.trabalho))).length / linhas.length;
 }
 
 export interface Aprendizagem {
@@ -60,13 +68,13 @@ export interface Aprendizagem {
  * por chave — se o mesmo trabalho aparecer duas vezes no mesmo orçamento com preços diferentes, fica
  * o último, que é o que ele acabou por decidir.
  */
-export function aprenderDe(linhas: Pick<ProposalLine, 'descricao' | 'unidade' | 'precoUnitario' | 'categoria'>[]): Aprendizagem[] {
+export function aprenderDe(linhas: Pick<ProposalLine, 'descricao' | 'unidade' | 'precoUnitario' | 'categoria' | 'trabalho'>[]): Aprendizagem[] {
   const por = new Map<string, Aprendizagem>();
   for (const l of linhas) {
     const descricao = l.descricao.trim();
     if (descricao.length < 3 || l.precoUnitario <= 0) continue;
-    por.set(chaveDe(descricao, l.unidade), {
-      chave: chaveDe(descricao, l.unidade),
+    por.set(chaveDe(descricao, l.unidade, l.trabalho), {
+      chave: chaveDe(descricao, l.unidade, l.trabalho),
       descricao,
       categoria: l.categoria,
       unidade: l.unidade,
