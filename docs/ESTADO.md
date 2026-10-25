@@ -1359,10 +1359,31 @@ Verificado na base real depois do primeiro pagamento do plano Pro:
 `invoice.subscription`, e nas versões novas da API ela está em `invoice.parent.subscription_details`.
 Passa a ler nas duas. O plano Pro passa a entrar na fila de faturação com a designação certa.
 
-**Por confirmar, e é o próximo passo:** se o endpoint do Stripe tem o evento `invoice.paid`
-seleccionado. O `checkout.session.completed` chega (as subscrições activam-se), mas se o `invoice.paid`
-não estiver ligado, nenhum pagamento recorrente é registado — nem o dos fornecedores. Vê-se no painel
-do Stripe, no registo de eventos do webhook.
+**Confirmado no painel do Stripe (25/10/2026):** o endpoint tem os quatro eventos ligados,
+`invoice.paid` incluído, e foi entregue com 200. O pagamento não ficou registado porque o evento
+chegou às 14:43:24 e a correcção acima só entrou em produção às 14:45:59 — dois minutos depois. Não
+havia nada de errado no Stripe.
+
+**Verificado em produção depois disso:** o cancelamento mantém-se (a linha fica cancelada, com data,
+válida até ao fim do período pago) e a periodicidade gravada é a que o Stripe cobra. Eram os dois
+defeitos encontrados a seguir, ambos corrigidos.
+
+### IVA das subscrições
+
+O preço do plano Pro é **sem IVA** (decisão de 25/10/2026): cobra-se 36,90 €/mês e 307,50 €/ano.
+
+A taxa de IVA do Stripe é **obrigatória**. Sem ela a adesão recusa com uma mensagem, de propósito:
+antes era opcional, e sem taxa o Stripe cobrava o preço limpo enquanto `subscriptionInvoice` lhe
+extraía o IVA de dentro — a fatura saía correcta e a receita perdia 23%, sem erro à vista.
+
+| | Estado |
+|---|---|
+| Taxa criada | `txr_1UUTqZFGpN3v1aBOnCef9Gvo`, IVA 23% exclusiva, Portugal |
+| Onde | `STRIPE_TAX_RATE_IVA`, em produção no Vercel |
+| Modo | **Modo de teste.** Tem de ser recriada em modo real, e a variável trocada, antes do primeiro subscritor a pagar a sério |
+
+**Falta verificar**, no próximo pagamento de teste: pagamento registado em `subscription_payments`,
+`valida_ate` com data, linha a dizer anual e 250 €, e 57,50 € de IVA cobrados por cima.
 
 **Decisões em aberto, de negócio e não técnicas:**
 
