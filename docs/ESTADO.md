@@ -1340,3 +1340,33 @@ custo de avaliar duas políticas numa tabela desta dimensão não paga essa troc
   para um segredo de integração — **mas convém confirmar que foi de propósito**.
 - *Protecção contra palavras-passe comprometidas desligada no Auth.* É um interruptor na consola e
   vale a pena ligá-lo.
+
+### Faturação: o que falta para o dinheiro ser legal (25/10/2026)
+
+Verificado na base real depois do primeiro pagamento do plano Pro:
+
+| | Estado |
+|---|---|
+| Moloni ligada | Sim (token válido na base) |
+| Documentos fiscais emitidos até hoje | **Zero** |
+| Pagamentos de subscrição registados | **Zero** |
+| Pagamentos Stripe registados (comissões e cauções) | 3, nenhum facturado |
+| Emissão | **Manual**: alguém tem de carregar no backoffice, em Contabilidade → Faturação |
+| NIF na fatura | Vem de `organizations.nif`, não do Stripe |
+| Fatura visível ao cliente | **Não existe ecrã nenhum** do lado do pintor |
+
+**Corrigido agora:** o registo do pagamento de uma subscrição lia a subscrição só em
+`invoice.subscription`, e nas versões novas da API ela está em `invoice.parent.subscription_details`.
+Passa a ler nas duas. O plano Pro passa a entrar na fila de faturação com a designação certa.
+
+**Por confirmar, e é o próximo passo:** se o endpoint do Stripe tem o evento `invoice.paid`
+seleccionado. O `checkout.session.completed` chega (as subscrições activam-se), mas se o `invoice.paid`
+não estiver ligado, nenhum pagamento recorrente é registado — nem o dos fornecedores. Vê-se no painel
+do Stripe, no registo de eventos do webhook.
+
+**Decisões em aberto, de negócio e não técnicas:**
+
+1. **A emissão deve continuar manual?** Hoje a fila enche-se e espera por uma pessoa. Com volume, ou
+   se automatiza ou acumula-se incumprimento.
+2. **O pintor não tem onde ver as facturas dele.** Falta um ecrã; o PDF já fica guardado.
+3. **Três pagamentos antigos por facturar** estão na fila desde os testes anteriores.

@@ -37,9 +37,19 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
 
   for (const s of subs ?? []) {
     if (!s.org_id || done.has(`subscription_payment|${s.stripe_invoice_id}`)) continue;
-    const { data: sub } = await db.from('supplier_subscriptions').select('plan').eq('org_id', s.org_id).maybeSingle();
-    const fornecedor = await customerOf(db, s.org_id);
-    out.push(subscriptionInvoice({ stripeInvoiceId: s.stripe_invoice_id, planLabel: sub ? PLAN_INFO[sub.plan].label : 'Subscrição', gross: s.amount_cents, vat: s.vat_cents, data: day(s.paid_at), fornecedor }));
+    // A mesma tabela guarda as subscrições dos fornecedores e o plano Pro das empresas de pintura: o
+    // que muda é só a designação que vai na fatura.
+    const [{ data: sub }, { data: pro }] = await Promise.all([
+      db.from('supplier_subscriptions').select('plan').eq('org_id', s.org_id).maybeSingle(),
+      db.from('org_subscriptions').select('plano, periodicidade').eq('org_id', s.org_id).eq('plano', 'pro').maybeSingle(),
+    ]);
+    const planLabel = sub
+      ? PLAN_INFO[sub.plan].label
+      : pro
+        ? `Plano Pro (${pro.periodicidade})`
+        : 'Subscrição';
+    const cliente = await customerOf(db, s.org_id);
+    out.push(subscriptionInvoice({ stripeInvoiceId: s.stripe_invoice_id, planLabel, gross: s.amount_cents, vat: s.vat_cents, data: day(s.paid_at), fornecedor: cliente }));
   }
 
   // Caução retida: calculada pelo motor de regras, por contratação com depósito.

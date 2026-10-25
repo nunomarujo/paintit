@@ -88,8 +88,13 @@ export async function POST(req: Request) {
   } else if (event.type === 'invoice.paid') {
     // Cada mensalidade paga entra no livro de movimentos (src/lib/accounting.ts). Idempotente pelo id da fatura do Stripe.
     const inv = event.data.object;
-    if (inv.subscription && inv.amount_paid > 0 && inv.id) {
-      const orgId = inv.subscription_details?.metadata?.org_id ?? null;
+    // A subscrição aparece em `invoice.subscription` nas versões antigas da API e dentro de
+    // `invoice.parent.subscription_details` nas novas. Ler só numa delas deixava passar o pagamento
+    // em silêncio, e sem este registo não há fatura nenhuma a emitir (25/10/2026).
+    const parent = (inv as unknown as { parent?: { subscription_details?: { subscription?: string | { id?: string }; metadata?: Record<string, string> } } }).parent;
+    const subDaFatura = inv.subscription ?? parent?.subscription_details?.subscription ?? null;
+    if (subDaFatura && inv.amount_paid > 0 && inv.id) {
+      const orgId = inv.subscription_details?.metadata?.org_id ?? parent?.subscription_details?.metadata?.org_id ?? null;
       const { error } = await db.from('subscription_payments').upsert(
         {
           stripe_invoice_id: inv.id,
