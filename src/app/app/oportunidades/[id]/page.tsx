@@ -522,6 +522,17 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         </p>
                         <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} capoto={capotoSpec} />
                       </article>
+                      {proposal && (
+                        <p className="mx-auto max-w-[210mm] text-right text-[17px]">
+                          <Link
+                            href={`/app/pedidos/${id}/propostas/${proposal.id}/documento`}
+                            className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 hover:underline"
+                            target="_blank"
+                          >
+                            Pré-visualizar o documento em A4 →
+                          </Link>
+                        </p>
+                      )}
                       {fee && (
                         <div className="mx-auto max-w-[210mm]">
                           <FeeSummary base={totals?.base ?? 0} fee={fee} fullFee={fullFee} discount={discount} linkedSupplierNames={linkedSupplierNames} />

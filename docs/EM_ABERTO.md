@@ -45,7 +45,6 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 - **Perguntas geradas na reconciliação** ainda não se enviam num clique (falta ligar a `sendMessage`).
 - **Versões da proposta** não aparecem no ecrã de comparação (já aparecem no relatório).
 - **Aviso 2 h antes aos outros avaliadores** (alternativa ao bónus de adesão, não escolhida).
-- **Pré-visualizar o documento A4 do orçamento em rascunho** — ramo `documento-orcamento-pdf`, 1 commit de 25/10 por publicar. Não entra em avanço direto: tem conflitos com a produção em dois ecrãs e nos dois documentos. Falta resolvê-los à mão.
 
 ## 4. Dívida técnica
 
