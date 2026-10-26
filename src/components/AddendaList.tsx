@@ -51,7 +51,7 @@ export function AddendaList({
           const dias = diasAEsperar(a, hoje);
           return (
             <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 basis-full sm:flex-1">
                 <p className="text-[17px] text-slate-900">{a.descricao}</p>
                 <p className="mt-0.5 text-[15px] text-slate-500">
                   {dataPt(a.criadaEm)}

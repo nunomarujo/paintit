@@ -153,7 +153,7 @@ export function BudgetShell({
     <BudgetContext.Provider value={api}>
       <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Métodos de trabalho">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 basis-full sm:flex-1">
             <p className="text-[17px] font-semibold">Método de trabalho</p>
             <p className="text-[17px] text-slate-600">
               {templates.length > 0
@@ -164,7 +164,7 @@ export function BudgetShell({
           {templates.length > 0 && (
             <>
               <label className="sr-only" htmlFor="metodo">Método guardado</label>
-              <select id="metodo" value={chosen?.id ?? ''} onChange={(e) => setPicked(e.target.value)} className={input}>
+              <select id="metodo" value={chosen?.id ?? ''} onChange={(e) => setPicked(e.target.value)} className={`w-full min-w-0 sm:w-auto ${input}`}>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.nome} ({t.resumo})
