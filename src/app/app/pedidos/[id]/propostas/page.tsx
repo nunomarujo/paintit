@@ -17,7 +17,7 @@ import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : 'Não indicado');
 const STATUS: Record<string, string> = {
   submetida: 'Em análise',

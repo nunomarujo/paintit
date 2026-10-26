@@ -25,15 +25,16 @@ const MEDIDO = '26 de Outubro de 2026';
 
 export default function ObraPublicaPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10 text-[15px] leading-relaxed text-slate-800">
-      <Link href="/" className="text-sm text-slate-600 hover:underline">
+    <main className="mx-auto max-w-5xl px-4 py-6 text-[17px] leading-relaxed text-slate-800">
+      <Link href="/" className="text-[15px] text-slate-600 hover:underline">
         ← {BRAND.name}
       </Link>
 
-      <article className="mt-8 space-y-5">
+      <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,64ch)_280px] lg:items-start lg:gap-12">
+      <article className="space-y-5">
         <header className="space-y-3 border-b border-slate-200 pb-7">
-          <h1 className="text-3xl font-semibold leading-tight text-slate-900">O mercado que não se anuncia</h1>
-          <p className="text-lg leading-snug text-slate-600">
+          <h1 className="text-[34px] font-semibold leading-tight text-slate-900">O mercado que não se anuncia</h1>
+          <p className="text-[19px] leading-snug text-slate-600">
             Em 2026 o Estado português contratou 62,5 milhões de euros em obras de pintura. Dois terços foram entregues
             sem concurso nenhum — por convite directo a empresas que a entidade já conhecia. Os nomes dessas empresas
             são públicos e estão publicados há catorze anos. Quase ninguém os lê.
@@ -52,7 +53,7 @@ export default function ObraPublicaPage() {
           lá entrar.
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">O que o Estado compra</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que o Estado compra</h2>
         <p>
           Entre 2012 e 2026, entidades públicas portuguesas celebraram{' '}
           <strong className="font-semibold">9 393 contratos de empreitada de pintura, fachadas e isolamento</strong>, no
@@ -67,7 +68,7 @@ export default function ObraPublicaPage() {
           tamanho, mas a regularidade.
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">Como é entregue</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">Como é entregue</h2>
         <p>
           Em 2012, <strong className="font-semibold">94%</strong> destes contratos foram adjudicados por ajuste directo
           ou consulta prévia — isto é, por convite, sem anúncio público. Em 2026 são{' '}
@@ -81,7 +82,7 @@ export default function ObraPublicaPage() {
           deixa dois terços de fora.
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">A lista que ninguém lê</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">A lista que ninguém lê</h2>
         <p>
           Quando uma entidade adjudica por convite, tem de publicar o contrato no Portal BASE, e com ele — na maior
           parte dos casos — os nomes das empresas que convidou. Essa informação é pública, é gratuita, e está
@@ -99,7 +100,7 @@ export default function ObraPublicaPage() {
           inventar.
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">Quem é convidado</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">Quem é convidado</h2>
         <p>
           A suposição natural é que existe um clube fechado. Os dados dizem que não, pelo menos à escala do país. Desde
           2022 foram convidadas <strong className="font-semibold">1 235 empresas diferentes</strong>, e{' '}
@@ -115,7 +116,7 @@ export default function ObraPublicaPage() {
         </p>
         <p>Saber de que tipo é a entidade do lado de casa muda o que vale a pena fazer. E isso lê-se nos dados.</p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">As contas, sem embelezar</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">As contas, sem embelezar</h2>
         <p>
           Aqui está a parte que a maioria das ferramentas não escreve, e que é a razão de este artigo existir.
         </p>
@@ -133,7 +134,7 @@ export default function ObraPublicaPage() {
           rifa que ninguém mais na zona se deu ao trabalho de comprar.</strong>
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">O que a plataforma faz</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que a plataforma faz</h2>
         <p>
           O trabalho que separa um pintor de estar nessa lista não é difícil — é maçador, e é por isso que quase
           ninguém o faz. É preciso descobrir que entidades contratam pintura no seu concelho, com que frequência e por
@@ -156,7 +157,7 @@ export default function ObraPublicaPage() {
           mostrar, são outra coisa.
         </p>
 
-        <h2 className="pt-3 text-xl font-semibold text-slate-900">O que não se promete</h2>
+        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que não se promete</h2>
         <p>
           Não se promete um convite. Não se promete resposta. Não se promete prazo. Nenhuma entidade é obrigada a
           convidar seja quem for, e a plataforma não tem — nem quer ter — influência nessa escolha.
@@ -172,7 +173,7 @@ export default function ObraPublicaPage() {
           não de outra maneira, para que ninguém a compre a pensar que é outra coisa.
         </p>
 
-        <footer className="border-t border-slate-200 pt-6 text-[13px] leading-relaxed text-slate-500">
+        <footer className="border-t border-slate-200 pt-6 text-[14px] leading-relaxed text-slate-600">
           <p>
             Todos os números deste artigo foram medidos a {MEDIDO} sobre os contratos publicados no Portal BASE,
             através do conjunto de dados aberto do IMPIC em dados.gov.pt, que é de domínio público e actualizado
@@ -182,6 +183,31 @@ export default function ObraPublicaPage() {
           </p>
         </footer>
       </article>
+
+      {/* Os números ficavam enterrados no meio dos parágrafos, com meio ecrã vazio ao lado. Aqui
+          lêem-se de relance, ao lado do texto que os explica. No telemóvel vêm no fim, que é onde
+          fazem sentido depois de se ter lido o artigo. */}
+      <aside className="mt-10 rounded-2xl border border-slate-200 bg-white px-5 py-5 lg:sticky lg:top-6 lg:mt-0">
+        <p className="eyebrow">Em números</p>
+        <dl className="mt-3 space-y-3.5">
+          {[
+            ['62,5 M€', 'contratados pelo Estado em pintura, em 2026'],
+            ['68%', 'entregues por convite, sem anúncio público'],
+            ['94% → 68%', 'a queda do convite directo em quinze anos'],
+            ['9 393', 'contratos de pintura entre 2012 e 2026'],
+            ['795', 'entidades públicas que contratam pintura'],
+            ['199 701', 'contratos no ficheiro de 2026, para encontrar 478 de pintura'],
+            ['828 de 1 235', 'empresas convidadas uma única vez desde 2022'],
+            ['977', 'lugares de convidado por ano, em todo o país'],
+          ].map(([n, t]) => (
+            <div key={n}>
+              <dt className="text-[22px] font-semibold leading-none tabular-nums text-slate-900">{n}</dt>
+              <dd className="mt-1 text-[14px] leading-snug text-slate-600">{t}</dd>
+            </div>
+          ))}
+        </dl>
+      </aside>
+      </div>
     </main>
   );
 }

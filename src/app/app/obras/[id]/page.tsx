@@ -39,7 +39,7 @@ import {
 import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
 const del = 'text-xs text-red-700 hover:underline';
 const ORDER: Record<string, string> = { pedida: 'Pedida', confirmada: 'Venda confirmada', entregue: 'Entregue em obra', cancelada: 'Cancelada' };

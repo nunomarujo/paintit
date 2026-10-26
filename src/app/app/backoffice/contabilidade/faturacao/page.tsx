@@ -6,7 +6,7 @@ import { pendingInvoices } from '@/lib/invoicing';
 import { getUser } from '@/lib/supabase/server';
 import { EmitAllButton, EmitOneButton } from '../FaturacaoForms';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const REASON_LABELS: Record<string, string> = { comissao: 'Comissão de sucesso (pintor)', subscricao: 'Subscrição (fornecedor)', caucao_retida: 'Caução retida (cliente)' };
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 

@@ -1,7 +1,7 @@
 import { RegimeForm } from '../../contabilidade/Forms';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 // Regime de IVA e de retenção declarado por um fornecedor nos dados de pagamento (src/domain/referral.ts).
 // A equipa confirma com o contabilista antes de o fornecedor poder resgatar comissões de adesão.

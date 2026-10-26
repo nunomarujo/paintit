@@ -30,7 +30,7 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   cancelado: 'Cancelado',
 };
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 

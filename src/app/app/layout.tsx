@@ -124,11 +124,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)] print:block">
-      <aside className="print:hidden border-b border-slate-200 bg-white px-4 py-4 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-7">
+      <aside className="print:hidden border-b border-slate-200 bg-white px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
         <Link href="/app" className="block px-1 md:px-3">
           <BrandMark />
         </Link>
-        <p className="eyebrow mb-8 mt-2 hidden px-3 md:block">Empreitadas de pintura</p>
+        <p className="eyebrow mb-5 mt-2 hidden px-3 md:block">Empreitadas de pintura</p>
         <div className="mt-3 md:mt-0">
           <AppNav groups={groups} />
         </div>
@@ -161,7 +161,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </form>
           </span>
         </header>
-        <main className="mx-auto max-w-[1180px] px-4 py-8 md:px-9">
+        <main className="mx-auto max-w-[1600px] px-4 py-5 md:px-6">
           {lastWarning && (
             <p className="mb-6 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="status">
               <b>Último aviso:</b> a conta tentou partilhar contactos ou contornar a plataforma. Uma nova tentativa bloqueia-a de forma

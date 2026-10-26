@@ -25,7 +25,7 @@ import {
   type Situacao,
 } from '@/domain/etics';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 /**
  * Capoto no orçamento (pedido do promotor, 24/10/2026). Um capoto é um sistema, não um material: o

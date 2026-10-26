@@ -28,7 +28,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
   cancelado: { label: 'Cancelado', className: 'bg-red-50 text-red-800' },
 };
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
@@ -182,7 +182,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       {manager && draft && <RequestSurveyCard requestId={req.id} survey={survey} />}
 
       {(adendas ?? []).length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <SurveyAddenda addenda={adendas!} />
         </section>
       )}

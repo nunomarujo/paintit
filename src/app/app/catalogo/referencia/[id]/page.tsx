@@ -6,7 +6,7 @@ import { formatEuros } from '@/domain/money';
 import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 // Ficha de um produto de referência: características, preço por litro, vendedores e produtos para usar em conjunto.
 export default async function ReferencePage({

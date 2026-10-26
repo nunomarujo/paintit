@@ -16,7 +16,7 @@ export interface SurveyInfoView {
   minhaNota: number | null;
 }
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
 
 function msg(state: FormState) {

@@ -5,7 +5,7 @@ import { isPlanoPintor, subscriberDiscountBp, type SubscricaoPintor } from '@/do
 import { orcamentosPorEnviar } from '@/domain/quoteBoard';
 import { custoDasHoras, custoHoraEm } from '@/domain/overtime';
 import { margemDaObra } from '@/domain/margin';
-import type { Cents } from '@/domain/money';
+import { formatEuros, type Cents } from '@/domain/money';
 import { summarize } from '@/domain/worksite';
 import type { Database } from '@/lib/database.types';
 import type { IsoDate } from '@/domain/deadline';
@@ -288,15 +288,23 @@ export interface ContaDaObra {
   margem: Cents;
   /** Sem horas registadas, a margem é uma conta a meio e diz-se que é. */
   fiavel: boolean;
+  /** Tranches já recebidas do cliente. */
+  recebido: Cents;
+  /** O que falta receber: contratado menos recebido, nunca abaixo de zero. */
+  porReceber: Cents;
+  /** Trabalhos a mais aceites, já dentro do contratado, e os que ainda esperam resposta. */
+  adendasAceites: Cents;
+  adendasPendentes: Cents;
 }
 
 /** As contas de cada obra, com a mão de obra calculada sobre todas as obras (overtime.ts). */
 export async function contasDasObras(supabase: SupabaseClient<Database>, orgId: string): Promise<ContaDaObra[]> {
-  const [{ data: obras }, { data: lancamentos }, { data: fichas }, { data: custosHora }] = await Promise.all([
+  const [{ data: obras }, { data: lancamentos }, { data: fichas }, { data: custosHora }, { data: adendas }] = await Promise.all([
     supabase.from('worksites').select('id, nome, estado, valor_cents').eq('org_id', orgId).order('created_at', { ascending: false }),
-    supabase.from('worksite_entries').select('worksite_id, tipo, valor_cents, horas, member_id, data, tipo_dia, id').eq('painter_org_id', orgId),
+    supabase.from('worksite_entries').select('worksite_id, tipo, valor_cents, horas, member_id, data, tipo_dia, id, recebida_em').eq('painter_org_id', orgId),
     supabase.from('worksite_members').select('id, person_id').eq('painter_org_id', orgId),
     supabase.from('painter_person_rates').select('person_id, desde, custo_hora_cents, painter_people!inner(painter_org_id)').eq('painter_people.painter_org_id', orgId),
+    supabase.from('worksite_addenda').select('worksite_id, estado, valor_cents').eq('painter_org_id', orgId),
   ]);
 
   const pessoaDaFicha = new Map((fichas ?? []).map((f) => [f.id, f.person_id]));
@@ -334,6 +342,151 @@ export async function contasDasObras(supabase: SupabaseClient<Database>, orgId: 
       maoDeObra,
       horas: minhasHoras.reduce((n, x) => n + (x.horas ?? 0), 0),
     });
-    return { id: o.id, nome: o.nome, estado: o.estado, contrato: m.valor, custos: m.custo, margem: m.margem, fiavel: m.fiavel };
+    const recebido = minhas
+      .filter((x) => x.tipo === 'tranche' && x.recebida_em !== null)
+      .reduce((n, x) => n + (x.valor_cents ?? 0), 0);
+    const minhasAdendas = (adendas ?? []).filter((a) => a.worksite_id === o.id);
+    return {
+      id: o.id,
+      nome: o.nome,
+      estado: o.estado,
+      contrato: m.valor,
+      custos: m.custo,
+      margem: m.margem,
+      fiavel: m.fiavel,
+      recebido,
+      porReceber: Math.max(0, m.valor - recebido),
+      adendasAceites: minhasAdendas.filter((a) => a.estado === 'aceite').reduce((n, a) => n + (a.valor_cents ?? 0), 0),
+      adendasPendentes: minhasAdendas.filter((a) => a.estado === 'proposta').reduce((n, a) => n + (a.valor_cents ?? 0), 0),
+    };
   });
 }
+
+/** Uma pessoa no dia de uma obra: o que se mostra no cartão "Equipa hoje". */
+export interface PresencaDoDia {
+  memberId: string;
+  nome: string;
+  funcao: string | null;
+  /** Horas já registadas hoje nesta obra, em centésimas. Zero quando ainda não se registou. */
+  horasHoje: number;
+  /** Horas da mesma pessoa noutras obras hoje — o aviso de colisão, antes de ela existir. */
+  horasNoutras: { obra: string; horas: number }[];
+  confirmado: boolean;
+}
+
+/** O que precisa de uma decisão: cada linha é uma coisa parada à espera de alguém. */
+export interface AtencaoDaObra {
+  tipo: 'adenda' | 'horas' | 'fase';
+  titulo: string;
+  detalhe: string;
+  href: string;
+}
+
+export interface DiaDaObra {
+  presencas: PresencaDoDia[];
+  horasConfirmadas: number;
+  horasPrevistas: number;
+  atencao: AtencaoDaObra[];
+  fases: { id: string; nome: string; estado: string | null; inicio: string | null; fim: string | null }[];
+  registos: { id: string; quando: string; titulo: string; detalhe: string; tipo: string }[];
+}
+
+/**
+ * O dia de uma obra: quem lá anda, o que está à espera de decisão, em que ponto vai e o que foi
+ * registado por último.
+ *
+ * É a consulta do ecrã "Hoje", que é o ecrã que se abre todos os dias. Tudo o resto da gestão de obra
+ * é ocasional; isto é diário, e por isso traz-se numa consulta só em vez de montar o ecrã a pedaços.
+ */
+export async function diaDaObra(
+  supabase: SupabaseClient<Database>,
+  worksiteId: string,
+  orgId: string,
+  hoje: string,
+): Promise<DiaDaObra> {
+  const [{ data: fichas }, { data: pessoas }, { data: entradasHoje }, { data: obras }, { data: fases }, { data: adendas }, { data: ultimas }] =
+    await Promise.all([
+      supabase.from('worksite_members').select('id, person_id, nome, funcao').eq('worksite_id', worksiteId).eq('ativo', true).order('nome'),
+      supabase.from('painter_people').select('id, nome, funcao').eq('painter_org_id', orgId).eq('ativo', true),
+      // Hoje em todas as obras da empresa: é assim que se vê que o João já tem 4 horas noutro lado.
+      supabase.from('worksite_entries').select('member_id, worksite_id, horas').eq('painter_org_id', orgId).eq('tipo', 'horas').eq('data', hoje),
+      supabase.from('worksites').select('id, nome').eq('org_id', orgId),
+      supabase.from('worksite_phases').select('id, nome, estado, inicio, fim').eq('worksite_id', worksiteId).order('inicio', { nullsFirst: false }),
+      supabase.from('worksite_addenda').select('id, descricao, valor_cents, estado').eq('worksite_id', worksiteId),
+      supabase
+        .from('worksite_entries')
+        .select('id, tipo, data, descricao, horas, valor_cents, created_at')
+        .eq('worksite_id', worksiteId)
+        .order('created_at', { ascending: false })
+        .limit(6),
+    ]);
+
+  const nomeDaObra = new Map((obras ?? []).map((o) => [o.id, o.nome]));
+  const pessoaDe = new Map((pessoas ?? []).map((p) => [p.id, p]));
+  const fichasDaPessoa = new Map<string, string[]>();
+  for (const f of fichas ?? []) if (f.person_id) fichasDaPessoa.set(f.person_id, [...(fichasDaPessoa.get(f.person_id) ?? []), f.id]);
+
+  const presencas: PresencaDoDia[] = (fichas ?? []).map((f) => {
+    const p = f.person_id ? pessoaDe.get(f.person_id) : null;
+    const minhasFichas = f.person_id ? (fichasDaPessoa.get(f.person_id) ?? [f.id]) : [f.id];
+    const minhas = (entradasHoje ?? []).filter((e) => e.member_id && minhasFichas.includes(e.member_id));
+    const aqui = minhas.filter((e) => e.worksite_id === worksiteId);
+    return {
+      memberId: f.id,
+      nome: p?.nome ?? f.nome ?? 'Sem nome',
+      funcao: p?.funcao ?? f.funcao,
+      horasHoje: aqui.reduce((n, e) => n + (e.horas ?? 0), 0),
+      horasNoutras: minhas
+        .filter((e) => e.worksite_id !== worksiteId && (e.horas ?? 0) > 0)
+        .map((e) => ({ obra: nomeDaObra.get(e.worksite_id) ?? 'Outra obra', horas: e.horas ?? 0 })),
+      confirmado: aqui.length > 0,
+    };
+  });
+
+  const atencao: AtencaoDaObra[] = [];
+  for (const a of adendas ?? []) {
+    // Um trabalho a mais sem preço é dinheiro que o pintor já gastou e ainda não pode cobrar: é o
+    // primeiro item da lista porque é o que mais custa deixar parado.
+    if (a.valor_cents === null)
+      atencao.push({
+        tipo: 'adenda',
+        titulo: a.descricao || 'Trabalho a mais',
+        detalhe: 'O cliente pediu mais trabalho. Falta definir o preço antes de enviar.',
+        href: `/app/obras/${worksiteId}?s=adendas`,
+      });
+    else if (a.estado === 'proposta')
+      atencao.push({
+        tipo: 'adenda',
+        titulo: a.descricao || 'Trabalho a mais',
+        detalhe: 'A aguardar resposta do cliente. Ainda não entra no valor aprovado.',
+        href: `/app/obras/${worksiteId}?s=adendas`,
+      });
+  }
+  if (presencas.length > 0 && presencas.every((p) => !p.confirmado))
+    atencao.push({
+      tipo: 'horas',
+      titulo: 'O dia de hoje ainda não foi registado',
+      detalhe: `${presencas.length} ${presencas.length === 1 ? 'pessoa' : 'pessoas'} nesta obra, nenhuma hora confirmada.`,
+      href: `/app/obras/${worksiteId}?s=dia`,
+    });
+
+  return {
+    presencas,
+    horasConfirmadas: presencas.reduce((n, p) => n + p.horasHoje, 0),
+    horasPrevistas: presencas.length * 800,
+    atencao,
+    fases: fases ?? [],
+    registos: (ultimas ?? []).map((e) => ({
+      id: e.id,
+      quando: e.data,
+      tipo: e.tipo,
+      titulo:
+        e.tipo === 'horas'
+          ? `${formatHorasBreve(e.horas ?? 0)} h registadas`
+          : e.descricao || (e.tipo === 'custo' ? 'Despesa' : 'Registo'),
+      detalhe: e.tipo === 'horas' ? (e.descricao ?? '') : e.valor_cents !== null ? formatEuros(e.valor_cents) : '',
+    })),
+  };
+}
+
+const formatHorasBreve = (centesimas: number) => (centesimas / 100).toLocaleString('pt-PT', { maximumFractionDigits: 1 });

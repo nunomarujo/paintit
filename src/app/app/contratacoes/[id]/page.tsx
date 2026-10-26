@@ -18,7 +18,7 @@ import { PdfSign } from './PdfSign';
 import { PayButton } from './PayButton';
 import { stripeConfigured } from '@/lib/stripe';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
 const euros = (c: number) => (c / 100).toFixed(2).replace('.', ',');
 const dt = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });

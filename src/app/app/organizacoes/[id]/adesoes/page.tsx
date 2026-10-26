@@ -11,7 +11,7 @@ const COMPANY_NIF = COMPANY.nif;
 import { cancelRedemption, setReferralActive } from './actions';
 import { InvoiceForm, NewCodeForm, PayoutDetailsForm, RedeemButton } from './Forms';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const ptDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
 
 export default async function ReferralPage({ params }: { params: Promise<{ id: string }> }) {

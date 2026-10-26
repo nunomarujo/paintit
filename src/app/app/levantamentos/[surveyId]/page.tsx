@@ -13,7 +13,7 @@ import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { SurveyWorkspace } from './SurveyWorkspace';
 import { ConcludeButton, ContactForm } from './ContactForm';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 export default async function SurveyWorkspacePage({ params }: { params: Promise<{ surveyId: string }> }) {
   const { surveyId } = await params;

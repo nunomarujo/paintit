@@ -4,7 +4,7 @@ import { getUser } from '@/lib/supabase/server';
 import { reconcile } from '@/domain/accounting/reconcile';
 import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 const ORIGINS: Record<string, string> = {
   stripe_comissao: 'Comissão do pintor',

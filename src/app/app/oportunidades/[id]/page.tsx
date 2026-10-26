@@ -36,7 +36,7 @@ import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 import { Workspace } from '@/components/Workspace';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
 
 const STATUS: Record<string, string> = {
@@ -79,7 +79,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
           ← Oportunidades
         </Link>
         {listing && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
             <p className="font-semibold">
               {WORK_TYPE_LABELS[listing.tipo_obra]} · {listing.concelho}
             </p>

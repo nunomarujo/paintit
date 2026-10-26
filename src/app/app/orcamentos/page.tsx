@@ -113,7 +113,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           {doGrupo.length === 0 ? (
             <p className="mt-3 text-sm text-slate-600">Nada aqui.</p>
           ) : (
-            <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
               {doGrupo.map((q) => (
                 <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
                   <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">

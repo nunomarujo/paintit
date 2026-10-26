@@ -39,7 +39,7 @@ export default async function EngagementsPage() {
           Ainda não há contratações. Uma contratação começa quando o cliente escolhe uma proposta.
         </p>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+        <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
           {items.map(({ r, e, pending }) => (
             <li key={r.id}>
               <Link href={`/app/contratacoes/${r.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">

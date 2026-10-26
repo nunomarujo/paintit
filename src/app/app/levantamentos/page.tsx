@@ -5,7 +5,7 @@ import { getUser } from '@/lib/supabase/server';
 import { CoverageForm, RedeemButton, SurveyInvoiceForm } from './Forms';
 import { ReserveButton } from './ReserveButton';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const dt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' }) : '—');
 
 const STATUS_LABEL: Record<string, string> = {

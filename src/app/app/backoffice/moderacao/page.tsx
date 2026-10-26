@@ -2,7 +2,7 @@ import { getUser } from '@/lib/supabase/server';
 import { AppealForm } from '../AppealForm';
 import { emailsOf } from './data';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 export default async function AppealsPage() {
   const { supabase } = await getUser();

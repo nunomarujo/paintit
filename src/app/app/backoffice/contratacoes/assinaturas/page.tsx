@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 export default async function SignaturesPage() {
   const { supabase } = await getUser();

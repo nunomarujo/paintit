@@ -5,7 +5,7 @@ import { formatEuros } from '@/domain/money';
 import { loadReplay } from '@/lib/engagements';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const dt = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
 
 // Conciliação (ADM-25): o que está retido no parceiro, o que a plataforma

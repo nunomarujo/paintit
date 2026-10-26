@@ -3,7 +3,7 @@ import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 import { ReviewForm } from './ReviewForm';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 // Pedido de revisão do segundo aviso por tentativas de partilhar contactos (src/domain/strikes.ts).
 export default async function ReviewPage() {

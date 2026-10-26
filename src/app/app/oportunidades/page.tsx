@@ -89,7 +89,7 @@ export default async function OpportunitiesPage({
       {!listings || listings.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Não há pedidos abertos com estes filtros.</p>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+        <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
           {sortedListings.map((l) => (
             <li key={l.request_id}>
               <Link href={`/app/oportunidades/${l.request_id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">

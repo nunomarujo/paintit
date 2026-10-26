@@ -9,7 +9,7 @@ import { getUser } from '@/lib/supabase/server';
 import { NewInviteForm } from './Forms';
 import { setInviteActive } from './actions';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const ptDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
 const todayIso = () => new Date().toISOString().slice(0, 10) as IsoDate;
 

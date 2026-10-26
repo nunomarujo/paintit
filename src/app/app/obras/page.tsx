@@ -5,9 +5,11 @@ import { formatHoras } from '@/domain/dayLog';
 import { formatEuros } from '@/domain/money';
 import { WORKSITE_STATE_LABELS, formatQuantidade, saldos, type Consumivel, type Movimento } from '@/domain/worksites';
 import { temPro } from '@/domain/painterPlan';
-import { contasDasObras, equipaDaEmpresa, painterOrgs, painterSubscription } from '@/lib/queries';
+import { contasDasObras, diaDaObra, equipaDaEmpresa, painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { CreateWorksite } from './WorksiteForms';
+import { Hoje } from './Hoje';
+import { Contas } from './Contas';
 
 /**
  * As obras da empresa — as que vieram da plataforma e as que são dela, ganhas por fora.
@@ -16,8 +18,8 @@ import { CreateWorksite } from './WorksiteForms';
  * toda a gente: as ferramentas existiam no código e não existiam para o utilizador. A decisão do
  * promotor foi explícita — estas ferramentas devem funcionar mesmo sem obra ganha na plataforma.
  */
-export default async function WorksitesPage({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
-  const { ver } = await searchParams;
+export default async function WorksitesPage({ searchParams }: { searchParams: Promise<{ ver?: string; obra?: string }> }) {
+  const { ver, obra: obraPedida } = await searchParams;
   const vista = ver === 'equipa' || ver === 'contas' ? ver : 'hoje';
   const { supabase, user } = await getUser();
   const orgs = await painterOrgs(supabase, user!.id);
@@ -45,20 +47,27 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
   const equipa = org && vista === 'equipa' ? await equipaDaEmpresa(supabase, org.id, hojeData) : [];
   const contas = org && vista === 'contas' ? await contasDasObras(supabase, org.id) : [];
 
+  // A obra do ecrã "Hoje": a pedida, senão a primeira em curso, senão a mais recente. O encarregado
+  // que anda numa obra só nunca vê o selector; quem anda em três troca sem sair do ecrã.
+  const aVer = (obraPedida && (obras ?? []).find((o) => o.id === obraPedida)) ?? emCurso[0] ?? (obras ?? [])[0] ?? null;
+  const dia = org && aVer && vista === 'hoje' ? await diaDaObra(supabase, aVer.id, org.id, hojeData) : null;
+
   return (
     <div className="space-y-5">
+      {vista !== 'hoje' && (
       <div>
-        <h1 className="text-2xl font-semibold">
-          {vista === 'equipa' ? 'Equipa' : vista === 'contas' ? 'Contas' : 'Gestão de obra'}
+        <h1 className="text-[28px] font-semibold leading-tight">
+          {vista === 'equipa' ? 'Equipa' : 'Contas'}
         </h1>
         <p className="mt-1 max-w-[75ch] text-sm text-slate-600">
           {vista === 'equipa'
             ? 'Quem anda em que obra e quantas horas fez. As pessoas são da empresa e podem estar em várias obras.'
             : vista === 'contas'
               ? 'O que cada obra contratou, o que já custou e o que sobra. A mão de obra conta as horas extraordinárias pela lei.'
-              : `Todas as obras da empresa, venham ou não da Quem Pinta. ${emCurso.length > 0 ? `${emCurso.length} em curso.` : 'Nenhuma em curso.'}`}
+              : ''}
         </p>
       </div>
+      )}
 
       {vista === 'equipa' && (
         <section>
@@ -94,34 +103,16 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
         </section>
       )}
 
-      {vista === 'contas' && (
-        <section>
-          {contas.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">Ainda não há obras.</p>
-          ) : (
-            <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              {contas.map((c) => (
-                <li key={c.id}>
-                  <Link href={`/app/obras/${c.id}`} className="block px-4 py-3 hover:bg-slate-50">
-                    <div className="flex flex-wrap items-baseline justify-between gap-3">
-                      <span className="font-semibold text-slate-900">{c.nome}</span>
-                      <span className={`tabular-nums ${c.margem < 0 ? 'text-red-700' : 'text-slate-900'}`}>
-                        {formatEuros(c.margem)}
-                      </span>
-                    </div>
-                    <p className="text-[12.5px] text-slate-600">
-                      {formatEuros(c.contrato)} contratados · {formatEuros(c.custos)} de custo
-                      {!c.fiavel && ' · sem horas registadas, a conta está a meio'}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {vista === 'contas' && <Contas contas={contas} />}
 
       {vista === 'hoje' && (<>
+      {aVer && dia && (
+        <Hoje
+          obras={(obras ?? []).map((o) => ({ id: o.id, nome: o.nome, estado: o.estado }))}
+          obra={{ id: aVer.id, nome: aVer.nome, local: aVer.local, estado: aVer.estado }}
+          dia={dia}
+        />
+      )}
       {/* O cofre com avisos de validade é do plano Pro (25/10/2026). Quem não subscreve vê o que é e
           o que lhe pouparia, em vez de um espaço vazio sem explicação. */}
       {org && pro && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
@@ -165,7 +156,8 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <h2 className="pt-2 text-[17px] font-semibold text-slate-900">As suas obras</h2>
+          <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
             {(obras ?? []).map((o) => (
               <li key={o.id}>
                 <Link href={`/app/obras/${o.id}`} className="block px-4 py-3 hover:bg-slate-50">

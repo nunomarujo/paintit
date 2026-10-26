@@ -2,7 +2,7 @@ import { InvitePainter } from '@/components/ExtrasForms';
 import { formatArea } from '@/domain/request';
 import { getUser } from '@/lib/supabase/server';
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-6';
+const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
 // ADM-07: pedidos abertos com menos de três propostas, para convidar pintores.
 export default async function FewProposalsPage() {

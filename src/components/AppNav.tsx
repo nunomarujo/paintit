@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 export interface NavItem {
@@ -48,45 +49,48 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
       {groups.map((g) => (
         <div key={g.title} className="flex gap-1 md:block md:space-y-0.5">
           <p className="eyebrow hidden px-3 pb-2 md:block">{g.title}</p>
-          {g.items.map((i) => (
-            <Link
-              key={i.href}
-              href={i.href}
-              aria-current={active(i) ? 'page' : undefined}
-              className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[13px] ${
-                active(i) ? 'bg-sage font-semibold text-tinta-600' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-              }`}
-            >
-              {i.label}
-              {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 text-[10px] font-semibold text-white">{i.count}</span> : null}
-            </Link>
-          ))}
-          {g.items
-            .filter((i) => active(i) && i.children?.length)
-            .map((i) => {
-              const algumBate = i.children!.some((c) => !c.padrao && activeChild(c.href));
-              const activo = (c: { href: string; padrao?: boolean }) =>
-                c.padrao ? !algumBate && activeChild(c.href) : activeChild(c.href);
-              return (
-              // A régua fica no grupo e não em cada item: uma linha por item sai partida nos
-              // espaços entre eles. No telemóvel não há régua, que a barra corre na horizontal.
-              <div key={`${i.href}-filhos`} className="flex gap-1 md:ml-3 md:block md:border-l md:border-slate-200">
-                {i.children!.map((c) => (
-                  <Link
-                    key={c.href}
-                    href={c.href}
-                    aria-current={activo(c) ? 'page' : undefined}
-                    className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[12.5px] md:pl-4 ${
-                      activo(c) ? 'font-semibold text-tinta-700' : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
-                    {c.label}
-                  </Link>
-                ))}
-              </div>
-              );
-            })}
+          {g.items.map((i) => {
+            const aberto = active(i) && !!i.children?.length;
+            // Os filhos saem logo a seguir ao item a que pertencem. Estiveram a ser desenhados
+            // depois da lista toda do grupo, o que os punha debaixo do último item — "Hoje, Equipa,
+            // Contas" apareciam sob "Referências de fornecedores" (26/10/2026).
+            const algumBate = aberto && i.children!.some((c) => !c.padrao && activeChild(c.href));
+            const activo = (c: { href: string; padrao?: boolean }) =>
+              c.padrao ? !algumBate && activeChild(c.href) : activeChild(c.href);
+            return (
+              <Fragment key={i.href}>
+                <Link
+                  href={i.href}
+                  aria-current={active(i) ? 'page' : undefined}
+                  className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[15px] ${
+                    active(i) ? 'bg-sage font-semibold text-tinta-600' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  {i.label}
+                  {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">{i.count}</span> : null}
+                </Link>
+                {aberto && (
+                  // A régua acompanha só os filhos deste item. No telemóvel não há régua, que a
+                  // barra corre na horizontal.
+                  <div className="flex gap-1 md:ml-3 md:block md:space-y-0.5 md:border-l md:border-slate-200">
+                    {i.children!.map((c) => (
+                      <Link
+                        key={c.href}
+                        href={c.href}
+                        aria-current={activo(c) ? 'page' : undefined}
+                        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[14px] md:pl-4 ${
+                          activo(c) ? 'font-semibold text-tinta-700' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
+                        {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </Fragment>
+            );
+          })}
         </div>
       ))}
     </nav>
