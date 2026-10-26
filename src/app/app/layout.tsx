@@ -10,6 +10,28 @@ import { isPlatformAdmin } from '@/lib/access';
 import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
+import {
+  IconHome,
+  IconClipboard,
+  IconFlag,
+  IconReceipt,
+  IconDocCheck,
+  IconBox,
+  IconSearch,
+  IconRoller,
+  IconHardHat,
+  IconCard,
+  IconLink,
+  IconTag,
+  IconUsers,
+  IconPercent,
+  IconGauge,
+  IconInbox,
+  IconBuilding,
+  IconScale,
+  IconCalculator,
+  IconServer,
+} from '@/components/NavIcons';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { supabase, user } = await getUser();
@@ -36,8 +58,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const porEnviar = pintorId ? await contarOrcamentosPorEnviar(supabase, pintorId) : 0;
 
   // Cada conta vê o que lhe diz respeito; uma conta sem entidades vê só o início.
-  const work: NavItem[] = [{ href: '/app', label: 'Início', count: unread ?? 0 }];
-  if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento' });
+  const work: NavItem[] = [{ href: '/app', label: 'Início', icon: IconHome, count: unread ?? 0 }];
+  if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: IconClipboard });
   // Ganhar obra é uma intenção só, com três origens: os pedidos de clientes que entram pela
   // plataforma, o mapa de quem contrata pintura no sector público, e os concursos que são anunciados.
   //
@@ -49,6 +71,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     work.push({
       href: '/app/oportunidades',
       label: 'Ganhar obra',
+      icon: IconFlag,
       children: [
         { href: '/app/oportunidades', label: 'Pedidos de clientes', padrao: true },
         { href: '/app/obras-publicas', label: 'Obra pública · quem contrata' },
@@ -60,6 +83,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     work.push({
       href: '/app/orcamentos',
       label: 'Orçamentos',
+      icon: IconReceipt,
       children: [
         { href: '/app/orcamentos?ver=novo', label: 'Novo orçamento' },
         { href: '/app/orcamentos?ver=feitos&grupo=preenchimento', label: 'Em preenchimento', aviso: porEnviar > 0 },
@@ -67,47 +91,48 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/orcamentos?ver=feitos&grupo=arquivo', label: 'Arquivo' },
       ],
     });
-  if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações' });
-  if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas' });
-  if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos' });
-  const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais' }] : [];
+  if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações', icon: IconDocCheck });
+  if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas', icon: IconBox });
+  if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: IconSearch });
+  const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais', icon: IconRoller }] : [];
   if (kinds.has('pintor')) {
     more.push({
       href: '/app/obras',
       label: 'Gestão de obra',
+      icon: IconHardHat,
       children: [
         { href: '/app/obras?ver=hoje', label: 'Hoje', padrao: true },
         { href: '/app/obras?ver=equipa', label: 'Equipa' },
         { href: '/app/obras?ver=contas', label: 'Contas' },
       ],
     });
-    more.push({ href: '/app/subscricao', label: 'Planos & Subscrições' });
+    more.push({ href: '/app/subscricao', label: 'Planos & Subscrições', icon: IconCard });
     // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
     // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.
     // Este link apontava por erro para a entidade do fornecedor (abaixo), onde dava sempre 404 — link
     // partido encontrado na auditoria de UX de 23/10/2026. Uma conta de pintor é sempre uma só empresa
     // (allowedOrgKinds em organization.ts), por isso usa-se o mesmo padrão de `fornecedorId` abaixo.
     const pintorId = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations.id;
-    if (pintorId) more.push({ href: `/app/organizacoes/${pintorId}/referencias`, label: 'Referências de fornecedores' });
+    if (pintorId) more.push({ href: `/app/organizacoes/${pintorId}/referencias`, label: 'Referências de fornecedores', icon: IconLink });
   }
   if (fornecedorId) {
     more.push(
-      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos' },
-      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes' },
-      { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão' },
+      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos', icon: IconTag },
+      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes', icon: IconUsers },
+      { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão', icon: IconPercent },
     );
   }
   // Equipa da plataforma: o backoffice organizado por secções, com o que espera por uma pessoa em cada uma.
   const q = admin ? await queueCounts(supabase) : null;
   const backoffice: NavItem[] = q
     ? [
-        { href: '/app/backoffice', label: 'Painel', exact: true },
-        { href: '/app/backoffice/pedidos', label: 'Pedidos', count: q.denuncias + q.fotografias },
-        { href: '/app/backoffice/entidades', label: 'Entidades', count: q.documentos + q.regimes },
-        { href: '/app/backoffice/contratacoes', label: 'Contratações' },
-        { href: '/app/backoffice/moderacao', label: 'Moderação', count: q.revisoes },
-        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', count: q.resgates + q.banco },
-        { href: '/app/backoffice/sistema', label: 'Sistema' },
+        { href: '/app/backoffice', label: 'Painel', icon: IconGauge, exact: true },
+        { href: '/app/backoffice/pedidos', label: 'Pedidos', icon: IconInbox, count: q.denuncias + q.fotografias },
+        { href: '/app/backoffice/entidades', label: 'Entidades', icon: IconBuilding, count: q.documentos + q.regimes },
+        { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: IconDocCheck },
+        { href: '/app/backoffice/moderacao', label: 'Moderação', icon: IconScale, count: q.revisoes },
+        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: IconCalculator, count: q.resgates + q.banco },
+        { href: '/app/backoffice/sistema', label: 'Sistema', icon: IconServer },
       ]
     : [];
   // Uma conta só de equipa (sem entidades) vê só o backoffice.
@@ -125,21 +150,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)] print:block">
-      <aside className="print:hidden border-b border-slate-200 bg-white px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
+      <aside className="print:hidden border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
         <Link href="/app" className="block px-1 md:px-3">
-          <BrandMark />
+          <BrandMark tone="marca" />
         </Link>
-        <p className="eyebrow mb-5 mt-2 hidden px-3 md:block">Empreitadas de pintura</p>
+        <p className="eyebrow mb-5 mt-2 hidden px-3 text-marca-muted md:block">Empreitadas de pintura</p>
         <div className="mt-3 md:mt-0">
           <AppNav groups={groups} />
         </div>
-        <div className="mt-auto hidden border-t border-slate-200 px-3 pt-5 text-[17px] md:block">
-          <Link href="/app/perfil" className="block truncate font-semibold text-slate-900 hover:underline">
+        <div className="mt-auto hidden border-t border-marca-border px-3 pt-5 text-[17px] md:block">
+          <Link href="/app/perfil" className="block truncate font-semibold text-marca-ink hover:underline">
             {user.email}
           </Link>
-          <p className="mt-1 text-[15px] text-slate-500">Do pedido à última demão.</p>
+          <p className="mt-1 text-[15px] text-marca-muted">Do pedido à última demão.</p>
           <form action={leave} className="mt-3">
-            <button type="submit" className="text-[17px] font-semibold text-tinta-600 hover:underline">
+            <button type="submit" className="text-[17px] font-semibold text-marca-orange-deep hover:underline">
               Sair
             </button>
           </form>

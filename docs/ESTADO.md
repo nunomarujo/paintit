@@ -1,6 +1,9 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, de madrugada (**Gestão de obra refeita** segundo o protótipo do promotor,
+Atualizado a 26/10/2026, à tarde (**barra lateral com ícone por item** e **primeiro passo da paleta de
+marca** — ink/creme/laranja, começando pela barra lateral e com o laranja só no crachá de avisos e no
+ícone ativo; `docs/DECISOES.md`, entrada "Barra lateral: ícone por item..."). Estado anterior,
+26/10/2026, de madrugada (**Gestão de obra refeita** segundo o protótipo do promotor,
 **letra maior em todo o site** depois de uma auditoria por três agentes, **mapa de contratos públicos
 carregado** com 15 anos e somado na base, e o **artigo `/obra-publica`** publicado — secção 6.13).
 Estado anterior, 25/10/2026, fim do dia (**Mapa de Contratos Públicos** construído, e um número de venda

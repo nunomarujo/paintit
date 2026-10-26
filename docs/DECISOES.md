@@ -4,6 +4,45 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — Barra lateral: ícone por item, e primeiro passo da paleta de marca
+
+Pedido do promotor, depois de uma auditoria de UI/UX a capturas de ecrã da app (sessão desta tarde):
+"o design está todo rasca e mal feito... começando pela reorganização dos separadores do lado
+esquerdo". A auditoria não encontrou só bugs (encoding partido no Mapa de Contratos Públicos,
+`chefe_equipa` por traduzir em Equipa — ambos já geridos à parte) mas uma falta de identidade visual:
+nenhum ecrã tinha cor nenhuma que falasse de pintura.
+
+**Ícone por item, traço próprio (sem dependência nova).** `src/components/NavIcons.tsx` — 20 ícones
+desenhados à mão no mesmo espírito do prédio do `BrandMark.tsx` (`viewBox 0 0 24 24`, traço 1.6,
+`currentColor`, sem biblioteca de terceiros). Um rolo de pintura para Catálogo de materiais, um
+capacete para Gestão de obra, uma bandeira para Ganhar obra — não ícones genéricos de qualquer SaaS.
+`NavItem` ganhou o campo opcional `icon` (`src/components/AppNav.tsx`).
+
+**A pergunta sobre a paleta, feita e respondida.** `docs/DECISOES.md` de 25/10/2026 tinha deixado em
+aberto, para o promotor, se a paleta de marca nova (`--ink #1F3D2E`, `--cream #F6F2E9`, laranja
+`#E07B39`/`#C7601F`, já na página de Planos) devia migrar para o resto da app, ou se a página de
+Planos ficava diferente das outras. Perguntado antes de tocar em código (`AskUserQuestion`):
+**começar a migração pela barra lateral** — é a superfície mais visível, e a decisão fica reversível
+sem arrastar o resto da app atrás de si. `BrandMark.tsx` ganhou a prop `tone` (`'tinta'` por omissão,
+nas outras 6 páginas que o usam; `'marca'` só na barra lateral) em vez de reescrever o componente —
+as outras páginas não mudam de cor por causa disto.
+
+**Onde o laranja entra, e só aí:** o crachá de avisos por ler e o ícone do item ativo. O resto da
+barra fica em creme + verde-escuro (fundo do item ativo em creme, texto em ink), para não gastar o
+único acento em toda a parte — o "gastar a ousadia num só sítio" já era o problema a evitar. Os
+rótulos de grupo (`Área de trabalho`, `Recursos`) mantêm o estilo de "eyebrow" (maiúsculas, traço
+largo) só recoloridos para a paleta nova — é orientação estrutural persistente, não um título de
+secção de marketing, por isso não se mexeu na classe `.eyebrow` partilhada pelo resto da app.
+
+**Verificado antes de declarar feito** (regras 7/8 do `CLAUDE.md`): `npm test` (804 testes, 1 skip),
+`typecheck`, `lint`, `build` — os quatro a 0. Pré-visualização visual à parte, com o CSS a sério do
+projeto compilado por `npx tailwindcss` e screenshot por Playwright contra um ficheiro isolado (nunca
+dentro do repositório) — confirma contraste e alinhamento antes de mostrar ao promotor.
+
+**Por fazer, fora do âmbito de hoje:** o resto da aplicação continua na paleta antiga (tinta/sálvia).
+Migrar mais ecrãs é decisão à parte, a pedir sempre que chegar a vez de cada um — não decidida aqui
+de uma vez por todas.
+
 ## 26/10/2026 — Letra maior em todo o lado, e a Gestão de obra refeita
 
 Três coisas, pedidas pelo promotor na mesma noite.

@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment } from 'react';
+import { Fragment, type ComponentType, type SVGProps } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 export interface NavItem {
   href: string;
   label: string;
+  /** Ícone do item (src/components/NavIcons.tsx) — lê-se a lista pela forma antes do texto. */
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
   /** Contagem a mostrar (ex.: avisos por ler). */
   count?: number;
   /** Só fica ativo no endereço exato (ex.: o painel, que é o início de uma secção com subpáginas). */
@@ -55,7 +57,7 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
     <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto md:block md:space-y-6 md:overflow-visible">
       {groups.map((g) => (
         <div key={g.title} className="flex gap-1 md:block md:space-y-0.5">
-          <p className="eyebrow hidden px-3 pb-2 md:block">{g.title}</p>
+          <p className="eyebrow hidden px-3 pb-2 text-marca-muted md:block">{g.title}</p>
           {g.items.map((i) => {
             const aberto = active(i) && !!i.children?.length;
             // Os filhos saem logo a seguir ao item a que pertencem. Estiveram a ser desenhados
@@ -64,29 +66,35 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
             const algumBate = aberto && i.children!.some((c) => !c.padrao && activeChild(c.href));
             const activo = (c: { href: string; padrao?: boolean }) =>
               c.padrao ? !algumBate && activeChild(c.href) : activeChild(c.href);
+            const Icon = i.icon;
             return (
               <Fragment key={i.href}>
                 <Link
                   href={i.href}
                   aria-current={active(i) ? 'page' : undefined}
                   className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[15px] ${
-                    active(i) ? 'bg-sage font-semibold text-tinta-600' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    active(i)
+                      ? 'bg-marca-cream font-semibold text-marca-ink'
+                      : 'text-marca-muted hover:bg-marca-cream/60 hover:text-marca-ink'
                   }`}
                 >
-                  {i.label}
-                  {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
+                  <span className="flex items-center gap-2.5">
+                    {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-marca-orange-deep' : 'text-marca-muted/80'}`} />}
+                    {i.label}
+                  </span>
+                  {i.count ? <span className="rounded-full bg-marca-orange-deep px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
                 </Link>
                 {aberto && (
                   // A régua acompanha só os filhos deste item. No telemóvel não há régua, que a
                   // barra corre na horizontal.
-                  <div className="flex gap-1 md:ml-3 md:block md:space-y-0.5 md:border-l md:border-slate-200">
+                  <div className="flex gap-1 md:ml-3 md:block md:space-y-0.5 md:border-l md:border-marca-border">
                     {i.children!.map((c) => (
                       <Link
                         key={c.href}
                         href={c.href}
                         aria-current={activo(c) ? 'page' : undefined}
                         className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[15px] md:pl-4 ${
-                          activo(c) ? 'font-semibold text-tinta-700' : 'text-slate-600 hover:text-slate-900'
+                          activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
                         }`}
                       >
                         {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
