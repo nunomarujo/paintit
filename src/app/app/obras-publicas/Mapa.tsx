@@ -1,16 +1,9 @@
 import Link from 'next/link';
-import { formatEuros, formatEurosCurto } from '@/domain/money';
-import {
-  ANOS_DO_MAPA,
-  concentraConvites,
-  ordenarEntidades,
-  temHabito,
-  type Mapa as DadosDoMapa,
-} from '@/domain/mapaContratos';
+import { formatEurosCurto } from '@/domain/money';
+import { ANOS_DO_MAPA, type Mapa as DadosDoMapa } from '@/domain/mapaContratos';
+import { ListaDeEntidades } from './ListaDeEntidades';
 import type { Database } from '@/lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
 /**
  * Mapa de contratos públicos. Responde a uma pergunta que nenhuma lista de concursos responde:
@@ -112,7 +105,6 @@ export function MapaView({
   }
 
   const { resumo: r, convidados, presenca: eu } = m;
-  const entidades = ordenarEntidades(m.entidades);
   const anos = r.anos.length > 1 ? `${r.anos[0]}–${r.anos.at(-1)}` : String(r.anos[0] ?? '');
 
   return (
@@ -144,46 +136,7 @@ export function MapaView({
         </div>
       )}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-3">
-          <p className="eyebrow">Quem contrata pintura</p>
-          <p className="mt-1 text-[15px] text-slate-600">Por ordem de frequência: primeiro quem contrata mais vezes.</p>
-        </div>
-        <ul className="divide-y divide-slate-100">
-          {entidades.map((e) => (
-            <li key={e.chave} className="px-5 py-3.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="min-w-0 text-[17px] font-semibold text-slate-900">{e.nome}</p>
-                <p className="text-[17px] tabular-nums text-slate-600">
-                  {e.contratos} {e.contratos === 1 ? 'contrato' : 'contratos'} · {formatEurosCurto(e.totalCents)}
-                </p>
-              </div>
-              <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
-                {/* "Costuma pagar" com um ou dois contratos é uma ocorrência a fingir de hábito. */}
-                {temHabito(e) ? 'Costuma pagar' : e.contratos === 1 ? 'Pagou' : 'Pagou, em média,'}{' '}
-                {formatEuros(e.medianaCents)}
-                {e.porConvite > 0 && (
-                  <>
-                    {' · '}
-                    {e.porConvite} de {e.contratos} por convite
-                    {e.conviteUnico > 0 && `, ${e.conviteUnico} a uma empresa só`}
-                    {e.semLista > 0 &&
-                      (e.semLista === e.porConvite ? ', sem lista publicada' : `, ${e.semLista} sem lista publicada`)}
-                  </>
-                )}
-                {e.ultimo && ` · último em ${dataPt(e.ultimo)}`}
-                {e.concelhos.length > 0 &&
-                  ` · ${e.concelhos.slice(0, 3).join(', ')}${e.concelhos.length > 3 ? ` e mais ${e.concelhos.length - 3}` : ''}`}
-              </p>
-              {concentraConvites(e) && (
-                <p className="mt-1 text-[15px] font-semibold text-amber-800">
-                  Metade ou mais dos convites desta entidade foram a uma empresa só — aqui, estar na lista decide.
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ListaDeEntidades todas={m.entidades} nif={nif} />
 
       {convidados.length > 0 && (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
