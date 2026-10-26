@@ -41,11 +41,12 @@ empresa, não o email, só para pintor/fornecedor; ficha da entidade reorganizad
 Dados da entidade [cartão editável + palavra-passe + mudança de mail de acesso], Documentos, Equipa
 online [agora com troca de papel entre colegas, via política de RLS nova `org_members_update`, e um
 quadro do que cada papel pode fazer]; CAE da nif.pt aproveitado para um aviso âmbar não bloqueante de
-elegibilidade para pintura/construção, nos Orçamentos e na ficha. **Em aberto:** a migração
-`20261026210000_cae_e_gestao_de_acesso` está escrita e testada mas não foi aplicada à base real — o
-classificador desta sessão recusou `apply_migration` ("Production Deploy"); o promotor tem de a aplicar
-no Supabase antes de confiar no CAE e na troca de papel em produção — `docs/DECISOES.md`, entrada
-"'O meu Perfil': cartão na barra lateral..."). Estado anterior, 26/10/2026, ao fim da noite (**o mapa
+elegibilidade para pintura/construção, nos Orçamentos e na ficha. **Resolvido a 26/10/2026, à tarde:** a migração
+do CAE e da gestão de acesso ficou por aplicar nessa sessão (o classificador recusou
+`apply_migration`) e foi aplicada agora à base real; o Supabase registou-a como
+`20261026145117` e o ficheiro passou a ter esse nome. As colunas `organizations.cae` e
+`cae_atividade` existem, a política `org_members_update` existe, e os avisos de segurança e
+desempenho não mudaram — `docs/DECISOES.md`, entrada "'O meu Perfil': cartão na barra lateral..."). Estado anterior, 26/10/2026, ao fim da noite (**o mapa
 de contratos públicos ganhou cabeçalho de busca** — caixa de procura com sugestões tiradas dos próprios
 dados, filtro por tipo de entidade, filtro por concelho e quatro ordens; e **abre no distrito da sede da
 empresa** em vez de abrir no país inteiro, deduzido do código postal pelo serviço dos CTT que a app já
