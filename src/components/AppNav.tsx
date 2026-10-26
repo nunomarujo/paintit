@@ -35,7 +35,14 @@ export interface NavItem {
 export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }[] }) {
   const path = usePathname();
   const params = useSearchParams();
-  const active = (i: NavItem) => (i.href === '/app' || i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
+  const dentro = (href: string) => path === href || path.startsWith(`${href}/`);
+  // Um item fica activo pelo seu próprio endereço ou pelo de qualquer filho: "Ganhar obra" vive em
+  // /app/oportunidades mas tem filhos em /app/obras-publicas, e sem isto o grupo fechava-se ao
+  // entrar num deles (26/10/2026).
+  const active = (i: NavItem) =>
+    i.href === '/app' || i.exact
+      ? path === i.href
+      : dentro(i.href) || (i.children ?? []).some((c) => dentro(c.href.split('?')[0]!));
   // Um filho fica activo quando o endereço bate e todos os parâmetros dele também: é assim que
   // "?ver=feitos&grupo=enviados" se distingue de "?ver=novo" sem páginas novas.
   const activeChild = (href: string) => {

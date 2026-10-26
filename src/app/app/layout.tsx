@@ -38,20 +38,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Cada conta vê o que lhe diz respeito; uma conta sem entidades vê só o início.
   const work: NavItem[] = [{ href: '/app', label: 'Início', count: unread ?? 0 }];
   if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento' });
-  if (kinds.has('pintor')) work.push({ href: '/app/oportunidades', label: 'Oportunidades' });
-  // Obra pública e obra privada são a mesma intenção — ganhar obra — com origens diferentes, por isso
-  // fica ao lado de Oportunidades e não perdida nos recursos (desenho de 25/10/2026).
+  // Ganhar obra é uma intenção só, com três origens: os pedidos de clientes que entram pela
+  // plataforma, o mapa de quem contrata pintura no sector público, e os concursos que são anunciados.
   //
-  // O nome mudou de "Obras públicas" para o mapa: dois terços das empreitadas de pintura do Estado são
-  // adjudicadas por convite, sem concurso nenhum, e é o mapa de quem contrata — não a lista de
-  // concursos abertos — que mostra esse mercado. Os concursos passam a vista de dentro.
+  // O mapa esteve um dia como separador de primeiro nível. Desceu a 26/10/2026, por decisão do
+  // promotor: "ninguém lhe dá a relevância que tencionavas e, de facto, não tem". É verdade e está
+  // medido — são cerca de 977 lugares de convidado por ano em todo o país (ver /obra-publica), e eu
+  // tinha-lhe dado um lugar que esse número não sustenta.
   if (kinds.has('pintor'))
     work.push({
-      href: '/app/obras-publicas',
-      label: 'Mapa de contratos públicos',
+      href: '/app/oportunidades',
+      label: 'Ganhar obra',
       children: [
-        { href: '/app/obras-publicas', label: 'Quem contrata', padrao: true },
-        { href: '/app/obras-publicas?ver=concursos', label: 'Concursos abertos' },
+        { href: '/app/oportunidades', label: 'Pedidos de clientes', padrao: true },
+        { href: '/app/obras-publicas', label: 'Obra pública · quem contrata' },
+        { href: '/app/obras-publicas?ver=concursos', label: 'Obra pública · concursos' },
       ],
     });
   // Os orçamentos a clientes próprios são trabalho diário, não um recurso: ficam na área de trabalho.
@@ -80,7 +81,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/obras?ver=contas', label: 'Contas' },
       ],
     });
-    more.push({ href: '/app/subscricao', label: 'Plano da empresa' });
+    more.push({ href: '/app/subscricao', label: 'Planos & Subscrições' });
     // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
     // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.
     // Este link apontava por erro para a entidade do fornecedor (abaixo), onde dava sempre 404 — link
