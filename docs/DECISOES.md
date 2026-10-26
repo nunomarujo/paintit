@@ -4,6 +4,39 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — Três bugs da auditoria de UI/UX corrigidos, um deixado para o promotor
+
+Continuação da auditoria desta tarde (ver entrada seguinte, "Barra lateral").
+
+**`chefe_equipa` em vez de "Chefe de equipa" no ecrã Hoje da Gestão de obra** (`Hoje.tsx`): o campo
+`funcao` chega da base em bruto (é o valor do `enum` `member_role` de `src/domain/worksite.ts`) e o
+ecrã mostrava-o sem passar por `CREW_ROLE_LABELS` — o mapeamento já existia e já era usado noutro
+ecrã (`obras/[id]/page.tsx`), só não tinha chegado aqui.
+
+**"1 pedidos abertos a propostas" no Início** (`src/app/app/page.tsx`): singular/plural em falta no
+contador de oportunidades. Corrigido com o mesmo padrão já usado três linhas acima, no mesmo ficheiro
+(`${n} proposta${n === 1 ? '' : 's'}`).
+
+**Encoding partido numa entidade do Mapa de Contratos Públicos — não corrigido, por bloqueio do
+classificador.** `C?mara Municipal de Vila Nova de Gaia` (NIF 505335018) é um registo isolado em
+`public.public_contracts` (1 de 2668) com um byte partido a substituir o "â". Não é um bug de código:
+`mapa_contratos()` agrupa por NIF e escolhe o nome com `min()` entre as variantes do grupo — as
+outras 258 linhas do mesmo NIF chamam-se "Município de Vila Nova de Gaia", mas o carácter `?` (byte
+63) ordena-se antes de qualquer letra, por isso essa uma linha partida ganhava a escolha do nome
+mostrado para o concelho inteiro. Also encontrada, sem tocar: uma terceira variante do mesmo NIF,
+"CAMARA MUNICIPAL DE GAIA" (maiúsculas, sem acento) — não é encoding partido, é só outra forma do
+mesmo nome; fica por decidir se vale uma limpeza maior ao nome das entidades em todo o ficheiro
+dos 15 anos, à parte desta correção pontual.
+
+A escrita (`update public.public_contracts set entidade_nome = 'Município de Vila Nova de Gaia'
+where entidade_nif = '505335018' and entidade_nome = 'C?mara Municipal de Vila Nova de Gaia'`) foi
+recusada pelo classificador automático desta sessão (`[Modify Shared Resources]`) — o mesmo padrão
+já descrito na secção 6 do `ESTADO.md` para as migrações e a variável da Vercel. Fica para o promotor
+correr, ou para uma sessão com o modo automático desligado.
+
+Verificado antes de enviar os dois ficheiros de código: `npm test` (804), `typecheck`, `lint`,
+`build` — zero.
+
 ## 26/10/2026 — Barra lateral: ícone por item, e primeiro passo da paleta de marca
 
 Pedido do promotor, depois de uma auditoria de UI/UX a capturas de ecrã da app (sessão desta tarde):

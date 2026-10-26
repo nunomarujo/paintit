@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { formatEuros } from '@/domain/money';
 import { formatHoras } from '@/domain/dayLog';
+import { CREW_ROLE_LABELS, type CrewRole } from '@/domain/worksite';
 import type { DiaDaObra } from '@/lib/queries';
 
 const DIA = new Intl.DateTimeFormat('pt-PT', { day: 'numeric', month: 'long' });
@@ -100,7 +101,9 @@ export function Hoje({
                   <span className="min-w-0">
                     <span className="block text-[17px] font-medium text-slate-900">{p.nome}</span>
                     <span className="block text-[15px] text-slate-600">
-                      {p.funcao ?? 'Pintor'}
+                      {/* `funcao` vem da base em bruto (`chefe_equipa`, nunca "Chefe de equipa") — passa
+                          sempre por CREW_ROLE_LABELS antes de chegar ao ecrã (auditoria de UI/UX, 26/10/2026). */}
+                      {(p.funcao && CREW_ROLE_LABELS[p.funcao as CrewRole]) || 'Pintor'}
                       {p.horasNoutras.length > 0 &&
                         ` · ${p.horasNoutras.map((o) => `${formatHoras(o.horas)} h ${o.obra}`).join(', ')}`}
                     </span>
