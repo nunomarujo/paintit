@@ -6,6 +6,7 @@ import { parsePreferences } from '@/domain/reference';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
+import { estadoDaEntrega } from '@/domain/entrega';
 import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers, type DesiredWork } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -57,6 +58,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
+  const pt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '');
+  // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
+  // (`propostas_entregues`); isto é só o que o ecrã diz, e conta os dias da mesma maneira.
+  const entrega = estadoDaEntrega(req.prazo_propostas, localDate(new Date(), CURRENT_RULES.timeZone), req.status === 'publicado');
   const { data: surveyRow } = draft ? await supabase.from('request_surveys').select('*').eq('request_id', id).maybeSingle() : { data: null };
   let survey: SurveyInfo | null = null;
   if (surveyRow) {
@@ -131,16 +136,32 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       {req.status !== 'rascunho' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-          <p className="text-[17px]">
-            <span className="font-semibold">{proposalCount ?? 0}</span>{' '}
-            {proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
-          </p>
-          <Link
-            href={`/app/pedidos/${req.id}/propostas`}
-            className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
-          >
-            Comparar propostas e mensagens
-          </Link>
+          {entrega.entregues ? (
+            <p className="text-[17px]">
+              <span className="font-semibold">{proposalCount ?? 0}</span>{' '}
+              {proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
+              {entrega.emEsclarecimentos && entrega.esclarecimentosAte && (
+                <span className="text-slate-600"> · pode perguntar o que quiser até {pt(entrega.esclarecimentosAte)}</span>
+              )}
+            </p>
+          ) : (
+            /* Antes do prazo não se diz "0 propostas": não é verdade, é que ainda não abriram. */
+            <p className="text-[17px]">
+              <span className="font-semibold">As propostas abrem a {pt(entrega.abremEm)}</span>
+              <span className="text-slate-600">
+                {' '}
+                · chegam todas ao mesmo tempo, para ninguém ficar com o preço à vista antes dos outros
+              </span>
+            </p>
+          )}
+          {entrega.entregues && (
+            <Link
+              href={`/app/pedidos/${req.id}/propostas`}
+              className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
+            >
+              Comparar propostas e mensagens
+            </Link>
+          )}
         </section>
       )}
 

@@ -43,6 +43,20 @@ const email = (user: string) => `u${user.slice(-2)}@teste.invalid`;
 
 let db: PGlite;
 
+/**
+ * O prazo deste pedido acabou — as propostas passam a estar entregues ao cliente.
+ *
+ * A entrega é simultânea (migração `entrega_simultanea`, 26/10/2026): antes do fim do prazo o cliente
+ * não lê proposta nenhuma, e por isso também não escolhe. Nos testes o prazo é sempre futuro, para o
+ * pintor poder propor; quando o teste quer chegar à escolha, chama isto primeiro.
+ */
+async function entregar(requestId: string): Promise<void> {
+  await db.query(
+    `update public.request_listings set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date - 1 where request_id = $1`,
+    [requestId],
+  );
+}
+
 async function as<T>(user: string | null, fn: () => Promise<T>): Promise<T> {
   await db.exec(user ? 'set role authenticated' : 'set role anon');
   await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [user ?? '']);
@@ -639,11 +653,52 @@ describe('propostas e escolha', () => {
     expect([await ok(mine), await ok(other)]).toEqual([true, false]);
   });
 
+  it('antes do fim do prazo o cliente não vê proposta nenhuma, nem as linhas dela', async () => {
+    // A entrega é simultânea: o primeiro a entregar não pode ficar com o preço à vista enquanto os
+    // outros ainda orçamentam. A porta está na regra de acesso, não no ecrã.
+    const rows = await as(A, async () => (await db.query('select id from public.proposals')).rows);
+    expect(rows).toEqual([]);
+    const linhas = await as(A, async () => (await db.query('select id from public.proposal_lines')).rows);
+    expect(linhas).toEqual([]);
+  });
+
+  it('antes da entrega o cliente não escolhe, e percebe porquê', async () => {
+    // A mensagem importa: sem ela, quem gere o pedido via "Proposta não encontrada" e pensava que se
+    // tinha perdido alguma coisa.
+    await expect(as(A, () => db.query('select public.select_proposal($1)', [mine]))).rejects.toThrow(
+      /só são entregues no fim do prazo/,
+    );
+    // A um estranho a proposta continua simplesmente a não existir.
+    await expect(as(B, () => db.query('select public.select_proposal($1)', [mine]))).rejects.toThrow(/não encontrada/);
+  });
+
+  it('o pintor vê sempre a sua, antes e depois do prazo', async () => {
+    const minhas = await as(P, async () => (await db.query('select id from public.proposals where painter_org_id = $1', [painterOrg])).rows);
+    expect(minhas).toHaveLength(1);
+  });
+
   it('o cliente vê as propostas submetidas, mas não a entidade que as fez', async () => {
+    // O prazo acabou: a partir daqui são entregues todas ao mesmo tempo.
+    await entregar(requestId);
     const rows = await as(A, async () => (await db.query('select id from public.proposals order by submitted_at')).rows);
     expect(rows).toHaveLength(2);
     const orgs = await as(A, async () => (await db.query('select id from public.organizations where id = $1', [painterOrg])).rows);
     expect(orgs).toEqual([]);
+  });
+
+  it('o pintor pergunta antes da entrega e o cliente só lê depois dela', async () => {
+    await db.query(
+      `update public.request_listings set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date + 10 where request_id = $1`,
+      [requestId],
+    );
+    await as(P, () => db.query(`insert into public.proposal_messages (proposal_id, lado, texto) values ($1, 'pintor', 'Antes do prazo.')`, [mine]));
+    const antes = await as(A, async () => (await db.query('select id from public.proposal_messages where request_id = $1', [requestId])).rows);
+    expect(antes).toEqual([]);
+    await entregar(requestId);
+    const depois = await as(A, async () => (await db.query('select id from public.proposal_messages where request_id = $1', [requestId])).rows);
+    expect(depois).toHaveLength(1);
+    await as(A, () => db.query(`delete from public.proposal_messages where proposal_id = $1`, [mine])).catch(() => undefined);
+    await db.query(`delete from public.proposal_messages where proposal_id = $1`, [mine]);
   });
 
   it('mensagens: cada lado escreve pelo seu, estranhos não leem', async () => {
@@ -723,6 +778,7 @@ describe('propostas e escolha', () => {
         ),
       );
       await setStatus(P, id, 'submetida');
+      await entregar(requestId);
       await as(A, () => db.query('select public.select_proposal($1)', [id]));
       return id;
     };
@@ -1765,6 +1821,7 @@ describe('referências de fornecedores', () => {
       ),
     );
     await as(RP, () => db.query(`update public.proposals set status = 'submetida' where id = $1`, [propId]));
+    await entregar(reqId);
     await as(A, () => db.query('select public.select_proposal($1)', [propId]));
     const e = await one<{ referral_discount_bp: number }>('select referral_discount_bp from public.engagements where proposal_id = $1', [propId]);
     // 25 (1 fornecedor com código de adesão ligado) + 100 (Q(1), o fornecedor referido e já elegível) = 125.
@@ -1885,6 +1942,7 @@ describe('convite direto do cliente ("traga o seu pintor")', () => {
       ),
     );
     await as(IC, () => db.query(`update public.proposals set status = 'submetida' where id = $1`, [propId]));
+    await entregar(reqId);
     await as(A, () => db.query('select public.select_proposal($1)', [propId]));
     const e = await one<{ rules_version: string }>('select rules_version from public.engagements where proposal_id = $1', [propId]);
     // A versão acompanha a que estiver em vigor; o sufixo é que marca o canal.

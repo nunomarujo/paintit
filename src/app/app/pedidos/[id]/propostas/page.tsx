@@ -7,6 +7,8 @@ import { clientGuarantee } from '@/domain/commission';
 import { formatEuros, percentOf } from '@/domain/money';
 import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, SORT_LABELS, compareProposals, sortRows, type SortKey } from '@/domain/proposal';
 import { DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, type DesiredWork } from '@/domain/request';
+import { localDate } from '@/domain/deadline';
+import { estadoDaEntrega } from '@/domain/entrega';
 import { CURRENT_RULES } from '@/domain/rules';
 import { WORK_STATE_LABELS, requestedCoverage } from '@/domain/works';
 import { canManage, myRole } from '@/lib/access';
@@ -50,6 +52,9 @@ export default async function ProposalsPage({
   ]);
   if (!org) notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
+  // Antes do fim do prazo a lista vem vazia por regra de acesso, não por não haver propostas: o ecrã
+  // tem de dizer qual das duas coisas é.
+  const entrega = estadoDaEntrega(req.prazo_propostas, localDate(new Date(), CURRENT_RULES.timeZone), req.status === 'publicado');
 
   const list = proposals ?? [];
   const ids = list.map((p) => p.id);
@@ -181,7 +186,21 @@ export default async function ProposalsPage({
       )}
 
       {active.length === 0 ? (
-        <p className={`${card} text-[17px] text-slate-600`}>Ainda não há propostas submetidas.</p>
+        <div className={`${card} text-[17px] text-slate-600`}>
+          {entrega.entregues ? (
+            <p>Ainda não há propostas submetidas.</p>
+          ) : (
+            <>
+              <p className="font-semibold text-slate-900">As propostas abrem a {pt(entrega.abremEm)}.</p>
+              <p className="mt-1">
+                Chegam todas ao mesmo tempo, no fim do prazo. Até lá ninguém as vê — nem o senhor, nem os pintores uns
+                dos outros —, para que quem entrega primeiro não fique com o preço à vista enquanto os outros ainda
+                orçamentam.
+              </p>
+              <p className="mt-1">Depois de abrirem tem três dias para perguntar o que quiser, sem ninguém se identificar.</p>
+            </>
+          )}
+        </div>
       ) : (
         <section className={card}>
           <div className="flex flex-wrap items-center justify-between gap-2">
