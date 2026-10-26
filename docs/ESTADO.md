@@ -1,6 +1,10 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, à noite (**caderno de desenho do promotor adoptado como fonte do desenho**:
+Atualizado a 26/10/2026, ao fim da noite (**o mapa de contratos públicos ganhou cabeçalho de busca** —
+caixa de procura com sugestões tiradas dos próprios dados, filtro por tipo de entidade, filtro por
+concelho e quatro ordens; e **abre no distrito da sede da empresa** em vez de abrir no país inteiro,
+deduzido do código postal pelo serviço dos CTT que a app já usa nas moradas, com saída para todo o
+país — secção 6.14). Estado anterior, 26/10/2026, à noite (**caderno de desenho do promotor adoptado como fonte do desenho**:
 cores funcionais novas — `field, selected, attention, error`, etc. —, ícones trocados pelos do caderno,
 barra lateral reconstruída a dois níveis por perfil [Empresa de pintura / Cliente / Fornecedor] com
 rodapé "Empresa e conta", três páginas [Gestão de obra, Orçamentos, Obra pública] com separadores
@@ -1123,6 +1127,42 @@ npm run build
   tsc/lint/testes/build, nunca visualmente, até a ligação ao Supabase voltar a funcionar (secção 6).
 
 ---
+
+### 6.14 O mapa com cabeçalho de busca, e aberto onde a empresa está (26/10/2026, fim da noite)
+
+O mapa mostrava 251 entidades por ordem fixa, de todo o país, e sem maneira de lá chegar. Passou a ter
+cabeçalho: **procura** com sugestões, **filtro por tipo de entidade**, **filtro por concelho** e quatro
+**ordens** (frequência, nome, valor, recência). Ficheiros: `src/domain/mapaFiltros.ts` (+ testes),
+`src/app/app/obras-publicas/ListaDeEntidades.tsx` (cliente, porque a filtragem tem de responder à
+tecla), `Mapa.tsx`, `page.tsx`, `src/lib/concelhos.ts` (`distritoDoConcelho`, + testes).
+
+Três decisões que convém não perder:
+
+- **As sugestões saem dos dados carregados** — nomes de entidades e de concelhos que existem mesmo nos
+  contratos. Não há lista de palavras-chave inventada, e por isso a caixa nunca propõe uma coisa que
+  depois dê zero resultados.
+- **As equivalências do portal.** Ao ensaiar com os dados reais de Lisboa e Porto, "camara gaia" dava
+  zero com o Município de Vila Nova de Gaia à vista na lista: o portal grava a mesma câmara ora como
+  "Município de", ora como "Câmara Municipal de". `EQUIVALENCIAS` trata câmara/município,
+  junta/freguesia, misericórdia/santa casa e mais seis pares como a mesma palavra, e um acerto por
+  equivalência vale menos do que um acerto directo, porque é um palpite.
+- **O tipo de entidade deduz-se do nome publicado** — o portal não o dá. A ordem das regras é que
+  decide os ambíguos: os Serviços Sociais da GNR são do Estado, e um hospital de misericórdia é saúde
+  antes de ser IPSS.
+
+**Onde o mapa abre**, por esta ordem: os distritos que o pintor já escolheu para os alertas de
+concursos; o distrito da sede, do código postal via `lookupPostalCode` (CTT/geoapi, cache de um dia) e,
+se esse não responder, da localidade; e só então o país. `distritoDoConcelho` devolve null quando o
+nome é ambíguo — "Lagoa" é Algarve e São Miguel — em vez de adivinhar. O ecrã di-lo e dá a saída
+(`?pais=1`).
+
+Os filtros ficam **fechados**: a 390px os oito botões de tipo ocupavam cinco linhas antes de se ver um
+único contrato. Ensaiado em navegador real a 390px e a 1280px, com os 251 registos verdadeiros de
+Lisboa e Porto: nada transborda do ecrã, e o seletor de ordem, que saía fora, passa a toda a largura no
+telemóvel.
+
+Verificado também que o defeito de codificação ("C?mara Municipal de...") **já não existe na base**: 0
+contratos com `?` no nome da entidade ou do adjudicatário, depois da recarga.
 
 ## 9. Mapa do código e da documentação
 
