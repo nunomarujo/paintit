@@ -4,6 +4,45 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 (noite) — A entrega das propostas é simultânea, e só depois se escolhe
+
+Pedido do promotor, descrito em linguagem corrente: o cliente abre a obra com uma data para receber
+candidaturas; **no fim do prazo as propostas são entregues ao cliente todas em simultâneo**; há dois
+ou três dias para esclarecer questões, com respostas rápidas do pintor; e depois o cliente tem que
+escolher (ou não). O número de pintores é indiferente — dois ou cinco.
+
+**A aplicação não fazia isto.** O cliente via cada proposta no instante em que era submetida, e não
+era só no ecrã: `proposals_select` (migração de 19/10) autorizava-o a ler qualquer proposta que não
+fosse rascunho. O primeiro pintor a entregar ficava com o preço à vista durante dias enquanto os
+outros ainda orçamentavam; quem entrega no último dia levava vantagem, e os pintores aprendem isso
+depressa. A concorrência deixava de ser cega por construção.
+
+Decidido e construído (migração `entrega_simultanea`, aplicada à base real a 26/10/2026 com a versão
+`20261026230114`):
+
+- **A porta está na base de dados**, não no ecrã: `private.propostas_entregues` — o prazo acabou, ou
+  o anúncio foi encerrado — entra em `proposals_select`, em `proposal_visible` (as linhas, senão o
+  preço lia-se na mesma) e no lado do cliente de `proposal_messages_select`. O pintor vê sempre a sua.
+- **A janela de esclarecimentos são 3 dias** (`DIAS_DE_ESCLARECIMENTO`, `src/domain/entrega.ts`), e o
+  cliente **pode escolher a qualquer momento** durante ela: quem já decidiu não espera.
+- **Prolongar o prazo só antes da entrega, ou sem propostas nenhumas** (`prolongar_prazo`). Depois de
+  ver uma proposta, prolongar dava ao cliente vantagem sobre quem entrasse a seguir. Mínimo de três
+  dias. O aviso aparece a três dias do fim quando há zero ou uma proposta.
+- **`propostas_a_caminho`** devolve a contagem sem revelar nenhuma linha: sem ela o cliente não tinha
+  número nenhum para decidir se prolongava.
+- O gatilho `work_request_transition` continua a recusar alterações a um pedido publicado; abre-se-lhe
+  uma porta estreita (só o prazo, só para a frente, só com a marca de transacção posta por
+  `prolongar_prazo`), para que a verificação não possa ser saltada por uma escrita directa.
+
+Duas consequências assumidas: os avisos de `SECURITY DEFINER` do Supabase passam de 36 para 38
+funções (as duas novas, ambas com a verificação de quem chama na primeira linha); e, ao aplicar, as
+duas obras que existem na base não perderam visibilidade nenhuma (uma tem o anúncio encerrado, a
+outra não tem propostas).
+
+**Em aberto:** o aviso ao pintor de que a janela de esclarecimentos abriu, e o lembrete ao cliente de
+que ela acaba — é aí que encaixam as duas ferramentas do Pro decididas no mesmo dia (seguimento dos
+orçamentos e cobrança do que está na rua).
+
 ## 26/10/2026 — "O meu Perfil": cartão na barra lateral, "Dados da entidade" em separadores, CAE e mudança de mail
 
 Pedido do promotor, com cinco capturas de ecrã da app em produção (ainda sem o caderno de desenho,

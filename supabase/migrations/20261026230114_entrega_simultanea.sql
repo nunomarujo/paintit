@@ -71,7 +71,7 @@ comment on function private.propostas_entregues(uuid) is
 
 -- A escolha corre com os direitos de quem chama (`escolha_invoker`, 19/10), por isso a porta acima já
 -- a bloqueia sozinha — mas com a mensagem errada: "Proposta não encontrada" a quem só está adiantado.
-create function private.proposal_request(p_proposal uuid) returns uuid
+create or replace function private.proposal_request(p_proposal uuid) returns uuid
 language sql stable security definer set search_path = '' as $$
   select request_id from public.proposals where id = p_proposal;
 $$;

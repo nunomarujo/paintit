@@ -1,6 +1,10 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, ao fim da tarde (**barra lateral com largura ajustável**, pedido do promotor a
+Atualizado a 26/10/2026, à noite (**a entrega das propostas passou a ser simultânea**: o cliente só as
+vê no fim do prazo, com a porta na regra de acesso da base e não no ecrã — até aqui via cada uma no
+instante em que era submetida, o que expunha o preço de quem entregava primeiro; mais a janela de
+esclarecimentos de 3 dias, o prolongamento do prazo só antes da entrega e a contagem sem revelar —
+`docs/DECISOES.md`, entrada "A entrega das propostas é simultânea"). Estado anterior, 26/10/2026, ao fim da tarde (**barra lateral com largura ajustável**, pedido do promotor a
 ver o ecrã largo: arrastar a borda direita da barra muda a sua largura, entre 180 e 420px, com o cursor a
 mudar para "col-resize" ao passar por cima — `SidebarResizer.tsx`, novo. Só mexe na variável CSS
 `--sidebar-w` diretamente no `<html>` a cada pixel arrastado, sem passar pelo React; `layout.tsx` lê-a em
