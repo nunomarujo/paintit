@@ -1,0 +1,81 @@
+'use client';
+
+import { useCallback, useEffect, useRef } from 'react';
+
+const MIN = 180;
+const MAX = 420;
+const CSS_VAR = '--sidebar-w';
+const STORAGE_KEY = 'qp_sidebar_w';
+
+/**
+ * Arrastar a borda direita da barra lateral para ajustar a sua largura, em ecrã largo (pedido do
+ * promotor, 26/10/2026) — fica entre {MIN} e {MAX} pixels. A largura escolhida guarda-se no
+ * `localStorage` deste navegador (conveniência do aparelho, não dados a sincronizar entre contas
+ * nem entre dispositivos) e volta a aplicar-se da próxima vez que a página abrir.
+ *
+ * Só mexe na variável CSS `--sidebar-w` diretamente no `<html>`, sem passar pelo React a cada
+ * pixel arrastado — `src/app/app/layout.tsx` lê-a em `grid-template-columns`
+ * (`md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)]`), 235px é o valor de sempre.
+ */
+export function SidebarResizer() {
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    let saved: number | null = null;
+    try {
+      saved = Number(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      // Privado, bloqueado, ou qualquer outra razão: fica na largura de sempre.
+    }
+    if (saved && saved >= MIN && saved <= MAX) {
+      document.documentElement.style.setProperty(CSS_VAR, `${saved}px`);
+    }
+  }, []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    // Enquanto se arrasta, o cursor fica "col-resize" mesmo que o rato passe por cima de texto
+    // ou de outro elemento, e nada se selecciona por engano a meio do arrasto.
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    // A barra começa sempre encostada à esquerda do ecrã: a posição X do rato é já a largura.
+    const w = Math.min(MAX, Math.max(MIN, Math.round(e.clientX)));
+    document.documentElement.style.setProperty(CSS_VAR, `${w}px`);
+  }, []);
+
+  const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    const w = getComputedStyle(document.documentElement).getPropertyValue(CSS_VAR).trim();
+    const parsed = parseInt(w, 10);
+    if (parsed) {
+      try {
+        localStorage.setItem(STORAGE_KEY, String(parsed));
+      } catch {
+        // Sem guardar não é grave: a barra fica na largura escolhida até à próxima visita.
+      }
+    }
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }, []);
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Ajustar a largura da barra lateral"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className="absolute inset-y-0 -right-[3px] z-10 hidden w-1.5 cursor-col-resize touch-none select-none md:block hover:bg-marca-orange-deep/40 active:bg-marca-orange-deep/60"
+    />
+  );
+}

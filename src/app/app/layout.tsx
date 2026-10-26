@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { signOut } from '@/app/entrar/actions';
 import { AppNav, type NavItem } from '@/components/AppNav';
 import { MobileNavMenu } from '@/components/MobileNavMenu';
+import { SidebarResizer } from '@/components/SidebarResizer';
 import { contarOrcamentosPorEnviar } from '@/lib/queries';
 import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
@@ -123,8 +124,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)] print:block">
-      <aside className="print:hidden border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
+    <div className="min-h-screen md:grid md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)] print:block">
+      <aside className="print:hidden relative border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
+        {/* Largura ajustável (pedido do promotor, 26/10/2026): arrastar esta borda muda
+            `--sidebar-w`, que o grid acima lê. `SidebarResizer.tsx` tem o porquê. */}
+        <SidebarResizer />
         {/* Em telemóvel o botão de navegação fica aqui, no canto superior direito, ao lado da marca
             (pedido do promotor, 26/10/2026, depois de ver a app ao vivo) — não mais a barra lateral
             inteira a abrir por baixo do conteúdo. `MobileNavMenu.tsx` já se esconde sozinho em ecrã

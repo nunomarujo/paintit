@@ -1,6 +1,14 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, à tarde (**migração do CAE aplicada à base real**, por outra sessão — confirmado
+Atualizado a 26/10/2026, ao fim da tarde (**barra lateral com largura ajustável**, pedido do promotor a
+ver o ecrã largo: arrastar a borda direita da barra muda a sua largura, entre 180 e 420px, com o cursor a
+mudar para "col-resize" ao passar por cima — `SidebarResizer.tsx`, novo. Só mexe na variável CSS
+`--sidebar-w` diretamente no `<html>` a cada pixel arrastado, sem passar pelo React; `layout.tsx` lê-a em
+`grid-template-columns` (`md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)]`, 235px continua a ser o
+valor de sempre). A largura escolhida guarda-se no `localStorage` do navegador — conveniência do
+aparelho, não dados de conta; se o `localStorage` falhar (privado, bloqueado), fica na largura de sempre
+em vez de rebentar. `npm test`/`typecheck`/`lint`/`build` verdes, 842 testes.). Estado anterior, 26/10/2026,
+à tarde (**migração do CAE aplicada à base real**, por outra sessão — confirmado
 agora por consulta direta: `organizations.cae` e `cae_atividade` existem em produção, migração registada
 pelo Supabase como `20261026145117` e o ficheiro já renomeado para bater; uma entrada anterior deste
 ficheiro dava isto como "em aberto" — já não está.
