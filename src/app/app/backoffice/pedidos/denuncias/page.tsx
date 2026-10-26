@@ -13,13 +13,13 @@ export default async function ReportsPage() {
     <section className={card}>
       <h2 className="font-semibold">Denúncias de anúncios por decidir</h2>
       {!reports || reports.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-600">Não há denúncias por decidir.</p>
+        <p className="mt-2 text-[17px] text-slate-600">Não há denúncias por decidir.</p>
       ) : (
         <ul className="mt-4 space-y-6">
           {reports.map((r) => {
             const l = listings.find((x) => x.request_id === r.request_id);
             return (
-              <li key={r.id} className="text-sm">
+              <li key={r.id} className="text-[17px]">
                 <p className="font-medium">
                   Pedido {l?.ref ?? '—'} · {l?.concelho ?? ''}
                 </p>

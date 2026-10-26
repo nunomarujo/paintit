@@ -20,7 +20,7 @@ export function CreateQuote({ anteriores }: { anteriores: { id: string; label: s
   return (
     <div className="space-y-4">
       {anteriores.length > 0 && (
-        <div className="flex gap-2 text-[13px]">
+        <div className="flex gap-2 text-[17px]">
           {(['modelo', 'duplicar'] as const).map((o) => (
             <button
               key={o}
@@ -49,14 +49,14 @@ export function CreateQuote({ anteriores }: { anteriores: { id: string; label: s
                 modelo === t.code ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300 bg-white hover:bg-slate-50'
               }`}
             >
-              <span className="block text-[13px] font-semibold text-slate-900">{t.label}</span>
-              <span className="mt-0.5 block text-[11.5px] leading-snug text-slate-600">{t.quando}</span>
-              <span className="mt-1 block text-[11px] text-slate-500">{t.trabalhos.length} capítulos</span>
+              <span className="block text-[17px] font-semibold text-slate-900">{t.label}</span>
+              <span className="mt-0.5 block text-[15px] leading-snug text-slate-600">{t.quando}</span>
+              <span className="mt-1 block text-[15px] text-slate-500">{t.trabalhos.length} capítulos</span>
             </button>
           ))}
         </div>
       ) : (
-        <label className="block text-sm">
+        <label className="block text-[17px]">
           Orçamento a copiar
           <select value={duplicar} onChange={(e) => setDuplicar(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
             {anteriores.map((a) => (
@@ -96,13 +96,13 @@ export function ActionButton({
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(action, { errors: {} });
   const cls =
-    variant === 'primary' ? 'btn-primary' : variant === 'secondary' ? 'btn-secondary' : 'text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700';
+    variant === 'primary' ? 'btn-primary' : variant === 'secondary' ? 'btn-secondary' : 'text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700';
   return (
     <form {...formProps} className="inline-flex items-center gap-2">
       <button type="submit" disabled={pending} className={cls}>
         {pending ? pendingLabel : label}
       </button>
-      {state.message && <span className="text-[12px] text-slate-600">{state.message}</span>}
+      {state.message && <span className="text-[15px] text-slate-600">{state.message}</span>}
     </form>
   );
 }
@@ -119,7 +119,7 @@ export function RemoveQuote({ quoteId, numero }: { quoteId: string; numero: numb
       <button
         type="button"
         onClick={() => setConfirmar(true)}
-        className="shrink-0 text-[12px] text-slate-400 underline underline-offset-4 hover:text-red-700"
+        className="shrink-0 text-[15px] text-slate-600 underline underline-offset-4 hover:text-red-700"
       >
         Apagar
       </button>
@@ -127,13 +127,13 @@ export function RemoveQuote({ quoteId, numero }: { quoteId: string; numero: numb
   }
   return (
     <form {...formProps} className="shrink-0 text-right">
-      <button type="submit" disabled={pending} className="text-[12px] font-semibold text-red-700 underline underline-offset-4">
+      <button type="submit" disabled={pending} className="text-[15px] font-semibold text-red-700 underline underline-offset-4">
         {pending ? 'A apagar…' : `Apagar o #${numero}?`}
       </button>
-      <button type="button" onClick={() => setConfirmar(false)} className="ml-2 text-[12px] text-slate-500 underline underline-offset-4">
+      <button type="button" onClick={() => setConfirmar(false)} className="ml-2 text-[15px] text-slate-500 underline underline-offset-4">
         Não
       </button>
-      {state.message && <p className="mt-1 max-w-[28ch] text-[11px] text-red-700">{state.message}</p>}
+      {state.message && <p className="mt-1 max-w-[28ch] text-[15px] text-red-700">{state.message}</p>}
     </form>
   );
 }

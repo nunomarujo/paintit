@@ -63,13 +63,13 @@ export function Workspace({
     <div>
       <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold text-tinta-600">{titulo}</h1>
-          <p className="text-xs text-slate-400">Pedido {referencia}</p>
+          <h1 className="truncate text-[20px] font-semibold text-tinta-600">{titulo}</h1>
+          <p className="text-[15px] text-slate-600">Pedido {referencia}</p>
         </div>
-        <dl className="flex flex-wrap gap-6 text-sm">
+        <dl className="flex flex-wrap gap-6 text-[17px]">
           {resumo.map((r) => (
             <div key={r.label}>
-              <dt className="text-xs text-slate-500">{r.label}</dt>
+              <dt className="text-[15px] text-slate-500">{r.label}</dt>
               <dd className="font-semibold">{r.valor}</dd>
             </div>
           ))}
@@ -77,7 +77,7 @@ export function Workspace({
         {documentoHref && (
           <Link
             href={documentoHref}
-            className="inline-flex items-center gap-2 rounded-lg border border-tinta-200 bg-tinta-50 px-3 py-2 text-sm font-semibold text-tinta-700 hover:bg-tinta-100"
+            className="inline-flex items-center gap-2 rounded-lg border border-tinta-200 bg-tinta-50 px-3 py-2 text-[17px] font-semibold text-tinta-700 hover:bg-tinta-100"
           >
             <span aria-hidden>▤</span> Ver PDF
           </Link>
@@ -91,11 +91,11 @@ export function Workspace({
             type="button"
             onClick={() => setAtual(t.id)}
             aria-current={t.id === atual ? 'page' : undefined}
-            className={`rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-semibold ${
+            className={`rounded-t-xl border border-b-0 px-4 py-2.5 text-[17px] font-semibold ${
               t.id === atual ? 'border-tinta-200 bg-sage text-tinta-600' : 'border-transparent hover:text-slate-700'
             } ${
               t.bloqueado
-                ? 'text-slate-400'
+                ? 'text-slate-600'
                 : t.destaque
                   ? 'border-amber-300 bg-amber-50 text-amber-800'
                   : t.id === atual
@@ -118,7 +118,7 @@ export function Workspace({
         {visiveis.map((t) => (
           <div key={t.id} hidden={t.id !== atual} className="space-y-6">
             {t.bloqueado ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[17px] text-slate-600">
                 <span aria-hidden className="mr-1.5">
                   🔒
                 </span>

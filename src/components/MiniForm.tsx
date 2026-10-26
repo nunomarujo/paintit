@@ -29,7 +29,7 @@ export function MiniForm({
   const input = 'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2';
   const msg = Object.values(state.errors)[0] ?? state.message;
   return (
-    <form {...formProps} className="space-y-3 text-sm">
+    <form {...formProps} className="space-y-3 text-[17px]">
       {Object.entries(hidden ?? {}).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

@@ -14,8 +14,8 @@ export default async function SubscriptionsPage() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Subscrições dos fornecedores</h2>
-      <p className="mt-1 text-sm text-slate-600">O plano fica ativo sozinho quando a Stripe confirma o pagamento. Aqui pode ativá-lo à mão (por exemplo, pago por transferência).</p>
-      <ul className="mt-3 space-y-1 text-sm">
+      <p className="mt-1 text-[17px] text-slate-600">O plano fica ativo sozinho quando a Stripe confirma o pagamento. Aqui pode ativá-lo à mão (por exemplo, pago por transferência).</p>
+      <ul className="mt-3 space-y-1 text-[17px]">
         {(suppliers ?? []).map((s) => {
           const sub = (subs ?? []).find((x) => x.org_id === s.id);
           return (

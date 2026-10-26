@@ -29,7 +29,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
+const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -105,15 +105,15 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${org.id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {org.nome}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">{req.titulo}</h1>
-          <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${status.className}`}>{status.label}</span>
-          {req.version > 1 && <span className="text-xs text-slate-500">versão {req.version}</span>}
+          <h1 className="text-[26px] leading-tight font-semibold">{req.titulo}</h1>
+          <span className={`rounded-full px-3 py-0.5 text-[15px] font-semibold ${status.className}`}>{status.label}</span>
+          {req.version > 1 && <span className="text-[15px] text-slate-500">versão {req.version}</span>}
         </div>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Referência pública: {req.ref} ·{' '}
           <Link href={`/app/pedidos/${req.id}/dossie`} className="text-tinta-700 hover:underline">
             Dossiê para imprimir
@@ -122,7 +122,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </div>
 
       {draft && (suspensions ?? []).length > 0 && (
-        <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm">
+        <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-[17px]">
           <h2 className="font-semibold text-red-900">O anúncio foi suspenso pela equipa da plataforma</h2>
           <p className="mt-1">{suspensions![0]!.resolucao}</p>
           <p className="mt-1 text-red-900">Corrija o pedido e publique de novo: os pintores veem a nova versão.</p>
@@ -131,13 +131,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       {req.status !== 'rascunho' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-          <p className="text-sm">
+          <p className="text-[17px]">
             <span className="font-semibold">{proposalCount ?? 0}</span>{' '}
             {proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
           </p>
           <Link
             href={`/app/pedidos/${req.id}/propostas`}
-            className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+            className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
           >
             Comparar propostas e mensagens
           </Link>
@@ -146,7 +146,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       {manager && req.status === 'publicado' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-          <p className="text-sm text-slate-600">
+          <p className="text-[17px] text-slate-600">
             Publicado. Para alterar o pedido, volte a rascunho: o anúncio sai do ar e uma nova versão é publicada depois.
           </p>
           <div className="flex gap-2">
@@ -190,10 +190,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">Superfícies e áreas</h2>
-          <span className="text-sm text-slate-600">Total: {formatArea(total)}</span>
+          <span className="text-[17px] text-slate-600">Total: {formatArea(total)}</span>
         </div>
         {list.length > 0 ? (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {list.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
@@ -227,7 +227,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">Ainda sem superfícies.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Ainda sem superfícies.</p>
         )}
         {manager && draft && (
           <div className="mt-6 border-t border-slate-100 pt-6">
@@ -238,7 +238,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <section className={card}>
         <h2 className="font-semibold">Fotografias</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           As fotografias gerais ficam só convosco e com a equipa da plataforma. As de pormenor (uma fissura, um teto de
           varanda) podem ir para o anúncio, mas só depois de a equipa confirmar que não deixam reconhecer o prédio. A
           localização e os dados do aparelho são retirados de todas.
@@ -246,7 +246,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         {(photos ?? []).length > 0 && (
           <ul className="mt-4 grid gap-4 sm:grid-cols-3">
             {(photos ?? []).map((p) => (
-              <li key={p.id} className="text-sm">
+              <li key={p.id} className="text-[17px]">
                 <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
                   {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado */}
                   <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Fotografia'} className="aspect-square w-full rounded-lg object-cover" />
@@ -277,7 +277,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       <section className="space-y-4">
         <div>
           <h2 className="font-semibold">O que os pintores vão ver</h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-[17px] text-slate-600">
             Sem morada, sem nomes e sem o nome interno do pedido. A identificação só é revelada depois da escolha.
           </p>
         </div>

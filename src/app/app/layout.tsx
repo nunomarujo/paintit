@@ -132,13 +132,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <div className="mt-3 md:mt-0">
           <AppNav groups={groups} />
         </div>
-        <div className="mt-auto hidden border-t border-slate-200 px-3 pt-5 text-sm md:block">
+        <div className="mt-auto hidden border-t border-slate-200 px-3 pt-5 text-[17px] md:block">
           <Link href="/app/perfil" className="block truncate font-semibold text-slate-900 hover:underline">
             {user.email}
           </Link>
-          <p className="mt-1 text-xs text-slate-500">Do pedido à última demão.</p>
+          <p className="mt-1 text-[15px] text-slate-500">Do pedido à última demão.</p>
           <form action={leave} className="mt-3">
-            <button type="submit" className="text-[13px] font-semibold text-tinta-600 hover:underline">
+            <button type="submit" className="text-[17px] font-semibold text-tinta-600 hover:underline">
               Sair
             </button>
           </form>
@@ -146,16 +146,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </aside>
       <div className="min-w-0">
         <header className="print:hidden sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
-          <span className="flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="flex items-center gap-2 text-[15px] text-slate-500">
             <i className="inline-block h-[7px] w-[7px] rounded-full bg-[#648d75]" />
             Versão de teste · pagamentos em modo de teste
           </span>
           <span className="flex items-center gap-3 md:hidden">
-            <Link href="/app/perfil" className="text-[12px] text-slate-600">
+            <Link href="/app/perfil" className="text-[15px] text-slate-600">
               Perfil
             </Link>
             <form action={leave}>
-              <button type="submit" className="text-[12px] font-semibold text-tinta-600">
+              <button type="submit" className="text-[15px] font-semibold text-tinta-600">
                 Sair
               </button>
             </form>
@@ -163,7 +163,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </header>
         <main className="mx-auto max-w-[1600px] px-4 py-5 md:px-6">
           {lastWarning && (
-            <p className="mb-6 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900" role="status">
+            <p className="mb-6 rounded-xl border border-red-300 bg-red-50 p-3 text-[17px] text-red-900" role="status">
               <b>Último aviso:</b> a conta tentou partilhar contactos ou contornar a plataforma. Uma nova tentativa bloqueia-a de forma
               permanente.{' '}
               {lastWarning.eligible ? (

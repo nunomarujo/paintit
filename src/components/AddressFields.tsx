@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 
-const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base';
+const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]';
 
 interface Props {
   moradaName: string;
@@ -49,11 +49,11 @@ export function AddressFields({ moradaName, moradaLabel, required, withConcelho,
     };
   }, [cp]);
 
-  const err = (k: string) => errors[k] && <span className="mt-1 block text-xs font-normal text-red-700">{errors[k]}</span>;
+  const err = (k: string) => errors[k] && <span className="mt-1 block text-[15px] font-normal text-red-700">{errors[k]}</span>;
   return (
     <div className="space-y-4">
       <div className={`grid gap-4 ${withConcelho ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-[17px] font-medium text-slate-700">
           Código postal{required && <span className="text-red-700"> *</span>}
           <input
             name="codigoPostal"
@@ -67,23 +67,23 @@ export function AddressFields({ moradaName, moradaLabel, required, withConcelho,
             }}
             className={inputClass}
           />
-          {aviso && <span className="mt-1 block text-xs font-normal text-red-700">{aviso}</span>}
+          {aviso && <span className="mt-1 block text-[15px] font-normal text-red-700">{aviso}</span>}
           {err('codigoPostal')}
         </label>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-[17px] font-medium text-slate-700">
           Localidade{required && <span className="text-red-700"> *</span>}
           <input name="localidade" required={required} value={localidade} onChange={(e) => setLocalidade(e.target.value)} className={inputClass} />
           {err('localidade')}
         </label>
         {withConcelho && (
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-[17px] font-medium text-slate-700">
             Concelho{required && <span className="text-red-700"> *</span>}
             <input name="concelho" required={required} value={concelho} onChange={(e) => setConcelho(e.target.value)} className={inputClass} />
             {err('concelho')}
           </label>
         )}
       </div>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-[17px] font-medium text-slate-700">
         {moradaLabel}
         {required && <span className="text-red-700"> *</span>}
         <input
@@ -99,7 +99,7 @@ export function AddressFields({ moradaName, moradaLabel, required, withConcelho,
             <option key={r} value={r} />
           ))}
         </datalist>
-        <span className="mt-1 block text-xs font-normal text-slate-500">Escolha a rua da lista e acrescente o número e o andar.</span>
+        <span className="mt-1 block text-[15px] font-normal text-slate-500">Escolha a rua da lista e acrescente o número e o andar.</span>
         {err(moradaName)}
       </label>
     </div>

@@ -39,16 +39,16 @@ export default async function PublicContractsPage({
   if (!pro) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold">Mapa de contratos públicos</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Mapa de contratos públicos</h1>
         <div className="rounded-2xl border border-tinta-200 bg-tinta-50/60 p-6">
-          <p className="text-sm text-slate-700">
+          <p className="text-[17px] text-slate-700">
             Dois terços das empreitadas de pintura do Estado não são anunciadas a ninguém: a entidade convida
             directamente quem já conhece. Os nomes das empresas convidadas são públicos, e é deles que se faz o mapa —
             que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam e quem
             costumam chamar. Inclui também os concursos que são anunciados, filtrados para pintura e isolamento, com o
             veredicto de elegibilidade à cabeça de cada um.
           </p>
-          <p className="mt-3 text-sm text-slate-700">
+          <p className="mt-3 text-[17px] text-slate-700">
             Faz parte do plano Pro, a partir de {formatEuros(PRECO_ATUAL.mensalCents)} por mês, + IVA.
           </p>
           <Link href="/app/subscricao" className="btn-primary mt-4">
@@ -61,7 +61,7 @@ export default async function PublicContractsPage({
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold">Mapa de contratos públicos</h1>
+      <h1 className="text-[20px] leading-snug font-semibold">Mapa de contratos públicos</h1>
       {ver === 'concursos' ? (
         <Concursos supabase={supabase} orgId={org.id} soElegiveis={todos !== '1'} />
       ) : (

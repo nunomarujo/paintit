@@ -7,7 +7,7 @@ type Product = Database['public']['Tables']['products']['Row'];
 
 export function ProductCard({ p, children }: { p: Product; children?: ReactNode }) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white p-5 text-sm ${p.ativo ? '' : 'opacity-60'}`}>
+    <div className={`rounded-2xl border border-slate-200 bg-white p-5 text-[17px] ${p.ativo ? '' : 'opacity-60'}`}>
       <p className="font-semibold">{productLabel(p)}</p>
       <p className="text-slate-600">
         {PRODUCT_TYPE_LABELS[p.tipo]}

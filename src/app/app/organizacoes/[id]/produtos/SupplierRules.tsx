@@ -16,10 +16,10 @@ import {
   FREQUENT_MIN_ORDERS,
 } from '@/domain/catalog';
 
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
-  return m ? <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
+  return m ? <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 };
 
 export interface DiscountFormProduct {
@@ -49,9 +49,9 @@ export function DiscountForm({
   const [cliente, setCliente] = useState<'todos' | 'um'>(fixedCliente ? 'um' : 'todos');
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Novo desconto</h3>
+      <h3 className="text-[17px] font-semibold">Novo desconto</h3>
 
-      <fieldset className="text-sm">
+      <fieldset className="text-[17px]">
         <legend className="font-medium text-slate-700">Aplica-se a</legend>
         <div className="mt-1 flex flex-wrap gap-4">
           {(
@@ -88,7 +88,7 @@ export function DiscountForm({
                       <input type="checkbox" name="produtos" value={p.id} /> {p.label}
                     </span>
                     {p.currentBps !== null && (
-                      <span className="shrink-0 rounded-full bg-sage px-2 py-0.5 text-xs text-tinta-700">
+                      <span className="shrink-0 rounded-full bg-sage px-2 py-0.5 text-[15px] text-tinta-700">
                         já tem {(p.currentBps / 100).toLocaleString('pt-PT')}%
                       </span>
                     )}
@@ -96,12 +96,12 @@ export function DiscountForm({
                 ))
               )}
             </div>
-            {e.produtos && <p className="mt-1 text-sm text-red-700">{e.produtos}</p>}
+            {e.produtos && <p className="mt-1 text-[17px] text-red-700">{e.produtos}</p>}
           </>
         )}
       </fieldset>
 
-      <fieldset className="text-sm">
+      <fieldset className="text-[17px]">
         <legend className="font-medium text-slate-700">Aplica-se ao cliente</legend>
         {fixedCliente ? (
           <>
@@ -160,7 +160,7 @@ export function DiscountForm({
         </Field>
         <Field name="minQuantidade" label="A partir de (embalagens)" error={e.minQuantidade} hint="Vazio = qualquer quantidade." />
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-[15px] text-slate-500">
         Combine regras: um ou vários artigos (com o que já têm assinalado, para ver o que falta), dimensão da obra (ex.: até
         1000 m² 10%, acima 15%), classificação do cliente (novo = primeira compra; frequente = {FREQUENT_MIN_ORDERS} ou mais
         encomendas entregues; premium = quem classificar assim na ficha de cada cliente), pronto pagamento ou quantidade.
@@ -180,7 +180,7 @@ export function DeliveryForm({ orgId }: { orgId: string }) {
   const e = state.errors;
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Nova condição de entrega em obra</h3>
+      <h3 className="text-[17px] font-semibold">Nova condição de entrega em obra</h3>
       <Field name="concelhos" label="Concelhos servidos" error={e.concelhos} hint="Vazio = todo o país.">
         <ConcelhosPicker name="concelhos" />
       </Field>

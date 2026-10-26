@@ -7,7 +7,7 @@ import { LINE_CATEGORIES, LINE_CATEGORY_LABELS, UNITS, UNIT_LABELS, type Unit } 
 import type { PriceEntry } from '@/domain/priceBook';
 import { addQuoteLine, removeQuoteLine, updateQuoteLine } from '../actions';
 
-const input = 'rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm';
+const input = 'rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[17px]';
 
 /**
  * Acrescentar uma linha, com os preços da própria empresa a aparecer à medida que escreve. Escolher
@@ -34,7 +34,7 @@ export function AddLine({ quoteId, book }: { quoteId: string; book: PriceEntry[]
     <form {...formProps} className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-12">
         <label className="sm:col-span-5">
-          <span className="block text-[11px] text-slate-500">Trabalho</span>
+          <span className="block text-[15px] text-slate-500">Trabalho</span>
           <input
             name="descricao"
             list={`book-${quoteId}`}
@@ -51,7 +51,7 @@ export function AddLine({ quoteId, book }: { quoteId: string; book: PriceEntry[]
           </datalist>
         </label>
         <label className="sm:col-span-3">
-          <span className="block text-[11px] text-slate-500">Capítulo</span>
+          <span className="block text-[15px] text-slate-500">Capítulo</span>
           <select name="categoria" defaultValue="pintura" className={`${input} w-full`}>
             {LINE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -61,7 +61,7 @@ export function AddLine({ quoteId, book }: { quoteId: string; book: PriceEntry[]
           </select>
         </label>
         <label className="sm:col-span-1">
-          <span className="block text-[11px] text-slate-500">Un.</span>
+          <span className="block text-[15px] text-slate-500">Un.</span>
           <select name="unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} className={`${input} w-full`}>
             {UNITS.map((u) => (
               <option key={u} value={u}>
@@ -71,11 +71,11 @@ export function AddLine({ quoteId, book }: { quoteId: string; book: PriceEntry[]
           </select>
         </label>
         <label className="sm:col-span-1">
-          <span className="block text-[11px] text-slate-500">Qt.</span>
+          <span className="block text-[15px] text-slate-500">Qt.</span>
           <input name="quantidade" inputMode="decimal" placeholder="0" className={`${input} w-full text-right`} />
         </label>
         <label className="sm:col-span-2">
-          <span className="block text-[11px] text-slate-500">Preço unit.</span>
+          <span className="block text-[15px] text-slate-500">Preço unit.</span>
           <input name="preco" inputMode="decimal" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" className={`${input} w-full text-right`} />
         </label>
       </div>
@@ -83,7 +83,7 @@ export function AddLine({ quoteId, book }: { quoteId: string; book: PriceEntry[]
         <button type="submit" disabled={pending} className="btn-secondary">
           {pending ? 'A acrescentar…' : 'Acrescentar linha'}
         </button>
-        {msg && <span className="text-[12px] text-slate-600">{msg}</span>}
+        {msg && <span className="text-[15px] text-slate-600">{msg}</span>}
       </div>
     </form>
   );
@@ -110,10 +110,10 @@ export function EditLine({
       {/* A unidade fica colada à quantidade: sem ela, duas caixas de números seguidas não dizem qual
           é qual, por muito que o cabeçalho diga "quantidade e preço" (25/10/2026). */}
       <input name="quantidade" defaultValue={n(quantidade)} inputMode="decimal" className={`${input} w-20 text-right`} aria-label="Quantidade" />
-      <span className="w-16 text-[11px] text-slate-500">{UNIT_LABELS[unidade]}</span>
+      <span className="w-16 text-[15px] text-slate-500">{UNIT_LABELS[unidade]}</span>
       <input name="preco" defaultValue={n(preco)} inputMode="decimal" className={`${input} w-24 text-right`} aria-label="Preço unitário" />
-      <span className="text-[11px] text-slate-500">€</span>
-      <button type="submit" disabled={pending} className="text-[12px] font-semibold text-tinta-700 underline underline-offset-4">
+      <span className="text-[15px] text-slate-500">€</span>
+      <button type="submit" disabled={pending} className="text-[15px] font-semibold text-tinta-700 underline underline-offset-4">
         {pending ? '…' : 'Guardar'}
       </button>
     </form>
@@ -124,7 +124,7 @@ export function RemoveLine({ quoteId, lineId }: { quoteId: string; lineId: strin
   const { pending, formProps } = useFormAction<FormState>(removeQuoteLine.bind(null, quoteId, lineId), { errors: {} });
   return (
     <form {...formProps}>
-      <button type="submit" disabled={pending} className="text-[12px] text-slate-400 underline underline-offset-4 hover:text-slate-700">
+      <button type="submit" disabled={pending} className="text-[15px] text-slate-600 underline underline-offset-4 hover:text-slate-700">
         {pending ? '…' : 'Remover'}
       </button>
     </form>

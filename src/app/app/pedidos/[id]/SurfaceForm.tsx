@@ -16,7 +16,7 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
 
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Acrescentar superfície</h3>
+      <h3 className="text-[17px] font-semibold">Acrescentar superfície</h3>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field
           name="kind"
@@ -55,7 +55,7 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
           </select>
         </Field>
       </div>
-      <p className="text-xs text-slate-600">Indique a área, ou a largura e a altura (os vãos são descontados).</p>
+      <p className="text-[15px] text-slate-600">Indique a área, ou a largura e a altura (os vãos são descontados).</p>
       <div className="grid gap-4 sm:grid-cols-5">
         <Field
           name="area"
@@ -85,11 +85,11 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
       </div>
       {modo === 'diferencas' && (
         <fieldset className="rounded-xl bg-slate-50 p-4">
-          <legend className="px-1 text-sm font-semibold">Trabalhos só desta zona (opcional)</legend>
-          <p className="text-xs text-slate-600">
+          <legend className="px-1 text-[17px] font-semibold">Trabalhos só desta zona (opcional)</legend>
+          <p className="text-[15px] text-slate-600">
             Assinale apenas se esta zona tiver trabalhos diferentes dos comuns do pedido. Sem nada assinalado, aplicam-se os comuns.
           </p>
-          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+          <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
             {DESIRED_WORKS.map((w) => (
               <label key={w} className="flex items-center gap-2">
                 <input type="checkbox" name="trabalhosZona" value={w} />
@@ -100,14 +100,14 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
         </fieldset>
       )}
       {state.message && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {state.message}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A acrescentar…' : 'Acrescentar'}
       </button>

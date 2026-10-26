@@ -9,7 +9,7 @@ import { closePeriodAction, decideRedemption, reviewStripeLineAction, reopenPeri
 const note = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {m}
     </p>
   ) : null;
@@ -112,7 +112,7 @@ export function BankImportForm() {
   return (
     <form {...formProps} className="space-y-3">
       <Field name="ficheiro" label="Extrato do banco (CSV ou CAMT.053 em XML)" required error={state.errors.ficheiro} hint="Até 3 MB. Pode importar extratos que se sobrepõem: o que já existe não se repete.">
-        <input name="ficheiro" type="file" required accept=".csv,.txt,.xml,text/csv,text/plain,application/xml,text/xml" className="mt-1 block text-sm" />
+        <input name="ficheiro" type="file" required accept=".csv,.txt,.xml,text/csv,text/plain,application/xml,text/xml" className="mt-1 block text-[17px]" />
       </Field>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="btn-primary">
@@ -146,7 +146,7 @@ export function BankLineForm({ lineId, options, classified }: { lineId: string; 
   if (classified) {
     return (
       <form {...formProps} className="inline">
-        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-sm text-slate-600 hover:underline">
+        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-[17px] text-slate-600 hover:underline">
           Desfazer
         </button>
         {note(state)}
@@ -154,7 +154,7 @@ export function BankLineForm({ lineId, options, classified }: { lineId: string; 
     );
   }
   return (
-    <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-2 text-sm">
+    <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-2 text-[17px]">
       {options.length > 0 && (
         <label className="font-medium">
           Casar com
@@ -188,7 +188,7 @@ export function StripeReviewForm({ btId, reviewed }: { btId: string; reviewed: b
   if (reviewed) {
     return (
       <form {...formProps} className="inline">
-        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-sm text-slate-600 hover:underline">
+        <button type="submit" name="decision" value="desfazer" disabled={pending} className="text-[17px] text-slate-600 hover:underline">
           Desfazer
         </button>
         {note(state)}
@@ -196,7 +196,7 @@ export function StripeReviewForm({ btId, reviewed }: { btId: string; reviewed: b
     );
   }
   return (
-    <form {...formProps} autoComplete="off" className="mt-1 flex flex-wrap items-end gap-2 text-sm">
+    <form {...formProps} autoComplete="off" className="mt-1 flex flex-wrap items-end gap-2 text-[17px]">
       <Field name="nota" label="Deixar fora do livro: porquê?" error={state.errors.nota} />
       <button type="submit" disabled={pending} className="btn-secondary">
         Deixar fora do livro

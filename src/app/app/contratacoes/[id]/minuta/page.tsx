@@ -21,20 +21,20 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <Link href={`/app/contratacoes/${id}`} className="text-sm text-slate-600 hover:underline print:hidden">
+      <Link href={`/app/contratacoes/${id}`} className="text-[17px] text-slate-600 hover:underline print:hidden">
         ← Contratação
       </Link>
-      <aside className="rounded-2xl border border-tinta-100 bg-tinta-50 p-6 text-sm print:hidden">
+      <aside className="rounded-2xl border border-tinta-100 bg-tinta-50 p-6 text-[17px] print:hidden">
         <h2 className="font-semibold">Em linguagem simples</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           {plain.map((p) => (
             <li key={p}>{p}</li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-slate-600">Este resumo ajuda a ler; o que vale é o texto do contrato abaixo.</p>
+        <p className="mt-2 text-[15px] text-slate-600">Este resumo ajuda a ler; o que vale é o texto do contrato abaixo.</p>
       </aside>
-      <article className="rounded-2xl border border-slate-200 bg-white p-8 text-sm leading-relaxed print:border-0 print:p-0">
-        <h1 className="text-xl font-semibold">{draft.title}</h1>
+      <article className="rounded-2xl border border-slate-200 bg-white p-8 text-[17px] leading-relaxed print:border-0 print:p-0">
+        <h1 className="text-[20px] leading-snug font-semibold">{draft.title}</h1>
         {draft.sections.map((s) => (
           <section key={s.heading} className="mt-6">
             <h2 className="font-semibold">{s.heading}</h2>
@@ -45,9 +45,9 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
             ))}
           </section>
         ))}
-        <p className="mt-8 break-all text-xs text-slate-500">Resumo SHA-256 deste texto: {hash}</p>
+        <p className="mt-8 break-all text-[15px] text-slate-500">Resumo SHA-256 deste texto: {hash}</p>
       </article>
-      <p className="text-xs text-slate-500 print:hidden">
+      <p className="text-[15px] text-slate-500 print:hidden">
         A assinatura qualificada com Chave Móvel Digital será ligada quando o serviço de assinatura estiver contratado. Até
         lá, a assinatura na plataforma regista a aceitação, a hora e o resumo do texto aceite. O texto da minuta deve ser
         validado por um advogado antes do lançamento.

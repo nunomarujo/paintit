@@ -11,12 +11,12 @@ export interface SurveyInfo {
   rated: boolean;
 }
 
-const card = 'rounded-2xl border border-tinta-200 bg-tinta-50 p-6 text-sm';
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const card = 'rounded-2xl border border-tinta-200 bg-tinta-50 p-6 text-[17px]';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
-  return m ? <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
+  return m ? <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 }
 
 const ratingText = (r: { n: number; media: number | null }) =>

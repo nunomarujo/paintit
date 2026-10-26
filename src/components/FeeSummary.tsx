@@ -62,7 +62,7 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
     : Math.max(0, fee.net - Math.max(piso, fee.net - (base * PRO_DISCOUNT_BP) / 10_000));
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-tinta-200 bg-tinta-50/60 text-sm">
+    <div className="overflow-hidden rounded-2xl border border-tinta-200 bg-tinta-50/60 text-[17px]">
       <div className="border-b border-tinta-200/70 px-5 py-4">
         <p className="eyebrow text-tinta-700">O que pagará à plataforma Quem Pinta.pt</p>
         <p className="mt-2 text-[15px] leading-snug text-slate-900">
@@ -103,13 +103,13 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
             {!sub.ativo && (
               <Link
                 href="/app/subscricao"
-                className="ml-2 inline-flex items-center rounded-full border border-tinta-300 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-tinta-700 hover:bg-tinta-50"
+                className="ml-2 inline-flex items-center rounded-full border border-tinta-300 bg-white px-2.5 py-0.5 text-[15px] font-semibold text-tinta-700 hover:bg-tinta-50"
               >
                 Aderir e poupar {formatEuros(poupancaPro)} nesta obra
               </Link>
             )}
           </span>
-          <span className={`tabular-nums ${sub.ativo ? 'text-emerald-700' : 'text-slate-400'}`}>
+          <span className={`tabular-nums ${sub.ativo ? 'text-emerald-700' : 'text-slate-600'}`}>
             {sub.ativo ? `−${formatEuros(poupancaPro)}` : sub.valor}
           </span>
         </li>
@@ -136,7 +136,7 @@ export function FeeSummary({ base, fee, fullFee, discount, linkedSupplierNames }
         <p className="mt-2">O cliente paga o valor do orçamento; a comissão não se soma a esse valor.</p>
       </div>
 
-      <p className="border-t border-tinta-200/70 px-5 py-3 text-xs text-slate-600">
+      <p className="border-t border-tinta-200/70 px-5 py-3 text-[15px] text-slate-600">
         Taxa base {(CURRENT_RULES.commissionBp / 100).toLocaleString('pt-PT')}% do valor sem IVA
         {discountLines.length > 0 ? ', já com os descontos acima' : ''}; nunca abaixo de{' '}
         {((CURRENT_RULES.commissionFloorBp ?? 0) / 100).toLocaleString('pt-PT')}%, com um mínimo de{' '}

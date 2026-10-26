@@ -43,17 +43,17 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {org.nome}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Descontos a novos aderentes</h1>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Descontos a novos aderentes</h1>
+        <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Crie um código e entregue-o a um pintor que ainda não use a plataforma. O código não se esgota: desative-o quando
           quiser cortar a relação.
         </p>
         {/* Parágrafo único quebrado em lista, com os números em destaque (auditoria de UX, 23/10/2026: área
             financeira a explicar um mecanismo com vários números não devia ser texto corrido). */}
-        <ul className="mt-3 max-w-3xl list-disc space-y-1.5 pl-5 text-sm text-slate-600">
+        <ul className="mt-3 max-w-3xl list-disc space-y-1.5 pl-5 text-[17px] text-slate-600">
           <li>
             Quando o pintor aplica o código a um orçamento, a sua comissão à plataforma desce <strong>0,25 pontos percentuais</strong>{' '}
             em todas as obras que ganhar a partir daí, enquanto o código estiver ativo — soma com códigos de outros fornecedores que também
@@ -75,26 +75,26 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
           ['Já recebido', formatEuros(balance.paga)],
         ].map(([k, v]) => (
           <div key={k} className={card}>
-            <p className="text-sm text-slate-600">{k}</p>
-            <p className="mt-1 text-2xl font-semibold">{v}</p>
+            <p className="text-[17px] text-slate-600">{k}</p>
+            <p className="mt-1 text-[26px] leading-tight font-semibold">{v}</p>
           </div>
         ))}
       </section>
 
       <section className={card}>
         <h2 className="font-semibold">Resgatar o saldo</h2>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+        <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           As comissões acumulam no saldo quando a plataforma recebe a comissão do pintor. Pode resgatá-lo quando quiser: indicamos o valor a faturar (comissão, mais IVA se liquida,
           menos retenção, se houver), envia uma só fatura e a plataforma paga por transferência.
         </p>
         {manager && (
           <div className="mt-4">
             <RedeemButton orgId={id} disabled={!canRedeem} />
-            {why && <p className="mt-2 text-sm text-slate-600">{why}</p>}
+            {why && <p className="mt-2 text-[17px] text-slate-600">{why}</p>}
           </div>
         )}
         {(redemptions ?? []).length > 0 && (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {(redemptions ?? []).map((r) => (
               <li key={r.id} className="py-3">
                 <p className="font-medium">
@@ -112,7 +112,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
                   <>
                     <InvoiceForm orgId={id} redemptionId={r.id} />
                     <form action={cancelRedemption.bind(null, id, r.id)} className="mt-2">
-                      <button type="submit" className="text-sm text-slate-600 hover:underline">
+                      <button type="submit" className="text-[17px] text-slate-600 hover:underline">
                         Cancelar este resgate
                       </button>
                     </form>
@@ -126,7 +126,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
 
       <section className={card}>
         <h2 className="font-semibold">Dados para receber</h2>
-        <p className="mt-1 text-sm text-slate-600">Necessários para lhe pagarmos. Sem IBAN não é possível enviar a fatura.</p>
+        <p className="mt-1 text-[17px] text-slate-600">Necessários para lhe pagarmos. Sem IBAN não é possível enviar a fatura.</p>
         <div className="mt-4">
           {manager ? (
             <PayoutDetailsForm
@@ -146,7 +146,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
               }
             />
           ) : (
-            <p className="text-sm">{details ? `${details.titular}, ${details.iban}` : 'Por indicar.'}</p>
+            <p className="text-[17px]">{details ? `${details.titular}, ${details.iban}` : 'Por indicar.'}</p>
           )}
         </div>
       </section>
@@ -159,10 +159,10 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
           </div>
         )}
         {(codes ?? []).length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">Ainda não criou nenhum código.</p>
+          <p className="mt-4 text-[17px] text-slate-600">Ainda não criou nenhum código.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-left text-sm">
+            <table className="w-full min-w-[34rem] text-left text-[17px]">
               <thead className="text-slate-500">
                 <tr>
                   <th className="py-2 font-normal">Código</th>
@@ -174,13 +174,13 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
               <tbody className="divide-y divide-slate-100">
                 {(codes ?? []).map((c) => (
                   <tr key={c.id}>
-                    <td className="py-2 font-mono text-base font-semibold tracking-wider">{c.code}</td>
+                    <td className="py-2 font-mono text-[17px] font-semibold tracking-wider">{c.code}</td>
                     <td className="py-2 text-slate-600">{c.nota ?? ''}</td>
                     <td className="py-2">{!c.active ? 'Desativado' : c.painter_org_id ? 'Ligado a um pintor' : 'Disponível'}</td>
                     <td className="py-2 text-right">
                       {manager && (
                         <form action={setReferralActive.bind(null, id, c.id, !c.active)}>
-                          <button type="submit" className="text-sm text-tinta-700 hover:underline">
+                          <button type="submit" className="text-[17px] text-tinta-700 hover:underline">
                             {c.active ? 'Desativar' : 'Reativar'}
                           </button>
                         </form>
@@ -197,13 +197,13 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
       <section className={card}>
         <h2 className="font-semibold">Candidaturas e comissões</h2>
         {(activity ?? []).length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Quando um pintor submeter um orçamento com um código seu, aparece aqui.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Quando um pintor submeter um orçamento com um código seu, aparece aqui.</p>
         ) : (
           <ul className="mt-4 divide-y divide-slate-100">
             {(activity ?? []).map((a, i) => {
               const status = a.estado ? payoutStatus({ estado: a.estado, feeRecebidoEm: a.fee_recebido_em, redemptionId: (payouts ?? []).find((p) => p.id === a.payout_id)?.redemption_id ?? null }) : null;
               return (
-                <li key={`${a.code}-${i}`} className="py-3 text-sm">
+                <li key={`${a.code}-${i}`} className="py-3 text-[17px]">
                   <p className="font-medium">
                     {a.pintor} <span className="font-normal text-slate-600">· código {a.code} · obra em {a.concelho ?? '—'} · {ptDate(a.submetida_em)}</span>
                   </p>

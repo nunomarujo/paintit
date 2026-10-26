@@ -4,6 +4,57 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — Letra maior em todo o lado, e a Gestão de obra refeita
+
+Três coisas, pedidas pelo promotor na mesma noite.
+
+**A Gestão de obra estava uma confusão e não funcionava.** O ecrã de uma obra tinha oito separadores
+horizontais e o ecrã de entrada era uma lista de obras com um cofre de documentos por cima. Refeito
+segundo o protótipo do promotor: **Hoje** abre na obra em curso (com selector, para quem anda em
+três), com três acções grandes — registar o dia, fotografar, despesa —, a equipa do dia com as horas
+por confirmar, o que está parado à espera de decisão, e as fases como régua. **Contas** deixa de ser
+uma lista de valores sem hierarquia: o resultado previsto é o título, e por baixo explica-se de onde
+vem. Um número de margem que não se percebe é um número em que não se confia.
+
+Havia também um defeito a sério na barra lateral: os separadores de dentro eram desenhados **depois
+da lista toda do grupo**, o que punha Hoje/Equipa/Contas debaixo de "Referências de fornecedores".
+
+**"As pessoas indicam que tem letras muito pequenas."** Três agentes auditaram o site em paralelo —
+tipografia, aproveitamento do espaço, coerência visual — e o que encontraram vai além da queixa:
+
+- O corpo da aplicação eram **14px** e a escala tinha **26 degraus** distintos, de 9px a 42px. Passa
+  a seis: 13 / 15 / 17 / 20 / 26 / 34, com 17px de corpo.
+- **154 de 201 campos de formulário estavam abaixo de 16px.** Abaixo desse limiar o Safari do iPhone
+  **dá zoom a cada toque** — exactamente quem preenche um levantamento numa obra. Resolvido pela
+  mesma linha que subiu o corpo.
+- `text-slate-400` dava **2,33:1** de contraste e era usado onde o significado importa ("não
+  elegível", "faltou"). Substituído em todo o lado.
+- Branco sobre `terracota` — o botão mais visto do produto — dava 4,42:1. Escurecido para 5,98:1.
+- O contorno dos campos dava **1,40:1** quando a norma pede 3:1 para um controlo.
+- **14 classes de cor não existiam** (`tinta-300`, `tinta-400`, `tinta-800`): o Tailwind não as gera,
+  a cor não pinta e o estado de rato não acontece. A rampa foi completada.
+- `max-w-[70ch]` não dá 70 caracteres, dá **91** — `ch` é a largura do `0`, não a média.
+
+E o espaço: a área útil passa de 1108 para 1588 px num monitor de 1920, os cartões deixam de ter 24px
+de margem interior fixa no telemóvel, e as listas principais passam a duas colunas em ecrãs largos.
+O artigo, que o promotor deu como exemplo de mau aproveitamento, passa a ter os números num painel
+ao lado do texto que os explica, em vez de meio ecrã vazio.
+
+**A regra de alarme e a escala tipográfica subiram para o `CLAUDE.md`** (regras 13 e 14). A de alarme
+vivia num comentário de um ficheiro secundário e era violada em oito ficheiros — incluindo o que a
+escreve. Fica uma contradição por decidir: a entrada de 23/10/2026 mandou pôr o aviso de documento em
+falta a vermelho, e a regra reserva o vermelho para o que já fechou ou caducou.
+
+**O mapa de contratos deixa de ser o destaque da página de preços.** Razão do promotor, e tem-na:
+são cerca de 977 lugares de convidado por ano em todo o país. Mesmo com execução perfeita, a maior
+parte dos subscritores nunca verá um convite atribuível a isto, e o retorno não é imediato nem
+garantido. Prometê-lo à cabeça era montar a subscrição sobre o que ela menos consegue entregar. Passa
+a estar a seguir às funcionalidades de todas as semanas, a dizer o que não promete, e a ligar ao
+artigo. O destaque passa para "Fique com mais do que ganhou".
+
+**Acesso de cortesia** dado a `nunomarujo+teste4@gmail.com`: plano Pro activo até 2030, sem subscrição
+no Stripe associada, a zero euros — não cobra, não factura e a tarefa semanal não lhe toca.
+
 ## 26/10/2026 — O mapa soma-se na base, e o que os dados dizem sobre o clube fechado
 
 Feita a carga dos quinze anos, o ecrã do mapa trazia os 9 393 contratos em bruto para somar depois de

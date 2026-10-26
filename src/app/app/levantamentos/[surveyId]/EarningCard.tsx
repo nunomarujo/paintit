@@ -23,7 +23,7 @@ export function EarningCard({ earning }: { earning: SurveyorEarningView }) {
   return (
     <section className={card}>
       <h2 className="font-semibold">O que ganha se esta obra for adjudicada</h2>
-      <p className="mt-1 text-sm text-slate-700">
+      <p className="mt-1 text-[17px] text-slate-700">
         A sua fração hoje é <strong className="text-tinta-800">{pct(e.shareBp)}</strong> do valor adjudicado (sem IVA),
         dentro de uma banda de {pct(SURVEYOR_SHARE_OF_VALUE_BP_MIN)} a {pct(SURVEYOR_SHARE_OF_VALUE_BP_MAX)}.
         {e.temBonus && (
@@ -35,7 +35,7 @@ export function EarningCard({ earning }: { earning: SurveyorEarningView }) {
         )}
       </p>
 
-      <table className="mt-4 w-full text-sm">
+      <table className="mt-4 w-full text-[17px]">
         <caption className="sr-only">O que compõe a sua fração</caption>
         <tbody className="divide-y divide-tinta-200/60">
           <Row peso="40%" nome="A sua qualificação geral" valor={stars(e.componentes.qualificacaoGeral)} />
@@ -48,20 +48,20 @@ export function EarningCard({ earning }: { earning: SurveyorEarningView }) {
           <Row peso="15%" nome="Nota do cliente a esta obra" valor={stars(e.componentes.notaCliente)} />
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-slate-600">
+      <p className="mt-2 text-[15px] text-slate-600">
         Cada parcela ainda sem notas conta pelo meio da banda — não prejudica nem beneficia.
       </p>
 
       <div className="mt-5 border-t border-tinta-200 pt-4">
-        <p className="text-sm font-medium text-slate-700">À percentagem de hoje, isso daria:</p>
-        <ul className="mt-2 space-y-1 text-sm text-slate-700">
+        <p className="text-[17px] font-medium text-slate-700">À percentagem de hoje, isso daria:</p>
+        <ul className="mt-2 space-y-1 text-[17px] text-slate-700">
           {EXEMPLOS.map((valor) => (
             <li key={valor}>
               Obra de {formatEuros(valor)} → <strong>{formatEuros(surveyorPayoutAmount(valor, e.shareBp, valor))}</strong>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-slate-600">
+        <p className="mt-3 text-[15px] text-slate-600">
           Exemplos para dar escala, não previsões desta obra: o valor só se sabe quando o cliente escolher uma proposta.
           O pagamento nunca excede a comissão que a plataforma receber do pintor nesta obra, e só é devido depois de essa
           comissão entrar.

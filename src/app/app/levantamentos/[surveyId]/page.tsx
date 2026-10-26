@@ -31,7 +31,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   if (!accepted) {
     return (
       <div className="space-y-8">
-        <Link href="/app/levantamentos" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app/levantamentos" className="text-[17px] text-slate-600 hover:underline">
           ← Levantamentos
         </Link>
         <AcceptTerms surveyId={survey.id} />
@@ -99,7 +99,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
-      <Link href="/app/levantamentos" className="text-sm text-slate-600 hover:underline">
+      <Link href="/app/levantamentos" className="text-[17px] text-slate-600 hover:underline">
         ← Levantamentos
       </Link>
 
@@ -121,10 +121,10 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="superficies" className="scroll-mt-4 font-semibold">Superfícies e áreas</h2>
-          <span className="text-sm text-slate-600">Total: {formatArea(total)}</span>
+          <span className="text-[17px] text-slate-600">Total: {formatArea(total)}</span>
         </div>
         {list.length > 0 ? (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {list.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
@@ -137,7 +137,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">Ainda sem superfícies.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Ainda sem superfícies.</p>
         )}
         {!done && (
           <div className="mt-6 border-t border-slate-100 pt-6">
@@ -149,7 +149,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       <section className={card}>
         <h2 id="fotografias" className="scroll-mt-4 font-semibold">Fotografias</h2>
         {!done && (
-          <p className="mt-2 text-sm text-amber-900">
+          <p className="mt-2 text-[17px] text-amber-900">
             Não fotografe nada que identifique a localização do prédio ou dos vizinhos — números de porta, placas
             de rua, matrículas, fachadas inteiras reconhecíveis à distância. Fotografe só o pormenor da obra em
             si (fissuras, humidade, acabamentos): a aplicação trata o resto para o cliente nunca ser identificável
@@ -159,7 +159,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
         {(photos ?? []).length > 0 && (
           <ul className="mt-4 grid gap-4 sm:grid-cols-3">
             {(photos ?? []).map((p) => (
-              <li key={p.id} className="text-sm">
+              <li key={p.id} className="text-[17px]">
                 <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
                   {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado */}
                   <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Fotografia'} className="aspect-square w-full rounded-lg object-cover" />
@@ -180,7 +180,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       {!done && (
         <section className={card}>
           <h2 className="font-semibold">Concluir</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-[17px] text-slate-600">
             Marque como concluído quando as superfícies e as fotografias estiverem registadas. O cliente passa a poder
             avaliar o seu trabalho.
           </p>
@@ -202,7 +202,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       {request.descricao && (
         <section className={card}>
           <h2 className="font-semibold">Descrição do cliente</h2>
-          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{request.descricao}</p>
+          <p className="mt-2 whitespace-pre-line text-[17px] text-slate-700">{request.descricao}</p>
         </section>
       )}
 
@@ -215,7 +215,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
       {earning && <EarningCard earning={earning} />}
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-[17px] text-amber-900">
         A morada e os dados desta obra são confidenciais: não os partilhe fora da aplicação, nem indique esta obra a
         nenhum pintor ou terceiro fora do fluxo normal da plataforma.
       </section>

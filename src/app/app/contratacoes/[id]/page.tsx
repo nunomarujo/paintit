@@ -91,8 +91,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
     <div className="space-y-8">
       {addenda.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-base font-semibold">Trabalhos a mais</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <h2 className="text-[17px] font-semibold">Trabalhos a mais</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             {side === 'cliente'
               ? 'Trabalho que não estava no orçamento e que a empresa propõe fazer. Só é cobrado depois de o aceitar aqui.'
               : 'O que propôs ao cliente além do orçamento. Só conta para o valor da obra depois de ele aceitar.'}
@@ -116,12 +116,12 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       <div>
         <Link
           href={side === 'cliente' ? `/app/pedidos/${row.request_id}/propostas` : '/app/contratacoes'}
-          className="text-sm text-slate-600 hover:underline"
+          className="text-[17px] text-slate-600 hover:underline"
         >
           ← {side === 'cliente' ? 'Propostas do pedido' : 'Contratações'}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Contratação {reference}</h1>
-        <p className="mt-1 text-sm font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Contratação {reference}</h1>
+        <p className="mt-1 text-[17px] font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
         {v2 ? (
           <Steps
             steps={['Caução do cliente', side === 'cliente' ? 'Confirmação do pintor' : 'Comissão do pintor', 'Adiantamento', 'Assinatura do cliente', 'Assinatura do pintor']}
@@ -144,7 +144,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             }
           />
         )}
-        <div className="mt-2 flex flex-wrap gap-4 text-sm">
+        <div className="mt-2 flex flex-wrap gap-4 text-[17px]">
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
             Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
           </Link>
@@ -164,7 +164,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       {addenda.length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Trabalhos a mais</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             {side === 'cliente'
               ? 'Trabalho que não estava no orçamento e que a empresa propõe fazer. Só é cobrado depois de o aceitar aqui.'
               : 'O que propôs ao cliente além do orçamento. Só conta para o valor da obra depois de ele aceitar.'}
@@ -187,7 +187,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
       <section className={card}>
         <h2 className="font-semibold">Valores</h2>
-        <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+        <dl className="mt-3 grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-2">
           <dt className="text-slate-500">Valor da obra sem IVA</dt>
           <dd className="font-semibold sm:text-right">{formatEuros(e.base)}</dd>
           <dt className="text-slate-500">Caução do cliente (3%)</dt>
@@ -212,12 +212,12 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           <dd className="sm:text-right">{formatEuros(h.guarantee + h.advance + (side === 'cliente' ? 0 : h.fee))}</dd>
         </dl>
         {e.feeDue && e.status === 'aguarda_fee' && (
-          <p className="mt-3 text-sm">
+          <p className="mt-3 text-[17px]">
             {side === 'cliente' ? 'Prazo para o pintor confirmar' : 'Prazo para a comissão do pintor entrar'}: <strong>{pt(e.feeDue)}</strong>, até às 23:59 (Lisboa).
           </p>
         )}
         {e.signDue && e.status === 'aguarda_assinatura_pintor' && (
-          <p className="mt-3 text-sm">
+          <p className="mt-3 text-[17px]">
             Prazo para o pintor assinar: <strong>{pt(e.signDue)}</strong>, até às 23:59 (Lisboa).
           </p>
         )}
@@ -226,7 +226,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       {(e.status === 'aguarda_deposito' || e.status === 'aguarda_adiantamento') && side === 'cliente' && (
         <section className={`${card} border-tinta-100 bg-tinta-50`}>
           <h2 className="font-semibold">{e.status === 'aguarda_adiantamento' ? 'Adiantamento a depositar' : 'Depósito a fazer'}</h2>
-          <p className="mt-2 text-sm">
+          <p className="mt-2 text-[17px]">
             Deposite <strong>{formatEuros(due)}</strong> com a referência <strong>{reference}</strong>. O dinheiro fica no
             parceiro de pagamentos autorizado, nunca na plataforma.{' '}
             {v2
@@ -238,20 +238,20 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           {stripeConfigured && e.status === 'aguarda_deposito' && manager ? (
             <>
               <PayButton engagementId={id} side="cliente" label={`Pagar a caução de ${formatEuros(due)}`} />
-              <p className="mt-2 text-xs text-slate-600">
+              <p className="mt-2 text-[15px] text-slate-600">
                 Pagamento seguro no Stripe (instituição de pagamento autorizada). A devolução é automática quando as duas partes
                 assinarem, ou se desistir antes de conhecer o pintor.
               </p>
             </>
           ) : (
-            <p className="mt-2 text-xs text-slate-600">A equipa da plataforma combina o depósito consigo.</p>
+            <p className="mt-2 text-[15px] text-slate-600">A equipa da plataforma combina o depósito consigo.</p>
           )}
         </section>
       )}
       {e.status === 'aguarda_fee' && side === 'pintor' && (
         <section className={`${card} border-tinta-100 bg-tinta-50`}>
           <h2 className="font-semibold">{v2 ? 'A sua proposta foi escolhida' : 'Ganhou esta obra'}</h2>
-          <p className="mt-2 text-sm">
+          <p className="mt-2 text-[17px]">
             {v2 ? 'O cliente depositou a caução.' : 'O cliente já assinou.'} Pague <strong>{formatEuros(e.fee.gross)}</strong> com a referência <strong>{reference}</strong>{' '}
             até <strong>{pt(e.feeDue)}</strong>. Quando o pagamento for confirmado, vê a identidade do cliente e a morada, e
             pode assinar. {e.advance > 0 && `O adiantamento de ${formatEuros(e.advance)} está reservado para si e é libertado quando assinar.`}
@@ -265,7 +265,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       {revealed && counterpart && (
         <section className={card}>
           <h2 className="font-semibold">{side === 'pintor' ? 'Cliente' : 'Pintor'}</h2>
-          <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <dl className="mt-3 grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-2">
             <dt className="text-slate-500">Nome</dt>
             <dd>{counterpart.nome}</dd>
             <dt className="text-slate-500">NIF</dt>
@@ -295,7 +295,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               />
             ))}
             {condoMissing.length > 0 && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[17px]">
                 <p className="font-semibold">Antes de assinar em nome do condomínio</p>
                 <p className="mt-1">
                   Envie na página do condomínio, e aguarde a validação: {condoMissing.join('; ')}. Quem assina tem de ter poderes
@@ -319,7 +319,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 />
               ))}
             {canCarry && (
-              <div className="space-y-3 rounded-xl border border-slate-200 p-4 text-sm">
+              <div className="space-y-3 rounded-xl border border-slate-200 p-4 text-[17px]">
                 <p>
                   O pintor não cumpriu. Pode passar para outra proposta: a caução e o adiantamento já depositados transitam
                   para ela.
@@ -344,7 +344,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       {['assinado', 'cliente_desistiu', 'litigio_culpa_cliente', 'litigio_culpa_pintor', 'litigio_repartido', 'encerrado_sem_contrato', 'transitado'].includes(e.status) && (
         <section className={card}>
           <h2 className="font-semibold">Acerto final</h2>
-          <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <dl className="mt-3 grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-2">
             <dt className="text-slate-500">Cliente entregou / recebeu</dt>
             <dd className="sm:text-right">
               {formatEuros(s.cliente.entregou)} / {formatEuros(s.cliente.recebeu)}
@@ -367,7 +367,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       {side === 'cliente' && (orders ?? []).length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Materiais comprometidos</h2>
-          <ul className="mt-3 space-y-1 text-sm">
+          <ul className="mt-3 space-y-1 text-[17px]">
             {(orders ?? []).map((o) => (
               <li key={o.id}>
                 {o.embalagens} embalagens · {o.estado === 'entregue' ? 'compra e entrega em obra confirmadas pelo fornecedor' : o.estado === 'confirmada' ? 'compra confirmada pelo fornecedor' : 'encomendado ao fornecedor'}
@@ -382,7 +382,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         <section className={card}>
           <h2 className="font-semibold">Avaliação — {category === 'concluida' ? 'obra concluída' : 'obra cancelada'}</h2>
           {review && (
-            <div className="mt-3 text-sm">
+            <div className="mt-3 text-[17px]">
               <p>
                 Qualidade {review.qualidade}/5 · Prazo {review.prazo}/5 · Comunicação {review.comunicacao}/5
               </p>
@@ -403,9 +403,9 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               />
             )}
             {side === 'pintor' && manager && review && <AnswerForm engagementId={id} initial={review.resposta} />}
-            {side === 'pintor' && !review && <p className="text-sm text-slate-600">O cliente ainda não avaliou.</p>}
+            {side === 'pintor' && !review && <p className="text-[17px] text-slate-600">O cliente ainda não avaliou.</p>}
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-[15px] text-slate-500">
             {category === 'concluida'
               ? 'A avaliação entra na nota média do pintor e aparece, sem o nome do cliente, quando o pintor faz novas propostas.'
               : 'Por ser uma obra cancelada, esta avaliação não entra na nota média do pintor; fica visível só nesta contratação, para as duas partes.'}
@@ -415,7 +415,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
       <section className={card}>
         <h2 className="font-semibold">Histórico</h2>
-        <ol className="mt-3 space-y-2 text-sm">
+        <ol className="mt-3 space-y-2 text-[17px]">
           {e.history.map((x, i) => (
             <li key={i} className="flex flex-wrap justify-between gap-2">
               <span>{x.event}</span>
@@ -424,13 +424,13 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           ))}
         </ol>
         {events.some((v) => (v.payload as { metodo?: string; cadeiaConfiavel?: boolean } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel) && (
-          <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-[17px] text-red-800">
             Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A plataforma
             não o confirma; se continuarem, as partes assumem a responsabilidade.
           </p>
         )}
         {events.some((v) => (v.payload as { documentHash?: string } | null)?.documentHash) && (
-          <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+          <div className="mt-4 border-t border-slate-100 pt-3 text-[15px] text-slate-500">
             {events
               .filter((v) => (v.payload as { documentHash?: string } | null)?.documentHash)
               .map((v) => (
@@ -449,7 +449,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           </div>
         )}
         {replay.rejected.length > 0 && (
-          <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">
+          <div className="mt-4 rounded-xl bg-red-50 p-3 text-[17px] text-red-800">
             <p className="font-medium">Registos sem efeito</p>
             <ul className="mt-1 list-disc pl-5">
               {replay.rejected.map((r) => (

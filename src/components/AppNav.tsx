@@ -67,7 +67,7 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                   }`}
                 >
                   {i.label}
-                  {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">{i.count}</span> : null}
+                  {i.count ? <span className="rounded-full bg-tinta-600 px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
                 </Link>
                 {aberto && (
                   // A régua acompanha só os filhos deste item. No telemóvel não há régua, que a
@@ -78,7 +78,7 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                         key={c.href}
                         href={c.href}
                         aria-current={activo(c) ? 'page' : undefined}
-                        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[14px] md:pl-4 ${
+                        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[15px] md:pl-4 ${
                           activo(c) ? 'font-semibold text-tinta-700' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >

@@ -6,11 +6,11 @@ import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import { requestSurveyRedemption, setSurveyCoverage, submitSurveyRedemptionInvoice } from './actions';
 
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {m}
     </p>
   ) : null;
@@ -52,7 +52,7 @@ export function SurveyInvoiceForm({ orgId, redemptionId }: { orgId: string; rede
     <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-3 rounded-xl bg-amber-50 p-3">
       <Field name="numero" label="N.º da fatura" required error={e.numero} />
       <Field name="ficheiro" label="Fatura (PDF)" required error={e.ficheiro}>
-        <input name="ficheiro" type="file" required accept="application/pdf" className="mt-1 block text-sm" />
+        <input name="ficheiro" type="file" required accept="application/pdf" className="mt-1 block text-[17px]" />
       </Field>
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A enviar…' : 'Enviar fatura'}

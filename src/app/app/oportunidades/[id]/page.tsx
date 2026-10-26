@@ -37,7 +37,7 @@ import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 import { Workspace } from '@/components/Workspace';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
+const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
 
 const STATUS: Record<string, string> = {
   rascunho: 'Rascunho: só a sua equipa a vê.',
@@ -75,7 +75,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   if (!accepted) {
     return (
       <div className="space-y-8">
-        <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app/oportunidades" className="text-[17px] text-slate-600 hover:underline">
           ← Oportunidades
         </Link>
         {listing && (
@@ -83,7 +83,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             <p className="font-semibold">
               {WORK_TYPE_LABELS[listing.tipo_obra]} · {listing.concelho}
             </p>
-            <p className="text-sm text-slate-600">Pedido {listing.ref}</p>
+            <p className="text-[17px] text-slate-600">Pedido {listing.ref}</p>
           </div>
         )}
         <AcceptTerms orgId={org.id} requestId={id} />
@@ -254,7 +254,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
   return (
     <div className="space-y-6">
-      <Link href="/app/oportunidades" className="text-sm text-slate-600 hover:underline">
+      <Link href="/app/oportunidades" className="text-[17px] text-slate-600 hover:underline">
         ← Oportunidades
       </Link>
 
@@ -307,7 +307,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         />
       )}
       {listing?.aberto && (
-        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
+        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-[17px]">
           <strong>Dica:</strong> ao escolher materiais de um fornecedor registado na plataforma, o fornecedor confirma a
           compra e a entrega e o produto fica no contrato com o cliente. A proposta mostra “Material comprometido”, e os
           clientes tendem a preferir quem se compromete com o produto. Vê também os descontos que os fornecedores dão para
@@ -333,7 +333,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
           <h2 className="font-semibold">Fazer proposta</h2>
           {org.manager ? (
             <form action={createProposal.bind(null, id, org.id)} className="mt-3">
-              <p className="text-sm text-slate-600">
+              <p className="text-[17px] text-slate-600">
                 Em nome de <strong>{org.nome}</strong>. A proposta fica em rascunho até a submeter.
               </p>
               <button type="submit" className="mt-3 rounded-lg bg-tinta-600 px-5 py-2 font-semibold text-white hover:bg-tinta-700">
@@ -341,7 +341,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </button>
             </form>
           ) : (
-            <p className="mt-2 text-sm text-slate-600">Só proprietários e gestores da entidade podem fazer propostas.</p>
+            <p className="mt-2 text-[17px] text-slate-600">Só proprietários e gestores da entidade podem fazer propostas.</p>
           )}
         </section>
       ) : (
@@ -351,10 +351,10 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <h2 className="font-semibold">
                 A sua proposta{proposal.version > 1 ? ` (versão ${proposal.version})` : ''}
               </h2>
-              <span className="text-sm text-slate-600">{STATUS[proposal.status]}</span>
+              <span className="text-[17px] text-slate-600">{STATUS[proposal.status]}</span>
             </div>
             {licenseWarning && (
-              <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm text-red-900" role="alert">
+              <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px] text-red-900" role="alert">
                 <p className="font-semibold">Em falta: {licenseWarning}</p>
                 <p className="mt-1">
                   A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos — preencha já os
@@ -372,13 +372,13 @@ export default async function OpportunityPage({ params, searchParams }: { params
             {engagement && (
               <Link
                 href={`/app/contratacoes/${engagement.id}`}
-                className="mt-3 block rounded-xl bg-tinta-50 p-3 text-sm font-semibold text-tinta-900 hover:bg-tinta-100"
+                className="mt-3 block rounded-xl bg-tinta-50 p-3 text-[17px] font-semibold text-tinta-900 hover:bg-tinta-100"
               >
                 Ir para a contratação (comissão, contrato e assinatura) →
               </Link>
             )}
             {proposal.status === 'submetida' && listing && proposal.request_version !== null && proposal.request_version < (listing.version ?? 0) && (
-              <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm">
+              <p className="mt-3 rounded-xl bg-amber-50 p-3 text-[17px]">
                 O cliente alterou o pedido depois da sua submissão. Reveja a proposta para continuar a concorrer.
               </p>
             )}
@@ -437,10 +437,10 @@ export default async function OpportunityPage({ params, searchParams }: { params
           {wizard && proposal && terms && (
             <section className="space-y-4" aria-labelledby="orcamento">
               <div>
-                <h2 id="orcamento" className="text-2xl font-semibold">
+                <h2 id="orcamento" className="text-[26px] leading-tight font-semibold">
                   Preparar orçamento
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-[17px] text-slate-600">
                   {wizardZones.length} {wizardZones.length === 1 ? 'zona' : 'fachadas ou zonas'} · {formatArea(listing?.area_total_cm2 ?? 0)} estimados pelo cliente
                 </p>
               </div>
@@ -474,7 +474,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       {legacyLines.length > 0 && (
                         <section className={card}>
                           <h3 className="font-semibold">Linhas avulsas</h3>
-                          <p className="mt-1 text-sm text-slate-600">Linhas criadas antes do orçamento guiado, ou com material de um fornecedor da plataforma.</p>
+                          <p className="mt-1 text-[17px] text-slate-600">Linhas criadas antes do orçamento guiado, ou com material de um fornecedor da plataforma.</p>
                           <ProposalView
                             lines={legacyLines}
                             terms={terms}
@@ -515,8 +515,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
                         <p className="eyebrow">
                           Proposta de orçamento · {cabecalhoTrabalho({ temPintura: items.length > 0, temCapoto: capotoSpec !== null })}
                         </p>
-                        <h3 className="mt-1 text-2xl font-semibold">Pedido {listing?.ref}</h3>
-                        <p className="mb-6 text-sm text-slate-600">
+                        <h3 className="mt-1 text-[26px] leading-tight font-semibold">Pedido {listing?.ref}</h3>
+                        <p className="mb-6 text-[17px] text-slate-600">
                           {listing?.concelho} · {formatArea(listing?.area_total_cm2 ?? 0)}
                         </p>
                         <ProposalView lines={domainLines} terms={terms} zoneNames={zoneNames} products={materialProducts} capoto={capotoSpec} />
@@ -528,7 +528,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>
                         {licenseWarning && (
-                          <p className="mb-3 rounded border-2 border-red-400 bg-red-50 p-3 text-sm font-semibold text-red-900" role="alert">
+                          <p className="mb-3 rounded border-2 border-red-400 bg-red-50 p-3 text-[17px] font-semibold text-red-900" role="alert">
                             Em falta: {licenseWarning} Ver aviso e atalho no topo da página.
                           </p>
                         )}
@@ -554,7 +554,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <>
           <section className={card}>
             <h2 className="font-semibold">Mensagens com o cliente</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-[17px] text-slate-600">
               Para esclarecimentos técnicos. O cliente vê as suas perguntas mesmo antes de submeter a proposta.
             </p>
             <div className="mt-4">
@@ -575,7 +575,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
       />
 
       {listing?.aberto && (
-        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-[17px] text-amber-900" role="note">
           <span aria-hidden className="font-bold">(!)</span>
           <span>
             <b>É proibida a identificação das partes</b> (nomes ou moradas). Não forneça contactos: tentar fazê-lo conta como aviso e pode levar ao

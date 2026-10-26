@@ -55,7 +55,7 @@ export function SurveyWorkspace({
       barra={
         <>
           {prazo && !concluido && (
-            <p className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+            <p className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[17px] text-amber-900">
               <span aria-hidden>⏱</span> Esclarecimento com prazo a correr: <Countdown deadline={prazo} />
             </p>
           )}

@@ -22,12 +22,12 @@ import { MaterialPicker } from '@/components/MaterialPicker';
 
 const status = (s: FormState) =>
   s.message && (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {s.message}
     </p>
   );
 const button =
-  'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+  'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 const hundredths = (n: number | null) => (n === null ? '' : (n / 100).toString().replace('.', ','));
 
 export function TermsForm({ proposalId, requestId, terms }: { proposalId: string; requestId: string; terms: ProposalTerms }) {
@@ -91,8 +91,8 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
       </div>
       <PaymentPlan phases={terms.fases} error={e.fases} />
       <fieldset className="space-y-3 rounded-xl bg-slate-50 p-4">
-        <legend className="px-1 text-sm font-semibold">Declarações</legend>
-        <label className="flex items-start gap-2 text-sm">
+        <legend className="px-1 text-[17px] font-semibold">Declarações</legend>
+        <label className="flex items-start gap-2 text-[17px]">
           <input type="checkbox" name="confirmaMaoObra" value="sim" defaultChecked={terms.confirmaMaoObra} className="mt-1" />
           <span>Confirmo que o orçamento inclui mão-de-obra qualificada para a execução proposta.</span>
         </label>
@@ -112,7 +112,7 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
             </select>
           </Field>
         </div>
-        <p className="text-xs text-slate-600">Quem declara não ter seguro pode submeter, mas o cliente vê um aviso a vermelho.</p>
+        <p className="text-[15px] text-slate-600">Quem declara não ter seguro pode submeter, mas o cliente vê um aviso a vermelho.</p>
       </fieldset>
       <Field name="exclusoes" label="Exclusões" error={e.exclusoes} hint="O que não está incluído (licenças, ocupação de via…).">
         <textarea name="exclusoes" rows={2} defaultValue={terms.exclusoes} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
@@ -140,22 +140,22 @@ function PaymentPlan({ phases, error }: { phases: PaymentPhase[]; error?: string
   const set = (i: number, k: 'nome' | 'pct', v: string) => setRows((r) => r.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   return (
     <fieldset className="space-y-3 rounded-xl bg-slate-50 p-4">
-      <legend className="px-1 text-sm font-semibold">Plano de pagamentos</legend>
-      <p className="text-xs text-slate-600">
+      <legend className="px-1 text-[17px] font-semibold">Plano de pagamentos</legend>
+      <p className="text-[15px] text-slate-600">
         Fases e percentagem do preço de cada uma (por exemplo: ao iniciar, a meio da obra, ao concluir). Com o adiantamento,
         têm de somar 100%. O pagamento da obra é feito diretamente entre as partes.
       </p>
       {rows.map((r, i) => (
         <div key={i} className="grid grid-cols-[1fr_6rem_auto] items-end gap-3">
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-[17px] font-medium text-slate-700">
             {i === 0 ? 'Fase' : <span className="sr-only">Fase</span>}
-            <input name="faseNome" value={r.nome} onChange={(ev) => set(i, 'nome', ev.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" placeholder="Ex.: Ao concluir a fachada principal" />
+            <input name="faseNome" value={r.nome} onChange={(ev) => set(i, 'nome', ev.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" placeholder="Ex.: Ao concluir a fachada principal" />
           </label>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-[17px] font-medium text-slate-700">
             {i === 0 ? '%' : <span className="sr-only">Percentagem</span>}
-            <input name="fasePct" value={r.pct} onChange={(ev) => set(i, 'pct', ev.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base" />
+            <input name="fasePct" value={r.pct} onChange={(ev) => set(i, 'pct', ev.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
           </label>
-          <button type="button" onClick={() => setRows((x) => (x.length > 1 ? x.filter((_, j) => j !== i) : [{ nome: '', pct: '' }]))} className="mb-1 text-sm text-slate-600 hover:underline">
+          <button type="button" onClick={() => setRows((x) => (x.length > 1 ? x.filter((_, j) => j !== i) : [{ nome: '', pct: '' }]))} className="mb-1 text-[17px] text-slate-600 hover:underline">
             Remover
           </button>
         </div>
@@ -165,7 +165,7 @@ function PaymentPlan({ phases, error }: { phases: PaymentPhase[]; error?: string
           Acrescentar fase
         </button>
       )}
-      {error && <p className="text-xs text-red-700" role="alert">{error}</p>}
+      {error && <p className="text-[15px] text-red-700" role="alert">{error}</p>}
     </fieldset>
   );
 }
@@ -188,7 +188,7 @@ export function LineForm({
   const e = state.errors;
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Acrescentar linha</h3>
+      <h3 className="text-[17px] font-semibold">Acrescentar linha</h3>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field name="categoria" label="Categoria" required error={e.categoria}>
           <select name="categoria" defaultValue="pintura" className={selectClass}>
@@ -210,11 +210,11 @@ export function LineForm({
         </Field>
       </div>
       <fieldset className="rounded-xl bg-slate-50 p-4">
-        <legend className="px-1 text-sm font-semibold">Aplicar esta linha a</legend>
-        <p className="text-xs text-slate-600">
+        <legend className="px-1 text-[17px] font-semibold">Aplicar esta linha a</legend>
+        <p className="text-[15px] text-slate-600">
           Assinale uma, várias ou todas as zonas. Sem nada assinalado, a linha aplica-se à obra toda (por exemplo, andaimes ou mobilização).
         </p>
-        <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+        <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-2">
           {zones.map((z) => (
             <label key={z.id} className="flex items-center gap-2">
               <input type="checkbox" name="zona" value={z.id} />
@@ -222,7 +222,7 @@ export function LineForm({
             </label>
           ))}
         </div>
-        {e.zona && <p className="mt-1 text-xs text-red-700" role="alert">{e.zona}</p>}
+        {e.zona && <p className="mt-1 text-[15px] text-red-700" role="alert">{e.zona}</p>}
         <div className="mt-3">
           <Field
             name="motivoDiferenca"
@@ -261,7 +261,7 @@ export function SubmitProposal({ proposalId, requestId, blockers }: { proposalId
   return (
     <form {...formProps} className="space-y-3">
       {blockers.length > 0 && (
-        <div className="rounded-xl bg-amber-50 p-4 text-sm">
+        <div className="rounded-xl bg-amber-50 p-4 text-[17px]">
           <p className="font-medium">Antes de submeter:</p>
           <ul className="mt-1 list-disc pl-5">
             {blockers.map((b) => (
@@ -279,7 +279,7 @@ export function SubmitProposal({ proposalId, requestId, blockers }: { proposalId
         >
           {pending ? 'A submeter…' : 'Submeter a proposta'}
         </button>
-        <p className="mt-2 text-xs text-slate-500">Sem compromisso até aí.</p>
+        <p className="mt-2 text-[15px] text-slate-500">Sem compromisso até aí.</p>
       </div>
     </form>
   );

@@ -6,11 +6,11 @@ import { useFormAction } from '@/components/useFormAction';
 import { useState } from 'react';
 import { createReferralCode, requestRedemption, savePayoutDetails, submitRedemptionInvoice } from './actions';
 
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {m}
     </p>
   ) : null;
@@ -47,7 +47,7 @@ export function PayoutDetailsForm({
         <Field name="iban" label="IBAN" required error={e.iban} defaultValue={initial?.iban ?? ''} placeholder="PT50 0000 0000 0000 0000 0000 0" />
         <Field name="titular" label="Titular da conta" required error={e.titular} defaultValue={initial?.titular ?? ''} />
       </div>
-      <fieldset className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+      <fieldset className="space-y-2 rounded-xl bg-slate-50 p-4 text-[17px]">
         <legend className="px-1 font-semibold">Regime da sua empresa</legend>
         <label className="flex items-center gap-2">
           <input type="radio" name="iva" value="normal" checked={iva === 'normal'} onChange={() => setIva('normal')} /> Liquida IVA na fatura (taxa normal)
@@ -57,7 +57,7 @@ export function PayoutDetailsForm({
         </label>
         {iva === 'isento' && <Field name="isencao" label="Fundamento da isenção" required error={e.isencao} defaultValue={initial?.isencao ?? ''} />}
         <Field name="retencao" label="Retenção na fonte" required error={e.retencao}>
-          <select name="retencao" defaultValue={initial?.retencao ?? ''} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base">
+          <select name="retencao" defaultValue={initial?.retencao ?? ''} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]">
             <option value="" disabled>
               Escolher…
             </option>
@@ -66,7 +66,7 @@ export function PayoutDetailsForm({
             <option value="dispensa">Dispensado de retenção (declaração de dispensa)</option>
           </select>
         </Field>
-        <p className="text-xs text-slate-600">
+        <p className="text-[15px] text-slate-600">
           A plataforma valida o regime antes do primeiro resgate e define a taxa de retenção, se houver.{' '}
           {initial ? (initial.validado ? `Regime validado${initial.retencaoBps ? ` (retenção ${initial.retencaoBps / 100}%)` : ''}.` : 'Regime por validar.') : ''}
         </p>
@@ -98,7 +98,7 @@ export function InvoiceForm({ orgId, redemptionId }: { orgId: string; redemption
     <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-3 rounded-xl bg-amber-50 p-3">
       <Field name="numero" label="N.º da fatura" required error={e.numero} />
       <Field name="ficheiro" label="Fatura (PDF)" required error={e.ficheiro}>
-        <input name="ficheiro" type="file" required accept="application/pdf" className="mt-1 block text-sm" />
+        <input name="ficheiro" type="file" required accept="application/pdf" className="mt-1 block text-[17px]" />
       </Field>
       <button type="submit" disabled={pending} className="btn-primary">
         {pending ? 'A enviar…' : 'Enviar fatura'}

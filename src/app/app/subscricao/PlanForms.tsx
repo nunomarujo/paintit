@@ -18,7 +18,7 @@ export function SubscribeForm() {
 
   if (state.ok) {
     return (
-      <p className="rounded-xl border border-tinta-200 bg-tinta-50 p-4 text-sm text-tinta-800" role="status">
+      <p className="rounded-xl border border-tinta-200 bg-tinta-50 p-4 text-[17px] text-tinta-800" role="status">
         {state.message}
       </p>
     );
@@ -41,15 +41,15 @@ export function SubscribeForm() {
                 escolhido ? 'border-marca-ink bg-marca-cream' : 'border-marca-border bg-white hover:bg-marca-cream/60'
               }`}
             >
-              <span className="block text-[13px] font-semibold text-marca-ink-soft">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
+              <span className="block text-[17px] font-semibold text-marca-ink-soft">{p === 'anual' ? 'Anual' : 'Mensal'}</span>
               <span className="block text-[20px] font-semibold tracking-tight text-marca-ink">
-                <span className="mr-1.5 text-[13px] font-normal text-marca-muted/60 line-through">
+                <span className="mr-1.5 text-[17px] font-normal text-marca-muted/60 line-through">
                   {formatEuros(p === 'anual' ? PRECO_ATUAL.tabelaAnualCents : PRECO_ATUAL.tabelaMensalCents)}
                 </span>
                 {formatEuros(preco)}
-                <span className="text-[12px] font-normal text-marca-muted"> + IVA</span>
+                <span className="text-[15px] font-normal text-marca-muted"> + IVA</span>
               </span>
-              <span className="block text-[11px] text-marca-muted">
+              <span className="block text-[15px] text-marca-muted">
                 {p === 'anual' ? `uma vez por ano · poupa ${formatEuros(poupancaAnual())}` : 'por mês'}
               </span>
             </button>
@@ -59,34 +59,34 @@ export function SubscribeForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-marca-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-marca-orange disabled:opacity-60"
+        className="w-full rounded-xl bg-marca-ink px-4 py-2.5 text-[17px] font-semibold text-white transition-colors hover:bg-marca-orange disabled:opacity-60"
       >
         {pending ? 'A registar…' : `Aderir ao plano Pro — ${formatEuros(precoEscolhido)} + IVA`}
       </button>
       {/* O que vai ser debitado, dito antes de sair daqui: o preço anunciado é sem IVA e o Stripe cobra
           o total. Decisão do promotor, 25/10/2026. */}
-      <p className="text-[11px] text-marca-muted">
+      <p className="text-[15px] text-marca-muted">
         Serão debitados <strong className="font-semibold">{formatEuros(withVat(precoEscolhido))}</strong> com IVA à taxa
         normal. O IVA é dedutível para a sua empresa.
       </p>
-      <p className="text-[11px] text-marca-muted/80">
+      <p className="text-[15px] text-marca-muted/80">
         A adesão fica registada e só passa a activa depois do pagamento. Pode cancelar quando quiser; o desconto mantém-se
         até ao fim do período que já pagou.
       </p>
-      {state.message && !state.ok && <p className="text-[12px] text-red-700">{state.message}</p>}
+      {state.message && !state.ok && <p className="text-[15px] text-red-700">{state.message}</p>}
     </form>
   );
 }
 
 export function CancelForm() {
   const { state, formProps, pending } = useFormAction<FormState>(cancelPro, EMPTY);
-  if (state.ok) return <p className="text-[12px] text-slate-600">{state.message}</p>;
+  if (state.ok) return <p className="text-[15px] text-slate-600">{state.message}</p>;
   return (
     <form {...formProps}>
-      <button type="submit" disabled={pending} className="text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
+      <button type="submit" disabled={pending} className="text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
         {pending ? 'A cancelar…' : 'Cancelar a subscrição'}
       </button>
-      {state.message && <span className="ml-2 text-[12px] text-red-700">{state.message}</span>}
+      {state.message && <span className="ml-2 text-[15px] text-red-700">{state.message}</span>}
     </form>
   );
 }

@@ -19,13 +19,13 @@ export function LegalLinks({ className = '' }: { className?: string }) {
 
 export function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-10 text-sm leading-relaxed">
+    <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 text-[17px] leading-relaxed">
       <Link href="/" className="text-slate-600 hover:underline">
         ← {BRAND.name}
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="mt-1 text-xs text-slate-500">
+        <h1 className="text-[26px] leading-tight font-semibold">{title}</h1>
+        <p className="mt-1 text-[15px] text-slate-500">
           Versão provisória de {LEGAL_VERSION}, em fase de teste com um grupo restrito de utilizadores. Será revista por advogado antes do lançamento público.
         </p>
       </div>
@@ -39,7 +39,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-[20px] font-semibold">{title}</h2>
       <div className="mt-2 space-y-2">{children}</div>
     </section>
   );

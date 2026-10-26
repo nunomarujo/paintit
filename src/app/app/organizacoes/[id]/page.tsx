@@ -31,7 +31,7 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
 };
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50';
+const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
 const ptDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
 function Sumario({ rotulo, valor }: { rotulo: string; valor: number | null }) {
@@ -145,13 +145,13 @@ export default async function OrganizationPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/app" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
           ← As suas entidades
         </Link>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">{org.nome}</h1>
-            <p className="mt-1 text-sm text-slate-600">
+            <h1 className="text-[26px] leading-tight font-semibold">{org.nome}</h1>
+            <p className="mt-1 text-[17px] text-slate-600">
               {ORG_KIND_LABELS[org.kind]}
               {org.nif ? ` · NIF ${org.nif}` : ''}
               {role ? ` · o seu papel: ${MEMBER_ROLE_LABELS[role].label.toLowerCase()}` : ''}
@@ -165,7 +165,7 @@ export default async function OrganizationPage({
                 href={`/app/organizacoes/${org.id}/editar`}
                 aria-label={`Configurar os dados de ${org.nome}`}
                 title="Configurar os dados desta entidade"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50"
               >
                 <GearIcon />
                 <span className={org.kind === 'administradora' ? 'sr-only sm:not-sr-only' : ''}>Configurar</span>
@@ -222,12 +222,12 @@ export default async function OrganizationPage({
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Prédio selecionado</p>
+                  <p className="text-[15px] uppercase tracking-wide text-slate-500">Prédio selecionado</p>
                   <h2 className="mt-1 font-semibold">{predioEmFoco.nome_interno}</h2>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-[17px] text-slate-600">
                     {[predioEmFoco.morada, predioEmFoco.codigo_postal, predioEmFoco.localidade].filter(Boolean).join(', ')}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-[17px] text-slate-600">
                     {condominioEmFoco.nome}
                     {condominioEmFoco.nif ? ` · NIPC ${condominioEmFoco.nif}` : ''}
                   </p>
@@ -235,20 +235,20 @@ export default async function OrganizationPage({
                 {manager && (
                   <Link
                     href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/editar`}
-                    className="inline-flex items-center gap-2 rounded-lg border border-tinta-600 px-3 py-1.5 text-sm font-semibold text-tinta-700 hover:bg-tinta-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-tinta-600 px-3 py-1.5 text-[17px] font-semibold text-tinta-700 hover:bg-tinta-50"
                   >
                     <GearIcon />
                     Configurar prédio
                   </Link>
                 )}
               </div>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+              <dl className="mt-4 grid gap-3 text-[17px] sm:grid-cols-4">
                 <Sumario rotulo="Pisos" valor={predioEmFoco.pisos} />
                 <Sumario rotulo="Frações" valor={predioEmFoco.fracoes} />
                 <Sumario rotulo="Fachadas" valor={predioEmFoco.fachadas} />
                 <Sumario rotulo="Ano" valor={predioEmFoco.ano_construcao} />
               </dl>
-              <p className="mt-3 text-xs text-slate-600">
+              <p className="mt-3 text-[15px] text-slate-600">
                 {BUILDING_KIND_LABELS[predioEmFoco.tipo]} · {predioEmFoco.concelho}
                 {predioEmFoco.tem_elevador ? ' · com elevador' : ''}
                 {predioEmFoco.tem_varandas ? ' · com varandas' : ''}
@@ -257,7 +257,7 @@ export default async function OrganizationPage({
           ) : (
             <>
               <h2 className="font-semibold">Nenhum prédio selecionado</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-[17px] text-slate-600">
                 Acrescente o primeiro condomínio e o seu prédio em “Prédios sob administração”, aqui abaixo. Os dados da
                 gestora editam-se no ícone junto ao nome, lá em cima.
               </p>
@@ -267,7 +267,7 @@ export default async function OrganizationPage({
       ) : (
       <section className={card}>
         <h2 className="font-semibold">Dados da entidade</h2>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <dl className="mt-4 grid gap-3 text-[17px] sm:grid-cols-2">
           <div>
             <dt className="text-slate-500">Morada fiscal</dt>
             <dd>{[org.morada_fiscal, org.codigo_postal, org.localidade].filter(Boolean).join(', ') || '—'}</dd>
@@ -289,18 +289,18 @@ export default async function OrganizationPage({
       {org.kind === 'fornecedor' && (
         <section className={card}>
           <h2 className="font-semibold">Avaliações de pintores</h2>
-          <p className="mt-1 text-sm text-slate-600">De quem já encomendou e recebeu o produto.</p>
+          <p className="mt-1 text-[17px] text-slate-600">De quem já encomendou e recebeu o produto.</p>
           {(supplierReviews ?? []).length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600">Ainda sem avaliações.</p>
+            <p className="mt-4 text-[17px] text-slate-600">Ainda sem avaliações.</p>
           ) : (
-            <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
               {(supplierReviews ?? []).map((r, i) => (
                 <li key={i} className="py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-medium">{reviewerName.get(r.painter_org_id) ?? 'Um pintor'}</span>
-                    <span className="text-xs text-slate-500">{ptDate(r.created_at)}</span>
+                    <span className="text-[15px] text-slate-500">{ptDate(r.created_at)}</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">Produto {r.produto}/5 · Entrega {r.entrega}/5 · Atendimento {r.atendimento}/5</p>
+                  <p className="mt-1 text-[15px] text-slate-500">Produto {r.produto}/5 · Entrega {r.entrega}/5 · Atendimento {r.atendimento}/5</p>
                   {r.comentario && <p className="mt-1 text-slate-700">{r.comentario}</p>}
                   {r.resposta && (
                     <p className="mt-2 rounded-lg bg-slate-50 p-2 text-slate-700">
@@ -325,7 +325,7 @@ export default async function OrganizationPage({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">Prédios sob administração</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-[17px] text-slate-600">
                 Um cartão por condomínio administrado. Cada um tem o seu NIPC, os seus prédios e os seus pedidos, sem
                 se misturar com os outros nem com os dados da gestora.
               </p>
@@ -345,7 +345,7 @@ export default async function OrganizationPage({
                 return (
                   <li
                     key={c.id}
-                    className={`rounded-xl border p-4 text-sm ${emFoco ? 'border-tinta-600 bg-tinta-50/60 ring-1 ring-tinta-600' : 'border-slate-200'}`}
+                    className={`rounded-xl border p-4 text-[17px] ${emFoco ? 'border-tinta-600 bg-tinta-50/60 ring-1 ring-tinta-600' : 'border-slate-200'}`}
                   >
                     <Link href={`/app/organizacoes/${c.id}`} className="font-semibold hover:underline">
                       {c.nome}
@@ -390,7 +390,7 @@ export default async function OrganizationPage({
                               href={`/app/organizacoes/${org.id}?predio=${b.id}`}
                               scroll={false}
                               aria-current={marcado ? 'true' : undefined}
-                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                              className={`rounded-lg border px-3 py-1.5 text-[15px] font-semibold ${
                                 marcado ? 'border-tinta-600 bg-tinta-600 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
                               }`}
                             >
@@ -421,7 +421,7 @@ export default async function OrganizationPage({
               })}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-[17px] text-slate-600">
               Ainda sem nenhum condomínio. Acrescente o primeiro: pede-se a designação, o NIPC do próprio condomínio e,
               a seguir, a morada completa e o número de frações do prédio.
             </p>
@@ -440,7 +440,7 @@ export default async function OrganizationPage({
             )}
           </div>
           {buildings && buildings.length > 0 ? (
-            <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
               {buildings.map((b) => (
                 <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
@@ -459,7 +459,7 @@ export default async function OrganizationPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-[17px] text-slate-600">
               Registe o prédio uma vez e use-o em todos os pedidos de orçamento. A morada fica privada: aos pintores só
               é mostrado o concelho.
             </p>
@@ -478,7 +478,7 @@ export default async function OrganizationPage({
             )}
           </div>
           {requests && requests.length > 0 ? (
-            <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
               {requests.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <Link href={`/app/pedidos/${r.id}`} className="font-medium hover:underline">
@@ -492,7 +492,7 @@ export default async function OrganizationPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-[17px] text-slate-600">
               {buildings && buildings.length > 0
                 ? 'Descreva a obra uma vez e receba propostas comparáveis.'
                 : 'Registe primeiro um prédio para pedir orçamentos.'}
@@ -503,7 +503,7 @@ export default async function OrganizationPage({
 
       <section className={card}>
         <h2 className="font-semibold">Equipa</h2>
-        <ul className="mt-4 divide-y divide-slate-100 text-sm">
+        <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
           {(members ?? []).map((m) => {
             const p = profileOf.get(m.user_id);
             const isMe = m.user_id === user!.id;
@@ -529,13 +529,13 @@ export default async function OrganizationPage({
           })}
         </ul>
         {org.gerida_por && (
-          <p className="mt-3 text-xs text-slate-500">A equipa da administradora que gere este condomínio também tem acesso.</p>
+          <p className="mt-3 text-[15px] text-slate-500">A equipa da administradora que gere este condomínio também tem acesso.</p>
         )}
 
         {owner && invites && invites.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold">Convites pendentes</h3>
-            <ul className="mt-2 divide-y divide-slate-100 text-sm">
+            <h3 className="text-[17px] font-semibold">Convites pendentes</h3>
+            <ul className="mt-2 divide-y divide-slate-100 text-[17px]">
               {invites.map((i) => (
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
@@ -566,7 +566,7 @@ export default async function OrganizationPage({
       <section id="documentos" className={`${card} scroll-mt-6`}>
         <h2 className="font-semibold">Documentos de verificação</h2>
         {missing.length > 0 ? (
-          <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm">
+          <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px]">
             <p className="font-semibold text-red-900">
               {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
             </p>
@@ -581,12 +581,12 @@ export default async function OrganizationPage({
           </div>
         ) : (
           org.kind !== 'particular' && (
-            <p className="mt-3 text-sm text-slate-600">Todos os documentos pedidos foram submetidos.</p>
+            <p className="mt-3 text-[17px] text-slate-600">Todos os documentos pedidos foram submetidos.</p>
           )
         )}
 
         {docs && docs.length > 0 && (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {docs.map((d) => (
               <li key={d.id} className="flex flex-wrap justify-between gap-2 py-2">
                 <span>

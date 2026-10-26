@@ -14,11 +14,11 @@ export default async function SupplierRegimesPage() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Regimes de fornecedores por validar</h2>
-      <p className="mt-1 text-sm text-slate-600">Confirme com o contabilista o regime de IVA e a retenção antes de o fornecedor poder resgatar comissões de adesão (ver Contabilidade → A pagar).</p>
+      <p className="mt-1 text-[17px] text-slate-600">Confirme com o contabilista o regime de IVA e a retenção antes de o fornecedor poder resgatar comissões de adesão (ver Contabilidade → A pagar).</p>
       {(unvalidated ?? []).length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600">Nenhum por validar.</p>
+        <p className="mt-3 text-[17px] text-slate-600">Nenhum por validar.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-slate-100 text-sm">
+        <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
           {(unvalidated ?? []).map((u) => (
             <li key={u.org_id} className="py-3">
               <b>{name(u.org_id)}</b> (NIF {(orgs ?? []).find((o) => o.id === u.org_id)?.nif ?? '—'}) · {u.cobra_iva ? 'liquida IVA' : `isento: ${u.isencao_iva ?? '—'}`} · retenção declarada:{' '}

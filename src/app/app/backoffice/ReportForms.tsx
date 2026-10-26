@@ -6,9 +6,9 @@ import { resolveReport } from '@/app/app/backoffice/actions';
 
 export function ResolveReport({ reportId }: { reportId: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(resolveReport.bind(null, reportId), { errors: {} });
-  if (state.ok) return <p className="text-sm text-tinta-700">{state.message}</p>;
+  if (state.ok) return <p className="text-[17px] text-tinta-700">{state.message}</p>;
   return (
-    <form {...formProps} className="mt-3 space-y-2 text-sm">
+    <form {...formProps} className="mt-3 space-y-2 text-[17px]">
       <textarea
         name="resolucao"
         rows={2}

@@ -37,8 +37,8 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <h2 className="text-[18px] font-semibold text-slate-900">{c.nome}</h2>
-        <Link href={`/app/obras/${c.id}?s=financeiro`} className="text-[14px] font-semibold text-tinta-700 hover:underline">
+        <h2 className="text-[17px] font-semibold text-slate-900">{c.nome}</h2>
+        <Link href={`/app/obras/${c.id}?s=financeiro`} className="text-[15px] font-semibold text-tinta-700 hover:underline">
           Abrir a obra →
         </Link>
       </div>
@@ -52,7 +52,7 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
           </span>
           {c.contrato > 0 && (
             <span
-              className={`rounded-full px-2.5 py-1 text-[14px] font-semibold ${
+              className={`rounded-full px-2.5 py-1 text-[15px] font-semibold ${
                 positiva ? 'bg-sage text-tinta-700' : 'bg-red-50 text-red-700'
               }`}
             >
@@ -67,7 +67,7 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
         {!c.fiavel && (
           // O aviso que impede o número de enganar: sem horas, o custo da mão de obra é zero e a
           // margem parece melhor do que é.
-          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] leading-snug text-amber-900">
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[15px] leading-snug text-amber-900">
             <strong className="font-semibold">Estimativa incompleta:</strong> não há horas registadas nesta obra, por isso
             a mão de obra está a zero e a margem acima parece melhor do que é.{' '}
             <Link href={`/app/obras/${c.id}?s=dia`} className="font-semibold underline underline-offset-4">
@@ -78,7 +78,7 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
       </div>
 
       <div className="border-t border-slate-100 px-5 py-5">
-        <p className="text-[16px] font-semibold text-slate-900">Como chegámos a este valor</p>
+        <p className="text-[17px] font-semibold text-slate-900">Como chegámos a este valor</p>
         <dl className="mt-3 space-y-3">
           <Linha
             termo="Valor aprovado da obra"
@@ -98,7 +98,7 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
           <span className="bg-tinta-700" style={{ width: `${parteCusto}%` }} />
           <span className="bg-sage" style={{ width: `${parteResultado}%` }} />
         </div>
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[17px] text-slate-600">
           <span className="flex items-center gap-1.5">
             <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-full bg-tinta-700" />
             Já custou
@@ -112,13 +112,13 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
 
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4">
         <div>
-          <p className="text-[16px] font-semibold text-slate-900">Falta receber do cliente</p>
-          <p className="text-[14px] text-slate-600">
+          <p className="text-[17px] font-semibold text-slate-900">Falta receber do cliente</p>
+          <p className="text-[15px] text-slate-600">
             {c.recebido > 0 ? `Já recebeu ${formatEuros(c.recebido)}` : 'Ainda não recebeu nenhuma tranche'}
             {c.adendasPendentes > 0 && ` · ${formatEuros(c.adendasPendentes)} em trabalhos a mais por aceitar`}
           </p>
         </div>
-        <p className="text-[24px] font-semibold tabular-nums text-slate-900">{formatEuros(c.porReceber)}</p>
+        <p className="text-[26px] font-semibold tabular-nums text-slate-900">{formatEuros(c.porReceber)}</p>
       </div>
     </section>
   );
@@ -129,9 +129,9 @@ function Linha({ termo, nota, valor, forte }: { termo: string; nota: string; val
     <div className="flex items-baseline justify-between gap-4">
       <dt>
         <span className={`block text-[15px] ${forte ? 'font-semibold text-slate-900' : 'text-slate-900'}`}>{termo}</span>
-        <span className="block text-[13.5px] text-slate-600">{nota}</span>
+        <span className="block text-[15px] text-slate-600">{nota}</span>
       </dt>
-      <dd className={`shrink-0 tabular-nums ${forte ? 'text-[18px] font-semibold text-slate-900' : 'text-[16px] text-slate-800'}`}>
+      <dd className={`shrink-0 tabular-nums ${forte ? 'text-[17px] font-semibold text-slate-900' : 'text-[17px] text-slate-800'}`}>
         {valor}
       </dd>
     </div>

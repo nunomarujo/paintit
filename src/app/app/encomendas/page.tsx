@@ -24,24 +24,24 @@ export default async function SupplierOrdersPage() {
     productIds.length ? supabase.from('products').select('*').in('id', productIds) : Promise.resolve({ data: [] }),
     painterIds.length ? supabase.from('organizations').select('id, nome, telefone, email_contacto').in('id', painterIds) : Promise.resolve({ data: [] }),
   ]);
-  const button = 'rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold hover:bg-slate-50';
+  const button = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] font-semibold hover:bg-slate-50';
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Encomendas com confirmação</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Encomendas com confirmação</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Encomendas de pintores para obras contratadas na plataforma. Ao confirmar a venda e a entrega, certifica ao cliente
           que o material do contrato foi comprado e entregue.
         </p>
       </div>
       {(orders ?? []).length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
           Ainda sem encomendas. Aparecem aqui sozinhas quando um pintor compromete o seu produto numa proposta e a obra é
           adjudicada — não há nada a fazer até lá.
         </p>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white text-sm">
+        <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white text-[17px]">
           {(orders ?? []).map((o) => {
             const p = (products ?? []).find((x) => x.id === o.product_id);
             const pi = (painters ?? []).find((x) => x.id === o.painter_org_id);

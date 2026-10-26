@@ -51,10 +51,10 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/pedidos/${id}/propostas`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/pedidos/${id}/propostas`} className="text-[17px] text-slate-600 hover:underline">
           ← Propostas recebidas
         </Link>
-        <p className="text-sm text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
+        <p className="text-[17px] text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
       <ProposalDocument
         identity={

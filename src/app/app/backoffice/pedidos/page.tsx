@@ -17,13 +17,13 @@ export default async function FewProposalsPage() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Pedidos abertos com menos de três propostas ({needing.length} de {(open ?? []).length} abertos)</h2>
-      <p className="mt-1 text-sm text-slate-600">Convide pintores verificados. O convite não garante propostas nem apresenta pintores relacionados como independentes.</p>
+      <p className="mt-1 text-[17px] text-slate-600">Convide pintores verificados. O convite não garante propostas nem apresenta pintores relacionados como independentes.</p>
       {needing.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600">Nenhum.</p>
+        <p className="mt-3 text-[17px] text-slate-600">Nenhum.</p>
       ) : (
         <ul className="mt-4 space-y-4">
           {needing.map((l) => (
-            <li key={l.request_id} className="text-sm">
+            <li key={l.request_id} className="text-[17px]">
               <p>
                 <span className="font-medium">Pedido {l.ref}</span> · {l.concelho} · {formatArea(l.area_total_cm2)} · {proposalsFor(l.request_id)} proposta(s) · até{' '}
                 {l.prazo_propostas.split('-').reverse().join('/')}

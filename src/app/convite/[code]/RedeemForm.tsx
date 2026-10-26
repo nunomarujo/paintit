@@ -12,9 +12,9 @@ export function RedeemForm({ code, orgs }: { code: string; orgs: { id: string; n
   return (
     <form {...formProps} className="mt-6 space-y-3">
       {orgs.length > 1 && (
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-[17px] font-medium text-slate-700">
           Com qual entidade?
-          <select name="painterOrgId" required defaultValue={orgs[0]!.id} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base">
+          <select name="painterOrgId" required defaultValue={orgs[0]!.id} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]">
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.nome}
@@ -28,7 +28,7 @@ export function RedeemForm({ code, orgs }: { code: string; orgs: { id: string; n
         {pending ? 'Um momento…' : 'Ver esta obra'}
       </button>
       {state.message && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {state.message}
         </p>
       )}

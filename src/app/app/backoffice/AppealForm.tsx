@@ -13,7 +13,7 @@ export function AppealForm({ appealId }: { appealId: string }) {
         <textarea name="motivo" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
       </Field>
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}

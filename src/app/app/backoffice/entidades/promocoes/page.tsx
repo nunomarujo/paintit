@@ -9,12 +9,12 @@ export default async function PromoCodesPage() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Códigos promocionais dos fornecedores</h2>
-      <p className="mt-1 text-sm text-slate-600">Desconto de 1% a 100% na subscrição do catálogo.</p>
+      <p className="mt-1 text-[17px] text-slate-600">Desconto de 1% a 100% na subscrição do catálogo.</p>
       <div className="mt-4">
         <CreatePromoCode />
       </div>
       {(promos ?? []).length > 0 && (
-        <table className="mt-6 w-full text-left text-sm">
+        <table className="mt-6 w-full text-left text-[17px]">
           <thead className="text-slate-500">
             <tr>
               <th className="py-1">Código</th>
@@ -27,7 +27,7 @@ export default async function PromoCodesPage() {
           </thead>
           <tbody>
             {promos!.map((p) => (
-              <tr key={p.id} className={`border-t border-slate-100 ${p.active ? '' : 'text-slate-400'}`}>
+              <tr key={p.id} className={`border-t border-slate-100 ${p.active ? '' : 'text-slate-600'}`}>
                 <td className="py-2 font-mono">{p.code}</td>
                 <td>{(p.discount_bps / 100).toLocaleString('pt-PT')}%</td>
                 <td>{p.valid_until ?? '—'}</td>

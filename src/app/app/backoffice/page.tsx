@@ -58,11 +58,11 @@ export default async function BackofficeDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Painel</h1>
-        <p className="mt-1 text-sm text-slate-600">{total === 0 ? 'Nada à espera de uma pessoa.' : `${total} assuntos à espera de uma pessoa.`} Tudo o que a equipa decide fica registado com autor e hora.</p>
+        <h1 className="text-[26px] leading-tight font-semibold">Painel</h1>
+        <p className="mt-1 text-[17px] text-slate-600">{total === 0 ? 'Nada à espera de uma pessoa.' : `${total} assuntos à espera de uma pessoa.`} Tudo o que a equipa decide fica registado com autor e hora.</p>
       </div>
       {failing.length > 0 && (
-        <Link href="/app/backoffice/sistema" className="block rounded-2xl border border-red-300 bg-red-50 p-5 text-sm text-red-900 hover:bg-red-100">
+        <Link href="/app/backoffice/sistema" className="block rounded-2xl border border-red-300 bg-red-50 p-5 text-[17px] text-red-900 hover:bg-red-100">
           <b>Há {failing.length === 1 ? 'uma ligação' : `${failing.length} ligações`} do servidor com problema</b> ({failing.map((f) => f.label).join(', ')}). Ver em Sistema →
         </Link>
       )}
@@ -73,8 +73,8 @@ export default async function BackofficeDashboard() {
             {g.items.map((t) => (
               <li key={t.label}>
                 <Link href={t.href} className={`${card} block hover:bg-slate-50 ${t.n === 0 ? 'opacity-60' : ''}`}>
-                  <span className={`text-3xl font-semibold ${t.n > 0 ? 'text-tinta-700' : 'text-slate-400'}`}>{t.n}</span>
-                  <span className="mt-1 block text-sm text-slate-600">{t.label}</span>
+                  <span className={`text-[34px] font-semibold ${t.n > 0 ? 'text-tinta-700' : 'text-slate-600'}`}>{t.n}</span>
+                  <span className="mt-1 block text-[17px] text-slate-600">{t.label}</span>
                 </Link>
               </li>
             ))}

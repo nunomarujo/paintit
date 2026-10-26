@@ -6,16 +6,16 @@ import type { FormState } from '@/app/app/actions';
 import { partyAction, platformAction } from '@/app/app/contratacoes/actions';
 
 const primary =
-  'rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
+  'rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
 const secondary =
-  'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+  'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 const danger =
-  'rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60';
+  'rounded-lg border border-red-300 px-4 py-2 text-[17px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60';
 
 function Status({ state }: { state: FormState }) {
   const msg = Object.values(state.errors)[0] ?? state.message;
   return msg ? (
-    <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {msg}
     </p>
   ) : null;
@@ -58,15 +58,15 @@ export function PartyAction({ engagementId, kind }: { engagementId: string; kind
   const c = PARTY[kind];
   return (
     <form {...formProps} className="space-y-2 rounded-xl border border-slate-200 p-4">
-      {c.warning && <p className="text-sm text-slate-600">{c.warning}</p>}
+      {c.warning && <p className="text-[17px] text-slate-600">{c.warning}</p>}
       {c.confirm && (
-        <label className="flex items-start gap-2 text-sm">
+        <label className="flex items-start gap-2 text-[17px]">
           <input type="checkbox" name="confirmo" value="sim" className="mt-1" />
           <span>{c.confirm}</span>
         </label>
       )}
       {c.reason && (
-        <textarea name="motivo" rows={2} placeholder="Motivo" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        <textarea name="motivo" rows={2} placeholder="Motivo" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
       )}
       <Status state={state} />
       <button type="submit" disabled={pending} className={c.style}>
@@ -90,7 +90,7 @@ export function PlatformAction({ engagementId, kind, expected }: { engagementId:
   });
   const [decisao, setDecisao] = useState('');
   return (
-    <form {...formProps} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+    <form {...formProps} className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-[17px]">
       <p className="font-semibold">{PLATFORM[kind]}</p>
       {kind === 'litigio_resolvido' ? (
         <>
@@ -120,7 +120,7 @@ export function PlatformAction({ engagementId, kind, expected }: { engagementId:
                 defaultValue={50}
                 className="mt-1 block w-28 rounded-lg border border-slate-300 px-3 py-2"
               />
-              <span className="mt-1 block text-xs text-slate-600">
+              <span className="mt-1 block text-[15px] text-slate-600">
                 Essa fração da caução fica retida (o resto volta ao cliente); essa mesma fração da comissão volta ao pintor (o
                 resto fica retido).
               </span>
@@ -139,7 +139,7 @@ export function PlatformAction({ engagementId, kind, expected }: { engagementId:
           </label>
         </div>
       )}
-      <p className="text-xs text-slate-600">
+      <p className="text-[15px] text-slate-600">
         Registe só o que o parceiro de pagamentos confirmou. Um montante diferente do esperado é recusado.
       </p>
       <Status state={state} />

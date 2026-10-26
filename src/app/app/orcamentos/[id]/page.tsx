@@ -59,15 +59,15 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/app/orcamentos" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app/orcamentos" className="text-[17px] text-slate-600 hover:underline">
           ← Orçamentos
         </Link>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="text-[26px] leading-tight font-semibold">
               Orçamento #{q.numero} — {q.cliente_nome}
             </h1>
-            <p className="mt-1 text-sm text-slate-600">{[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'}</p>
+            <p className="mt-1 text-[17px] text-slate-600">{[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'}</p>
           </div>
           <Link href={`/app/orcamentos/${id}/documento`} className="btn-secondary">
             Ver documento
@@ -76,7 +76,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       </div>
 
       {(semPreco > 0 || avisos.length > 0) && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
           {semPreco > 0 && (
             <p>
               <strong className="font-semibold">
@@ -95,20 +95,20 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-base font-semibold">Trabalhos</h2>
+          <h2 className="text-[17px] font-semibold">Trabalhos</h2>
           {entradas.length > 0 && (
-            <p className="text-[12px] text-slate-500">
+            <p className="text-[15px] text-slate-500">
               {Math.round(jaConhecidas * 100)}% destas linhas já tinham preço seu guardado
             </p>
           )}
         </div>
 
         {(linhas ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Sem linhas. Acrescente a primeira em baixo.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Sem linhas. Acrescente a primeira em baixo.</p>
         ) : (
-          <table className="mt-3 w-full text-sm">
+          <table className="mt-3 w-full text-[17px]">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-[0.08em] text-slate-500">
+              <tr className="border-b border-slate-200 text-left text-[15px] uppercase tracking-[0.08em] text-slate-500">
                 <th className="pb-2 font-semibold">Trabalho</th>
                 <th className="pb-2 text-right font-semibold">Quantidade e preço</th>
                 <th className="pb-2 text-right font-semibold">Total</th>
@@ -120,7 +120,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 <tr key={l.id} className="border-b border-slate-100">
                   <td className="py-2 pr-3">
                     <span className="font-medium text-slate-900">{l.descricao}</span>
-                    <span className="block text-[11px] text-slate-500">
+                    <span className="block text-[15px] text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria].split(' (')[0]} · {UNIT_LABELS[l.unidade]}
                     </span>
                   </td>
@@ -144,7 +144,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         </div>
 
         {(passado.obras > 0 || aviso) && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px]">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[17px]">
             {passado.custoMedioPorM2 !== null && (
               <p className="text-slate-700">
                 As suas obras concluídas custaram, em média,{' '}
@@ -163,7 +163,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        <dl className="mt-5 ml-auto max-w-xs space-y-1 border-t border-slate-200 pt-3 text-sm">
+        <dl className="mt-5 ml-auto max-w-xs space-y-1 border-t border-slate-200 pt-3 text-[17px]">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-600">Sem IVA</dt>
             <dd className="tabular-nums">{formatEuros(base)}</dd>
@@ -180,7 +180,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
       </section>
 
       <section className={card}>
-        <h2 className="text-base font-semibold">Condições</h2>
+        <h2 className="text-[17px] font-semibold">Condições</h2>
         <div className="mt-3">
           <MiniForm
             action={saveQuoteTerms.bind(null, id)}
@@ -204,14 +204,14 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
             submit="Guardar condições"
           />
         </div>
-        <p className="mt-3 text-[12px] text-slate-500">
+        <p className="mt-3 text-[15px] text-slate-500">
           A taxa de 6% exige que o imóvel seja habitação e que os materiais não passem 20% do valor global. A decisão é
           sua e do seu contabilista; a plataforma guarda o que escolher, não a valida.
         </p>
       </section>
 
       <section className={card}>
-        <h2 className="text-base font-semibold">Estado</h2>
+        <h2 className="text-[17px] font-semibold">Estado</h2>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           {q.estado === 'rascunho' && (
             <ActionButton action={markQuoteSent.bind(null, id)} label="Dar como enviado" pendingLabel="A guardar…" variant="primary" />
@@ -227,10 +227,10 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
               Abrir a obra
             </Link>
           )}
-          {q.estado === 'perdido' && <p className="text-sm text-slate-600">Registado como não ganho.</p>}
+          {q.estado === 'perdido' && <p className="text-[17px] text-slate-600">Registado como não ganho.</p>}
         </div>
         {q.estado === 'rascunho' && (
-          <p className="mt-2 text-[12px] text-slate-500">
+          <p className="mt-2 text-[15px] text-slate-500">
             Ao dar como enviado, os preços deste orçamento ficam guardados e passam a aparecer sugeridos no próximo.
           </p>
         )}

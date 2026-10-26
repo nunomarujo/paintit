@@ -74,7 +74,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       {convite === 'invalido' && (
-        <p className="rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">
+        <p className="rounded-xl bg-red-50 p-4 text-[17px] text-red-800" role="alert">
           Esse convite já não é válido. Peça um novo a quem o enviou.
         </p>
       )}
@@ -82,7 +82,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {invites && invites.length > 0 && (
         <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-6">
           <h2 className="font-semibold">Tem {invites.length === 1 ? 'um convite' : `${invites.length} convites`} para se juntar a uma equipa</h2>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-3 space-y-2 text-[17px]">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
@@ -102,7 +102,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       )}
 
       {notes && notes.length > 0 && (
-        <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-5 text-sm">
+        <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-5 text-[17px]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">Avisos</h2>
             <form action={markNotificationsRead}>
@@ -127,7 +127,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {(todo.length > 0 || ownRequests.length > 0 || painters.length > 0) && (
         <section className="grid gap-4 sm:grid-cols-2">
           {todo.length > 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-[17px]">
               <h2 className="font-semibold">Contratações a precisar de si</h2>
               <ul className="mt-2 space-y-1">
                 {todo.map((t) => (
@@ -142,7 +142,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
           )}
           {ownRequests.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
               <h2 className="font-semibold">Pedidos em curso</h2>
               <ul className="mt-2 space-y-1">
                 {ownRequests.map((r) => {
@@ -162,8 +162,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
           )}
           {painters.length > 0 && (
-            <Link href="/app/oportunidades" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm hover:bg-slate-50">
-              <span className="text-3xl font-semibold text-tinta-700">{openListings ?? 0}</span>
+            <Link href="/app/oportunidades" className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px] hover:bg-slate-50">
+              <span className="text-[34px] font-semibold text-tinta-700">{openListings ?? 0}</span>
               <span className="mt-1 block text-slate-600">pedidos abertos a propostas</span>
             </Link>
           )}
@@ -179,19 +179,19 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-5 hover:bg-slate-50"
         >
           <span>
-            <span className="text-sm text-slate-500">A sua entidade</span>
+            <span className="text-[17px] text-slate-500">A sua entidade</span>
             <span className="block font-semibold">{mine[0]!.nome}</span>
           </span>
-          <span className="text-sm text-tinta-700">Abrir →</span>
+          <span className="text-[17px] text-tinta-700">Abrir →</span>
         </Link>
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-semibold">As suas entidades</h1>
+            <h1 className="text-[26px] leading-tight font-semibold">As suas entidades</h1>
             {!mine.some((o) => o.kind === 'pintor' || o.kind === 'fornecedor') && (
               <Link
                 href="/app/organizacoes/nova"
-                className="rounded-lg bg-tinta-600 px-4 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+                className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
               >
                 {mine.some((o) => o.kind === 'administradora') ? 'Adicionar condomínio ou entidade' : 'Adicionar entidade'}
               </Link>
@@ -201,7 +201,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           {mine.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="font-semibold">Comece por registar a sua entidade</h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-[17px] text-slate-600">
                 Um condomínio, uma empresa de administração, um particular, um pintor ou um fornecedor. Os dados
                 fiscais servem para o contrato e nunca são mostrados à outra parte antes da apresentação.
               </p>
@@ -213,12 +213,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   <Link href={`/app/organizacoes/${o.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
                     <span>
                       <span className="font-semibold">{o.nome}</span>
-                      <span className="block text-sm text-slate-600">
+                      <span className="block text-[17px] text-slate-600">
                         {ORG_KIND_LABELS[o.kind]}
                         {o.gerida_por ? ' · gerido por uma administradora' : ''}
                       </span>
                     </span>
-                    <span className="text-sm text-slate-500">{o.localidade ?? ''}</span>
+                    <span className="text-[17px] text-slate-500">{o.localidade ?? ''}</span>
                   </Link>
                 </li>
               ))}

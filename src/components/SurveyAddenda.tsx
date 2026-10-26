@@ -22,17 +22,17 @@ export function SurveyAddenda({ addenda, titulo = 'Adendas ao levantamento' }: {
   if (addenda.length === 0) return null;
   return (
     <div>
-      <h3 className="text-sm font-semibold">{titulo}</h3>
-      <p className="mt-1 text-xs text-slate-600">
+      <h3 className="text-[17px] font-semibold">{titulo}</h3>
+      <p className="mt-1 text-[15px] text-slate-600">
         Perguntas dos pintores sobre o levantamento e as respostas dadas na obra. Acrescentam-se ao que já estava
         registado; não substituem nada.
       </p>
       <ol className="mt-3 space-y-3">
         {addenda.map((a) => (
-          <li key={a.ronda} className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+          <li key={a.ronda} className="rounded-xl border border-slate-200 bg-white p-4 text-[17px]">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="font-medium">Adenda {a.ronda}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-[15px] text-slate-500">
                 pedida a {ptDateTime(a.aberta_em)}
                 {a.respondido_em ? ` · respondida a ${ptDateTime(a.respondido_em)}` : ''}
               </p>
@@ -48,15 +48,15 @@ export function SurveyAddenda({ addenda, titulo = 'Adendas ao levantamento' }: {
 
             {a.resposta ? (
               <div className="mt-3 rounded-lg bg-tinta-50 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-tinta-800">Resposta</p>
+                <p className="text-[15px] font-semibold uppercase tracking-wide text-tinta-800">Resposta</p>
                 <p className="mt-1 whitespace-pre-line text-slate-800">{a.resposta}</p>
               </div>
             ) : a.estado === 'expirado' ? (
-              <p className="mt-3 text-xs text-slate-600">
+              <p className="mt-3 text-[15px] text-slate-600">
                 Ficou sem resposta dentro do prazo. As dúvidas por responder seguiram para a adenda seguinte.
               </p>
             ) : (
-              <p className="mt-3 text-xs text-slate-600">À espera de resposta.</p>
+              <p className="mt-3 text-[15px] text-slate-600">À espera de resposta.</p>
             )}
           </li>
         ))}

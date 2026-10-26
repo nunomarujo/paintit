@@ -33,9 +33,9 @@ export default async function EngagementsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Contratações</h1>
+      <h1 className="text-[26px] leading-tight font-semibold">Contratações</h1>
       {items.length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
           Ainda não há contratações. Uma contratação começa quando o cliente escolhe uma proposta.
         </p>
       ) : (
@@ -45,9 +45,9 @@ export default async function EngagementsPage() {
               <Link href={`/app/contratacoes/${r.id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
                 <span>
                   <span className="font-semibold">Contratação {r.id.slice(0, 8).toUpperCase()}</span>
-                  <span className="block text-sm text-slate-600">{STATUS_LABELS[e.status]}</span>
+                  <span className="block text-[17px] text-slate-600">{STATUS_LABELS[e.status]}</span>
                 </span>
-                <span className="text-right text-sm">
+                <span className="text-right text-[17px]">
                   {formatEuros(e.base)} sem IVA
                   {pending && <span className="block font-semibold text-amber-700">Espera confirmação da plataforma</span>}
                 </span>

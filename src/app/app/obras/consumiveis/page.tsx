@@ -32,11 +32,11 @@ export default async function ConsumablesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/app/obras" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app/obras" className="text-[17px] text-slate-600 hover:underline">
           ← Obras
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Consumíveis</h1>
-        <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Consumíveis</h1>
+        <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           O que se gasta em obra e tem de ser reposto. O stock é a soma das entradas e das saídas — registe a compra
           quando ela entra e a quantidade quando sai para uma obra.
         </p>
@@ -45,7 +45,7 @@ export default async function ConsumablesPage() {
       {stock.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <p className="font-semibold text-slate-900">Ainda não há consumíveis no armazém.</p>
-          <p className="mt-2 max-w-[70ch] text-sm text-slate-600">
+          <p className="mt-2 max-w-[54ch] text-[17px] text-slate-600">
             Comece pelos que lhe faltam sempre a meio da obra: fita de pintor, rolos, lixas, plástico de protecção,
             diluente.
           </p>
@@ -62,7 +62,7 @@ export default async function ConsumablesPage() {
                   <summary className="flex cursor-pointer list-none items-baseline justify-between gap-4">
                     <span>
                       <span className="font-semibold text-slate-900">{s.nome}</span>
-                      {s.repor && <span className="ml-2 text-[12px] font-semibold text-amber-800">Repor</span>}
+                      {s.repor && <span className="ml-2 text-[15px] font-semibold text-amber-800">Repor</span>}
                     </span>
                     <span className="tabular-nums text-slate-700">
                       {formatQuantidade(s.stock)} {UNIDADE_LABELS[s.unidade]}

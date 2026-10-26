@@ -39,9 +39,9 @@ export default async function AuditPage() {
   return (
     <div className="space-y-6">
       {entries.length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Ainda não há decisões registadas.</p>
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">Ainda não há decisões registadas.</p>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white text-sm">
+        <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white text-[17px]">
           {entries.map((x, i) => (
             <li key={i} className="flex flex-wrap justify-between gap-2 p-3">
               <span>

@@ -6,7 +6,7 @@ import type { FormState } from '@/app/app/actions';
 type Guardar = (prev: FormState, form: FormData) => Promise<FormState>;
 type Estado = 'parado' | 'a_guardar' | 'guardado' | 'erro';
 
-const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base';
+const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]';
 
 /**
  * Campo que se grava sozinho, sem botão (pedido do promotor, 24/10/2026). Grava quando a pessoa sai do
@@ -73,7 +73,7 @@ export function AutoSaveField({
 
   if (tipo === 'checkbox') {
     return (
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-[17px]">
         <input
           type="checkbox"
           checked={valor === 'sim'}
@@ -90,7 +90,7 @@ export function AutoSaveField({
   }
 
   return (
-    <label className="block text-sm font-medium text-slate-700">
+    <label className="block text-[17px] font-medium text-slate-700">
       <span className="inline-flex items-baseline gap-2">
         {label}
         <Marca estado={estado} erro={erro} />
@@ -103,9 +103,9 @@ export function AutoSaveField({
         aria-invalid={estado === 'erro' ? true : undefined}
         className={inputClass}
       />
-      {info && !erro && <span className="mt-1 block text-xs font-normal text-slate-500">{info}</span>}
+      {info && !erro && <span className="mt-1 block text-[15px] font-normal text-slate-500">{info}</span>}
       {erro && (
-        <span className="mt-1 block text-xs font-normal text-red-700" role="alert">
+        <span className="mt-1 block text-[15px] font-normal text-red-700" role="alert">
           {erro}
         </span>
       )}
@@ -114,7 +114,7 @@ export function AutoSaveField({
 }
 
 function Marca({ estado, erro }: { estado: Estado; erro: string | null }) {
-  if (estado === 'a_guardar') return <span className="text-xs font-normal text-slate-500">a guardar…</span>;
-  if (estado === 'guardado' && !erro) return <span className="text-xs font-normal text-tinta-700">guardado</span>;
+  if (estado === 'a_guardar') return <span className="text-[15px] font-normal text-slate-500">a guardar…</span>;
+  if (estado === 'guardado' && !erro) return <span className="text-[15px] font-normal text-tinta-700">guardado</span>;
   return null;
 }

@@ -29,7 +29,7 @@ export function WithdrawAddenda({ engagementId, addendaId }: { engagementId: str
   const { pending, formProps } = useFormAction<FormState>(withdrawAddenda.bind(null, engagementId, addendaId), { errors: {} });
   return (
     <form {...formProps}>
-      <button type="submit" disabled={pending} className="text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
+      <button type="submit" disabled={pending} className="text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
         {pending ? 'A retirar…' : 'Retirar'}
       </button>
     </form>

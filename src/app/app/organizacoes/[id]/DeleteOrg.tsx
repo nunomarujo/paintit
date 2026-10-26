@@ -15,13 +15,13 @@ export function DeleteOrg({ orgId, nome }: { orgId: string; nome: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(deleteOrganization.bind(null, orgId), { errors: {} });
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="text-sm font-semibold text-red-700 hover:underline">
+      <button type="button" onClick={() => setOpen(true)} className="text-[17px] font-semibold text-red-700 hover:underline">
         Eliminar entidade
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
-          <form {...formProps} className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 text-sm">
-            <h2 className="text-lg font-semibold text-red-800">Eliminar “{nome}”</h2>
+          <form {...formProps} className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 text-[17px]">
+            <h2 className="text-[20px] font-semibold text-red-800">Eliminar “{nome}”</h2>
             <p>
               Apaga a entidade, os prédios, os rascunhos, os documentos e a equipa. <strong>Não se pode desfazer.</strong> Uma
               entidade com histórico (pedidos publicados, propostas, contratações ou produtos) não pode ser eliminada.

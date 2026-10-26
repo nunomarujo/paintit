@@ -56,8 +56,8 @@ export default async function SurveysPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Levantamentos</h1>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Levantamentos</h1>
+        <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Um cliente que não queira medir a obra sozinho pode pedir a visita de um avaliador. Reserve, agende e
           registe o levantamento (superfícies e fotografias) — sem custo para o cliente. A sua empresa recebe uma
           percentagem do valor adjudicado da obra, seja qual for o pintor escolhido, e a margem normal se o pintor
@@ -68,9 +68,9 @@ export default async function SurveysPage() {
       <section className={card}>
         <h2 className="font-semibold">Pedidos por reservar na sua zona</h2>
         {previews.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Nenhum pedido à espera, de momento.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Nenhum pedido à espera, de momento.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {previews.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <span>
@@ -87,9 +87,9 @@ export default async function SurveysPage() {
       <section className={card}>
         <h2 className="font-semibold">Os seus levantamentos</h2>
         {(mine ?? []).length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Ainda não reservou nenhum.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Ainda não reservou nenhum.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {(mine ?? []).map((s) => (
               <li key={s.id} className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -110,7 +110,7 @@ export default async function SurveysPage() {
       {manager && (
         <section className={card}>
           <h2 className="font-semibold">Zonas cobertas</h2>
-          <p className="mt-1 text-sm text-slate-600">Concelhos em que tem avaliadores disponíveis. Vazio: todo o país.</p>
+          <p className="mt-1 text-[17px] text-slate-600">Concelhos em que tem avaliadores disponíveis. Vazio: todo o país.</p>
           <div className="mt-4">
             <CoverageForm orgId={org.id} initial={coverage?.concelhos ?? []} />
           </div>
@@ -119,24 +119,24 @@ export default async function SurveysPage() {
 
       <section className={card}>
         <h2 className="font-semibold">Comissões dos levantamentos</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Os dados de pagamento (IBAN, regime de IVA e de retenção) são os mesmos de &ldquo;Comissões de
           adesão&rdquo; — não precisa de os indicar duas vezes.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="text-sm text-slate-600">Saldo disponível</p>
-            <p className="text-2xl font-semibold">{formatEuros(disponivel)}</p>
+            <p className="text-[17px] text-slate-600">Saldo disponível</p>
+            <p className="text-[26px] leading-tight font-semibold">{formatEuros(disponivel)}</p>
           </div>
         </div>
         {manager && (
           <div className="mt-4">
             <RedeemButton orgId={org.id} disabled={!canRedeem} />
-            {why && <p className="mt-2 text-sm text-slate-600">{why}</p>}
+            {why && <p className="mt-2 text-[17px] text-slate-600">{why}</p>}
           </div>
         )}
         {(redemptions ?? []).length > 0 && (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {(redemptions ?? []).map((r) => (
               <li key={r.id} className="py-3">
                 <p className="font-medium">

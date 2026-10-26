@@ -27,18 +27,18 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       {moloni && (
-        <p className={`rounded-xl border p-4 text-sm ${moloni === 'ligado' ? 'border-tinta-300 bg-tinta-50 text-tinta-900' : 'border-red-300 bg-red-50 text-red-900'}`}>
+        <p className={`rounded-xl border p-4 text-[17px] ${moloni === 'ligado' ? 'border-tinta-300 bg-tinta-50 text-tinta-900' : 'border-red-300 bg-red-50 text-red-900'}`}>
           {moloni === 'ligado' ? 'Ligação à Moloni feita com sucesso.' : `A ligação à Moloni falhou: ${moloni}`}
         </p>
       )}
       {!moloniConfigured && (
-        <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[17px] text-amber-900">
           A faturação (Moloni) ainda não está configurada: faltam as variáveis <code>MOLONI_*</code> na Vercel. Esta página mostra o que falta faturar, mas «Emitir» não funciona até lá. Ver{' '}
           <code>docs/FATURACAO.md</code>.
         </p>
       )}
       {moloniConfigured && (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-[17px]">
           <a href="/api/moloni/connect" className="font-semibold text-tinta-700 hover:underline">
             Ligar (ou religar) a conta Moloni →
           </a>{' '}
@@ -47,16 +47,16 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
       )}
       <section className={card}>
         <h2 className="font-semibold">Documentos pendentes ({pending.length})</h2>
-        <p className="mt-1 text-sm text-slate-600">Calculado a partir dos pagamentos confirmados que ainda não têm fatura. Emitir chama a Moloni e grava o resultado; uma falha fica registada para se repetir.</p>
+        <p className="mt-1 text-[17px] text-slate-600">Calculado a partir dos pagamentos confirmados que ainda não têm fatura. Emitir chama a Moloni e grava o resultado; uma falha fica registada para se repetir.</p>
         {pending.length > 0 && (
           <div className="mt-4">
             <EmitAllButton />
           </div>
         )}
         {pending.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Nada por faturar.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Nada por faturar.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {pending.map((d) => (
               <li key={`${d.originType}-${d.originId}`} className="py-3">
                 <p>
@@ -72,13 +72,13 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
       {(failed ?? []).length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Falhas por corrigir ({(failed ?? []).length})</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(failed ?? []).map((d) => (
               <li key={d.id} className="py-3">
                 <p>
                   <b>{d.cliente_nome}</b> · {REASON_LABELS[d.reason]} · {d.tipo} · {ptDate(d.data)} · {formatEuros(d.total_cents)}
                 </p>
-                <p className="text-xs text-red-700">{d.erro}</p>
+                <p className="text-[15px] text-red-700">{d.erro}</p>
                 <EmitOneButton originType={d.origin_type} originId={d.origin_id} />
               </li>
             ))}
@@ -89,9 +89,9 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
       <section className={card}>
         <h2 className="font-semibold">Últimos documentos emitidos</h2>
         {(emitted ?? []).length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Ainda nenhum.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Ainda nenhum.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(emitted ?? []).map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
@@ -103,15 +103,15 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
                     Abrir PDF
                   </a>
                 ) : (
-                  <span className="text-slate-400">Sem PDF</span>
+                  <span className="text-slate-600">Sem PDF</span>
                 )}
               </li>
             ))}
           </ul>
         )}
       </section>
-      <p className="text-xs text-slate-500">Motivos previstos: {INVOICE_REASONS.map((r) => REASON_LABELS[r]).join(', ')}.</p>
-      <Link href="/app/backoffice/contabilidade" className="text-sm text-slate-600 hover:underline">
+      <p className="text-[15px] text-slate-500">Motivos previstos: {INVOICE_REASONS.map((r) => REASON_LABELS[r]).join(', ')}.</p>
+      <Link href="/app/backoffice/contabilidade" className="text-[17px] text-slate-600 hover:underline">
         ← Contabilidade
       </Link>
     </div>

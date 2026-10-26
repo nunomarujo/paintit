@@ -17,11 +17,11 @@ export interface SurveyInfoView {
 }
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
-  return m ? <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
+  return m ? <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 }
 
 /**
@@ -36,7 +36,7 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
   return (
     <section className={card}>
       <h2 className="font-semibold">A informação desta obra foi levantada por um profissional</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-[17px] text-slate-600">
         As superfícies, áreas e fotografias acima foram registadas por um avaliador que visitou a obra. Se faltar alguma
         coisa para conseguir orçamentar, peça — ele volta lá e responde. Não fica a saber quem perguntou.
       </p>
@@ -48,7 +48,7 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
       )}
 
       {info.pedido?.status === 'aberto' && (
-        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-[17px] text-slate-700">
           À espera de resposta — o profissional tem um dia para confirmar a ida à obra e mais um para lá ir e responder.
           {info.pedido.prazo && (
             <>
@@ -60,24 +60,24 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
         </p>
       )}
       {info.pedido?.status === 'expirado' && (
-        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-[17px] text-slate-700">
           Ninguém respondeu dentro do prazo. Se houver outro profissional disponível na zona, a plataforma passa-lhe o
           pedido e as dúvidas por responder seguem com ele.
         </p>
       )}
 
       <form {...ask.formProps} className="mt-4 space-y-2">
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-[17px] font-medium text-slate-700">
           {info.pedido ? 'Acrescentar outra dúvida' : 'Falta alguma coisa para orçamentar?'}
           <textarea
             name="texto"
             rows={3}
             maxLength={2000}
             placeholder="Ex.: falta saber se há andaime montado e qual a altura das fachadas de tardoz."
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
           />
         </label>
-        <p className="text-xs text-slate-500">
+        <p className="text-[15px] text-slate-500">
           As dúvidas de todos os pintores desta obra seguem numa lista só, sem dizer quem perguntou o quê. Não indique
           nomes nem contactos.
         </p>
@@ -89,14 +89,14 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
 
       <div className="mt-6 border-t border-slate-100 pt-5">
         <form {...rate.formProps} className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-[17px] font-medium text-slate-700">
             {info.minhaNota ? 'A sua avaliação da informação' : 'Que tal estava a informação?'}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-[15px] text-slate-500">
             A média das notas dos pintores entra no cálculo do que a plataforma paga a quem faz os levantamentos. Pode
             corrigir a sua nota mais tarde.
           </p>
-          <div className="flex gap-3 text-sm">
+          <div className="flex gap-3 text-[17px]">
             {[1, 2, 3, 4, 5].map((n) => (
               <label key={n} className="flex items-center gap-1">
                 <input type="radio" name="nota" value={n} defaultChecked={info.minhaNota === n} /> {n}
@@ -108,7 +108,7 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
             rows={2}
             maxLength={2000}
             placeholder="O que faltava, ou o que estava bem (opcional)"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
           />
           {msg(rate.state)}
           <button type="submit" disabled={rate.pending} className={button}>

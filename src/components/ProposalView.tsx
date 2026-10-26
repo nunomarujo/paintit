@@ -67,19 +67,19 @@ export function ProposalView({
                 <tr key={l.id} className={l.inclusao === 'incluido' ? '' : 'text-slate-500'}>
                   <td className="py-1.5 pr-2">
                     <span className="font-medium">{l.descricao}</span>
-                    {hasEquivalent(l.descricao) && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Produto ou equivalente</span>}
+                    {hasEquivalent(l.descricao) && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[15px] font-semibold text-amber-900">Produto ou equivalente</span>}
                     {l.productId && (
-                      <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
+                      <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Material comprometido</span>
                     )}
                     {l.productId && products[l.productId] && (() => {
                       const check = materialCheck(l.quantidade, l.demaos, products[l.productId]!);
                       return check.demaosAcimaDoEsperado ? (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[15px] font-semibold text-amber-900">
                           Mais demãos do que o produto recomenda
                         </span>
                       ) : null;
                     })()}
-                    <span className="block text-xs text-slate-500">
+                    <span className="block text-[15px] text-slate-500">
                       {LINE_CATEGORY_LABELS[l.categoria]}
                       {l.zonas && l.zonas.length > 0
                         ? ` · ${l.zonas.map((z) => zoneNames[z] ?? 'Zona').join(', ')}`
@@ -96,7 +96,7 @@ export function ProposalView({
                           return c ? ` · ${litres(c)}` : '';
                         })()}
                     </span>
-                    {l.motivoDiferenca && <span className="block text-xs text-slate-600">Motivo: {l.motivoDiferenca}</span>}
+                    {l.motivoDiferenca && <span className="block text-[15px] text-slate-600">Motivo: {l.motivoDiferenca}</span>}
                   </td>
                   {global && l.trabalho !== 'global' ? (
                     <td colSpan={3} className="py-1.5 text-right text-slate-500">
@@ -126,7 +126,7 @@ export function ProposalView({
     </>
   );
   return (
-    <div className="space-y-4 text-sm">
+    <div className="space-y-4 text-[17px]">
       {lines.some((l) => hasEquivalent(l.descricao)) && (
         <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-900" role="note">
           <span aria-hidden className="font-bold">(!)</span>
@@ -151,7 +151,7 @@ export function ProposalView({
 
       <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
         <dt className="text-slate-500">Preço sem IVA (incluído)</dt>
-        <dd className="text-base font-semibold sm:text-right">{formatEuros(t.base)}</dd>
+        <dd className="text-[17px] font-semibold sm:text-right">{formatEuros(t.base)}</dd>
         <dt className="text-slate-500">IVA ({terms.ivaBps / 100}%)</dt>
         <dd className="sm:text-right">{formatEuros(t.iva)}</dd>
         <dt className="text-slate-500">Total com IVA</dt>
@@ -214,7 +214,7 @@ export function ProposalView({
               </div>
             ))}
           </dl>
-          <p className="mt-1 text-xs text-slate-500">Valores sem IVA. O pagamento é feito diretamente entre as partes.</p>
+          <p className="mt-1 text-[15px] text-slate-500">Valores sem IVA. O pagamento é feito diretamente entre as partes.</p>
         </section>
       )}
       {onDelete ? (

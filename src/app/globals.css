@@ -15,7 +15,7 @@
   --cream: #f6f2e9;
   --white: #ffffff;
   --orange: #e07b39;
-  --orange-deep: #c7601f;
+  --orange-deep: #a04d19;
   --border: #e1d9c6;
   --muted: #5b5444;
   --tag-bg: #ece6d4;
@@ -23,7 +23,7 @@
 
 body {
   @apply bg-paper text-slate-900 antialiased;
-  font-size: 14px;
+  font-size: 17px;
   line-height: 1.55;
 }
 
@@ -42,7 +42,7 @@ h2 {
 input,
 select,
 textarea {
-  @apply rounded-[7px] border-slate-300 text-slate-900;
+  @apply rounded-xl border-slate-500 text-slate-900;
 }
 input[type='checkbox'],
 input[type='radio'] {
@@ -51,10 +51,10 @@ input[type='radio'] {
 
 @layer components {
   .eyebrow {
-    @apply text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500;
+    @apply text-[13px] font-bold uppercase tracking-[0.18em] text-slate-500;
   }
   .badge {
-    @apply inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600;
+    @apply inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[15px] font-semibold text-slate-600;
   }
   .badge-green {
     @apply bg-tinta-50 text-tinta-700;
@@ -63,10 +63,10 @@ input[type='radio'] {
     @apply bg-amber-100 text-amber-700;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-tinta-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-tinta-700 disabled:opacity-45;
+    @apply inline-flex items-center justify-center rounded-lg bg-tinta-600 px-4 py-2.5 text-[17px] font-semibold text-white transition-colors hover:bg-tinta-700 disabled:opacity-45;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[13px] font-semibold text-tinta-600 transition-colors hover:bg-slate-100 disabled:opacity-45;
+    @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[17px] font-semibold text-tinta-600 transition-colors hover:bg-slate-100 disabled:opacity-45;
   }
   .stat {
     @apply rounded-xl border border-slate-200 bg-white px-6 py-5;

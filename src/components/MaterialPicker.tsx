@@ -16,14 +16,14 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
   const list = tipo ? options.filter((o) => o.tipo === tipo) : [];
 
   return (
-    <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4 text-sm">
+    <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4 text-[17px]">
       <legend className="px-1 font-medium text-slate-700">Material (facultativo)</legend>
       <input type="hidden" name="productId" value={chosen?.id ?? ''} />
       {chosen ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-tinta-50 p-3">
           <span>
             <span className="font-semibold">{chosen.label}</span>
-            <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Material comprometido</span>
+            <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Material comprometido</span>
             <span className="block text-slate-600">
               {chosen.fornecedor.nome}
               {chosen.precoComDesconto ? ` · ${chosen.precoComDesconto} por embalagem` : ''}
@@ -66,7 +66,7 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
                       )}
                       {o.precoComDesconto && <span className="block">{o.precoComDesconto} / embalagem</span>}
                       {o.ofertas.map((t) => (
-                        <span key={t} className="block text-xs text-slate-600">
+                        <span key={t} className="block text-[15px] text-slate-600">
                           {t}
                         </span>
                       ))}
@@ -126,7 +126,7 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
           </label>
         </>
       )}
-      <p className="text-xs text-slate-500">
+      <p className="text-[15px] text-slate-500">
         Com um produto de um fornecedor registado na plataforma, o fornecedor confirma a compra e a entrega e o produto passa a fazer
         parte do contrato. Os clientes tendem a preferir propostas que se comprometem com o material.
       </p>

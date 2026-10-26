@@ -31,17 +31,17 @@ export default async function SupplierCustomersPage({ params }: { params: Promis
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/app/organizacoes/${id}/produtos`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${id}/produtos`} className="text-[17px] text-slate-600 hover:underline">
           ← {org.nome}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Clientes</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Clientes</h1>
+        <p className="mt-1 max-w-2xl text-[17px] text-slate-600">
           Pintores que já encomendaram a esta empresa. Na ficha de cada um: classificar como premium, escrever condições
           específicas, ou criar um desconto só para ele.
         </p>
       </div>
       {clientes.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
           <p className="text-slate-600">Ainda não há encomendas de nenhum pintor. A carteira preenche-se sozinha à medida que recebe encomendas.</p>
           {manager && (
             <div className="mt-6 border-t border-slate-100 pt-6">
@@ -93,11 +93,11 @@ export default async function SupplierCustomersPage({ params }: { params: Promis
               <Link href={`/app/organizacoes/${id}/clientes/${c.id}`} className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-slate-50">
                 <span>
                   <span className="font-semibold">{c.nome}</span>
-                  <span className="block text-sm text-slate-600">
+                  <span className="block text-[17px] text-slate-600">
                     {tier(c)} · {c.deliveredOrders} encomenda{c.deliveredOrders === 1 ? '' : 's'} entregue{c.deliveredOrders === 1 ? '' : 's'}
                   </span>
                 </span>
-                {c.nota && <span className="max-w-xs truncate text-sm text-slate-500">{c.nota}</span>}
+                {c.nota && <span className="max-w-xs truncate text-[17px] text-slate-500">{c.nota}</span>}
               </Link>
             </li>
           ))}

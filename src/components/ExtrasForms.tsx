@@ -6,14 +6,14 @@ import { useFormAction } from '@/components/useFormAction';
 
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
-  return m ? <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
+  return m ? <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 };
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
 
 export function InvitePainter({ requestId, painters }: { requestId: string; painters: { id: string; nome: string }[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(invitePainter.bind(null, requestId), { errors: {} });
   return (
-    <form {...formProps} className="flex flex-wrap items-center gap-2 text-sm">
+    <form {...formProps} className="flex flex-wrap items-center gap-2 text-[17px]">
       <select name="painter" defaultValue="" className="rounded-lg border border-slate-300 bg-white px-3 py-2">
         <option value="" disabled>
           Pintor…
@@ -47,7 +47,7 @@ export function ReviewForm({
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(saveReview.bind(null, engagementId), { errors: {} });
   return (
-    <form {...formProps} className="space-y-3 text-sm">
+    <form {...formProps} className="space-y-3 text-[17px]">
       {CRITERIA.map(([k, label]) => (
         <fieldset key={k} className="flex flex-wrap items-center gap-3">
           <legend className="w-48 text-slate-600">{label}</legend>
@@ -76,7 +76,7 @@ export function ReviewForm({
 export function AnswerForm({ engagementId, initial }: { engagementId: string; initial: string | null }) {
   const { state, pending, formProps } = useFormAction<FormState>(answerReview.bind(null, engagementId), { errors: {} });
   return (
-    <form {...formProps} className="space-y-2 text-sm">
+    <form {...formProps} className="space-y-2 text-[17px]">
       <textarea
         name="resposta"
         rows={2}

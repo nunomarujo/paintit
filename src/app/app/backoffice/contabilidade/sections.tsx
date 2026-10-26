@@ -60,26 +60,26 @@ export async function Dashboard() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SyncButton />
-        <p className={`text-sm font-medium ${debit === credit ? 'text-tinta-700' : 'text-red-700'}`}>
+        <p className={`text-[17px] font-medium ${debit === credit ? 'text-tinta-700' : 'text-red-700'}`}>
           {debit === credit ? `Livro equilibrado: débitos = créditos (${formatEuros(debit)}).` : `ATENÇÃO: o livro não fecha. Débitos ${formatEuros(debit)}, créditos ${formatEuros(credit)}.`}
         </p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map(([k, v, hint]) => (
           <li key={k} className={card}>
-            <p className="text-sm text-slate-600">{k}</p>
-            <p className="mt-1 text-2xl font-semibold">{formatEuros(v)}</p>
-            <p className="mt-1 text-xs text-slate-500">{hint}</p>
+            <p className="text-[17px] text-slate-600">{k}</p>
+            <p className="mt-1 text-[26px] leading-tight font-semibold">{formatEuros(v)}</p>
+            <p className="mt-1 text-[15px] text-slate-500">{hint}</p>
           </li>
         ))}
       </ul>
       <section className={card}>
         <h2 className="font-semibold">Rendimentos por mês</h2>
         {months.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Ainda sem lançamentos.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Ainda sem lançamentos.</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-left text-sm">
+            <table className="w-full min-w-[32rem] text-left text-[17px]">
               <thead className="text-slate-500">
                 <tr>
                   <th className="py-2 font-normal">Mês</th>
@@ -107,7 +107,7 @@ export async function Dashboard() {
       </section>
       <section className={card}>
         <h2 className="font-semibold">Últimos lançamentos</h2>
-        <ul className="mt-2 divide-y divide-slate-100 text-sm">
+        <ul className="mt-2 divide-y divide-slate-100 text-[17px]">
           {(last ?? []).map((e) => (
             <li key={e.id} className="py-2">
               {ptDate(e.data)} · {ORIGINS[e.origem] ?? e.origem}: {e.descricao}
@@ -130,7 +130,7 @@ export async function Movements({ mes, origem }: { mes?: string; origem?: string
   const { data: lines } = ids.length ? await supabase.from('acc_lines').select('*').in('entry_id', ids) : { data: [] };
   return (
     <>
-      <form action="/app/backoffice/contabilidade/movimentos" className="flex flex-wrap items-end gap-3 text-sm" autoComplete="off">
+      <form action="/app/backoffice/contabilidade/movimentos" className="flex flex-wrap items-end gap-3 text-[17px]" autoComplete="off">
         <label className="font-medium">
           Mês
           <input type="month" name="mes" defaultValue={mes ?? ''} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2" />
@@ -151,11 +151,11 @@ export async function Movements({ mes, origem }: { mes?: string; origem?: string
         </button>
       </form>
       {(entries ?? []).length === 0 ? (
-        <p className="text-sm text-slate-600">Sem lançamentos com este filtro.</p>
+        <p className="text-[17px] text-slate-600">Sem lançamentos com este filtro.</p>
       ) : (
         <ul className="space-y-3">
           {(entries ?? []).map((e) => (
-            <li key={e.id} className={`${card} p-4 text-sm`}>
+            <li key={e.id} className={`${card} p-4 text-[17px]`}>
               <p className="font-medium">
                 {ptDate(e.data)} · {ORIGINS[e.origem] ?? e.origem}
               </p>
@@ -167,7 +167,7 @@ export async function Movements({ mes, origem }: { mes?: string; origem?: string
                     .sort((a, b) => b.debito_cents - a.debito_cents)
                     .map((l) => (
                       <tr key={l.id}>
-                        <td className="py-1 pr-3 font-mono text-xs">{l.conta}</td>
+                        <td className="py-1 pr-3 font-mono text-[15px]">{l.conta}</td>
                         <td className="py-1">{accountName(l.conta)}</td>
                         <td className="w-28 py-1 text-right">{l.debito_cents ? formatEuros(l.debito_cents) : ''}</td>
                         <td className="w-28 py-1 text-right">{l.credito_cents ? formatEuros(l.credito_cents) : ''}</td>
@@ -175,7 +175,7 @@ export async function Movements({ mes, origem }: { mes?: string; origem?: string
                     ))}
                 </tbody>
               </table>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-[15px] text-slate-500">
                 Origem: {e.origem} · {e.origem_id}
               </p>
             </li>
@@ -206,13 +206,13 @@ export async function ToPay() {
     <>
       <section className={card}>
         <h2 className="font-semibold">Resgates de fornecedores</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Pague por transferência o valor líquido, depois de confirmar a fatura (emitida à empresa, no valor de comissão mais IVA). Marcar como pago avisa o fornecedor e lança o pagamento no livro.
         </p>
         {(open ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Nada por pagar.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Nada por pagar.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(open ?? []).map((r) => (
               <li key={r.id} className="py-3">
                 <b>{name(r.supplier_org_id)}</b> · pedido em {ptDate(r.created_at)} · {r.estado === 'pedido' ? 'a aguardar a fatura' : 'fatura recebida'}
@@ -221,7 +221,7 @@ export async function ToPay() {
                   {r.iva_cents > 0 ? ` + IVA ${formatEuros(r.iva_cents)}` : r.cobra_iva ? '' : ` (isento${r.isencao_iva ? `: ${r.isencao_iva}` : ''})`}
                   {r.retencao_cents > 0 ? ` − retenção ${formatEuros(r.retencao_cents)} (${r.retencao_bps / 100}%)` : ''} → <strong>transferir {formatEuros(r.liquido_cents)}</strong>
                 </p>
-                <p className="text-xs text-slate-600">
+                <p className="text-[15px] text-slate-600">
                   {r.titular} · {r.iban}
                   {r.invoice_numero ? ` · fatura ${r.invoice_numero}` : ''}
                   {links.get(r.id) && (
@@ -239,7 +239,7 @@ export async function ToPay() {
           </ul>
         )}
         {(recent ?? []).length > 0 && (
-          <details className="mt-4 text-sm">
+          <details className="mt-4 text-[17px]">
             <summary className="cursor-pointer font-medium">Últimos resgates encerrados</summary>
             <ul className="mt-2 space-y-1 text-slate-600">
               {(recent ?? []).map((r) => (
@@ -254,11 +254,11 @@ export async function ToPay() {
 
       <section className={card}>
         <h2 className="font-semibold">Comissões de adesão ainda fora de resgate</h2>
-        <p className="mt-1 text-sm text-slate-600">À espera da comissão do pintor, ou já no saldo do fornecedor. Só se põe sem efeito se a obra caiu e a comissão do pintor foi devolvida.</p>
+        <p className="mt-1 text-[17px] text-slate-600">À espera da comissão do pintor, ou já no saldo do fornecedor. Só se põe sem efeito se a obra caiu e a comissão do pintor foi devolvida.</p>
         {(pending ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Nenhuma.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Nenhuma.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(pending ?? []).map((p) => (
               <li key={p.id} className="py-3">
                 <b>{name(p.supplier_org_id)}</b> · {formatEuros(p.amount_cents)} · {p.fee_recebido_em ? `no saldo desde ${ptDate(p.fee_recebido_em)}` : 'a aguardar a comissão do pintor'}
@@ -285,16 +285,16 @@ export async function Periods() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Períodos</h2>
-      <p className="mt-1 max-w-3xl text-sm text-slate-600">
+      <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
         Fechar um mês impede novos lançamentos nele (um acontecimento tardio entra no primeiro mês aberto). Fecham-se por ordem e só meses terminados; só se reabre o último fechado, e fica registado. Antes de fechar o trimestre, confira o IVA com o contabilista.
       </p>
-      <p className="mt-3 text-sm">
+      <p className="mt-3 text-[17px]">
         Meses fechados: {(periods ?? []).length === 0 ? 'nenhum' : (periods ?? []).map((p) => p.mes.slice(0, 7)).join(', ')}. Próximo a fechar: <b>{next}</b>
         {next >= now ? ' (ainda não terminou)' : ''}.
       </p>
       <PeriodForms next={next} canClose={next < now} canReopen={(periods ?? []).length > 0} />
       {(log ?? []).length > 0 && (
-        <details className="mt-4 text-sm">
+        <details className="mt-4 text-[17px]">
           <summary className="cursor-pointer font-medium">Registo de fechos e reaberturas</summary>
           <ul className="mt-2 space-y-1 text-slate-600">
             {(log ?? []).map((l) => (
@@ -352,11 +352,11 @@ export async function Reconciliation() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SyncStripeButton />
-        <p className="text-sm text-slate-600">{snapshot ? `Última leitura: ${new Date(snapshot.taken_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}.` : 'Ainda não se leu a Stripe.'}</p>
+        <p className="text-[17px] text-slate-600">{snapshot ? `Última leitura: ${new Date(snapshot.taken_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}.` : 'Ainda não se leu a Stripe.'}</p>
       </div>
       <section className={`${card} ${r.reconciled ? 'border-tinta-600' : ''}`}>
         <h2 className="font-semibold">{r.reconciled ? 'Reconciliado' : snapshot ? 'Há diferenças por tratar' : 'Por reconciliar'}</h2>
-        <dl className="mt-3 grid max-w-xl grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
+        <dl className="mt-3 grid max-w-xl grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-[17px]">
           <dt className="text-slate-600">Saldo do livro (conta 13.1)</dt>
           <dd className="text-right">{formatEuros(r.ledgerCents)}</dd>
           <dt className="text-slate-600">Saldo da Stripe (disponível + pendente)</dt>
@@ -372,16 +372,16 @@ export async function Reconciliation() {
           <dt className="font-medium">Por explicar</dt>
           <dd className={`text-right font-medium ${r.unexplainedCents ? 'text-red-700' : ''}`}>{r.unexplainedCents === null ? '—' : formatEuros(r.unexplainedCents)}</dd>
         </dl>
-        <p className="mt-3 text-xs text-slate-500">{r.matchedCharges} cobranças da Stripe batem com o que a plataforma registou. A Stripe é lida só para consulta: nada se move daqui.</p>
+        <p className="mt-3 text-[15px] text-slate-500">{r.matchedCharges} cobranças da Stripe batem com o que a plataforma registou. A Stripe é lida só para consulta: nada se move daqui.</p>
       </section>
       {r.discrepancies.length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Diferenças a tratar ({r.discrepancies.length})</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {r.discrepancies.map((d, i) => (
               <li key={`${d.ref}-${i}`} className="py-3">
                 <p className="font-medium">
-                  {KIND_LABELS[d.kind]} · <span className="font-mono text-xs">{d.ref}</span>
+                  {KIND_LABELS[d.kind]} · <span className="font-mono text-[15px]">{d.ref}</span>
                   {d.ref.startsWith('pi_') && (
                     <>
                       {' '}
@@ -395,7 +395,7 @@ export async function Reconciliation() {
                   {d.detail} {d.stripeCents !== null && `Stripe: ${formatEuros(d.stripeCents)}. `}
                   {d.platformCents !== null && `Plataforma: ${formatEuros(d.platformCents)}.`}
                 </p>
-                <p className="text-xs text-slate-500">{KIND_HELP[d.kind]}</p>
+                <p className="text-[15px] text-slate-500">{KIND_HELP[d.kind]}</p>
                 {d.lineId && (d.kind === 'movimento_a_rever' || d.kind === 'cobranca_nao_registada') && <StripeReviewForm btId={d.lineId} reviewed={false} />}
               </li>
             ))}
@@ -405,14 +405,14 @@ export async function Reconciliation() {
       {(reviews ?? []).length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Movimentos revistos e deixados fora do livro</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(reviews ?? []).map((v) => {
               const b = (bts ?? []).find((x) => x.id === v.bt_id);
               return (
                 <li key={v.bt_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
                     {b ? `${ptDate(b.created_at)} · ${formatEuros(b.amount_cents)} · ` : ''}
-                    <span className="font-mono text-xs">{v.bt_id}</span> · {v.nota}
+                    <span className="font-mono text-[15px]">{v.bt_id}</span> · {v.nota}
                   </span>
                   <StripeReviewForm btId={v.bt_id} reviewed />
                 </li>
@@ -423,15 +423,15 @@ export async function Reconciliation() {
       )}
       <section className={card}>
         <h2 className="font-semibold">Transferências da Stripe para o banco</h2>
-        <p className="mt-1 text-sm text-slate-600">Lançam-se no livro quando chegam ao banco. A conferência com o extrato do EuroBic faz-se quando a importação do extrato estiver ligada.</p>
+        <p className="mt-1 text-[17px] text-slate-600">Lançam-se no livro quando chegam ao banco. A conferência com o extrato do EuroBic faz-se quando a importação do extrato estiver ligada.</p>
         {(payouts ?? []).length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">Ainda sem transferências.</p>
+          <p className="mt-3 text-[17px] text-slate-600">Ainda sem transferências.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(payouts ?? []).slice(0, 15).map((o) => (
               <li key={o.id} className="flex flex-wrap justify-between gap-2 py-2">
                 <span>
-                  {ptDate(o.arrival_at)} · <span className="font-mono text-xs">{o.id}</span>
+                  {ptDate(o.arrival_at)} · <span className="font-mono text-[15px]">{o.id}</span>
                 </span>
                 <span>
                   {formatEuros(o.amount_cents)} · {o.status === 'paid' ? 'chegou ao banco' : o.status === 'in_transit' ? 'a caminho' : o.status === 'pending' ? 'pendente' : o.status}
@@ -472,7 +472,7 @@ export async function Bank() {
     <>
       <section className={card}>
         <h2 className="font-semibold">Importar extrato</h2>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+        <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Exporte o extrato no Web Banking do EuroBic (CSV, ou CAMT.053 se o houver) e carregue-o aqui. O extrato é da conta da empresa inteira: casamos só o que é da plataforma (transferências da Stripe e pagamentos de resgates);
           o resto classifica-se como «outro movimento» para o contabilista.
         </p>
@@ -480,7 +480,7 @@ export async function Bank() {
           <BankImportForm />
         </div>
         {(imports ?? []).length > 0 && (
-          <ul className="mt-4 space-y-1 text-sm text-slate-600">
+          <ul className="mt-4 space-y-1 text-[17px] text-slate-600">
             {(imports ?? []).map((i) => (
               <li key={i.id}>
                 {ptDate(i.created_at)} · {i.ficheiro} ({i.formato === 'camt053' ? 'CAMT.053' : 'CSV'}) · {i.de ? `${ptDate(i.de)} a ${ptDate(i.ate)}` : ''} · {i.novas} novos, {i.duplicadas} repetidos
@@ -488,27 +488,27 @@ export async function Bank() {
             ))}
           </ul>
         )}
-        {last?.[0]?.saldo_cents != null && <p className="mt-2 text-sm text-slate-600">Último saldo do extrato: {formatEuros(last[0].saldo_cents)} ({ptDate(last[0].data)}).</p>}
+        {last?.[0]?.saldo_cents != null && <p className="mt-2 text-[17px] text-slate-600">Último saldo do extrato: {formatEuros(last[0].saldo_cents)} ({ptDate(last[0].data)}).</p>}
       </section>
 
       <section className={card}>
         <h2 className="font-semibold">Conferência com a plataforma</h2>
-        <p className="mt-1 text-sm text-slate-600">O que a plataforma diz que aconteceu e ainda não se viu no extrato.</p>
+        <p className="mt-1 text-[17px] text-slate-600">O que a plataforma diz que aconteceu e ainda não se viu no extrato.</p>
         <div className="mt-3 grid gap-6 md:grid-cols-2">
           <div>
-            <h3 className="text-sm font-semibold">Transferências da Stripe chegadas ({missingPayouts.length} por ver no banco)</h3>
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+            <h3 className="text-[17px] font-semibold">Transferências da Stripe chegadas ({missingPayouts.length} por ver no banco)</h3>
+            <ul className="mt-2 space-y-1 text-[17px] text-slate-600">
               {missingPayouts.slice(0, 12).map((p) => (
                 <li key={p.id}>
-                  {formatEuros(p.amount_cents)} · chegada {ptDate(p.arrival_at)} · <span className="font-mono text-xs">{p.id}</span>
+                  {formatEuros(p.amount_cents)} · chegada {ptDate(p.arrival_at)} · <span className="font-mono text-[15px]">{p.id}</span>
                 </li>
               ))}
               {missingPayouts.length === 0 && <li>Todas conferidas.</li>}
             </ul>
           </div>
           <div>
-            <h3 className="text-sm font-semibold">Resgates pagos ({missingReds.length} por ver no banco)</h3>
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+            <h3 className="text-[17px] font-semibold">Resgates pagos ({missingReds.length} por ver no banco)</h3>
+            <ul className="mt-2 space-y-1 text-[17px] text-slate-600">
               {missingReds.slice(0, 12).map((r) => (
                 <li key={r.id}>
                   {formatEuros(r.liquido_cents)} · {r.titular} · pago {ptDate(r.paga_em)}
@@ -526,9 +526,9 @@ export async function Bank() {
       <section className={card}>
         <h2 className="font-semibold">Movimentos por classificar ({(pending ?? []).length})</h2>
         {(pending ?? []).length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Nada por classificar.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Nada por classificar.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(pending ?? []).map((l) => (
               <li key={l.id} className="py-3">
                 <p className="flex flex-wrap justify-between gap-2">
@@ -547,7 +547,7 @@ export async function Bank() {
       {(done ?? []).length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Últimos movimentos classificados</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {(done ?? []).map((l) => (
               <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>

@@ -85,7 +85,7 @@ export function ProductForm({ orgId, references = [] }: { orgId: string; referen
           hint="Sem IVA, antes dos descontos por obra."
         />
       </div>
-      <fieldset className="text-sm">
+      <fieldset className="text-[17px]">
         <legend className="font-medium text-slate-700">Modos de aplicação</legend>
         <div className="mt-1 flex flex-wrap gap-4">
           {APPLICATION_METHODS.map((m) => (
@@ -99,17 +99,17 @@ export function ProductForm({ orgId, references = [] }: { orgId: string; referen
         <textarea name="descricao" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
       </Field>
       <Field name="ficha" label="Ficha técnica" error={e.ficha} hint="PDF até 10 MB.">
-        <input name="ficha" type="file" accept="application/pdf" className="mt-1 block w-full text-sm" />
+        <input name="ficha" type="file" accept="application/pdf" className="mt-1 block w-full text-[17px]" />
       </Field>
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
+        className="rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
       >
         {pending ? 'A guardar…' : 'Acrescentar'}
       </button>

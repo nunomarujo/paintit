@@ -18,17 +18,17 @@ export function ExpenseForm({ worksiteId }: { worksiteId: string }) {
   return (
     <form {...formProps} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
-        <label className="text-sm">
+        <label className="text-[17px]">
           Documento
           <input
             type="file"
             name="comprovativo"
             accept="image/jpeg,image/png,application/pdf,image/*"
             capture="environment"
-            className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[13px] file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-[12px] file:font-semibold"
+            className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px] file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-[15px] file:font-semibold"
           />
         </label>
-        <label className="text-sm">
+        <label className="text-[17px]">
           Quanto custou
           <input
             name="valor"
@@ -38,7 +38,7 @@ export function ExpenseForm({ worksiteId }: { worksiteId: string }) {
           />
         </label>
       </div>
-      <label className="block text-sm">
+      <label className="block text-[17px]">
         De quê <span className="text-slate-500">(opcional)</span>
         <input name="descricao" placeholder="Tinta branca, 4 latas" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
       </label>
@@ -46,9 +46,9 @@ export function ExpenseForm({ worksiteId }: { worksiteId: string }) {
         <button type="submit" disabled={pending} className="btn-primary">
           {pending ? 'A lançar…' : 'Lançar despesa'}
         </button>
-        {msg && <span className="text-[12.5px] text-slate-600">{msg}</span>}
+        {msg && <span className="text-[15px] text-slate-600">{msg}</span>}
       </div>
-      <p className="text-[11.5px] text-slate-500">
+      <p className="text-[15px] text-slate-500">
         O documento fica guardado e não é visível ao cliente da obra. A data é hoje; muda-se depois se for preciso.
       </p>
     </form>

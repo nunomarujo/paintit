@@ -25,7 +25,7 @@ export function AddendaList({
   lado?: 'pintor' | 'cliente';
 }) {
   if (addenda.length === 0) {
-    return <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">{vazio}</p>;
+    return <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[17px] text-slate-600">{vazio}</p>;
   }
 
   const aceite = totalAceite(addenda);
@@ -33,7 +33,7 @@ export function AddendaList({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-[13px]">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-[17px]">
         <span>
           <span className="eyebrow">{lado === 'cliente' ? 'Já aceite' : 'Aceite pelo cliente'}</span>
           <span className="ml-2 font-semibold tabular-nums text-slate-900">{formatEuros(aceite)}</span>
@@ -52,8 +52,8 @@ export function AddendaList({
           return (
             <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-slate-900">{a.descricao}</p>
-                <p className="mt-0.5 text-[12px] text-slate-500">
+                <p className="text-[17px] text-slate-900">{a.descricao}</p>
+                <p className="mt-0.5 text-[15px] text-slate-500">
                   {dataPt(a.criadaEm)}
                   {a.estado === 'proposta' ? (
                     <>

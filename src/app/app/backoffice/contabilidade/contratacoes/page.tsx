@@ -39,7 +39,7 @@ export default async function ReconciliationPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Calculado a partir dos acontecimentos de cada contratação. Compare com o extrato do parceiro de pagamentos.{' '}
           <a href="/app/backoffice/contabilidade/contratacoes/csv" className="text-tinta-700 hover:underline">
             Descarregar movimentos (CSV)
@@ -49,7 +49,7 @@ export default async function ReconciliationPage() {
 
       <section className={card}>
         <h2 className="font-semibold">Totais</h2>
-        <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+        <dl className="mt-3 grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-2">
           <dt className="text-slate-500">Retido: cauções de clientes</dt>
           <dd className="sm:text-right">{formatEuros(l.retido.guarantee)}</dd>
           <dt className="text-slate-500">Retido: adiantamentos</dt>
@@ -63,13 +63,13 @@ export default async function ReconciliationPage() {
           <dt className="text-slate-500">Receita: cauções perdidas por clientes</dt>
           <dd className="sm:text-right">{formatEuros(l.receita.garantias)}</dd>
         </dl>
-        <p className="mt-3 text-xs text-slate-500">O tratamento fiscal da caução perdida está por validar com o contabilista (bloco D).</p>
+        <p className="mt-3 text-[15px] text-slate-500">O tratamento fiscal da caução perdida está por validar com o contabilista (bloco D).</p>
       </section>
 
       <section className={card}>
         <h2 className="font-semibold">Por contratação</h2>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
+          <table className="w-full min-w-[36rem] text-left text-[17px]">
             <thead className="text-slate-500">
               <tr>
                 <th className="py-1 font-normal">Contratação</th>
@@ -100,9 +100,9 @@ export default async function ReconciliationPage() {
       <section className={card}>
         <h2 className="font-semibold">Instruções ao parceiro de pagamentos</h2>
         {instructions.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600">Sem instruções.</p>
+          <p className="mt-2 text-[17px] text-slate-600">Sem instruções.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {instructions.map((i, n) => (
               <li key={n} className="flex flex-wrap justify-between gap-2 py-1.5">
                 <span>

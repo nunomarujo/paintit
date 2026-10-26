@@ -19,16 +19,16 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5">
         <span>
           <span className="eyebrow">Dossiê da empresa</span>
-          <span className="mt-0.5 block text-[13px] text-slate-700">{resumo.resumo}</span>
+          <span className="mt-0.5 block text-[17px] text-slate-700">{resumo.resumo}</span>
         </span>
-        <span className="shrink-0 text-[12px] font-semibold text-tinta-700">
+        <span className="shrink-0 text-[15px] font-semibold text-tinta-700">
           <span className="dossier-abrir">Abrir</span>
           <span className="dossier-fechar">Fechar</span>
         </span>
       </summary>
 
       <div className="border-t border-slate-200 px-5 py-4">
-        <p className="text-[12.5px] leading-snug text-slate-600">
+        <p className="text-[15px] leading-snug text-slate-600">
           Refazer este dossiê a cada adjudicação é o que faz perder obra. As declarações de não dívida às Finanças e à
           Segurança Social valem três meses; aqui ficam guardadas e avisadas {AVISO_DIAS} dias antes de caducarem.
         </p>
@@ -37,13 +37,13 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
           {linhas.map((l) => (
             <li key={l.kind} className="flex items-baseline justify-between gap-4 py-2">
               <span className="min-w-0">
-                <span className="text-[13px] font-semibold text-slate-900">{l.label}</span>
-                <span className="block text-[11.5px] leading-snug text-slate-500">
+                <span className="text-[17px] font-semibold text-slate-900">{l.label}</span>
+                <span className="block text-[15px] leading-snug text-slate-500">
                   {l.porque}
                   {VALIDADE_MESES[l.kind] ? ` Vale ${VALIDADE_MESES[l.kind]} meses.` : ''}
                 </span>
               </span>
-              <span className="shrink-0 text-right text-[12px]">
+              <span className="shrink-0 text-right text-[15px]">
                 {l.estado === 'caducado' ? (
                   <Link href={`/app/organizacoes/${orgId}#documentos`} className="font-semibold text-red-700 underline underline-offset-4">
                     Caducou em {dataPt(l.validoAte!)} — substituir
@@ -70,7 +70,7 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
           <Link href={`/app/organizacoes/${orgId}#documentos`} className="btn-secondary">
             Gerir documentos
           </Link>
-          <p className="text-[11.5px] text-slate-500">
+          <p className="text-[15px] text-slate-500">
             Desde Outubro de 2026, nas obras públicas é a própria entidade que vai buscar as certidões de não dívida —
             basta a situação estar regularizada nas Finanças e na Segurança Social.
           </p>

@@ -28,29 +28,29 @@ export default async function ConvitePage({ params }: { params: Promise<{ code: 
         <p className="eyebrow">Convite direto</p>
         {!info ? (
           <>
-            <h1 className="mt-2 text-2xl font-semibold">Código inválido</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <h1 className="mt-2 text-[26px] leading-tight font-semibold">Código inválido</h1>
+            <p className="mt-2 text-[17px] text-slate-600">
               Este convite não existe ou foi desativado. Peça ao cliente um código novo.
             </p>
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-2xl font-semibold">Foi convidado para uma obra</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <h1 className="mt-2 text-[26px] leading-tight font-semibold">Foi convidado para uma obra</h1>
+            <p className="mt-2 text-[17px] text-slate-600">
               {WORK_TYPE_LABELS[info.tipo_obra as WorkType] ?? 'Pintura'} · {info.concelho}
             </p>
-            <p className="mt-4 text-sm text-slate-600">
+            <p className="mt-4 text-[17px] text-slate-600">
               O cliente pediu-lhe diretamente para orçamentar esta obra. Ao aceitar, fica associado a este
               convite e a comissão da plataforma nesta obra é muito mais baixa do que a habitual.
             </p>
             {info.ja_redimido && (
-              <p className="mt-4 text-sm text-amber-700" role="alert">
+              <p className="mt-4 text-[17px] text-amber-700" role="alert">
                 Este convite já foi associado a uma empresa. Se não for a sua, peça ao cliente um código novo —
                 se for, pode continuar.
               </p>
             )}
             {allOrgs.length === 0 ? (
-              <p className="mt-6 text-sm text-slate-700">
+              <p className="mt-6 text-[17px] text-slate-700">
                 Ainda não tem uma entidade de pintura registada.{' '}
                 <Link href="/app/organizacoes/nova" className="font-medium text-blue-700 underline">
                   Criar uma entidade
@@ -58,7 +58,7 @@ export default async function ConvitePage({ params }: { params: Promise<{ code: 
                 e volte a abrir este link.
               </p>
             ) : orgs.length === 0 ? (
-              <p className="mt-6 text-sm text-slate-700">
+              <p className="mt-6 text-[17px] text-slate-700">
                 Só um gestor ou proprietário da sua empresa de pintura pode aceitar este convite. Peça a quem
                 gere a entidade para abrir este link.
               </p>

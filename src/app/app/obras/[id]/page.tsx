@@ -41,7 +41,7 @@ import { getUser } from '@/lib/supabase/server';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
-const del = 'text-xs text-red-700 hover:underline';
+const del = 'text-[15px] text-red-700 hover:underline';
 const ORDER: Record<string, string> = { pedida: 'Pedida', confirmada: 'Venda confirmada', entregue: 'Entregue em obra', cancelada: 'Cancelada' };
 const SCORES = [1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }));
 const PHASE: Record<string, string> = { por_iniciar: 'Por iniciar', em_curso: 'Em curso', concluida: 'Concluída' };
@@ -213,17 +213,17 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/app/contratacoes/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/contratacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← Contratação
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Gestão de obra</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Gestão de obra</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Obra {listing?.ref ?? id.slice(0, 8).toUpperCase()} · {listing?.concelho ?? ''}. Só a sua equipa vê esta página; a
           plataforma não intervém na execução.
         </p>
       </div>
 
-      <nav className="flex flex-wrap gap-2 border-b border-slate-200 text-sm">
+      <nav className="flex flex-wrap gap-2 border-b border-slate-200 text-[17px]">
         {tabs.map(([k, label]) => (
           <Link
             key={k}
@@ -238,7 +238,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       {section === 'resumo' && (
         <section className={card}>
           {!margem.fiavel && (
-            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
               <strong className="font-semibold">A margem abaixo está incompleta:</strong> ainda não há horas registadas
               nesta obra, por isso o custo da mão de obra é zero e a margem parece melhor do que é.{' '}
               <Link href={`/app/obras/${id}?s=dia`} className="font-semibold underline underline-offset-4">
@@ -246,7 +246,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
               </Link>
             </p>
           )}
-          <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <dl className="grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-2">
             <dt className="text-slate-500">Valor do contrato (sem IVA)</dt>
             <dd className="font-semibold sm:text-right">{formatEuros(sum.contrato)}</dd>
             <dt className="text-slate-500">Recebido</dt>
@@ -290,7 +290,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
             )}
           </dl>
           {Object.keys(sum.porCategoria).length > 0 && (
-            <ul className="mt-4 border-t border-slate-100 pt-3 text-sm">
+            <ul className="mt-4 border-t border-slate-100 pt-3 text-[17px]">
               {Object.entries(sum.porCategoria).map(([k, v]) => (
                 <li key={k} className="flex justify-between">
                   <span className="text-slate-500">{COST_LABELS[k as CostCategory]}</span>
@@ -304,8 +304,8 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'dia' && (
         <section className={card}>
-          <h2 className="text-base font-semibold">Registar o dia</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <h2 className="text-[17px] font-semibold">Registar o dia</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             Vem preenchido com o dia normal para toda a gente: corrija só o que foi diferente e guarde. É daqui que sai
             a margem real da obra — sem horas registadas, o custo da mão de obra é um palpite.
           </p>
@@ -325,14 +325,14 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'diario' && (
         <section className={card}>
-          <h2 className="text-base font-semibold">Diário da obra</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <h2 className="text-[17px] font-semibold">Diário da obra</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             O estado em que encontrou o suporte, o que fez por baixo da tinta e o resultado. Seis meses depois, numa
             reclamação, é isto que a defende — e serve de portefólio quando a obra corre bem.
           </p>
 
           {faltasDoDiario.length > 0 && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
               {faltasDoDiario.map((f) => (
                 <p key={f}>{f}</p>
               ))}
@@ -341,20 +341,20 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
           <div className="mt-4 space-y-5">
             {grupos.length === 0 ? (
-              <p className="text-sm text-slate-600">Ainda não há fotografias nesta obra.</p>
+              <p className="text-[17px] text-slate-600">Ainda não há fotografias nesta obra.</p>
             ) : (
               grupos.map((g) => (
                 <div key={g.fase}>
                   <p className="eyebrow">{FASE_LABELS[g.fase]}</p>
-                  <p className="mt-0.5 text-[11.5px] text-slate-500">{FASE_PORQUE[g.fase]}</p>
+                  <p className="mt-0.5 text-[15px] text-slate-500">{FASE_PORQUE[g.fase]}</p>
                   <ul className="mt-2 grid gap-3 sm:grid-cols-3">
                     {g.fotos.map((f) => (
                       <li key={f.id} className="overflow-hidden rounded-xl border border-slate-200">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={`/app/obras/foto/${f.id}`} alt={f.legenda ?? FASE_LABELS[f.fase]} className="aspect-[4/3] w-full object-cover" />
                         <div className="px-3 py-2">
-                          <p className="text-[12px] text-slate-700">{f.legenda ?? '—'}</p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-[15px] text-slate-700">{f.legenda ?? '—'}</p>
+                          <p className="text-[15px] text-slate-500">
                             {[f.zona, f.produto].filter(Boolean).join(' · ')}
                             {f.zona || f.produto ? ' · ' : ''}
                             {f.registadaEm.slice(0, 10).split('-').reverse().join('/')}
@@ -384,8 +384,8 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'adendas' && (
         <section className={card}>
-          <h2 className="text-base font-semibold">Trabalhos a mais</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <h2 className="text-[17px] font-semibold">Trabalhos a mais</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             O que o cliente pediu a mais durante a obra, com preço e aceitação registados. Sem isto escrito, ou não se
             cobra ou cobra-se e discute-se — e só conta para o valor da obra depois de o cliente aceitar.
           </p>
@@ -407,7 +407,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       )}
 
       {section === 'materiais' && (
-        <section className={`${card} space-y-6 text-sm`}>
+        <section className={`${card} space-y-6 text-[17px]`}>
           <p className="text-slate-600">
             Materiais comprometidos do contrato. A quantidade sugerida usa a área da linha, as demãos e o rendimento do
             produto. O fornecedor confirma a venda e a entrega, e o cliente vê essa confirmação.{' '}
@@ -524,7 +524,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       )}
 
       {section === 'equipa' && (
-        <section className={`${card} space-y-6 text-sm`}>
+        <section className={`${card} space-y-6 text-[17px]`}>
           <ul className="divide-y divide-slate-100">
             {(members ?? []).map((m) => {
               const h = list.filter((x) => x.tipo === 'horas' && x.member_id === m.id).reduce((n, x) => n + (x.horas ?? 0), 0);
@@ -577,13 +577,13 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       )}
 
       {section === 'cronograma' && (
-        <section className={`${card} space-y-6 text-sm`}>
+        <section className={`${card} space-y-6 text-[17px]`}>
           <ol>
             {(phases ?? []).map((ph, i, all) => (
               <li key={ph.id} className="relative flex flex-wrap items-start justify-between gap-2 pb-6 pl-12">
                 {i < all.length - 1 && <span className="absolute bottom-0 left-[15px] top-8 w-px bg-slate-200" aria-hidden="true" />}
                 <span
-                  className={`absolute left-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] ${
+                  className={`absolute left-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-full border text-[15px] ${
                     ph.estado === 'concluida' ? 'border-tinta-600 bg-tinta-600 text-white' : ph.estado === 'em_curso' ? 'border-tinta-600 bg-sage' : 'border-slate-200 bg-slate-100'
                   }`}
                   aria-hidden="true"
@@ -598,14 +598,14 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                   <span className="flex gap-3">
                     {ph.estado === 'por_iniciar' && (
                       <form action={setPhaseState.bind(null, id, ph.id, 'em_curso')}>
-                        <button type="submit" className="text-xs text-tinta-700 hover:underline">
+                        <button type="submit" className="text-[15px] text-tinta-700 hover:underline">
                           Iniciar
                         </button>
                       </form>
                     )}
                     {ph.estado === 'em_curso' && (
                       <form action={setPhaseState.bind(null, id, ph.id, 'concluida')}>
-                        <button type="submit" className="text-xs text-tinta-700 hover:underline">
+                        <button type="submit" className="text-[15px] text-tinta-700 hover:underline">
                           Concluir
                         </button>
                       </form>
@@ -635,7 +635,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       )}
 
       {section === 'financeiro' && (
-        <section className={`${card} space-y-6 text-sm`}>
+        <section className={`${card} space-y-6 text-[17px]`}>
           {/* A despesa fica à cabeça, porque é o que se faz todos os dias; as tranches lêem-se de
               vez em quando. */}
           <div>
@@ -662,7 +662,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                     </span>
                     {manager && !x.recebida_em && (
                       <form action={markTrancheReceived.bind(null, id, x.id)}>
-                        <button type="submit" className="text-xs text-tinta-700 hover:underline">
+                        <button type="submit" className="text-[15px] text-tinta-700 hover:underline">
                           Marcar recebida
                         </button>
                       </form>

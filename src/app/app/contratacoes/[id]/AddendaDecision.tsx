@@ -15,20 +15,20 @@ export function AddendaDecision({ engagementId, addendaId }: { engagementId: str
   const recusa = useFormAction<FormState>(answerAddenda.bind(null, engagementId, addendaId, 'recusada'), { errors: {} });
   const estado = aceitar.state.message ? aceitar.state : recusa.state;
 
-  if (estado.ok) return <p className="text-[12px] font-semibold text-slate-600">{estado.message}</p>;
+  if (estado.ok) return <p className="text-[15px] font-semibold text-slate-600">{estado.message}</p>;
 
   if (recusar) {
     return (
       <form {...recusa.formProps} className="w-full max-w-sm space-y-2">
-        <label className="block text-[12px] text-slate-600">
+        <label className="block text-[15px] text-slate-600">
           Porque não aceita? (o pintor vê esta nota)
-          <textarea name="nota" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <textarea name="nota" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
         </label>
         <div className="flex gap-3">
           <button type="submit" disabled={recusa.pending} className="btn-secondary">
             {recusa.pending ? 'A enviar…' : 'Confirmar a recusa'}
           </button>
-          <button type="button" onClick={() => setRecusar(false)} className="text-[12px] text-slate-500 underline underline-offset-4">
+          <button type="button" onClick={() => setRecusar(false)} className="text-[15px] text-slate-500 underline underline-offset-4">
             Voltar atrás
           </button>
         </div>
@@ -43,7 +43,7 @@ export function AddendaDecision({ engagementId, addendaId }: { engagementId: str
           {aceitar.pending ? 'A registar…' : 'Aceitar'}
         </button>
       </form>
-      <button type="button" onClick={() => setRecusar(true)} className="text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
+      <button type="button" onClick={() => setRecusar(true)} className="text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
         Não aceitar
       </button>
     </div>

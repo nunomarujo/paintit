@@ -35,7 +35,7 @@ export function ProductPhotoZoom({ fotoPath, alt, className }: { fotoPath: strin
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 px-4 py-1.5 text-[17px] hover:bg-slate-50"
           >
             Fechar
           </button>

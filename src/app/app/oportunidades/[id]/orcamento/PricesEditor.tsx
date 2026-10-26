@@ -22,7 +22,7 @@ export interface PriceRow {
 }
 
 const UNIT = { m2: 'm²', ml: 'm', un: 'un.', vg: 'valor global' } as const;
-const field = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-base';
+const field = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-[17px]';
 const cents = (s: string) => {
   const v = parseEuros(s);
   return v === null || Number.isNaN(v) ? 0 : v;
@@ -87,14 +87,14 @@ export function PricesEditor({
       <input type="hidden" name="payload" value={payload} />
       <div className="space-y-6 p-5 md:p-7">
         <fieldset>
-          <legend className="text-sm font-medium text-slate-700">Como quer apresentar o preço?</legend>
+          <legend className="text-[17px] font-medium text-slate-700">Como quer apresentar o preço?</legend>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {([['detalhado', 'Discriminado por trabalho', 'O cliente vê o preço de cada trabalho.'], ['global', 'Preço global da obra', 'Um só valor; os trabalhos ficam descritos, sem preço.']] as const).map(([k, title, text]) => (
               <label key={k} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${modo === k ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300'}`}>
                 <input type="radio" name="modo-visivel" checked={modo === k} onChange={() => edit(setModo)(k)} className="mt-1" />
                 <span>
                   <span className="block font-medium">{title}</span>
-                  <span className="block text-sm text-slate-600">{text}</span>
+                  <span className="block text-[17px] text-slate-600">{text}</span>
                 </span>
               </label>
             ))}
@@ -103,10 +103,10 @@ export function PricesEditor({
 
         {modo === 'detalhado' ? (
           rows.length === 0 ? (
-            <p className="rounded-xl bg-amber-50 p-4 text-sm">Ainda não escolheu trabalhos. Volte ao passo &ldquo;Trabalhos&rdquo;.</p>
+            <p className="rounded-xl bg-amber-50 p-4 text-[17px]">Ainda não escolheu trabalhos. Volte ao passo &ldquo;Trabalhos&rdquo;.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-left text-sm">
+              <table className="w-full min-w-[40rem] text-left text-[17px]">
                 <thead className="text-slate-500">
                   <tr>
                     <th className="py-2 font-normal">Trabalho</th>
@@ -119,14 +119,14 @@ export function PricesEditor({
                     <tr key={r.key} className={r.estado === 'base' ? '' : 'text-slate-500'}>
                       <td className="py-3 pr-3">
                         <span className="font-medium text-slate-900">{r.descricao}</span>
-                        <span className="block text-xs">
+                        <span className="block text-[15px]">
                           {r.unidade === 'vg' ? 'Valor global do trabalho' : `${(r.quantidade / 100).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} ${UNIT[r.unidade]}`}
                           {r.estado !== 'base' && ` · ${WORK_STATE_LABELS[r.estado]}`}
                         </span>
                       </td>
                       <td className="py-3">
                         {r.estado === 'nao_incluido' ? (
-                          <span className="block text-right text-xs">Sem preço</span>
+                          <span className="block text-right text-[15px]">Sem preço</span>
                         ) : (
                           <label>
                             <span className="sr-only">Preço de {r.descricao}</span>
@@ -142,15 +142,15 @@ export function PricesEditor({
             </div>
           )
         ) : (
-          <label className="block max-w-sm text-sm font-medium text-slate-700">
+          <label className="block max-w-sm text-[17px] font-medium text-slate-700">
             Preço global da obra, sem IVA (€)
             <input value={globalPrice} onChange={(e) => edit(setGlobalPrice)(e.target.value)} inputMode="decimal" className={`mt-1 ${field}`} />
           </label>
         )}
 
-        <dl className="ml-auto grid max-w-sm grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 text-sm">
+        <dl className="ml-auto grid max-w-sm grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 text-[17px]">
           <dt className="text-slate-600">Preço sem IVA</dt>
-          <dd className="text-right text-base font-semibold">{formatEuros(base)}</dd>
+          <dd className="text-right text-[17px] font-semibold">{formatEuros(base)}</dd>
           <dt className="text-slate-600">
             <label htmlFor="iva">IVA (%)</label>
           </dt>
@@ -159,7 +159,7 @@ export function PricesEditor({
             <span className="w-24 text-right">{formatEuros(iva$)}</span>
           </dd>
           <dt className="font-semibold">Total com IVA</dt>
-          <dd className="text-right text-lg font-semibold">{formatEuros(base + iva$)}</dd>
+          <dd className="text-right text-[20px] font-semibold">{formatEuros(base + iva$)}</dd>
           {modo === 'detalhado' && sum(rows.filter((r) => r.estado === 'opcional')) > 0 && (
             <>
               <dt className="text-slate-500">Opcionais (não somados)</dt>
@@ -173,11 +173,11 @@ export function PricesEditor({
             </>
           )}
         </dl>
-        <p className="text-xs text-slate-500">O IVA é 23% na maioria dos casos; altere-o se a obra tiver outra taxa (por exemplo, 6%).</p>
+        <p className="text-[15px] text-slate-500">O IVA é 23% na maioria dos casos; altere-o se a obra tiver outra taxa (por exemplo, 6%).</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
-        <p className="text-sm" role="status">
+        <p className="text-[17px]" role="status">
           {errorText ? <span className="text-red-700">{errorText}</span> : state.ok ? <span className="text-tinta-700">{state.message}</span> : null}
         </p>
         <div className="flex gap-2">

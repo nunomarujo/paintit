@@ -104,11 +104,11 @@ export default async function ProposalsPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/pedidos/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/pedidos/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {req.titulo}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Propostas recebidas</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Propostas recebidas</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Os pintores aparecem como Pintor A, B, C… pela ordem de chegada. A identidade e os contactos só são revelados
           depois da escolha, quando o pintor confirmar. Área do pedido: {formatArea(areaTotal)}.
         </p>
@@ -134,7 +134,7 @@ export default async function ProposalsPage({
                 className={`flex flex-col rounded-2xl bg-white p-6 ${p.status === 'selecionada' ? 'border-2 border-tinta-600' : 'border border-slate-200'}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[11px] bg-sage text-xs font-bold text-tinta-600">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[11px] bg-sage text-[15px] font-bold text-tinta-600">
                     {r.alias.replace('Pintor ', '')}
                   </span>
                   <span className="flex flex-wrap justify-end gap-1">
@@ -144,9 +144,9 @@ export default async function ProposalsPage({
                   </span>
                 </div>
                 <h3 className="mt-4 font-semibold">{r.alias}</h3>
-                <p className="text-[30px] font-semibold leading-tight tracking-tight">{formatEuros(r.totals.base)}</p>
-                <p className="text-[11px] text-slate-500">sem IVA · {formatEuros(r.totals.totalComIva)} com IVA</p>
-                <div className="my-4 divide-y divide-slate-200 border-y border-slate-200 text-[12px]">
+                <p className="text-[34px] font-semibold leading-tight tracking-tight">{formatEuros(r.totals.base)}</p>
+                <p className="text-[15px] text-slate-500">sem IVA · {formatEuros(r.totals.totalComIva)} com IVA</p>
+                <div className="my-4 divide-y divide-slate-200 border-y border-slate-200 text-[15px]">
                   {[
                     ['Preço por m²', r.precoM2 !== null ? formatEuros(r.precoM2) : '—'],
                     ['Duração', p.duracao_dias ? `${p.duracao_dias} dias` : 'Não indicada'],
@@ -181,12 +181,12 @@ export default async function ProposalsPage({
       )}
 
       {active.length === 0 ? (
-        <p className={`${card} text-sm text-slate-600`}>Ainda não há propostas submetidas.</p>
+        <p className={`${card} text-[17px] text-slate-600`}>Ainda não há propostas submetidas.</p>
       ) : (
         <section className={card}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">Comparação detalhada</h2>
-            <form className="flex items-center gap-2 text-sm">
+            <form className="flex items-center gap-2 text-[17px]">
               <label htmlFor="ordem">Ordenar por</label>
               <select id="ordem" name="ordem" defaultValue={sortKey} className="rounded-lg border border-slate-300 bg-white px-2 py-1">
                 {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
@@ -200,19 +200,19 @@ export default async function ProposalsPage({
               </button>
             </form>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-[15px] text-slate-500">
             A ordenação é só pelo critério escolhido; não é uma recomendação. Valores em falta aparecem como “não indicado”
             e nunca como incluídos.
           </p>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-left text-sm">
+            <table className="w-full min-w-[40rem] text-left text-[17px]">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="py-2 pr-3 font-normal text-slate-500" />
                   {sorted.map((r) => (
                     <th key={r.id} className="py-2 pr-3 font-semibold">
                       {r.alias}
-                      <span className="block text-xs font-normal text-slate-500">{STATUS[byId.get(r.id)!.status]}</span>
+                      <span className="block text-[15px] font-normal text-slate-500">{STATUS[byId.get(r.id)!.status]}</span>
                     </th>
                   ))}
                 </tr>
@@ -234,7 +234,7 @@ export default async function ProposalsPage({
                           {pref.fixo ? 'Substitui, apesar de fixo: ' : 'Substitui por '}
                           {a.por}
                           {a.diffPct !== null && (
-                            <span className="block text-xs">
+                            <span className="block text-[15px]">
                               {a.diffPct === 0 ? 'mesmo preço por litro' : `${Math.abs(a.diffPct)}% ${a.diffPct > 0 ? 'mais caro' : 'mais barato'} por litro`} (referência de mercado)
                             </span>
                           )}
@@ -355,7 +355,7 @@ export default async function ProposalsPage({
           <section key={r.id} className={card} id={r.id}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-semibold">{r.alias}</h2>
-              <span className="flex items-center gap-3 text-sm text-slate-600">
+              <span className="flex items-center gap-3 text-[17px] text-slate-600">
                 {STATUS[p.status]}
                 <Link href={`${path}/${r.id}/documento`} className="text-tinta-600 hover:underline" target="_blank">
                   Ver documento →
@@ -389,7 +389,7 @@ export default async function ProposalsPage({
               </div>
             )}
             <div className="mt-6 border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-semibold">Mensagens com {r.alias}</h3>
+              <h3 className="text-[17px] font-semibold">Mensagens com {r.alias}</h3>
               <div className="mt-3">
                 <MessageThread
                   proposalId={p.id}
@@ -438,5 +438,5 @@ function Row({ label, cells }: { label: string; cells: React.ReactNode[] }) {
 }
 
 function Missing() {
-  return <span className="text-slate-400">Não indicado</span>;
+  return <span className="text-slate-600">Não indicado</span>;
 }

@@ -30,17 +30,17 @@ export function Hoje({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Hoje · {DIA.format(hoje)}</p>
-          <h1 className="mt-1 text-[28px] font-semibold leading-tight text-slate-900">{obra.nome}</h1>
+          <h1 className="mt-1 text-[26px] font-semibold leading-tight text-slate-900">{obra.nome}</h1>
           <p className="mt-1 flex items-center gap-2 text-[15px] text-slate-600">
             <span className={`inline-block h-2 w-2 rounded-full ${obra.estado === 'ativa' ? 'bg-tinta-600' : 'bg-slate-400'}`} />
             {obra.estado === 'ativa' ? 'Em curso' : 'Parada'}
-            {obra.local && <span className="text-slate-400">·</span>}
+            {obra.local && <span className="text-slate-600">·</span>}
             {obra.local}
           </p>
         </div>
         {obras.length > 1 && (
           // Trocar de obra sem sair do ecrã: um encarregado anda em duas ou três no mesmo dia.
-          <form className="flex items-center gap-2 text-[14px] text-slate-600">
+          <form className="flex items-center gap-2 text-[15px] text-slate-600">
             <label htmlFor="obra-a-consultar">A consultar</label>
             <select
               id="obra-a-consultar"
@@ -55,7 +55,7 @@ export function Hoje({
               ))}
             </select>
             <input type="hidden" name="ver" value="hoje" />
-            <button type="submit" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-[14px] font-semibold text-slate-700 hover:bg-slate-50">
+            <button type="submit" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] font-semibold text-slate-700 hover:bg-slate-50">
               Ver
             </button>
           </form>
@@ -80,9 +80,9 @@ export function Hoje({
           <div className="flex items-baseline justify-between gap-3 px-5 py-4">
             <div>
               <h2 className="text-[17px] font-semibold text-slate-900">Equipa hoje</h2>
-              <p className="text-[14px] text-slate-600">Quem trabalhou nesta obra</p>
+              <p className="text-[15px] text-slate-600">Quem trabalhou nesta obra</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[13px] font-semibold text-slate-700">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[17px] font-semibold text-slate-700">
               {dia.presencas.length} {dia.presencas.length === 1 ? 'pessoa' : 'pessoas'}
             </span>
           </div>
@@ -98,18 +98,18 @@ export function Hoje({
               {dia.presencas.map((p) => (
                 <li key={p.memberId} className="flex items-center justify-between gap-4 px-5 py-3">
                   <span className="min-w-0">
-                    <span className="block text-[16px] font-medium text-slate-900">{p.nome}</span>
-                    <span className="block text-[14px] text-slate-600">
+                    <span className="block text-[17px] font-medium text-slate-900">{p.nome}</span>
+                    <span className="block text-[15px] text-slate-600">
                       {p.funcao ?? 'Pintor'}
                       {p.horasNoutras.length > 0 &&
                         ` · ${p.horasNoutras.map((o) => `${formatHoras(o.horas)} h ${o.obra}`).join(', ')}`}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block text-[16px] font-semibold tabular-nums text-slate-900">
+                    <span className="block text-[17px] font-semibold tabular-nums text-slate-900">
                       {p.confirmado ? `${formatHoras(p.horasHoje)} h` : '—'}
                     </span>
-                    <span className={`block text-[13px] ${p.confirmado ? 'text-slate-500' : 'text-amber-700'}`}>
+                    <span className={`block text-[17px] ${p.confirmado ? 'text-slate-500' : 'text-amber-700'}`}>
                       {p.confirmado ? 'Confirmadas' : 'Por confirmar'}
                     </span>
                   </span>
@@ -118,7 +118,7 @@ export function Hoje({
             </ul>
           )}
           {dia.presencas.length > 0 && (
-            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-[14px]">
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-[15px]">
               <span className="text-slate-600">
                 {formatHoras(dia.horasConfirmadas)} h confirmadas de {formatHoras(dia.horasPrevistas)} h previstas
               </span>
@@ -137,10 +137,10 @@ export function Hoje({
                 {dia.atencao.slice(0, 3).map((a, i) => (
                   <li key={i}>
                     <p className="text-[17px] font-semibold leading-snug text-amber-950">{a.titulo}</p>
-                    <p className="mt-0.5 text-[14px] leading-snug text-amber-900">{a.detalhe}</p>
+                    <p className="mt-0.5 text-[15px] leading-snug text-amber-900">{a.detalhe}</p>
                     <Link
                       href={a.href}
-                      className="mt-1.5 inline-block rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[14px] font-semibold text-amber-900 hover:bg-amber-100"
+                      className="mt-1.5 inline-block rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[15px] font-semibold text-amber-900 hover:bg-amber-100"
                     >
                       Rever →
                     </Link>
@@ -163,7 +163,7 @@ export function Hoje({
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="flex items-baseline justify-between gap-3 px-5 py-4">
             <h2 className="text-[17px] font-semibold text-slate-900">Últimos registos</h2>
-            <Link href={`/app/obras/${obra.id}?s=diario`} className="text-[14px] font-semibold text-tinta-700 hover:underline">
+            <Link href={`/app/obras/${obra.id}?s=diario`} className="text-[15px] font-semibold text-tinta-700 hover:underline">
               Ver todos →
             </Link>
           </div>
@@ -172,9 +172,9 @@ export function Hoje({
               <li key={r.id} className="flex items-baseline justify-between gap-4 px-5 py-3">
                 <span className="min-w-0">
                   <span className="block text-[15px] font-medium text-slate-900">{r.titulo}</span>
-                  {r.detalhe && <span className="block text-[14px] text-slate-600">{r.detalhe}</span>}
+                  {r.detalhe && <span className="block text-[15px] text-slate-600">{r.detalhe}</span>}
                 </span>
-                <span className="shrink-0 text-[13px] tabular-nums text-slate-500">
+                <span className="shrink-0 text-[17px] tabular-nums text-slate-500">
                   {r.quando.slice(8, 10)}/{r.quando.slice(5, 7)}
                 </span>
               </li>
@@ -197,10 +197,10 @@ function Accao({ href, titulo, detalhe, destaque }: { href: string; titulo: stri
       }`}
     >
       <span>
-        <span className="block text-[18px] font-semibold leading-tight">{titulo}</span>
-        <span className={`block text-[14px] leading-snug ${destaque ? 'text-white/80' : 'text-slate-600'}`}>{detalhe}</span>
+        <span className="block text-[17px] font-semibold leading-tight">{titulo}</span>
+        <span className={`block text-[15px] leading-snug ${destaque ? 'text-white/80' : 'text-slate-600'}`}>{detalhe}</span>
       </span>
-      <span aria-hidden className="text-[18px] opacity-70">
+      <span aria-hidden className="text-[17px] opacity-70">
         →
       </span>
     </Link>
@@ -213,8 +213,8 @@ function Fases({ fases, obraId }: { fases: DiaDaObra['fases']; obraId: string })
   const feitas = fases.filter((f) => f.estado === 'concluida').length;
   return (
     <>
-      <p className="mt-1 text-[18px] font-semibold leading-snug text-slate-900">{emCurso?.nome ?? 'Todas as fases concluídas'}</p>
-      <p className="text-[14px] text-slate-600">
+      <p className="mt-1 text-[17px] font-semibold leading-snug text-slate-900">{emCurso?.nome ?? 'Todas as fases concluídas'}</p>
+      <p className="text-[15px] text-slate-600">
         {feitas} de {fases.length} {fases.length === 1 ? 'fase concluída' : 'fases concluídas'}
       </p>
       <div className="mt-3 flex gap-1.5" aria-hidden>
@@ -227,11 +227,11 @@ function Fases({ fases, obraId }: { fases: DiaDaObra['fases']; obraId: string })
           />
         ))}
       </div>
-      <p className="mt-2 flex justify-between text-[13px] text-slate-500">
+      <p className="mt-2 flex justify-between text-[17px] text-slate-500">
         <span>{fases[0]?.nome}</span>
         <span>{fases.at(-1)?.nome}</span>
       </p>
-      <Link href={`/app/obras/${obraId}?s=cronograma`} className="mt-3 inline-block text-[14px] font-semibold text-tinta-700 hover:underline">
+      <Link href={`/app/obras/${obraId}?s=cronograma`} className="mt-3 inline-block text-[15px] font-semibold text-tinta-700 hover:underline">
         Ver planeamento →
       </Link>
     </>

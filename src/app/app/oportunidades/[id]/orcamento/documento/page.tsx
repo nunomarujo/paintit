@@ -44,7 +44,7 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/oportunidades/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/oportunidades/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← Voltar ao pedido
         </Link>
         <PrintButton />

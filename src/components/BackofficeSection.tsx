@@ -6,8 +6,8 @@ export function BackofficeSection({ title, intro, tabs, children }: { title: str
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        {intro && <p className="mt-1 max-w-3xl text-sm text-slate-600">{intro}</p>}
+        <h1 className="text-[26px] leading-tight font-semibold">{title}</h1>
+        {intro && <p className="mt-1 max-w-3xl text-[17px] text-slate-600">{intro}</p>}
       </div>
       {tabs && tabs.length > 1 && <SubTabs tabs={tabs} />}
       {children}

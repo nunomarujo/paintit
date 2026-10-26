@@ -16,7 +16,7 @@ export function CustomerProfileForm({
   const { state, pending, formProps } = useFormAction<FormState>(saveCustomerProfile.bind(null, orgId, painterOrgId), { errors: {} });
   const m = Object.values(state.errors)[0] ?? state.message;
   return (
-    <form {...formProps} className="space-y-3 text-sm">
+    <form {...formProps} className="space-y-3 text-[17px]">
       <label className="flex items-center gap-2">
         <input type="checkbox" name="premium" defaultChecked={initial.premium} /> Cliente premium
       </label>
@@ -30,11 +30,11 @@ export function CustomerProfileForm({
           className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"
         />
       </label>
-      {m && <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p>}
+      {m && <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A guardar…' : 'Guardar'}
       </button>

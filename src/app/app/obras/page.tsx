@@ -56,10 +56,10 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
     <div className="space-y-5">
       {vista !== 'hoje' && (
       <div>
-        <h1 className="text-[28px] font-semibold leading-tight">
+        <h1 className="text-[26px] font-semibold leading-tight">
           {vista === 'equipa' ? 'Equipa' : 'Contas'}
         </h1>
-        <p className="mt-1 max-w-[75ch] text-sm text-slate-600">
+        <p className="mt-1 max-w-[58ch] text-[17px] text-slate-600">
           {vista === 'equipa'
             ? 'Quem anda em que obra e quantas horas fez. As pessoas são da empresa e podem estar em várias obras.'
             : vista === 'contas'
@@ -72,7 +72,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
       {vista === 'equipa' && (
         <section>
           {equipa.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[17px] text-slate-600">
               Ainda não há pessoas registadas. Acrescente-as dentro de uma obra e ficam a pertencer à empresa.
             </p>
           ) : (
@@ -81,9 +81,9 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
                 <li key={p.id} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <span className="font-semibold text-slate-900">{p.nome}</span>
-                    <span className="text-[13px] tabular-nums text-slate-600">{formatHoras(p.horasNaSemana)} h nos últimos 7 dias</span>
+                    <span className="text-[17px] tabular-nums text-slate-600">{formatHoras(p.horasNaSemana)} h nos últimos 7 dias</span>
                   </div>
-                  <p className="text-[12.5px] text-slate-600">
+                  <p className="text-[15px] text-slate-600">
                     {p.obras.length === 0
                       ? 'Sem obra atribuída'
                       : p.obras
@@ -96,7 +96,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
           )}
           {/* Dito porque é onde se engana quem lê depressa: isto mostra o que foi registado, não
               onde as pessoas estão (proposta de Gestão de Obra, 25/10/2026). */}
-          <p className="mt-2 text-[11.5px] text-slate-500">
+          <p className="mt-2 text-[15px] text-slate-500">
             Sem obra atribuída não quer dizer disponível, ausente ou de folga, e estar atribuído não prova presença.
             Isto mostra o que foi registado.
           </p>
@@ -118,34 +118,36 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
       {org && pro && <Dossier linhas={linhas} resumo={resumo} orgId={org.id} />}
       {org && !pro && (
         <div className="rounded-2xl border border-tinta-200 bg-tinta-50/60 px-5 py-4">
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="text-[17px] font-semibold text-slate-900">
             Cofre de documentos <span className="badge ml-1 align-middle">Só no Pro</span>
           </p>
-          <p className="mt-1 max-w-[70ch] text-[13px] leading-snug text-slate-700">
+          <p className="mt-1 max-w-[54ch] text-[17px] leading-snug text-slate-700">
             Certidão permanente, não dívida às Finanças e à Segurança Social, apólice e recibo do seguro de acidentes de
             trabalho e alvará, num sítio só, com aviso 15 dias antes de cada caducidade. É o que evita perder uma
             adjudicação por um papel fora de prazo.
           </p>
-          <Link href="/app/subscricao" className="mt-3 inline-block text-[13px] font-semibold text-tinta-800 underline underline-offset-4">
+          <Link href="/app/subscricao" className="mt-3 inline-block text-[17px] font-semibold text-tinta-800 underline underline-offset-4">
             Ver o plano Pro
           </Link>
         </div>
       )}
 
       {repor.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+        // Sem fundo de cor: já há a banda de atenção no ecrã do dia, e a regra da casa é uma só por
+        // ecrã. Aqui o alarme é a palavra, não o fundo.
+        <p className="text-[17px] text-amber-800">
           <strong className="font-semibold">Por repor:</strong>{' '}
           {repor.map((s) => `${s.nome} (${formatQuantidade(s.stock)})`).join(' · ')}.{' '}
           <Link href="/app/obras/consumiveis" className="font-semibold underline underline-offset-4">
             Ver consumíveis
           </Link>
-        </div>
+        </p>
       )}
 
       {(obras ?? []).length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <p className="font-semibold text-slate-900">Ainda não há obras aqui.</p>
-          <p className="mt-2 max-w-[70ch] text-sm text-slate-600">
+          <p className="mt-2 max-w-[54ch] text-[17px] text-slate-600">
             Não é preciso ter ganho a obra na Quem Pinta para usar estas ferramentas. Acrescente uma obra sua e passa a
             ter num sítio só quem lá anda e quantas horas fez, o cronograma por fases, os custos e o que já recebeu,
             os consumíveis que saíram do armazém, e os trabalhos a mais com o preço aceite.
@@ -165,7 +167,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
                     <span className="font-semibold text-slate-900">{o.nome}</span>
                     <span className="tabular-nums text-slate-700">{o.valor_cents !== null ? formatEuros(o.valor_cents) : '—'}</span>
                   </div>
-                  <p className="text-[12.5px] text-slate-600">
+                  <p className="text-[15px] text-slate-600">
                     {[o.cliente_nome, o.local].filter(Boolean).join(' · ') || 'Sem cliente nem local indicados'}
                     {' · '}
                     {WORKSITE_STATE_LABELS[o.estado]}
@@ -176,7 +178,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
                   // O registo do dia é a acção diária: fica a um toque da lista, sem abrir a obra.
                   <Link
                     href={`/app/obras/${o.id}?s=dia`}
-                    className="mx-4 mb-3 inline-flex items-center rounded-lg border border-tinta-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-tinta-700 hover:bg-tinta-50"
+                    className="mx-4 mb-3 inline-flex items-center rounded-lg border border-tinta-300 bg-white px-3 py-1.5 text-[15px] font-semibold text-tinta-700 hover:bg-tinta-50"
                   >
                     Registar o dia
                   </Link>
@@ -186,7 +188,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
           </ul>
           <div className="flex flex-wrap items-center gap-4">
             <CreateWorksite />
-            <Link href="/app/obras/consumiveis" className="text-sm font-semibold text-tinta-700 underline underline-offset-4">
+            <Link href="/app/obras/consumiveis" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4">
               Consumíveis e armazém
             </Link>
           </div>

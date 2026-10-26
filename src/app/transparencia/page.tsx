@@ -15,14 +15,14 @@ const pct = (bp: number) => `${(bp / 100).toLocaleString('pt-PT')}%`;
 export default function TransparencyPage() {
   const r = CURRENT_RULES;
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-10 text-sm leading-relaxed">
+    <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 text-[17px] leading-relaxed">
       <Link href="/" className="text-slate-600 hover:underline">
         ← {BRAND.name}
       </Link>
-      <h1 className="text-2xl font-semibold">Transparência</h1>
+      <h1 className="text-[26px] leading-tight font-semibold">Transparência</h1>
 
       <section>
-        <h2 className="text-lg font-semibold">Como a plataforma é paga</h2>
+        <h2 className="text-[20px] font-semibold">Como a plataforma é paga</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
             A plataforma cobra apenas uma pequena comissão pelo sucesso, paga pelo prestador de serviço (a empresa de pintura),
@@ -44,7 +44,7 @@ export default function TransparencyPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Como ordenamos as propostas</h2>
+        <h2 className="text-[20px] font-semibold">Como ordenamos as propostas</h2>
         <p className="mt-2">
           O cliente escolhe a ordem: {Object.values(SORT_LABELS).join(', ').toLowerCase()}. Por omissão, pelo preço sem IVA. Nenhum
           pintor paga para aparecer primeiro.
@@ -52,7 +52,7 @@ export default function TransparencyPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Como sugerimos materiais</h2>
+        <h2 className="text-[20px] font-semibold">Como sugerimos materiais</h2>
         <p className="mt-2">
           Ao orçamentar, os produtos aparecem pelo maior desconto que o fornecedor dá para aquela obra, segundo regras que o
           próprio fornecedor define: produto ou tipo, dimensão da obra, forma de pagamento, quantidade, primeira compra ou cliente
@@ -62,7 +62,7 @@ export default function TransparencyPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">O que verificamos</h2>
+        <h2 className="text-[20px] font-semibold">O que verificamos</h2>
         <p className="mt-2">
           Validamos os documentos que as empresas enviam, à data em que os enviam. Quando falta a habilitação IMPIC para o
           valor de uma obra, ou uma assinatura não se liga ao Cartão de Cidadão ou à Chave Móvel Digital, assinalamos a

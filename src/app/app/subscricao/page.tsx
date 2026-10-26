@@ -43,15 +43,15 @@ export default async function SubscriptionPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Plano da sua empresa</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Plano da sua empresa</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Orçamentar é sempre gratuito. O plano Pro baixa a comissão de cada obra que ganhar e abre as ferramentas que
           estamos a construir.
         </p>
       </div>
 
       {situacao.tipo === 'activa' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[17px] text-emerald-900">
           <p>
             <strong className="font-semibold">Plano Pro activo.</strong> A comissão das suas propostas está{' '}
             {PRO_DISCOUNT_BP / 100} pontos percentuais mais baixa.
@@ -67,14 +67,14 @@ export default async function SubscriptionPage() {
         </div>
       )}
       {situacao.tipo === 'cancelada_ate' && (
-        <p className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+        <p className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-[17px] text-slate-800">
           <strong className="font-semibold">Subscrição cancelada.</strong> Não haverá nova cobrança. O desconto de{' '}
           {PRO_DISCOUNT_BP / 100} pontos mantém-se até {emPt(situacao.validaAte)}, o fim do período já pago. Pode voltar a
           aderir a qualquer momento.
         </p>
       )}
       {pendente && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
           <strong className="font-semibold">A adesão ficou a meio: falta o pagamento.</strong> Enquanto não estiver pago,
           a comissão mantém-se como está e nada muda. Carregue de novo em aderir para retomar.
         </p>
@@ -88,7 +88,7 @@ export default async function SubscriptionPage() {
         <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight text-marca-orange-deep">
           Poupa {formatEuros(poupa)}
         </p>
-        <p className="mt-2 max-w-[60ch] text-[12.5px] text-marca-muted">
+        <p className="mt-2 max-w-[60ch] text-[15px] text-marca-muted">
           A comissão da plataforma desce {PRO_DISCOUNT_BP / 100} pontos percentuais do valor sem IVA, e soma-se aos
           descontos que já tenha. Numa obra só, mais do que quatro anos de subscrição.
         </p>
@@ -97,9 +97,9 @@ export default async function SubscriptionPage() {
       <div className="grid items-start gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-marca-border bg-white p-5">
           <p className="eyebrow text-marca-ink-soft">Gratuito</p>
-          <p className="mt-1 text-[22px] font-semibold tracking-tight text-marca-ink">0 €</p>
-          <p className="text-[12px] text-marca-muted">o que tem hoje</p>
-          <ul className="mt-4 space-y-3 text-sm">
+          <p className="mt-1 text-[20px] font-semibold tracking-tight text-marca-ink">0 €</p>
+          <p className="text-[15px] text-marca-muted">o que tem hoje</p>
+          <ul className="mt-4 space-y-3 text-[17px]">
             {BENEFICIOS_GRATUITO.map((b) => (
               <BenefitItem key={b.titulo} b={b} />
             ))}
@@ -109,35 +109,35 @@ export default async function SubscriptionPage() {
         <section className="rounded-2xl border-2 border-marca-ink bg-white p-5">
           <div className="flex items-baseline justify-between gap-3">
             <p className="eyebrow text-marca-ink-soft">Pro</p>
-            <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+            <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
               Oferta de lançamento
             </span>
           </div>
           {/* O preço normal aparece riscado ao lado do de lançamento: é oferta, e uma oferta só se lê
               como tal contra o preço que substitui. Decisão do promotor, 25/10/2026. */}
-          <p className="mt-1 text-[22px] font-semibold tracking-tight text-marca-ink">
+          <p className="mt-1 text-[20px] font-semibold tracking-tight text-marca-ink">
             <span className="mr-2 text-[15px] font-normal text-marca-muted/60 line-through">{formatEuros(PRECO_ATUAL.tabelaMensalCents)}</span>
-            {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[13px] font-normal text-marca-muted">/mês</span>
-            <span className="text-[13px] font-normal text-marca-muted"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
+            {formatEuros(PRECO_ATUAL.mensalCents)}<span className="text-[17px] font-normal text-marca-muted">/mês</span>
+            <span className="text-[17px] font-normal text-marca-muted"> ou {formatEuros(PRECO_ATUAL.anualCents)}/ano, + IVA</span>
           </p>
           {/* Uma linha só. O valor com IVA continua a ser dito no botão de adesão, antes de se sair
               para o pagamento, que é onde faz falta (25/10/2026). */}
-          <p className="text-[12px] font-semibold text-marca-orange-deep">
+          <p className="text-[15px] font-semibold text-marca-orange-deep">
             Desconto de lançamento −{formatEuros(descontoDeLancamento().mensalCents)}/mês ou −
             {formatEuros(descontoDeLancamento().anualCents)}/ano, por tempo limitado.
           </p>
-          <p className="mt-4 text-[13px] font-semibold text-marca-ink">Tudo o que tem no Gratuito, mais:</p>
+          <p className="mt-4 text-[17px] font-semibold text-marca-ink">Tudo o que tem no Gratuito, mais:</p>
           {/* Separado em dois grupos para não prometer como feito o que ainda não entrega nada. As
               Obras Públicas e o mapa de convites têm o ecrã construído e a lista vazia — enquanto não
               houver dados lá dentro, ficam do lado de cá (25/10/2026). */}
           <p className="eyebrow mt-3 text-marca-ink-soft">● Já disponível</p>
-          <ul className="mt-2 space-y-3 text-sm">
+          <ul className="mt-2 space-y-3 text-[17px]">
             {BENEFICIOS_PRO.filter((b) => !b.aChegar).map((b) => (
               <BenefitItem key={b.titulo} b={b} />
             ))}
           </ul>
           <p className="eyebrow mt-4 text-marca-muted">○ A chegar em breve</p>
-          <ul className="mt-2 space-y-3 text-sm">
+          <ul className="mt-2 space-y-3 text-[17px]">
             {BENEFICIOS_PRO.filter((b) => b.aChegar).map((b) => (
               <BenefitItem key={b.titulo} b={b} />
             ))}
@@ -151,7 +151,7 @@ export default async function SubscriptionPage() {
         </section>
       </div>
 
-      <p className="text-[12px] text-slate-500">
+      <p className="text-[15px] text-slate-500">
         O desconto de subscritor soma-se aos descontos de códigos de adesão e de fornecedores indicados. Com todos
         empilhados, há um limite mínimo abaixo do qual a comissão não desce. A anual é uma só cobrança por ano,
         renovável, e poupa {formatEuros(poupancaAnual())} face a doze meses.

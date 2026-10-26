@@ -49,7 +49,7 @@ export default function Home() {
       <header className="sticky top-0 z-20 h-14 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
           <BrandMark />
-          <nav className="flex items-center gap-5 text-sm text-slate-700">
+          <nav className="flex items-center gap-5 text-[17px] text-slate-700">
             <a href="#como-funciona" className="hidden sm:inline">Como funciona</a>
             <a href="#condominios" className="hidden sm:inline">Condomínios</a>
             <a href="#profissionais" className="hidden sm:inline">Para profissionais</a>
@@ -61,49 +61,49 @@ export default function Home() {
       </header>
 
       <PaintedHero>
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Fachadas · Condomínios · Zonas comuns</p>
+        <p className="text-[15px] font-bold uppercase tracking-[0.18em] text-slate-500">Fachadas · Condomínios · Zonas comuns</p>
         <h1 className="mt-3 text-4xl font-bold leading-[1.05] text-tinta-900 sm:text-6xl">
           Orçamente a pintura do seu prédio.
         </h1>
-        <p className="mt-4 max-w-md text-lg text-slate-600">
+        <p className="mt-4 max-w-md text-[20px] text-slate-600">
           Encontrar empresas de pintura e comparar propostas para a mesma obra.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <Link href={START} className="inline-flex items-center rounded-lg bg-terracota px-6 py-3.5 text-base font-semibold text-white hover:opacity-90">
+          <Link href={START} className="inline-flex items-center rounded-lg bg-terracota px-6 py-3.5 text-[17px] font-semibold text-white hover:opacity-90">
             Pedir orçamentos →
           </Link>
-          <a href="#condominios" className="text-sm font-semibold text-tinta-700 underline underline-offset-4">
+          <a href="#condominios" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4">
             Gerir vários edifícios
           </a>
         </div>
         {/* Resposta mais decisiva do "Antes de avançar" (abaixo), subida para junto do CTA em vez de só
             dentro do acordeão (auditoria de UX, 23/10/2026: é a pergunta de maior risco percebido para
             quem vai propor despesa a uma assembleia de condomínio — escondê-la só adia a desistência). */}
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-[17px] text-slate-600">
           Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
           plataforma guarda a prova do que foi acordado.
         </p>
-        <p className="mt-6 text-xs text-slate-500">Descer para ver o prédio ganhar cor.</p>
+        <p className="mt-6 text-[15px] text-slate-500">Descer para ver o prédio ganhar cor.</p>
       </PaintedHero>
 
       <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-3xl font-bold text-tinta-900">Orçamentos comparáveis.</h2>
+        <h2 className="text-[34px] font-bold text-tinta-900">Orçamentos comparáveis.</h2>
         <p className="mt-1 text-slate-600">O mesmo trabalho, os detalhes à vista.</p>
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {compare.map((c) => (
             <li key={c.t} className="border-t border-slate-200 pt-4">
               <h3 className="font-semibold text-tinta-900">{c.t}</h3>
-              <p className="mt-1 text-sm text-slate-600">{c.d}</p>
+              <p className="mt-1 text-[17px] text-slate-600">{c.d}</p>
             </li>
           ))}
         </ul>
         <ol className="mt-14 grid gap-6 sm:grid-cols-3">
           {steps.map((s, i) => (
             <li key={s.t} className="flex gap-3">
-              <span className="text-xl font-bold text-terracota">{i + 1}</span>
+              <span className="text-[20px] leading-snug font-bold text-terracota">{i + 1}</span>
               <span>
                 <h3 className="font-semibold text-tinta-900">{s.t}</h3>
-                <p className="mt-1 text-sm text-slate-600">{s.d}</p>
+                <p className="mt-1 text-[17px] text-slate-600">{s.d}</p>
               </span>
             </li>
           ))}
@@ -112,26 +112,26 @@ export default function Home() {
 
       <section id="condominios" className="border-y border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Administração de condomínios</p>
-          <h2 className="mt-2 text-3xl font-bold text-tinta-900">Cada edifício, a sua obra.</h2>
+          <p className="text-[15px] font-bold uppercase tracking-[0.18em] text-slate-500">Administração de condomínios</p>
+          <h2 className="mt-2 text-[34px] font-bold text-tinta-900">Cada edifício, a sua obra.</h2>
           <p className="mt-3 max-w-xl text-slate-600">
             Pedidos, propostas e documentos organizados por condomínio, com a minuta do contrato pronta a assinar com
             Chave Móvel Digital.
           </p>
-          <Link href={toOrg('condominio')} className="btn-primary mt-6 !px-6 !py-3 !text-base">
+          <Link href={toOrg('condominio')} className="btn-primary mt-6 !px-6 !py-3 !text-[17px]">
             Gerir vários edifícios →
           </Link>
         </div>
       </section>
 
       <section id="perguntas" className="mx-auto max-w-3xl px-4 py-16">
-        <h2 className="text-3xl font-bold text-tinta-900">Antes de avançar</h2>
+        <h2 className="text-[34px] font-bold text-tinta-900">Antes de avançar</h2>
         <div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">
           {faqs.map((f) => (
             <details key={f.q} className="group py-4">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
                 {f.q}
-                <span aria-hidden className="text-xl group-open:rotate-45">+</span>
+                <span aria-hidden className="text-[20px] leading-snug group-open:rotate-45">+</span>
               </summary>
               <p className="mt-2 text-slate-700">{f.a}</p>
             </details>
@@ -142,14 +142,14 @@ export default function Home() {
       <section id="profissionais" className="mx-auto max-w-6xl px-4 pb-16">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-tinta-900">Empresa de pintura?</h2>
+            <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Empresa de pintura?</h2>
             <p className="mt-2 text-slate-600">
               Receber pedidos na zona de trabalho. Só há pagamento depois de o cliente escolher a proposta e depositar a caução.
             </p>
             <Link href={toOrg('pintor')} className="btn-secondary mt-5">Área profissional</Link>
           </div>
           <div className="rounded-2xl border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-tinta-900">Fornecedor de tintas?</h2>
+            <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Fornecedor de tintas?</h2>
             <p className="mt-2 text-slate-600">
               Presença na lista de fornecedores e, no plano de catálogo, descontos para as empresas da plataforma.
             </p>
@@ -159,7 +159,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-slate-200">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-sm text-slate-500">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-[17px] text-slate-500">
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="hover:underline">{BRAND.email}</a>

@@ -14,13 +14,13 @@ export default async function SignaturesPage() {
   return (
     <section className={card}>
       <h2 className="font-semibold">Assinaturas com certificado a conferir</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-[17px] text-slate-600">
         A assinatura é válida, mas o certificado não encadeou numa entidade «Cartão de Cidadão» conhecida. Abra o PDF e confirme o certificado na aplicação Autenticação.gov ou no validador da UE.
       </p>
       {(unverified ?? []).length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600">Nenhuma.</p>
+        <p className="mt-3 text-[17px] text-slate-600">Nenhuma.</p>
       ) : (
-        <ul className="mt-3 space-y-1 text-sm">
+        <ul className="mt-3 space-y-1 text-[17px]">
           {(unverified ?? []).map((v) => (
             <li key={v.id}>
               <Link href={`/app/contratacoes/${v.engagement_id}`} className="text-tinta-700 hover:underline">

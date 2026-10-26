@@ -12,7 +12,7 @@ export function PublishButton({ requestId, blockers }: { requestId: string; bloc
   return (
     <form {...formProps} className="space-y-3">
       {blockers.length > 0 && (
-        <div className="rounded-xl bg-amber-50 p-4 text-sm">
+        <div className="rounded-xl bg-amber-50 p-4 text-[17px]">
           <p className="font-medium">Antes de publicar:</p>
           <ul className="mt-1 list-disc pl-5">
             {blockers.map((b) => (
@@ -22,7 +22,7 @@ export function PublishButton({ requestId, blockers }: { requestId: string; bloc
         </div>
       )}
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}

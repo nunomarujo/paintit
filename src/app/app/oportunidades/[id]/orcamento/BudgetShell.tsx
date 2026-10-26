@@ -17,7 +17,7 @@ export interface TemplateOption {
   resumo: string;
 }
 
-const input = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
+const input = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]';
 
 /**
  * Mantém os quatro passos montados ao mesmo tempo: andar entre separadores não apaga nada. O passo que se deixa é
@@ -154,8 +154,8 @@ export function BudgetShell({
       <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Métodos de trabalho">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Método de trabalho</p>
-            <p className="text-sm text-slate-600">
+            <p className="text-[17px] font-semibold">Método de trabalho</p>
+            <p className="text-[17px] text-slate-600">
               {templates.length > 0
                 ? 'Começar por um método guardado: os trabalhos, os produtos, os preços e as condições habituais.'
                 : 'Depois de preparar um orçamento, guarde-o como método para o reutilizar nos próximos.'}
@@ -174,7 +174,7 @@ export function BudgetShell({
               <button type="button" disabled={busy} onClick={apply} className="btn-primary">
                 Aplicar
               </button>
-              <button type="button" disabled={busy} onClick={remove} className="text-sm text-red-700 hover:underline">
+              <button type="button" disabled={busy} onClick={remove} className="text-[17px] text-red-700 hover:underline">
                 Apagar
               </button>
             </>
@@ -187,21 +187,21 @@ export function BudgetShell({
         </div>
         {naming && (
           <div className="mt-3 flex flex-wrap items-end gap-3">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-[17px] font-medium text-slate-700">
               Nome do método
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Ex.: Fachada com lavagem e fissuras" className={`mt-1 block w-80 max-w-full ${input}`} />
             </label>
             <button type="button" disabled={busy || !name.trim()} onClick={saveAs} className="btn-primary">
               {busy ? 'A guardar…' : 'Guardar método'}
             </button>
-            <button type="button" onClick={() => setNaming(false)} className="text-sm text-slate-600 hover:underline">
+            <button type="button" onClick={() => setNaming(false)} className="text-[17px] text-slate-600 hover:underline">
               Cancelar
             </button>
-            <p className="basis-full text-xs text-slate-500">Com o mesmo nome de um método existente, este é substituído. Zonas e quantidades não se guardam: vêm do pedido de cada cliente.</p>
+            <p className="basis-full text-[15px] text-slate-500">Com o mesmo nome de um método existente, este é substituído. Zonas e quantidades não se guardam: vêm do pedido de cada cliente.</p>
           </div>
         )}
         {notice && (
-          <p className={`mt-3 text-sm ${notice.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+          <p className={`mt-3 text-[17px] ${notice.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
             {notice.message ?? Object.values(notice.errors)[0]}
           </p>
         )}
@@ -214,7 +214,7 @@ export function BudgetShell({
         </div>
       )}
       {warning && (
-        <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+        <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[17px] text-amber-900" role="alert">
           {warning}
         </p>
       )}

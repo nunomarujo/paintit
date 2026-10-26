@@ -13,7 +13,7 @@ export function DocumentUpload({ orgId, orgKind }: { orgId: string; orgKind: Org
 
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Enviar documento</h3>
+      <h3 className="text-[17px] font-semibold">Enviar documento</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="kind" label="Tipo" required error={e.kind}>
           <select name="kind" required value={kind} onChange={(ev) => setKind(ev.target.value as DocKind)} className={selectClass}>
@@ -32,19 +32,19 @@ export function DocumentUpload({ orgId, orgKind }: { orgId: string; orgKind: Org
           <Field name="classe" label="Classe do alvará (1 a 9)" inputMode="numeric" required error={e.classe} hint="Define o valor máximo das obras." />
         )}
       </div>
-      {kind && <p className="text-xs text-slate-600">{DOC_KIND_WHY[kind]}</p>}
+      {kind && <p className="text-[15px] text-slate-600">{DOC_KIND_WHY[kind]}</p>}
       <Field name="ficheiro" label="Ficheiro" required error={e.ficheiro} hint="PDF, JPG ou PNG, até 10 MB.">
-        <input name="ficheiro" type="file" required accept="application/pdf,image/jpeg,image/png" className="mt-1 block w-full text-sm" />
+        <input name="ficheiro" type="file" required accept="application/pdf,image/jpeg,image/png" className="mt-1 block w-full text-[17px]" />
       </Field>
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A enviar…' : 'Enviar documento'}
       </button>

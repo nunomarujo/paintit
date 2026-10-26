@@ -38,17 +38,17 @@ export default async function SupplierCustomerPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}/clientes`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${id}/clientes`} className="text-[17px] text-slate-600 hover:underline">
           ← Clientes
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">{painter.nome}</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">{painter.nome}</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           {painter.email_contacto ?? 'Sem email indicado'}
           {painter.telefone ? ` · ${painter.telefone}` : ''}
         </p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
         <h2 className="font-semibold">Encomendas</h2>
         {Object.keys(counts).length === 0 ? (
           <p className="mt-2 text-slate-600">Sem encomendas registadas.</p>
@@ -63,7 +63,7 @@ export default async function SupplierCustomerPage({ params }: { params: Promise
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
         <h2 className="font-semibold">Classificação e notas</h2>
         <p className="mt-1 text-slate-600">
           Só visível a si e a este cliente — nunca a terceiros. &ldquo;Premium&rdquo; é uma classificação sua, que pode
@@ -81,7 +81,7 @@ export default async function SupplierCustomerPage({ params }: { params: Promise
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
         <h2 className="font-semibold">Descontos só para este cliente</h2>
         {(discounts ?? []).length === 0 ? (
           <p className="mt-2 text-slate-600">Sem descontos específicos — vale o que estiver em &ldquo;Produtos e descontos&rdquo;.</p>

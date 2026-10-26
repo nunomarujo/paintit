@@ -8,8 +8,8 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-md">
-      <h1 className="text-2xl font-semibold">O seu perfil</h1>
-      <p className="mt-2 text-sm text-slate-600">
+      <h1 className="text-[26px] leading-tight font-semibold">O seu perfil</h1>
+      <p className="mt-2 text-[17px] text-slate-600">
         Conta: <strong>{user!.email}</strong>. O nome aparece à sua equipa; nunca é mostrado a pintores ou clientes antes
         da apresentação.
       </p>

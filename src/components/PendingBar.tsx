@@ -36,7 +36,7 @@ export function PendingBar<P extends Pendencia>({
   const andar = (d: number) => setI((x) => (x + d + total) % total);
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 text-sm text-amber-800">
+    <div className="border-b border-amber-200 bg-amber-50 text-[17px] text-amber-800">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
         <p className="min-w-0">
           <span className="font-medium">
@@ -54,7 +54,7 @@ export function PendingBar<P extends Pendencia>({
           >
             ‹
           </button>
-          <span className="tabular-nums text-xs text-amber-700">
+          <span className="tabular-nums text-[15px] text-amber-700">
             {n + 1}/{total}
           </span>
           <button
@@ -73,14 +73,14 @@ export function PendingBar<P extends Pendencia>({
             type="button"
             onClick={() => setAberto(!aberto)}
             aria-expanded={aberto}
-            className="rounded-lg px-2 py-1 text-xs underline hover:bg-amber-100"
+            className="rounded-lg px-2 py-1 text-[15px] underline hover:bg-amber-100"
           >
             {aberto ? 'Fechar' : 'Ver todas'}
           </button>
         </div>
       </div>
       {aberto && (
-        <ul className="border-t border-amber-200 px-4 py-2 text-xs">
+        <ul className="border-t border-amber-200 px-4 py-2 text-[15px]">
           {pendings.map((p, k) => (
             <li key={p.id} className="py-0.5">
               <button type="button" onClick={() => setI(k)} className={`text-left hover:underline ${k === n ? 'font-semibold' : ''}`}>

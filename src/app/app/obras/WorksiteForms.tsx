@@ -22,7 +22,7 @@ export function CreateWorksite() {
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="eyebrow">Obra nova</p>
-        <button type="button" onClick={() => setAberto(false)} className="text-[12px] text-slate-500 underline underline-offset-4">
+        <button type="button" onClick={() => setAberto(false)} className="text-[15px] text-slate-500 underline underline-offset-4">
           Fechar
         </button>
       </div>

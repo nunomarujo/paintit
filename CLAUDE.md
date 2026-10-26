@@ -78,7 +78,22 @@ npm run build
     ("Descrever o trabalho", "Comparar propostas") ou frases sem sujeito. Onde o imperativo for inevitável
     (botões, erros), a forma de cortesia: "Registe", "Indique". Aplica-se à página inicial e, ao tocar em ecrãs
     existentes, aos restantes.
-13. **O cliente nunca vê o que a plataforma cobra ao pintor** (comissão, % ou valores), em nenhum ecrã, email ou
+13. **Alarme: uma só banda com fundo de cor por ecrã.** A banda vai no topo. Dentro de listas e de
+    linhas repetidas o alarme é **texto** (`text-amber-800`), nunca fundo colorido — senão a lista
+    fica aos quadrados e deixa de se ver o que é urgente. **Vermelho só para o que já fechou,
+    caducou ou foi recusado**; o que ainda se pode resolver é âmbar. Cor de aviso não se usa para
+    selecção nem para destaque — isso ensina a ignorar o aviso. A regra vivia num comentário de
+    `obras-publicas/Concursos.tsx` e era violada em 8 ficheiros; subiu para aqui a 26/10/2026.
+    *Em aberto:* `docs/DECISOES.md` (23/10/2026) mandou pôr o aviso de documento em falta a vermelho,
+    o que contraria a reserva do vermelho. Decisão do promotor por tomar.
+14. **Escala tipográfica: 13 / 15 / 17 / 20 / 26 / 34 px, e nada abaixo de 13.** O corpo são 17px
+    (`globals.css`). Nunca pôr um campo de formulário abaixo de 16px: o Safari do iPhone dá zoom a
+    cada toque, e quem preenche um levantamento está numa obra. Não passar substituições de tamanho
+    a `ProposalDocument.tsx` (folha A4, pontos de papel) nem a `<text>` dentro de SVG
+    (`SeverityScale.tsx`, `PhotoInstructions.tsx` — são unidades de `viewBox`). `text-slate-400` não
+    se usa para texto: dá 2,33:1 e reprova o mínimo de acessibilidade. `max-w-[Nch]` dá ~1,29×N
+    caracteres no Inter — para 70 caracteres reais, `max-w-[54ch]` (auditoria de 26/10/2026).
+15. **O cliente nunca vê o que a plataforma cobra ao pintor** (comissão, % ou valores), em nenhum ecrã, email ou
     resumo: pode mudar e não é informação do utilizador final. Texto para o cliente fala em "confirmação do pintor".
     Valores e percentagens aparecem só ao pintor e à plataforma. A página pública Transparência diz apenas, sem números, que a plataforma cobra uma pequena comissão pelo sucesso ao prestador de serviço (exigência do parecer jurídico).
     O pintor vê o valor da sua própria comissão, com o detalhe do desconto se tiver — isto não abre excepção à regra

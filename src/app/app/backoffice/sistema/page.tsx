@@ -12,7 +12,7 @@ export default async function ServerStatusPage() {
       <h2 id="diagnostico" className="font-semibold">
         Estado do servidor
       </h2>
-      <ul className="mt-3 space-y-2 text-sm">
+      <ul className="mt-3 space-y-2 text-[17px]">
         {checks.map((c) => (
           <li key={c.label} className="flex gap-3">
             <span className={c.ok ? 'text-tinta-700' : 'font-bold text-red-700'} aria-label={c.ok ? 'Em ordem' : 'Com problema'}>

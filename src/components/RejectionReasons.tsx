@@ -11,7 +11,7 @@ export function RejectionReasons({ reasons, value, onChange }: { reasons: readon
   const [picked, setPicked] = useState('');
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-[17px] font-medium text-slate-700">
         Motivo da rejeição
         <select
           value={picked}
@@ -20,7 +20,7 @@ export function RejectionReasons({ reasons, value, onChange }: { reasons: readon
             setPicked(reason);
             onChange(reason === OTHER_REASON ? '' : reason);
           }}
-          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]"
         >
           <option value="">Escolher um motivo…</option>
           {reasons.map((r) => (
@@ -37,7 +37,7 @@ export function RejectionReasons({ reasons, value, onChange }: { reasons: readon
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Texto que a outra parte vê (pode ajustar o motivo escolhido, ou escrever o seu)"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
       />
     </div>
   );

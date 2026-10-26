@@ -12,13 +12,13 @@ export default async function DocumentsPage() {
     .order('created_at');
   return (
     <section>
-      <p className="text-sm text-slate-600">Confirme que o documento corresponde à entidade (nome e NIF) e que está dentro da validade.</p>
+      <p className="text-[17px] text-slate-600">Confirme que o documento corresponde à entidade (nome e NIF) e que está dentro da validade.</p>
       {!docs || docs.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Não há documentos à espera.</p>
+        <p className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">Não há documentos à espera.</p>
       ) : (
         <ul className="mt-6 space-y-4">
           {docs.map((d) => (
-            <li key={d.id} className="rounded-2xl border border-slate-200 bg-white p-5 text-sm">
+            <li key={d.id} className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
               <div className="flex flex-wrap justify-between gap-2">
                 <span>
                   <span className="font-semibold">{d.organizations?.nome}</span>

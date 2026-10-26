@@ -77,13 +77,13 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
             name="descricao"
             rows={5}
             defaultValue={initial?.descricao}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
           />
         </Field>
 
         <fieldset>
-          <legend className="text-sm font-medium text-slate-700">Trabalhos pretendidos</legend>
-          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+          <legend className="text-[17px] font-medium text-slate-700">Trabalhos pretendidos</legend>
+          <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
             {DESIRED_WORKS.map((w) => (
               <label key={w} className="flex items-center gap-2">
                 <input type="checkbox" name="trabalhos" value={w} defaultChecked={initial?.trabalhos.includes(w)} />
@@ -94,8 +94,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
         </fieldset>
 
         <fieldset>
-          <legend className="text-sm font-medium text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
-          <div className="mt-2 space-y-2 text-sm">
+          <legend className="text-[17px] font-medium text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
+          <div className="mt-2 space-y-2 text-[17px]">
             {WORKS_MODES.map((m) => (
               <label key={m} className="flex items-start gap-2">
                 <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} className="mt-1" />
@@ -103,7 +103,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
               </label>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-[15px] text-slate-500">
             Com diferenças, é possível indicar, em cada zona, os trabalhos que só nela se aplicam (depois de guardar, ao acrescentar zonas).
             Fotografias e problemas observados ficam sempre associados à zona.
           </p>
@@ -119,10 +119,10 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
 
         {references.length > 0 && (
           <details className="rounded-xl bg-slate-50 p-4" open={(initial?.produtos_preferidos?.length ?? 0) > 0}>
-            <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            <summary className="cursor-pointer text-[17px] font-medium text-slate-700">
               Produtos preferidos (opcional)
             </summary>
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-2 text-[15px] text-slate-600">
               Indique os produtos que gostaria que fossem usados. Marque “fixo” se o pintor não os pode trocar; sem “fixo”,
               pode propor outro e a comparação mostra se é mais caro ou mais barato. Veja as fichas no catálogo.
             </p>
@@ -130,8 +130,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
               .filter((t) => references.some((r) => r.tipo === t))
               .map((t) => (
                 <fieldset key={t} className="mt-3">
-                  <legend className="text-xs font-semibold uppercase text-slate-500">{PRODUCT_TYPE_LABELS[t]}</legend>
-                  <ul className="mt-1 grid gap-1 text-sm sm:grid-cols-2">
+                  <legend className="text-[15px] font-semibold uppercase text-slate-500">{PRODUCT_TYPE_LABELS[t]}</legend>
+                  <ul className="mt-1 grid gap-1 text-[17px] sm:grid-cols-2">
                     {references
                       .filter((r) => r.tipo === t)
                       .map((r) => {
@@ -142,7 +142,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
                               <input type="checkbox" name="preferido" value={r.id} defaultChecked={!!pref} />
                               {r.marca} {r.nome}
                             </label>
-                            <label className="flex items-center gap-1 text-xs text-slate-600">
+                            <label className="flex items-center gap-1 text-[15px] text-slate-600">
                               <input type="checkbox" name="fixo" value={r.id} defaultChecked={pref?.fixo} /> fixo
                             </label>
                           </li>
@@ -196,7 +196,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
       </fieldset>
 
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}

@@ -27,18 +27,18 @@ export function StrikeDialog() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="alertdialog" aria-modal="true" aria-labelledby="strike-title" aria-describedby="strike-text">
       <div className={`w-full max-w-md rounded-2xl border-2 bg-white p-6 shadow-xl ${tone}`}>
-        <p className={`text-xs font-bold uppercase tracking-[0.18em] ${blocked || info.level === 'ultimo' ? 'text-red-700' : 'text-amber-700'}`}>
+        <p className={`text-[15px] font-bold uppercase tracking-[0.18em] ${blocked || info.level === 'ultimo' ? 'text-red-700' : 'text-amber-700'}`}>
           Aviso {info.n} de {info.max}
         </p>
-        <h2 id="strike-title" className="mt-1 text-xl font-semibold">
+        <h2 id="strike-title" className="mt-1 text-[20px] leading-snug font-semibold">
           {info.titulo}
         </h2>
-        <p id="strike-text" className="mt-3 text-sm text-slate-700">
+        <p id="strike-text" className="mt-3 text-[17px] text-slate-700">
           {info.texto}
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
           {info.level === 'ultimo' && (
-            <a href="/app/revisao" className="text-sm font-semibold text-tinta-700 underline underline-offset-4">
+            <a href="/app/revisao" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4">
               Pedir revisão
             </a>
           )}

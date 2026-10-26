@@ -11,7 +11,7 @@ export function InviteForm({ orgId, orgKind }: { orgId: string; orgKind: OrgKind
 
   return (
     <form {...formProps} className="space-y-4">
-      <h3 className="text-sm font-semibold">Convidar alguém</h3>
+      <h3 className="text-[17px] font-semibold">Convidar alguém</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="email" label="Email" type="email" required error={e.email} />
         <Field name="role" label="Papel" required error={e.role}>
@@ -25,14 +25,14 @@ export function InviteForm({ orgId, orgKind }: { orgId: string; orgKind: OrgKind
         </Field>
       </div>
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A criar…' : 'Criar convite'}
       </button>

@@ -63,11 +63,11 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {org.nome}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Referências de fornecedores</h1>
-        <p className="mt-1 max-w-3xl text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Referências de fornecedores</h1>
+        <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Crie um código e entregue-o a um fornecedor que ainda não esteja na plataforma. Quando essa empresa se registar com o código e assinar a primeira
           subscrição, conta como uma referência sua durante 12 meses: quantas mais tiver em simultâneo, maior o desconto na sua comissão. Soma-se ao desconto
           dos fornecedores a quem aplicou um código de adesão deles — o conjunto tem um teto de 8 pontos percentuais.
@@ -81,8 +81,8 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
           ['Desconto atual na comissão', `${(combinedBp / 100).toFixed(2)} p.p.`],
         ].map(([k, v]) => (
           <div key={k} className={card}>
-            <p className="text-sm text-slate-600">{k}</p>
-            <p className="mt-1 text-2xl font-semibold">{v}</p>
+            <p className="text-[17px] text-slate-600">{k}</p>
+            <p className="mt-1 text-[26px] leading-tight font-semibold">{v}</p>
           </div>
         ))}
       </section>
@@ -90,15 +90,15 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
       {linkedSuppliers.length > 0 && (
         <section className={card}>
           <h2 className="font-semibold">Fornecedores com código de adesão ligado</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-[17px] text-slate-600">
             Aplicou um código destes fornecedores a alguma proposta; o desconto que isso dá conta em todas as obras, não só nessa (ver o desconto atual na
             comissão, acima). Para deixar de contar, é o fornecedor que desativa o código do lado dele.
           </p>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
             {linkedSuppliers.map((s) => (
               <li key={s.id} className="flex items-center justify-between py-2">
                 <span>{s.nome}</span>
-                <span className="font-mono text-xs text-slate-500">{s.code}</span>
+                <span className="font-mono text-[15px] text-slate-500">{s.code}</span>
               </li>
             ))}
           </ul>
@@ -113,10 +113,10 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
           </div>
         )}
         {(invites ?? []).length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">Ainda não criou nenhum código.</p>
+          <p className="mt-4 text-[17px] text-slate-600">Ainda não criou nenhum código.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-left text-sm">
+            <table className="w-full min-w-[34rem] text-left text-[17px]">
               <thead className="text-slate-500">
                 <tr>
                   <th className="py-2 font-normal">Código</th>
@@ -128,13 +128,13 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
               <tbody className="divide-y divide-slate-100">
                 {(invites ?? []).map((i) => (
                   <tr key={i.id}>
-                    <td className="py-2 font-mono text-base font-semibold tracking-wider">{i.code}</td>
+                    <td className="py-2 font-mono text-[17px] font-semibold tracking-wider">{i.code}</td>
                     <td className="py-2 text-slate-600">{i.nota ?? ''}</td>
                     <td className="py-2">{statusOf(i)}</td>
                     <td className="py-2 text-right">
                       {manager && (
                         <form action={setInviteActive.bind(null, id, i.id, !i.active)}>
-                          <button type="submit" className="text-sm text-tinta-700 hover:underline">
+                          <button type="submit" className="text-[17px] text-tinta-700 hover:underline">
                             {i.active ? 'Desativar' : 'Reativar'}
                           </button>
                         </form>

@@ -47,19 +47,19 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
     (engagements ?? []).map(async (e) => (await supabase.from('organizations').select('id, nome, nif').eq('id', e.painter_org_id).maybeSingle()).data),
   );
   const total = (surfaces ?? []).reduce((n, s) => n + s.area_cm2, 0);
-  const h2 = 'mt-8 border-b border-slate-200 pb-1 text-lg font-semibold';
+  const h2 = 'mt-8 border-b border-slate-200 pb-1 text-[20px] font-semibold';
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/pedidos/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/pedidos/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {req.titulo}
         </Link>
-        <p className="text-sm text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
+        <p className="text-[17px] text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
-      <article className="rounded-2xl border border-slate-200 bg-white p-8 text-sm print:border-0 print:p-0">
+      <article className="rounded-2xl border border-slate-200 bg-white p-8 text-[17px] print:border-0 print:p-0">
         <p className="eyebrow">Dossiê do pedido</p>
-        <h1 className="mt-2 text-2xl font-semibold">{req.titulo}</h1>
+        <h1 className="mt-2 text-[26px] leading-tight font-semibold">{req.titulo}</h1>
         <p className="text-slate-500">
           Ref. {req.ref} · {org?.nome}
           {org?.nif ? ` · NIF ${org.nif}` : ''} · gerado a {dt(new Date().toISOString())}
@@ -124,7 +124,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
                       {dt(v.at)} — {EVENT_LABELS[v.kind]}
                       {(v.payload as { signatario?: string }).signatario ? ` por ${(v.payload as { signatario?: string }).signatario}` : ''}
                       {(v.payload as { documentHash?: string }).documentHash ? (
-                        <span className="block break-all text-xs text-slate-500">SHA-256 {(v.payload as { documentHash: string }).documentHash}</span>
+                        <span className="block break-all text-[15px] text-slate-500">SHA-256 {(v.payload as { documentHash: string }).documentHash}</span>
                       ) : null}
                     </li>
                   ))}

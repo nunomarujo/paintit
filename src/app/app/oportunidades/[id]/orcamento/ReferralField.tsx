@@ -44,14 +44,14 @@ export function ReferralField({
       <h3 id="codigo-fornecedor" className="font-semibold">
         Fornecedor associado a esta obra
       </h3>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-[17px] text-slate-600">
         Se ganhar a obra, o fornecedor que indicar aqui soma-a às suas. Não muda nada no que paga: o seu desconto por fornecedores com código ligado já conta
         todos, em todas as obras, enquanto o código estiver ativo — não precisa de voltar a aplicá-lo.
       </p>
 
       {!addingNew && linkedSuppliers.length > 0 && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-[17px] font-medium text-slate-700">
             Fornecedor
             <select
               defaultValue={appliedCodeId ?? ''}
@@ -60,7 +60,7 @@ export function ReferralField({
                 const supplier = linkedSuppliers.find((s) => s.id === e.target.value);
                 run(supplier?.code ?? '');
               }}
-              className="mt-1 block w-56 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
+              className="mt-1 block w-56 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]"
             >
               <option value="">Nenhum</option>
               {linkedSuppliers.map((s) => (
@@ -70,7 +70,7 @@ export function ReferralField({
               ))}
             </select>
           </label>
-          <button type="button" disabled={busy} onClick={() => setAddingNew(true)} className="text-sm text-slate-600 hover:underline">
+          <button type="button" disabled={busy} onClick={() => setAddingNew(true)} className="text-[17px] text-slate-600 hover:underline">
             + Novo código de outro fornecedor
           </button>
         </div>
@@ -78,21 +78,21 @@ export function ReferralField({
 
       {addingNew && (
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-[17px] font-medium text-slate-700">
             Código
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               maxLength={14}
               autoComplete="off"
-              className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base tracking-wider"
+              className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-[17px] tracking-wider"
             />
           </label>
           <button type="button" disabled={busy || code.trim().length < 6} onClick={() => run(code)} className="btn-secondary">
             {busy ? 'A validar…' : 'Aplicar código'}
           </button>
           {linkedSuppliers.length > 0 && (
-            <button type="button" disabled={busy} onClick={() => setAddingNew(false)} className="text-sm text-slate-600 hover:underline">
+            <button type="button" disabled={busy} onClick={() => setAddingNew(false)} className="text-[17px] text-slate-600 hover:underline">
               Cancelar
             </button>
           )}
@@ -100,7 +100,7 @@ export function ReferralField({
       )}
 
       {msg && (
-        <p className={`mt-3 text-sm ${msg.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`mt-3 text-[17px] ${msg.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {msg.text}
         </p>
       )}

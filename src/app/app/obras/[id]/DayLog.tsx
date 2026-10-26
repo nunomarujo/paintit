@@ -42,7 +42,7 @@ export function DayLog({
 
   if (equipa.length === 0) {
     return (
-      <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+      <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[17px] text-slate-600">
         Para registar o dia é preciso ter alguém na equipa desta obra. Acrescente no separador Equipa e horas.
       </p>
     );
@@ -57,18 +57,18 @@ export function DayLog({
       {!aberto && <input type="hidden" name="data" value={hoje} />}
       {aberto && (
       <div className="flex flex-wrap items-end gap-4">
-        <label className="block text-sm">
+        <label className="block text-[17px]">
           Dia
           <input type="date" name="data" defaultValue={hoje} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2" />
         </label>
-        <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 pb-2 text-[17px] text-slate-700">
           <input type="checkbox" checked={tipoDia === 'descanso'} onChange={(e) => setTipoDia(e.target.checked ? 'descanso' : 'util')} />
           Dia de descanso ou feriado
         </label>
       </div>
       )}
       {tipoDia === 'descanso' && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[15px] text-amber-900">
           Em dia de descanso ou feriado não há horas normais: todas as horas levam acréscimo, e é isso que vai contar
           no custo da obra.
         </p>
@@ -83,21 +83,21 @@ export function DayLog({
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
         {jaRegistado && !aberto ? (
           <>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-[17px] font-semibold text-slate-900">
               Dia registado — {jaRegistado.pessoas} {jaRegistado.pessoas === 1 ? 'pessoa' : 'pessoas'},{' '}
               {formatHoras(jaRegistado.horas)} horas no total.
             </p>
             <button
               type="button"
               onClick={() => setAberto(true)}
-              className="mt-1 text-[12.5px] font-semibold text-tinta-700 underline underline-offset-4"
+              className="mt-1 text-[15px] font-semibold text-tinta-700 underline underline-offset-4"
             >
               Corrigir
             </button>
           </>
         ) : (
           <>
-            <p className="text-sm text-slate-900">{resumoDoDia(presencas)}</p>
+            <p className="text-[17px] text-slate-900">{resumoDoDia(presencas)}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <button type="submit" disabled={pending} className="btn-primary">
                 {pending ? 'A guardar…' : 'Confirmar o dia'}
@@ -106,7 +106,7 @@ export function DayLog({
                 <button
                   type="button"
                   onClick={() => setAberto(true)}
-                  className="text-[12.5px] font-semibold text-tinta-700 underline underline-offset-4"
+                  className="text-[15px] font-semibold text-tinta-700 underline underline-offset-4"
                 >
                   Alterar
                 </button>
@@ -123,14 +123,14 @@ export function DayLog({
           return (
             <li key={p.memberId} className="flex items-start justify-between gap-3 px-4 py-2.5">
               <span className="min-w-0 flex-1">
-                <span className={`block text-sm font-medium ${faltou ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{p.nome}</span>
+                <span className={`block text-[17px] font-medium ${faltou ? 'text-slate-600 line-through' : 'text-slate-900'}`}>{p.nome}</span>
                 {(() => {
                   const extra = suplementaresDe({ horas: p.horas, tipoDia });
                   const membro = equipa.find((m) => m.id === p.memberId);
                   const aviso = avisoAnual((membro?.suplementaresNoAno ?? 0) + extra);
                   if (extra === 0 && !aviso) return null;
                   return (
-                    <span className="block text-[11.5px] leading-snug text-amber-800">
+                    <span className="block text-[15px] leading-snug text-amber-800">
                       {extra > 0 ? `${formatHoras(extra)} h a mais` : ''}
                       {extra > 0 && aviso ? ' · ' : ''}
                       {aviso ?? ''}
@@ -147,7 +147,7 @@ export function DayLog({
                 >
                   −
                 </button>
-                <span className="w-14 text-center text-sm tabular-nums">{faltou ? '—' : `${formatHoras(p.horas)} h`}</span>
+                <span className="w-14 text-center text-[17px] tabular-nums">{faltou ? '—' : `${formatHoras(p.horas)} h`}</span>
                 <button
                   type="button"
                   onClick={() => mudar(p.memberId, p.horas + passo)}
@@ -159,7 +159,7 @@ export function DayLog({
                 <button
                   type="button"
                   onClick={() => mudar(p.memberId, faltou ? DIA_NORMAL : 0)}
-                  className="ml-1 text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700"
+                  className="ml-1 text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700"
                 >
                   {faltou ? 'esteve' : 'faltou'}
                 </button>
@@ -171,20 +171,20 @@ export function DayLog({
       )}
 
       {aberto && (!extras ? (
-        <button type="button" onClick={() => setExtras(true)} className="text-[12px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
+        <button type="button" onClick={() => setExtras(true)} className="text-[15px] text-slate-500 underline underline-offset-4 hover:text-slate-700">
           Acrescentar nota ou custo do dia
         </button>
       ) : (
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-sm sm:col-span-3">
+          <label className="text-[17px] sm:col-span-3">
             Nota do dia (opcional)
             <input name="nota" placeholder="Choveu de manhã, só se pintou o alçado sul" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
           </label>
-          <label className="text-sm sm:col-span-2">
+          <label className="text-[17px] sm:col-span-2">
             Custo do dia (opcional)
             <input name="custoDescricao" placeholder="Tinta comprada a caminho" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
           </label>
-          <label className="text-sm">
+          <label className="text-[17px]">
             Valor (€)
             <input name="custo" inputMode="decimal" placeholder="0,00" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-right" />
           </label>
@@ -196,8 +196,8 @@ export function DayLog({
           {pending ? 'A guardar…' : 'Guardar o dia'}
         </button>
       )}
-      {msg && <p className="text-[12px] text-slate-600">{msg}</p>}
-      <p className="text-[11.5px] text-slate-500">
+      {msg && <p className="text-[15px] text-slate-600">{msg}</p>}
+      <p className="text-[15px] text-slate-500">
         Registar o mesmo dia outra vez substitui o que lá estava, não soma.
       </p>
     </form>

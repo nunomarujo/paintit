@@ -25,17 +25,17 @@ const options = [
 export default function StartPage() {
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold">Bem-vindo à Quem Pinta</h1>
-      <p className="mt-2 text-sm text-slate-600">
+      <h1 className="text-[26px] leading-tight font-semibold">Bem-vindo à Quem Pinta</h1>
+      <p className="mt-2 text-[17px] text-slate-600">
         Como vai usar a plataforma? Cada conta tem um só perfil: para usar outro, crie outra conta com outro email.
       </p>
       <ul className="mt-6 grid gap-4 sm:grid-cols-3">
         {options.map((o) => (
           <li key={o.href}>
             <Link href={o.href} className="block h-full rounded-2xl border border-slate-200 bg-white p-5 hover:border-tinta-600">
-              <span className="block text-lg font-semibold text-tinta-700">{o.title}</span>
-              <span className="mt-1 block text-xs text-slate-500">{o.who}</span>
-              <span className="mt-3 block text-sm text-slate-700">{o.text}</span>
+              <span className="block text-[20px] font-semibold text-tinta-700">{o.title}</span>
+              <span className="mt-1 block text-[15px] text-slate-500">{o.who}</span>
+              <span className="mt-3 block text-[17px] text-slate-700">{o.text}</span>
             </Link>
           </li>
         ))}

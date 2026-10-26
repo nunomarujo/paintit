@@ -9,7 +9,7 @@ import { BRAND } from '@/config/brand';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {m}
     </p>
   ) : null;
@@ -33,7 +33,7 @@ export function RequestInvites({ requestId, invites }: { requestId: string; invi
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 className="font-semibold">Convide diretamente a sua empresa de confiança</h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-[17px] text-slate-600">
         Já tem uma empresa de pintura com quem trabalha bem? Crie um código e entregue-o (ou mostre o QR, se preferir imprimi-lo) para ela orçamentar esta
         obra diretamente, como mais uma das propostas a comparar — sem ter de a procurar na Quem Pinta.
       </p>
@@ -47,14 +47,14 @@ export function RequestInvites({ requestId, invites }: { requestId: string; invi
         <div className="basis-full">{msg(state)}</div>
       </form>
       {invites.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">Ainda não criou nenhum código.</p>
+        <p className="mt-4 text-[17px] text-slate-600">Ainda não criou nenhum código.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-slate-100 text-sm">
+        <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
           {invites.map((i) => (
             <li key={i.id} className="py-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="font-mono text-base font-semibold tracking-wider">{i.code}</span>
+                  <span className="font-mono text-[17px] font-semibold tracking-wider">{i.code}</span>
                   {i.nota && <span className="ml-2 text-slate-600">{i.nota}</span>}
                   <span className="block text-slate-600">
                     {i.estado === 'desativado' ? 'Desativado' : i.estado === 'associado' ? `Associado a ${i.painterNome ?? 'uma empresa'}` : 'Disponível'}
@@ -68,12 +68,12 @@ export function RequestInvites({ requestId, invites }: { requestId: string; invi
               </div>
               {i.active && (
                 <>
-                  <p className="mt-1 break-all text-xs text-slate-500">
+                  <p className="mt-1 break-all text-[15px] text-slate-500">
                     {BRAND.url}/convite/{i.code}
                   </p>
                   {i.qrSvg && (
                     <details className="mt-1">
-                      <summary className="cursor-pointer text-xs text-tinta-700 hover:underline">Ver código QR</summary>
+                      <summary className="cursor-pointer text-[15px] text-tinta-700 hover:underline">Ver código QR</summary>
                       <div
                         className="mt-2 h-32 w-32 [&_svg]:h-full [&_svg]:w-full"
                         dangerouslySetInnerHTML={{ __html: i.qrSvg }}

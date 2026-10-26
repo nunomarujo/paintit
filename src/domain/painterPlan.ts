@@ -88,6 +88,8 @@ export interface Beneficio {
   /** A dor do pintor, não o nome da funcionalidade. */
   titulo: string;
   detalhe: string;
+  /** Uma página que desenvolve o assunto por extenso, quando a há. */
+  maisInfoHref?: string;
   /** O que fica escondido atrás de "+ saber mais": a matemática, as condições, os números. */
   maisInfo?: string;
   /** Rótulo do botão, quando "+ saber mais" não é a pergunta certa. */
@@ -105,6 +107,7 @@ export interface Beneficio {
 export const BENEFICIOS_PRO: Beneficio[] = [
   {
     titulo: 'Fique com mais do que ganhou',
+    destaque: true,
     detalhe: 'Numa obra de 30 000 €, ficam-lhe mais 1 500 € no bolso — mais do que quatro anos de subscrição, numa obra só.',
     maisInfo:
       'A comissão desce 5 pontos percentuais do valor sem IVA, e soma-se aos descontos que já tenha — os de fornecedores indicados e os de códigos de adesão.',
@@ -133,22 +136,24 @@ export const BENEFICIOS_PRO: Beneficio[] = [
     titulo: 'Saiba sempre quanto lhe devem',
     detalhe: 'Diário fotográfico datado para garantias e reclamações, carga das equipas por semana, e o que está facturado por receber.',
   },
-  // O achado de 25/10/2026, medido nos contratos públicos de 2026: dois terços das obras de pintura
-  // do Estado nunca são anunciadas, e em mais de um terço dos convites só é chamada uma empresa.
-  // Muitos pintores não sabem sequer que isto funciona assim — daí o título explicar antes de prometer.
+  // O mapa de contratos públicos esteve aqui como destaque da página, e saiu de lá por decisão do
+  // promotor a 26/10/2026. A razão é aritmética e está no artigo /obra-publica: há cerca de 977
+  // lugares de convidado por ano em todo o país. Mesmo com execução perfeita — a plataforma a
+  // preparar tudo e o pintor só a assinar e enviar — a maior parte dos subscritores nunca verá um
+  // convite atribuível a isto, e o retorno não é imediato nem garantido. Prometer isto à cabeça era
+  // montar a subscrição sobre o que ela menos consegue entregar, e colher a desilusão que se segue.
   //
-  // Os números vêm da carga real (482 de 199 701 contratos; `src/lib/contratosBase.ts`), verificados
-  // contra o ficheiro do portal em 25/10/2026. O "mais de um terço" são 124 convites a uma empresa
-  // só, em 326 — e não os 58% que aqui estiveram: esses 58% são 124 em 213, a conta feita apenas
-  // sobre os convites em que o BASE publica a lista de convidados, que são dois terços deles. Numa
-  // página de venda fica o número que não precisa de rodapé.
+  // Fica onde pertence: uma coisa valiosa que nenhuma outra ferramenta faz, a seguir às que o pintor
+  // usa todas as semanas. Os números são da carga real de 2026 (478 contratos de 199 701), medidos a
+  // 26/10/2026 depois de tirados quatro repetidos que o ficheiro do portal trazia a dobrar.
   {
     titulo: 'Dois terços das obras públicas nunca são anunciadas',
-    destaque: true,
     detalhe:
       'A câmara não publica concurso: convida directamente quem já conhece. Fazemos o trabalho para que seja a si que convidam — dizemos-lhe quem contrata pintura à sua volta, com que frequência e por que valores.',
     maisInfo:
-      'Em 2026 houve 482 empreitadas de pintura, fachadas e isolamento, no total de 63,6 milhões de euros. Dois terços foram por convite directo, sem anúncio, e em mais de um terço desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Os nomes das empresas convidadas são públicos, e é deles que fazemos o mapa: que câmaras, juntas de freguesia e misericórdias contratam pintura perto de si, quanto pagam, e quem costumam chamar.',
+      'Em 2026 houve 478 empreitadas de pintura, fachadas e isolamento, no total de 62,5 milhões de euros. Dois terços foram por convite directo, sem anúncio, e em mais de um terço desses casos foi convidada uma única empresa — nesses, estar na lista é ganhar a obra. Não se promete um convite: são cerca de 977 lugares de convidado por ano em todo o país, e nenhuma entidade é obrigada a chamar seja quem for. O que se promete é o trabalho feito — quem contrata à sua volta, quanto paga, e a carta pronta a assinar.',
+    maisInfoHref: '/obra-publica',
+    rotuloMaisInfo: 'O que isto vale, e o que não vale',
     aChegar: true,
   },
   {

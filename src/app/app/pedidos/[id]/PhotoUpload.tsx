@@ -14,10 +14,10 @@ export function PhotoUpload({ requestId }: { requestId: string }) {
   return (
     <form {...formProps} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">Acrescentar fotografia</h3>
+        <h3 className="text-[17px] font-semibold">Acrescentar fotografia</h3>
         <PhotoInstructions />
       </div>
-      <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+      <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[15px] text-amber-900">
         <strong>As fotografias não podem ter nada que identifique o prédio</strong> — números de porta, portas, placas
         com nomes de rua, caixas de correio, matrículas ou pessoas. Veja as instruções antes da primeira.
       </p>
@@ -59,17 +59,17 @@ export function PhotoUpload({ requestId }: { requestId: string }) {
         hint="JPG ou PNG, até 10 MB."
         info="A aplicação retira a localização e a data guardadas dentro do ficheiro antes de o gravar. O que estiver dentro da imagem não se consegue retirar."
       >
-        <input name="ficheiro" type="file" required accept="image/jpeg,image/png" className="mt-1 block w-full text-sm" />
+        <input name="ficheiro" type="file" required accept="image/jpeg,image/png" className="mt-1 block w-full text-[17px]" />
       </Field>
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
           {state.message}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A enviar…' : 'Enviar fotografia'}
       </button>

@@ -60,10 +60,10 @@ export async function Mapa({
     return (
       <div className="space-y-4">
         <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
-          <h2 className="text-lg font-semibold">Quem contrata pintura à sua volta</h2>
-          <p className="mt-1 text-[13px] text-slate-600">{onde}</p>
+          <h2 className="text-[20px] font-semibold">Quem contrata pintura à sua volta</h2>
+          <p className="mt-1 text-[17px] text-slate-600">{onde}</p>
         </header>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
           <p className="font-semibold text-slate-900">
             {error ? 'O mapa não está disponível de momento.' : 'O mapa ainda não tem contratos carregados.'}
           </p>
@@ -92,8 +92,8 @@ export async function Mapa({
   return (
     <div className="space-y-4">
       <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
-        <h2 className="text-lg font-semibold">Quem contrata pintura à sua volta</h2>
-        <p className="mt-1 text-[13px] text-slate-600">
+        <h2 className="text-[20px] font-semibold">Quem contrata pintura à sua volta</h2>
+        <p className="mt-1 text-[17px] text-slate-600">
           {r.entidades} {r.entidades === 1 ? 'entidade' : 'entidades'} · {r.contratos}{' '}
           {r.contratos === 1 ? 'contrato' : 'contratos'} · {formatEurosCurto(r.totalCents)} · {onde} · {anos}
         </p>
@@ -101,7 +101,7 @@ export async function Mapa({
 
       {/* A única banda com fundo de cor, e só quando há mesmo um achado: a própria empresa na lista. */}
       {eu.convites > 0 && (
-        <div className="rounded-xl border border-tinta-200 bg-tinta-50/70 px-4 py-3 text-[13px] text-slate-800">
+        <div className="rounded-xl border border-tinta-200 bg-tinta-50/70 px-4 py-3 text-[17px] text-slate-800">
           <strong className="font-semibold">
             A sua empresa aparece em {eu.convites} {eu.convites === 1 ? 'convite' : 'convites'} publicados
           </strong>
@@ -121,12 +121,12 @@ export async function Mapa({
           {entidades.map((e) => (
             <li key={e.chave} className="px-5 py-3.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="min-w-0 text-sm font-semibold text-slate-900">{e.nome}</p>
-                <p className="text-[13px] tabular-nums text-slate-600">
+                <p className="min-w-0 text-[17px] font-semibold text-slate-900">{e.nome}</p>
+                <p className="text-[17px] tabular-nums text-slate-600">
                   {e.contratos} {e.contratos === 1 ? 'contrato' : 'contratos'} · {formatEurosCurto(e.totalCents)}
                 </p>
               </div>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-slate-600">
+              <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
                 {/* "Costuma pagar" com um ou dois contratos é uma ocorrência a fingir de hábito. */}
                 {temHabito(e) ? 'Costuma pagar' : e.contratos === 1 ? 'Pagou' : 'Pagou, em média,'}{' '}
                 {formatEuros(e.medianaCents)}
@@ -143,7 +143,7 @@ export async function Mapa({
                 {e.concelhos.length > 0 && ` · ${e.concelhos.join(', ')}`}
               </p>
               {concentraConvites(e) && (
-                <p className="mt-1 text-[12px] font-semibold text-amber-800">
+                <p className="mt-1 text-[15px] font-semibold text-amber-800">
                   Metade ou mais dos convites desta entidade foram a uma empresa só — aqui, estar na lista decide.
                 </p>
               )}
@@ -156,18 +156,18 @@ export async function Mapa({
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-3">
             <p className="eyebrow">Quem costuma ser convidado</p>
-            <p className="mt-1 text-[12.5px] text-slate-600">
+            <p className="mt-1 text-[15px] text-slate-600">
               Conta convites, não obras ganhas: é esta a lista em que vale a pena entrar.
             </p>
           </div>
           <ul className="divide-y divide-slate-100">
             {convidados.map((c) => (
               <li key={c.chave} className="flex items-baseline justify-between gap-4 px-5 py-2.5">
-                <span className={`min-w-0 text-[13px] ${c.nif && c.nif === nif ? 'font-semibold text-tinta-700' : 'text-slate-800'}`}>
+                <span className={`min-w-0 text-[17px] ${c.nif && c.nif === nif ? 'font-semibold text-tinta-700' : 'text-slate-800'}`}>
                   {c.nome}
                   {c.nif && c.nif === nif && ' — a sua empresa'}
                 </span>
-                <span className="shrink-0 text-[12.5px] tabular-nums text-slate-600">
+                <span className="shrink-0 text-[15px] tabular-nums text-slate-600">
                   {c.convites} {c.convites === 1 ? 'convite' : 'convites'}
                   {c.ganhos > 0 && `, ${c.ganhos} ${c.ganhos === 1 ? 'obra' : 'obras'}`}
                 </span>
@@ -177,7 +177,7 @@ export async function Mapa({
         </section>
       )}
 
-      <p className="text-[12px] leading-relaxed text-slate-500">
+      <p className="text-[15px] leading-relaxed text-slate-500">
         Contratos de empreitada já celebrados, do portal BASE pelo conjunto de dados aberto do IMPIC em
         dados.gov.pt, actualizado semanalmente. Dos {r.contratos} aqui, {r.porConvite} foram adjudicados por ajuste
         directo ou consulta prévia — sem anúncio público.

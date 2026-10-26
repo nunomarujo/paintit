@@ -14,11 +14,11 @@ export function AcceptTerms({ orgId, requestId }: { orgId: string; requestId: st
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <h2 className="font-semibold">Antes de ver os pormenores desta obra</h2>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-[17px] text-slate-600">
         A ficha completa — fotografias, superfícies e descrição — só se vê depois de aceitar estes termos, uma vez, válidos para todas as obras na Quem
         Pinta:
       </p>
-      <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+      <ol className="mt-4 list-decimal space-y-2 pl-5 text-[17px] text-slate-700">
         <li>
           <strong>Comissão confidencial.</strong> O valor ou a percentagem que a Quem Pinta cobra nesta ou em qualquer obra não se revela ao cliente nem a
           terceiros, em nenhuma circunstância.
@@ -39,7 +39,7 @@ export function AcceptTerms({ orgId, requestId }: { orgId: string; requestId: st
           <strong>Dados verdadeiros.</strong> As informações dadas sobre a entidade (habilitação, seguros, disponibilidade) são verdadeiras e atuais.
         </li>
       </ol>
-      <p className="mt-4 text-xs text-slate-500">
+      <p className="mt-4 text-[15px] text-slate-500">
         Aceitar substitui qualquer versão anterior destes termos. Sendo alterados de forma substancial, pede-se a aceitação de novo.
       </p>
       <form {...formProps} className="mt-4">
@@ -47,7 +47,7 @@ export function AcceptTerms({ orgId, requestId }: { orgId: string; requestId: st
           {pending ? 'A registar…' : 'Aceito estes termos'}
         </button>
         {state.message && (
-          <p className="mt-2 text-sm text-red-700" role="alert">
+          <p className="mt-2 text-[17px] text-red-700" role="alert">
             {state.message}
           </p>
         )}

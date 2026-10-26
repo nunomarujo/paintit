@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Beneficio } from '@/domain/painterPlan';
 
 /**
@@ -17,19 +18,29 @@ export function BenefitItem({ b }: { b: Beneficio }) {
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="font-semibold text-marca-ink">{b.titulo}</span>
         {b.aChegar && (
-          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
             Por lançar
           </span>
         )}
       </span>
-      <span className="block text-[12.5px] leading-snug text-marca-muted">{b.detalhe}</span>
+      <span className="block text-[15px] leading-snug text-marca-muted">{b.detalhe}</span>
       {b.maisInfo && (
         <details className="group mt-1">
-          <summary className="inline-flex cursor-pointer list-none text-[12px] font-semibold text-marca-orange-deep underline underline-offset-4 marker:hidden hover:text-marca-orange [&::-webkit-details-marker]:hidden">
+          <summary className="inline-flex cursor-pointer list-none text-[15px] font-semibold text-marca-orange-deep underline underline-offset-4 marker:hidden hover:text-marca-ink [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">{b.rotuloMaisInfo ?? '+ saber mais'}</span>
             <span className="hidden group-open:inline">Mostrar menos</span>
           </summary>
-          <p className="mt-1 rounded-lg bg-marca-cream px-3 py-2 text-[12px] leading-snug text-marca-muted">{b.maisInfo}</p>
+          <p className="mt-1 rounded-lg bg-marca-cream px-3 py-2 text-[15px] leading-snug text-marca-muted">
+            {b.maisInfo}
+            {b.maisInfoHref && (
+              <>
+                {' '}
+                <Link href={b.maisInfoHref} className="font-semibold text-marca-orange-deep underline underline-offset-4">
+                  Ler o artigo com os números todos
+                </Link>
+              </>
+            )}
+          </p>
         </details>
       )}
     </li>

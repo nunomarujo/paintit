@@ -52,7 +52,7 @@ export function Characteristics({
     <div className="space-y-5">
       <div>
         <h2 className="font-semibold">Características</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Quanto mais completo, menos perguntas o pintor tem de fazer depois. Grava-se sozinho: não há botão.
         </p>
       </div>

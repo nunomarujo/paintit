@@ -48,8 +48,8 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
       </div>
 
       <fieldset className="space-y-4 rounded-xl bg-slate-50 p-4">
-        <legend className="px-1 text-sm font-semibold">Localização</legend>
-        <p className="text-xs text-slate-600">A morada fica privada até à apresentação. Os pintores só veem o concelho.</p>
+        <legend className="px-1 text-[17px] font-semibold">Localização</legend>
+        <p className="text-[15px] text-slate-600">A morada fica privada até à apresentação. Os pintores só veem o concelho.</p>
         <AddressFields
           moradaName="morada"
           moradaLabel="Morada"
@@ -68,7 +68,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
       </fieldset>
 
       <fieldset className={`space-y-4 ${semCaracteristicas ? 'hidden' : ''}`}>
-        <legend className="text-sm font-semibold">Características</legend>
+        <legend className="text-[17px] font-semibold">Características</legend>
         <div className="grid gap-4 sm:grid-cols-4">
           <Field name="pisos" label="Pisos" inputMode="numeric" defaultValue={str(initial?.pisos)} error={e.pisos} />
           <Field name="fracoes" label="Frações" inputMode="numeric" defaultValue={str(initial?.fracoes)} error={e.fracoes} />
@@ -81,7 +81,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
             error={e.anoConstrucao}
           />
         </div>
-        <div className="flex flex-wrap gap-6 text-sm">
+        <div className="flex flex-wrap gap-6 text-[17px]">
           <label className="flex items-center gap-2">
             <input type="checkbox" name="temVarandas" defaultChecked={initial?.tem_varandas} /> Tem varandas
           </label>
@@ -99,7 +99,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
       </fieldset>
 
       {state.message && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {state.message}
         </p>
       )}

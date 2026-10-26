@@ -71,8 +71,8 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Orçamentos</h1>
-        <p className="mt-1 max-w-[75ch] text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Orçamentos</h1>
+        <p className="mt-1 max-w-[58ch] text-[17px] text-slate-600">
           Os orçamentos que faz aos seus clientes, com o seu logótipo e os seus contactos. Sem comissão e sem passar
           pelo mercado da plataforma.
         </p>
@@ -80,7 +80,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
 
       {/* O aviso aparece em qualquer separador: é a coisa que o pintor não pode deixar passar. */}
       {avisos.length > 0 && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
           <span aria-hidden className="mr-1">⚠</span>
           <strong className="font-semibold">
             {avisos.length === 1 ? 'Há um orçamento feito que nunca foi enviado' : `Há ${avisos.length} orçamentos feitos que nunca foram enviados`}
@@ -92,12 +92,12 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
 
       {seccao === 'novo' ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-base font-semibold">Orçamento novo</h2>
-          <p className="mt-1 max-w-[70ch] text-sm text-slate-600">
+          <h2 className="text-[17px] font-semibold">Orçamento novo</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             Um orçamento nunca começa em branco: escolha o tipo de obra e os capítulos aparecem pela ordem de
             execução, para tirar o que não quer em vez de se lembrar do que falta.
           </p>
-          <p className="mt-2 text-[13px] text-slate-600">
+          <p className="mt-2 text-[17px] text-slate-600">
             {guardados === 0
               ? 'Ainda não há preços seus guardados. O primeiro orçamento é o que os ensina à aplicação; a partir daí passam a vir sugeridos.'
               : `${guardados} ${guardados === 1 ? 'preço seu guardado' : 'preços seus guardados'}, a sugerir neste.`}
@@ -108,10 +108,10 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         </section>
       ) : (
         <section>
-          <h2 className="text-base font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
-          <p className="mt-1 max-w-[70ch] text-[13px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
+          <h2 className="text-[17px] font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
           {doGrupo.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-600">Nada aqui.</p>
+            <p className="mt-3 text-[17px] text-slate-600">Nada aqui.</p>
           ) : (
             <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
               {doGrupo.map((q) => (
@@ -123,7 +123,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                       </span>
                       <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
                     </div>
-                    <p className="text-[12.5px] text-slate-600">
+                    <p className="text-[15px] text-slate-600">
                       {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
                       {dataPt(q.created_at)}
                       {avisos.some((a) => a.id === q.id) && (

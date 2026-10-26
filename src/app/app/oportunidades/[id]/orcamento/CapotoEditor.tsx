@@ -66,7 +66,7 @@ export function CapotoEditor({
     return (
       <section className={card}>
         <h3 className="font-semibold">Capoto</h3>
-        <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-[17px] text-amber-900">
           Este separador ainda não está ligado à base de dados. Falta aplicar a migração
           <code className="mx-1">20261024160000_capoto_no_orcamento.sql</code>. Assim que o for, aparece aqui o sistema
           completo: situação da fachada, isolante, espessura e acabamento.
@@ -87,7 +87,7 @@ export function CapotoEditor({
 
       <section className={card}>
         <h3 className="font-semibold">Capoto</h3>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Esta obra foi declarada com isolamento pelo exterior. Indique o tipo, a espessura e a cor — sem isso, duas
           propostas com preços muito diferentes podem estar a falar de obras diferentes.
         </p>
@@ -100,7 +100,7 @@ export function CapotoEditor({
             <ul className="mt-3 space-y-2">
               {SITUACOES.map((s) => (
                 <li key={s}>
-                  <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm hover:border-tinta-500">
+                  <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-[17px] hover:border-tinta-500">
                     <input
                       type="radio"
                       name="situacao-escolha"
@@ -124,12 +124,12 @@ export function CapotoEditor({
             <section className={card}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">Isolante</h3>
-                <button type="button" onClick={() => setSugestoes(!sugestoes)} className="text-sm font-semibold text-tinta-700 hover:underline">
+                <button type="button" onClick={() => setSugestoes(!sugestoes)} className="text-[17px] font-semibold text-tinta-700 hover:underline">
                   {sugestoes ? 'Fechar sugestões' : 'Ver sugestões'}
                 </button>
               </div>
               {sugestoes && (
-                <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
+                <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3 text-[17px]">
                   <p>
                     <strong>Na maioria das fachadas:</strong> EPS, 60 a 80 mm, com acabamento siloxano. É a combinação com
                     melhor relação entre preço e resultado.
@@ -160,10 +160,10 @@ export function CapotoEditor({
                         className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left ${escolhido ? 'border-tinta-600 bg-tinta-50' : 'border-slate-200 hover:border-slate-300'}`}
                       >
                         <IsolanteSwatch isolante={i} className="h-10 w-16 shrink-0" />
-                        <span className="text-sm">
+                        <span className="text-[17px]">
                           <span className="block font-semibold">{info.label}</span>
                           <span className="block text-slate-600">{info.resumo}</span>
-                          <span className="block text-xs text-slate-500">
+                          <span className="block text-[15px] text-slate-500">
                             λ {info.lambda[0].toLocaleString('pt-PT')}–{info.lambda[1].toLocaleString('pt-PT')} W/(m·K) · {info.fogo}
                           </span>
                         </span>
@@ -174,17 +174,17 @@ export function CapotoEditor({
               </ul>
               {spec.isolante && produtos.length > 0 && (
                 <div className="mt-4 rounded-xl border border-slate-200 p-3">
-                  <p className="text-sm font-medium">
+                  <p className="text-[17px] font-medium">
                     Produtos deste isolante no catálogo <span className="font-normal text-slate-500">({produtos.length})</span>
                   </p>
-                  <ul className="mt-2 space-y-1 text-sm">
+                  <ul className="mt-2 space-y-1 text-[17px]">
                     {produtos.slice(0, 6).map((p) => (
                       <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 py-1 last:border-0">
                         <span>
                           <span className="font-semibold">{p.marca}</span> {p.nome}
-                          {p.descricao && <span className="block text-xs text-slate-600">{p.descricao}</span>}
+                          {p.descricao && <span className="block text-[15px] text-slate-600">{p.descricao}</span>}
                         </span>
-                        <a href={`/app/catalogo/referencia/${p.id}`} target="_blank" rel="noreferrer" className="text-xs text-tinta-700 hover:underline">
+                        <a href={`/app/catalogo/referencia/${p.id}`} target="_blank" rel="noreferrer" className="text-[15px] text-tinta-700 hover:underline">
                           Ver ficha
                         </a>
                       </li>
@@ -195,16 +195,16 @@ export function CapotoEditor({
               {spec.isolante && (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium">Vantagens</p>
-                    <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                    <p className="text-[17px] font-medium">Vantagens</p>
+                    <ul className="mt-1 list-disc pl-5 text-[17px] text-slate-700">
                       {ISOLANTE_INFO[spec.isolante].vantagens.map((v) => (
                         <li key={v}>{v}</li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">A ter em conta</p>
-                    <ul className="mt-1 list-disc pl-5 text-sm text-slate-700">
+                    <p className="text-[17px] font-medium">A ter em conta</p>
+                    <ul className="mt-1 list-disc pl-5 text-[17px] text-slate-700">
                       {ISOLANTE_INFO[spec.isolante].cuidados.map((v) => (
                         <li key={v}>{v}</li>
                       ))}
@@ -218,7 +218,7 @@ export function CapotoEditor({
           {!manutencao && (
             <section className={card}>
               <h3 className="font-semibold">Espessura</h3>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-[17px] text-slate-600">
                 Em Portugal continental o habitual é 60 a 80 mm. Mais espessura isola mais, mas a fachada avança e há que
                 resolver peitoris, soleiras e caixas de estore.
               </p>
@@ -228,7 +228,7 @@ export function CapotoEditor({
                     key={e}
                     type="button"
                     onClick={() => setSpec({ ...spec, espessuraMm: e })}
-                    className={`rounded-lg px-3 py-2 text-sm ${spec.espessuraMm === e ? 'bg-tinta-700 text-white' : 'border border-slate-300 hover:border-slate-400'}`}
+                    className={`rounded-lg px-3 py-2 text-[17px] ${spec.espessuraMm === e ? 'bg-tinta-700 text-white' : 'border border-slate-300 hover:border-slate-400'}`}
                   >
                     {e} mm
                   </button>
@@ -248,7 +248,7 @@ export function CapotoEditor({
                     <button
                       type="button"
                       onClick={() => setSpec({ ...spec, acabamento: a as Acabamento })}
-                      className={`w-full rounded-xl border p-3 text-left text-sm ${escolhido ? 'border-tinta-600 bg-tinta-50' : 'border-slate-200 hover:border-slate-300'}`}
+                      className={`w-full rounded-xl border p-3 text-left text-[17px] ${escolhido ? 'border-tinta-600 bg-tinta-50' : 'border-slate-200 hover:border-slate-300'}`}
                     >
                       <span className="block font-semibold">{info.label}</span>
                       <span className="block text-slate-600">{info.resumo}</span>
@@ -258,7 +258,7 @@ export function CapotoEditor({
               })}
             </ul>
             <div className="mt-4 flex flex-wrap gap-4">
-            <label className="block text-sm">
+            <label className="block text-[17px]">
               Demãos do acabamento
               <input
                 inputMode="numeric"
@@ -267,7 +267,7 @@ export function CapotoEditor({
                 className="mt-1 block w-24 rounded-lg border border-slate-300 px-3 py-2"
               />
             </label>
-            <label className="block text-sm">
+            <label className="block text-[17px]">
               Cor
               <input
                 value={spec.cor ?? ''}
@@ -281,10 +281,10 @@ export function CapotoEditor({
 
           <section className={card}>
             <h3 className="font-semibold">O sistema</h3>
-            <p className="mt-1 text-sm text-slate-600">{resumoCapoto(spec)}</p>
+            <p className="mt-1 text-[17px] text-slate-600">{resumoCapoto(spec)}</p>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <CapotoCorte isolante={spec.isolante} espessuraMm={spec.espessuraMm} manutencao={manutencao} className="h-36 w-full" />
-              <ol className="text-sm">
+              <ol className="text-[17px]">
                 {CAMADAS.filter((c) => camadas.includes(c.id)).map((c, i) => (
                   <li key={c.id} className="border-b border-slate-100 py-1 last:border-0">
                     <span className="font-medium">
@@ -296,7 +296,7 @@ export function CapotoEditor({
               </ol>
             </div>
             {falta.length > 0 && (
-              <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="mt-3 rounded-lg bg-amber-50 p-3 text-[17px] text-amber-900">
                 Falta indicar: {falta.join(', ')}. Sem isso, o cliente não consegue comparar esta proposta com outra.
               </p>
             )}
@@ -308,7 +308,7 @@ export function CapotoEditor({
         <button type="submit" disabled={pending} className="rounded-xl bg-tinta-700 px-5 py-2.5 font-semibold text-white disabled:bg-slate-300">
           {pending ? 'A guardar…' : 'Guardar'}
         </button>
-        {state.message && <span className={state.ok ? 'text-sm text-tinta-700' : 'text-sm text-red-700'}>{state.message}</span>}
+        {state.message && <span className={state.ok ? 'text-[17px] text-tinta-700' : 'text-[17px] text-red-700'}>{state.message}</span>}
       </div>
     </form>
   );

@@ -70,15 +70,15 @@ export async function Concursos({
   return (
     <div className="space-y-4">
       <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
-        <h2 className="text-lg font-semibold">Concursos abertos</h2>
-        <p className="mt-1 text-[13px] text-slate-600">
+        <h2 className="text-[20px] font-semibold">Concursos abertos</h2>
+        <p className="mt-1 text-[17px] text-slate-600">
           {elegiveis.length} {elegiveis.length === 1 ? 'aberto' : 'abertos'} para a empresa · {habilitacaoTexto} ·{' '}
           {distritos.length > 0 ? distritos.join(', ') : 'todos os distritos'}
         </p>
       </header>
 
       {aFechar.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
           <strong className="font-semibold">
             {aFechar.length} {aFechar.length === 1 ? 'fecha' : 'fecham'} nos próximos 7 dias:
           </strong>{' '}
@@ -87,7 +87,7 @@ export async function Concursos({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 text-[13px]">
+      <div className="flex items-center justify-between gap-3 text-[17px]">
         <p className="text-slate-600">
           Cobertura a crescer distrito a distrito; a lista é verificada pela equipa antes de aparecer aqui.
         </p>
@@ -100,7 +100,7 @@ export async function Concursos({
       </div>
 
       {lista.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
           <p className="font-semibold text-slate-900">Ainda não há concursos abertos nos seus distritos.</p>
           <p className="mt-2">
             A lista é curada pela equipa a partir dos anúncios da 2.ª série do Diário da República. Desde 1 de Outubro de
@@ -122,7 +122,7 @@ export async function Concursos({
         </ul>
       )}
 
-      <p className="text-[12px] text-slate-500">
+      <p className="text-[15px] text-slate-500">
         A classe do título mede-se pelo valor global da empreitada, não pela parte de pintura (artigo 8.º da Lei
         41/2015). Desde Outubro de 2026, uma empreitada até 1 000 000 € também pode ser adjudicada por convite, sem
         anúncio nenhum — por isso ser conhecido da entidade continua a valer tanto como ver a lista. Os documentos de

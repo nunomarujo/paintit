@@ -12,10 +12,10 @@ export default async function NewBuildingPage({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/app/organizacoes/${org.id}`} className="text-sm text-slate-600 hover:underline">
+      <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
         ← {org.nome}
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold">{org.kind === 'particular' ? 'Novo imóvel' : 'Novo prédio'}</h1>
+      <h1 className="mt-3 text-[26px] leading-tight font-semibold">{org.kind === 'particular' ? 'Novo imóvel' : 'Novo prédio'}</h1>
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <BuildingForm
           action={createBuilding.bind(null, org.id)}

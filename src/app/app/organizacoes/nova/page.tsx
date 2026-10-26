@@ -24,10 +24,10 @@ export default async function NewOrganizationPage({
   if (kinds.length === 0) {
     return (
       <div className="max-w-2xl space-y-3">
-        <Link href="/app" className="text-sm text-slate-600 hover:underline">
+        <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
           ← As suas entidades
         </Link>
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
           Uma conta de pintor ou de fornecedor corresponde a uma só empresa, que já está registada. Para outra empresa,
           crie outra conta com outro email; para dar acesso a colegas, convide-os na equipa da sua entidade.
         </p>
@@ -37,16 +37,16 @@ export default async function NewOrganizationPage({
 
   return (
     <div className="max-w-2xl">
-      <Link href="/app" className="text-sm text-slate-600 hover:underline">
+      <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
         ← As suas entidades
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold">Nova entidade</h1>
-      <p className="mt-2 text-sm text-slate-600">
+      <h1 className="mt-3 text-[26px] leading-tight font-semibold">Nova entidade</h1>
+      <p className="mt-2 text-[17px] text-slate-600">
         Estes dados servem para o contrato e para a verificação da conta. Só são revelados à outra parte depois da
         apresentação.
       </p>
       {existing[0] && (
-        <p className="mt-3 rounded-xl bg-tinta-50 p-3 text-sm">
+        <p className="mt-3 rounded-xl bg-tinta-50 p-3 text-[17px]">
           Esta conta é de <strong>{ACCOUNT_PROFILE_LABELS[accountProfile(existing[0]!)].toLowerCase()}</strong>. Cada conta tem um
           só perfil: para atuar também como {accountProfile(existing[0]!) === 'cliente' ? 'pintor ou fornecedor' : 'outro perfil'}, crie
           outra conta com outro email.

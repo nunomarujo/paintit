@@ -29,7 +29,7 @@ export default async function RequestsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="eyebrow">Pedidos de orçamento</p>
-          <h1 className="mt-2 text-[30px] font-semibold leading-tight">Os seus pedidos</h1>
+          <h1 className="mt-2 text-[34px] font-semibold leading-tight">Os seus pedidos</h1>
           <p className="mt-1 text-slate-500">Cada pedido é publicado sem morada nem nomes. Pintores com documentos validados respondem com propostas discriminadas.</p>
         </div>
         {clientOrgs.length > 0 && (
@@ -54,22 +54,22 @@ export default async function RequestsPage() {
                 <Link href={`/app/pedidos/${r.id}`} className="block rounded-2xl border border-slate-200 bg-white p-6 transition-colors hover:border-tinta-200">
                   <div className="flex items-start justify-between gap-3">
                     <span className={st.className}>{st.label}</span>
-                    <span className="text-xs text-slate-500">Ref. {r.ref}</span>
+                    <span className="text-[15px] text-slate-500">Ref. {r.ref}</span>
                   </div>
-                  <h2 className="mt-4 text-lg font-semibold">{r.titulo}</h2>
+                  <h2 className="mt-4 text-[20px] font-semibold">{r.titulo}</h2>
                   <p className="text-slate-500">
                     {WORK_TYPE_LABELS[r.tipo_obra]} · {clientOrgs.find((o) => o.id === r.org_id)?.nome}
                   </p>
                   <div className="mt-4 flex gap-8 border-t border-slate-200 pt-4">
                     <span>
-                      <strong className="block text-2xl font-semibold tracking-tight">{n}</strong>
-                      <span className="text-xs text-slate-500">propostas</span>
+                      <strong className="block text-[26px] leading-tight font-semibold tracking-tight">{n}</strong>
+                      <span className="text-[15px] text-slate-500">propostas</span>
                     </span>
                     <span>
-                      <strong className="block text-2xl font-semibold tracking-tight">
+                      <strong className="block text-[26px] leading-tight font-semibold tracking-tight">
                         {r.prazo_propostas ? r.prazo_propostas.split('-').reverse().slice(0, 2).join('/') : '—'}
                       </strong>
-                      <span className="text-xs text-slate-500">prazo de propostas</span>
+                      <span className="text-[15px] text-slate-500">prazo de propostas</span>
                     </span>
                   </div>
                 </Link>

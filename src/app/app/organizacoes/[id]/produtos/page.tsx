@@ -50,16 +50,16 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← {org.nome}
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold">Catálogo de produtos</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">Catálogo de produtos</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Os pintores veem os produtos ativos ao orçamentar. Um produto não se apaga, porque pode estar numa proposta antiga:
           desative-o.
         </p>
       </div>
-      <section className={`rounded-2xl border p-6 text-sm ${plan ? 'border-slate-200 bg-white' : 'border-amber-300 bg-amber-50'}`}>
+      <section className={`rounded-2xl border p-6 text-[17px] ${plan ? 'border-slate-200 bg-white' : 'border-amber-300 bg-amber-50'}`}>
         <h2 className="font-semibold">Subscrição</h2>
         <p className="mt-1">
           {plan
@@ -81,7 +81,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-[15px] text-slate-500">
           A plataforma não recebe nada dos fornecedores pelas vendas; só esta mensalidade. O pagamento é feito no Stripe e o
           plano fica ativo quando o Stripe o confirma.
         </p>
@@ -91,7 +91,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
           <ProductForm orgId={id} references={(await loadReferences(supabase)).map((r) => ({ id: r.id, label: `${r.marca} ${r.nome}` }))} />
         </section>
       )}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
         <h2 className="font-semibold">Descontos para pintores</h2>
         {(discounts ?? []).length === 0 ? (
           <p className="mt-2 text-slate-600">
@@ -135,7 +135,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
         <h2 className="font-semibold">Entrega em obra</h2>
         {(deliveries ?? []).length === 0 ? (
           <p className="mt-2 text-slate-600">Sem condições de entrega: os pintores veem “levantamento na loja”.</p>
@@ -173,7 +173,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
             <ProductCard p={p}>
               {manager && (
                 <form action={setProductActive.bind(null, id, p.id, !p.ativo)} className="mt-3">
-                  <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+                  <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50">
                     {p.ativo ? 'Desativar' : 'Reativar'}
                   </button>
                 </form>

@@ -9,27 +9,27 @@ export function InviteForm({ orgId }: { orgId: string }) {
   const e = state.errors;
   return (
     <form {...formProps} className="mt-4 grid gap-3 sm:grid-cols-2">
-      <label className="block text-sm">
+      <label className="block text-[17px]">
         Nome
         <input name="nome" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
         {e.nome && <span className="mt-1 block text-red-700">{e.nome}</span>}
       </label>
-      <label className="block text-sm">
+      <label className="block text-[17px]">
         Email
         <input name="email" type="email" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
         {e.email && <span className="mt-1 block text-red-700">{e.email}</span>}
       </label>
-      <label className="block text-sm">
+      <label className="block text-[17px]">
         Telefone
         <input name="telefone" type="tel" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
         {e.telefone && <span className="mt-1 block text-red-700">{e.telefone}</span>}
       </label>
-      <label className="block text-sm">
+      <label className="block text-[17px]">
         Morada, sede ou localização
         <input name="morada" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
         {e.morada && <span className="mt-1 block text-red-700">{e.morada}</span>}
       </label>
-      <label className="block text-sm sm:col-span-2">
+      <label className="block text-[17px] sm:col-span-2">
         Código promocional (opcional)
         <input
           name="codigo"
@@ -44,11 +44,11 @@ export function InviteForm({ orgId }: { orgId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60 sm:col-span-2 sm:w-fit"
+        className="rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60 sm:col-span-2 sm:w-fit"
       >
         {pending ? 'A enviar…' : 'Enviar convite'}
       </button>
-      {state.message && <p className={`text-sm sm:col-span-2 ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{state.message}</p>}
+      {state.message && <p className={`text-[17px] sm:col-span-2 ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{state.message}</p>}
     </form>
   );
 }

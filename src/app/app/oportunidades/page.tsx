@@ -25,8 +25,8 @@ export default async function OpportunitiesPage({
   if (orgs.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h1 className="text-xl font-semibold">Oportunidades</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="text-[20px] leading-snug font-semibold">Oportunidades</h1>
+        <p className="mt-2 text-[17px] text-slate-600">
           As oportunidades são para empresas de pintura. Registe a sua entidade de pintura em{' '}
           <Link href="/app/organizacoes/nova" className="text-tinta-700 hover:underline">
             Adicionar entidade
@@ -53,14 +53,14 @@ export default async function OpportunitiesPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Oportunidades</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Oportunidades</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Pedidos abertos, sem identificação do cliente nem morada. Os contactos são trocados só depois da escolha e da
           apresentação.
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 text-[17px]">
         <label>
           Tipo de obra
           <select name="tipo" defaultValue={tipo ?? ''} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2">
@@ -87,7 +87,7 @@ export default async function OpportunitiesPage({
       </form>
 
       {!listings || listings.length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Não há pedidos abertos com estes filtros.</p>
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">Não há pedidos abertos com estes filtros.</p>
       ) : (
         <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
           {sortedListings.map((l) => (
@@ -98,14 +98,14 @@ export default async function OpportunitiesPage({
                     {WORK_TYPE_LABELS[l.tipo_obra]} · {l.concelho}
                   </span>
                   {invited.has(l.request_id) && (
-                    <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-xs font-semibold text-tinta-900">Convidado</span>
+                    <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Convidado</span>
                   )}
-                  <span className="block text-sm text-slate-600">
+                  <span className="block text-[17px] text-slate-600">
                     Pedido {l.ref} · {formatArea(l.area_total_cm2)}
                     {l.pisos !== null ? ` · ${l.pisos} pisos` : ''}
                   </span>
                 </span>
-                <span className="text-right text-sm text-slate-500">
+                <span className="text-right text-[17px] text-slate-500">
                   Propostas até {l.prazo_propostas.split('-').reverse().join('/')}
                   {status.has(l.request_id) && (
                     <span className="block font-medium text-tinta-700">{PROPOSAL_LABEL[status.get(l.request_id)!]}</span>

@@ -34,7 +34,7 @@ export default function ObraPublicaPage() {
       <article className="space-y-5">
         <header className="space-y-3 border-b border-slate-200 pb-7">
           <h1 className="text-[34px] font-semibold leading-tight text-slate-900">O mercado que não se anuncia</h1>
-          <p className="text-[19px] leading-snug text-slate-600">
+          <p className="text-[20px] leading-snug text-slate-600">
             Em 2026 o Estado português contratou 62,5 milhões de euros em obras de pintura. Dois terços foram entregues
             sem concurso nenhum — por convite directo a empresas que a entidade já conhecia. Os nomes dessas empresas
             são públicos e estão publicados há catorze anos. Quase ninguém os lê.
@@ -53,7 +53,7 @@ export default function ObraPublicaPage() {
           lá entrar.
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que o Estado compra</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">O que o Estado compra</h2>
         <p>
           Entre 2012 e 2026, entidades públicas portuguesas celebraram{' '}
           <strong className="font-semibold">9 393 contratos de empreitada de pintura, fachadas e isolamento</strong>, no
@@ -68,7 +68,7 @@ export default function ObraPublicaPage() {
           tamanho, mas a regularidade.
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">Como é entregue</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">Como é entregue</h2>
         <p>
           Em 2012, <strong className="font-semibold">94%</strong> destes contratos foram adjudicados por ajuste directo
           ou consulta prévia — isto é, por convite, sem anúncio público. Em 2026 são{' '}
@@ -82,7 +82,7 @@ export default function ObraPublicaPage() {
           deixa dois terços de fora.
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">A lista que ninguém lê</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">A lista que ninguém lê</h2>
         <p>
           Quando uma entidade adjudica por convite, tem de publicar o contrato no Portal BASE, e com ele — na maior
           parte dos casos — os nomes das empresas que convidou. Essa informação é pública, é gratuita, e está
@@ -100,7 +100,7 @@ export default function ObraPublicaPage() {
           inventar.
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">Quem é convidado</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">Quem é convidado</h2>
         <p>
           A suposição natural é que existe um clube fechado. Os dados dizem que não, pelo menos à escala do país. Desde
           2022 foram convidadas <strong className="font-semibold">1 235 empresas diferentes</strong>, e{' '}
@@ -116,7 +116,7 @@ export default function ObraPublicaPage() {
         </p>
         <p>Saber de que tipo é a entidade do lado de casa muda o que vale a pena fazer. E isso lê-se nos dados.</p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">As contas, sem embelezar</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">As contas, sem embelezar</h2>
         <p>
           Aqui está a parte que a maioria das ferramentas não escreve, e que é a razão de este artigo existir.
         </p>
@@ -134,7 +134,7 @@ export default function ObraPublicaPage() {
           rifa que ninguém mais na zona se deu ao trabalho de comprar.</strong>
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que a plataforma faz</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">O que a plataforma faz</h2>
         <p>
           O trabalho que separa um pintor de estar nessa lista não é difícil — é maçador, e é por isso que quase
           ninguém o faz. É preciso descobrir que entidades contratam pintura no seu concelho, com que frequência e por
@@ -157,7 +157,7 @@ export default function ObraPublicaPage() {
           mostrar, são outra coisa.
         </p>
 
-        <h2 className="pt-3 text-[22px] font-semibold text-slate-900">O que não se promete</h2>
+        <h2 className="pt-3 text-[20px] font-semibold text-slate-900">O que não se promete</h2>
         <p>
           Não se promete um convite. Não se promete resposta. Não se promete prazo. Nenhuma entidade é obrigada a
           convidar seja quem for, e a plataforma não tem — nem quer ter — influência nessa escolha.
@@ -173,7 +173,7 @@ export default function ObraPublicaPage() {
           não de outra maneira, para que ninguém a compre a pensar que é outra coisa.
         </p>
 
-        <footer className="border-t border-slate-200 pt-6 text-[14px] leading-relaxed text-slate-600">
+        <footer className="border-t border-slate-200 pt-6 text-[15px] leading-relaxed text-slate-600">
           <p>
             Todos os números deste artigo foram medidos a {MEDIDO} sobre os contratos publicados no Portal BASE,
             através do conjunto de dados aberto do IMPIC em dados.gov.pt, que é de domínio público e actualizado
@@ -201,8 +201,8 @@ export default function ObraPublicaPage() {
             ['977', 'lugares de convidado por ano, em todo o país'],
           ].map(([n, t]) => (
             <div key={n}>
-              <dt className="text-[22px] font-semibold leading-none tabular-nums text-slate-900">{n}</dt>
-              <dd className="mt-1 text-[14px] leading-snug text-slate-600">{t}</dd>
+              <dt className="text-[20px] font-semibold leading-none tabular-nums text-slate-900">{n}</dt>
+              <dd className="mt-1 text-[15px] leading-snug text-slate-600">{t}</dd>
             </div>
           ))}
         </dl>

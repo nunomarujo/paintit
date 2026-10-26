@@ -17,11 +17,11 @@ export interface ClarificationView {
 }
 
 const card = 'rounded-2xl border border-amber-200 bg-amber-50 p-6';
-const button = 'rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
+const button = 'rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
-  return m ? <p className={`text-sm ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
+  return m ? <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 }
 
 /**
@@ -42,11 +42,11 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
 
       {c.duvidas.length > 0 ? (
         <>
-          <p className="mt-1 text-sm text-amber-900">
+          <p className="mt-1 text-[17px] text-amber-900">
             {c.duvidas.length === 1 ? 'Um pintor precisa' : `${c.duvidas.length} dúvidas de pintores que precisam`} de mais
             informação para orçamentar esta obra. Não se identifica quem perguntou.
           </p>
-          <ul className="mt-4 space-y-2 text-sm">
+          <ul className="mt-4 space-y-2 text-[17px]">
             {c.duvidas.map((d, i) => (
               <li key={`${d.created_at}-${i}`} className="rounded-lg border border-amber-200 bg-white p-3">
                 {d.texto}
@@ -55,18 +55,18 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
           </ul>
         </>
       ) : (
-        <p className="mt-1 text-sm text-amber-900">Sem dúvidas registadas nesta tentativa.</p>
+        <p className="mt-1 text-[17px] text-amber-900">Sem dúvidas registadas nesta tentativa.</p>
       )}
 
       {c.status === 'respondido' && (
-        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3 text-[17px]">
           <p className="font-medium">A sua resposta</p>
           <p className="mt-1 whitespace-pre-line text-slate-700">{c.resposta}</p>
         </div>
       )}
 
       {c.status === 'expirado' && (
-        <p className="mt-4 text-sm text-red-800">
+        <p className="mt-4 text-[17px] text-red-800">
           O prazo terminou sem resposta. A comissão desta obra perde-se por completo e esta entidade não pode voltar a
           reservar o esclarecimento — se houver outro fornecedor na zona, a tentativa passa para ele.
         </p>
@@ -74,7 +74,7 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
 
       {c.status === 'aberto' && !c.confirmadoEm && (
         <div className="mt-5 border-t border-amber-200 pt-5">
-          <p className="text-sm text-amber-900">
+          <p className="text-[17px] text-amber-900">
             <strong>Etapa 1 de 2: confirmar que vai à obra.</strong>{' '}
             {c.prazoConfirmar && <Countdown deadline={c.prazoConfirmar} />}. A partir da confirmação fica com mais um dia
             para lá ir e responder. Falhar qualquer um dos dois prazos custa a comissão de toda a obra, sem valor
@@ -91,7 +91,7 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
 
       {c.status === 'aberto' && c.confirmadoEm && (
         <div className="mt-5 border-t border-amber-200 pt-5">
-          <p className="text-sm text-amber-900">
+          <p className="text-[17px] text-amber-900">
             <strong>Etapa 2 de 2: responder à lista toda de uma vez.</strong>{' '}
             {c.prazoResponder && <Countdown deadline={c.prazoResponder} />}. A resposta junta-se ao dossiê da obra, sem
             apagar nada do que lá está.
@@ -102,7 +102,7 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
               rows={5}
               maxLength={2000}
               placeholder="Responda ao que foi perguntado. Não indique nomes, moradas nem contactos."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
             />
             {msg(respond.state)}
             <button type="submit" disabled={respond.pending} className={button}>

@@ -32,7 +32,7 @@ export function MessageThread({
   }, { resetOnSuccess: true });
 
   return (
-    <div className="space-y-3 text-sm">
+    <div className="space-y-3 text-[17px]">
       {messages.length === 0 ? (
         <p className="text-slate-600">Sem mensagens.</p>
       ) : (
@@ -44,7 +44,7 @@ export function MessageThread({
                 m.lado === side ? 'ml-auto bg-tinta-50' : 'bg-slate-100'
               }`}
             >
-              <p className="text-xs text-slate-500">
+              <p className="text-[15px] text-slate-500">
                 {m.lado === side ? 'Eu' : otherLabel} · {new Date(m.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
               </p>
               <p className="whitespace-pre-line">{m.texto}</p>

@@ -21,10 +21,10 @@ export function SubTabs({ tabs }: { tabs: SubTab[] }) {
           key={t.href}
           href={t.href}
           aria-current={active(t.href) ? 'page' : undefined}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${active(t.href) ? 'bg-tinta-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[17px] font-semibold ${active(t.href) ? 'bg-tinta-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
         >
           {t.label}
-          {t.count ? <span className={`rounded-full px-1.5 text-[10px] ${active(t.href) ? 'bg-white text-tinta-700' : 'bg-tinta-600 text-white'}`}>{t.count}</span> : null}
+          {t.count ? <span className={`rounded-full px-1.5 text-[13px] ${active(t.href) ? 'bg-white text-tinta-700' : 'bg-tinta-600 text-white'}`}>{t.count}</span> : null}
         </Link>
       ))}
     </nav>

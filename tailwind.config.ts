@@ -15,9 +15,15 @@ const config: Config = {
           50: '#eef3ed',
           100: '#dce6d9',
           200: '#c6d6c4',
+          // 300, 400 e 800 faltavam, e 14 sítios do código usavam-nos: o Tailwind não gera a classe,
+          // a cor não pinta nada e o estado de rato não acontece. Encontrado na auditoria visual de
+          // 26/10/2026 — entre os afectados estava o ponto da fase em curso no ecrã do dia.
+          300: '#a9c2a6',
+          400: '#6ba398',
           500: '#458b81',
           600: '#173f42',
           700: '#24565a',
+          800: '#1b4447',
           900: '#12302a',
         },
         slate: {
@@ -25,7 +31,7 @@ const config: Config = {
           100: '#f0f2ee',
           200: '#e1e5de',
           300: '#d4dcd3',
-          400: '#9aa59f',
+          400: '#6b7873', // era #9aa59f, que dava 2,33:1 sobre o fundo creme e reprovava AA
           500: '#62716c',
           600: '#55635e',
           700: '#2c3d41',
@@ -50,7 +56,7 @@ const config: Config = {
           tag: 'var(--tag-bg)',
         },
         sage: '#e9eee8',
-        terracota: '#c4572f',
+        terracota: '#a8441f', // escurecido de #c4572f: branco por cima passa de 4,42:1 para 5,98:1 (WCAG AA)
         paper: '#f6f5f0',
       },
       borderRadius: {

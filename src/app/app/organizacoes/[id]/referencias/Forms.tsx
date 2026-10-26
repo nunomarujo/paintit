@@ -8,7 +8,7 @@ import { createSupplierReferralInvite } from './actions';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (
-    <p className={`text-sm ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
+    <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
       {m}
     </p>
   ) : null;

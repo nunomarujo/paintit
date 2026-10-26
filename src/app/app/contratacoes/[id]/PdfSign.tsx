@@ -7,9 +7,9 @@ import { useFormAction } from '@/components/useFormAction';
 export function PdfSign({ engagementId, side }: { engagementId: string; side: 'cliente' | 'pintor' }) {
   const { state, pending, formProps } = useFormAction<FormState>(signWithPdf.bind(null, engagementId, side), { errors: {} });
   const download = `/app/contratacoes/${engagementId}/pdf?v=${side === 'cliente' ? 'base' : 'cliente'}`;
-  if (state.ok) return <p className="rounded-xl bg-tinta-50 p-4 text-sm text-tinta-700">{state.message}</p>;
+  if (state.ok) return <p className="rounded-xl bg-tinta-50 p-4 text-[17px] text-tinta-700">{state.message}</p>;
   return (
-    <form {...formProps} className="space-y-4 rounded-xl border border-slate-200 p-5 text-sm">
+    <form {...formProps} className="space-y-4 rounded-xl border border-slate-200 p-5 text-[17px]">
       <p className="font-semibold">Assinar com Chave Móvel Digital ou Cartão de Cidadão</p>
       <ol className="list-decimal space-y-2 pl-5 text-slate-700">
         <li>
@@ -27,7 +27,7 @@ export function PdfSign({ engagementId, side }: { engagementId: string; side: 'c
         </li>
         <li>Carregue aqui o PDF assinado. Confirmamos que é o mesmo contrato e que a assinatura é válida.</li>
       </ol>
-      <input name="pdf" type="file" accept="application/pdf" className="block w-full text-sm" />
+      <input name="pdf" type="file" accept="application/pdf" className="block w-full text-[17px]" />
       {(state.errors.pdf || state.message) && (
         <p className="text-red-700" role="alert">
           {state.errors.pdf ?? state.message}

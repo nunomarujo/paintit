@@ -37,7 +37,7 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/orcamentos/${id}`} className="text-sm text-slate-600 hover:underline">
+        <Link href={`/app/orcamentos/${id}`} className="text-[17px] text-slate-600 hover:underline">
           ← Voltar ao orçamento
         </Link>
         <PrintButton />
@@ -45,7 +45,7 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
       {/* Dito antes de imprimir, não depois: quem imprimir sem saber entrega ao cliente um documento
           com a marca da plataforma e só percebe no fim. */}
       {!pro && (
-        <p className="rounded-xl border border-tinta-200 bg-tinta-50/60 px-4 py-3 text-sm text-slate-800 print:hidden">
+        <p className="rounded-xl border border-tinta-200 bg-tinta-50/60 px-4 py-3 text-[17px] text-slate-800 print:hidden">
           Este documento sai com a marca Quem Pinta.pt. Com o{' '}
           <Link href="/app/subscricao" className="font-semibold text-tinta-800 underline">
             plano Pro

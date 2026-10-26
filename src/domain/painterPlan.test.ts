@@ -135,10 +135,26 @@ describe('acesso ao Pro', () => {
   });
 
   it('o benefício do convite traz os números medidos, não adjectivos', () => {
+    // 478 e 62,5 M€ são os valores da carga real de 2026, depois de tirados os quatro contratos que
+    // o ficheiro do portal trazia a dobrar. Enquanto estiveram a dobrar, eram 482 e 63,6 M€.
     const convite = BENEFICIOS_PRO.find((b) => b.titulo.includes('Dois terços'));
-    expect(convite?.maisInfo).toContain('482');
-    expect(convite?.maisInfo).toContain('63,6 milhões');
+    expect(convite?.maisInfo).toContain('478');
+    expect(convite?.maisInfo).toContain('62,5 milhões');
     expect(convite?.maisInfo).toContain('mais de um terço');
+  });
+
+  it('o convite não é o destaque da página, e diz o que não promete', () => {
+    // Decisão do promotor, 26/10/2026: são cerca de 977 lugares de convidado por ano em todo o país,
+    // pelo que a maioria dos subscritores nunca verá um convite atribuível a isto. Pôr esta
+    // funcionalidade à cabeça era montar a subscrição sobre o que ela menos consegue entregar.
+    const convite = BENEFICIOS_PRO.find((b) => b.titulo.includes('Dois terços'));
+    expect(convite?.destaque).toBeFalsy();
+    expect(convite?.maisInfo).toContain('Não se promete um convite');
+    expect(convite?.maisInfoHref).toBe('/obra-publica');
+
+    const destaque = BENEFICIOS_PRO.filter((b) => b.destaque);
+    expect(destaque).toHaveLength(1);
+    expect(destaque[0]!.titulo).toBe('Fique com mais do que ganhou');
   });
 
   it('não volta a pôr os 58% do convite único, que são de outra base', () => {

@@ -57,7 +57,7 @@ export function OrgForm({
       {initial ? (
         <>
           <input type="hidden" name="kind" value={initial.kind} />
-          <p className="text-sm text-slate-600">
+          <p className="text-[17px] text-slate-600">
             Tipo de entidade: <strong>{ORG_KIND_LABELS[initial.kind]}</strong>
           </p>
         </>
@@ -87,7 +87,7 @@ export function OrgForm({
           na página da entidade). Dizê-lo nos rótulos, a pedido do promotor em 24/10/2026: sem isso não se
           percebe de quem é o nome nem de quem é o NIF que se está a preencher. */}
       {kind === 'administradora' && !initial && (
-        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm text-slate-700">
+        <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-[17px] text-slate-700">
           Estes dados são <strong>da empresa gestora</strong>. Os condomínios que administra registam-se a
           seguir, um a um, em “Prédios sob administração” — cada um com a sua morada e o seu próprio NIPC.
         </p>
@@ -170,7 +170,7 @@ export function OrgForm({
       )}
 
       {kind === 'fornecedor' && (
-        <label className="flex items-start gap-2 rounded-xl bg-slate-50 p-4 text-sm">
+        <label className="flex items-start gap-2 rounded-xl bg-slate-50 p-4 text-[17px]">
           <input type="checkbox" name="alertasAutorizados" value="sim" defaultChecked={initial?.alertas_autorizados} className="mt-1" />
           <span>
             Autorizo o envio de mensagens e alertas por telefone e email.{' '}
@@ -192,7 +192,7 @@ export function OrgForm({
             name="codigoReferencia"
             maxLength={14}
             autoComplete="off"
-            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base uppercase tracking-wider"
+            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-[17px] uppercase tracking-wider"
           />
         </Field>
       )}
@@ -208,7 +208,7 @@ export function OrgForm({
             defaultValue={defaultCodigoConvite}
             maxLength={14}
             autoComplete="off"
-            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-base uppercase tracking-wider"
+            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-[17px] uppercase tracking-wider"
           />
         </Field>
       )}
@@ -236,7 +236,7 @@ export function OrgForm({
       )}
 
       {state.message && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {state.message}
         </p>
       )}
@@ -244,7 +244,7 @@ export function OrgForm({
       {/* Sem isto, um erro só de campo (ex.: código postal incompleto) deixava o botão mudo: a página
           não se mexia e parecia que o formulário não gravava nem dava erro (promotor, 24/10/2026). */}
       {!state.message && Object.values(e).some(Boolean) && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {Object.values(e).filter(Boolean).length === 1
             ? 'Falta corrigir um campo, assinalado a vermelho acima.'
             : `Faltam corrigir ${Object.values(e).filter(Boolean).length} campos, assinalados a vermelho acima.`}

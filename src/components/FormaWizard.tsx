@@ -69,7 +69,7 @@ export function FormaWizard({
 
   return (
     <section className="rounded-xl border border-slate-200 p-4">
-      <h3 className="text-sm font-medium">Forma do prédio</h3>
+      <h3 className="text-[17px] font-medium">Forma do prédio</h3>
 
       {passo === 'confirmar' && (
         <div className="mt-2 flex items-center gap-4">
@@ -79,16 +79,16 @@ export function FormaWizard({
           </div>
           <div>
             <p className="font-medium">{FORMA_LABELS[forma]}</p>
-            <p className="text-sm text-slate-600">
+            <p className="text-[17px] text-slate-600">
               {confirmada ? 'Forma guardada.' : 'É esta a forma do prédio? Em cima, visto de fora; em baixo, visto de cima.'}
             </p>
             <div className="mt-2 flex gap-2">
               {!confirmada && (
-                <button type="button" onClick={() => escolher(forma)} className="rounded-lg bg-tinta-700 px-3 py-1.5 text-sm text-white">
+                <button type="button" onClick={() => escolher(forma)} className="rounded-lg bg-tinta-700 px-3 py-1.5 text-[17px] text-white">
                   Sim, é esta
                 </button>
               )}
-              <button type="button" onClick={() => setPasso('cantos')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+              <button type="button" onClick={() => setPasso('cantos')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-[17px]">
                 {confirmada ? 'Alterar' : 'Não, é outra'}
               </button>
             </div>
@@ -99,10 +99,10 @@ export function FormaWizard({
       {passo === 'cantos' && (
         <div className="mt-2">
           <p className="font-medium">Dando a volta ao prédio, quantos cantos tem?</p>
-          <p className="text-sm text-slate-600">Contam-se as esquinas, a andar à volta. Um prédio encostado conta também os cantos onde encosta.</p>
+          <p className="text-[17px] text-slate-600">Contam-se as esquinas, a andar à volta. Um prédio encostado conta também os cantos onde encosta.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {([4, 6, 8, 'outros'] as Cantos[]).map((c) => (
-              <button key={String(c)} type="button" onClick={() => responderCantos(c)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:border-tinta-600">
+              <button key={String(c)} type="button" onClick={() => responderCantos(c)} className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] hover:border-tinta-600">
                 {c === 'outros' ? 'Outro número' : `${c} cantos`}
               </button>
             ))}
@@ -123,7 +123,7 @@ export function FormaWizard({
               <li key={r}>
                 <button type="button" onClick={() => responderRecorte(r)} className="w-full rounded-lg border border-slate-300 p-2 text-left hover:border-tinta-600">
                   <Planta forma={f} className="h-12 w-full" />
-                  <span className="mt-1 block text-xs text-slate-600">{texto}</span>
+                  <span className="mt-1 block text-[15px] text-slate-600">{texto}</span>
                 </button>
               </li>
             ))}
@@ -134,7 +134,7 @@ export function FormaWizard({
       {passo === 'grelha' && (
         <div className="mt-2">
           <p className="font-medium">Desenhar a planta</p>
-          <p className="text-sm text-slate-600">A primeira linha é a da rua. Tocar nos quadrados que o prédio ocupa.</p>
+          <p className="text-[17px] text-slate-600">A primeira linha é a da rua. Tocar nos quadrados que o prédio ocupa.</p>
           <div className="mt-2 inline-grid grid-cols-4 gap-0.5">
             {grelha.map((linha, l) =>
               linha.map((on, c) => (
@@ -151,7 +151,7 @@ export function FormaWizard({
               )),
             )}
           </div>
-          <p className="mt-2 text-sm">
+          <p className="mt-2 text-[17px]">
             {daGrelha ? `Corresponde a: ${FORMA_LABELS[daGrelha]}.` : 'Ainda não corresponde a nenhuma das formas disponíveis.'}
           </p>
           <div className="mt-2 flex gap-2">
@@ -159,11 +159,11 @@ export function FormaWizard({
               type="button"
               disabled={!daGrelha}
               onClick={() => daGrelha && escolher(daGrelha)}
-              className="rounded-lg bg-tinta-700 px-3 py-1.5 text-sm text-white disabled:bg-slate-300"
+              className="rounded-lg bg-tinta-700 px-3 py-1.5 text-[17px] text-white disabled:bg-slate-300"
             >
               Usar esta forma
             </button>
-            <button type="button" onClick={() => setPasso('cantos')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+            <button type="button" onClick={() => setPasso('cantos')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-[17px]">
               Voltar às perguntas
             </button>
           </div>

@@ -52,10 +52,10 @@ export function Needs({
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">Que obras quer fazer neste prédio</h2>
-          {estado === 'a_guardar' && <span className="text-xs text-slate-500">a guardar…</span>}
-          {estado === 'guardado' && !erro && <span className="text-xs text-tinta-700">guardado</span>}
+          {estado === 'a_guardar' && <span className="text-[15px] text-slate-500">a guardar…</span>}
+          {estado === 'guardado' && !erro && <span className="text-[15px] text-tinta-700">guardado</span>}
         </div>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-[17px] text-slate-600">
           Assinale o que precisa agora. Grava-se sozinho. Serve para o avaliador saber o que vai encontrar quando
           visitar a obra.
         </p>
@@ -63,24 +63,24 @@ export function Needs({
 
       <div className="grid gap-2 sm:grid-cols-2">
         {BUILDING_NEEDS.map((n) => (
-          <label key={n} className="flex items-start gap-2 text-sm">
+          <label key={n} className="flex items-start gap-2 text-[17px]">
             <input type="checkbox" checked={obras.includes(n)} onChange={(ev) => void alternar(n, ev.target.checked)} className="mt-1" />
             <span>
               {BUILDING_NEED_LABELS[n]}
-              {!isQuotableNeed(n) && <span className="block text-xs text-slate-500">fica registado; não se orçamenta aqui</span>}
+              {!isQuotableNeed(n) && <span className="block text-[15px] text-slate-500">fica registado; não se orçamenta aqui</span>}
             </span>
           </label>
         ))}
       </div>
 
       {erro && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="text-[17px] text-red-700" role="alert">
           {erro}
         </p>
       )}
 
       {soRegistados.length > 0 && (
-        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+        <p className="rounded-xl bg-slate-50 p-3 text-[15px] text-slate-600">
           A Quem Pinta é uma plataforma de <strong>pintura</strong>: {soRegistados.length === 1 ? 'o trabalho assinalado' : 'os trabalhos assinalados'} fora
           disso {soRegistados.length === 1 ? 'fica registado' : 'ficam registados'} na ficha do prédio e {soRegistados.length === 1 ? 'é mostrado' : 'são mostrados'} a
           quem fizer o levantamento, mas não {soRegistados.length === 1 ? 'entra' : 'entram'} no pedido de orçamento.
@@ -90,13 +90,13 @@ export function Needs({
       {podePedir && (
         <div className="rounded-2xl border border-tinta-600 bg-tinta-50 p-5">
           <p className="font-semibold text-tinta-900">Quer iniciar pedidos de orçamentos?</p>
-          <p className="mt-1 text-sm text-slate-700">
+          <p className="mt-1 text-[17px] text-slate-700">
             Abre-se um processo para este prédio, onde descreve a obra e o problema — e onde pode pedir a ajuda gratuita
             de um avaliador, que vai ao local fazer o levantamento consigo.
           </p>
           <Link
             href={`/app/organizacoes/${orgId}/pedidos/novo?predio=${buildingId}`}
-            className="mt-3 inline-block rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
+            className="mt-3 inline-block rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
           >
             Iniciar pedido de orçamento →
           </Link>

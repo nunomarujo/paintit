@@ -12,11 +12,11 @@ export function CarryForm({ engagementId, requestId, proposalId, label }: { enga
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
       >
         {pending ? 'A passar…' : label}
       </button>
-      {state.message && <span className="text-sm text-red-700">{state.message}</span>}
+      {state.message && <span className="text-[17px] text-red-700">{state.message}</span>}
     </form>
   );
 }

@@ -33,33 +33,33 @@ export default async function SupplierInvitePage({ params }: { params: Promise<{
         <p className="eyebrow">Convite de adesão</p>
         {!info ? (
           <>
-            <h1 className="mt-2 text-2xl font-semibold">Convite inválido</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <h1 className="mt-2 text-[26px] leading-tight font-semibold">Convite inválido</h1>
+            <p className="mt-2 text-[17px] text-slate-600">
               Este convite não existe ou foi desativado. Peça ao fornecedor um convite novo.
             </p>
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-2xl font-semibold">{info.fornecedor} convida-o para a {BRAND.name}</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <h1 className="mt-2 text-[26px] leading-tight font-semibold">{info.fornecedor} convida-o para a {BRAND.name}</h1>
+            <p className="mt-2 text-[17px] text-slate-600">
               Orçamente obras de pintura — condomínios e particulares, sem anúncios pagos nem portas frias. Ao
               aceitar, fica ligado a {info.fornecedor} e os seus orçamentos passam a ter {DESCONTO} pontos
               percentuais de desconto na comissão da plataforma, em todas as obras que ganhar, enquanto a ligação
               estiver ativa. Juntar-se é gratuito e sem compromisso.
             </p>
-            <p className="mt-3 text-sm">
+            <p className="mt-3 text-[17px]">
               <Link href="/#como-funciona" className="font-medium text-blue-700 underline">Como funciona</Link>
               {' · '}
               <Link href="/#perguntas" className="font-medium text-blue-700 underline">Perguntas frequentes</Link>
             </p>
             {info.ja_aceite && (
-              <p className="mt-4 text-sm text-amber-700" role="alert">
+              <p className="mt-4 text-[17px] text-amber-700" role="alert">
                 Este convite já foi associado a uma empresa. Se não for a sua, peça um convite novo — se for, pode
                 continuar.
               </p>
             )}
             {allOrgs.length === 0 ? (
-              <p className="mt-6 text-sm text-slate-700">
+              <p className="mt-6 text-[17px] text-slate-700">
                 Ainda não tem uma entidade de pintura registada.{' '}
                 <Link href={`/app/organizacoes/nova?tipo=pintor&convite=${code}`} className="font-medium text-blue-700 underline">
                   Criar uma entidade
@@ -67,7 +67,7 @@ export default async function SupplierInvitePage({ params }: { params: Promise<{
                 — o convite liga-se sozinho ao criá-la.
               </p>
             ) : orgs.length === 0 ? (
-              <p className="mt-6 text-sm text-slate-700">
+              <p className="mt-6 text-[17px] text-slate-700">
                 Só um gestor ou proprietário da sua empresa de pintura pode aceitar este convite. Peça a quem gere a
                 entidade para abrir este link.
               </p>

@@ -9,7 +9,7 @@ export function ChooseButton({ proposalId, requestId, summary }: { proposalId: s
     errors: {},
   });
   return (
-    <details className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-sm">
+    <details className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-[17px]">
       <summary className="cursor-pointer font-semibold text-tinta-900">Escolher esta proposta</summary>
       <div className="mt-3 space-y-3">
         <p className="font-medium">O que acontece a seguir:</p>

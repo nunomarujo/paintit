@@ -86,14 +86,14 @@ export default async function CatalogPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Catálogo de produtos</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-[26px] leading-tight font-semibold">Catálogo de produtos</h1>
+        <p className="mt-1 text-[17px] text-slate-600">
           Fichas de fabricante e produtos à venda na plataforma, com ficha técnica e preço de referência datado.
           Indique a área e as demãos para uma estimativa de litros, embalagens e custo por produto; o preço por
           litro e a marca não dizem, por si, qual é o melhor sistema para o suporte.
         </p>
       </div>
-      <form autoComplete="off" className="flex flex-wrap items-end gap-3 text-sm">
+      <form autoComplete="off" className="flex flex-wrap items-end gap-3 text-[17px]">
         <input type="hidden" name="touched" value="1" />
         <label>
           Procurar
@@ -134,7 +134,7 @@ export default async function CatalogPage({
         </button>
       </form>
 
-      <nav className="flex gap-1 border-b border-slate-200 text-sm font-semibold">
+      <nav className="flex gap-1 border-b border-slate-200 text-[17px] font-semibold">
         {TABS.map((t) => (
           <Link
             key={t.id}
@@ -152,20 +152,20 @@ export default async function CatalogPage({
       {activeTab !== 'referencia' ? null : curated ? (
         <section className="space-y-3">
           <div>
-            <h2 className="text-lg font-semibold">Escolhas e descobertas do mês</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-[20px] font-semibold">Escolhas e descobertas do mês</h2>
+            <p className="text-[17px] text-slate-600">
               Uma amostra do catálogo de referência. Para ver todos os produtos, escolha um tipo acima (ou “Todos”).
             </p>
           </div>
           {picks.length === 0 ? (
-            <p className="text-sm text-slate-600">Ainda sem produtos de referência no catálogo.</p>
+            <p className="text-[17px] text-slate-600">Ainda sem produtos de referência no catálogo.</p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {picks.map(({ r, pl, isBoard }) => (
                 <li key={r.id}>
                   <Link
                     href={`/app/catalogo/referencia/${r.id}`}
-                    className="flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm hover:border-tinta-600"
+                    className="flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-[17px] hover:border-tinta-600"
                   >
                     <ProductThumb
                       fotoPath={r.foto_path}
@@ -181,11 +181,11 @@ export default async function CatalogPage({
                         {r.acabamento ? ` · ${r.acabamento}` : ''}
                       </span>
                     </div>
-                    <p className="flex-1 text-xs text-slate-600">
+                    <p className="flex-1 text-[15px] text-slate-600">
                       {r.descricao ??
                         `${PRODUCT_TYPE_LABELS[r.tipo]}${r.uso ? ` para uso ${r.uso}` : ''}${!isBoard && r.cores ? `, em ${r.cores.toLowerCase()}` : ''}.`}
                     </p>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-[15px] text-slate-500">
                       {isBoard
                         ? r.espessuras_mm.length
                           ? `${r.espessuras_mm.map((e) => e.toLocaleString('pt-PT')).join(' / ')} mm`
@@ -203,20 +203,20 @@ export default async function CatalogPage({
         </section>
       ) : (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Produtos de referência do mercado</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-[20px] font-semibold">Produtos de referência do mercado</h2>
+          <p className="text-[17px] text-slate-600">
             Fichas públicas dos fabricantes, para comparar e indicar no pedido. O preço de referência é de tabela, sem
             descontos nem entrega; quando não há fonte pública fica “não indicado”.
           </p>
           {refsSorted.length === 0 ? (
-            <p className="text-sm text-slate-600">Sem produtos de referência com estes filtros.</p>
+            <p className="text-[17px] text-slate-600">Sem produtos de referência com estes filtros.</p>
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {refsSorted.map(({ r, pl, isBoard, estimativa }) => (
                 <li key={r.id}>
                   <Link
                     href={`/app/catalogo/referencia/${r.id}`}
-                    className="flex h-full gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm hover:border-tinta-600"
+                    className="flex h-full gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-[17px] hover:border-tinta-600"
                   >
                     <ProductThumb fotoPath={r.foto_path} alt={`${r.marca} ${r.nome}`} />
                     <span>
@@ -227,7 +227,7 @@ export default async function CatalogPage({
                         {PRODUCT_TYPE_LABELS[r.tipo]}
                         {r.acabamento ? ` · ${r.acabamento}` : ''}
                       </span>
-                      <span className="mt-1 block text-xs text-slate-500">
+                      <span className="mt-1 block text-[15px] text-slate-500">
                         {isBoard
                           ? r.espessuras_mm.length
                             ? `${r.espessuras_mm.map((e) => e.toLocaleString('pt-PT')).join(' / ')} mm`
@@ -238,13 +238,13 @@ export default async function CatalogPage({
                         {pl !== null ? ` · ${formatEuros(pl)}/${isBoard ? 'm²' : 'L'}` : ''}
                       </span>
                       {estimativa && isBoard && !('ml' in estimativa) && (
-                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-xs">
+                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-[15px]">
                           Para {area} m²: {estimativa.embalagens} embalage{estimativa.embalagens > 1 ? 'ns' : 'm'}
                           {estimativa.custo !== null ? `, cerca de ${formatEuros(estimativa.custo)} sem IVA` : ''}
                         </span>
                       )}
                       {estimativa && !isBoard && 'ml' in estimativa && (
-                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-xs">
+                        <span className="mt-1 block rounded-lg bg-slate-50 p-1.5 text-[15px]">
                           Para {area} m² com {coats} demão{coats > 1 ? 's' : ''}:{' '}
                           {(estimativa.ml / 1000).toLocaleString('pt-PT', { maximumFractionDigits: 1 })} L
                           {estimativa.embalagens !== null ? `, ${estimativa.embalagens} embalage${estimativa.embalagens > 1 ? 'ns' : 'm'}` : ''}
@@ -261,12 +261,12 @@ export default async function CatalogPage({
       )}
       {activeTab === 'fornecedores' && (
         <section className="space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-[17px] text-slate-600">
             O que os fornecedores da plataforma vendem, com o preço e o desconto que já têm — nunca fichas de
             fabricante sem ninguém por trás a vender.
           </p>
           {!products || products.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
               Nenhum produto corresponde a estes filtros. Experimente alargar o tipo ou limpar a ordenação.
             </p>
           ) : (

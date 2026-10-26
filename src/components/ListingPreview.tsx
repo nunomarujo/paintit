@@ -55,11 +55,11 @@ export function ListingPreview({ l }: { l: ListingView }) {
   ].filter(Boolean);
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 text-sm">
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
-          <h3 className="mt-1 text-lg font-semibold">
+          <p className="text-[15px] font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
+          <h3 className="mt-1 text-[20px] font-semibold">
             {WORK_TYPE_LABELS[l.tipoObra]} · {l.concelho}
           </h3>
           <p className="text-slate-600">{caracteristicas.join(' · ')}</p>
@@ -82,14 +82,14 @@ export function ListingPreview({ l }: { l: ListingView }) {
             className="h-32 w-full"
             legenda={false}
           />
-          <figcaption className="text-center text-xs text-slate-500">Volume genérico, não à escala. Arrastar para rodar.</figcaption>
+          <figcaption className="text-center text-[15px] text-slate-500">Volume genérico, não à escala. Arrastar para rodar.</figcaption>
         </figure>
       </div>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-3">
         <div>
           <dt className="text-slate-500">Área total</dt>
-          <dd className="text-base font-semibold">{formatArea(total)}</dd>
+          <dd className="text-[17px] font-semibold">{formatArea(total)}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Propostas até</dt>
@@ -181,7 +181,7 @@ export function ListingPreview({ l }: { l: ListingView }) {
                   {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado, sem otimização */}
                   <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Pormenor da obra'} className="aspect-square w-full rounded-lg object-cover" />
                 </a>
-                {p.legenda && <p className="mt-1 text-xs text-slate-600">{p.legenda}</p>}
+                {p.legenda && <p className="mt-1 text-[15px] text-slate-600">{p.legenda}</p>}
               </li>
             ))}
           </ul>
