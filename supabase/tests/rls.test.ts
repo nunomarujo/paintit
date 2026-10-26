@@ -2842,3 +2842,123 @@ describe('pessoas da empresa', () => {
     expect(Number(r.rows[0]!.n)).toBe(0);
   });
 });
+
+describe('mapa de contratos públicos', () => {
+  // O mapa é somado na base (`mapa_contratos`, 26/10/2026) porque trazer 9 393 contratos em bruto
+  // para somar no ecrã eram 5,7 MB por abertura de página. Esta função passou a ser o sítio onde
+  // vivem duas definições que são juízo e não contagem — o convite a uma empresa só e o convite sem
+  // lista publicada —, e é isso que estes testes prendem: se a definição mudar num lado e não no
+  // outro, falham. A regra de ordenação ficou no domínio (`ordenarEntidades`) e tem testes lá.
+  const contrato = (id: string, p: Record<string, unknown> = {}) => ({
+    id_contrato: id,
+    ano: 2026,
+    objecto: 'Pintura de fachada',
+    entidade_nif: '500051062',
+    entidade_nome: 'Município de Sintra',
+    procedimento: 'Ajuste Direto Regime Geral',
+    por_convite: true,
+    preco_cents: 10_000_00,
+    distrito: 'Évora',
+    concelho: 'Évora',
+    data_celebracao: '2026-03-01',
+    adjudicatario_nif: null as string | null,
+    adjudicatario_nome: null as string | null,
+    convidados: [] as { nif: string | null; nome: string }[],
+    via: 'objecto',
+    confianca: 'alta',
+    ...p,
+  });
+
+  const gravar = (cs: ReturnType<typeof contrato>[]) =>
+    as(ADMIN, async () => {
+      for (const c of cs) {
+        await db.query(
+          `insert into public.public_contracts
+             (id_contrato, ano, objecto, entidade_nif, entidade_nome, procedimento, por_convite,
+              preco_cents, distrito, concelho, data_celebracao, adjudicatario_nif, adjudicatario_nome,
+              convidados, n_convidados, via, confianca)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16,$17)
+           on conflict (id_contrato) do nothing`,
+          [c.id_contrato, c.ano, c.objecto, c.entidade_nif, c.entidade_nome, c.procedimento, c.por_convite,
+           c.preco_cents, c.distrito, c.concelho, c.data_celebracao, c.adjudicatario_nif, c.adjudicatario_nome,
+           JSON.stringify(c.convidados), c.convidados.length, c.via, c.confianca],
+        );
+      }
+    });
+
+  const mapa = (distritos: string[] | null, desde: number | null, nif: string | null) =>
+    as(B, () =>
+      one<{ m: { resumo: Record<string, number>; entidades: Record<string, unknown>[]; convidados: Record<string, unknown>[]; presenca: Record<string, unknown> } }>(
+        'select public.mapa_contratos($1, $2, $3) as m',
+        [distritos, desde, nif],
+      ),
+    );
+
+  beforeAll(async () => {
+    await gravar([
+      // Três convites da mesma entidade: um a uma empresa só, um a duas, um sem lista publicada.
+      contrato('m1', { convidados: [{ nif: '511111111', nome: 'Pintores A' }], adjudicatario_nif: '511111111', adjudicatario_nome: 'Pintores A', preco_cents: 5_000_00 }),
+      contrato('m2', { convidados: [{ nif: '511111111', nome: 'Pintores A' }, { nif: '522222222', nome: 'Pintores B' }], adjudicatario_nif: '522222222', adjudicatario_nome: 'Pintores B', preco_cents: 15_000_00 }),
+      contrato('m3', { convidados: [], preco_cents: 25_000_00 }),
+      // Um concurso aberto, que não é convite nenhum.
+      contrato('m4', { por_convite: false, procedimento: 'Concurso público', preco_cents: 100_000_00 }),
+      // Outra entidade, noutro distrito e noutro ano, para provar os filtros.
+      contrato('m5', { entidade_nif: '506614913', entidade_nome: 'Município de Beja', distrito: 'Beja', concelho: 'Beja', ano: 2019 }),
+    ]);
+  }, 60_000);
+
+  it('conta à parte o convite a uma empresa só e o convite sem lista publicada', async () => {
+    const { m } = await mapa(['Évora'], null, null);
+    const e = m.entidades.find((x) => x.nome === 'Município de Sintra')!;
+    expect(e).toMatchObject({ contratos: 4, porConvite: 3, conviteUnico: 1, semLista: 1 });
+  });
+
+  it('a mediana é o valor do meio, não a média', async () => {
+    // 5 000, 15 000, 25 000 e 100 000 € → o meio dos dois do meio são 20 000 €; a média seria 36 250.
+    const { m } = await mapa(['Évora'], null, null);
+    const e = m.entidades.find((x) => x.nome === 'Município de Sintra')!;
+    expect(e.medianaCents).toBe(20_000_00);
+    expect(e.totalCents).toBe(145_000_00);
+  });
+
+  it('conta os convites de cada empresa e, desses, os que ganhou', async () => {
+    const { m } = await mapa(['Évora'], null, null);
+    expect(m.convidados.find((c) => c.nome === 'Pintores A')).toMatchObject({ convites: 2, ganhos: 1 });
+    expect(m.convidados.find((c) => c.nome === 'Pintores B')).toMatchObject({ convites: 1, ganhos: 1 });
+  });
+
+  it('encontra a própria empresa pelo NIF', async () => {
+    const { m } = await mapa(['Évora'], null, '511111111');
+    expect(m.presenca).toMatchObject({ convites: 2, ganhos: 1 });
+    expect(m.presenca.entidades).toEqual(['Município de Sintra']);
+  });
+
+  it('sem NIF não devolve presença nenhuma', async () => {
+    const { m } = await mapa(['Évora'], null, null);
+    expect(m.presenca).toMatchObject({ convites: 0, ganhos: 0, entidades: [] });
+  });
+
+  it('filtra por distrito e por ano', async () => {
+    expect((await mapa(['Beja'], null, null)).m.resumo.contratos).toBe(1);
+    expect((await mapa(['Évora'], 2026, null)).m.resumo.contratos).toBe(4);
+    // O de Beja é de 2019: com o corte em 2026 não entra.
+    expect((await mapa(['Beja'], 2026, null)).m.resumo.contratos).toBe(0);
+    expect((await mapa(['Évora', 'Beja'], null, null)).m.resumo.contratos).toBe(5);
+  });
+
+  it('uma lista de distritos vazia é "todos", e não "nenhum"', async () => {
+    // É o que o ecrã envia de quem não escolheu distritos; devolver zero deixava o mapa vazio sem
+    // razão. Comparado com o filtro ausente, porque outros testes também gravam contratos.
+    const vazia = (await mapa([], null, null)).m.resumo.contratos;
+    const nenhum = (await mapa(null, null, null)).m.resumo.contratos;
+    expect(vazia).toBe(nenhum);
+    expect(vazia).toBeGreaterThanOrEqual(5);
+  });
+
+  it('devolve o resumo sem rebentar quando o filtro não apanha nada', async () => {
+    const { m } = await mapa(['Aveiro'], null, null);
+    expect(m.resumo).toMatchObject({ contratos: 0, totalCents: 0, entidades: 0 });
+    expect(m.entidades).toEqual([]);
+    expect(m.convidados).toEqual([]);
+  });
+});

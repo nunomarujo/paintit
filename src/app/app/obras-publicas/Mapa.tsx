@@ -1,10 +1,11 @@
+import Link from 'next/link';
 import { formatEuros, formatEurosCurto } from '@/domain/money';
 import {
-  convidadosDoMapa,
-  entidadesDoMapa,
-  presencaDaEmpresa,
-  resumoDoMapa,
-  type LinhaDoMapa,
+  ANOS_DO_MAPA,
+  concentraConvites,
+  ordenarEntidades,
+  temHabito,
+  type Mapa as DadosDoMapa,
 } from '@/domain/mapaContratos';
 import type { Database } from '@/lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -20,18 +21,20 @@ const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
  * convidados, que é pública, chega. Daí a ordem do ecrã: primeiro a própria empresa (quantas vezes já
  * foi convidada, e se o sabia), depois quem contrata, e por fim com quem está a competir.
  *
- * As entidades vêm ordenadas por frequência e não por valor (`entidadesDoMapa`): ao pintor interessa
- * a quem vale a pena bater à porta, e isso mede-se em quantas vezes contrata.
+ * As contagens vêm somadas da base (`mapa_contratos`): em bruto eram 5,7 MB por abertura de página.
  */
 export async function Mapa({
   supabase,
   orgId,
   nif,
+  tudo,
 }: {
   supabase: SupabaseClient<Database>;
   orgId: string;
   /** O NIF da própria empresa, para a encontrar nas listas de convidados. Pode não estar preenchido. */
   nif: string | null;
+  /** Ver a série toda desde 2012, em vez dos últimos anos. */
+  tudo: boolean;
 }) {
   const { data: prefs } = await supabase
     .from('painter_tender_prefs')
@@ -39,54 +42,18 @@ export async function Mapa({
     .eq('org_id', orgId)
     .maybeSingle();
   const distritos = prefs?.distritos ?? [];
+  const desde = tudo ? null : new Date().getFullYear() - (ANOS_DO_MAPA - 1);
 
-  let q = supabase
-    .from('public_contracts')
-    .select(
-      'id_contrato, ano, objecto, entidade_nif, entidade_nome, por_convite, preco_cents, distrito, concelho, data_celebracao, adjudicatario_nif, adjudicatario_nome, convidados',
-    )
-    .order('data_celebracao', { ascending: false, nullsFirst: false });
-  if (distritos.length > 0) q = q.in('distrito', distritos);
-  const { data: brutas } = await q;
+  const { data, error } = await supabase.rpc('mapa_contratos', {
+    p_distritos: distritos,
+    p_desde: desde,
+    p_nif: nif,
+  });
 
-  const linhas: LinhaDoMapa[] = (brutas ?? []).map((c) => ({
-    idContrato: c.id_contrato,
-    ano: c.ano,
-    objecto: c.objecto,
-    entidadeNif: c.entidade_nif,
-    entidadeNome: c.entidade_nome,
-    porConvite: c.por_convite,
-    precoCents: c.preco_cents,
-    distrito: c.distrito,
-    concelho: c.concelho,
-    dataCelebracao: c.data_celebracao,
-    adjudicatarioNif: c.adjudicatario_nif,
-    adjudicatarioNome: c.adjudicatario_nome,
-    convidados: c.convidados ?? [],
-  }));
-
-  return <MapaView linhas={linhas} distritos={distritos} nif={nif} />;
-}
-
-/**
- * O desenho do mapa, separado da consulta: recebe as linhas e não sabe de onde vêm.
- *
- * A separação serve para o desenhar fora da aplicação — com os 133 contratos reais de Lisboa de 2026,
- * foi assim que se reviu este ecrã antes de existir uma linha na base de dados. Rendeu quatro
- * correcções de texto e dois defeitos nos dados do portal (25/10/2026, docs/DECISOES.md).
- */
-export function MapaView({
-  linhas,
-  distritos,
-  nif,
-}: {
-  linhas: LinhaDoMapa[];
-  distritos: string[];
-  nif: string | null;
-}) {
   const onde = distritos.length > 0 ? distritos.join(', ') : 'todo o país';
+  const m = (data ?? null) as DadosDoMapa | null;
 
-  if (linhas.length === 0) {
+  if (error || !m || m.resumo.contratos === 0) {
     return (
       <div className="space-y-4">
         <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
@@ -94,16 +61,20 @@ export function MapaView({
           <p className="mt-1 text-[13px] text-slate-600">{onde}</p>
         </header>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-          <p className="font-semibold text-slate-900">O mapa ainda não tem contratos carregados.</p>
+          <p className="font-semibold text-slate-900">
+            {error ? 'O mapa não está disponível de momento.' : 'O mapa ainda não tem contratos carregados.'}
+          </p>
           <p className="mt-2">
             Os contratos vêm do portal BASE, pelo conjunto de dados aberto do IMPIC em dados.gov.pt, que é
-            actualizado uma vez por semana. A primeira carga percorre os anos de 2012 a {new Date().getFullYear()} e
-            demora alguns minutos por ano.
+            actualizado uma vez por semana.
           </p>
-          {distritos.length > 0 && (
+          {!error && distritos.length > 0 && (
             <p className="mt-2">
-              A vista está limitada a {onde}. Sem contratos nesses distritos, o mapa fica vazio mesmo depois de
-              carregado.
+              A vista está limitada a {onde} e aos últimos {ANOS_DO_MAPA} anos.{' '}
+              <Link href="/app/obras-publicas?tudo=1" className="font-semibold text-tinta-700 underline underline-offset-4">
+                Ver desde 2012
+              </Link>
+              .
             </p>
           )}
         </div>
@@ -111,10 +82,8 @@ export function MapaView({
     );
   }
 
-  const r = resumoDoMapa(linhas);
-  const entidades = entidadesDoMapa(linhas);
-  const convidados = convidadosDoMapa(linhas);
-  const eu = presencaDaEmpresa(linhas, nif);
+  const { resumo: r, convidados, presenca: eu } = m;
+  const entidades = ordenarEntidades(m.entidades);
   const anos = r.anos.length > 1 ? `${r.anos[0]}–${r.anos.at(-1)}` : String(r.anos[0] ?? '');
 
   return (
@@ -155,15 +124,14 @@ export function MapaView({
                 </p>
               </div>
               <p className="mt-1 text-[12.5px] leading-relaxed text-slate-600">
-                {e.contratos === 1 ? 'Pagou' : 'Costuma pagar'} {formatEuros(e.medianaCents)}
+                {/* "Costuma pagar" com um ou dois contratos é uma ocorrência a fingir de hábito. */}
+                {temHabito(e) ? 'Costuma pagar' : e.contratos === 1 ? 'Pagou' : 'Pagou, em média,'}{' '}
+                {formatEuros(e.medianaCents)}
                 {e.porConvite > 0 && (
                   <>
                     {' · '}
                     {e.porConvite} de {e.contratos} por convite
                     {e.conviteUnico > 0 && `, ${e.conviteUnico} a uma empresa só`}
-                    {/* Sem isto, um número baixo de convites únicos lê-se como abertura da entidade
-                        quando pode ser apenas que a lista não foi publicada. Quando são todos, o
-                        número repetia-se — "1 de 1 por convite, 1 sem lista publicada". */}
                     {e.semLista > 0 &&
                       (e.semLista === e.porConvite ? ', sem lista publicada' : `, ${e.semLista} sem lista publicada`)}
                   </>
@@ -171,6 +139,11 @@ export function MapaView({
                 {e.ultimo && ` · último em ${dataPt(e.ultimo)}`}
                 {e.concelhos.length > 0 && ` · ${e.concelhos.join(', ')}`}
               </p>
+              {concentraConvites(e) && (
+                <p className="mt-1 text-[12px] font-semibold text-amber-800">
+                  Metade ou mais dos convites desta entidade foram a uma empresa só — aqui, estar na lista decide.
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -185,7 +158,7 @@ export function MapaView({
             </p>
           </div>
           <ul className="divide-y divide-slate-100">
-            {convidados.slice(0, 15).map((c) => (
+            {convidados.map((c) => (
               <li key={c.chave} className="flex items-baseline justify-between gap-4 px-5 py-2.5">
                 <span className={`min-w-0 text-[13px] ${c.nif && c.nif === nif ? 'font-semibold text-tinta-700' : 'text-slate-800'}`}>
                   {c.nome}
@@ -207,7 +180,13 @@ export function MapaView({
         directo ou consulta prévia — sem anúncio público.
         {r.semLista > 0 &&
           ` Em ${r.semLista} desses, a entidade não publicou quem convidou, por isso o mapa conta essa falta à parte em vez de a somar aos convites a várias empresas.`}{' '}
-        O mapa mostra o que o Estado contratou; não é uma lista de concursos a decorrer.
+        O mapa mostra o que o Estado contratou; não é uma lista de concursos a decorrer.{' '}
+        <Link
+          href={tudo ? '/app/obras-publicas' : '/app/obras-publicas?tudo=1'}
+          className="font-semibold text-tinta-700 underline underline-offset-4"
+        >
+          {tudo ? `Ver só os últimos ${ANOS_DO_MAPA} anos` : 'Ver a série completa desde 2012'}
+        </Link>
       </p>
     </div>
   );

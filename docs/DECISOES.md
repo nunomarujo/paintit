@@ -4,6 +4,43 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — O mapa soma-se na base, e o que os dados dizem sobre o clube fechado
+
+Feita a carga dos quinze anos, o ecrã do mapa trazia os 9 393 contratos em bruto para somar depois de
+os receber: **5,7 MB por abertura de página** para quem não tem distritos escolhidos, 2 MB para quem
+tem só Lisboa. Nada se perdia — verificado, não há tecto de linhas configurado na base —, mas é
+desperdício e cresce todos os anos. Trimar colunas dava 4,4 MB; o peso está nas linhas.
+
+Passa a haver **`mapa_contratos`**, uma função `security invoker` que devolve as quatro peças do ecrã
+em cerca de 20 kB. O que é contagem foi para lá; o que é juízo ficou onde estava:
+
+- **A ordem** (frequência antes de valor) continua em `src/domain/mapaContratos.ts`, sobre as poucas
+  centenas de linhas já somadas. É decisão de produto, não contagem.
+- **As duas definições que são juízo** — o convite a uma empresa só, e o convite sem lista publicada —
+  passaram a viver no SQL, o que é tensão com a regra 9 do CLAUDE.md. A mitigação são oito testes em
+  `supabase/tests/`, que correm a função numa base em memória e falham se a definição divergir.
+
+**O que os dados dizem, e que contraria o que eu assumia.** Media-se se há um clube fechado de
+convidados. Não há, nacionalmente: das 1 235 empresas convidadas desde 2022, **828 foram-no uma única
+vez**, e dentro de cada entidade que convida com regularidade a mais chamada fica em média com apenas
+**24%** dos convites. As entidades rodam.
+
+Mas há excepções fortes e **locais**: em Vila Franca de Xira, 21 dos 33 convites foram a uma empresa
+só. É essa diferença que interessa ao pintor — não a média do país, que não é onde ele trabalha. O
+ecrã passa a assinalar as entidades que concentram (`concentraConvites`), e a página de preços tem de
+deixar de insinuar um círculo fechado, que os dados não sustentam.
+
+**Outras duas afinações do ecrã:** entidades com menos de três contratos deixam de dizer "costuma
+pagar" (uma ocorrência não é hábito), e o mapa mostra os últimos cinco anos por omissão, com ligação
+para a série desde 2012 — uma câmara que contratava em 2013 e parou aparecia no topo por número de
+contratos e não diz nada a quem quer bater à porta hoje.
+
+**O limite que o promotor identificou, e que fica registado:** são cerca de **535 convites por ano em
+todo o país**. Mesmo com execução perfeita — a plataforma a preparar tudo e o pintor só a assinar e
+enviar — a maioria dos subscritores nunca verá um convite atribuível a esta ferramenta, e o retorno
+não é imediato nem garantido. **O valor da subscrição não pode assentar aqui.** A página de preços dá
+hoje a esta funcionalidade o lugar de destaque, e isso tem de mudar.
+
 ## 25/10/2026 — Quatro linhas repetidas deitavam fora o ano inteiro
 
 A primeira carga correu e devolveu 500. Gravou 4 087 contratos de 2019 a 2025 — e **zero de 2026**,

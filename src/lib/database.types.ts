@@ -1860,6 +1860,14 @@ export type Database = {
       acc_balancete_mensal: { Row: { conta: string; credito_cents: number; debito_cents: number; mes: string }; Relationships: [] };
     };
     Functions: {
+      // As quatro peças do Mapa de Contratos Públicos, somadas na base (migração
+      // `20261028090000_mapa_somado_na_base`). O tipo de `Returns` é `Mapa`, em
+      // `src/domain/mapaContratos.ts`: uma função que devolve `jsonb` chega aqui como `Json`, e é no
+      // domínio que a forma está escrita e testada.
+      mapa_contratos: {
+        Args: { p_distritos?: string[] | null; p_desde?: number | null; p_nif?: string | null };
+        Returns: Json;
+      };
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
       apply_supplier_referral_code: { Args: { p_org: string; p_code: string | null }; Returns: undefined };
       claim_supplier_invite: { Args: { p_code: string; p_org: string }; Returns: string };
