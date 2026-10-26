@@ -672,6 +672,59 @@ describe('propostas e escolha', () => {
     await expect(as(B, () => db.query('select public.select_proposal($1)', [mine]))).rejects.toThrow(/não encontrada/);
   });
 
+  it('o cliente conta as propostas a caminho sem ver nenhuma', async () => {
+    // É este número que lhe permite decidir prolongar o prazo quando ainda não chegou nada.
+    const n = await as(A, async () => (await db.query<{ propostas_a_caminho: number }>('select public.propostas_a_caminho($1)', [requestId])).rows[0]!);
+    expect(n.propostas_a_caminho).toBe(2);
+    const rows = await as(A, async () => (await db.query('select id from public.proposals')).rows);
+    expect(rows).toEqual([]);
+    // Um estranho conta zero, não o verdadeiro.
+    const estranho = await as(B, async () => (await db.query<{ propostas_a_caminho: number }>('select public.propostas_a_caminho($1)', [requestId])).rows[0]!);
+    expect(estranho.propostas_a_caminho).toBe(0);
+  });
+
+  it('prolongar o prazo: só quem gere, só para a frente, e nunca depois de entregues', async () => {
+    const prolongar = (user: string, dias: number) =>
+      as(user, () =>
+        db.query(`select public.prolongar_prazo($1, (now() at time zone 'Europe/Lisbon')::date + $2::int)`, [requestId, dias]),
+      );
+    await expect(prolongar(B, 20)).rejects.toThrow(/não encontrado/);
+    await expect(prolongar(A, 5)).rejects.toThrow(/depois do actual/); // o prazo está em +10
+
+    // Com o prazo a acabar hoje, um adiamento de dois dias não chega para ninguém orçamentar.
+    await db.query(
+      `update public.request_listings set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date where request_id = $1`,
+      [requestId],
+    );
+    await expect(prolongar(A, 2)).rejects.toThrow(/pelo menos três dias/);
+    await db.query(
+      `update public.request_listings set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date + 10 where request_id = $1`,
+      [requestId],
+    );
+    // Sem a marca da transacção, a porta não abre: o cliente não muda o prazo à mão.
+    await expect(
+      as(A, () =>
+        db.query(
+          `update public.work_requests set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date + 30 where id = $1`,
+          [requestId],
+        ),
+      ),
+    ).rejects.toThrow(/não pode ser alterado/);
+
+    await prolongar(A, 20);
+    const l = await one<{ prazo_propostas: string }>('select prazo_propostas from public.request_listings where request_id = $1', [requestId]);
+    const r = await one<{ prazo_propostas: string }>('select prazo_propostas from public.work_requests where id = $1', [requestId]);
+    expect(l.prazo_propostas).toEqual(r.prazo_propostas); // o anúncio e o pedido não se separam
+
+    // Com o prazo passado e propostas já entregues, prolongar daria vantagem ao cliente: recusa-se.
+    await entregar(requestId);
+    await expect(prolongar(A, 20)).rejects.toThrow(/dava-lhe vantagem/);
+    await db.query(
+      `update public.request_listings set prazo_propostas = (now() at time zone 'Europe/Lisbon')::date + 10 where request_id = $1`,
+      [requestId],
+    );
+  });
+
   it('o pintor vê sempre a sua, antes e depois do prazo', async () => {
     const minhas = await as(P, async () => (await db.query('select id from public.proposals where painter_org_id = $1', [painterOrg])).rows);
     expect(minhas).toHaveLength(1);

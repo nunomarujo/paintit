@@ -142,6 +142,24 @@ export async function changeRequestStatus(requestId: string, status: 'rascunho' 
   revalidatePath(`/app/pedidos/${requestId}`);
 }
 
+/**
+ * Adiar o fim do prazo de propostas.
+ *
+ * Quem decide se pode é a base de dados (`prolongar_prazo`): só antes da entrega, ou quando ainda não
+ * chegou proposta nenhuma. Depois de o cliente ver uma proposta, prolongar dava-lhe vantagem sobre
+ * quem entrasse a seguir — e é por isso que a verificação não pode viver aqui, onde o navegador
+ * chega.
+ */
+export async function prolongarPrazo(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const prazo = String(form.get('prazo') ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(prazo)) return { errors: { prazo: 'Indique uma data.' } };
+  const { supabase } = await getUser();
+  const { error } = await supabase.rpc('prolongar_prazo', { p_request: requestId, p_prazo: prazo });
+  if (error) return { errors: { prazo: error.message } };
+  revalidatePath(`/app/pedidos/${requestId}`);
+  return { errors: {}, ok: true };
+}
+
 // --- Convite direto ("traga o seu pintor") ------------------------------------------
 
 export async function createRequestInvite(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {

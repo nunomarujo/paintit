@@ -1910,6 +1910,9 @@ export type Database = {
       referral_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };
       referral_validate_regime: { Args: { p_org: string; p_bps: number; p_validado: boolean }; Returns: undefined };
       select_proposal: { Args: { p_proposal: string }; Returns: undefined };
+      // Migração `entrega_simultanea` (26/10/2026). Escritas à mão enquanto não for aplicada à base.
+      propostas_a_caminho: { Args: { p_request: string }; Returns: number };
+      prolongar_prazo: { Args: { p_request: string; p_prazo: string }; Returns: undefined };
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };
       delete_organization: { Args: { p_org: string }; Returns: undefined };

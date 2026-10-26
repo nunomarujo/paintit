@@ -16,6 +16,7 @@ import { qrCodeSvg } from '@/lib/qrcode';
 import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
+import { ProlongarPrazo } from './ProlongarPrazo';
 import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
 import { SurveyAddenda } from '@/components/SurveyAddenda';
@@ -62,6 +63,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
   // (`propostas_entregues`); isto é só o que o ecrã diz, e conta os dias da mesma maneira.
   const entrega = estadoDaEntrega(req.prazo_propostas, localDate(new Date(), CURRENT_RULES.timeZone), req.status === 'publicado');
+  // Antes da entrega o cliente não consegue contar as propostas (a regra de acesso esconde-as), e
+  // precisa do número para decidir se prolonga. A função devolve só a contagem, nunca uma linha.
+  const { data: aCaminho } = !entrega.entregues && req.status === 'publicado'
+    ? await supabase.rpc('propostas_a_caminho', { p_request: id })
+    : { data: null };
   const { data: surveyRow } = draft ? await supabase.from('request_surveys').select('*').eq('request_id', id).maybeSingle() : { data: null };
   let survey: SurveyInfo | null = null;
   if (surveyRow) {
@@ -150,7 +156,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               <span className="font-semibold">As propostas abrem a {pt(entrega.abremEm)}</span>
               <span className="text-slate-600">
                 {' '}
-                · chegam todas ao mesmo tempo, para ninguém ficar com o preço à vista antes dos outros
+                · {aCaminho ?? 0} a caminho · chegam todas ao mesmo tempo, para ninguém ficar com o preço à vista antes
+                dos outros
               </span>
             </p>
           )}
@@ -184,6 +191,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           </div>
         </section>
       )}
+
+      {manager &&
+        req.status === 'publicado' &&
+        !entrega.entregues &&
+        entrega.faltamDias !== null &&
+        entrega.faltamDias <= 3 &&
+        (aCaminho ?? 0) <= 1 &&
+        req.prazo_propostas && (
+          <ProlongarPrazo requestId={req.id} prazo={req.prazo_propostas} quantas={aCaminho ?? 0} />
+        )}
 
       {manager && req.status === 'publicado' && <RequestInvites requestId={req.id} invites={invites} />}
 

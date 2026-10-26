@@ -120,3 +120,148 @@ begin
   update public.proposals set status = 'nao_selecionada' where request_id = p.request_id and status = 'submetida';
   update public.work_requests set status = 'encerrado' where id = p.request_id and status = 'publicado';
 end $$;
+
+-- Quantas propostas já chegaram, sem revelar nenhuma.
+--
+-- O cliente deixa de as poder contar sozinho: a regra de acesso esconde-lhas até à entrega, e um
+-- `count` dá zero. Mas ele precisa do número antes do fim do prazo — é com ele que decide prolongar
+-- quando ainda não chegou nenhuma. Devolve só a contagem, nunca uma linha, e só a quem gere o pedido.
+create or replace function public.propostas_a_caminho(p_request uuid) returns integer
+language sql stable security definer set search_path = '' as $$
+  select case
+    when private.can_access_org(private.request_org(p_request))
+      then (select count(*)::int from public.proposals p where p.request_id = p_request and p.status <> 'rascunho')
+    else 0
+  end;
+$$;
+
+revoke all on function public.propostas_a_caminho(uuid) from public, anon;
+grant execute on function public.propostas_a_caminho(uuid) to authenticated;
+
+comment on function public.propostas_a_caminho(uuid) is
+  'Quantas propostas já chegaram a este pedido, sem revelar nenhuma. Para o cliente decidir se prolonga o prazo.';
+
+-- Prolongar o prazo, enquanto ainda não houver nada revelado.
+--
+-- Prolongar depois de o cliente ver as propostas dava-lhe vantagem sobre quem entrasse a seguir: ele
+-- já conhece um preço e os novos não. Por isso só se prolonga **antes da entrega**, ou quando não
+-- chegou proposta nenhuma — aí não há nada para revelar e o prolongamento é inofensivo.
+--
+-- É `security definer` porque tem de escrever no anúncio (`request_listings`), que o cliente não
+-- altera à mão; a verificação de quem é fica explícita na primeira linha.
+create or replace function public.prolongar_prazo(p_request uuid, p_prazo date) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  r public.work_requests%rowtype;
+  l public.request_listings%rowtype;
+  hoje date := (now() at time zone 'Europe/Lisbon')::date;
+begin
+  select * into r from public.work_requests where id = p_request for update;
+  if not found or not private.can_manage_org(r.org_id) then
+    raise exception 'Pedido não encontrado.' using errcode = 'P0001';
+  end if;
+  if r.status <> 'publicado' then
+    raise exception 'Só se prolonga o prazo de um pedido publicado.' using errcode = 'P0001';
+  end if;
+
+  select * into l from public.request_listings where request_id = p_request for update;
+  if not found or not l.aberto then
+    raise exception 'O anúncio já está encerrado.' using errcode = 'P0001';
+  end if;
+
+  if hoje > l.prazo_propostas
+     and exists (select 1 from public.proposals p where p.request_id = p_request and p.status <> 'rascunho') then
+    raise exception 'O prazo já acabou e as propostas foram entregues: prolongar agora dava-lhe vantagem sobre quem entrasse depois.'
+      using errcode = 'P0001';
+  end if;
+
+  if p_prazo <= l.prazo_propostas then
+    raise exception 'O prazo novo tem de ser depois do actual.' using errcode = 'P0001';
+  end if;
+  if p_prazo < hoje + 3 then
+    raise exception 'Dê pelo menos três dias: menos do que isso não chega para orçamentar.' using errcode = 'P0001';
+  end if;
+
+  -- O gatilho recusa qualquer alteração a um pedido publicado, e bem: o pintor orçamenta sobre o que
+  -- leu. A porta abre-se aqui, para esta transacção e só para o prazo — ver `work_request_transition`.
+  perform set_config('app.prolongar_prazo', 'on', true);
+  update public.work_requests set prazo_propostas = p_prazo where id = p_request;
+  update public.request_listings set prazo_propostas = p_prazo where request_id = p_request;
+  perform set_config('app.prolongar_prazo', 'off', true);
+end $$;
+
+revoke all on function public.prolongar_prazo(uuid, date) from public, anon;
+grant execute on function public.prolongar_prazo(uuid, date) to authenticated;
+
+comment on function public.prolongar_prazo(uuid, date) is
+  'Adia o fim do prazo de propostas. Só antes da entrega, ou sem propostas nenhumas.';
+
+-- O gatilho do pedido, com a porta estreita do prolongamento.
+--
+-- Tudo o resto é igual à versão de 24/10 (`forma_de_implantacao`), copiada tal e qual: um pedido
+-- publicado não se altera, porque o pintor orçamenta sobre o que leu.
+
+create or replace function private.work_request_transition() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  b public.buildings%rowtype;
+  total int;
+begin
+  if old.status = new.status then
+    -- A porta estreita do prolongamento: o prazo a andar para a frente, e nada mais, quando vem de
+    -- `prolongar_prazo` — que é quem verifica se ainda não houve entrega. Sem a marca da transacção,
+    -- a regra de acesso deixava o cliente mudar o prazo à mão e saltar por cima dessa verificação.
+    if old.status = 'publicado'
+       and coalesce(current_setting('app.prolongar_prazo', true), 'off') = 'on'
+       and new.prazo_propostas > old.prazo_propostas
+       and (to_jsonb(new) - 'prazo_propostas' - 'updated_at') = (to_jsonb(old) - 'prazo_propostas' - 'updated_at')
+    then
+      return new;
+    end if;
+    if old.status <> 'rascunho' then
+      raise exception 'Um pedido % não pode ser alterado.', old.status using errcode = 'P0001';
+    end if;
+    return new;
+  end if;
+
+  if not (
+    (old.status = 'rascunho' and new.status in ('publicado', 'cancelado'))
+    or (old.status = 'publicado' and new.status in ('rascunho', 'encerrado', 'cancelado'))
+  ) then
+    raise exception 'Transição inválida: % para %.', old.status, new.status using errcode = 'P0001';
+  end if;
+
+  if new.status = 'publicado' then
+    select coalesce(sum(area_cm2), 0) into total from public.request_surfaces where request_id = new.id;
+    if total <= 0 then raise exception 'Indique pelo menos uma superfície com área.' using errcode = 'P0001'; end if;
+    if length(btrim(new.descricao)) < 30 then raise exception 'Descrição demasiado curta.' using errcode = 'P0001'; end if;
+    if new.prazo_propostas is null or new.prazo_propostas < (now() at time zone 'Europe/Lisbon')::date + 7 then
+      raise exception 'O prazo de propostas tem de ser de pelo menos 7 dias.' using errcode = 'P0001';
+    end if;
+    select * into b from public.buildings where id = new.building_id;
+    new.published_at := now();
+    insert into public.request_listings (
+      request_id, ref, aberto, tipo_obra, descricao, trabalhos, cor_acabamento, prazo_propostas,
+      execucao_desde, execucao_ate, concelho, tipo_imovel, pisos, fachadas, tem_varandas, forma_implantacao,
+      area_total_cm2, published_at, version
+    ) values (
+      new.id, new.ref, true, new.tipo_obra, new.descricao, new.trabalhos, new.cor_acabamento, new.prazo_propostas,
+      new.execucao_desde, new.execucao_ate, b.concelho, b.tipo, b.pisos, b.fachadas, b.tem_varandas, b.forma_implantacao,
+      total, new.published_at, new.version
+    )
+    on conflict (request_id) do update set
+      aberto = true, tipo_obra = excluded.tipo_obra, descricao = excluded.descricao, trabalhos = excluded.trabalhos,
+      cor_acabamento = excluded.cor_acabamento, prazo_propostas = excluded.prazo_propostas,
+      execucao_desde = excluded.execucao_desde, execucao_ate = excluded.execucao_ate, concelho = excluded.concelho,
+      tipo_imovel = excluded.tipo_imovel, pisos = excluded.pisos, fachadas = excluded.fachadas,
+      tem_varandas = excluded.tem_varandas, forma_implantacao = excluded.forma_implantacao,
+      area_total_cm2 = excluded.area_total_cm2,
+      published_at = excluded.published_at, version = excluded.version;
+  else
+    update public.request_listings set aberto = false where request_id = new.id;
+    if new.status = 'rascunho' then
+      new.version := old.version + 1;
+    end if;
+  end if;
+  return new;
+end $$;
