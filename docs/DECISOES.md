@@ -66,6 +66,24 @@ do caderno, um ecrã de cada vez, como sempre foi entendido.
 Verificado antes de declarar feito (regras 7/8 do `CLAUDE.md`): `npm test` (806 testes, 1 skip),
 `typecheck`, `lint`, `build` — os quatro a 0.
 
+**Integrado a seguir, antes de enviar: outra sessão corrigiu em paralelo uma produção em baixo.**
+Ao tentar enviar este trabalho, o `git push` foi recusado — havia um commit novo na branch
+(`d265e6f`, sessão `session_01LERBKkzxPdnsdihp37Wrh8`) que uma sessão diferente tinha feito entretanto:
+`icon` nos itens de navegação ia como **componente React** de `layout.tsx` (servidor) para `AppNav.tsx`
+(cliente), e uma função não atravessa essa fronteira — rebentava em execução (nunca na compilação,
+`ComponentType` é válido em TypeScript) e tirava **todas** as páginas da app do ar. A correcção troca o
+ícone por um **nome em string**, resolvido do lado do cliente por um mapa `ICONES` em `NavIcons.tsx`.
+
+Essa correcção foi escrita sobre o código **anterior** a este, que esta sessão tinha acabado de
+substituir inteiramente (ícones, estrutura da barra). `git merge` resolveu sem conflito textual em
+`AppNav.tsx`/`NavIcons.tsx`, mas o mapa `ICONES` resultante apontava para ícones que já não existiam
+(removidos aqui mesmo nesta sessão) — teria sido um erro de tipo visível ao primeiro `typecheck`, não
+outra produção em baixo, mas foi corrigido antes de chegar lá: o mapa `ICONES` ficou com os nomes dos
+ícones novos (`casa, recibo, capacete, caixa, lupa, publico, documento, pessoas, percentagem,
+mostrador, entrada, predio, balanca, calculadora, servidor`) e `layout.tsx` passou a pedir cada ícone
+pelo nome, nunca pelo componente — o mecanismo da correcção, mantido; os ícones em si, os do caderno.
+`npm test`/`typecheck`/`lint`/`build` confirmados a 0 depois do merge.
+
 ## 26/10/2026 — Três bugs da auditoria de UI/UX corrigidos, um deixado para o promotor
 
 Continuação da auditoria desta tarde (ver entrada seguinte, "Barra lateral").

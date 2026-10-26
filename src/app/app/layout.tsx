@@ -10,23 +10,9 @@ import { isPlatformAdmin } from '@/lib/access';
 import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
-import {
-  IconHome,
-  IconWork,
-  IconSearch,
-  IconPublic,
-  IconQuote,
-  IconContract,
-  IconBox,
-  IconTeam,
-  IconExpense,
-  IconGauge,
-  IconInbox,
-  IconBuilding,
-  IconScale,
-  IconCalculator,
-  IconServer,
-} from '@/components/NavIcons';
+// Os ícones já não entram aqui como componente: o layout é de servidor e o AppNav é de cliente, e
+// uma função não atravessa essa fronteira (produção em baixo a 26/10/2026, 12:49 — ver NavIcons.tsx,
+// `ICONES`). Pede-se o ícone pelo nome (string); o cliente resolve-o.
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { supabase, user } = await getUser();
@@ -60,25 +46,25 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   //
   // Nota: isto repõe "Obra pública" como destino visível no menu, invertendo a descida a filho de
   // 23/10/2026 registada abaixo — por ser o que o caderno pede; a confirmar com o promotor.
-  const dia: NavItem[] = [{ href: '/app', label: 'Início', icon: IconHome, count: unread ?? 0 }];
-  if (client) dia.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: IconQuote });
-  if (kinds.has('pintor')) dia.push({ href: '/app/obras', label: 'Gestão de obra', icon: IconWork });
-  if (kinds.has('fornecedor')) dia.push({ href: '/app/encomendas', label: 'Encomendas', icon: IconQuote });
-  if (fornecedorId) dia.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: IconBox });
+  const dia: NavItem[] = [{ href: '/app', label: 'Início', icon: 'casa', count: unread ?? 0 }];
+  if (client) dia.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: 'recibo' });
+  if (kinds.has('pintor')) dia.push({ href: '/app/obras', label: 'Gestão de obra', icon: 'capacete' });
+  if (kinds.has('fornecedor')) dia.push({ href: '/app/encomendas', label: 'Encomendas', icon: 'recibo' });
+  if (fornecedorId) dia.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: 'caixa' });
 
   // Ganhar obra agrupa o percurso comercial do pintor: Oportunidades → Obra pública → Orçamentos →
   // Contratações (ordem do caderno, "Agrupa o trabalho a conquistar e formalizar").
   const ganharObra: NavItem[] = [];
   if (kinds.has('pintor')) {
     ganharObra.push(
-      { href: '/app/oportunidades', label: 'Oportunidades', icon: IconSearch },
-      { href: '/app/obras-publicas', label: 'Obra pública', icon: IconPublic },
-      { href: '/app/orcamentos', label: 'Orçamentos', icon: IconQuote, aviso: porEnviar > 0 },
-      { href: '/app/contratacoes', label: 'Contratações', icon: IconContract },
+      { href: '/app/oportunidades', label: 'Oportunidades', icon: 'lupa' },
+      { href: '/app/obras-publicas', label: 'Obra pública', icon: 'publico' },
+      { href: '/app/orcamentos', label: 'Orçamentos', icon: 'recibo', aviso: porEnviar > 0 },
+      { href: '/app/contratacoes', label: 'Contratações', icon: 'documento' },
     );
   }
   // Cliente sem conta de pintor: Contratações fica no único grupo (caderno, perfil "Cliente").
-  if (client && !kinds.has('pintor')) dia.push({ href: '/app/contratacoes', label: 'Contratações', icon: IconContract });
+  if (client && !kinds.has('pintor')) dia.push({ href: '/app/contratacoes', label: 'Contratações', icon: 'documento' });
 
   // Materiais (pintor): catálogo para procurar produtos, armazém para o que já existe na empresa.
   const materiais: NavItem[] = [];
@@ -86,29 +72,29 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const vender: NavItem[] = [];
   const adesoes: NavItem[] = [];
   if (kinds.has('fornecedor')) {
-    vender.push({ href: '/app/catalogo', label: 'Catálogo', icon: IconBox });
+    vender.push({ href: '/app/catalogo', label: 'Catálogo', icon: 'caixa' });
   } else if (kinds.size > 0) {
-    materiais.push({ href: '/app/catalogo', label: 'Catálogo de materiais', icon: IconBox });
+    materiais.push({ href: '/app/catalogo', label: 'Catálogo de materiais', icon: 'caixa' });
   }
-  if (kinds.has('pintor')) materiais.push({ href: '/app/obras/consumiveis', label: 'Armazém e consumíveis', icon: IconBox });
+  if (kinds.has('pintor')) materiais.push({ href: '/app/obras/consumiveis', label: 'Armazém e consumíveis', icon: 'caixa' });
   if (fornecedorId) {
     vender.push(
-      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos', icon: IconQuote },
-      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes', icon: IconTeam },
+      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos', icon: 'recibo' },
+      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes', icon: 'pessoas' },
     );
-    adesoes.push({ href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão', icon: IconExpense });
+    adesoes.push({ href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão', icon: 'percentagem' });
   }
   // Equipa da plataforma: o backoffice organizado por secções, com o que espera por uma pessoa em cada uma.
   const q = admin ? await queueCounts(supabase) : null;
   const backoffice: NavItem[] = q
     ? [
-        { href: '/app/backoffice', label: 'Painel', icon: IconGauge, exact: true },
-        { href: '/app/backoffice/pedidos', label: 'Pedidos', icon: IconInbox, count: q.denuncias + q.fotografias },
-        { href: '/app/backoffice/entidades', label: 'Entidades', icon: IconBuilding, count: q.documentos + q.regimes },
-        { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: IconContract },
-        { href: '/app/backoffice/moderacao', label: 'Moderação', icon: IconScale, count: q.revisoes },
-        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: IconCalculator, count: q.resgates + q.banco },
-        { href: '/app/backoffice/sistema', label: 'Sistema', icon: IconServer },
+        { href: '/app/backoffice', label: 'Painel', icon: 'mostrador', exact: true },
+        { href: '/app/backoffice/pedidos', label: 'Pedidos', icon: 'entrada', count: q.denuncias + q.fotografias },
+        { href: '/app/backoffice/entidades', label: 'Entidades', icon: 'predio', count: q.documentos + q.regimes },
+        { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: 'documento' },
+        { href: '/app/backoffice/moderacao', label: 'Moderação', icon: 'balanca', count: q.revisoes },
+        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: 'calculadora', count: q.resgates + q.banco },
+        { href: '/app/backoffice/sistema', label: 'Sistema', icon: 'servidor' },
       ]
     : [];
   // Título do primeiro grupo: "Acompanhar a obra" é o nome do caderno para o perfil cliente puro
