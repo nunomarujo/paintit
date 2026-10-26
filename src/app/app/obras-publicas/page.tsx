@@ -21,9 +21,9 @@ import { getUser } from '@/lib/supabase/server';
 export default async function PublicContractsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; todos?: string; tudo?: string }>;
+  searchParams: Promise<{ ver?: string; todos?: string; tudo?: string; pais?: string }>;
 }) {
-  const { ver, todos, tudo } = await searchParams;
+  const { ver, todos, tudo, pais } = await searchParams;
 
   const { supabase, user } = await getUser();
   // `painterOrgs` não traz o NIF, e aqui é ele que encontra a empresa nas listas de convidados.
@@ -74,7 +74,7 @@ export default async function PublicContractsPage({
       {emConcursos ? (
         <Concursos supabase={supabase} orgId={org.id} soElegiveis={todos !== '1'} />
       ) : (
-        <Mapa supabase={supabase} orgId={org.id} nif={org.nif} tudo={tudo === '1'} />
+        <Mapa supabase={supabase} orgId={org.id} nif={org.nif} tudo={tudo === '1'} pais={pais === '1'} />
       )}
     </div>
   );

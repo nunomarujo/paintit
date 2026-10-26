@@ -4,6 +4,8 @@ import { ANOS_DO_MAPA, type Mapa as DadosDoMapa } from '@/domain/mapaContratos';
 import { ListaDeEntidades } from './ListaDeEntidades';
 import type { Database } from '@/lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { distritoDoConcelho } from '@/lib/concelhos';
+import { lookupPostalCode } from '@/lib/postalCodes';
 
 /**
  * Mapa de contratos públicos. Responde a uma pergunta que nenhuma lista de concursos responde:
@@ -21,6 +23,7 @@ export async function Mapa({
   orgId,
   nif,
   tudo,
+  pais,
 }: {
   supabase: SupabaseClient<Database>;
   orgId: string;
@@ -28,13 +31,43 @@ export async function Mapa({
   nif: string | null;
   /** Ver a série toda desde 2012, em vez dos últimos anos. */
   tudo: boolean;
+  /** Ver o país inteiro, deitando abaixo o distrito da sede. */
+  pais: boolean;
 }) {
   const { data: prefs } = await supabase
     .from('painter_tender_prefs')
     .select('distritos')
     .eq('org_id', orgId)
     .maybeSingle();
-  const distritos = prefs?.distritos ?? [];
+
+  /*
+   * Onde abrir o mapa, por esta ordem:
+   *
+   * 1. os distritos que o pintor escolheu para os alertas de concursos — se ele já disse onde
+   *    trabalha, não se lhe pergunta outra vez;
+   * 2. o distrito da sede, deduzido do código postal e, se o serviço não responder, da localidade;
+   * 3. o país inteiro.
+   *
+   * O passo 2 é o que importa: o mapa aberto no país inteiro abria com 251 entidades de que a
+   * esmagadora maioria fica a 300 km. Ninguém tem de configurar nada para o ter certo, e quem quiser
+   * o país tem o atalho no fim do ecrã.
+   */
+  let distritos = prefs?.distritos ?? [];
+  let porSede = false;
+  if (distritos.length === 0 && !pais) {
+    const { data: sede } = await supabase
+      .from('organizations')
+      .select('codigo_postal, localidade')
+      .eq('id', orgId)
+      .maybeSingle();
+    const info = sede?.codigo_postal ? await lookupPostalCode(sede.codigo_postal) : null;
+    const porCp = info && info !== 'indisponivel' ? info.distrito || distritoDoConcelho(info.concelho) : null;
+    const d = porCp || distritoDoConcelho(sede?.localidade ?? '');
+    if (d) {
+      distritos = [d];
+      porSede = true;
+    }
+  }
   const desde = tudo ? null : new Date().getFullYear() - (ANOS_DO_MAPA - 1);
 
   // `undefined` e não `null`: o argumento omitido deixa valer o valor por omissão da função, que é
@@ -46,7 +79,16 @@ export async function Mapa({
     p_nif: nif ?? undefined,
   });
 
-  return <MapaView m={(data ?? null) as DadosDoMapa | null} erro={!!error} distritos={distritos} nif={nif} tudo={tudo} />;
+  return (
+    <MapaView
+      m={(data ?? null) as DadosDoMapa | null}
+      erro={!!error}
+      distritos={distritos}
+      porSede={porSede}
+      nif={nif}
+      tudo={tudo}
+    />
+  );
 }
 
 /**
@@ -59,16 +101,29 @@ export function MapaView({
   m,
   erro,
   distritos,
+  porSede = false,
   nif,
   tudo,
 }: {
   m: DadosDoMapa | null;
   erro: boolean;
   distritos: string[];
+  /** Os distritos vieram da sede da empresa, e não de uma escolha — convém dizê-lo e dar a saída. */
+  porSede?: boolean;
   nif: string | null;
   tudo: boolean;
 }) {
   const onde = distritos.length > 0 ? distritos.join(', ') : 'todo o país';
+  // O atalho para o país inteiro só faz sentido quando o lugar não foi escolhido por ele.
+  const saidaDoDistrito = porSede ? (
+    <>
+      {' '}
+      <Link href="/app/obras-publicas?pais=1" className="font-semibold text-tinta-700 underline underline-offset-4">
+        Ver todo o país
+      </Link>
+      .
+    </>
+  ) : null;
 
   if (erro || !m || m.resumo.contratos === 0) {
     return (
@@ -92,7 +147,8 @@ export function MapaView({
           </p>
           {!erro && distritos.length > 0 && (
             <p className="mt-2">
-              A vista está limitada a {onde} e aos últimos {ANOS_DO_MAPA} anos.{' '}
+              A vista está limitada a {onde}
+              {porSede ? ', o distrito da sede,' : ''} e aos últimos {ANOS_DO_MAPA} anos.{saidaDoDistrito}{' '}
               <Link href="/app/obras-publicas?tudo=1" className="font-semibold text-tinta-700 underline underline-offset-4">
                 Ver desde 2012
               </Link>
@@ -120,6 +176,11 @@ export function MapaView({
           {r.entidades} {r.entidades === 1 ? 'entidade' : 'entidades'} · {r.contratos}{' '}
           {r.contratos === 1 ? 'contrato' : 'contratos'} · {formatEurosCurto(r.totalCents)} · {onde} · {anos}
         </p>
+        {porSede && (
+          <p className="mt-1 text-[15px] text-slate-600">
+            O distrito é o da sede da empresa.{saidaDoDistrito}
+          </p>
+        )}
       </header>
 
       {/* A única banda com fundo de cor, e só quando há mesmo um achado: a própria empresa na lista. */}

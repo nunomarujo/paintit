@@ -28,3 +28,30 @@ export const DISTRITOS: { distrito: string; concelhos: string[] }[] = [
   { distrito: "Açores", concelhos: ["Angra do Heroísmo", "Calheta (São Jorge)", "Corvo", "Horta", "Lagoa (São Miguel)", "Lajes das Flores", "Lajes do Pico", "Madalena", "Nordeste", "Ponta Delgada", "Povoação", "Praia da Vitória", "Ribeira Grande", "Santa Cruz da Graciosa", "Santa Cruz das Flores", "São Roque do Pico", "Velas", "Vila Franca do Campo", "Vila do Porto"] },
   { distrito: "Madeira", concelhos: ["Calheta (Madeira)", "Câmara de Lobos", "Funchal", "Machico", "Ponta do Sol", "Porto Moniz", "Porto Santo", "Ribeira Brava", "Santa Cruz", "Santana", "São Vicente"] },
 ];
+
+const semAcentos = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+
+/**
+ * O distrito a que pertence um concelho, pelo nome.
+ *
+ * Serve para a aplicação saber onde fica uma empresa sem lho perguntar: o mapa de contratos
+ * públicos abre no distrito da sede em vez de abrir no país inteiro. Compara sem acentos e sem
+ * maiúsculas, e aceita os nomes desambiguados dos CTT tal como estão na tabela acima — "Lagoa"
+ * sozinho é ambíguo (Algarve e São Miguel) e por isso devolve null, em vez de escolher um.
+ */
+export function distritoDoConcelho(concelho: string): string | null {
+  const alvo = semAcentos(concelho);
+  if (alvo === '') return null;
+  const achados = DISTRITOS.filter((d) => d.concelhos.some((c) => semAcentos(c) === alvo));
+  if (achados.length === 1) return achados[0]!.distrito;
+  if (achados.length > 1) return null;
+  // Os nomes desambiguados: quem escreve "Lagoa (Algarve)" já disse qual.
+  const exacto = DISTRITOS.find((d) => d.concelhos.some((c) => semAcentos(c) === alvo || semAcentos(c).startsWith(`${alvo} (`)));
+  const quantos = DISTRITOS.filter((d) => d.concelhos.some((c) => semAcentos(c).startsWith(`${alvo} (`))).length;
+  return exacto && quantos === 1 ? exacto.distrito : null;
+}
