@@ -53,25 +53,51 @@ export async function Mapa({
     p_nif: nif ?? undefined,
   });
 
-  const onde = distritos.length > 0 ? distritos.join(', ') : 'todo o país';
-  const m = (data ?? null) as DadosDoMapa | null;
+  return <MapaView m={(data ?? null) as DadosDoMapa | null} erro={!!error} distritos={distritos} nif={nif} tudo={tudo} />;
+}
 
-  if (error || !m || m.resumo.contratos === 0) {
+/**
+ * O desenho do mapa, separado da consulta: recebe o que a base já somou e não sabe de onde veio.
+ *
+ * A separação serve para o desenhar fora da aplicação e olhar para ele em cada largura de ecrã — é
+ * assim que se revê um ecrã que só se vê com sessão iniciada.
+ */
+export function MapaView({
+  m,
+  erro,
+  distritos,
+  nif,
+  tudo,
+}: {
+  m: DadosDoMapa | null;
+  erro: boolean;
+  distritos: string[];
+  nif: string | null;
+  tudo: boolean;
+}) {
+  const onde = distritos.length > 0 ? distritos.join(', ') : 'todo o país';
+
+  if (erro || !m || m.resumo.contratos === 0) {
     return (
       <div className="space-y-4">
         <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <h2 className="text-[20px] font-semibold">Quem contrata pintura à sua volta</h2>
+          <p className="mt-1 text-[15px] leading-snug text-slate-600">
+            Empreitadas de <strong className="font-semibold">pintura, fachadas e isolamento</strong> adjudicadas por câmaras,
+            juntas de freguesia, misericórdias e outras entidades públicas. Não são contratos de todo o tipo: de cada
+            ficheiro do portal só ficam os de pintura.
+          </p>
           <p className="mt-1 text-[17px] text-slate-600">{onde}</p>
         </header>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">
           <p className="font-semibold text-slate-900">
-            {error ? 'O mapa não está disponível de momento.' : 'O mapa ainda não tem contratos carregados.'}
+            {erro ? 'O mapa não está disponível de momento.' : 'O mapa ainda não tem contratos carregados.'}
           </p>
           <p className="mt-2">
             Os contratos vêm do portal BASE, pelo conjunto de dados aberto do IMPIC em dados.gov.pt, que é
             actualizado uma vez por semana.
           </p>
-          {!error && distritos.length > 0 && (
+          {!erro && distritos.length > 0 && (
             <p className="mt-2">
               A vista está limitada a {onde} e aos últimos {ANOS_DO_MAPA} anos.{' '}
               <Link href="/app/obras-publicas?tudo=1" className="font-semibold text-tinta-700 underline underline-offset-4">
@@ -93,6 +119,11 @@ export async function Mapa({
     <div className="space-y-4">
       <header className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <h2 className="text-[20px] font-semibold">Quem contrata pintura à sua volta</h2>
+          <p className="mt-1 text-[15px] leading-snug text-slate-600">
+            Empreitadas de <strong className="font-semibold">pintura, fachadas e isolamento</strong> adjudicadas por câmaras,
+            juntas de freguesia, misericórdias e outras entidades públicas. Não são contratos de todo o tipo: de cada
+            ficheiro do portal só ficam os de pintura.
+          </p>
         <p className="mt-1 text-[17px] text-slate-600">
           {r.entidades} {r.entidades === 1 ? 'entidade' : 'entidades'} · {r.contratos}{' '}
           {r.contratos === 1 ? 'contrato' : 'contratos'} · {formatEurosCurto(r.totalCents)} · {onde} · {anos}
@@ -115,7 +146,8 @@ export async function Mapa({
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-3">
-          <p className="eyebrow">Entidades, da que contrata mais vezes para a que contrata menos</p>
+          <p className="eyebrow">Quem contrata pintura</p>
+          <p className="mt-1 text-[15px] text-slate-600">Por ordem de frequência: primeiro quem contrata mais vezes.</p>
         </div>
         <ul className="divide-y divide-slate-100">
           {entidades.map((e) => (
@@ -140,7 +172,8 @@ export async function Mapa({
                   </>
                 )}
                 {e.ultimo && ` · último em ${dataPt(e.ultimo)}`}
-                {e.concelhos.length > 0 && ` · ${e.concelhos.join(', ')}`}
+                {e.concelhos.length > 0 &&
+                  ` · ${e.concelhos.slice(0, 3).join(', ')}${e.concelhos.length > 3 ? ` e mais ${e.concelhos.length - 3}` : ''}`}
               </p>
               {concentraConvites(e) && (
                 <p className="mt-1 text-[15px] font-semibold text-amber-800">
