@@ -75,7 +75,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       href: '/app/obras',
       label: 'Gestão de obra',
       children: [
-        { href: '/app/obras?ver=hoje', label: 'Hoje' },
+        { href: '/app/obras?ver=hoje', label: 'Hoje', padrao: true },
         { href: '/app/obras?ver=equipa', label: 'Equipa' },
         { href: '/app/obras?ver=contas', label: 'Contas' },
       ],
