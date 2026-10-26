@@ -172,21 +172,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </section>
       )}
 
-      {/* Pintor ou fornecedor: a conta é uma só entidade (allowedOrgKinds em organization.ts) — uma
-          lista para um único item não ajuda ninguém; só um atalho direto. Administradoras e
-          condomínios podem ter várias, por isso continuam a ver a lista completa abaixo. */}
-      {mine.length === 1 && (mine[0]!.kind === 'pintor' || mine[0]!.kind === 'fornecedor') ? (
-        <Link
-          href={`/app/organizacoes/${mine[0]!.id}`}
-          className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-5 hover:bg-slate-50"
-        >
-          <span>
-            <span className="text-[17px] text-slate-500">A sua entidade</span>
-            <span className="block font-semibold">{mine[0]!.nome}</span>
-          </span>
-          <span className="text-[17px] text-tinta-700">Abrir →</span>
-        </Link>
-      ) : (
+      {/* Pintor ou fornecedor: a conta é uma só entidade (allowedOrgKinds em organization.ts) — o
+          atalho que havia aqui ("A sua entidade [Abrir →]") mudou-se para o cartão "O meu Perfil" no
+          rodapé da barra lateral (src/app/app/layout.tsx), que já mostra o nome da empresa e já está
+          sempre visível — não precisa de repetir-se aqui (26/10/2026, docs/DECISOES.md). Administradoras
+          e condomínios podem ter várias entidades, por isso continuam a ver a lista completa abaixo. */}
+      {mine.length === 1 && (mine[0]!.kind === 'pintor' || mine[0]!.kind === 'fornecedor') ? null : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-[26px] leading-tight font-semibold">As suas entidades</h1>

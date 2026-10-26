@@ -216,6 +216,8 @@ export type Database = {
         Row: {
           alertas_autorizados: boolean;
           atendimento_publico: string | null;
+          cae: string | null;
+          cae_atividade: string | null;
           codigo_postal: string | null;
           created_at: string;
           created_by: string;
@@ -234,6 +236,8 @@ export type Database = {
         Insert: {
           alertas_autorizados?: boolean;
           atendimento_publico?: string | null;
+          cae?: string | null;
+          cae_atividade?: string | null;
           codigo_postal?: string | null;
           created_at?: string;
           created_by?: string;

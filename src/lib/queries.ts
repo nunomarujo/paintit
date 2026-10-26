@@ -27,13 +27,16 @@ export async function managedAdministradoras(supabase: SupabaseClient<Database>,
 export async function painterOrgs(supabase: SupabaseClient<Database>, userId: string) {
   const { data } = await supabase
     .from('org_members')
-    .select('role, organizations!inner(id, nome, kind, zonas_servico)')
+    .select('role, organizations!inner(id, nome, kind, zonas_servico, cae)')
     .eq('user_id', userId)
     .eq('organizations.kind', 'pintor');
   return (data ?? []).map((m) => ({
     id: m.organizations.id,
     nome: m.organizations.nome,
     zonas: m.organizations.zonas_servico,
+    // CAE da nif.pt (26/10/2026): só para o aviso não bloqueante de elegibilidade nos orçamentos
+    // (`caeElegibilidade`, src/domain/organization.ts) — ver src/app/app/orcamentos/page.tsx.
+    cae: m.organizations.cae,
     manager: m.role === 'proprietario' || m.role === 'gestor',
   }));
 }

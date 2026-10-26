@@ -76,6 +76,30 @@ export async function passwordAuth(_prev: SignInState, form: FormData): Promise<
   redirect(next);
 }
 
+/**
+ * Mudar o mail de acesso (26/10/2026, docs/DECISOES.md): fica a pedir confirmação no mail novo antes de
+ * valer — a conta continua a entrar com o mail antigo até esse clique, e só depois é que o Supabase
+ * Auth troca (o gatilho `sync_profile_email`, já em produção, mantém `profiles.email` ao dia nesse
+ * momento — é aí que "apaga o 1º mail", nunca antes). `/auth/confirmar` (PKCE) já trata genericamente
+ * este tipo de link, sem precisar de nenhuma alteração.
+ */
+export async function changeEmail(_prev: SignInState, form: FormData): Promise<SignInState> {
+  const email = String(form.get('email') ?? '').trim().toLowerCase();
+  if (!EMAIL.test(email)) return { status: 'error', message: 'Indique um email válido.' };
+  const h = await headers();
+  const origin = h.get('origin') ?? `https://${h.get('host')}`;
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo: `${origin}/auth/confirmar?seguinte=${encodeURIComponent('/app')}` });
+  if (error) {
+    return { status: 'error', message: 'Não foi possível pedir a mudança. Confirme o email e tente de novo.' };
+  }
+  return {
+    status: 'sent',
+    email,
+    message: `Enviámos um link de confirmação para ${email}. Enquanto não o abrir, continua a entrar com o mail atual.`,
+  };
+}
+
 /** Definir ou mudar a palavra-passe de quem já tem sessão. */
 export async function setPassword(_prev: SignInState, form: FormData): Promise<SignInState> {
   const password = String(form.get('password') ?? '');

@@ -45,15 +45,15 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
               </span>
               <span className="shrink-0 text-right text-[15px]">
                 {l.estado === 'caducado' ? (
-                  <Link href={`/app/organizacoes/${orgId}#documentos`} className="font-semibold text-red-700 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-red-700 underline underline-offset-4">
                     Caducou em {dataPt(l.validoAte!)} — substituir
                   </Link>
                 ) : l.estado === 'a_caducar' ? (
-                  <Link href={`/app/organizacoes/${orgId}#documentos`} className="font-semibold text-amber-800 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-amber-800 underline underline-offset-4">
                     Caduca em {l.dias} {l.dias === 1 ? 'dia' : 'dias'} — renovar
                   </Link>
                 ) : l.estado === 'em_falta' ? (
-                  <Link href={`/app/organizacoes/${orgId}#documentos`} className="font-semibold text-tinta-700 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-tinta-700 underline underline-offset-4">
                     Enviar
                   </Link>
                 ) : l.estado === 'por_validar' ? (
@@ -67,7 +67,7 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
         </ul>
 
         <div className="mt-3 flex flex-wrap items-center gap-4">
-          <Link href={`/app/organizacoes/${orgId}#documentos`} className="btn-secondary">
+          <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="btn-secondary">
             Gerir documentos
           </Link>
           <p className="text-[15px] text-slate-500">

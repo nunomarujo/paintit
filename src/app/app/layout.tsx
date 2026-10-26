@@ -28,14 +28,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const lastWarning = strikes === 2 ? await appealView(supabase, user.id) : null;
   const [admin, { data: memberships }, { count: unread }] = await Promise.all([
     isPlatformAdmin(supabase, user.id),
-    supabase.from('org_members').select('organizations!inner(id, kind)').eq('user_id', user.id),
+    // `nome` entra aqui (26/10/2026) para o cartão "O meu Perfil" no rodapé mostrar o nome da empresa,
+    // não o email — é o único sítio do layout que precisa dele.
+    supabase.from('org_members').select('organizations!inner(id, kind, nome)').eq('user_id', user.id),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).is('lida_em', null),
   ]);
   const kinds = new Set((memberships ?? []).map((m) => m.organizations.kind));
   const client = kinds.has('condominio') || kinds.has('administradora') || kinds.has('particular');
   // Uma conta de fornecedor é sempre uma só entidade (allowedOrgKinds em organization.ts).
-  const fornecedorId = (memberships ?? []).find((m) => m.organizations.kind === 'fornecedor')?.organizations.id;
-  const pintorId = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations.id;
+  const fornecedorOrg = (memberships ?? []).find((m) => m.organizations.kind === 'fornecedor')?.organizations;
+  const pintorOrg = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations;
+  const fornecedorId = fornecedorOrg?.id;
+  const pintorId = pintorOrg?.id;
+  const meuPerfil = pintorOrg ?? fornecedorOrg ?? null;
   const porEnviar = pintorId ? await contarOrcamentosPorEnviar(supabase, pintorId) : 0;
 
   // Estrutura e rotas do caderno de desenho da interface (26/10/2026, protótipo do promotor:
@@ -127,16 +132,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <AppNav groups={groups} />
         </div>
         {/* Empresa e conta: no rodapé, sem ocupar o centro do menu (caderno de desenho, 26/10/2026).
-            Ficha da empresa e plano só para quem tem uma empresa de pintura ou de fornecedor; o
-            cliente só vê o perfil — a ficha da entidade está no selector de contas em /app. */}
+            Pintor ou fornecedor: um só cartão "O meu Perfil", com o nome da empresa (não o email) —
+            é lá dentro, em separadores, que ficam os dados da entidade, os documentos e a equipa online
+            (26/10/2026, docs/DECISOES.md). O cliente puro não tem empresa a mostrar: continua a ver o
+            email e o link "Perfil" de sempre. */}
         <div className="mt-auto hidden border-t border-marca-border px-3 pt-4 text-[15px] md:block">
-          <p className="truncate px-1 font-semibold text-marca-ink">{user.email}</p>
+          {meuPerfil ? (
+            <Link
+              href={`/app/organizacoes/${meuPerfil.id}`}
+              className="-mx-1 block rounded-[9px] px-1 py-1.5 hover:bg-marca-cream/60"
+            >
+              <span className="block text-marca-muted">O meu Perfil</span>
+              <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>
+            </Link>
+          ) : (
+            <p className="truncate px-1 font-semibold text-marca-ink">{user.email}</p>
+          )}
           <nav aria-label="Empresa e conta" className="mt-2 space-y-0.5">
-            {pintorId && (
-              <Link href={`/app/organizacoes/${pintorId}`} className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
-                Ficha da empresa
-              </Link>
-            )}
             {kinds.has('pintor') && (
               <Link href="/app/subscricao" className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
                 Plano e subscrição
@@ -147,14 +159,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 Referências de fornecedores
               </Link>
             )}
-            {!pintorId && fornecedorId && (
-              <Link href={`/app/organizacoes/${fornecedorId}`} className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
-                Ficha da empresa
+            {!meuPerfil && (
+              <Link href="/app/perfil" className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+                Perfil
               </Link>
             )}
-            <Link href="/app/perfil" className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
-              Perfil
-            </Link>
           </nav>
           <form action={leave} className="mt-2 border-t border-marca-border pt-2">
             <button type="submit" className="px-1 text-[17px] font-semibold text-marca-orange-deep hover:underline">
@@ -170,8 +179,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             Versão de teste · pagamentos em modo de teste
           </span>
           <span className="flex items-center gap-3 md:hidden">
-            <Link href="/app/perfil" className="text-[15px] text-slate-600">
-              Perfil
+            <Link href={meuPerfil ? `/app/organizacoes/${meuPerfil.id}` : '/app/perfil'} className="text-[15px] text-slate-600">
+              {meuPerfil ? 'O meu Perfil' : 'Perfil'}
             </Link>
             <form action={leave}>
               <button type="submit" className="text-[15px] font-semibold text-tinta-600">

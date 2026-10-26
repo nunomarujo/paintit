@@ -2962,3 +2962,57 @@ describe('mapa de contratos públicos', () => {
     expect(m.convidados).toEqual([]);
   });
 });
+
+describe('mudar o papel de um colega em "Equipa online" (org_members_update)', () => {
+  // 26/10/2026, docs/DECISOES.md: antes desta política, `org_members` só tinha select/insert/delete —
+  // mudar o papel de alguém era impossível pela aplicação. RO é o proprietário; RG um gestor que já lá
+  // estava (criado por fora da política, para isolar o que está mesmo a testar); RB alguém sem relação.
+  const RO = '00000000-0000-4000-8000-0000000000e4'; // proprietário
+  const RG = '00000000-0000-4000-8000-0000000000eb'; // gestor
+  const RB = '00000000-0000-4000-8000-0000000000ec'; // sem relação com a entidade
+  let painterOrg: string;
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2), ($3, $4), ($5, $6)', [
+      RO, email(RO), RG, email(RG), RB, email(RB),
+    ]);
+    painterOrg = (await createOrg(RO, 'pintor', 'Pinturas Equipa Online', '519900006')).id;
+    await db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'gestor')`, [painterOrg, RG]);
+  });
+
+  it('o proprietário muda o papel de um colega', async () => {
+    await as(RO, () => db.query(`update public.org_members set role = 'financeiro' where org_id = $1 and user_id = $2`, [painterOrg, RG]));
+    const r = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RG]);
+    expect(r.role).toBe('financeiro');
+  });
+
+  it('o proprietário não muda o seu próprio papel', async () => {
+    const before = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RO]);
+    await as(RO, () => db.query(`update public.org_members set role = 'gestor' where org_id = $1 and user_id = $2`, [painterOrg, RO]));
+    const after = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RO]);
+    expect(after.role).toBe(before.role); // a política bloqueou; nenhuma linha foi afetada, sem erro.
+  });
+
+  it('não promove ninguém a proprietário por esta via', async () => {
+    // Aqui a condição `using` deixa escolher a linha (é outro utilizador) mas o `with check` recusa o
+    // valor — ao contrário do próprio papel, acima, onde é o `using` que já exclui a linha e por isso
+    // não dá erro nenhum, só zero linhas afetadas.
+    await expect(
+      as(RO, () => db.query(`update public.org_members set role = 'proprietario' where org_id = $1 and user_id = $2`, [painterOrg, RG])),
+    ).rejects.toThrow(/row-level security/);
+    const r = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RG]);
+    expect(r.role).not.toBe('proprietario');
+  });
+
+  it('um colega sem ser proprietário não muda papel nenhum', async () => {
+    await as(RG, () => db.query(`update public.org_members set role = 'leitor' where org_id = $1 and user_id = $2`, [painterOrg, RG]));
+    const r = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RG]);
+    expect(r.role).not.toBe('leitor');
+  });
+
+  it('quem não tem relação com a entidade não muda nada', async () => {
+    await as(RB, () => db.query(`update public.org_members set role = 'leitor' where org_id = $1 and user_id = $2`, [painterOrg, RG]));
+    const r = await one<{ role: string }>('select role from public.org_members where org_id = $1 and user_id = $2', [painterOrg, RG]);
+    expect(r.role).not.toBe('leitor');
+  });
+});

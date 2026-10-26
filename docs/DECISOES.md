@@ -4,6 +4,99 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — "O meu Perfil": cartão na barra lateral, "Dados da entidade" em separadores, CAE e mudança de mail
+
+Pedido do promotor, com cinco capturas de ecrã da app em produção (ainda sem o caderno de desenho,
+ver entrada seguinte): a barra lateral passa a ter um cartão **"O meu Perfil"** — nome da empresa, não
+o email, e só para contas de pintor ou fornecedor (uma conta é sempre uma só empresa destes dois
+tipos, `allowedOrgKinds`) — e o que estava disperso pela ficha da entidade (o cartão "A sua entidade"
+no Início, "Dados da entidade", "Equipa", "Documentos de verificação") reorganiza-se lá dentro.
+
+**Onde ficou cada coisa.**
+- `src/app/app/layout.tsx`: o rodapé da barra lateral troca "{email} / Ficha da empresa / Perfil" por
+  um cartão só, com o nome da empresa (`organizations.nome`, agora também pedido na consulta de
+  membros do layout) a ligar a `/app/organizacoes/{id}`. Conta de cliente puro (sem pintor nem
+  fornecedor) mantém o email e "Perfil" de sempre — não lhe mexemos.
+- `src/app/app/page.tsx` (Início): o atalho "A sua entidade [Abrir →]" para quem tem uma só entidade de
+  pintor/fornecedor desapareceu — já está sempre visível no cartão da barra lateral, repetir ali não
+  ajudava.
+- `src/app/app/organizacoes/[id]/page.tsx`: **só para `kind === 'pintor' || 'fornecedor'`** (condomínio,
+  administradora e particular ficam exactamente como estavam — a página serve cinco tipos de entidade
+  muito diferentes, e tocar em código partilhado por todos era o risco maior deste pedido), três
+  separadores novos (`LocalTabs`, estado em `?ver=`, mesma convenção de Orçamentos/Oportunidades):
+  1. **Dados da entidade** — cartão novo (`EntityCardForm.tsx`, `parseEntityCard` em
+     `src/domain/organization.ts`): nome da empresa, nome do gerente (grava em `profiles.nome`,
+     reaproveitando o que `updateProfile` já fazia), telefone e **mail de contacto obrigatório** ("um
+     mail pelo menos tem que estar registado", pedido do promotor). NIF e morada fiscal continuam só na
+     página `/editar` — não duplicámos essa validação. Debaixo: a palavra-passe (`PasswordForm`,
+     reaproveitado de `/app/perfil`) e a **mudança do mail de acesso** (ver abaixo).
+  2. **Documentos** — era "Documentos de verificação"; subtítulo novo "Documentos para candidaturas a
+     obras". Conteúdo (lista de documentos em falta, incluindo o alarme vermelho já registado como
+     "em aberto" mais abaixo, upload) é o mesmo de sempre, só a casa mudou.
+  3. **Equipa online** — era "Equipa"; nome e subtítulo mudam para não soar à equipa que vai à obra
+     (queixa do promotor: "soava como se fossem os pintores"). Fica igual na lista/convites/InviteForm,
+     mais um `<select>` por linha (`MemberRoleSelect.tsx`) que o proprietário usa para mudar o papel de
+     um colega sem reabrir nenhum formulário, e um quadro no fim com o que cada papel pode fazer.
+  As ligações rápidas que estavam no topo da ficha ("Ver oportunidades de obra" / "Gestão de obra" /
+  "Referências de fornecedores" para o pintor; "Subscrição" / "Encomendas" / "Descontos a novos
+  aderentes" para o fornecedor) foram removidas — já vivem na barra lateral (grupos "Ganhar
+  obra"/"Vender" e o novo cartão), repeti-las na página era o que o promotor queria evitar.
+  Os sítios que apontavam para `#documentos` (`Dossier.tsx`, `oportunidades/[id]/page.tsx`) passaram a
+  apontar para `?ver=documentos`, que é quem agora selecciona esse separador.
+
+**Mudar o papel de um colega era impossível — a RLS nunca teve essa política.** `org_members` só tinha
+`select`/`insert`/`delete`; não havia maneira de a aplicação mudar o papel de alguém, com interface ou
+sem ela. Nova política aditiva `org_members_update` (migração `20261026210000_cae_e_gestao_de_acesso`):
+só o proprietário, nunca o seu próprio papel (para nunca ficar uma entidade sem proprietário por
+engano — o `using` já exclui essa linha, sem erro), e nunca para `'proprietario'` (o `with check`
+recusa e dá erro de RLS — só há um, atribuído no gatilho da criação; promover alguém é decisão à
+parte, não uma troca aqui). Nova acção `changeMemberRole` em `src/app/app/actions.ts`: o `role` chega
+em `FormData`, do navegador, e valida-se contra `MEMBER_ROLES` antes de tocar na base (regra 10 do
+`CLAUDE.md`) — a política é quem decide de facto. Cinco testes novos em `supabase/tests/rls.test.ts`
+("mudar o papel de um colega em 'Equipa online'") cobrem os quatro casos (proprietário muda; não muda
+o seu próprio; não promove a proprietário; nem gestor nem estranho mudam nada).
+
+**Simplificação deliberada, a confirmar com o promotor:** o pedido falava em "tipo de user: admin,
+user" com uma caixa de verificação por acção ("criar orçamentos, enviar orçamentos, editar dados da
+empresa, etc"). Construir esse quadro à parte, sem o ligar à RLS real, seria segurança de fachada —
+pareceria controlar acesso sem controlar nada. Em vez disso, `ROLE_CAPABILITIES`
+(`src/domain/organization.ts`) **lê-se directamente das políticas que já existem** (quem pode editar a
+entidade, carregar documentos, orçamentar) e mostra-se como quadro de leitura; quem de facto muda
+alguma coisa é a troca de papel acima, sobre os cinco papéis que já existiam (`proprietario, gestor,
+financeiro, vendedor, leitor`), não um "admin/user" novo. Fica a confirmar se o promotor queria mesmo
+um sistema de permissões por acção, independente dos papéis actuais.
+
+**CAE da nif.pt, aviso não bloqueante.** A consulta ao NIF (`src/lib/nifpt.ts`) já trazia o código CAE e
+a descrição da actividade na resposta da nif.pt — ficavam a cair fora. Agora `lookupNif` devolve-os, e
+`createOrganization`/`updateOrganization` gravam-nos em `organizations.cae`/`cae_atividade` (colunas
+novas, mesma migração; `updateOrganization` só escreve por cima quando a consulta de agora trouxe
+valor novo — nunca apaga um CAE já conhecido só porque a nif.pt está temporariamente indisponível).
+`caeElegibilidade`/`caeAviso` (`src/domain/organization.ts`): secção F da CAE-Rev.3 (divisões 41-43 —
+construção de edifícios, engenharia civil, actividades especializadas onde vive a pintura, 43341) conta
+como elegível; o resto, ou a falta de código, dá aviso **âmbar, nunca bloqueante** (regra 13 do
+`CLAUDE.md` — "o CAE da actividade deste empreiteiro precisa de ser confirmado quanto a elegibilidade",
+tal como o promotor pediu). Aparece no cartão "Dados da entidade" e, nos Orçamentos, juntou-se à banda
+de aviso que já lá estava ("orçamentos por enviar") em vez de abrir uma segunda banda de fundo de cor —
+nunca duas no mesmo ecrã (mesma regra 13).
+
+**Mudar o mail de acesso, sem perder a conta a meio.** Nova acção `changeEmail`
+(`src/app/entrar/actions.ts`, mesmo padrão de `setPassword`): chama
+`supabase.auth.updateUser({ email }, { emailRedirectTo })`. A sessão continua a entrar com o mail
+antigo até o link no mail novo ser aberto; `/auth/confirmar` (PKCE,
+`exchangeCodeForSession`) já trata este tipo de link sem precisar de nenhuma alteração, e o gatilho
+`sync_profile_email` (já em produção) mantém `profiles.email` ao dia nesse momento — é só aí que "o
+antigo deixa de servir", nunca antes, tal como o promotor pediu.
+
+**Em aberto: a migração não foi aplicada à base real.** `mcp__Supabase__apply_migration` foi recusado
+pelo classificador automático desta sessão ("Production Deploy"). O ficheiro
+`supabase/migrations/20261026210000_cae_e_gestao_de_acesso.sql` está escrito, corre limpo nos testes
+(Postgres em memória, via `supabase/tests/rls.test.ts`) e `src/lib/database.types.ts` já foi actualizado
+à mão com as colunas novas — mas até o promotor a aplicar no Supabase real, `organizations.cae`/
+`cae_atividade` não existem na base de produção e a política `org_members_update` não está em vigor
+ali: o cartão de CAE fica sempre "por verificar" e a mudança de papel falha. Aplicar com
+`mcp__Supabase__apply_migration` (ou directamente no painel do Supabase) antes de confiar nestas duas
+funcionalidades em produção.
+
 ## 26/10/2026 — O caderno de desenho do promotor como fonte do desenho: tokens, ícones, navegação a dois níveis
 
 O promotor anexou `QuemPinta_Desenho_Interface.html`, um "caderno de desenho da interface" próprio —

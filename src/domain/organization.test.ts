@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { isValidNif } from './nif';
 import { INVALID_NIFS, VALID_NIFS } from './nif.vectors';
-import { missingDocs, parseBuilding, parseInvite, parseOrganization } from './organization';
+import {
+  caeAviso,
+  caeElegibilidade,
+  missingDocs,
+  parseBuilding,
+  parseEntityCard,
+  parseInvite,
+  parseOrganization,
+  ROLE_CAPABILITIES,
+} from './organization';
 
 describe('convite', () => {
   it('normaliza o email para minúsculas', () => {
@@ -120,5 +129,58 @@ describe('um perfil por conta', () => {
     expect(allowedOrgKinds(['fornecedor'])).toEqual([]);
     expect(allowedOrgKinds(['administradora'])).toEqual(['condominio', 'administradora', 'particular']);
     expect(accountProfile('condominio')).toBe('cliente');
+  });
+});
+
+describe('cartão de "O meu Perfil"', () => {
+  it('exige nome da empresa, nome do gerente e mail de contacto', () => {
+    const f = new FormData();
+    const r = parseEntityCard(f);
+    expect(Object.keys(r.errors).sort()).toEqual(['emailContacto', 'gerenteNome', 'nome']);
+  });
+
+  it('aceita os dados mínimos, telefone é opcional', () => {
+    const f = new FormData();
+    f.set('nome', 'Pinturas Lda');
+    f.set('gerenteNome', 'António');
+    f.set('emailContacto', 'geral@pinturas.pt');
+    const r = parseEntityCard(f);
+    expect(r.errors).toEqual({});
+    expect(r.value).toEqual({ nome: 'Pinturas Lda', gerenteNome: 'António', telefone: null, emailContacto: 'geral@pinturas.pt' });
+  });
+
+  it('recusa um mail de contacto inválido', () => {
+    const f = new FormData();
+    f.set('nome', 'Pinturas Lda');
+    f.set('gerenteNome', 'António');
+    f.set('emailContacto', 'não é um email');
+    expect(parseEntityCard(f).errors.emailContacto).toBeDefined();
+  });
+});
+
+describe('elegibilidade do CAE para pintura/construção', () => {
+  it('secção F (divisões 41-43) é elegível; o resto não; sem código fica por verificar', () => {
+    expect(caeElegibilidade('43341')).toBe('elegivel');
+    expect(caeElegibilidade('41200')).toBe('elegivel');
+    expect(caeElegibilidade('42110')).toBe('elegivel');
+    expect(caeElegibilidade('47520')).toBe('nao_elegivel'); // comércio a retalho de ferragens
+    expect(caeElegibilidade(null)).toBe('por_verificar');
+  });
+
+  it('só avisa quando não é elegível ou está por verificar, nunca quando é elegível', () => {
+    expect(caeAviso('elegivel')).toBeNull();
+    expect(caeAviso('nao_elegivel')).toMatch(/elegibilidade/);
+    expect(caeAviso('por_verificar')).toMatch(/elegibilidade/);
+  });
+});
+
+describe('capacidades por papel em "Equipa online"', () => {
+  it('só o proprietário gere quem tem acesso; só proprietário e gestor editam a empresa e orçamentam', () => {
+    expect(ROLE_CAPABILITIES.proprietario.giereEquipaOnline).toBe(true);
+    expect(ROLE_CAPABILITIES.gestor.giereEquipaOnline).toBe(false);
+    expect(ROLE_CAPABILITIES.gestor.criarEEnviarOrcamentos).toBe(true);
+    expect(ROLE_CAPABILITIES.financeiro.criarEEnviarOrcamentos).toBe(false);
+    expect(ROLE_CAPABILITIES.financeiro.carregarDocumentos).toBe(true);
+    expect(ROLE_CAPABILITIES.leitor.carregarDocumentos).toBe(false);
   });
 });

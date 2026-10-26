@@ -3,16 +3,26 @@ import { notFound } from 'next/navigation';
 import { cancelInvitation, removeMember } from '@/app/app/actions';
 import {
   BUILDING_KIND_LABELS,
+  CAPABILITY_LABELS,
   DOC_KIND_LABELS,
   MEMBER_ROLE_LABELS,
   ORG_KIND_LABELS,
+  ROLE_CAPABILITIES,
+  caeAviso,
+  caeElegibilidade,
   missingDocs,
+  type MemberRole,
 } from '@/domain/organization';
 import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
+import { LocalTabs } from '@/components/LocalTabs';
+import { PasswordForm } from '@/app/app/perfil/PasswordForm';
+import { ChangeEmailForm } from './ChangeEmailForm';
 import { DocumentUpload } from './DocumentUpload';
+import { EntityCardForm } from './EntityCardForm';
 import { InviteForm } from './InviteForm';
 import { DeleteOrg } from './DeleteOrg';
+import { MemberRoleSelect } from './MemberRoleSelect';
 import { SupplierReviewAnswer } from './SupplierReviewAnswer';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -57,10 +67,10 @@ export default async function OrganizationPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ predio?: string }>;
+  searchParams: Promise<{ predio?: string; ver?: string }>;
 }) {
   const { id } = await params;
-  const { predio: predioSelecionado } = await searchParams;
+  const { predio: predioSelecionado, ver } = await searchParams;
   const { supabase, user } = await getUser();
 
   const { data: org } = await supabase.from('organizations').select('*').eq('id', id).maybeSingle();
@@ -113,6 +123,15 @@ export default async function OrganizationPage({
     ? await supabase.from('profiles').select('user_id, nome, email').in('user_id', memberIds)
     : { data: [] };
   const profileOf = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+
+  // "O meu Perfil" (26/10/2026, docs/DECISOES.md): só pintor e fornecedor têm esta reorganização em
+  // separadores — a conta é uma só empresa, e é dela que esta página passa a falar o tempo todo.
+  // Condomínio, administradora e particular mantêm o ecrã de sempre, sem nenhuma destas secções.
+  const isEmpresa = org.kind === 'pintor' || org.kind === 'fornecedor';
+  const separador = ver === 'documentos' || ver === 'equipa' ? ver : 'dados';
+  const minhaFicha = profileOf.get(user!.id);
+  const elegibilidade = caeElegibilidade(org.cae ?? null);
+  const avisoCae = caeAviso(elegibilidade);
 
   const reviewerIds = [...new Set((supplierReviews ?? []).map((r) => r.painter_org_id))];
   const { data: reviewerOrgs } = reviewerIds.length ? await supabase.from('organizations').select('id, nome').in('id', reviewerIds) : { data: [] };
@@ -176,19 +195,10 @@ export default async function OrganizationPage({
         </div>
       </div>
 
-      {org.kind === 'fornecedor' && (
-        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
-          <Link href={`/app/organizacoes/${org.id}/produtos`} className="hover:underline">
-            Subscrição (Stripe), catálogo, descontos e entregas →
-          </Link>
-          <Link href="/app/encomendas" className="hover:underline">
-            Encomendas com confirmação →
-          </Link>
-          <Link href={`/app/organizacoes/${org.id}/adesoes`} className="hover:underline">
-            Descontos a novos aderentes →
-          </Link>
-        </div>
-      )}
+      {/* As ligações rápidas de fornecedor e de pintor que estavam aqui (Subscrição, Encomendas,
+          Descontos; Oportunidades, Gestão de obra, Referências) saíram: já vivem na barra lateral
+          (grupos "Vender"/"Ganhar obra" e o rodapé "O meu Perfil"), repetir aqui era redundante
+          (26/10/2026, docs/DECISOES.md). */}
       {org.kind === 'administradora' && (
         <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
           <Link href={`/app/organizacoes/${org.id}/pedidos/novo`} className="hover:underline">
@@ -199,20 +209,6 @@ export default async function OrganizationPage({
           </Link>
         </div>
       )}
-      {org.kind === 'pintor' && (
-        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
-          <Link href="/app/oportunidades" className="hover:underline">
-            Ver oportunidades de obra →
-          </Link>
-          <Link href="/app/obras" className="font-normal text-slate-600 hover:underline">
-            Gestão de obra
-          </Link>
-          <Link href={`/app/organizacoes/${org.id}/referencias`} className="hover:underline">
-            Referências de fornecedores →
-          </Link>
-        </div>
-      )}
-
       {/* Numa gestora, o cartão de cima fala do **prédio selecionado**, não da gestora: é com prédios que
           ela trabalha o dia todo, e os dados dela prória editam-se no ícone junto ao nome (promotor,
           24/10/2026). Nas outras entidades, continua a mostrar os dados da própria entidade. */}
@@ -264,7 +260,7 @@ export default async function OrganizationPage({
             </>
           )}
         </section>
-      ) : (
+      ) : isEmpresa ? null : (
       <section className={card}>
         <h2 className="font-semibold">Dados da entidade</h2>
         <dl className="mt-4 grid gap-3 text-[17px] sm:grid-cols-2">
@@ -284,6 +280,206 @@ export default async function OrganizationPage({
           )}
         </dl>
       </section>
+      )}
+
+      {/* "O meu Perfil" (26/10/2026, docs/DECISOES.md): só pintor e fornecedor. Três separadores
+          substituem o que estava disperso pela página — dados da entidade, documentos e equipa — e o
+          estado vive no endereço (`?ver=`), como o resto da aplicação (LocalTabs). */}
+      {isEmpresa && (
+        <section className="space-y-5">
+          <LocalTabs
+            tabs={[
+              { href: `/app/organizacoes/${org.id}?ver=dados`, label: 'Dados da entidade', active: separador === 'dados' },
+              { href: `/app/organizacoes/${org.id}?ver=documentos`, label: 'Documentos', active: separador === 'documentos' },
+              { href: `/app/organizacoes/${org.id}?ver=equipa`, label: 'Equipa online', active: separador === 'equipa' },
+            ]}
+          />
+
+          {separador === 'dados' && (
+            <div className="space-y-5">
+              <section className={card}>
+                <EntityCardForm
+                  orgId={org.id}
+                  nome={org.nome}
+                  gerenteNome={minhaFicha?.nome ?? ''}
+                  telefone={org.telefone}
+                  emailContacto={org.email_contacto ?? ''}
+                />
+                <p className="mt-4 text-[15px] text-slate-500">
+                  NIF e morada fiscal ficam na{' '}
+                  <Link href={`/app/organizacoes/${org.id}/editar`} className="font-semibold text-tinta-700 hover:underline">
+                    configuração completa
+                  </Link>
+                  .
+                </p>
+                {avisoCae && (
+                  <p className="mt-4 border-t border-slate-100 pt-4 text-[17px] text-amber-800">{avisoCae}</p>
+                )}
+              </section>
+              <section className={card}>
+                <PasswordForm />
+              </section>
+              <section className={card}>
+                <ChangeEmailForm emailAtual={user!.email!} />
+              </section>
+            </div>
+          )}
+
+          {separador === 'documentos' && (
+            <section id="documentos" className={`${card} scroll-mt-6`}>
+              <h2 className="font-semibold">Documentos</h2>
+              <p className="mt-1 text-[17px] text-slate-600">Documentos para candidaturas a obras.</p>
+              {missing.length > 0 ? (
+                <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px]">
+                  <p className="font-semibold text-red-900">
+                    {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
+                  </p>
+                  <ul className="mt-2 list-disc pl-5 text-red-900">
+                    {missing.map((group) => (
+                      <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-red-800">
+                    A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos. Submeta-o já aqui abaixo.
+                  </p>
+                </div>
+              ) : (
+                org.kind !== 'particular' && (
+                  <p className="mt-3 text-[17px] text-slate-600">Todos os documentos pedidos foram submetidos.</p>
+                )
+              )}
+
+              {docs && docs.length > 0 && (
+                <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
+                  {docs.map((d) => (
+                    <li key={d.id} className="flex flex-wrap justify-between gap-2 py-2">
+                      <span>
+                        <span className="font-medium">{DOC_KIND_LABELS[d.kind]}</span>
+                        <a href={`/app/documentos/${d.id}`} target="_blank" rel="noreferrer" className="text-tinta-700 hover:underline">
+                          {' '}
+                          · {d.nome_ficheiro}
+                        </a>
+                        {d.status === 'rejeitado' && d.notas_validacao && (
+                          <span className="block text-red-700">Motivo: {d.notas_validacao}</span>
+                        )}
+                      </span>
+                      <span className="text-slate-600">
+                        {STATUS_LABELS[d.status]}
+                        {d.valido_ate ? ` · válido até ${ptDate(d.valido_ate)}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {role && role !== 'leitor' && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <DocumentUpload orgId={org.id} orgKind={org.kind} />
+                </div>
+              )}
+            </section>
+          )}
+
+          {separador === 'equipa' && (
+            <section className={card}>
+              <h2 className="font-semibold">Equipa online</h2>
+              <p className="mt-1 text-[17px] text-slate-600">
+                Quem tem acesso à conta da empresa na plataforma — não a equipa que vai à obra.
+              </p>
+              <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
+                {(members ?? []).map((m) => {
+                  const p = profileOf.get(m.user_id);
+                  const isMe = m.user_id === user!.id;
+                  return (
+                    <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <span>
+                        <span className="font-medium">{p?.nome || p?.email || 'Membro'}</span>
+                        {isMe && <span className="text-slate-500"> (você)</span>}
+                        {p?.nome && p.email && <span className="block text-slate-500">{p.email}</span>}
+                      </span>
+                      <span className="flex items-center gap-3">
+                        {owner && !isMe ? (
+                          <MemberRoleSelect orgId={org.id} userId={m.user_id} orgKind={org.kind} role={m.role} />
+                        ) : (
+                          <span className="text-slate-600">{MEMBER_ROLE_LABELS[m.role].label}</span>
+                        )}
+                        {owner && !isMe && (
+                          <form action={removeMember.bind(null, org.id, m.user_id)}>
+                            <button type="submit" className="text-red-700 hover:underline">
+                              Remover
+                            </button>
+                          </form>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {owner && invites && invites.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-[17px] font-semibold">Convites pendentes</h3>
+                  <ul className="mt-2 divide-y divide-slate-100 text-[17px]">
+                    {invites.map((i) => (
+                      <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span>
+                          {i.email} · {MEMBER_ROLE_LABELS[i.role].label}
+                          <span className="block text-slate-500">válido até {ptDate(i.expires_at)}</span>
+                        </span>
+                        <form action={cancelInvitation.bind(null, org.id, i.id)}>
+                          <button type="submit" className="text-red-700 hover:underline">
+                            Cancelar
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {owner && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <InviteForm orgId={org.id} orgKind={org.kind} />
+                </div>
+              )}
+
+              {/* Quadro de capacidades (26/10/2026): o que cada papel pode de facto fazer — lido
+                  diretamente das políticas de RLS (ROLE_CAPABILITIES, src/domain/organization.ts), não
+                  uma lista inventada à parte. */}
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h3 className="text-[17px] font-semibold">O que cada papel pode fazer</h3>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[480px] text-left text-[15px]">
+                    <thead>
+                      <tr className="text-slate-500">
+                        <th className="py-1.5 pr-3 font-normal">Papel</th>
+                        {Object.values(CAPABILITY_LABELS).map((label) => (
+                          <th key={label} className="py-1.5 pr-3 font-normal">
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(Object.keys(ROLE_CAPABILITIES) as MemberRole[])
+                        .filter((r) => r !== 'proprietario')
+                        .map((r) => (
+                          <tr key={r}>
+                            <td className="py-1.5 pr-3 font-medium">{MEMBER_ROLE_LABELS[r].label}</td>
+                            {(Object.keys(CAPABILITY_LABELS) as (keyof typeof CAPABILITY_LABELS)[]).map((cap) => (
+                              <td key={cap} className="py-1.5 pr-3">
+                                {ROLE_CAPABILITIES[r][cap] ? '✓' : '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          )}
+        </section>
       )}
 
       {org.kind === 'fornecedor' && (
@@ -501,6 +697,10 @@ export default async function OrganizationPage({
         </section>
       )}
 
+      {/* Condomínio, administradora e particular: a "Equipa" e os "Documentos de verificação" de
+          sempre, sem separadores — a reorganização em "O meu Perfil" (acima) é só para pintor e
+          fornecedor. */}
+      {!isEmpresa && (
       <section className={card}>
         <h2 className="font-semibold">Equipa</h2>
         <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
@@ -559,10 +759,13 @@ export default async function OrganizationPage({
           </div>
         )}
       </section>
+      )}
 
       {/* id/scroll-mt: destino do atalho "Preencher documento em falta" nas oportunidades
           (ProposalForms.tsx/[id]/page.tsx) — pedido do promotor, 23/10/2026, para quem vem de lá
-          cair exatamente aqui, sem ter de procurar a secção. */}
+          cair exatamente aqui, sem ter de procurar a secção. Para pintor/fornecedor esse atalho passou
+          a apontar para `?ver=documentos`, que já cai no separador "Documentos" acima. */}
+      {!isEmpresa && (
       <section id="documentos" className={`${card} scroll-mt-6`}>
         <h2 className="font-semibold">Documentos de verificação</h2>
         {missing.length > 0 ? (
@@ -614,6 +817,7 @@ export default async function OrganizationPage({
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

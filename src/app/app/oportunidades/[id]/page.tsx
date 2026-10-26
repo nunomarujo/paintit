@@ -131,7 +131,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
       : [];
   // Aviso de documento em falta (licença/certificado IMPIC), reforçado a pedido do promotor
   // (23/10/2026): bem evidente e visível em todos os passos do orçamento (não só na revisão), com
-  // atalho direto para o campo em falta, destacado na página da entidade (`#documentos`, mais abaixo).
+  // atalho direto para o campo em falta, destacado no separador "Documentos" da página da entidade
+  // (`?ver=documentos`, mais abaixo — passou a separador em 26/10/2026, "O meu Perfil").
   const licenseWarning =
     proposal && totals && totals.base > 0 && !hasLicenseFor(totals.base, held)
       ? `Para uma obra deste valor é exigido ${licenseLabel(requiredLicense(totals.base))}, e a sua empresa não tem nenhum validado.`
@@ -362,7 +363,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   assume a responsabilidade.
                 </p>
                 <Link
-                  href={`/app/organizacoes/${org.id}#documentos`}
+                  href={`/app/organizacoes/${org.id}?ver=documentos`}
                   className="mt-2 inline-block rounded-lg border-2 border-red-500 bg-white px-3 py-1.5 font-semibold text-red-700 hover:bg-red-100"
                 >
                   Preencher documento em falta →

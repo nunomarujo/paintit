@@ -14,6 +14,7 @@ import {
   podeApagar,
   type GrupoOrcamentos,
 } from '@/domain/quoteBoard';
+import { caeAviso, caeElegibilidade } from '@/domain/organization';
 import { CreateQuote, RemoveQuote } from './QuoteForms';
 
 const ESTADO_LABELS = { rascunho: 'Rascunho', enviado: 'Enviado', ganho: 'Ganho', perdido: 'Perdido' } as const;
@@ -47,6 +48,8 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     (linhas ?? [])
       .filter((l) => l.quote_id === id && l.inclusao === 'incluido')
       .reduce((n, l) => n + Math.round((l.quantidade * l.preco_unitario) / 100), 0);
+
+  const avisoCae = caeAviso(caeElegibilidade(org.cae ?? null));
 
   const anteriores = (quotes ?? []).map((q) => ({ id: q.id, label: `#${q.numero} — ${q.cliente_nome}` }));
   const guardados = precos ?? 0;
@@ -117,16 +120,28 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         )}
       </header>
 
-      {/* O aviso aparece em qualquer separador: é a coisa que o pintor não pode deixar passar. */}
-      {avisos.length > 0 && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
-          <span aria-hidden className="mr-1">⚠</span>
-          <strong className="font-semibold">
-            {avisos.length === 1 ? 'Há um orçamento feito que nunca foi enviado' : `Há ${avisos.length} orçamentos feitos que nunca foram enviados`}
-          </strong>{' '}
-          — o mais antigo há {avisos[0]!.dias} dias. Enquanto não os der como enviados, o cliente não os recebeu e os
-          preços não ficam guardados.
-        </p>
+      {/* Os avisos aparecem em qualquer separador: são o que o pintor não pode deixar passar. Os dois
+          cabem na mesma banda âmbar — nunca duas bandas de fundo de cor no mesmo ecrã (CLAUDE.md,
+          regra 13). */}
+      {(avisos.length > 0 || avisoCae) && (
+        <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
+          {avisos.length > 0 && (
+            <p>
+              <span aria-hidden className="mr-1">⚠</span>
+              <strong className="font-semibold">
+                {avisos.length === 1 ? 'Há um orçamento feito que nunca foi enviado' : `Há ${avisos.length} orçamentos feitos que nunca foram enviados`}
+              </strong>{' '}
+              — o mais antigo há {avisos[0]!.dias} dias. Enquanto não os der como enviados, o cliente não os recebeu e
+              os preços não ficam guardados.
+            </p>
+          )}
+          {avisoCae && (
+            <p>
+              <span aria-hidden className="mr-1">⚠</span>
+              {avisoCae}
+            </p>
+          )}
+        </div>
       )}
 
       {seccao === 'novo' ? (

@@ -10,12 +10,15 @@ import { redirect } from 'next/navigation';
 import {
   ALLOWED_DOCS,
   DOC_KINDS,
+  MEMBER_ROLES,
   parseBuilding,
+  parseEntityCard,
   parseInvite,
   parseOrganization,
   type BuildingInput,
   type DocKind,
   type FieldErrors,
+  type MemberRole,
   type OrganizationInput,
   type OrgKind,
 } from '@/domain/organization';
@@ -75,15 +78,22 @@ async function addressErrors(morada: string | null, cp: string | null, moradaFie
 }
 
 
-/** Confirma o NIPC e o nome na nif.pt (só pessoas coletivas; sem chave ou com o serviço em baixo, não bloqueia). */
-async function nifErrors(nif: string | null, nome: string): Promise<FieldErrors> {
-  if (!nif || !isCompanyNif(nif)) return {};
+/**
+ * Confirma o NIPC e o nome na nif.pt (só pessoas coletivas; sem chave ou com o serviço em baixo, não
+ * bloqueia). Devolve também o CAE/atividade da mesma consulta — para o aviso de elegibilidade de
+ * pintura (`caeElegibilidade`, `src/domain/organization.ts`) ficar atualizado sempre que o NIF é
+ * confirmado, em vez de se perder a informação que a nif.pt já tinha devolvido.
+ */
+async function nifCheck(nif: string | null, nome: string): Promise<{ errors: FieldErrors; cae: string | null; atividade: string | null }> {
+  if (!nif || !isCompanyNif(nif)) return { errors: {}, cae: null, atividade: null };
   const r = await lookupNif(nif);
-  if (r === 'indisponivel') return {};
-  if (!r.found) return { nif: 'NIF não encontrado. Confirme os 9 algarismos.' };
-  if (!r.ativo) return { nif: 'Este NIF consta como inativo.' };
-  if (!nameMatchesOfficial(nome, r.nome)) return { nome: 'O nome não corresponde ao titular deste NIF. Use a denominação oficial.' };
-  return {};
+  if (r === 'indisponivel') return { errors: {}, cae: null, atividade: null };
+  if (!r.found) return { errors: { nif: 'NIF não encontrado. Confirme os 9 algarismos.' }, cae: null, atividade: null };
+  if (!r.ativo) return { errors: { nif: 'Este NIF consta como inativo.' }, cae: null, atividade: null };
+  if (!nameMatchesOfficial(nome, r.nome)) {
+    return { errors: { nome: 'O nome não corresponde ao titular deste NIF. Use a denominação oficial.' }, cae: null, atividade: null };
+  }
+  return { errors: {}, cae: r.cae, atividade: r.atividade };
 }
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -91,7 +101,8 @@ const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entr
 export async function createOrganization(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
-  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...(await nifErrors(parsed.value.nif, parsed.value.nome)) };
+  const nif = await nifCheck(parsed.value.nif, parsed.value.nome);
+  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...nif.errors };
   if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
@@ -99,7 +110,7 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
   const v = parsed.value;
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ kind: v.kind, ...orgColumns(v), created_by: user.id })
+    .insert({ kind: v.kind, ...orgColumns(v), cae: nif.cae, cae_atividade: nif.atividade, created_by: user.id })
     .select('id')
     .single();
   if (error || !data) {
@@ -156,13 +167,25 @@ export async function createBuilding(orgId: string, _prev: FormState, form: Form
 export async function updateOrganization(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseOrganization(form);
   if (!parsed.value) return { errors: parsed.errors };
-  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...(await nifErrors(parsed.value.nif, parsed.value.nome)) };
+  const nif = await nifCheck(parsed.value.nif, parsed.value.nome);
+  const addrErr = { ...(await addressErrors(parsed.value.moradaFiscal, parsed.value.codigoPostal, 'moradaFiscal')), ...nif.errors };
   if (Object.keys(addrErr).length) return { errors: addrErr };
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
+  // Só se escreve o CAE/atividade quando a consulta de agora trouxe algum (nunca se apaga um CAE já
+  // conhecido por a nif.pt estar temporariamente indisponível, ou por este NIF em particular não trazer
+  // atividade numa consulta — ausência de dados novos não é o mesmo que "deixou de ter CAE").
+  const caePatch: { cae?: string | null; cae_atividade?: string | null } = {};
+  if (nif.cae !== null) caePatch.cae = nif.cae;
+  if (nif.atividade !== null) caePatch.cae_atividade = nif.atividade;
+
   // O tipo de entidade não muda depois de criada; .select() confirma que a RLS deixou alterar.
-  const { data, error } = await supabase.from('organizations').update(orgColumns(parsed.value)).eq('id', orgId).select('id');
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ ...orgColumns(parsed.value), ...caePatch })
+    .eq('id', orgId)
+    .select('id');
   if (error || !data || data.length === 0) {
     return { errors: {}, message: 'Não foi possível guardar. Só proprietários e gestores podem alterar estes dados.' };
   }
@@ -357,6 +380,25 @@ export async function removeMember(orgId: string, userId: string) {
   revalidatePath(`/app/organizacoes/${orgId}`);
 }
 
+/**
+ * Mudar o papel de um colega em "Equipa online" (26/10/2026, docs/DECISOES.md): o `<select>` da linha
+ * do membro submete-se a si próprio quando muda. `role` chega dentro do `FormData`, do navegador, e não
+ * é de confiança (CLAUDE.md, regra 10): valida-se aqui contra a lista real de papéis, e nunca para
+ * 'proprietario' (só há um, atribuído na criação da entidade — isto é uma troca de papel entre os
+ * outros, não uma sucessão). Quem decide de facto é a política `org_members_update` (RLS, migração
+ * 20261026210000): só o proprietário, nunca o seu próprio papel. Falhar em silêncio como `removeMember`
+ * é aceitável aqui: o `<select>` já só oferece papéis válidos e já não aparece na própria linha do
+ * proprietário.
+ */
+export async function changeMemberRole(orgId: string, userId: string, form: FormData) {
+  const role = String(form.get('role') ?? '');
+  if (!(MEMBER_ROLES as readonly string[]).includes(role) || role === 'proprietario') return;
+  const { supabase, user } = await getUser();
+  if (!user || user.id === userId) return;
+  await supabase.from('org_members').update({ role: role as MemberRole }).eq('org_id', orgId).eq('user_id', userId);
+  revalidatePath(`/app/organizacoes/${orgId}`);
+}
+
 export async function acceptInvitation(invitationId: string) {
   const { supabase, user } = await getUser();
   if (!user) redirect('/entrar');
@@ -380,6 +422,36 @@ export async function acceptInvitation(invitationId: string) {
 
   revalidatePath('/app');
   redirect(`/app/organizacoes/${inv.org_id}`);
+}
+
+/**
+ * O cartão de topo de "O meu Perfil" (26/10/2026, docs/DECISOES.md): nome da empresa e contactos ficam
+ * em `organizations`; o nome do gerente é o nome pessoal de quem está a editar e grava-se em `profiles`,
+ * como já fazia `updateProfile` — aqui os dois gravam-se juntos, num único formulário, porque é assim
+ * que aparecem ao utilizador neste ecrã.
+ */
+export async function updateEntityCard(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = parseEntityCard(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const v = parsed.value;
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ nome: v.nome, telefone: v.telefone, email_contacto: v.emailContacto })
+    .eq('id', orgId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar. Só proprietários e gestores podem alterar estes dados.' };
+  }
+
+  const { error: perfilError } = await supabase.from('profiles').update({ nome: v.gerenteNome }).eq('user_id', user.id);
+  if (perfilError) return { errors: {}, message: 'Os dados da empresa ficaram guardados, mas o nome do gerente não.' };
+
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  revalidatePath('/app', 'layout');
+  return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
 export async function updateProfile(_prev: FormState, form: FormData): Promise<FormState> {

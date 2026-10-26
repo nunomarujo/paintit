@@ -270,6 +270,87 @@ export function parseOrganization(form: FormData): { value?: OrganizationInput; 
   };
 }
 
+/**
+ * O cartão de topo de "O meu Perfil" (26/10/2026, docs/DECISOES.md): nome da empresa, nome do gerente
+ * (o nome pessoal de quem está a editar — `profiles.nome`), telefone e mail de contacto. É um
+ * formulário mais pequeno do que `parseOrganization` — não toca no NIF nem na morada fiscal, que
+ * continuam na página de edição completa — por isso tem o seu próprio parser, com o seu próprio
+ * requisito: aqui o mail de contacto é obrigatório (pedido do promotor — "um mail pelo menos tem que
+ * estar registado"), ao contrário de `parseOrganization`, onde é opcional.
+ */
+export interface EntityCardInput {
+  nome: string;
+  gerenteNome: string;
+  telefone: string | null;
+  emailContacto: string;
+}
+
+export function parseEntityCard(form: FormData): { value?: EntityCardInput; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const nome = text(form.get('nome'));
+  if (!nome) errors.nome = 'Indique o nome da empresa.';
+  const gerenteNome = text(form.get('gerenteNome'));
+  if (!gerenteNome) errors.gerenteNome = 'Indique o nome do gerente.';
+  const telefone = text(form.get('telefone'));
+  const emailContacto = text(form.get('emailContacto'));
+  if (!emailContacto) errors.emailContacto = 'Indique um mail de contacto.';
+  else if (!EMAIL.test(emailContacto)) errors.emailContacto = 'Email inválido.';
+  if (Object.keys(errors).length > 0) return { errors };
+  return { errors, value: { nome: nome!, gerenteNome: gerenteNome!, telefone, emailContacto: emailContacto! } };
+}
+
+/**
+ * O CAE (código de atividade económica) devolvido pela consulta ao NIF (nif.pt) cobre pintura ou
+ * construção? Secção F da CAE-Rev.3 (divisões 41-43: construção de edifícios, engenharia civil e
+ * atividades especializadas de construção, onde vive a pintura em si, 43341) — aceite em bloco, porque
+ * muitas empresas de pintura estão registadas com um CAE de construção mais geral, não o específico.
+ *
+ * `null` ou um código que a consulta não devolveu conta como "por verificar", não como "não elegível":
+ * a plataforma não bloqueia por uma pergunta a que ainda não sabe a resposta.
+ */
+export type CaeElegibilidade = 'elegivel' | 'nao_elegivel' | 'por_verificar';
+
+export function caeElegibilidade(cae: string | null): CaeElegibilidade {
+  if (!cae) return 'por_verificar';
+  return ['41', '42', '43'].includes(cae.slice(0, 2)) ? 'elegivel' : 'nao_elegivel';
+}
+
+/** Aviso não bloqueante (nunca impede o orçamento) — null quando não há nada a dizer. */
+export function caeAviso(elegibilidade: CaeElegibilidade): string | null {
+  if (elegibilidade === 'elegivel') return null;
+  return 'O CAE da atividade desta empresa precisa de ser confirmado quanto à elegibilidade para executar este tipo de serviço.';
+}
+
+/**
+ * "Equipa online" (26/10/2026): o que cada papel pode de facto fazer, não uma lista à parte — lê-se
+ * diretamente das políticas de RLS que já existem (private.can_manage_org em organizations/
+ * painter_quotes, "role <> 'leitor'" nos documentos, "proprietario" em org_members/org_invitations).
+ * Um quadro inventado que não correspondesse à base de dados seria pior do que nenhum: pareceria
+ * segurança sem o ser. "Criar" e "enviar" orçamentos aparecem juntos porque a base não distingue as
+ * duas ações — editar um orçamento (incluindo marcá-lo enviado) usa a mesma política que o criar.
+ */
+export interface RoleCapabilities {
+  criarEEnviarOrcamentos: boolean;
+  editarDadosDaEmpresa: boolean;
+  carregarDocumentos: boolean;
+  giereEquipaOnline: boolean;
+}
+
+export const ROLE_CAPABILITIES: Record<MemberRole, RoleCapabilities> = {
+  proprietario: { criarEEnviarOrcamentos: true, editarDadosDaEmpresa: true, carregarDocumentos: true, giereEquipaOnline: true },
+  gestor: { criarEEnviarOrcamentos: true, editarDadosDaEmpresa: true, carregarDocumentos: true, giereEquipaOnline: false },
+  financeiro: { criarEEnviarOrcamentos: false, editarDadosDaEmpresa: false, carregarDocumentos: true, giereEquipaOnline: false },
+  vendedor: { criarEEnviarOrcamentos: false, editarDadosDaEmpresa: false, carregarDocumentos: true, giereEquipaOnline: false },
+  leitor: { criarEEnviarOrcamentos: false, editarDadosDaEmpresa: false, carregarDocumentos: false, giereEquipaOnline: false },
+};
+
+export const CAPABILITY_LABELS: Record<keyof RoleCapabilities, string> = {
+  criarEEnviarOrcamentos: 'Criar e enviar orçamentos',
+  editarDadosDaEmpresa: 'Editar os dados da empresa',
+  carregarDocumentos: 'Carregar documentos',
+  giereEquipaOnline: 'Gerir quem tem acesso',
+};
+
 export function parseBuilding(form: FormData): { value?: BuildingInput; errors: FieldErrors } {
   const errors: FieldErrors = {};
   const nomeInterno = text(form.get('nomeInterno'));
