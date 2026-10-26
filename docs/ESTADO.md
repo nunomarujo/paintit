@@ -1,6 +1,9 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 25/10/2026, fim do dia (**Mapa de Contratos Públicos** construído, e um número de venda
+Atualizado a 26/10/2026, de madrugada (**Gestão de obra refeita** segundo o protótipo do promotor,
+**letra maior em todo o site** depois de uma auditoria por três agentes, **mapa de contratos públicos
+carregado** com 15 anos e somado na base, e o **artigo `/obra-publica`** publicado — secção 6.13).
+Estado anterior, 25/10/2026, fim do dia (**Mapa de Contratos Públicos** construído, e um número de venda
 corrigido — secção 6.12). O dia 25/10 teve várias sessões seguidas (plano Pro no Stripe, portão do Pro,
 orçamentos em separadores, Gestão de Obra renomeada e redesenhada com a sua primeira entrega, página de
 preços sem percentagens de comissão): **o registo completo, por ordem e com o raciocínio, está em
@@ -1013,6 +1016,42 @@ de propósito, e as nove de administração (`acc_close_period`, `referral_void`
 e companhia) fecham por dentro em `platform_admins`; as duas de factura de resgate (`*_redemption_invoice`)
 estão certas como estão, porque é o fornecedor que carrega a sua própria factura, com `can_manage_org` e o
 caminho obrigado a começar no `org_id` dele. Nada a mudar.
+
+
+### 6.13 Gestão de obra, legibilidade e o mapa carregado (26/10/2026, madrugada)
+
+**O mapa tem dados.** A carga correu: **9 393 contratos de pintura, 2012 a 2026, 770,9 M€, 1 332
+entidades**. Correu em duas tentativas — a primeira gravou 2019 a 2025 e falhou 2026 porque o
+ficheiro do ano em curso traz quatro contratos a dobrar e a base recusa a gravação inteira quando a
+mesma chave aparece duas vezes. Corrigido, e a tarefa passa a escrever o resultado nos registos.
+
+O ecrã é agora somado na base (`mapa_contratos`): eram 5,7 MB por abertura de página, são 20 kB.
+
+**A Gestão de obra foi refeita** segundo o protótipo. `Hoje` abre na obra em curso com três acções
+grandes, a equipa do dia, o que está parado e as fases; `Contas` põe o resultado previsto como título
+e explica de onde vem. A barra lateral tinha um defeito que punha os separadores de dentro debaixo do
+item errado.
+
+**O site inteiro passou por uma auditoria de três agentes** — tipografia, espaço, coerência visual. O
+corpo subiu de 14 para 17px e a escala passou de 26 degraus para seis. O achado mais sério: **154 dos
+201 campos de formulário estavam abaixo de 16px**, e abaixo desse limiar o Safari do iPhone dá zoom a
+cada toque — exactamente quem preenche um levantamento numa obra. Mais: quatro falhas de contraste
+(uma delas no botão mais visto do produto) e **catorze classes de cor que não existiam** e por isso
+não pintavam nada. Tudo corrigido. As regras de alarme e de tipografia subiram para o `CLAUDE.md`
+(13 e 14).
+
+**O mapa de contratos deixou de ser o destaque da página de preços**, por decisão do promotor: são
+cerca de 977 lugares de convidado por ano em todo o país, e a maior parte dos subscritores nunca verá
+um convite atribuível a isto. Passa a dizer o que não promete e a ligar ao artigo.
+
+**Acesso de cortesia** em `nunomarujo+teste4@gmail.com`: Pro activo até 2030, sem Stripe, a zero
+euros — não cobra nem factura.
+
+**Por fazer, e vem das auditorias:** os 59 botões feitos à mão em 22 assinaturas diferentes, os nove
+raios de canto, as 38 formas de banda de aviso, e o reapontamento da paleta antiga (`tinta`/`slate`,
+173 ficheiros) para as variáveis da marca — que se faz no `tailwind.config.ts` e não ficheiro a
+ficheiro. Fica também uma contradição por decidir: a regra nova reserva o vermelho para o que já
+fechou ou caducou, e a decisão de 23/10/2026 mandou pôr o aviso de documento em falta a vermelho.
 
 ---
 
