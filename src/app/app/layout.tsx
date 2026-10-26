@@ -10,28 +10,6 @@ import { isPlatformAdmin } from '@/lib/access';
 import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
-import {
-  IconHome,
-  IconClipboard,
-  IconFlag,
-  IconReceipt,
-  IconDocCheck,
-  IconBox,
-  IconSearch,
-  IconRoller,
-  IconHardHat,
-  IconCard,
-  IconLink,
-  IconTag,
-  IconUsers,
-  IconPercent,
-  IconGauge,
-  IconInbox,
-  IconBuilding,
-  IconScale,
-  IconCalculator,
-  IconServer,
-} from '@/components/NavIcons';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { supabase, user } = await getUser();
@@ -58,8 +36,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const porEnviar = pintorId ? await contarOrcamentosPorEnviar(supabase, pintorId) : 0;
 
   // Cada conta vê o que lhe diz respeito; uma conta sem entidades vê só o início.
-  const work: NavItem[] = [{ href: '/app', label: 'Início', icon: IconHome, count: unread ?? 0 }];
-  if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: IconClipboard });
+  const work: NavItem[] = [{ href: '/app', label: 'Início', icon: 'casa', count: unread ?? 0 }];
+  if (client) work.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: 'prancheta' });
   // Ganhar obra é uma intenção só, com três origens: os pedidos de clientes que entram pela
   // plataforma, o mapa de quem contrata pintura no sector público, e os concursos que são anunciados.
   //
@@ -71,7 +49,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     work.push({
       href: '/app/oportunidades',
       label: 'Ganhar obra',
-      icon: IconFlag,
+      icon: 'bandeira',
       children: [
         { href: '/app/oportunidades', label: 'Pedidos de clientes', padrao: true },
         { href: '/app/obras-publicas', label: 'Obra pública · quem contrata' },
@@ -83,7 +61,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     work.push({
       href: '/app/orcamentos',
       label: 'Orçamentos',
-      icon: IconReceipt,
+      icon: 'recibo',
       children: [
         { href: '/app/orcamentos?ver=novo', label: 'Novo orçamento' },
         { href: '/app/orcamentos?ver=feitos&grupo=preenchimento', label: 'Em preenchimento', aviso: porEnviar > 0 },
@@ -91,48 +69,48 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/orcamentos?ver=feitos&grupo=arquivo', label: 'Arquivo' },
       ],
     });
-  if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações', icon: IconDocCheck });
-  if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas', icon: IconBox });
-  if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: IconSearch });
-  const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais', icon: IconRoller }] : [];
+  if (client || kinds.has('pintor')) work.push({ href: '/app/contratacoes', label: 'Contratações', icon: 'documento' });
+  if (kinds.has('fornecedor')) work.push({ href: '/app/encomendas', label: 'Encomendas', icon: 'caixa' });
+  if (fornecedorId) work.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: 'lupa' });
+  const more: NavItem[] = kinds.size > 0 ? [{ href: '/app/catalogo', label: 'Catálogo de materiais', icon: 'rolo' }] : [];
   if (kinds.has('pintor')) {
     more.push({
       href: '/app/obras',
       label: 'Gestão de obra',
-      icon: IconHardHat,
+      icon: 'capacete',
       children: [
         { href: '/app/obras?ver=hoje', label: 'Hoje', padrao: true },
         { href: '/app/obras?ver=equipa', label: 'Equipa' },
         { href: '/app/obras?ver=contas', label: 'Contas' },
       ],
     });
-    more.push({ href: '/app/subscricao', label: 'Planos & Subscrições', icon: IconCard });
+    more.push({ href: '/app/subscricao', label: 'Planos & Subscrições', icon: 'cartao' });
     // Referências de fornecedores: é o pintor que indica um fornecedor (desconto na própria comissão) —
     // a página (`/app/organizacoes/[id]/referencias/page.tsx`) só existe para `org.kind === 'pintor'`.
     // Este link apontava por erro para a entidade do fornecedor (abaixo), onde dava sempre 404 — link
     // partido encontrado na auditoria de UX de 23/10/2026. Uma conta de pintor é sempre uma só empresa
     // (allowedOrgKinds em organization.ts), por isso usa-se o mesmo padrão de `fornecedorId` abaixo.
     const pintorId = (memberships ?? []).find((m) => m.organizations.kind === 'pintor')?.organizations.id;
-    if (pintorId) more.push({ href: `/app/organizacoes/${pintorId}/referencias`, label: 'Referências de fornecedores', icon: IconLink });
+    if (pintorId) more.push({ href: `/app/organizacoes/${pintorId}/referencias`, label: 'Referências de fornecedores', icon: 'elo' });
   }
   if (fornecedorId) {
     more.push(
-      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos', icon: IconTag },
-      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes', icon: IconUsers },
-      { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão', icon: IconPercent },
+      { href: `/app/organizacoes/${fornecedorId}/produtos`, label: 'Produtos e descontos', icon: 'etiqueta' },
+      { href: `/app/organizacoes/${fornecedorId}/clientes`, label: 'Clientes', icon: 'pessoas' },
+      { href: `/app/organizacoes/${fornecedorId}/adesoes`, label: 'Comissões de adesão', icon: 'percentagem' },
     );
   }
   // Equipa da plataforma: o backoffice organizado por secções, com o que espera por uma pessoa em cada uma.
   const q = admin ? await queueCounts(supabase) : null;
   const backoffice: NavItem[] = q
     ? [
-        { href: '/app/backoffice', label: 'Painel', icon: IconGauge, exact: true },
-        { href: '/app/backoffice/pedidos', label: 'Pedidos', icon: IconInbox, count: q.denuncias + q.fotografias },
-        { href: '/app/backoffice/entidades', label: 'Entidades', icon: IconBuilding, count: q.documentos + q.regimes },
-        { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: IconDocCheck },
-        { href: '/app/backoffice/moderacao', label: 'Moderação', icon: IconScale, count: q.revisoes },
-        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: IconCalculator, count: q.resgates + q.banco },
-        { href: '/app/backoffice/sistema', label: 'Sistema', icon: IconServer },
+        { href: '/app/backoffice', label: 'Painel', icon: 'mostrador', exact: true },
+        { href: '/app/backoffice/pedidos', label: 'Pedidos', icon: 'entrada', count: q.denuncias + q.fotografias },
+        { href: '/app/backoffice/entidades', label: 'Entidades', icon: 'predio', count: q.documentos + q.regimes },
+        { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: 'documento' },
+        { href: '/app/backoffice/moderacao', label: 'Moderação', icon: 'balanca', count: q.revisoes },
+        { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: 'calculadora', count: q.resgates + q.banco },
+        { href: '/app/backoffice/sistema', label: 'Sistema', icon: 'servidor' },
       ]
     : [];
   // Uma conta só de equipa (sem entidades) vê só o backoffice.

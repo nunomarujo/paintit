@@ -181,3 +181,37 @@ export const IconServer = (p: SVGProps<SVGSVGElement>) => (
     <path d="M7.5 7h.01M7.5 17h.01" />
   </Icon>
 );
+
+/**
+ * Os ícones por nome, para a navegação os poder pedir por uma string.
+ *
+ * O `layout.tsx` é componente de servidor e o `AppNav` é de cliente. Passar o componente do ícone
+ * directamente de um para o outro atira em execução — *"Functions cannot be passed directly to
+ * Client Components"* —, e atirava em **todas** as páginas da aplicação (produção em baixo a
+ * 26/10/2026, 12:49). Uma função não atravessa essa fronteira; uma string atravessa. O servidor diz
+ * o nome, o cliente procura-o aqui.
+ */
+export const ICONES = {
+  casa: IconHome,
+  prancheta: IconClipboard,
+  bandeira: IconFlag,
+  recibo: IconReceipt,
+  documento: IconDocCheck,
+  caixa: IconBox,
+  lupa: IconSearch,
+  rolo: IconRoller,
+  capacete: IconHardHat,
+  cartao: IconCard,
+  elo: IconLink,
+  etiqueta: IconTag,
+  pessoas: IconUsers,
+  percentagem: IconPercent,
+  mostrador: IconGauge,
+  entrada: IconInbox,
+  predio: IconBuilding,
+  balanca: IconScale,
+  calculadora: IconCalculator,
+  servidor: IconServer,
+} as const;
+
+export type NomeDeIcone = keyof typeof ICONES;

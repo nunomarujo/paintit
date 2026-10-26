@@ -3,12 +3,17 @@
 import Link from 'next/link';
 import { Fragment, type ComponentType, type SVGProps } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { ICONES, type NomeDeIcone } from '@/components/NavIcons';
 
 export interface NavItem {
   href: string;
   label: string;
-  /** Ícone do item (src/components/NavIcons.tsx) — lê-se a lista pela forma antes do texto. */
-  icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  /**
+   * Nome do ícone (src/components/NavIcons.tsx) — lê-se a lista pela forma antes do texto.
+   *
+   * O nome e não o componente: isto atravessa a fronteira servidor→cliente, e uma função não.
+   */
+  icon?: NomeDeIcone;
   /** Contagem a mostrar (ex.: avisos por ler). */
   count?: number;
   /** Só fica ativo no endereço exato (ex.: o painel, que é o início de uma secção com subpáginas). */
@@ -66,7 +71,7 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
             const algumBate = aberto && i.children!.some((c) => !c.padrao && activeChild(c.href));
             const activo = (c: { href: string; padrao?: boolean }) =>
               c.padrao ? !algumBate && activeChild(c.href) : activeChild(c.href);
-            const Icon = i.icon;
+            const Icon = i.icon ? ICONES[i.icon] : null;
             return (
               <Fragment key={i.href}>
                 <Link
