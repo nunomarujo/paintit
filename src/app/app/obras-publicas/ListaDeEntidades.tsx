@@ -54,6 +54,11 @@ export function ListaDeEntidades({ todas, nif }: { todas: EntidadeDoMapa[]; nif:
     return [...haver].sort((a, b) => a.localeCompare(b, 'pt'));
   }, [todas]);
 
+  /*
+   * As sugestões só aparecem quando a pessoa as pede, ou seja, quando escreve. Tocar na caixa que já
+   * tem um nome lá dentro não faz saltar uma lista por cima dos contratos — e, depois de aceitar uma
+   * sugestão, voltar à caixa para apagar uma letra não reabre o que já estava decidido.
+   */
   const propostas = useMemo(() => (aberto ? sugestoes(termo, todas) : []), [aberto, termo, todas]);
 
   const lista = useMemo(
@@ -101,6 +106,13 @@ export function ListaDeEntidades({ todas, nif }: { todas: EntidadeDoMapa[]; nif:
       return;
     }
     if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+    // A seta é um pedido: com a caixa já escrita e a lista fechada, volta a abri-la.
+    if (!aberto) {
+      ev.preventDefault();
+      setAberto(true);
+      setMarcado(ev.key === 'ArrowDown' ? 0 : -1);
+      return;
+    }
     if (propostas.length === 0) return;
     ev.preventDefault();
     setMarcado((i) => {
@@ -133,7 +145,6 @@ export function ListaDeEntidades({ todas, nif }: { todas: EntidadeDoMapa[]; nif:
               setAberto(true);
               setMarcado(-1);
             }}
-            onFocus={() => setAberto(true)}
             // `onBlur` com atraso: sem ele, o clique numa sugestão fecha a lista antes de a registar.
             onBlur={() => window.setTimeout(() => setAberto(false), 120)}
             onKeyDown={teclas}
