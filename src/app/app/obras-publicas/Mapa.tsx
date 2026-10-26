@@ -44,10 +44,13 @@ export async function Mapa({
   const distritos = prefs?.distritos ?? [];
   const desde = tudo ? null : new Date().getFullYear() - (ANOS_DO_MAPA - 1);
 
+  // `undefined` e não `null`: o argumento omitido deixa valer o valor por omissão da função, que é
+  // exactamente o que se quer (sem corte de ano, sem NIF). É também a forma que os tipos gerados a
+  // partir da base aceitam.
   const { data, error } = await supabase.rpc('mapa_contratos', {
     p_distritos: distritos,
-    p_desde: desde,
-    p_nif: nif,
+    p_desde: desde ?? undefined,
+    p_nif: nif ?? undefined,
   });
 
   const onde = distritos.length > 0 ? distritos.join(', ') : 'todo o país';

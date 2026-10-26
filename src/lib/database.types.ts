@@ -1865,7 +1865,7 @@ export type Database = {
       // `src/domain/mapaContratos.ts`: uma função que devolve `jsonb` chega aqui como `Json`, e é no
       // domínio que a forma está escrita e testada.
       mapa_contratos: {
-        Args: { p_distritos?: string[] | null; p_desde?: number | null; p_nif?: string | null };
+        Args: { p_desde?: number; p_distritos?: string[]; p_nif?: string };
         Returns: Json;
       };
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
