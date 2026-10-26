@@ -40,21 +40,20 @@ export interface NavItem {
   }[];
 }
 
+export interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
 /**
- * Navegação da área de trabalho: lateral sempre aberta em ecrã largo, sem alterações. Em telemóvel
- * fica fechada por omissão dentro de `<details>`, a mostrar só o item onde se está — antes a lista
- * inteira corria numa só linha horizontal e era cortada a meio do ecrã, sem indicação nenhuma de que
- * havia mais (capturas do promotor, 26/10/2026). Um toque na linha abre a lista completa, agrupada
- * como no ecrã largo, com os itens de cada grupo a dar a volta (flex-wrap) em vez de scroll.
+ * Lógica partilhada entre a barra lateral (`AppNav`, ecrã largo) e o menu de telemóvel
+ * (`MobileNavMenu.tsx`, botão no canto superior direito, 26/10/2026): quem está activo e como
+ * desenhar um grupo. Uma função só, para as duas versões nunca poderem divergir.
  *
- * `<details>` nativo e não `useState`, pela mesma razão de ConcelhosPicker.tsx ("sem JavaScript
- * nenhum" sempre que dá) — mas aqui não dá para também forçar sempre aberto em ecrã largo só com
- * `<details>` e CSS, de forma fiável entre browsers (o conteúdo fechado deixa de fazer parte da
- * árvore de acessibilidade, e isso não se contorna por fora com um `display` do autor). Por isso há
- * duas versões da mesma lista de grupos — uma dentro do `<details>` (só visível em telemóvel), outra
- * sempre visível (só em ecrã largo) — geradas pela mesma função, para não haver duas fontes da verdade.
+ * `onNavigate` fecha o menu de telemóvel ao escolher um destino (pedido do promotor); a barra
+ * lateral, que nunca se fecha, não passa nada.
  */
-export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }[] }) {
+export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
   const path = usePathname();
   const params = useSearchParams();
   const dentro = (href: string) => path === href || path.startsWith(`${href}/`);
@@ -74,10 +73,10 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
     return [...pedidos].every(([k, v]) => params.get(k) === v);
   };
 
-  const renderGroup = (g: { title: string; items: NavItem[] }) => (
+  const renderGroup = (g: NavGroup) => (
     <div key={g.title}>
       <p className="eyebrow px-3 pb-2 text-marca-muted">{g.title}</p>
-      <div className="flex flex-wrap gap-1 md:block md:space-y-0.5">
+      <div className="space-y-0.5">
         {g.items.map((i) => {
           const aberto = active(i) && !!i.children?.length;
           // Os filhos saem logo a seguir ao item a que pertencem. Estiveram a ser desenhados
@@ -91,8 +90,9 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
             <Fragment key={i.href}>
               <Link
                 href={i.href}
+                onClick={onNavigate}
                 aria-current={active(i) ? 'page' : undefined}
-                className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[15px] ${
+                className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[15px] ${
                   active(i)
                     ? 'bg-marca-cream font-semibold text-marca-ink'
                     : 'text-marca-muted hover:bg-marca-cream/60 hover:text-marca-ink'
@@ -106,16 +106,15 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                 {i.count ? <span className="rounded-full bg-marca-orange-deep px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
               </Link>
               {aberto && (
-                // A régua acompanha só os filhos deste item. No telemóvel a linha dos filhos fica
-                // inteira (basis-full) para não se misturar nos itens-pílula do grupo, e dá a volta
-                // (flex-wrap) tal como o resto — mesma razão da nota acima.
-                <div className="flex w-full flex-wrap gap-1 md:ml-3 md:w-auto md:block md:space-y-0.5 md:border-l md:border-marca-border">
+                // A régua acompanha só os filhos deste item.
+                <div className="ml-3 space-y-0.5 border-l border-marca-border">
                   {i.children!.map((c) => (
                     <Link
                       key={c.href}
                       href={c.href}
+                      onClick={onNavigate}
                       aria-current={activo(c) ? 'page' : undefined}
-                      className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 py-1.5 text-[15px] md:pl-4 ${
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-[9px] py-1.5 pl-4 text-[15px] ${
                         activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
                       }`}
                     >
@@ -133,23 +132,16 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
   );
 
   const atual = groups.flatMap((g) => g.items).find(active);
-  const IconeAtual = atual?.icon ? ICONES[atual.icon] : null;
+  return { renderGroup, atual };
+}
 
+/** Navegação da área de trabalho: barra lateral, só em ecrã largo — sempre aberta, sem alterações
+ * (26/10/2026). Em telemóvel, ver `MobileNavMenu.tsx`: botão no canto superior direito. */
+export function AppNav({ groups }: { groups: NavGroup[] }) {
+  const { renderGroup } = useAppNavGroups(groups);
   return (
-    <nav aria-label="Navegação principal">
-      <details className="md:hidden">
-        <summary
-          className="flex cursor-pointer select-none items-center justify-between gap-2 rounded-[9px] bg-marca-cream px-3 py-2 text-[15px] font-semibold text-marca-ink [&::-webkit-details-marker]:hidden"
-        >
-          <span className="flex items-center gap-2.5">
-            {IconeAtual && <IconeAtual className="h-[18px] w-[18px] shrink-0 text-marca-orange-deep" />}
-            {atual?.label ?? 'Navegação'}
-          </span>
-          <span aria-hidden>▾</span>
-        </summary>
-        <div className="mt-3 space-y-4">{groups.map(renderGroup)}</div>
-      </details>
-      <div className="hidden md:block md:space-y-6">{groups.map(renderGroup)}</div>
+    <nav aria-label="Navegação principal" className="hidden md:block md:space-y-6">
+      {groups.map(renderGroup)}
     </nav>
   );
 }

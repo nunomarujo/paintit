@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { signOut } from '@/app/entrar/actions';
 import { AppNav, type NavItem } from '@/components/AppNav';
+import { MobileNavMenu } from '@/components/MobileNavMenu';
 import { contarOrcamentosPorEnviar } from '@/lib/queries';
 import { StrikeDialog } from '@/components/StrikeDialog';
 import { BrandMark } from '@/components/BrandMark';
@@ -124,9 +125,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen md:grid md:grid-cols-[235px_minmax(0,1fr)] print:block">
       <aside className="print:hidden border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
-        <Link href="/app" className="block px-1 md:px-3">
-          <BrandMark tone="marca" />
-        </Link>
+        {/* Em telemóvel o botão de navegação fica aqui, no canto superior direito, ao lado da marca
+            (pedido do promotor, 26/10/2026, depois de ver a app ao vivo) — não mais a barra lateral
+            inteira a abrir por baixo do conteúdo. `MobileNavMenu.tsx` já se esconde sozinho em ecrã
+            largo (`md:hidden`); esta linha só existe para o alinhar à direita da marca em telemóvel. */}
+        <div className="flex items-center justify-between md:block">
+          <Link href="/app" className="block px-1 md:px-3">
+            <BrandMark tone="marca" />
+          </Link>
+          <MobileNavMenu
+            groups={groups}
+            meuPerfil={meuPerfil}
+            email={user.email ?? ''}
+            mostrarSubscricao={kinds.has('pintor')}
+            pintorId={pintorId}
+            leave={leave}
+          />
+        </div>
         <p className="eyebrow mb-5 mt-2 hidden px-3 text-marca-muted md:block">Empreitadas de pintura</p>
         <div className="mt-3 md:mt-0">
           <AppNav groups={groups} />
@@ -135,11 +150,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             Pintor ou fornecedor: um só cartão "O meu Perfil", com o nome da empresa (não o email) —
             é lá dentro, em separadores, que ficam os dados da entidade, os documentos e a equipa online
             (26/10/2026, docs/DECISOES.md). O cliente puro não tem empresa a mostrar: continua a ver o
-            email e o link "Perfil" de sempre.
-            Visível também em telemóvel (26/10/2026): estava `hidden md:block`, e "Plano e subscrição"
-            e "Referências de fornecedores" ficavam sem nenhum acesso em telemóvel — o cabeçalho móvel,
-            em baixo, só tinha "O meu Perfil" e "Sair" (capturas do promotor). */}
-        <div className="mt-auto border-t border-marca-border px-3 pt-4 text-[15px] md:block">
+            email e o link "Perfil" de sempre. Só em ecrã largo (26/10/2026): em telemóvel o mesmo
+            conteúdo já está no `MobileNavMenu` acima — ter os dois seria dois sítios diferentes para a
+            mesma coisa. */}
+        <div className="mt-auto hidden border-t border-marca-border px-3 pt-4 text-[15px] md:block">
           {meuPerfil ? (
             <Link
               href={`/app/organizacoes/${meuPerfil.id}`}
@@ -176,25 +190,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="print:hidden sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
-          {/* min-w-0 + truncate: em telemóvel, com "Perfil"/"Sair" ao lado, esta frase deixa de ter
-              largura para as duas linhas de sempre e quebrava de forma estranha contra os links à
-              direita (captura do promotor, 26/10/2026) — agora encolhe com reticências em vez disso.
-              Os links à direita ficam `shrink-0`: nunca são eles a ceder espaço. */}
-          <span className="flex min-w-0 items-center gap-2 truncate text-[15px] text-slate-500">
-            <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[#648d75]" />
-            <span className="truncate">Versão de teste · pagamentos em modo de teste</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-3 md:hidden">
-            <Link href={meuPerfil ? `/app/organizacoes/${meuPerfil.id}` : '/app/perfil'} className="text-[15px] text-slate-600">
-              Perfil
-            </Link>
-            <form action={leave}>
-              <button type="submit" className="text-[15px] font-semibold text-tinta-600">
-                Sair
-              </button>
-            </form>
-          </span>
+        <header className="print:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
+          {/* "Perfil"/"Sair" já vivem só no botão de navegação da marca em telemóvel
+              (`MobileNavMenu.tsx`, 26/10/2026) — não há mais nada a competir por espaço aqui. */}
+          <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[#648d75]" />
+          <span className="truncate text-[15px] text-slate-500">Versão de teste · pagamentos em modo de teste</span>
         </header>
         <main className="mx-auto max-w-[1600px] px-4 py-5 md:px-6">
           {lastWarning && (

@@ -113,13 +113,19 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </button>
             </form>
           </div>
-          <ul className="mt-2 space-y-1">
+          {/* Um cartão por aviso, não uma lista corrida: ficava tudo colado, sem separação nenhuma
+              entre um aviso e o seguinte (pedido do promotor, 26/10/2026). `first-letter:uppercase`
+              garante maiúscula inicial mesmo se algum texto futuro vier sem ela — defesa, não
+              correção de dados: os textos guardados já começam maiúsculos. */}
+          <ul className="mt-2 space-y-2">
             {notes.map((n) => (
-              <li key={n.id} className="flex flex-wrap justify-between gap-2">
-                <Link href={n.link} className="text-tinta-900 hover:underline">
+              <li key={n.id} className="rounded-xl border border-slate-200 p-3">
+                <Link href={n.link} className="block text-tinta-900 first-letter:uppercase hover:underline">
                   {n.texto}
                 </Link>
-                <span className="text-slate-500">{new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}</span>
+                <span className="mt-0.5 block text-[15px] text-slate-500">
+                  {new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
+                </span>
               </li>
             ))}
           </ul>

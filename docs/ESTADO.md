@@ -2,24 +2,32 @@
 
 Atualizado a 26/10/2026, à tarde (**migração do CAE aplicada à base real**, por outra sessão — confirmado
 agora por consulta direta: `organizations.cae` e `cae_atividade` existem em produção, migração registada
-pelo Supabase como `20261026145117` e o ficheiro já renomeado para bater; a entrada seguinte deste ficheiro
-dava isto como "em aberto" — já não está. **Navegação em telemóvel corrigida**, a partir de três capturas
-do promotor da app ao vivo: a barra lateral (`AppNav.tsx`) corria todos os grupos numa só linha horizontal
-sem fim à vista, sem títulos de grupo nem indicação de que havia mais — cortava a meio do ecrã ("Opor..."
-em vez de "Oportunidades"). Passa a abrir fechada por omissão em telemóvel, dentro de um `<details>` nativo,
-a mostrar só o item onde se está; um toque revela a lista completa, agrupada como no ecrã largo, com os
-itens de cada grupo a dar a volta (flex-wrap) em vez de scroll. `LocalTabs.tsx` (separadores de Orçamentos,
-Oportunidades, Obra pública, e os três novos da ficha da entidade) tinha o mesmo scroll horizontal sem
-indicação — "Equipa online" ficava cortado a meio na ficha da entidade — e passa também a dar a volta. O
-rodapé "Empresa e conta" da barra lateral (Plano e subscrição, Referências de fornecedores) estava
-`hidden` em telemóvel: essas duas páginas não tinham **nenhum** acesso nesse tamanho de ecrã, só o cabeçalho
-móvel com "O meu Perfil"/"Sair"; passa a ficar visível também em telemóvel. O próprio cabeçalho móvel
-("Versão de teste..." + "Perfil"/"Sair") quebrava texto de forma estranha por falta de espaço — frase da
-esquerda com reticências (`truncate`) em vez de quebrar, links da direita `shrink-0`. **Em aberto, a
-confirmar pelo promotor:** o caderno de desenho da interface não trata mobile (sem `@media` nenhum,
-mockup só de ecrã largo) — a barra fechada por omissão com um toque a abrir é desenho novo desta sessão,
-não algo copiado do caderno; `npm test`/`typecheck`/`lint`/`build` verdes, mas o resultado visual ainda não
-foi visto ao vivo no telemóvel por ninguém. 842 testes.). Estado anterior, 26/10/2026, de madrugada
+pelo Supabase como `20261026145117` e o ficheiro já renomeado para bater; uma entrada anterior deste
+ficheiro dava isto como "em aberto" — já não está.
+
+**Navegação em telemóvel, duas voltas na mesma sessão** — a primeira não serviu, o promotor viu-a ao vivo
+e pediu para refazer: a barra lateral (`AppNav.tsx`) corria todos os grupos numa só linha horizontal sem
+fim à vista, sem títulos de grupo nem indicação de que havia mais — cortava a meio do ecrã ("Opor..." em
+vez de "Oportunidades"). Uma primeira correção pôs a barra a abrir fechada por omissão dentro de um
+`<details>` a mostrar só onde se estava, a lista completa por baixo do conteúdo ao tocar — o promotor
+rejeitou-a ("que bosta", "já viste alguma app mobile com este aspeto?") e pediu explicitamente **um botão
+no canto superior direito com um dropdown, a fechar sozinho ao escolher um destino**. É o que está agora:
+`MobileNavMenu.tsx`, novo — um botão só (ícone de hambúrguer) ao lado da marca, que abre um painel `absolute`
+a flutuar sobre o conteúdo (não o empurra), com toda a navegação agrupada e, por baixo, "O meu Perfil"/
+"Plano e subscrição"/"Referências de fornecedores"/"Sair" — tudo o que antes vivia em dois sítios diferentes
+(barra lateral + rodapé "Empresa e conta") passa a um só menu. Cada link fecha o painel ao ser escolhido
+(`<details>` nativo não fecha sozinho num clique lá dentro — precisa de uma `ref` + `onClick`, única
+concessão a JavaScript nisto). `AppNav.tsx` fica só para ecrã largo (`hidden md:block`); a lógica de "quem
+está activo" e "como desenhar um grupo" é partilhada entre os dois (`useAppNavGroups`), para nunca
+divergirem. `LocalTabs.tsx` (separadores de Orçamentos, Oportunidades, Obra pública, e os três novos da
+ficha da entidade) tinha o mesmo scroll horizontal sem indicação — "Equipa online" ficava cortado a meio
+na ficha da entidade — e passa a dar a volta (flex-wrap) em vez de scroll; isto não mudou entre as duas
+voltas. **Avisos no Início**, mesmo pedido: a lista corrida (sem separação nenhuma entre um aviso e o
+seguinte) passa a um cartão por aviso, com `first-letter:uppercase` de defesa (os textos guardados já
+começam maiúsculos — isto é para o caso de algum não vir). `npm test`/`typecheck`/`lint`/`build` verdes,
+842 testes — mas **ninguém da equipa viu ainda esta segunda volta ao vivo no telemóvel**: é o mesmo risco
+da primeira, que também passava todas as verificações automáticas e ainda assim não serviu.). Estado
+anterior, 26/10/2026, de madrugada
 (**"O meu Perfil"**: cartão novo na barra lateral com o nome da
 empresa, não o email, só para pintor/fornecedor; ficha da entidade reorganizada em três separadores —
 Dados da entidade [cartão editável + palavra-passe + mudança de mail de acesso], Documentos, Equipa
