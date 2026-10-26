@@ -11,6 +11,8 @@ export interface NavItem {
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   /** Contagem a mostrar (ex.: avisos por ler). */
   count?: number;
+  /** Aviso em texto âmbar junto à etiqueta (regra 13 do CLAUDE.md: nunca fundo de cor numa lista). */
+  aviso?: boolean;
   /** Só fica ativo no endereço exato (ex.: o painel, que é o início de uma secção com subpáginas). */
   exact?: boolean;
   /**
@@ -81,6 +83,7 @@ export function AppNav({ groups }: { groups: { title: string; items: NavItem[] }
                   <span className="flex items-center gap-2.5">
                     {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-marca-orange-deep' : 'text-marca-muted/80'}`} />}
                     {i.label}
+                    {i.aviso && <span aria-hidden className="text-marca-attention">⚠</span>}
                   </span>
                   {i.count ? <span className="rounded-full bg-marca-orange-deep px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
                 </Link>

@@ -1,13 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatArea,
+  fraseDePrazo,
   parseRequest,
   parseSurface,
   publishBlockers,
   revealingContent,
   surfaceArea,
+  urgenciaPrazo,
   type SurfaceInput,
 } from './request';
+
+describe('urgência do prazo (ecrã de Oportunidades)', () => {
+  it('hoje é "Termina hoje", 1 a 3 dias é atenção, o resto é normal', () => {
+    expect(fraseDePrazo(urgenciaPrazo('2026-10-26', '2026-10-26'))).toBe('Termina hoje');
+    expect(urgenciaPrazo('2026-10-26', '2026-10-26').nivel).toBe('hoje');
+    expect(fraseDePrazo(urgenciaPrazo('2026-10-27', '2026-10-26'))).toBe('1 dia restante');
+    expect(urgenciaPrazo('2026-10-27', '2026-10-26').nivel).toBe('atencao');
+    expect(fraseDePrazo(urgenciaPrazo('2026-10-29', '2026-10-26'))).toBe('3 dias restantes');
+    expect(urgenciaPrazo('2026-10-29', '2026-10-26').nivel).toBe('atencao');
+    expect(urgenciaPrazo('2026-10-30', '2026-10-26').nivel).toBe('normal');
+  });
+
+  it('um prazo já passado também conta como "hoje" (caso-limite), mas com a frase de fecho', () => {
+    const u = urgenciaPrazo('2026-10-20', '2026-10-26');
+    expect(u.nivel).toBe('hoje');
+    expect(fraseDePrazo(u)).toBe('Prazo terminado');
+  });
+});
 
 describe('formulário do pedido', () => {
   it('lê vários trabalhos e valida as datas de execução', () => {

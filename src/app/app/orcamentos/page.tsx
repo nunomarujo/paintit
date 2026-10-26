@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { LocalTabs } from '@/components/LocalTabs';
 import {
   GRUPOS,
   GRUPO_EXPLICACOES,
@@ -63,20 +64,58 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
 
   // Quem ainda não tem nenhum cai no ecrã de fazer o primeiro; quem já tem, no que andou a fazer.
   const seccao = ver === 'novo' || ver === 'feitos' ? ver : (quotes ?? []).length > 0 ? 'feitos' : 'novo';
-  const grupoActivo: GrupoOrcamentos = (GRUPOS as readonly string[]).includes(grupo ?? '')
-    ? (grupo as GrupoOrcamentos)
-    : 'preenchimento';
-  const doGrupo = (quotes ?? []).filter((q) => grupoDe(q.estado) === grupoActivo);
+  const grupoActivo: GrupoOrcamentos | 'todos' =
+    grupo && (GRUPOS as readonly string[]).includes(grupo) ? (grupo as GrupoOrcamentos) : 'todos';
+  const total = (quotes ?? []).length;
+
+  const linha = (q: NonNullable<typeof quotes>[number]) => (
+    <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
+      <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <span className="font-semibold text-slate-900">
+            #{q.numero} — {q.cliente_nome}
+          </span>
+          <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
+        </div>
+        <p className="text-[15px] text-slate-600">
+          {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} · {dataPt(q.created_at)}
+          {avisos.some((a) => a.id === q.id) && <span className="ml-1 font-semibold text-amber-800">· por enviar</span>}
+        </p>
+      </Link>
+      {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
+    </li>
+  );
+
+  const grupo1 = (g: GrupoOrcamentos) => {
+    const doGrupo = (quotes ?? []).filter((q) => grupoDe(q.estado) === g);
+    if (doGrupo.length === 0) return null;
+    return (
+      <section key={g}>
+        <h2 className="text-[17px] font-semibold">{GRUPO_LABELS[g]}</h2>
+        <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">{GRUPO_EXPLICACOES[g]}</p>
+        <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
+          {doGrupo.map(linha)}
+        </ul>
+      </section>
+    );
+  };
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-[26px] leading-tight font-semibold">Orçamentos</h1>
-        <p className="mt-1 max-w-[58ch] text-[17px] text-slate-600">
-          Os orçamentos que faz aos seus clientes, com o seu logótipo e os seus contactos. Sem comissão e sem passar
-          pelo mercado da plataforma.
-        </p>
-      </div>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] leading-tight font-semibold">Orçamentos</h1>
+          <p className="mt-1 max-w-[58ch] text-[17px] text-slate-600">
+            Os orçamentos que faz aos seus clientes, com o seu logótipo e os seus contactos. Sem comissão e sem passar
+            pelo mercado da plataforma.
+          </p>
+        </div>
+        {seccao !== 'novo' && (
+          <Link href="/app/orcamentos?ver=novo" className="btn-primary shrink-0">
+            Crie orçamento
+          </Link>
+        )}
+      </header>
 
       {/* O aviso aparece em qualquer separador: é a coisa que o pintor não pode deixar passar. */}
       {avisos.length > 0 && (
@@ -107,36 +146,27 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           </div>
         </section>
       ) : (
-        <section>
-          <h2 className="text-[17px] font-semibold">{GRUPO_LABELS[grupoActivo]}</h2>
-          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">{GRUPO_EXPLICACOES[grupoActivo]}</p>
-          {doGrupo.length === 0 ? (
-            <p className="mt-3 text-[17px] text-slate-600">Nada aqui.</p>
+        <>
+          {/* Em preenchimento / Enviados / Arquivo: separadores locais, não mais um nível na barra
+              lateral (caderno de desenho da interface, 26/10/2026). */}
+          <LocalTabs
+            tabs={[
+              { href: '/app/orcamentos?ver=feitos', label: `Todos ${total}`, active: grupoActivo === 'todos' },
+              ...GRUPOS.map((g) => ({
+                href: `/app/orcamentos?ver=feitos&grupo=${g}`,
+                label: `${GRUPO_LABELS[g]} ${contagem[g]}`,
+                active: grupoActivo === g,
+              })),
+            ]}
+          />
+          {total === 0 ? (
+            <p className="text-[17px] text-slate-600">Nada aqui.</p>
+          ) : grupoActivo === 'todos' ? (
+            <div className="space-y-5">{GRUPOS.map(grupo1)}</div>
           ) : (
-            <ul className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
-              {doGrupo.map((q) => (
-                <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
-                  <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline justify-between gap-3">
-                      <span className="font-semibold text-slate-900">
-                        #{q.numero} — {q.cliente_nome}
-                      </span>
-                      <span className="tabular-nums text-slate-900">{formatEuros(totalDe(q.id))}</span>
-                    </div>
-                    <p className="text-[15px] text-slate-600">
-                      {[q.titulo, q.local].filter(Boolean).join(' · ') || 'Sem título'} · {ESTADO_LABELS[q.estado]} ·{' '}
-                      {dataPt(q.created_at)}
-                      {avisos.some((a) => a.id === q.id) && (
-                        <span className="ml-1 font-semibold text-amber-800">· por enviar</span>
-                      )}
-                    </p>
-                  </Link>
-                  {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
-                </li>
-              ))}
-            </ul>
+            grupo1(grupoActivo)
           )}
-        </section>
+        </>
       )}
     </div>
   );

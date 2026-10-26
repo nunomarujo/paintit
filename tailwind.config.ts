@@ -44,7 +44,7 @@ const config: Config = {
           700: '#805b20',
           800: '#775b2c',
         },
-        // Paleta da marca (ver :root em globals.css). Usada na página de planos.
+        // Paleta da marca (ver :root em globals.css). Usada na página de planos e na barra lateral.
         marca: {
           ink: 'var(--ink)',
           'ink-soft': 'var(--ink-soft)',
@@ -54,6 +54,17 @@ const config: Config = {
           border: 'var(--border)',
           muted: 'var(--muted)',
           tag: 'var(--tag-bg)',
+          // Cores funcionais do caderno de desenho (26/10/2026): superfícies e estado, para além
+          // dos 8 tokens de marca. `field` é o contorno de campos (border não tem contraste para
+          // isso); `selected` nunca aparece só; `attention`/`error` seguem a regra 13 do CLAUDE.md.
+          surface: 'var(--surface)',
+          field: 'var(--field)',
+          selected: 'var(--selected)',
+          attention: 'var(--attention)',
+          'attention-bg': 'var(--attention-bg)',
+          error: 'var(--error)',
+          'error-bg': 'var(--error-bg)',
+          'info-bg': 'var(--info-bg)',
         },
         sage: '#e9eee8',
         terracota: '#a8441f', // escurecido de #c4572f: branco por cima passa de 4,42:1 para 5,98:1 (WCAG AA)

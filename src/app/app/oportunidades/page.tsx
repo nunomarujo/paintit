@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { WORK_TYPES, WORK_TYPE_LABELS, formatArea, type WorkType } from '@/domain/request';
+import { WORK_TYPES, WORK_TYPE_LABELS, formatArea, fraseDePrazo, urgenciaPrazo, type WorkType } from '@/domain/request';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
@@ -49,6 +49,9 @@ export default async function OpportunitiesPage({
   const invited = new Set((invites ?? []).map((i) => i.request_id));
   const sortedListings = [...(listings ?? [])].sort((a, b) => Number(invited.has(b.request_id)) - Number(invited.has(a.request_id)));
   const status = new Map((mine ?? []).map((p) => [p.request_id, p.status]));
+  const hoje = new Date().toISOString().slice(0, 10);
+  const prazos = new Map(sortedListings.map((l) => [l.request_id, urgenciaPrazo(l.prazo_propostas, hoje)]));
+  const terminamHoje = sortedListings.filter((l) => prazos.get(l.request_id)!.nivel === 'hoje');
 
   return (
     <div className="space-y-6">
@@ -59,6 +62,16 @@ export default async function OpportunitiesPage({
           apresentação.
         </p>
       </div>
+
+      {/* Uma só banda, no topo (regra 13 do CLAUDE.md): o prazo mais urgente entre os pedidos abertos. */}
+      {terminamHoje.length > 0 && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
+          <strong className="font-semibold">
+            {terminamHoje.length === 1 ? '1 pedido termina hoje.' : `${terminamHoje.length} pedidos terminam hoje.`}
+          </strong>{' '}
+          {WORK_TYPE_LABELS[terminamHoje[0]!.tipo_obra]}, em {terminamHoje[0]!.concelho}.
+        </p>
+      )}
 
       <form className="flex flex-wrap items-end gap-3 text-[17px]">
         <label>
@@ -107,6 +120,9 @@ export default async function OpportunitiesPage({
                 </span>
                 <span className="text-right text-[17px] text-slate-500">
                   Propostas até {l.prazo_propostas.split('-').reverse().join('/')}
+                  <span className={`block ${prazos.get(l.request_id)!.nivel === 'hoje' ? 'font-semibold text-amber-800' : prazos.get(l.request_id)!.nivel === 'atencao' ? 'text-amber-700' : 'text-slate-500'}`}>
+                    {fraseDePrazo(prazos.get(l.request_id)!)}
+                  </span>
                   {status.has(l.request_id) && (
                     <span className="block font-medium text-tinta-700">{PROPOSAL_LABEL[status.get(l.request_id)!]}</span>
                   )}

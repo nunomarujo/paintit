@@ -4,6 +4,68 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 26/10/2026 — O caderno de desenho do promotor como fonte do desenho: tokens, ícones, navegação a dois níveis
+
+O promotor anexou `QuemPinta_Desenho_Interface.html`, um "caderno de desenho da interface" próprio —
+sistema visual completo, navegação dos três perfis com rotas concretas, e quatro ecrãs inteiramente
+desenhados (Início, Oportunidades, Gestão de obra·Hoje, Orçamentos) — e perguntou se isso encurtava o
+trabalho. Respondido que sim, com um plano em quatro passos; autorização do promotor: "avança, sim".
+
+**Cores funcionais novas, extraídas do caderno.** `border` (`#E1D9C6`) não chega para o contorno de um
+campo (~1,4:1 sobre branco); o caderno resolve com `field` (`#827765`, 4,40:1). Acrescentados a
+`globals.css`/`tailwind.config.ts`: `surface, field, selected, attention, attention-bg, error,
+error-bg, info-bg`. `selected` nunca vai só — acompanha sempre outro sinal (barra lateral,
+`aria-current`); `attention` é o que ainda se resolve, `error` o que já fechou, caducou ou foi
+recusado (regra 13 do `CLAUDE.md`).
+
+**Ícones trocados pelos do caderno.** `src/components/NavIcons.tsx` reescrito com os traços exactos do
+caderno (`viewBox 0 0 24 24`, `stroke-width 1.8`) em vez do conjunto inventado numa sessão anterior.
+Confirmado por `Grep` que nenhum ícone retirado (`IconClipboard, IconFlag, IconReceipt, IconDocCheck,
+IconHardHat, IconCard, IconLink, IconTag, IconUsers, IconPercent`) era usado fora do ficheiro antes de
+apagar.
+
+**Navegação a dois níveis: "Grupo + destino chegam".** O caderno é explícito: nada de um terceiro
+nível em flyout. `src/app/app/layout.tsx` reconstruído com os grupos do caderno por perfil —
+Empresa de pintura (Dia a dia / Ganhar obra / Materiais), Cliente (um só grupo, "Acompanhar a obra"),
+Fornecedor (Dia a dia / Vender / Adesões) — derivados dos tipos de entidade reais da conta (`kinds`,
+`pintorId`, `fornecedorId`), não de um perfil único como o caderno idealiza (uma conta pode, no
+modelo de dados actual, ser simultaneamente coisas que o caderno trata como perfis separados; os
+`NavItem[]` são montados condicionalmente). O rodapé da barra lateral deixou de ser só o email e
+"Sair": ganhou "Empresa e conta" (ficha da empresa, plano e subscrição, referências de fornecedores,
+perfil), exactamente como o caderno pede para nunca ocupar o corpo do menu principal.
+
+Os sub-níveis que a barra lateral tinha como filhos (Hoje/Equipa/Contas em Gestão de obra; Novo/Em
+preenchimento/Enviados/Arquivo em Orçamentos; Quem contrata/Concursos em Obra pública) passaram a
+**separadores locais dentro da página**, componente novo `src/components/LocalTabs.tsx`, ligados aos
+`?ver=`/`?grupo=` que já existiam nessas três páginas — sem estado de cliente, um link partilhado abre
+no mesmo sítio, mesma convenção dos orçamentos (25/10/2026).
+
+**Contradição a confirmar pelo promotor: "Obra pública" volta a ser visível na barra.** O caderno
+põe "Obra pública" como destino de primeiro nível em "Ganhar obra". Isto inverte directamente uma
+decisão já registada no código a 23/10/2026 ("ninguém lhe dá a relevância que tencionavas e, de facto,
+não tem"), que a tinha descido a filho. Segui o caderno, por ser a instrução mais recente e explícita
+do promotor ("avança, sim" sobre este documento), mas isto não foi perguntado uma segunda vez — fica
+marcado em comentário no código e aqui para confirmação.
+
+**Urgência do prazo, função nova em `src/domain/request.ts`** (regra 2): `urgenciaPrazo` e
+`fraseDePrazo`, puras e testadas (`request.test.ts`), usadas em Oportunidades para a banda de alarme
+("X pedidos terminam hoje", regra 13 — uma só banda, no topo) e o texto por linha ("Termina hoje" /
+"N dias restantes" / data simples), substituindo a data nua que lá estava.
+
+**Decisão de âmbito, para não sobrevender o que foi feito:** os quatro ecrãs do caderno **não foram
+portados ao pixel** para as páginas reais — a `Oportunidades.tsx`/`orcamentos/page.tsx` reais têm
+lógica de negócio e dados que o protótipo não modela, e replicar classes/markup ao pixel arriscava
+duplicar regras de negócio ou partir funcionalidade. Em vez disso, adoptaram-se os **princípios** do
+caderno (uma só banda de alarme, aviso em texto nunca em fundo, classificação de urgência por prazo)
+sobre os dados reais, em Início, Oportunidades e Orçamentos; `obras/Hoje.tsx` foi revisto e já estava
+conforme. **Por fazer, deliberadamente fora do âmbito de hoje:** o padrão do caderno de "quatro acessos
+fixos" no telemóvel (barra inferior fixa com 4 ícones + sobreposição "Menu") é uma peça estrutural
+maior, não construída nesta sessão; e o resto da app, ecrã a ecrã, continua por migrar aos princípios
+do caderno, um ecrã de cada vez, como sempre foi entendido.
+
+Verificado antes de declarar feito (regras 7/8 do `CLAUDE.md`): `npm test` (806 testes, 1 skip),
+`typecheck`, `lint`, `build` — os quatro a 0.
+
 ## 26/10/2026 — Três bugs da auditoria de UI/UX corrigidos, um deixado para o promotor
 
 Continuação da auditoria desta tarde (ver entrada seguinte, "Barra lateral").

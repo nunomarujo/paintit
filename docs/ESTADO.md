@@ -1,6 +1,15 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, à tarde (**barra lateral com ícone por item** e **primeiro passo da paleta de
+Atualizado a 26/10/2026, à noite (**caderno de desenho do promotor adoptado como fonte do desenho**:
+cores funcionais novas — `field, selected, attention, error`, etc. —, ícones trocados pelos do caderno,
+barra lateral reconstruída a dois níveis por perfil [Empresa de pintura / Cliente / Fornecedor] com
+rodapé "Empresa e conta", três páginas [Gestão de obra, Orçamentos, Obra pública] com separadores
+locais novos [`LocalTabs.tsx`] em vez de filhos na barra, função de domínio nova `urgenciaPrazo`/
+`fraseDePrazo` aplicada em Oportunidades; os quatro ecrãs do caderno não foram portados ao pixel, só
+os seus princípios — `docs/DECISOES.md`, entrada "O caderno de desenho do promotor como fonte do
+desenho". **Em aberto, a confirmar pelo promotor:** o caderno repõe "Obra pública" como destino visível
+na barra, invertendo a decisão de 23/10/2026 que a tinha descido a filho). Estado anterior, 26/10/2026,
+à tarde (**barra lateral com ícone por item** e **primeiro passo da paleta de
 marca** — ink/creme/laranja, começando pela barra lateral e com o laranja só no crachá de avisos e no
 ícone ativo; `docs/DECISOES.md`, entrada "Barra lateral: ícone por item..."). Estado anterior,
 26/10/2026, de madrugada (**Gestão de obra refeita** segundo o protótipo do promotor,

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Dossier } from '@/components/Dossier';
+import { LocalTabs } from '@/components/LocalTabs';
 import { dossier, resumirDossier } from '@/domain/dossier';
 import { formatHoras } from '@/domain/dayLog';
 import { formatEuros } from '@/domain/money';
@@ -54,6 +55,15 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-5">
+      {/* Hoje / Equipa / Contas: separadores locais, não mais um nível na barra lateral (caderno de
+          desenho da interface, 26/10/2026). */}
+      <LocalTabs
+        tabs={[
+          { href: '/app/obras?ver=hoje', label: 'Hoje', active: vista === 'hoje' },
+          { href: '/app/obras?ver=equipa', label: 'Equipa', active: vista === 'equipa' },
+          { href: '/app/obras?ver=contas', label: 'Contas', active: vista === 'contas' },
+        ]}
+      />
       {vista !== 'hoje' && (
       <div>
         <h1 className="text-[26px] font-semibold leading-tight">

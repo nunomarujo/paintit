@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
 import { PRECO_ATUAL, subscriberDiscountBp } from '@/domain/painterPlan';
+import { LocalTabs } from '@/components/LocalTabs';
 import { Concursos } from './Concursos';
 import { Mapa } from './Mapa';
 import { painterSubscription } from '@/lib/queries';
@@ -59,10 +60,18 @@ export default async function PublicContractsPage({
     );
   }
 
+  const emConcursos = ver === 'concursos';
+
   return (
     <div className="space-y-5">
-      <h1 className="text-[20px] leading-snug font-semibold">Mapa de contratos públicos</h1>
-      {ver === 'concursos' ? (
+      <h1 className="text-[26px] leading-tight font-semibold">Obra pública</h1>
+      <LocalTabs
+        tabs={[
+          { href: '/app/obras-publicas', label: 'Quem contrata', active: !emConcursos },
+          { href: '/app/obras-publicas?ver=concursos', label: 'Concursos', active: emConcursos },
+        ]}
+      />
+      {emConcursos ? (
         <Concursos supabase={supabase} orgId={org.id} soElegiveis={todos !== '1'} />
       ) : (
         <Mapa supabase={supabase} orgId={org.id} nif={org.nif} tudo={tudo === '1'} />

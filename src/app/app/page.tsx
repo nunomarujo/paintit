@@ -101,8 +101,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </section>
       )}
 
+      {/* Fundo de cor é só para a banda do topo (convites, acima): aqui o alarme é texto âmbar,
+          nunca um segundo fundo — regra 13 do CLAUDE.md. */}
       {notes && notes.length > 0 && (
-        <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-5 text-[17px]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">Avisos</h2>
             <form action={markNotificationsRead}>
@@ -127,8 +129,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {(todo.length > 0 || ownRequests.length > 0 || painters.length > 0) && (
         <section className="grid gap-4 sm:grid-cols-2">
           {todo.length > 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-[17px]">
-              <h2 className="font-semibold">Contratações a precisar de si</h2>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
+              <h2 className="font-semibold text-amber-800">Contratações a precisar de si</h2>
               <ul className="mt-2 space-y-1">
                 {todo.map((t) => (
                   <li key={t.id}>

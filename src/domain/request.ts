@@ -230,6 +230,26 @@ export function publishBlockers(input: PublishCheckInput): string[] {
   return out;
 }
 
+// --- Urgência do prazo (ecrã de Oportunidades) --------------------------------------
+
+/**
+ * A que distância está o prazo de um pedido aberto. Usa o mesmo limiar de 3 dias que já marca os
+ * orçamentos por enviar (`DIAS_PARA_AVISAR`, domain/quoteBoard.ts) — uma só régua de urgência em
+ * toda a aplicação. "Hoje" é o próprio caso-limite de "atencao", para a frase soar certa.
+ */
+export type NivelPrazo = 'hoje' | 'atencao' | 'normal';
+
+export function urgenciaPrazo(prazoISO: string, hojeISO: string): { dias: number; nivel: NivelPrazo } {
+  const dias = Math.round((Date.parse(`${prazoISO}T00:00:00Z`) - Date.parse(`${hojeISO}T00:00:00Z`)) / 86_400_000);
+  return { dias, nivel: dias <= 0 ? 'hoje' : dias <= 3 ? 'atencao' : 'normal' };
+}
+
+/** Frase para a linha do pedido: "Termina hoje", "3 dias restantes", etc. */
+export function fraseDePrazo({ dias, nivel }: { dias: number; nivel: NivelPrazo }): string {
+  if (nivel === 'hoje') return dias === 0 ? 'Termina hoje' : 'Prazo terminado';
+  return `${dias} ${dias === 1 ? 'dia restante' : 'dias restantes'}`;
+}
+
 // --- Formulário do pedido ----------------------------------------------------------
 
 export const VIA_PUBLICA = ['sim', 'nao', 'a_avaliar'] as const;

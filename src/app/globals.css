@@ -19,6 +19,22 @@
   --border: #e1d9c6;
   --muted: #5b5444;
   --tag-bg: #ece6d4;
+
+  /*
+   * Cores funcionais do caderno de desenho da interface (26/10/2026, protótipo do promotor:
+   * QuemPinta_Desenho_Interface.html). `border` não chega para o contorno de um campo (≈1,4:1
+   * sobre branco); `field` substitui-o nos controlos e atinge 4,40:1. `selected` nunca vai só:
+   * acompanha sempre outro sinal (barra lateral, aria-current). `attention` é o que ainda se
+   * resolve (âmbar); `error` é o que já fechou, caducou ou foi recusado — regra 13 do CLAUDE.md.
+   */
+  --surface: #ffffff;
+  --field: #827765;
+  --selected: #e7eee8;
+  --attention: #88520a;
+  --attention-bg: #fff3d9;
+  --error: #9b3332;
+  --error-bg: #fcedec;
+  --info-bg: #eef3ef;
 }
 
 body {
