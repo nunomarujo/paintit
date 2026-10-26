@@ -135,8 +135,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             Pintor ou fornecedor: um só cartão "O meu Perfil", com o nome da empresa (não o email) —
             é lá dentro, em separadores, que ficam os dados da entidade, os documentos e a equipa online
             (26/10/2026, docs/DECISOES.md). O cliente puro não tem empresa a mostrar: continua a ver o
-            email e o link "Perfil" de sempre. */}
-        <div className="mt-auto hidden border-t border-marca-border px-3 pt-4 text-[15px] md:block">
+            email e o link "Perfil" de sempre.
+            Visível também em telemóvel (26/10/2026): estava `hidden md:block`, e "Plano e subscrição"
+            e "Referências de fornecedores" ficavam sem nenhum acesso em telemóvel — o cabeçalho móvel,
+            em baixo, só tinha "O meu Perfil" e "Sair" (capturas do promotor). */}
+        <div className="mt-auto border-t border-marca-border px-3 pt-4 text-[15px] md:block">
           {meuPerfil ? (
             <Link
               href={`/app/organizacoes/${meuPerfil.id}`}
@@ -174,13 +177,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </aside>
       <div className="min-w-0">
         <header className="print:hidden sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
-          <span className="flex items-center gap-2 text-[15px] text-slate-500">
-            <i className="inline-block h-[7px] w-[7px] rounded-full bg-[#648d75]" />
-            Versão de teste · pagamentos em modo de teste
+          {/* min-w-0 + truncate: em telemóvel, com "Perfil"/"Sair" ao lado, esta frase deixa de ter
+              largura para as duas linhas de sempre e quebrava de forma estranha contra os links à
+              direita (captura do promotor, 26/10/2026) — agora encolhe com reticências em vez disso.
+              Os links à direita ficam `shrink-0`: nunca são eles a ceder espaço. */}
+          <span className="flex min-w-0 items-center gap-2 truncate text-[15px] text-slate-500">
+            <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[#648d75]" />
+            <span className="truncate">Versão de teste · pagamentos em modo de teste</span>
           </span>
-          <span className="flex items-center gap-3 md:hidden">
+          <span className="flex shrink-0 items-center gap-3 md:hidden">
             <Link href={meuPerfil ? `/app/organizacoes/${meuPerfil.id}` : '/app/perfil'} className="text-[15px] text-slate-600">
-              {meuPerfil ? 'O meu Perfil' : 'Perfil'}
+              Perfil
             </Link>
             <form action={leave}>
               <button type="submit" className="text-[15px] font-semibold text-tinta-600">

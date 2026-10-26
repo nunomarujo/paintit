@@ -1,6 +1,26 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, de madrugada (**"O meu Perfil"**: cartão novo na barra lateral com o nome da
+Atualizado a 26/10/2026, à tarde (**migração do CAE aplicada à base real**, por outra sessão — confirmado
+agora por consulta direta: `organizations.cae` e `cae_atividade` existem em produção, migração registada
+pelo Supabase como `20261026145117` e o ficheiro já renomeado para bater; a entrada seguinte deste ficheiro
+dava isto como "em aberto" — já não está. **Navegação em telemóvel corrigida**, a partir de três capturas
+do promotor da app ao vivo: a barra lateral (`AppNav.tsx`) corria todos os grupos numa só linha horizontal
+sem fim à vista, sem títulos de grupo nem indicação de que havia mais — cortava a meio do ecrã ("Opor..."
+em vez de "Oportunidades"). Passa a abrir fechada por omissão em telemóvel, dentro de um `<details>` nativo,
+a mostrar só o item onde se está; um toque revela a lista completa, agrupada como no ecrã largo, com os
+itens de cada grupo a dar a volta (flex-wrap) em vez de scroll. `LocalTabs.tsx` (separadores de Orçamentos,
+Oportunidades, Obra pública, e os três novos da ficha da entidade) tinha o mesmo scroll horizontal sem
+indicação — "Equipa online" ficava cortado a meio na ficha da entidade — e passa também a dar a volta. O
+rodapé "Empresa e conta" da barra lateral (Plano e subscrição, Referências de fornecedores) estava
+`hidden` em telemóvel: essas duas páginas não tinham **nenhum** acesso nesse tamanho de ecrã, só o cabeçalho
+móvel com "O meu Perfil"/"Sair"; passa a ficar visível também em telemóvel. O próprio cabeçalho móvel
+("Versão de teste..." + "Perfil"/"Sair") quebrava texto de forma estranha por falta de espaço — frase da
+esquerda com reticências (`truncate`) em vez de quebrar, links da direita `shrink-0`. **Em aberto, a
+confirmar pelo promotor:** o caderno de desenho da interface não trata mobile (sem `@media` nenhum,
+mockup só de ecrã largo) — a barra fechada por omissão com um toque a abrir é desenho novo desta sessão,
+não algo copiado do caderno; `npm test`/`typecheck`/`lint`/`build` verdes, mas o resultado visual ainda não
+foi visto ao vivo no telemóvel por ninguém. 842 testes.). Estado anterior, 26/10/2026, de madrugada
+(**"O meu Perfil"**: cartão novo na barra lateral com o nome da
 empresa, não o email, só para pintor/fornecedor; ficha da entidade reorganizada em três separadores —
 Dados da entidade [cartão editável + palavra-passe + mudança de mail de acesso], Documentos, Equipa
 online [agora com troca de papel entre colegas, via política de RLS nova `org_members_update`, e um
