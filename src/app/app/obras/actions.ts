@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { ehEmail } from '@/domain/toques';
 import type { FormState } from '@/app/app/actions';
 import { randomUUID } from 'node:crypto';
 import { addendaErrors } from '@/domain/addenda';
@@ -99,6 +100,25 @@ export async function addEntry(worksiteId: string, tipo: 'custo' | 'tranche' | '
     meio: (PAYMENT_METHODS as readonly string[]).includes(meio) ? meio : null,
   });
   return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Tranche acrescentada.');
+}
+
+/**
+ * O consentimento do pintor para a plataforma lembrar o cliente desta obra, e o email para onde.
+ *
+ * Guarda-se no mesmo passo porque são a mesma decisão: autorizar sem dizer para onde escrever não
+ * autoriza nada, e o campo é livre — tanto leva um email como um número de telefone.
+ */
+export async function setCobranca(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const contacto = String(form.get('clienteContacto') ?? '').trim() || null;
+  const ligar = form.get('cobranca') === 'on';
+  if (ligar && !ehEmail(contacto)) return { errors: { clienteContacto: 'Indique um email do cliente para onde escrever.' } };
+
+  // A obra é do pintor: as políticas RLS garantem que só ele a altera.
+  const { supabase } = await getUser();
+  const { error } = await supabase.from('worksites').update({ cobranca: ligar, cliente_contacto: contacto }).eq('id', worksiteId);
+  if (error) return { errors: {}, message: 'A cobrança ainda não está disponível nesta instalação.' };
+  revalidatePath(`/app/obras/${worksiteId}`);
+  return { errors: {}, ok: true, message: ligar ? 'A Quem Pinta passa a lembrar o cliente.' : 'Deixámos de lembrar.' };
 }
 
 export async function markTrancheReceived(worksiteId: string, entryId: string) {

@@ -4,9 +4,11 @@ import {
   ehEmail,
   fimDaJanela,
   toquesDevidos,
+  toquesDaCobranca,
   toquesDoOrcamento,
   type OrcamentoParaToque,
   type PedidoParaToque,
+  type TrancheParaToque,
 } from './toques';
 
 const pedido: PedidoParaToque = { requestId: 'r1', prazo: '2026-11-10', aberto: true, propostas: 2 };
@@ -111,5 +113,45 @@ describe('ehEmail', () => {
     expect(ehEmail('a filha, 96...')).toBe(false);
     expect(ehEmail('ana@exemplo')).toBe(false);
     expect(ehEmail(null)).toBe(false);
+  });
+});
+
+describe('toquesDaCobranca', () => {
+  const base: TrancheParaToque = { trancheId: 't1', prevista: '2026-11-10', recebida: false, cobranca: true, temEmail: true };
+  const t = (hoje: string, over: Partial<TrancheParaToque> = {}, ja = new Set<string>()) =>
+    toquesDaCobranca({ ...base, ...over }, hoje, ja).map((x) => x.tipo);
+
+  it('lembra no vencimento, aos 8 e aos 20 dias', () => {
+    expect(t('2026-11-09')).toEqual([]);
+    expect(t('2026-11-10')).toEqual(['cobranca_1']);
+    expect(t('2026-11-18')).toEqual(['cobranca_2']);
+    expect(t('2026-11-30')).toEqual(['cobranca_3']);
+  });
+
+  it('ao fim de um mês fala com o pintor, não com o cliente', () => {
+    expect(t('2026-12-10')).toEqual(['cobranca_pintor']);
+  });
+
+  it('e fala com o pintor mesmo sem email do cliente — a dívida é dele na mesma', () => {
+    expect(t('2026-11-10', { temEmail: false })).toEqual([]);
+    expect(t('2026-12-10', { temEmail: false })).toEqual(['cobranca_pintor']);
+  });
+
+  it('cala-se no instante em que a tranche é recebida', () => {
+    expect(t('2026-11-18', { recebida: true })).toEqual([]);
+    expect(t('2026-12-10', { recebida: true })).toEqual([]);
+  });
+
+  it('não escreve a ninguém sem o pintor autorizar', () => {
+    expect(t('2026-11-10', { cobranca: false })).toEqual([]);
+  });
+
+  it('sem data prevista não há vencimento para lembrar', () => {
+    expect(t('2026-11-10', { prevista: null })).toEqual([]);
+  });
+
+  it('são três ao cliente e nunca mais', () => {
+    const todos = ['2026-11-10', '2026-11-18', '2026-11-30'].flatMap((d) => t(d));
+    expect(todos.filter((x) => x.startsWith('cobranca_') && x !== 'cobranca_pintor')).toHaveLength(3);
   });
 });

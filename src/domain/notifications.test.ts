@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
+import { COBRANCA_NOTICES, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -114,5 +114,45 @@ describe('seguimento do orçamento', () => {
   it('o segundo usa a validade quando a há, e não a inventa quando não há', () => {
     const sem = SEGUIMENTO_NOTICES.orcamento_2({ pintor: 'Pinturas Silva', titulo: null, validade: null });
     expect(sem.lines.join(' ')).not.toMatch(/válido até/);
+  });
+});
+
+describe('cobrança', () => {
+  const p = { pintor: 'Pinturas Silva', obra: 'Rua A, 1', valor: '2 400,00 €', data: '10/11/2026' };
+  const aoCliente = [COBRANCA_NOTICES.cobranca_1(p), COBRANCA_NOTICES.cobranca_2(p), COBRANCA_NOTICES.cobranca_3(p)];
+
+  it('nenhuma ameaça, cobra juros ou inventa consequências', () => {
+    for (const n of [...aoCliente, COBRANCA_NOTICES.cobranca_pintor(p)]) {
+      const t = [n.subject, ...n.lines].join(' ').toLowerCase();
+      expect(t).not.toMatch(/juros|mora|advogad|tribunal|incumpriment|dívida|penaliza|última oportunidade|cobrança coerciva/);
+    }
+  });
+
+  it('as do cliente dizem quem escreve, com que autorização e por onde', () => {
+    for (const n of aoCliente) {
+      const t = n.lines.join(' ');
+      expect(t).toContain('Pinturas Silva');
+      expect(t).toContain('autorização');
+      expect(t).toContain('quempinta.pt');
+    }
+  });
+
+  it('todas levam o valor e a data, para ninguém ter de ir procurar a factura', () => {
+    for (const n of [...aoCliente, COBRANCA_NOTICES.cobranca_pintor(p)]) {
+      const t = n.lines.join(' ');
+      expect(t).toContain('2 400,00 €');
+      expect(t).toContain('10/11/2026');
+    }
+  });
+
+  it('a primeira admite que pode já estar paga, e a terceira diz que é a última', () => {
+    expect(aoCliente[0]!.lines.join(' ')).toContain('já tiver sido paga');
+    expect(aoCliente[2]!.lines.join(' ')).toContain('não voltarei a incomodá-lo');
+  });
+
+  it('o aviso ao pintor não fala em nome de ninguém: é interno', () => {
+    const t = COBRANCA_NOTICES.cobranca_pintor(p).lines.join(' ');
+    expect(t).not.toContain('autorização');
+    expect(t).toContain('não enviaremos mais');
   });
 });

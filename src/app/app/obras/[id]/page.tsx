@@ -4,6 +4,7 @@ import { margemDaObra } from '@/domain/margin';
 import { custoDasHoras, custoHoraEm, suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
 import { DayLog } from './DayLog';
+import { Cobranca } from './Cobranca';
 import { ExpenseForm } from './ExpenseForm';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
@@ -657,7 +658,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                       {x.recebida_em ? (
                         <span className="text-tinta-700"> · recebida a {pt(x.recebida_em)}</span>
                       ) : x.prevista && x.prevista < today ? (
-                        <span className="text-red-700"> · em atraso</span>
+                        <span className="font-medium text-amber-800"> · em atraso</span>
                       ) : null}
                     </span>
                     {manager && !x.recebida_em && (
@@ -670,6 +671,16 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                   </li>
                 ))}
             </ul>
+            <div className="mt-4">
+              <Cobranca
+                worksiteId={id}
+                ligada={!!w.cobranca}
+                contacto={w.cliente_contacto}
+                emAtrasoCents={list
+                  .filter((x) => x.tipo === 'tranche' && !x.recebida_em && x.prevista && x.prevista < today)
+                  .reduce((n, x) => n + (x.valor_cents ?? 0), 0)}
+              />
+            </div>
             {manager && (
               <div className="mt-3">
                 <MiniForm

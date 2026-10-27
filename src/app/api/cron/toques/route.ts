@@ -1,7 +1,15 @@
 import { localDate } from '@/domain/deadline';
 import { CURRENT_RULES } from '@/domain/rules';
-import { chaveDoToque, ehEmail, toquesDevidos, toquesDoOrcamento, type PedidoParaToque, type Toque } from '@/domain/toques';
-import { notifyJanela, notifySeguimento } from '@/lib/notify';
+import {
+  chaveDoToque,
+  ehEmail,
+  toquesDaCobranca,
+  toquesDevidos,
+  toquesDoOrcamento,
+  type PedidoParaToque,
+  type Toque,
+} from '@/domain/toques';
+import { notifyCobranca, notifyJanela, notifySeguimento } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -49,6 +57,22 @@ export async function GET(req: Request) {
     : { data: [] };
   for (const t of toquesDeOrcamentos ?? []) feitos.add(chaveDoToque(t as Toque));
 
+  // As tranches por receber de obras com cobrança autorizada.
+  const { data: obrasComCobranca } = await db.from('worksites').select('id, cliente_contacto').eq('cobranca', true);
+  const { data: tranches } = obrasComCobranca?.length
+    ? await db
+        .from('worksite_entries')
+        .select('id, prevista, recebida_em, worksite_id')
+        .eq('tipo', 'tranche')
+        .is('recebida_em', null)
+        .in('worksite_id', obrasComCobranca.map((o) => o.id))
+    : { data: [] };
+  const { data: toquesDeTranches } = tranches?.length
+    ? await db.from('toques').select('tipo, alvo, destinatario').in('alvo', tranches.map((t) => t.id))
+    : { data: [] };
+  for (const t of toquesDeTranches ?? []) feitos.add(chaveDoToque(t as Toque));
+  const emailDaObra = new Map((obrasComCobranca ?? []).map((o) => [o.id, ehEmail(o.cliente_contacto)]));
+
   const devidos = (listings ?? []).flatMap((l) =>
     toquesDevidos(
       { requestId: l.request_id, prazo: l.prazo_propostas, aberto: l.aberto, propostas: quantas.get(l.request_id) ?? 0 } satisfies PedidoParaToque,
@@ -73,6 +97,22 @@ export async function GET(req: Request) {
     ),
   );
 
+  devidos.push(
+    ...(tranches ?? []).flatMap((t) =>
+      toquesDaCobranca(
+        {
+          trancheId: t.id,
+          prevista: t.prevista,
+          recebida: !!t.recebida_em,
+          cobranca: true,
+          temEmail: emailDaObra.get(t.worksite_id) ?? false,
+        },
+        hoje,
+        feitos,
+      ),
+    ),
+  );
+
   let enviados = 0;
   for (const t of devidos) {
     // A chave única é a garantia de que não repete, mesmo com duas tarefas ao mesmo tempo: se outra
@@ -83,13 +123,22 @@ export async function GET(req: Request) {
       // O destinatário destes é sempre um dos dois lados da obra, nunca um cliente do pintor.
       if (t.destinatario === 'cliente_do_pintor') continue;
       await notifyJanela(t.tipo, t.alvo, t.destinatario).catch((e) => console.error('toques: ' + String(e)));
+    } else if (t.tipo.startsWith('cobranca')) {
+      await notifyCobranca(t.tipo as 'cobranca_1', t.alvo).catch((e) => console.error('toques: ' + String(e)));
     } else {
-      await notifySeguimento(t.tipo, t.alvo).catch((e) => console.error('toques: ' + String(e)));
+      await notifySeguimento(t.tipo as 'orcamento_1', t.alvo).catch((e) => console.error('toques: ' + String(e)));
     }
     enviados += 1;
   }
 
-  const resumo = { hoje, anuncios: ids.length, orcamentos: (orcamentos ?? []).length, devidos: devidos.length, enviados };
+  const resumo = {
+    hoje,
+    anuncios: ids.length,
+    orcamentos: (orcamentos ?? []).length,
+    tranches: (tranches ?? []).length,
+    devidos: devidos.length,
+    enviados,
+  };
   console.log('toques: ' + JSON.stringify(resumo));
   return Response.json(resumo);
 }

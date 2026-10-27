@@ -1454,6 +1454,9 @@ export type Database = {
         Row: {
           area_cm2: number | null;
           cliente_nome: string | null;
+          // Migração `cobranca` (27/10/2026), escritas à mão até ser aplicada.
+          cliente_contacto: string | null;
+          cobranca: boolean;
           created_at: string;
           engagement_id: string | null;
           estado: 'ativa' | 'concluida' | 'cancelada';
@@ -1469,6 +1472,8 @@ export type Database = {
         Insert: {
           area_cm2?: number | null;
           cliente_nome?: string | null;
+          cliente_contacto?: string | null;
+          cobranca?: boolean;
           created_at?: string;
           engagement_id?: string | null;
           estado?: 'ativa' | 'concluida' | 'cancelada';

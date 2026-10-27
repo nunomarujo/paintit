@@ -161,6 +161,53 @@ export const SEGUIMENTO_NOTICES = {
   }),
 } as const;
 
+/**
+ * Os lembretes de cobrança, ao cliente do pintor — e o aviso ao pintor ao fim de um mês.
+ *
+ * O que estas mensagens **não** têm é tão decidido como o que têm: não falam em juros, não ameaçam,
+ * não inventam consequências e não dizem que é a última oportunidade. A plataforma não guarda
+ * dinheiro nenhum nem cobra nada — lembra, e diz quem é.
+ *
+ * O valor vai por extenso em cada uma: um lembrete sem o número obriga o cliente a ir procurar a
+ * factura, e quem tem de procurar adia.
+ */
+export const COBRANCA_NOTICES = {
+  cobranca_1: (p: { pintor: string; obra: string; valor: string; data: string }) => ({
+    subject: `Pagamento de ${p.obra}`,
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele: sou o assistente de IA que acompanha os pagamentos das obras dele, pela plataforma quempinta.pt.`,
+      `A parcela de ${p.valor} da obra ${p.obra} estava prevista para ${p.data}.`,
+      'Se já tiver sido paga, peço desculpa pelo incómodo — responda a dizer e eu dou baixa.',
+      'Se houver alguma coisa a esclarecer antes de pagar, responda também: faço chegar a pergunta.',
+    ],
+  }),
+  cobranca_2: (p: { pintor: string; obra: string; valor: string; data: string }) => ({
+    subject: `Ainda sobre o pagamento de ${p.obra}`,
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele, pela plataforma quempinta.pt.`,
+      `A parcela de ${p.valor} da obra ${p.obra}, prevista para ${p.data}, continua por regularizar nos registos dele.`,
+      'Pode ser só um lançamento por acertar. Uma linha de resposta chega para eu perceber o que se passa.',
+    ],
+  }),
+  cobranca_3: (p: { pintor: string; obra: string; valor: string; data: string }) => ({
+    subject: `Última mensagem sobre o pagamento de ${p.obra}`,
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele, pela plataforma quempinta.pt.`,
+      `Esta é a última mensagem que lhe envio sobre a parcela de ${p.valor} da obra ${p.obra}, prevista para ${p.data} — não voltarei a incomodá-lo.`,
+      `Se quiser resolver isto, fale directamente com ${p.pintor}.`,
+    ],
+  }),
+  /** Ao pintor, ao fim de um mês: a partir daqui é com ele. */
+  cobranca_pintor: (p: { obra: string; valor: string; data: string }) => ({
+    subject: `Um mês sem receber: ${p.obra}`,
+    lines: [
+      `A parcela de ${p.valor} da obra ${p.obra} estava prevista para ${p.data} e continua por receber.`,
+      'Enviámos os três lembretes ao cliente e não enviaremos mais: a partir daqui, mais mensagens só gastam a relação de que vai precisar quando telefonar.',
+      'Se já recebeu, dê baixa da parcela na obra para deixarmos de contar.',
+    ],
+  }),
+} as const;
+
 /** Convite aos pintores quando um pedido é publicado. Só leva o que o anúncio anónimo já mostra (concelho, tipo, prazo). */
 export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; prazo: string }): { subject: string; lines: string[] } => ({
   subject: `Pedido de Orçamento - pintura em ${p.concelho}`,

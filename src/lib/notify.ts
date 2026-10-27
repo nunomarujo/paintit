@@ -1,7 +1,7 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
+import { COBRANCA_NOTICES, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
 import { ehEmail, fimDaJanela } from '@/domain/toques';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
@@ -172,6 +172,45 @@ export async function notifySeguimento(tipo: 'orcamento_1' | 'orcamento_2' | 'or
     exactSubject: true,
     cta: 'Saber o que é a Quem Pinta',
     footer: `Mensagem enviada por ${BRAND.name} a pedido de ${pintor}.`,
+  });
+}
+
+/**
+ * Um lembrete de cobrança. Os três primeiros vão ao cliente da obra; o quarto, ao fim de um mês, vai
+ * ao próprio pintor — e esse não leva nome de ninguém, porque é interno.
+ */
+export async function notifyCobranca(
+  tipo: 'cobranca_1' | 'cobranca_2' | 'cobranca_3' | 'cobranca_pintor',
+  trancheId: string,
+): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: t } = await db
+    .from('worksite_entries')
+    .select('valor_cents, prevista, worksite_id, painter_org_id')
+    .eq('id', trancheId)
+    .maybeSingle();
+  if (!t?.prevista || t.valor_cents == null) return;
+  const { data: obra } = await db.from('worksites').select('nome, cliente_contacto').eq('id', t.worksite_id).maybeSingle();
+  if (!obra) return;
+
+  const valor = formatEuros(t.valor_cents);
+  const data = t.prevista.split('-').reverse().join('/');
+
+  if (tipo === 'cobranca_pintor') {
+    const n = COBRANCA_NOTICES.cobranca_pintor({ obra: obra.nome, valor, data });
+    await sendEmail(await recipients(t.painter_org_id), n.subject, n.lines, `/app/obras/${t.worksite_id}?s=financeiro`);
+    return;
+  }
+
+  if (!ehEmail(obra.cliente_contacto)) return;
+  const { data: org } = await db.from('organizations').select('nome').eq('id', t.painter_org_id).maybeSingle();
+  if (!org) return;
+  const n = COBRANCA_NOTICES[tipo]({ pintor: org.nome, obra: obra.nome, valor, data });
+  await sendEmail([obra.cliente_contacto!], n.subject, n.lines, '/', {
+    exactSubject: true,
+    cta: 'Saber o que é a Quem Pinta',
+    footer: `Mensagem enviada por ${BRAND.name} a pedido de ${org.nome}.`,
   });
 }
 
