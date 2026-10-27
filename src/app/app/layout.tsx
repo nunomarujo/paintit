@@ -125,7 +125,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)] print:block">
-      <aside className="print:hidden relative border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
+      {/* `overflow-hidden`: rede de segurança contra qualquer transbordo de texto (ex.: um nome de
+          item da navegação que a quebra de linha, por si só, não consiga conter a tempo) — nunca
+          mais pode sair da barra para cima do conteúdo, aconteça o que acontecer lá dentro
+          (27/10/2026, "estas sobreposições não podem acontecer"). */}
+      <aside className="print:hidden relative overflow-hidden border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
         {/* Largura ajustável (pedido do promotor, 26/10/2026): arrastar esta borda muda
             `--sidebar-w`, que o grid acima lê. `SidebarResizer.tsx` tem o porquê. */}
         <SidebarResizer />

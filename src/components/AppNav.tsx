@@ -88,11 +88,16 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
           const Icon = i.icon ? ICONES[i.icon] : null;
           return (
             <Fragment key={i.href}>
+              {/* Sem `whitespace-nowrap`: com a barra lateral arrastada para a largura mínima
+                  (`SidebarResizer.tsx`), um nome longo ("Armazém e consumíveis") não cabia numa
+                  linha e transbordava para fora da barra, por cima do conteúdo — a mesma
+                  sobreposição já corrigida no cabeçalho, agora aqui (27/10/2026). Quebra para
+                  várias linhas em vez disso. */}
               <Link
                 href={i.href}
                 onClick={onNavigate}
                 aria-current={active(i) ? 'page' : undefined}
-                className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-[9px] px-3 py-2 text-[15px] ${
+                className={`flex items-center justify-between gap-2 rounded-[9px] px-3 py-2 text-[15px] ${
                   active(i)
                     ? 'bg-marca-cream font-semibold text-marca-ink'
                     : 'text-marca-muted hover:bg-marca-cream/60 hover:text-marca-ink'
@@ -114,7 +119,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                       href={c.href}
                       onClick={onNavigate}
                       aria-current={activo(c) ? 'page' : undefined}
-                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-[9px] py-1.5 pl-4 text-[15px] ${
+                      className={`flex items-center gap-1.5 rounded-[9px] py-1.5 pl-4 text-[15px] ${
                         activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
                       }`}
                     >

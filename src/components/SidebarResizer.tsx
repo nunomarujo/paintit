@@ -92,7 +92,10 @@ export function SidebarResizer() {
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      className="absolute inset-y-0 -right-[3px] z-10 hidden w-1.5 cursor-col-resize touch-none select-none md:block hover:bg-marca-orange-deep/40 active:bg-marca-orange-deep/60"
+      // `right-0`, não `-right-[3px]`: a barra lateral ganhou `overflow-hidden` (layout.tsx,
+      // 27/10/2026) para nenhum texto transbordar para cima do conteúdo, e isso cortava metade
+      // desta pega, que antes espreitava 3px para fora da caixa. Fica toda cá dentro.
+      className="absolute inset-y-0 right-0 z-10 hidden w-1.5 cursor-col-resize touch-none select-none md:block hover:bg-marca-orange-deep/40 active:bg-marca-orange-deep/60"
     />
   );
 }
