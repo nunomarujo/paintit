@@ -67,20 +67,22 @@ export default function Home() {
       </header>
 
       {/*
-        O primeiro ecrã leva o mínimo que decide: o que isto é, para quem, e o que fazer a seguir. O
-        que saiu daqui não se perdeu — desceu para logo abaixo, onde se lê com o prédio a ganhar cor
-        ao lado.
+        O primeiro ecrã leva o mínimo que decide: o que isto é, como funciona, e o que fazer a seguir.
 
-        Saiu também a linha "Fachadas · Condomínios · Zonas comuns", que era maiúsculas espaçadas
-        separadas por pontos e partia ao meio no telemóvel ("ZONAS / COMUNS"). As palavras não se
-        perderam: estão na frase por baixo do título, onde se lêem em vez de se decifrarem.
+        O âmbito da obra saiu daqui ao fim de três tentativas (27/10/2026). Primeiro era a linha
+        "Fachadas · Condomínios · Zonas comuns", maiúsculas espaçadas que partiam ao meio no
+        telemóvel; depois foi enfiado na frase de apoio. O promotor rejeitou as duas, e a razão não
+        era de forma: o título já diz "do seu prédio", e fachadas e zonas comuns são o que um prédio
+        tem — repeti-lo em letra menor logo abaixo lê-se como enchimento. O espaço passou a dizer o
+        que só esta plataforma faz (todas as propostas ao mesmo tempo, no mesmo formato), e o âmbito
+        desceu para a secção "Que obras se orçamentam aqui", onde é resposta e não anúncio.
       */}
       <PaintedHero>
         <h1 className="text-[34px] font-bold leading-[1.05] text-tinta-900 sm:text-5xl lg:text-6xl">
           Orçamente a pintura do seu prédio.
         </h1>
         <p className="mt-3 max-w-md text-[17px] leading-snug text-slate-600 sm:text-[20px]">
-          Fachadas, zonas comuns e muros: encontrar empresas de pintura e comparar propostas para a mesma obra.
+          Um pedido, várias propostas. Chegam todas no fim do prazo e no mesmo formato, prontas a comparar.
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Link
@@ -104,8 +106,19 @@ export default function Home() {
         plataforma guarda a prova do que foi acordado.
       </p>
 
+      {/* O âmbito da obra, que saiu do primeiro ecrã (ver nota acima). Aqui é a resposta a "fazem o
+          que eu preciso?" e não um anúncio por cima do título: prosa, frases curtas, e um h2 que
+          leva as palavras da pesquisa ("fachadas", "muros") a um lugar onde contam. */}
+      <section className="mx-auto max-w-6xl px-4 pt-10 lg:max-w-3xl">
+        <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Que obras se orçamentam aqui</h2>
+        <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+          Fachadas e empenas. Entradas, escadas e patamares. Garagens. Muros e vedações. Em condomínio ou em
+          casa própria.
+        </p>
+      </section>
+
       <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-[34px] font-bold text-tinta-900">Orçamentos comparáveis.</h2>
+        <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Orçamentos comparáveis.</h2>
         <p className="mt-1 text-slate-600">O mesmo trabalho, os detalhes à vista.</p>
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {compare.map((c) => (
@@ -130,20 +143,22 @@ export default function Home() {
 
       <section id="condominios" className="border-y border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="text-[15px] font-bold uppercase tracking-[0.18em] text-slate-500">Administração de condomínios</p>
-          <h2 className="mt-2 text-[34px] font-bold text-tinta-900">Cada edifício, a sua obra.</h2>
-          <p className="mt-3 max-w-xl text-slate-600">
-            Pedidos, propostas e documentos organizados por condomínio, com a minuta do contrato pronta a assinar com
-            Chave Móvel Digital.
+          {/* Tinha por cima do título a mesma linha de maiúsculas espaçadas que foi rejeitada no
+              primeiro ecrã. O rótulo informativo sobe a título (e casa com a ligação do cabeçalho),
+              a frase que era título passa a abrir o parágrafo. */}
+          <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Administração de condomínios</h2>
+          <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-slate-600">
+            Cada edifício, a sua obra: pedidos, propostas e documentos organizados por condomínio, com a minuta do
+            contrato pronta a assinar com Chave Móvel Digital.
           </p>
           <Link href={toOrg('condominio')} className="btn-primary mt-6 !px-6 !py-3 !text-[17px]">
-            Gerir vários edifícios →
+            Gerir vários edifícios
           </Link>
         </div>
       </section>
 
       <section id="perguntas" className="mx-auto max-w-3xl px-4 py-16">
-        <h2 className="text-[34px] font-bold text-tinta-900">Antes de avançar</h2>
+        <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Antes de avançar</h2>
         <div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">
           {faqs.map((f) => (
             <details key={f.q} className="group py-4">

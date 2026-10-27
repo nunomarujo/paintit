@@ -4,6 +4,34 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 27/10/2026 (noite) — O âmbito da obra sai do primeiro ecrã
+
+Três tentativas de dizer na página inicial **que obras se orçamentam aqui**, duas rejeitadas pelo
+promotor: primeiro a linha `FACHADAS · CONDOMÍNIOS · ZONAS COMUNS` (maiúsculas espaçadas, partia ao
+meio no telemóvel), depois a mesma informação enfiada na frase por baixo do título. A terceira não é
+outra forma da mesma coisa — é tirá-la dali.
+
+**A razão é de conteúdo, não de formatação:** o título já diz "a pintura do seu prédio", e fachadas e
+zonas comuns são o que um prédio tem. Repetir isso em letra menor logo abaixo lê-se como enchimento,
+e é esse o som de "não está bem".
+
+O espaço libertado passa a dizer o que **só esta plataforma faz** — as propostas chegam todas no fim
+do prazo e no mesmo formato — que é também o argumento que um administrador tem de poder defender
+numa assembleia. O âmbito desce para a secção **"Que obras se orçamentam aqui"**, em prosa, logo a
+seguir ao primeiro ecrã: ali é resposta a quem pergunta "fazem o que eu preciso?", e não anúncio por
+cima do título. As palavras de pesquisa ("fachadas", "muros", "garagens") ficam num `h2` verdadeiro,
+que vale mais do que uma etiqueta decorativa.
+
+**No mesmo passo:** o prédio deixa de ter uma faixa vazia de ~100px por baixo (o texto estava centrado
+na linha flexível da grelha; passou a encostar), e a secção dos condomínios perdeu a mesma linha de
+maiúsculas espaçadas que foi rejeitada no primeiro ecrã.
+
+**Ficou por fazer, deliberadamente:** anotar o âmbito sobre o próprio desenho ("fachada", "escadas e
+hall", "muro", ligadas por um fio ao sítio exacto). É a melhor ideia das que saíram da consulta de
+design, mas a ilustração é um `.webp` e não um SVG com grupos nomeados — as anotações teriam de ser
+colocadas a olho por cima de uma imagem que, no telemóvel, ocupa ~165px de largura, onde 13px de texto
+tem a altura de um piso. Em ecrã largo funcionaria. Fica para quando a ilustração for vectorial.
+
 ## 27/10/2026 (fim do dia) — A facturação deixa de esperar que alguém se lembre
 
 A fila de facturação existe desde 22/10 e funciona. O que não existia era alguém a dar por ela:
