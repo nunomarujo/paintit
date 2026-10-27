@@ -1,16 +1,25 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 27/10/2026, à tarde (**as duas ferramentas do plano Pro construídas e aplicadas**:
-seguimento automático dos orçamentos e cobrança do que está na rua, ambas por uma máquina de avisos
-nova — domínio `toques.ts`, tabela `toques` e tarefa diária às 8h —, mais o **email de segunda-feira**
-que as torna visíveis e que não se envia quando não há matéria; e o **aviso de documento em falta
-passou a âmbar** por decisão do promotor, fechando a contradição da regra 13 — `docs/DECISOES.md`,
-entradas de 27/10/2026). Estado anterior, 26/10/2026, à noite (**a entrega das propostas passou a ser simultânea**: o cliente só as
-vê no fim do prazo, com a porta na regra de acesso da base e não no ecrã — até aqui via cada uma no
-instante em que era submetida, o que expunha o preço de quem entregava primeiro; mais a janela de
-esclarecimentos de 3 dias, o prolongamento do prazo só antes da entrega e a contagem sem revelar —
-`docs/DECISOES.md`, entrada "A entrega das propostas é simultânea"). Estado anterior, 26/10/2026, ao fim da tarde (**barra lateral com largura ajustável**, pedido do promotor a
-ver o ecrã largo: arrastar a borda direita da barra muda a sua largura, entre 180 e 420px, com o cursor a
+Atualizado a 27/10/2026 (**limite à largura ajustável da barra lateral**: o promotor arrastou-a para mais
+larga numa janela estreita e o conteúdo principal ficou espremido a ponto de parecer sobreposto à barra —
+"estas sobreposições não podem acontecer". `SidebarResizer.tsx` passa a reservar sempre pelo menos 360px
+ao conteúdo principal, calculado contra `window.innerWidth` de cada vez — a arrastar, a abrir a página, e
+outra vez se a janela for redimensionada depois (um valor guardado numa janela maior não volta a espremer
+uma mais pequena). O aviso "Versão de teste · pagamentos em modo de teste" no cabeçalho deixa de cortar
+com reticências (`truncate`) quando falta espaço — passa a quebrar para uma segunda linha, como pedido.
+`npm test`/`typecheck`/`lint`/`build` verdes, 842 testes — por ver ao vivo numa janela estreita antes de
+dar como resolvido.). Estado anterior, 27/10/2026, à tarde (**as duas ferramentas do plano Pro construídas
+e aplicadas**: seguimento automático dos orçamentos e cobrança do que está na rua, ambas por uma máquina
+de avisos nova — domínio `toques.ts`, tabela `toques` e tarefa diária às 8h —, mais o **email de
+segunda-feira** que as torna visíveis e que não se envia quando não há matéria; e o **aviso de documento em
+falta passou a âmbar** por decisão do promotor, fechando a contradição da regra 13 — `docs/DECISOES.md`,
+entradas de 27/10/2026). Estado anterior, 26/10/2026, à noite (**a entrega das propostas passou a ser
+simultânea**: o cliente só as vê no fim do prazo, com a porta na regra de acesso da base e não no ecrã —
+até aqui via cada uma no instante em que era submetida, o que expunha o preço de quem entregava primeiro;
+mais a janela de esclarecimentos de 3 dias, o prolongamento do prazo só antes da entrega e a contagem sem
+revelar — `docs/DECISOES.md`, entrada "A entrega das propostas é simultânea"). Estado anterior, 26/10/2026,
+ao fim da tarde (**barra lateral com largura ajustável**, pedido do promotor a ver o ecrã largo: arrastar
+a borda direita da barra muda a sua largura, entre 180 e 420px, com o cursor a
 mudar para "col-resize" ao passar por cima — `SidebarResizer.tsx`, novo. Só mexe na variável CSS
 `--sidebar-w` diretamente no `<html>` a cada pixel arrastado, sem passar pelo React; `layout.tsx` lê-a em
 `grid-template-columns` (`md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)]`, 235px continua a ser o

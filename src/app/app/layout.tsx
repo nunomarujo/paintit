@@ -198,7 +198,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           {/* "Perfil"/"Sair" já vivem só no botão de navegação da marca em telemóvel
               (`MobileNavMenu.tsx`, 26/10/2026) — não há mais nada a competir por espaço aqui. */}
           <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[#648d75]" />
-          <span className="truncate text-[15px] text-slate-500">Versão de teste · pagamentos em modo de teste</span>
+          {/* Sem `truncate`: com a barra lateral arrastada para mais larga, é preferível esta
+              frase quebrar para uma segunda linha do que desaparecer cortada (pedido do
+              promotor, 27/10/2026 — "sobreposições não podem acontecer"). */}
+          <span className="text-[15px] text-slate-500">Versão de teste · pagamentos em modo de teste</span>
         </header>
         <main className="mx-auto max-w-[1600px] px-4 py-5 md:px-6">
           {lastWarning && (
