@@ -119,6 +119,48 @@ export const JANELA_ACABA_NOTICE = (p: { titulo: string; ate: string }): { subje
   ],
 });
 
+/**
+ * Os três toques do seguimento de um orçamento, escritos ao cliente do pintor.
+ *
+ * Quem recebe isto não é utilizador da plataforma: é um cliente dele, que pediu um orçamento e não
+ * respondeu. Por isso cada mensagem diz, logo na primeira linha, **quem escreve e porquê** — o
+ * assistente de IA do pintor, com o consentimento dele, pela quempinta.pt. Não é fórmula legal: é o
+ * mínimo para ninguém se sentir enganado por uma mensagem que parecia escrita à mão.
+ *
+ * Sem pressão, sem juros, sem prazos inventados. O terceiro diz que é o último, e todos dizem como
+ * se faz parar. Três e acabou (decisão do promotor, 26/10/2026).
+ */
+export const SEGUIMENTO_NOTICES = {
+  orcamento_1: (p: { pintor: string; titulo: string | null }) => ({
+    subject: `O orçamento${p.titulo ? ` de ${p.titulo}` : ''} chegou bem?`,
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele: sou o assistente de IA que acompanha os orçamentos dele, pela plataforma quempinta.pt.`,
+      `Há uns dias recebeu um orçamento${p.titulo ? ` para ${p.titulo}` : ''}. Chegou bem?`,
+      'Se houver alguma coisa por esclarecer — o que está incluído, prazos, materiais —, responda a este email e eu faço chegar a pergunta.',
+      'Se preferir não receber mais mensagens sobre este orçamento, basta dizê-lo nesta resposta.',
+    ],
+  }),
+  orcamento_2: (p: { pintor: string; titulo: string | null; validade: string | null }) => ({
+    subject: 'Sobre o orçamento que recebeu',
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele, pela plataforma quempinta.pt.`,
+      p.validade
+        ? `O preço do orçamento${p.titulo ? ` de ${p.titulo}` : ''} é válido até ${p.validade}. Depois dessa data os materiais podem ter outro preço.`
+        : `Queria só saber se o orçamento${p.titulo ? ` de ${p.titulo}` : ''} ainda está em cima da mesa.`,
+      'Se já escolheu outra empresa não há problema nenhum em dizê-lo — poupa-lhe mensagens e a ele o trabalho de ficar à espera.',
+      'Para não receber mais nada sobre este orçamento, responda a dizer.',
+    ],
+  }),
+  orcamento_3: (p: { pintor: string; titulo: string | null }) => ({
+    subject: 'Última mensagem sobre este orçamento',
+    lines: [
+      `Escrevo em nome de ${p.pintor}, com a autorização dele, pela plataforma quempinta.pt.`,
+      `Esta é a última mensagem que lhe envio sobre o orçamento${p.titulo ? ` de ${p.titulo}` : ''} — não voltarei a incomodá-lo.`,
+      `Se a obra se mantiver, mais tarde ou noutro formato, fale com ${p.pintor} quando lhe der jeito: o orçamento pode ser refeito com os preços da altura.`,
+    ],
+  }),
+} as const;
+
 /** Convite aos pintores quando um pedido é publicado. Só leva o que o anúncio anónimo já mostra (concelho, tipo, prazo). */
 export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; prazo: string }): { subject: string; lines: string[] } => ({
   subject: `Pedido de Orçamento - pintura em ${p.concelho}`,

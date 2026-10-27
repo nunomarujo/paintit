@@ -176,6 +176,24 @@ export async function saveQuoteTerms(quoteId: string, _prev: FormState, form: Fo
 }
 
 /**
+ * Ligar ou desligar o seguimento deste orçamento.
+ *
+ * É o consentimento do pintor para a plataforma escrever ao cliente dele — três toques, ao 3.º, 10.º
+ * e 20.º dia, e nada mais. Por omissão está desligado: escrever a um cliente de alguém não é coisa
+ * que se faça por defeito.
+ */
+export async function setSeguimento(quoteId: string, ligar: boolean, _prev: FormState, _form: FormData): Promise<FormState> {
+  const { supabase, org } = await myOrg();
+  if (!org) return { errors: {}, message: 'Sem empresa.' };
+  const { error } = await supabase.from('painter_quotes').update({ seguimento: ligar }).eq('id', quoteId).eq('org_id', org.id);
+  // Sem o erro à vista, um botão que não grava parece um botão partido. Acontece enquanto a migração
+  // do seguimento não estiver aplicada à base real.
+  if (error) return { errors: {}, message: 'O seguimento ainda não está disponível nesta instalação.' };
+  revalidatePath(`/app/orcamentos/${quoteId}`);
+  return { errors: {}, ok: true, message: ligar ? 'A Quem Pinta passa a perguntar por si.' : 'Deixámos de perguntar.' };
+}
+
+/**
  * Dar o orçamento por enviado. É neste momento que a biblioteca de preços aprende: os preços com que
  * ele acabou são os que valem, e são eles que vão poupar-lhe tempo no orçamento seguinte.
  */

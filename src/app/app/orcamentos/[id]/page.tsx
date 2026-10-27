@@ -8,7 +8,8 @@ import { lembretes } from '@/domain/quoteTemplates';
 import { avisoDePreco, historico } from '@/domain/margin';
 import { painterOrgs, painterWorkHistory } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
-import { saveQuoteTerms, markQuoteSent, setQuoteOutcome } from '../actions';
+import { saveQuoteTerms, markQuoteSent, setQuoteOutcome, setSeguimento } from '../actions';
+import { ehEmail } from '@/domain/toques';
 import { ActionButton } from '../QuoteForms';
 import { AddLine, EditLine, RemoveLine } from './LineForms';
 
@@ -233,6 +234,40 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           <p className="mt-2 text-[15px] text-slate-500">
             Ao dar como enviado, os preços deste orçamento ficam guardados e passam a aparecer sugeridos no próximo.
           </p>
+        )}
+
+        {/*
+          O seguimento. Só depois de enviado, e só com email: um número de telefone não serve, e
+          prometer o que não se pode cumprir é pior do que não oferecer.
+        */}
+        {q.estado === 'enviado' && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            {ehEmail(q.cliente_contacto) ? (
+              <>
+                <p className="text-[17px] font-semibold text-slate-900">
+                  {q.seguimento ? 'A Quem Pinta está a perguntar por si' : 'Quer que perguntemos por si?'}
+                </p>
+                <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
+                  Três mensagens a {q.cliente_contacto}, ao 3.º, ao 10.º e ao 20.º dia, enquanto não souber se ganhou ou
+                  perdeu. Dizem que são escritas pelo assistente de IA da sua empresa, com a sua autorização, e dão ao
+                  cliente forma de as fazer parar. Sem juros, sem prazos inventados, sem uma quarta.
+                </p>
+                <div className="mt-3">
+                  <ActionButton
+                    action={setSeguimento.bind(null, id, !q.seguimento)}
+                    label={q.seguimento ? 'Deixar de perguntar' : 'Perguntar por mim'}
+                    pendingLabel="A guardar…"
+                    variant={q.seguimento ? 'quiet' : 'primary'}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="text-[15px] text-slate-600">
+                Para a Quem Pinta poder perguntar por si se o orçamento foi visto, o contacto do cliente tem de ser um
+                email. Hoje está{q.cliente_contacto ? ` «${q.cliente_contacto}»` : ' por preencher'}.
+              </p>
+            )}
+          </div>
         )}
       </section>
     </div>

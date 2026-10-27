@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, engagementNotices } from './notifications';
+import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -78,5 +78,41 @@ describe('avisos da janela de esclarecimentos', () => {
   it('nenhum aviso conta quantas propostas há', () => {
     const t = JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'cliente' });
     expect([t.subject, ...t.lines].join(' ')).not.toMatch(/\d+ propostas/);
+  });
+});
+
+describe('seguimento do orçamento', () => {
+  const todos = [
+    SEGUIMENTO_NOTICES.orcamento_1({ pintor: 'Pinturas Silva', titulo: 'Rua A, 1' }),
+    SEGUIMENTO_NOTICES.orcamento_2({ pintor: 'Pinturas Silva', titulo: 'Rua A, 1', validade: '30/11/2026' }),
+    SEGUIMENTO_NOTICES.orcamento_3({ pintor: 'Pinturas Silva', titulo: 'Rua A, 1' }),
+  ];
+
+  it('todas dizem quem escreve, com que autorização e por onde', () => {
+    for (const n of todos) {
+      const t = n.lines.join(' ');
+      expect(t).toContain('Pinturas Silva');
+      expect(t).toMatch(/assistente de IA|em nome de/);
+      expect(t).toContain('autorização');
+      expect(t).toContain('quempinta.pt');
+    }
+  });
+
+  it('nenhuma ameaça, cobra juros ou inventa prazos', () => {
+    for (const n of todos) {
+      const t = [n.subject, ...n.lines].join(' ').toLowerCase();
+      expect(t).not.toMatch(/juros|mora|advogad|tribunal|última oportunidade|urgente/);
+    }
+  });
+
+  it('as duas primeiras dizem como parar; a terceira diz que é a última', () => {
+    expect(todos[0]!.lines.join(' ')).toMatch(/não receber mais|preferir não receber/);
+    expect(todos[1]!.lines.join(' ')).toMatch(/não receber mais/);
+    expect(todos[2]!.lines.join(' ')).toContain('não voltarei a incomodá-lo');
+  });
+
+  it('o segundo usa a validade quando a há, e não a inventa quando não há', () => {
+    const sem = SEGUIMENTO_NOTICES.orcamento_2({ pintor: 'Pinturas Silva', titulo: null, validade: null });
+    expect(sem.lines.join(' ')).not.toMatch(/válido até/);
   });
 });

@@ -1,8 +1,8 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
-import { fimDaJanela } from '@/domain/toques';
+import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
+import { ehEmail, fimDaJanela } from '@/domain/toques';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
@@ -137,6 +137,42 @@ export async function notifyJanela(tipo: 'janela_abriu' | 'janela_acaba', reques
   for (const orgId of [...new Set((props ?? []).map((p) => p.painter_org_id))]) {
     await sendEmail(await recipients(orgId), n.subject, n.lines, `/app/oportunidades`);
   }
+}
+
+/**
+ * Um toque do seguimento, escrito ao cliente do pintor.
+ *
+ * Vai ao contacto que o pintor guardou no orçamento, e só quando esse contacto é um email — um
+ * número de telefone não se usa para isto. O link aponta para a página pública da plataforma: quem
+ * recebe não tem conta nenhuma, e mandá-lo para um ecrã de entrada seria mandá-lo para uma porta
+ * fechada.
+ */
+export async function notifySeguimento(tipo: 'orcamento_1' | 'orcamento_2' | 'orcamento_3', quoteId: string): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: q } = await db
+    .from('painter_quotes')
+    .select('cliente_contacto, titulo, validade, org_id')
+    .eq('id', quoteId)
+    .maybeSingle();
+  if (!q?.cliente_contacto || !ehEmail(q.cliente_contacto)) return;
+  const { data: org } = await db.from('organizations').select('nome').eq('id', q.org_id).maybeSingle();
+  if (!org) return;
+
+  const pintor = org.nome;
+  const titulo = q.titulo;
+  const n =
+    tipo === 'orcamento_1'
+      ? SEGUIMENTO_NOTICES.orcamento_1({ pintor, titulo })
+      : tipo === 'orcamento_2'
+        ? SEGUIMENTO_NOTICES.orcamento_2({ pintor, titulo, validade: q.validade ? q.validade.split('-').reverse().join('/') : null })
+        : SEGUIMENTO_NOTICES.orcamento_3({ pintor, titulo });
+
+  await sendEmail([q.cliente_contacto], n.subject, n.lines, '/', {
+    exactSubject: true,
+    cta: 'Saber o que é a Quem Pinta',
+    footer: `Mensagem enviada por ${BRAND.name} a pedido de ${pintor}.`,
+  });
 }
 
 export async function notifyProposalSubmitted(requestId: string): Promise<void> {

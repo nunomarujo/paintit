@@ -1,7 +1,7 @@
 import { localDate } from '@/domain/deadline';
 import { CURRENT_RULES } from '@/domain/rules';
-import { chaveDoToque, toquesDevidos, type PedidoParaToque, type Toque } from '@/domain/toques';
-import { notifyJanela } from '@/lib/notify';
+import { chaveDoToque, ehEmail, toquesDevidos, toquesDoOrcamento, type PedidoParaToque, type Toque } from '@/domain/toques';
+import { notifyJanela, notifySeguimento } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -38,11 +38,38 @@ export async function GET(req: Request) {
   for (const p of props ?? []) quantas.set(p.request_id, (quantas.get(p.request_id) ?? 0) + 1);
   const feitos = new Set((jaEnviados ?? []).map((t) => chaveDoToque(t as Toque)));
 
+  // Os orçamentos próprios, com seguimento autorizado: três toques ao cliente do pintor.
+  const { data: orcamentos } = await db
+    .from('painter_quotes')
+    .select('id, enviado_em, estado, seguimento, cliente_contacto')
+    .eq('seguimento', true)
+    .eq('estado', 'enviado');
+  const { data: toquesDeOrcamentos } = orcamentos?.length
+    ? await db.from('toques').select('tipo, alvo, destinatario').in('alvo', orcamentos.map((q) => q.id))
+    : { data: [] };
+  for (const t of toquesDeOrcamentos ?? []) feitos.add(chaveDoToque(t as Toque));
+
   const devidos = (listings ?? []).flatMap((l) =>
     toquesDevidos(
       { requestId: l.request_id, prazo: l.prazo_propostas, aberto: l.aberto, propostas: quantas.get(l.request_id) ?? 0 } satisfies PedidoParaToque,
       hoje,
       feitos,
+    ),
+  );
+
+  devidos.push(
+    ...(orcamentos ?? []).flatMap((q) =>
+      toquesDoOrcamento(
+        {
+          quoteId: q.id,
+          enviadoEm: q.enviado_em ? q.enviado_em.slice(0, 10) : null,
+          estado: q.estado,
+          seguimento: q.seguimento,
+          temEmail: ehEmail(q.cliente_contacto),
+        },
+        hoje,
+        feitos,
+      ),
     ),
   );
 
@@ -53,12 +80,16 @@ export async function GET(req: Request) {
     const { error: dup } = await db.from('toques').insert({ tipo: t.tipo, alvo: t.alvo, destinatario: t.destinatario });
     if (dup) continue;
     if (t.tipo === 'janela_abriu' || t.tipo === 'janela_acaba') {
+      // O destinatário destes é sempre um dos dois lados da obra, nunca um cliente do pintor.
+      if (t.destinatario === 'cliente_do_pintor') continue;
       await notifyJanela(t.tipo, t.alvo, t.destinatario).catch((e) => console.error('toques: ' + String(e)));
+    } else {
+      await notifySeguimento(t.tipo, t.alvo).catch((e) => console.error('toques: ' + String(e)));
     }
     enviados += 1;
   }
 
-  const resumo = { hoje, anuncios: ids.length, devidos: devidos.length, enviados };
+  const resumo = { hoje, anuncios: ids.length, orcamentos: (orcamentos ?? []).length, devidos: devidos.length, enviados };
   console.log('toques: ' + JSON.stringify(resumo));
   return Response.json(resumo);
 }

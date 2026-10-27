@@ -24,10 +24,10 @@ import { DIAS_DE_ESCLARECIMENTO, estadoDaEntrega } from './entrega';
  * assistente de IA do pintor, com o consentimento dele, pela quempinta.pt.
  */
 
-export const TIPOS_DE_TOQUE = ['janela_abriu', 'janela_acaba'] as const;
+export const TIPOS_DE_TOQUE = ['janela_abriu', 'janela_acaba', 'orcamento_1', 'orcamento_2', 'orcamento_3'] as const;
 export type TipoDeToque = (typeof TIPOS_DE_TOQUE)[number];
 
-export const DESTINATARIOS = ['cliente', 'pintor'] as const;
+export const DESTINATARIOS = ['cliente', 'pintor', 'cliente_do_pintor'] as const;
 export type Destinatario = (typeof DESTINATARIOS)[number];
 
 export interface Toque {
@@ -87,3 +87,55 @@ export function toquesDevidos(p: PedidoParaToque, hoje: string, jaEnviados: Set<
 
 /** O último dia da janela de esclarecimentos, para os textos o escreverem por extenso. */
 export const fimDaJanela = (prazo: string) => maisDias(prazo, DIAS_DE_ESCLARECIMENTO);
+
+/**
+ * O seguimento de um orçamento próprio — o que o pintor mandou a um cliente dele.
+ *
+ * Três toques e acabou, ao 3.º, 10.º e 20.º dia depois de enviado. O número não é generoso nem
+ * mesquinho: é o que o promotor fixou a 26/10, e é também o limite a partir do qual um lembrete
+ * deixa de ser um favor e passa a ser uma chatice.
+ *
+ * Aqui não há problema de anonimato: o cliente é dele e já o conhece pelo nome. O que a mensagem tem
+ * de dizer, e diz, é que quem escreve é o assistente de IA do pintor, com o consentimento dele,
+ * através da quempinta.pt.
+ *
+ * Pára sozinho assim que o orçamento sai do estado "enviado" — ganho ou perdido, não há mais nada a
+ * perguntar.
+ */
+export const DIAS_DOS_TOQUES = [3, 10, 20] as const;
+
+/**
+ * O contacto que o pintor guardou serve para escrever?
+ *
+ * O campo é livre — tanto leva um email como um número de telefone, ou "a filha, 96…". Só se escreve
+ * quando é inequivocamente um email: mandar uma mensagem para um endereço adivinhado é pior do que
+ * não mandar nada.
+ */
+export function ehEmail(contacto: string | null): boolean {
+  if (!contacto) return false;
+  const t = contacto.trim();
+  return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(t);
+}
+
+export interface OrcamentoParaToque {
+  quoteId: string;
+  /** Quando foi dado por enviado (ISO, data). Null = ainda não saiu. */
+  enviadoEm: string | null;
+  estado: 'rascunho' | 'enviado' | 'ganho' | 'perdido';
+  /** O pintor autorizou a plataforma a perguntar por ele? */
+  seguimento: boolean;
+  /** O contacto do cliente serve para escrever? Só se for um email. */
+  temEmail: boolean;
+}
+
+export function toquesDoOrcamento(q: OrcamentoParaToque, hoje: string, jaEnviados: Set<string>): Toque[] {
+  if (!q.enviadoEm || q.estado !== 'enviado' || !q.seguimento || !q.temEmail) return [];
+  const tipos = ['orcamento_1', 'orcamento_2', 'orcamento_3'] as const;
+  return DIAS_DOS_TOQUES.flatMap((dias, i) => {
+    const de = maisDias(q.enviadoEm!, dias);
+    // A mesma folga de dois dias dos outros toques: uma tarefa que falhe um dia não perde o aviso.
+    if (!entre(hoje, de, maisDias(de, 1))) return [];
+    const t: Toque = { tipo: tipos[i]!, alvo: q.quoteId, destinatario: 'cliente_do_pintor' };
+    return jaEnviados.has(chaveDoToque(t)) ? [] : [t];
+  });
+}

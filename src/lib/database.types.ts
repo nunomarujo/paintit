@@ -1318,6 +1318,8 @@ export type Database = {
           cliente_contacto: string | null;
           cliente_nome: string;
           created_at: string;
+          // Migração `seguimento_do_orcamento` (27/10/2026), escrita à mão até ser aplicada.
+          seguimento: boolean;
           duracao_dias: number | null;
           enviado_em: string | null;
           estado: 'rascunho' | 'enviado' | 'ganho' | 'perdido';
@@ -1336,6 +1338,7 @@ export type Database = {
         };
         Insert: {
           cliente_contacto?: string | null;
+          seguimento?: boolean;
           cliente_nome: string;
           created_at?: string;
           duracao_dias?: number | null;
