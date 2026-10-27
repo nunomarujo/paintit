@@ -208,6 +208,45 @@ export const COBRANCA_NOTICES = {
   }),
 } as const;
 
+/**
+ * A fila de facturação, à equipa da plataforma.
+ *
+ * Só sai quando há matéria, e o assunto muda consoante a urgência: um email cujo assunto é sempre
+ * igual deixa de ser lido ao terceiro. O que está fora de prazo vem no assunto, porque é a única
+ * coisa que obriga a largar o que se está a fazer.
+ */
+export const FATURACAO_NOTICE = (p: {
+  total: number;
+  valor: string;
+  foraDePrazo: number;
+  ultimoDia: number;
+  maisAntiga: { descricao: string; data: string; diasUteis: number } | null;
+}): { subject: string; lines: string[] } => {
+  const subject =
+    p.foraDePrazo > 0
+      ? `${p.foraDePrazo} ${p.foraDePrazo === 1 ? 'documento fora de prazo' : 'documentos fora de prazo'}`
+      : p.ultimoDia > 0
+        ? `${p.ultimoDia} ${p.ultimoDia === 1 ? 'documento' : 'documentos'} para emitir hoje`
+        : `${p.total} ${p.total === 1 ? 'documento' : 'documentos'} por emitir`;
+
+  const lines = [`A fila tem ${p.total} ${p.total === 1 ? 'documento' : 'documentos'} por emitir, num total de ${p.valor}.`];
+  if (p.foraDePrazo > 0) {
+    lines.push(
+      `${p.foraDePrazo} ${p.foraDePrazo === 1 ? 'passou' : 'passaram'} o 5.º dia útil depois do facto — o prazo geral de emissão.`,
+    );
+  }
+  if (p.ultimoDia > 0) {
+    lines.push(`${p.ultimoDia} ${p.ultimoDia === 1 ? 'está' : 'estão'} no último dia do prazo.`);
+  }
+  if (p.maisAntiga) {
+    lines.push(
+      `O mais antigo é de ${p.maisAntiga.data.split('-').reverse().join('/')} (${p.maisAntiga.descricao}), há ${p.maisAntiga.diasUteis} ${p.maisAntiga.diasUteis === 1 ? 'dia útil' : 'dias úteis'}.`,
+    );
+  }
+  lines.push('A emissão continua a ser manual: Contabilidade → Faturação.');
+  return { subject, lines };
+};
+
 /** Convite aos pintores quando um pedido é publicado. Só leva o que o anúncio anónimo já mostra (concelho, tipo, prazo). */
 export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; prazo: string }): { subject: string; lines: string[] } => ({
   subject: `Pedido de Orçamento - pintura em ${p.concelho}`,

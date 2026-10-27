@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COBRANCA_NOTICES, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
+import { COBRANCA_NOTICES, FATURACAO_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -154,5 +154,35 @@ describe('cobrança', () => {
     const t = COBRANCA_NOTICES.cobranca_pintor(p).lines.join(' ');
     expect(t).not.toContain('autorização');
     expect(t).toContain('não enviaremos mais');
+  });
+});
+
+describe('aviso da fila de facturação', () => {
+  const base = { total: 3, valor: '1 200,00 €', foraDePrazo: 0, ultimoDia: 0, maisAntiga: null };
+
+  it('o assunto sobe de tom conforme a urgência', () => {
+    expect(FATURACAO_NOTICE(base).subject).toBe('3 documentos por emitir');
+    expect(FATURACAO_NOTICE({ ...base, ultimoDia: 1 }).subject).toBe('1 documento para emitir hoje');
+    expect(FATURACAO_NOTICE({ ...base, foraDePrazo: 2, ultimoDia: 1 }).subject).toBe('2 documentos fora de prazo');
+  });
+
+  it('diz sempre quantos, quanto e onde se emite', () => {
+    const n = FATURACAO_NOTICE(base);
+    const t = n.lines.join(' ');
+    expect(t).toContain('3 documentos');
+    expect(t).toContain('1 200,00 €');
+    expect(t).toContain('Contabilidade → Faturação');
+  });
+
+  it('nomeia o mais antigo, que é o que diz se isto é fila ou descuido', () => {
+    const n = FATURACAO_NOTICE({ ...base, maisAntiga: { descricao: 'Comissão de sucesso', data: '2026-11-02', diasUteis: 6 } });
+    expect(n.lines.join(' ')).toContain('02/11/2026');
+    expect(n.lines.join(' ')).toContain('6 dias úteis');
+  });
+
+  it('o singular não aparece em plural', () => {
+    const n = FATURACAO_NOTICE({ ...base, total: 1, maisAntiga: { descricao: 'x', data: '2026-11-09', diasUteis: 1 } });
+    expect(n.lines[0]).toContain('1 documento por emitir');
+    expect(n.lines.join(' ')).toContain('1 dia útil');
   });
 });

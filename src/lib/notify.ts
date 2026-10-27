@@ -1,9 +1,12 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { COBRANCA_NOTICES, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
+import { COBRANCA_NOTICES, FATURACAO_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
 import { ehEmail, fimDaJanela } from '@/domain/toques';
 import { resumoDaSemana } from '@/domain/semana';
+import { resumoDaFila } from '@/domain/faturacao';
+import { invoiceTotal } from '@/domain/invoicing';
+import { pendingInvoices } from '@/lib/invoicing';
 import { DOC_KIND_LABELS, type DocKind } from '@/domain/organization';
 import { temPro, type SubscricaoPintor } from '@/domain/painterPlan';
 import { formatEuros } from '@/domain/money';
@@ -259,6 +262,46 @@ export async function notifySemana(orgId: string, hoje: string): Promise<boolean
   if (resumo.vazio) return false;
 
   await sendEmail(await recipients(orgId), 'A sua semana', resumo.linhas, '/app', { cta: 'Abrir a aplicação' });
+  return true;
+}
+
+/**
+ * A fila de facturação, à equipa da plataforma. Devolve `true` se chegou a sair alguma coisa.
+ *
+ * Vai aos `platform_admins` — não há ecrã para os gerir, de propósito (CLAUDE.md). Só sai quando há
+ * fila: um email diário garantido a dizer "zero" ensina a apagá-lo, e no dia em que disser "três
+ * fora de prazo" já ninguém o lê.
+ */
+export async function notifyFaturacao(hoje: string): Promise<boolean> {
+  const db = adminClient();
+  if (!db) return false;
+  const pendentes = await pendingInvoices().catch(() => []);
+  if (pendentes.length === 0) return false;
+
+  const r = resumoDaFila(
+    pendentes.map((d) => ({
+      descricao: d.lines[0]?.descricao ?? d.reason,
+      data: d.data,
+      valorCents: invoiceTotal(d.lines),
+    })),
+    hoje,
+  );
+
+  const { data: admins } = await db.from('platform_admins').select('user_id');
+  const emails = await Promise.all(
+    (admins ?? []).map(async (a) => (await db.auth.admin.getUserById(a.user_id)).data.user?.email ?? null),
+  );
+  const para = [...new Set(emails.filter((e): e is string => !!e))];
+  if (para.length === 0) return false;
+
+  const n = FATURACAO_NOTICE({
+    total: r.total,
+    valor: formatEuros(r.valorCents),
+    foraDePrazo: r.foraDePrazo,
+    ultimoDia: r.ultimoDia,
+    maisAntiga: r.maisAntiga,
+  });
+  await sendEmail(para, n.subject, n.lines, '/app/backoffice/contabilidade/faturacao', { cta: 'Abrir a fila' });
   return true;
 }
 

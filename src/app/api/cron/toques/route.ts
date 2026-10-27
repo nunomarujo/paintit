@@ -9,7 +9,7 @@ import {
   type PedidoParaToque,
   type Toque,
 } from '@/domain/toques';
-import { notifyCobranca, notifyJanela, notifySeguimento, notifySemana } from '@/lib/notify';
+import { notifyCobranca, notifyFaturacao, notifyJanela, notifySeguimento, notifySemana } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -23,6 +23,12 @@ import { adminClient } from '@/lib/supabase/admin';
  * registado, o aviso perde-se. É a troca certa: um pintor que não recebe um email volta a ver tudo
  * na aplicação, mas um cliente que recebe o mesmo aviso cinco vezes desinstala-nos da cabeça.
  */
+/**
+ * A plataforma não é uma organização e não tem id na base. Os toques precisam de um alvo, e este
+ * identificador fixo serve de endereço para o que é dirigido à equipa — hoje, a fila de facturação.
+ */
+const ALVO_DA_PLATAFORMA = '00000000-0000-4000-8000-000000000001';
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) return new Response('Não autorizado', { status: 401 });
@@ -145,9 +151,18 @@ export async function GET(req: Request) {
     }
   }
 
+  // A fila de facturação, à equipa da plataforma. Todos os dias, porque o prazo conta-se em dias
+  // úteis e um documento pode entrar na fila a qualquer hora.
+  let faturacao = false;
+  {
+    const { error: dup } = await db.from('toques').insert({ tipo: `faturacao_${hoje}`, alvo: ALVO_DA_PLATAFORMA, destinatario: 'pintor' });
+    if (!dup) faturacao = await notifyFaturacao(hoje).catch(() => false);
+  }
+
   const resumo = {
     hoje,
     semana,
+    faturacao,
     anuncios: ids.length,
     orcamentos: (orcamentos ?? []).length,
     tranches: (tranches ?? []).length,

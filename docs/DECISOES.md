@@ -4,6 +4,32 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 27/10/2026 (fim do dia) — A facturação deixa de esperar que alguém se lembre
+
+A fila de facturação existe desde 22/10 e funciona. O que não existia era alguém a dar por ela:
+**zero documentos emitidos desde sempre**, e a fila enche-se sozinha a cada comissão recebida, a cada
+subscrição paga, a cada caução retida. Sem dinheiro verdadeiro isso não custava nada; com dinheiro
+verdadeiro é incumprimento fiscal a acumular em silêncio.
+
+A tarefa diária passa a olhar para a fila e a avisar a equipa da plataforma (`platform_admins`) —
+**só quando há fila**. Um email diário garantido a dizer "zero" ensina a apagá-lo sem abrir, e no dia
+em que disser "três fora de prazo" já ninguém o lê. O assunto sobe de tom: *tantos por emitir* →
+*tantos para emitir hoje* → *tantos fora de prazo*.
+
+**O prazo assumido** está num só sítio, `src/domain/faturacao.ts`: o 5.º dia útil seguinte ao facto
+tributável, a regra geral portuguesa. Está escrito lá para o contabilista do promotor poder confirmar
+ou corrigir um número em vez de o procurar espalhado pelo código — **a plataforma não decide matéria
+fiscal**, avisa a horas.
+
+A contagem de dias úteis exclui sábados e domingos e **não conhece feriados**, de propósito: uma
+tabela de feriados por actualizar dá um prazo errado com ar de certo. Contar a menos avisa mais cedo
+do que o necessário, nunca mais tarde — é o erro seguro.
+
+**O que ficou de fora, e porquê:** a emissão continua manual, com um clique no backoffice. Emitir uma
+factura é irreversível — desfaz-se com nota de crédito, que fica no histórico fiscal — e automatizar
+isso antes de a fila ter corrido limpa algumas semanas seria trocar um problema por outro pior.
+Primeiro ver, depois decidir.
+
 ## 27/10/2026 — As duas ferramentas do Pro, e a máquina que as faz acontecer
 
 Decisões do promotor de 26/10, construídas e aplicadas a 27/10. O Pro vendia quatro coisas e só uma
