@@ -34,7 +34,7 @@ export function ProlongarPrazo({ requestId, prazo, quantas }: { requestId: strin
             name="prazo"
             defaultValue={sugestao}
             min={prazo}
-            className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
+            className="mt-1 rounded-xl border border-slate-300 px-3 py-2 text-[17px]"
           />
         </label>
         <button type="submit" disabled={pending} className="btn-secondary">

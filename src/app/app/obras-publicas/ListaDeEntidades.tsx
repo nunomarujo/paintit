@@ -293,7 +293,7 @@ export function ListaDeEntidades({ todas, nif }: { todas: EntidadeDoMapa[]; nif:
           <select
             value={ordem}
             onChange={(ev) => setOrdem(ev.target.value as Ordem)}
-            className="w-full rounded-lg border-slate-300 py-2 pl-3 pr-9 text-[17px] sm:w-auto"
+            className="w-full rounded-xl border border-slate-300 py-2 pl-3 pr-9 text-[17px] sm:w-auto"
           >
             {ORDENS.map((o) => (
               <option key={o.ordem} value={o.ordem}>

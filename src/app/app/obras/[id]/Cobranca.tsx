@@ -48,7 +48,7 @@ export function Cobranca({
           name="clienteContacto"
           defaultValue={contacto ?? ''}
           placeholder="nome@exemplo.pt"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px] sm:max-w-sm"
+          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-[17px] sm:max-w-sm"
         />
       </label>
       {state.errors.clienteContacto && <p className="mt-1 text-[15px] text-amber-900">{state.errors.clienteContacto}</p>}
