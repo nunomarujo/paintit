@@ -64,12 +64,21 @@ export function PaintedHero({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <section ref={wrap} className="relative h-[210vh]">
-      <div className="sticky top-14 mx-auto grid h-[calc(100vh-3.5rem)] max-w-6xl content-center gap-6 px-4 lg:grid-cols-2 lg:items-center">
-        <div>{children}</div>
+    <section ref={wrap} className="relative h-[165vh] lg:h-[210vh]">
+      {/*
+        No telemóvel o prédio vai ao cimo e o que há para ler fica por baixo dele (pedido do promotor,
+        27/10/2026). Antes, o bloco colado ao ecrã centrava texto e imagem num espaço de um ecrã só: o
+        texto transbordava e a ilustração — que é a ideia da página inteira — caía toda para baixo da
+        dobra. Quem abria no telemóvel nunca via o prédio ganhar cor.
+
+        `svh` e não `vh`: no telemóvel, `vh` conta com a barra de endereço retraída, e o último terço
+        do primeiro ecrã ficava escondido por baixo dela.
+      */}
+      <div className="sticky top-14 mx-auto grid h-[calc(100svh-3.5rem)] max-w-6xl grid-rows-[auto_1fr] content-start gap-5 px-4 lg:grid-cols-2 lg:grid-rows-none lg:content-center lg:items-center lg:gap-6">
+        <div className="order-last self-center pb-2 lg:order-none lg:self-auto lg:pb-0">{children}</div>
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="mx-auto max-h-[46vh] w-full lg:max-h-[80vh]"
+          className="order-first mx-auto max-h-[38svh] w-full lg:order-none lg:max-h-[80vh]"
           role="img"
           aria-label="Prédio que se colore com a descida da página"
         >

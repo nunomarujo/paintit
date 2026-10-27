@@ -46,45 +46,63 @@ const faqs = [
 export default function Home() {
   return (
     <main className="bg-white">
-      <header className="sticky top-0 z-20 h-14 border-b border-slate-200 bg-white/95 backdrop-blur">
+      {/*
+        O cabeçalho (27/10/2026). Era a marca a 26px ao lado de um "Entrar" em caixa, com o mesmo peso
+        visual: duas coisas a disputar a atenção logo à entrada, e nenhuma delas é o que se quer que a
+        pessoa faça. A marca desce para 20px e o "Entrar" passa a ligação — quem tem conta procura-o e
+        encontra-o; quem não tem fica com um caminho só à vista, o botão do primeiro ecrã.
+      */}
+      <header className="sticky top-0 z-20 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-          <BrandMark />
-          <nav className="flex items-center gap-5 text-[17px] text-slate-700">
+          <BrandMark size="sm" />
+          <nav className="flex items-center gap-6 text-[17px] text-slate-700">
             <a href="#como-funciona" className="hidden sm:inline">Como funciona</a>
             <a href="#condominios" className="hidden sm:inline">Condomínios</a>
             <a href="#profissionais" className="hidden sm:inline">Para profissionais</a>
-            <Link href="/entrar" className="rounded-lg border border-slate-300 px-4 py-1.5 font-semibold text-tinta-700">
+            <Link href="/entrar" className="font-semibold text-tinta-700 underline-offset-4 hover:underline">
               Entrar
             </Link>
           </nav>
         </div>
       </header>
 
+      {/*
+        O primeiro ecrã leva o mínimo que decide: o que isto é, para quem, e o que fazer a seguir. O
+        que saiu daqui não se perdeu — desceu para logo abaixo, onde se lê com o prédio a ganhar cor
+        ao lado.
+
+        Saiu também a linha "Fachadas · Condomínios · Zonas comuns", que era maiúsculas espaçadas
+        separadas por pontos e partia ao meio no telemóvel ("ZONAS / COMUNS"). As palavras não se
+        perderam: estão na frase por baixo do título, onde se lêem em vez de se decifrarem.
+      */}
       <PaintedHero>
-        <p className="text-[15px] font-bold uppercase tracking-[0.18em] text-slate-500">Fachadas · Condomínios · Zonas comuns</p>
-        <h1 className="mt-3 text-4xl font-bold leading-[1.05] text-tinta-900 sm:text-6xl">
+        <h1 className="text-[34px] font-bold leading-[1.05] text-tinta-900 sm:text-5xl lg:text-6xl">
           Orçamente a pintura do seu prédio.
         </h1>
-        <p className="mt-4 max-w-md text-[20px] text-slate-600">
-          Encontrar empresas de pintura e comparar propostas para a mesma obra.
+        <p className="mt-3 max-w-md text-[17px] leading-snug text-slate-600 sm:text-[20px]">
+          Fachadas, zonas comuns e muros: encontrar empresas de pintura e comparar propostas para a mesma obra.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          <Link href={START} className="inline-flex items-center rounded-lg bg-terracota px-6 py-3.5 text-[17px] font-semibold text-white hover:opacity-90">
-            Pedir orçamentos →
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          <Link
+            href={START}
+            className="inline-flex items-center justify-center rounded-lg bg-terracota px-6 py-3.5 text-[17px] font-semibold text-white hover:opacity-90"
+          >
+            Pedir orçamentos
           </Link>
-          <a href="#condominios" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4">
+          <a href="#condominios" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4 sm:text-center">
             Gerir vários edifícios
           </a>
         </div>
-        {/* Resposta mais decisiva do "Antes de avançar" (abaixo), subida para junto do CTA em vez de só
-            dentro do acordeão (auditoria de UX, 23/10/2026: é a pergunta de maior risco percebido para
-            quem vai propor despesa a uma assembleia de condomínio — escondê-la só adia a desistência). */}
-        <p className="mt-4 text-[17px] text-slate-600">
-          Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
-          plataforma guarda a prova do que foi acordado.
-        </p>
-        <p className="mt-6 text-[15px] text-slate-500">Descer para ver o prédio ganhar cor.</p>
       </PaintedHero>
+
+      {/* Resposta mais decisiva do "Antes de avançar" (abaixo), fora do acordeão (auditoria de UX,
+          23/10/2026: é a pergunta de maior risco percebido para quem vai propor despesa a uma
+          assembleia de condomínio — escondê-la só adia a desistência). Estava dentro do primeiro ecrã
+          e era o que o fazia transbordar no telemóvel; fica aqui, a primeira coisa que se lê a seguir. */}
+      <p className="mx-auto max-w-6xl px-4 pt-10 text-[17px] leading-relaxed text-slate-600 lg:max-w-3xl">
+        Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
+        plataforma guarda a prova do que foi acordado.
+      </p>
 
       <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="text-[34px] font-bold text-tinta-900">Orçamentos comparáveis.</h2>
