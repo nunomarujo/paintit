@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WORKS } from './works';
-import { QUOTE_TEMPLATES, lembretes, linhasQueHerdam, trabalhosDoModelo, trabalhosFora } from './quoteTemplates';
+import { QUOTE_TEMPLATES, lembretes, linhasQueHerdam, trabalhosDoModelo, trabalhosDosModelos, trabalhosFora } from './quoteTemplates';
 
 describe('modelos de orçamento', () => {
   it('todos os modelos só apontam para trabalhos que existem', () => {
@@ -29,6 +29,49 @@ describe('modelos de orçamento', () => {
 
   it('um modelo que não existe não rebenta nada', () => {
     expect(trabalhosDoModelo('inventado')).toEqual([]);
+  });
+});
+
+describe('vários modelos na mesma obra', () => {
+  it('junta a fachada com as zonas comuns sem repetir capítulos', () => {
+    const l = trabalhosDosModelos(['fachada_reboco', 'zonas_comuns']).map((w) => w.code);
+    expect(new Set(l).size).toBe(l.length);
+    expect(l).toContain('rebocos');
+    expect(l).toContain('metais_madeiras');
+  });
+
+  it('a limpeza final fica sempre no fim, mesmo quando o segundo modelo traz capítulos novos', () => {
+    const l = trabalhosDosModelos(['fachada_reboco', 'zonas_comuns']).map((w) => w.code);
+    expect(l[l.length - 1]).toBe('conclusao');
+    expect(l.indexOf('metais_madeiras')).toBeLessThan(l.indexOf('acessos'));
+  });
+
+  it('a ordem de execução do primeiro modelo não se perde', () => {
+    const l = trabalhosDosModelos(['fachada_degradada', 'muros']).map((w) => w.code);
+    expect(l.indexOf('humidade')).toBeLessThan(l.indexOf('fissuras'));
+    expect(l.indexOf('primario')).toBeLessThan(l.indexOf('pintura_final'));
+  });
+
+  it('escolher um modelo duas vezes é igual a escolhê-lo uma', () => {
+    expect(trabalhosDosModelos(['muros', 'muros'])).toEqual(trabalhosDosModelos(['muros']));
+  });
+
+  it('juntar modelos nunca sai do catálogo de trabalhos', () => {
+    const codigos = new Set(WORKS.map((w) => w.code));
+    const l = trabalhosDosModelos(QUOTE_TEMPLATES.map((t) => t.code));
+    for (const w of l) expect(codigos).toContain(w.code);
+    expect(l.length).toBeLessThanOrEqual(WORKS.length);
+  });
+
+  it('o que fica de fora continua a fechar a conta com o que está dentro', () => {
+    const escolha = ['zonas_comuns', 'muros'];
+    const dentro = trabalhosDosModelos(escolha).map((w) => w.code);
+    const fora = trabalhosFora(escolha).map((w) => w.code);
+    expect(dentro.length + fora.length).toBe(WORKS.length);
+  });
+
+  it('sem modelo nenhum não inventa capítulos', () => {
+    expect(trabalhosDosModelos([])).toEqual([]);
   });
 });
 

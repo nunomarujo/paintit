@@ -6,7 +6,7 @@ import type { FormState } from '@/app/app/actions';
 import { LINE_CATEGORIES, UNITS, type LineCategory, type Unit } from '@/domain/proposal';
 import { chaveDe } from '@/domain/priceBook';
 import { podeApagar } from '@/domain/quoteBoard';
-import { linhasQueHerdam, trabalhosDoModelo } from '@/domain/quoteTemplates';
+import { linhasQueHerdam, trabalhosDosModelos } from '@/domain/quoteTemplates';
 import { parseHundredths } from '@/domain/request';
 import { learnPrices } from '@/lib/priceBook';
 import { painterOrgs } from '@/lib/queries';
@@ -30,8 +30,17 @@ async function myOrg() {
 export async function createQuote(_prev: FormState, form: FormData): Promise<FormState> {
   const cliente = texto(form.get('cliente'), 160);
   if (cliente.length < 2) return fail('cliente', 'Indique o cliente — basta o nome do condomínio ou da pessoa.');
-  const modelo = texto(form.get('modelo'), 40);
+  // Vem do navegador como lista separada por vírgulas. Códigos inventados caem sozinhos em
+  // `trabalhosDosModelos`, que só conhece os modelos do catálogo (regra 10).
+  const modelos = texto(form.get('modelos'), 400)
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .slice(0, 20);
   const duplicarDe = texto(form.get('duplicar'), 40);
+  if (!duplicarDe && modelos.length === 0) {
+    return { errors: {}, message: 'Escolha pelo menos um modelo — a obra pode levar mais do que um.' };
+  }
 
   const { supabase, org } = await myOrg();
   if (!org) return { errors: {}, message: 'Só uma empresa de pintura faz orçamentos.' };
@@ -58,8 +67,9 @@ export async function createQuote(_prev: FormState, form: FormData): Promise<For
     if (antigas && antigas.length > 0) {
       await supabase.from('painter_quote_lines').insert(antigas.map((l) => ({ ...l, quote_id: quote.id })));
     }
-  } else if (modelo) {
-    const trabalhos = trabalhosDoModelo(modelo);
+  } else if (modelos.length > 0) {
+    // Vários modelos dão uma só sequência de capítulos, sem repetir o que é comum aos dois.
+    const trabalhos = trabalhosDosModelos(modelos);
     if (trabalhos.length > 0) {
       // O modelo traz os capítulos pela ordem de execução, sem quantidades nem preços: isso é dele.
       const { data: book } = await supabase.from('org_price_book').select('chave, preco_unitario').eq('org_id', org.id);

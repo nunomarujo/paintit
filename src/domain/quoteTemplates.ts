@@ -65,19 +65,56 @@ export const QUOTE_TEMPLATES: QuoteTemplate[] = [
 
 export const templateDe = (code: string): QuoteTemplate | undefined => QUOTE_TEMPLATES.find((t) => t.code === code);
 
+/**
+ * Os capítulos que fecham qualquer obra, por esta ordem. Em todos os modelos já estão no fim; ao
+ * juntar modelos é preciso dizê-lo em voz alta, senão a serralharia das zonas comuns entrava depois
+ * da limpeza final.
+ */
+const FECHO = ['acessos', 'conclusao'];
+
+/**
+ * Os códigos de trabalho de um ou mais modelos, numa só sequência de execução.
+ *
+ * Uma obra real é quase sempre mais do que um modelo — fachada *e* zonas comuns, fachada *e* muros —
+ * e obrigar a escolher um só deixava o pintor a adivinhar qual deles sacrificava (pedido do promotor,
+ * 27/10/2026). Juntar é somar sem repetir: cada capítulo entra uma vez, na posição em que o primeiro
+ * modelo que o traz o põe, e os dois capítulos de fecho vão sempre para o fim.
+ *
+ * Um capítulo que apareça nos dois modelos — a pintura final, por exemplo — fica numa linha só. Não é
+ * descuido: a linha tem zonas e o pintor acrescenta uma segunda linha no editor se quiser separar o
+ * exterior do interior com produto e preço próprios.
+ */
+export function codigosDosModelos(codes: string[]): string[] {
+  const vistos = new Set<string>();
+  const corpo: string[] = [];
+  for (const code of codes) {
+    for (const c of templateDe(code)?.trabalhos ?? []) {
+      if (vistos.has(c)) continue;
+      vistos.add(c);
+      if (!FECHO.includes(c)) corpo.push(c);
+    }
+  }
+  return [...corpo, ...FECHO.filter((c) => vistos.has(c))];
+}
+
 /** Os trabalhos de um modelo, já resolvidos e pela ordem de execução. Ignora códigos que deixem de existir. */
 export function trabalhosDoModelo(code: string): WorkDef[] {
-  const t = templateDe(code);
-  if (!t) return [];
-  return t.trabalhos.map((c) => workDef(c)).filter((w): w is WorkDef => w !== undefined);
+  return trabalhosDosModelos([code]);
+}
+
+/** O mesmo, para vários modelos escolhidos ao mesmo tempo. */
+export function trabalhosDosModelos(codes: string[]): WorkDef[] {
+  return codigosDosModelos(codes)
+    .map((c) => workDef(c))
+    .filter((w): w is WorkDef => w !== undefined);
 }
 
 /**
- * Trabalhos que não estão no modelo escolhido, para ele poder acrescentar sem sair do ecrã — um
+ * Trabalhos que não estão nos modelos escolhidos, para ele poder acrescentar sem sair do ecrã — um
  * modelo que não deixe fugir dele é uma gaiola, não uma ajuda.
  */
-export function trabalhosFora(code: string): WorkDef[] {
-  const dentro = new Set(templateDe(code)?.trabalhos ?? []);
+export function trabalhosFora(codes: string | string[]): WorkDef[] {
+  const dentro = new Set(codigosDosModelos(Array.isArray(codes) ? codes : [codes]));
   return WORKS.filter((w) => !dentro.has(w.code));
 }
 

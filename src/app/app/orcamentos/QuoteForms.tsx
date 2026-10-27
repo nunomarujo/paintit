@@ -4,18 +4,36 @@ import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { MiniForm } from '@/components/MiniForm';
 import { useFormAction } from '@/components/useFormAction';
-import { QUOTE_TEMPLATES } from '@/domain/quoteTemplates';
+import { QUOTE_TEMPLATES, trabalhosDosModelos } from '@/domain/quoteTemplates';
 import { createQuote, removeQuote } from './actions';
 
+/** Visto do cartão de modelo. Desenhado e não um carácter, para ter o mesmo peso em qualquer sistema. */
+function Visto() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 8.5 6.5 12 13 4.5" />
+    </svg>
+  );
+}
+
 /**
- * Orçamento novo. O ecrã obriga a escolher de onde parte — modelo ou orçamento anterior — porque um
+ * Orçamento novo. O ecrã obriga a escolher de onde parte — modelos ou orçamento anterior — porque um
  * orçamento em branco é precisamente a hora que se quer poupar.
+ *
+ * Os modelos escolhem-se **aos vários** (27/10/2026). Antes era um só, e uma obra real raramente é
+ * uma só coisa: a mesma empreitada leva a fachada por fora e as zonas comuns por dentro, ou a fachada
+ * e os muros. Obrigado a escolher um, o pintor ficava a adivinhar qual deles sacrificava — e o que
+ * sacrificasse era precisamente o que se ia esquecer de orçamentar.
  */
 export function CreateQuote({ anteriores }: { anteriores: { id: string; label: string }[] }) {
   const [origem, setOrigem] = useState<'modelo' | 'duplicar'>('modelo');
-  const [modelo, setModelo] = useState(QUOTE_TEMPLATES[0]!.code);
+  const [modelos, setModelos] = useState<string[]>([QUOTE_TEMPLATES[0]!.code]);
   const [duplicar, setDuplicar] = useState(anteriores[0]?.id ?? '');
-  const escolhido = QUOTE_TEMPLATES.find((t) => t.code === modelo);
+  const alternar = (code: string) =>
+    setModelos((m) => (m.includes(code) ? m.filter((c) => c !== code) : [...m, code]));
+  // A ordem por que foram escolhidos é a ordem por que os capítulos entram, por isso vai tal e qual.
+  const capitulos = trabalhosDosModelos(modelos).length;
+  const umSo = modelos.length === 1 ? QUOTE_TEMPLATES.find((t) => t.code === modelos[0]) : undefined;
 
   return (
     <div className="space-y-4">
@@ -38,22 +56,50 @@ export function CreateQuote({ anteriores }: { anteriores: { id: string; label: s
       )}
 
       {origem === 'modelo' ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {QUOTE_TEMPLATES.map((t) => (
-            <button
-              key={t.code}
-              type="button"
-              onClick={() => setModelo(t.code)}
-              aria-pressed={modelo === t.code}
-              className={`rounded-xl border p-3 text-left transition-colors ${
-                modelo === t.code ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300 bg-white hover:bg-slate-50'
-              }`}
-            >
-              <span className="block text-[17px] font-semibold text-slate-900">{t.label}</span>
-              <span className="mt-0.5 block text-[15px] leading-snug text-slate-600">{t.quando}</span>
-              <span className="mt-1 block text-[15px] text-slate-500">{t.trabalhos.length} capítulos</span>
-            </button>
-          ))}
+        <div>
+          <p className="mb-2 text-[15px] leading-snug text-slate-600">
+            Escolher todos os que se aplicam à obra — por exemplo, a fachada por fora e as zonas comuns por dentro.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {QUOTE_TEMPLATES.map((t) => {
+              const on = modelos.includes(t.code);
+              return (
+                <button
+                  key={t.code}
+                  type="button"
+                  onClick={() => alternar(t.code)}
+                  role="checkbox"
+                  aria-checked={on}
+                  className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-colors ${
+                    on ? 'border-tinta-600 bg-tinta-50' : 'border-slate-300 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
+                      on ? 'border-tinta-600 bg-tinta-600 text-white' : 'border-slate-400 bg-white'
+                    }`}
+                  >
+                    {on && <Visto />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[17px] font-semibold text-slate-900">{t.label}</span>
+                    <span className="mt-0.5 block text-[15px] leading-snug text-slate-600">{t.quando}</span>
+                    <span className="mt-1 block text-[15px] text-slate-500">{t.trabalhos.length} capítulos</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* O resto da explicação aparece só quando é precisa — com um modelo só, não há nada a
+              explicar, e a regra dos capítulos repetidos seria ruído por cima dos cartões. */}
+          <p className="mt-2 text-[15px] leading-snug text-slate-600" aria-live="polite">
+            {modelos.length === 0
+              ? 'Escolher pelo menos um modelo.'
+              : modelos.length === 1
+                ? `1 modelo, ${capitulos} capítulos no orçamento.`
+                : `${modelos.length} modelos, ${capitulos} capítulos: o que é comum aos modelos entra uma vez só. Para separar o exterior do interior com produto e preço próprios, acrescenta-se depois uma linha no orçamento.`}
+          </p>
         </div>
       ) : (
         <label className="block text-[17px]">
@@ -70,13 +116,21 @@ export function CreateQuote({ anteriores }: { anteriores: { id: string; label: s
 
       <MiniForm
         action={createQuote as (s: FormState, f: FormData) => Promise<FormState>}
-        hidden={origem === 'modelo' ? { modelo } : { duplicar }}
+        hidden={origem === 'modelo' ? { modelos: modelos.join(',') } : { duplicar }}
         fields={[
           { name: 'cliente', label: 'Cliente', placeholder: 'Condomínio da Rua das Flores, 12' },
           { name: 'local', label: 'Local (opcional)', placeholder: 'Viana do Castelo' },
           { name: 'titulo', label: 'Título (opcional)', placeholder: 'Pintura das fachadas', wide: true },
         ]}
-        submit={origem === 'modelo' ? `Criar a partir de "${escolhido?.label ?? ''}"` : 'Criar a partir do anterior'}
+        submit={
+          origem !== 'modelo'
+            ? 'Criar a partir do anterior'
+            : modelos.length === 0
+              ? 'Escolher pelo menos um modelo'
+              : umSo
+                ? `Criar a partir de "${umSo.label}"`
+                : `Criar com ${modelos.length} modelos`
+        }
       />
     </div>
   );
