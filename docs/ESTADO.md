@@ -808,8 +808,11 @@ ao vendedor sobre o levantamento". Resumo do que está feito e do que falta:
   pintor.sql` (`survey_info_reviews`, `rate_survey_info` — a nota do pintor sobre a informação, que
   faltava); `settleSurveyPayout` (`src/lib/surveys.ts`) já lê os quatro componentes do avaliador atualmente
   entitulado e calcula o pagamento real, em vez do antigo 10% fixo da comissão. `npm test` (453), os quatro
-  com saída 0. **Ainda sem UI**: falta o formulário do pintor para avaliar e o ecrã do avaliador para ver a
-  sua própria % traduzida. Detalhe completo em `docs/DECISOES.md`.
+  com saída 0. ~~Ainda sem UI~~ — **os dois ecrãs existem desde 24/10** e foram confirmados a 27/10:
+  `oportunidades/[id]/SurveyInfoCard.tsx` (o pintor dá a nota, por `rateSurveyInfo` → `rate_survey_info`) e
+  `levantamentos/[surveyId]/EarningCard.tsx` (o avaliador vê a sua fração, o que a compõe e a tradução em
+  euros). Esta frase ficou desactualizada três dias e levou-me a anunciar como em falta trabalho que já
+  estava feito. Detalhe completo em `docs/DECISOES.md`.
 - **Nomenclatura**: o promotor passou a chamar **"avaliador"** a este papel no texto visível ao utilizador
   (23/10/2026) — "o papel que a pessoa faz é avaliar a obra, não vender tintas". Mudado: rótulo e descrição
   do papel (`MEMBER_ROLE_LABELS`, `roleDescription`), texto da página `/app/levantamentos`, comentários nos

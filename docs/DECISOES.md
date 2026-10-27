@@ -47,9 +47,11 @@ ferramentas teriam feito.
 políticas, ao lado de `moloni_token`, e é de propósito — ninguém lhe chega pela API, e o que interessa
 ao pintor chega-lhe por email. As funções `SECURITY DEFINER` mantêm-se em 38.
 
-**Em aberto:** falta o ecrã do pintor para avaliar a informação do levantamento e o ecrã do avaliador
-para ver a sua própria percentagem — sem eles, dois dos quatro componentes da fórmula do avaliador
-ficam sempre neutros.
+**Corrigido no mesmo dia:** escrevi aqui que faltavam o ecrã do pintor para avaliar a informação do
+levantamento e o ecrã do avaliador para ver a sua percentagem. **Não faltam** — existem desde 24/10
+(`SurveyInfoCard.tsx` e `EarningCard.tsx`). A frase veio de uma nota do `ESTADO.md` que tinha ficado
+três dias por actualizar. Fica como lembrete de que o ponto de situação só vale se for corrigido no
+mesmo dia em que deixa de ser verdade.
 
 ## 27/10/2026 — Documento em falta é âmbar, não vermelho
 
