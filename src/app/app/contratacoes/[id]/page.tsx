@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { aceitacaoSimples } from '@/domain/aceitacaoSimples';
 import { AddendaList } from '@/components/AddendaList';
 import { AddendaDecision } from './AddendaDecision';
 import { notFound } from 'next/navigation';
@@ -310,7 +311,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             {partyActions.includes('pintor_assinou') && <PdfSign engagementId={id} side="pintor" />}
             {partyActions
               .filter((k) => k !== 'transitar')
-              .filter((k) => process.env.PERMITIR_ACEITACAO_SIMPLES === '1' || (k !== 'cliente_assinou' && k !== 'pintor_assinou'))
+              .filter((k) => aceitacaoSimples(process.env) || (k !== 'cliente_assinou' && k !== 'pintor_assinou'))
               .map((k) => (
                 <PartyAction
                   key={k}

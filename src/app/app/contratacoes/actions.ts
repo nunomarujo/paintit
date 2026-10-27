@@ -1,6 +1,7 @@
 'use server';
 
 import { createHash } from 'node:crypto';
+import { aceitacaoSimples } from '@/domain/aceitacaoSimples';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/app/app/actions';
@@ -71,9 +72,10 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
     return { errors: {}, message: 'Ação inválida.' };
   }
   if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
-    // A assinatura exige o PDF assinado com Chave Móvel Digital. A aceitação simples
-    // só existe para testes, com PERMITIR_ACEITACAO_SIMPLES=1 no ambiente.
-    if (process.env.PERMITIR_ACEITACAO_SIMPLES !== '1') {
+    // A assinatura exige o PDF assinado com Chave Móvel Digital. A aceitação simples só existe para
+    // ensaiar o percurso fora de produção — em produção não há valor de variável que a ligue
+    // (`src/domain/aceitacaoSimples.ts`).
+    if (!aceitacaoSimples(process.env)) {
       return { errors: {}, message: 'Assine o PDF do contrato com a Chave Móvel Digital e carregue-o.' };
     }
     if (form.get('confirmo') !== 'sim') return { errors: { confirmo: 'Confirme que leu e aceita a minuta.' } };

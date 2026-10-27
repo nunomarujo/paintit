@@ -1,4 +1,5 @@
 import 'server-only';
+import { aceitacaoSimples } from '@/domain/aceitacaoSimples';
 import { adminClient } from '@/lib/supabase/admin';
 import { stripeConfigured } from '@/lib/stripe';
 
@@ -64,10 +65,11 @@ export async function serverChecks(userEngagementCount: number): Promise<Check[]
   });
   out.push({
     label: 'Aceitação simples do contrato',
-    ok: process.env.PERMITIR_ACEITACAO_SIMPLES !== '1',
-    detail:
-      process.env.PERMITIR_ACEITACAO_SIMPLES === '1'
-        ? 'LIGADA (só para testes): desligar antes de abrir ao público.'
+    ok: !aceitacaoSimples(process.env),
+    detail: aceitacaoSimples(process.env)
+      ? 'LIGADA (só fora de produção): o contrato pode ser dado por assinado sem o PDF.'
+      : process.env.PERMITIR_ACEITACAO_SIMPLES !== undefined
+        ? 'Desligada. A variável PERMITIR_ACEITACAO_SIMPLES ainda existe no ambiente e já não faz nada aqui: pode apagá-la.'
         : 'Desligada: o contrato exige PDF assinado com Chave Móvel Digital.',
   });
   return out;

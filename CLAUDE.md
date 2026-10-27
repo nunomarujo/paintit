@@ -100,3 +100,11 @@ npm run build
     O pintor vê o valor da sua própria comissão, com o detalhe do desconto se tiver — isto não abre excepção à regra
     acima: antes de ver a ficha completa de uma obra, aceita não revelar esse valor ao cliente nem a terceiros
     (`painter_terms_acceptances`, `src/domain/painterTerms.ts`, decisão de 22/10/2026).
+
+16. **Nenhum interruptor de ambiente abre uma porta em produção.** A aceitação simples do contrato
+    (dar uma assinatura por feita sem o PDF com Chave Móvel Digital) era ligada só por
+    `PERMITIR_ACEITACAO_SIMPLES=1`, e a variável estava definida em produção: quem lhe trocasse o
+    valor abria a porta de par em par. A regra passou a ter duas chaves, e a segunda não se troca no
+    painel — `src/domain/aceitacaoSimples.ts` devolve sempre falso com `NODE_ENV=production`
+    (27/10/2026). Qualquer atalho de teste futuro faz-se assim: a variável decide **fora** de
+    produção, nunca dentro.
