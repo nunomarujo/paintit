@@ -4,6 +4,53 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 27/10/2026 — As duas ferramentas do Pro, e a máquina que as faz acontecer
+
+Decisões do promotor de 26/10, construídas e aplicadas a 27/10. O Pro vendia quatro coisas e só uma
+aguentava uma mensalidade (a comissão 5 pontos abaixo); as outras três esperavam que o pintor se
+lembrasse de abrir a aplicação. Acrescentam-se duas que trabalham sozinhas e mexem em dinheiro.
+
+**As regras que o promotor fixou**, e que atravessam as duas: a plataforma pode escrever ao cliente
+em nome do pintor, mas **até à adjudicação não se identifica nenhuma parte**; no máximo **três
+toques**, sempre educados, **sem juros nem ameaças**; e cada mensagem diz que é o **assistente de IA
+do pintor, com o consentimento dele, pela quempinta.pt**. "Ver é grátis; a plataforma perguntar por
+si é do Pro."
+
+**A máquina** (`src/domain/toques.ts`, tabela `toques`, `/api/cron/toques` às 8h). A chave única
+(tipo, alvo, destinatário) é a garantia de não repetir — não a memória da tarefa, que pode correr
+duas vezes. Dois cuidados que valem mais do que parecem: os textos levam **datas por extenso**, nunca
+"hoje" ou "amanhã" (um aviso atrasado um dia continua verdadeiro com data e passa a mentira com
+"amanhã"), e cada toque tem **dois dias para sair**, para sobreviver a uma falha da tarefa.
+Regista-se antes de enviar: perder um email é melhor do que repetir um.
+
+**1. Seguimento do orçamento** (`seguimento_do_orcamento`, versão `20261027011755`). Três toques ao
+cliente do pintor, ao 3.º, 10.º e 20.º dia depois de enviado; param assim que o orçamento é dado por
+ganho ou perdido. Consentimento por orçamento, desligado por omissão. Limitado aos **orçamentos
+próprios**, a clientes que já conhecem o pintor pelo nome — por isso não toca na regra do anonimato;
+nos pedidos da plataforma o cliente já tem os dois avisos da janela. `ehEmail` trava o resto: o
+contacto é um campo livre e só se escreve quando é inequivocamente um email.
+
+**2. Cobrança** (`cobranca`, versão `20261027144544`). Por cada tranche que passe da data prevista:
+três lembretes ao cliente (no dia, aos 8 e aos 20) e, aos 30, uma palavra ao **pintor** — a partir
+daí mais mensagens só gastam a relação de que ele vai precisar quando telefonar. Esse último sai
+mesmo sem email do cliente. Todas levam valor e data: um lembrete sem o número obriga a ir procurar a
+factura, e quem tem de procurar adia. A plataforma continua a não guardar dinheiro: isto **lembra**,
+não cobra.
+
+**3. O email de segunda-feira** (`src/domain/semana.ts`). O que está na rua e há quanto tempo, o que
+vence nos próximos sete dias, os orçamentos sem resposta e os papéis a caducar. **Sem matéria não se
+envia nada** — um email semanal garantido é publicidade, e a publicidade semanal ensina a apagar sem
+abrir. A única linha que vende aparece a quem não tem Pro e só quando houve trabalho que as
+ferramentas teriam feito.
+
+**Avisos do Supabase depois de tudo aplicado:** a tabela `toques` entra na lista de RLS ligado sem
+políticas, ao lado de `moloni_token`, e é de propósito — ninguém lhe chega pela API, e o que interessa
+ao pintor chega-lhe por email. As funções `SECURITY DEFINER` mantêm-se em 38.
+
+**Em aberto:** falta o ecrã do pintor para avaliar a informação do levantamento e o ecrã do avaliador
+para ver a sua própria percentagem — sem eles, dois dos quatro componentes da fórmula do avaliador
+ficam sempre neutros.
+
 ## 27/10/2026 — Documento em falta é âmbar, não vermelho
 
 O promotor decidiu, fechando a contradição que estava aberta desde 26/10 na regra 13 do `CLAUDE.md`:

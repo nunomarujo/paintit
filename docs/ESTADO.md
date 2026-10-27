@@ -1,6 +1,11 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 26/10/2026, à noite (**a entrega das propostas passou a ser simultânea**: o cliente só as
+Atualizado a 27/10/2026, à tarde (**as duas ferramentas do plano Pro construídas e aplicadas**:
+seguimento automático dos orçamentos e cobrança do que está na rua, ambas por uma máquina de avisos
+nova — domínio `toques.ts`, tabela `toques` e tarefa diária às 8h —, mais o **email de segunda-feira**
+que as torna visíveis e que não se envia quando não há matéria; e o **aviso de documento em falta
+passou a âmbar** por decisão do promotor, fechando a contradição da regra 13 — `docs/DECISOES.md`,
+entradas de 27/10/2026). Estado anterior, 26/10/2026, à noite (**a entrega das propostas passou a ser simultânea**: o cliente só as
 vê no fim do prazo, com a porta na regra de acesso da base e não no ecrã — até aqui via cada uma no
 instante em que era submetida, o que expunha o preço de quem entregava primeiro; mais a janela de
 esclarecimentos de 3 dias, o prolongamento do prazo só antes da entrega e a contagem sem revelar —
