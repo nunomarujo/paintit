@@ -31,7 +31,12 @@ organização dedicada **`Quem Pinta`** (`eehwjlguffmcpaudqspy`) — transferido
 (organização partilhada com outros negócios do promotor, imóveis), precisamente para cumprir esta regra de
 isolamento. URL, chaves API e connection string não mudaram (dependem do project ref, não da organização).
 
-- Migrações em `supabase/migrations/`, com o nome igual à versão registada no Supabase.
+- Migrações em `supabase/migrations/`, com o nome igual à versão registada no Supabase. **Excepção, com
+  razão escrita no cabeçalho do ficheiro:** uma migração aplicada tarde — re-registada muito depois de
+  ter corrido — recebe uma versão de hoje que a põe depois de migrações que dependem dela, e uma base
+  construída de raiz pelo repositório deixa de arrancar. Nesse caso o nome fica na posição verdadeira
+  da sequência e a nota explica a diferença (`pessoas_da_empresa` e `comprovativo_da_despesa`,
+  27/10/2026). O teste das migrações é que decide: se `npm test` passa, a ordem está certa.
 - Antes de aplicar: `npm test` corre as migrações numa base Postgres em memória (`supabase/tests/`) e verifica as
   regras de acesso utilizador a utilizador. Uma tabela nova traz políticas RLS e testes no mesmo commit.
 - Depois de aplicar: avisos de segurança e desempenho a zero (ou explicados), e `src/lib/database.types.ts`

@@ -1,5 +1,9 @@
 -- Despesa com comprovativo (25/10/2026, docs/DECISOES.md).
 --
+-- NOTA DE REGISTO (27/10/2026): aplicada por outra via sem ficar registada; re-aplicada nesse dia
+-- (é idempotente) e registada como `20261027190344`. O nome do ficheiro fica na posição verdadeira
+-- da sequência, pela mesma razão que a `pessoas_da_empresa` — ver a nota lá.
+--
 -- Lançar uma despesa passa a ser duas coisas: a fotografia do documento e o valor. O documento fica
 -- guardado, e a leitura automática do que lá está dentro vem depois — a utilização básica não pode
 -- depender de a interpretação acertar.

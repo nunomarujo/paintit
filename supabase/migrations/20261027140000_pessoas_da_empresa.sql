@@ -1,5 +1,13 @@
 -- A equipa pertence à empresa, não à obra (25/10/2026, docs/DECISOES.md).
 --
+-- NOTA DE REGISTO (27/10/2026): esta migração foi aplicada à base por outra via e não ficou no
+-- registo do Supabase. Foi re-aplicada nesse dia — é inteiramente idempotente, e os dados não
+-- mudaram — e ficou registada como `20261027190517`. **O nome do ficheiro não acompanha essa
+-- versão, de propósito**, e é a única excepção à regra do CLAUDE.md: a versão de hoje punha este
+-- ficheiro depois de `20261027190000_indice_da_pessoa`, que precisa da coluna `person_id` criada
+-- aqui, e uma base construída de raiz pelo repositório deixava de arrancar. O teste das migrações
+-- apanhou-o. O nome fica na posição verdadeira da sequência; a base real já estava certa.
+--
 -- Até aqui, uma pessoa numa obra era uma linha de `worksite_members` com `worksite_id` obrigatório:
 -- a mesma pessoa em duas obras eram duas fichas com identificadores diferentes. Isso fazia três
 -- estragos ao mesmo tempo.
