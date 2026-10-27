@@ -9,7 +9,7 @@ import {
   type PedidoParaToque,
   type Toque,
 } from '@/domain/toques';
-import { notifyCobranca, notifyJanela, notifySeguimento } from '@/lib/notify';
+import { notifyCobranca, notifyJanela, notifySeguimento, notifySemana } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -131,8 +131,23 @@ export async function GET(req: Request) {
     enviados += 1;
   }
 
+  // Segunda-feira: o email da semana a cada empresa de pintura, se tiver matéria.
+  let semana = 0;
+  if (new Date(`${hoje}T12:00:00Z`).getUTCDay() === 1) {
+    const chave = `semana_${hoje}`;
+    const { data: pintores } = await db.from('organizations').select('id').eq('kind', 'pintor');
+    for (const p of pintores ?? []) {
+      // O mesmo registo de sempre: a chave leva a data da segunda, por isso repete-se todas as
+      // semanas mas nunca duas vezes na mesma.
+      const { error: dup } = await db.from('toques').insert({ tipo: chave, alvo: p.id, destinatario: 'pintor' });
+      if (dup) continue;
+      if (await notifySemana(p.id, hoje).catch(() => false)) semana += 1;
+    }
+  }
+
   const resumo = {
     hoje,
+    semana,
     anuncios: ids.length,
     orcamentos: (orcamentos ?? []).length,
     tranches: (tranches ?? []).length,

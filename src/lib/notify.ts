@@ -3,6 +3,9 @@ import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
 import { COBRANCA_NOTICES, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SEGUIMENTO_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
 import { ehEmail, fimDaJanela } from '@/domain/toques';
+import { resumoDaSemana } from '@/domain/semana';
+import { DOC_KIND_LABELS, type DocKind } from '@/domain/organization';
+import { temPro, type SubscricaoPintor } from '@/domain/painterPlan';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
@@ -212,6 +215,51 @@ export async function notifyCobranca(
     cta: 'Saber o que é a Quem Pinta',
     footer: `Mensagem enviada por ${BRAND.name} a pedido de ${org.nome}.`,
   });
+}
+
+/**
+ * O email de segunda-feira de uma empresa de pintura. Devolve `true` se chegou a sair alguma coisa.
+ *
+ * Junta o que é dela e está a mexer: o que está na rua, o que vence esta semana, os orçamentos sem
+ * resposta e os papéis a caducar. Se não houver nada, não se envia nada — um email semanal garantido
+ * é publicidade, e a publicidade semanal ensina a apagar sem abrir.
+ */
+export async function notifySemana(orgId: string, hoje: string): Promise<boolean> {
+  const db = adminClient();
+  if (!db) return false;
+
+  const seteDias = new Date(new Date(`${hoje}T00:00:00Z`).getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const trintaDias = new Date(new Date(`${hoje}T00:00:00Z`).getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
+
+  const [{ data: tranches }, { data: orcamentos }, { data: docs }, { data: sub }] = await Promise.all([
+    db.from('worksite_entries').select('valor_cents, prevista').eq('painter_org_id', orgId).eq('tipo', 'tranche').is('recebida_em', null),
+    db.from('painter_quotes').select('enviado_em').eq('org_id', orgId).eq('estado', 'enviado'),
+    db.from('org_documents').select('kind, valido_ate').eq('org_id', orgId).not('valido_ate', 'is', null).lte('valido_ate', trintaDias).gte('valido_ate', hoje),
+    db
+      .from('org_subscriptions')
+      .select('plano, estado, periodicidade, valida_ate, preco_cents')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const comData = (tranches ?? []).filter((t): t is { valor_cents: number; prevista: string } => !!t.prevista && t.valor_cents != null);
+  const resumo = resumoDaSemana(
+    {
+      emAtraso: comData.filter((t) => t.prevista < hoje).map((t) => ({ valorCents: t.valor_cents, prevista: t.prevista })),
+      aVencer: comData.filter((t) => t.prevista >= hoje && t.prevista <= seteDias).map((t) => ({ valorCents: t.valor_cents, prevista: t.prevista })),
+      orcamentosAEspera: (orcamentos ?? []).filter((q) => q.enviado_em).map((q) => ({ enviadoEm: q.enviado_em!.slice(0, 10) })),
+      documentosACaducar: (docs ?? []).map((d) => ({ nome: DOC_KIND_LABELS[d.kind as DocKind] ?? d.kind, validoAte: d.valido_ate! })),
+      // A mesma regra do resto da aplicação, não uma segunda leitura do plano aqui.
+      pro: temPro(sub as SubscricaoPintor | null, hoje),
+    },
+    hoje,
+  );
+  if (resumo.vazio) return false;
+
+  await sendEmail(await recipients(orgId), 'A sua semana', resumo.linhas, '/app', { cta: 'Abrir a aplicação' });
+  return true;
 }
 
 export async function notifyProposalSubmitted(requestId: string): Promise<void> {
