@@ -101,7 +101,7 @@ export default function Home() {
           23/10/2026: é a pergunta de maior risco percebido para quem vai propor despesa a uma
           assembleia de condomínio — escondê-la só adia a desistência). Estava dentro do primeiro ecrã
           e era o que o fazia transbordar no telemóvel; fica aqui, a primeira coisa que se lê a seguir. */}
-      <p className="mx-auto max-w-6xl px-4 pt-10 text-[17px] leading-relaxed text-slate-600 lg:max-w-3xl">
+      <p className="mx-auto max-w-6xl px-4 pt-6 text-[17px] leading-relaxed text-slate-600 lg:max-w-3xl">
         Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
         plataforma guarda a prova do que foi acordado.
       </p>
