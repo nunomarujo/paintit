@@ -331,7 +331,7 @@ export default async function ProposalsPage({
                     return p.habilitacao_ok
                       ? 'Habilitação IMPIC para este valor e documentos validados à data da proposta'
                       : (
-                        <span key={r.id} className="font-medium text-red-700">
+                        <span key={r.id} className="font-medium text-amber-800">
                           Sem habilitação IMPIC validada para este valor{p.pintor_verificado ? ' (outros documentos validados)' : ''}. Se continuar, as partes assumem a responsabilidade.
                         </span>
                       );

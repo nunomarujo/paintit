@@ -85,6 +85,40 @@ export const NEW_PROPOSAL_NOTICE = (requestTitle: string): Omit<Notice, 'to'> =>
   lines: [`Há uma nova proposta para o pedido «${requestTitle}».`, 'As propostas aparecem sem identificar a empresa, para serem comparadas pelo conteúdo.'],
 });
 
+/**
+ * A janela de esclarecimentos abriu: as propostas foram entregues todas ao mesmo tempo.
+ *
+ * Datas por extenso, nunca "hoje" ou "amanhã": se a tarefa diária falhar um dia, uma data continua
+ * verdadeira. Ao cliente não se diz quantas propostas há no assunto do email — o número chega-lhe
+ * na plataforma, e um assunto com "3 propostas" lido por cima do ombro é informação de mais.
+ */
+export const JANELA_ABRIU_NOTICE = (p: { titulo: string; ate: string; para: 'cliente' | 'pintor' }): { subject: string; lines: string[] } =>
+  p.para === 'cliente'
+    ? {
+        subject: 'As propostas já estão abertas',
+        lines: [
+          `O prazo do pedido «${p.titulo}» acabou e as propostas foram abertas todas ao mesmo tempo.`,
+          `Até ${p.ate} pode perguntar o que quiser a qualquer uma delas, sem ninguém se identificar.`,
+          'Pode escolher quando quiser — durante estes dias ou depois.',
+        ],
+      }
+    : {
+        subject: 'A sua proposta foi aberta: podem perguntar-lhe',
+        lines: [
+          `O prazo do pedido «${p.titulo}» acabou e a sua proposta foi entregue ao cliente, ao mesmo tempo que as outras.`,
+          `Até ${p.ate} o cliente pode fazer perguntas. Responder depressa conta: é a última coisa que ele lê antes de escolher.`,
+        ],
+      };
+
+/** Último dia para perguntar. Só ao cliente: é ele que tem de perguntar antes de fechar. */
+export const JANELA_ACABA_NOTICE = (p: { titulo: string; ate: string }): { subject: string; lines: string[] } => ({
+  subject: 'Último dia para esclarecer dúvidas',
+  lines: [
+    `${p.ate} é o último dia para fazer perguntas às propostas do pedido «${p.titulo}».`,
+    'Depois disso as propostas ficam como estão, e pode escolher quando lhe der jeito.',
+  ],
+});
+
 /** Convite aos pintores quando um pedido é publicado. Só leva o que o anúncio anónimo já mostra (concelho, tipo, prazo). */
 export const NEW_REQUEST_NOTICE = (p: { concelho: string; tipoObra: string; prazo: string }): { subject: string; lines: string[] } => ({
   subject: `Pedido de Orçamento - pintura em ${p.concelho}`,

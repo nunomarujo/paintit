@@ -212,6 +212,25 @@ export type Database = {
           },
         ];
       };
+      // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
+      toques: {
+        Row: {
+          id: string;
+          tipo: string;
+          alvo: string;
+          destinatario: string;
+          enviado_em: string;
+        };
+        Insert: {
+          id?: string;
+          tipo: string;
+          alvo: string;
+          destinatario: string;
+          enviado_em?: string;
+        };
+        Update: Partial<Database['public']['Tables']['toques']['Insert']>;
+        Relationships: [];
+      };
       organizations: {
         Row: {
           alertas_autorizados: boolean;

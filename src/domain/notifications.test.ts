@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, engagementNotices } from './notifications';
+import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -53,5 +53,30 @@ describe('convite aos pintores', () => {
     expect(text).toMatch(/Viana do Castelo/);
     expect(text).toMatch(/28\/10\/2026/);
     expect(text).not.toMatch(/comiss|rua |nif/i);
+  });
+});
+
+describe('avisos da janela de esclarecimentos', () => {
+  it('fala em datas, nunca em "hoje" ou "amanhã"', () => {
+    const avisos = [
+      JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'cliente' }),
+      JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'pintor' }),
+      JANELA_ACABA_NOTICE({ titulo: 'Rua A', ate: '13/11/2026' }),
+    ];
+    for (const a of avisos) {
+      const texto = [a.subject, ...a.lines].join(' ').toLowerCase();
+      expect(texto).not.toMatch(/\bhoje\b|\bamanhã\b/);
+      expect(texto).toContain('13/11/2026');
+    }
+  });
+
+  it('ao cliente diz que pode perguntar; ao pintor diz que lhe podem perguntar', () => {
+    expect(JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'cliente' }).lines.join(' ')).toContain('pode perguntar');
+    expect(JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'pintor' }).lines.join(' ')).toContain('pode fazer perguntas');
+  });
+
+  it('nenhum aviso conta quantas propostas há', () => {
+    const t = JANELA_ABRIU_NOTICE({ titulo: 'Rua A', ate: '13/11/2026', para: 'cliente' });
+    expect([t.subject, ...t.lines].join(' ')).not.toMatch(/\d+ propostas/);
   });
 });

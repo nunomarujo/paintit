@@ -1,7 +1,8 @@
 import 'server-only';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
-import { engagementNotices, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SUPPLIER_INVITE_NOTICE } from '@/domain/notifications';
+import { JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, REFERRAL_NOTICES, SUPPLIER_INVITE_NOTICE, engagementNotices } from '@/domain/notifications';
+import { fimDaJanela } from '@/domain/toques';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
@@ -107,6 +108,34 @@ export async function notifyEngagementChange(engagementId: string, before: Engag
   // Um de cada vez: evita o limite de pedidos por segundo do Resend.
   for (const n of notices) {
     await sendEmail(await recipients(n.to === 'cliente' ? e.client_org_id : e.painter_org_id), n.subject, n.lines, `/app/contratacoes/${engagementId}`);
+  }
+}
+
+/**
+ * Os avisos da janela de esclarecimentos, enviados pela tarefa diária.
+ *
+ * Ao pintor vão só os que têm proposta neste pedido — e um de cada vez, por causa do limite do
+ * Resend. Quem decide se este toque é devido é `toquesDevidos`; aqui só se escreve e se envia.
+ */
+export async function notifyJanela(tipo: 'janela_abriu' | 'janela_acaba', requestId: string, para: 'cliente' | 'pintor'): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: req } = await db.from('work_requests').select('org_id, titulo, prazo_propostas').eq('id', requestId).maybeSingle();
+  if (!req?.prazo_propostas) return;
+  const ate = fimDaJanela(req.prazo_propostas).split('-').reverse().join('/');
+
+  if (para === 'cliente') {
+    const n = tipo === 'janela_abriu'
+      ? JANELA_ABRIU_NOTICE({ titulo: req.titulo, ate, para: 'cliente' })
+      : JANELA_ACABA_NOTICE({ titulo: req.titulo, ate });
+    await sendEmail(await recipients(req.org_id), n.subject, n.lines, `/app/pedidos/${requestId}/propostas`);
+    return;
+  }
+
+  const { data: props } = await db.from('proposals').select('painter_org_id').eq('request_id', requestId).neq('status', 'rascunho');
+  const n = JANELA_ABRIU_NOTICE({ titulo: req.titulo, ate, para: 'pintor' });
+  for (const orgId of [...new Set((props ?? []).map((p) => p.painter_org_id))]) {
+    await sendEmail(await recipients(orgId), n.subject, n.lines, `/app/oportunidades`);
   }
 }
 

@@ -355,16 +355,16 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <span className="text-[17px] text-slate-600">{STATUS[proposal.status]}</span>
             </div>
             {licenseWarning && (
-              <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px] text-red-900" role="alert">
+              <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-[17px] text-amber-900" role="alert">
                 <p className="font-semibold">Em falta: {licenseWarning}</p>
                 <p className="mt-1">
                   A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos — preencha já os
-                  dados em falta. Pode submeter mesmo assim: o cliente verá a falta assinalada a vermelho e quem continuar
+                  dados em falta. Pode submeter mesmo assim: o cliente verá a falta assinalada e quem continuar
                   assume a responsabilidade.
                 </p>
                 <Link
                   href={`/app/organizacoes/${org.id}?ver=documentos`}
-                  className="mt-2 inline-block rounded-lg border-2 border-red-500 bg-white px-3 py-1.5 font-semibold text-red-700 hover:bg-red-100"
+                  className="mt-2 inline-block rounded-lg border-2 border-amber-500 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100"
                 >
                   Preencher documento em falta →
                 </Link>
@@ -529,7 +529,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>
                         {licenseWarning && (
-                          <p className="mb-3 rounded border-2 border-red-400 bg-red-50 p-3 text-[17px] font-semibold text-red-900" role="alert">
+                          <p className="mb-3 rounded border-2 border-amber-400 bg-amber-50 p-3 text-[17px] font-semibold text-amber-900" role="alert">
                             Em falta: {licenseWarning} Ver aviso e atalho no topo da página.
                           </p>
                         )}

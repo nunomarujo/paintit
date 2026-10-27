@@ -84,8 +84,9 @@ npm run build
     caducou ou foi recusado**; o que ainda se pode resolver é âmbar. Cor de aviso não se usa para
     selecção nem para destaque — isso ensina a ignorar o aviso. A regra vivia num comentário de
     `obras-publicas/Concursos.tsx` e era violada em 8 ficheiros; subiu para aqui a 26/10/2026.
-    *Em aberto:* `docs/DECISOES.md` (23/10/2026) mandou pôr o aviso de documento em falta a vermelho,
-    o que contraria a reserva do vermelho. Decisão do promotor por tomar.
+    *Resolvido a 27/10/2026:* o promotor decidiu **âmbar** para o aviso de documento em falta,
+    revogando a decisão de 23/10/2026 que o punha a vermelho. Um documento em falta resolve-se;
+    o vermelho fica para o que já fechou, caducou ou foi recusado.
 14. **Escala tipográfica: 13 / 15 / 17 / 20 / 26 / 34 px, e nada abaixo de 13.** O corpo são 17px
     (`globals.css`). Nunca pôr um campo de formulário abaixo de 16px: o Safari do iPhone dá zoom a
     cada toque, e quem preenche um levantamento está numa obra. Não passar substituições de tamanho

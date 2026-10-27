@@ -476,6 +476,28 @@ describe('fotografias do pedido', () => {
   });
 });
 
+describe('toques (avisos automáticos)', () => {
+  const alvo = '00000000-0000-4000-8000-0000000000c1';
+
+  it('o mesmo toque não se repete à mesma pessoa', async () => {
+    await db.query(`insert into public.toques (tipo, alvo, destinatario) values ('janela_abriu', $1, 'cliente')`, [alvo]);
+    await expect(
+      db.query(`insert into public.toques (tipo, alvo, destinatario) values ('janela_abriu', $1, 'cliente')`, [alvo]),
+    ).rejects.toThrow(/duplicate key|unique/);
+    // Outro destinatário, ou outro tipo, são toques diferentes.
+    await db.query(`insert into public.toques (tipo, alvo, destinatario) values ('janela_abriu', $1, 'pintor')`, [alvo]);
+    await db.query(`insert into public.toques (tipo, alvo, destinatario) values ('janela_acaba', $1, 'cliente')`, [alvo]);
+  });
+
+  it('ninguém lê nem escreve na tabela sem ser o serviço', async () => {
+    // Nem sequer chega à política: o direito de ler foi retirado a `authenticated`.
+    await expect(as(A, () => db.query('select id from public.toques'))).rejects.toThrow(/permission denied/);
+    await expect(
+      as(A, () => db.query(`insert into public.toques (tipo, alvo, destinatario) values ('x', $1, 'cliente')`, [alvo])),
+    ).rejects.toThrow(/permission denied|row-level security/);
+  });
+});
+
 describe('propostas e escolha', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
   const P2 = '00000000-0000-4000-8000-0000000000e2'; // segundo pintor

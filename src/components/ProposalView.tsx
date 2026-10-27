@@ -189,7 +189,7 @@ export function ProposalView({
         <dd className="sm:text-right">Qualificada, incluída no preço{terms.confirmaMaoObra ? '' : ' (por confirmar)'}</dd>
       </dl>
       {(terms.seguroRc === 'nao' || terms.seguroAt === 'nao') && (
-        <p className="rounded-lg bg-red-50 p-3 font-medium text-red-800" role="alert">
+        <p className="rounded-lg bg-amber-50 p-3 font-medium text-amber-900" role="alert">
           Atenção: o pintor declara não ter{' '}
           {[terms.seguroRc === 'nao' && 'seguro de responsabilidade civil', terms.seguroAt === 'nao' && 'seguro de acidentes de trabalho']
             .filter(Boolean)

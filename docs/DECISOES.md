@@ -4,6 +4,21 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 27/10/2026 — Documento em falta é âmbar, não vermelho
+
+O promotor decidiu, fechando a contradição que estava aberta desde 26/10 na regra 13 do `CLAUDE.md`:
+o aviso de documento em falta passa a **âmbar**, revogando a decisão de 23/10/2026 que o mandava pôr
+a vermelho.
+
+A razão é a da própria regra: um documento em falta **resolve-se** — submete-se e o aviso desaparece.
+O vermelho fica reservado ao que já fechou, caducou ou foi recusado, e usá-lo para o que ainda se
+pode resolver ensina a ignorá-lo.
+
+Mudou em quatro sítios, e numa frase: a ficha da entidade (as duas bandas de "faltam documentos"), o
+ecrã da oportunidade (o aviso no topo e o que está junto ao botão de submeter), o que o cliente vê na
+proposta (seguros em falta, habilitação IMPIC não validada) e o texto que prometia ao pintor que "o
+cliente verá a falta assinalada a vermelho".
+
 ## 26/10/2026 (noite) — A entrega das propostas é simultânea, e só depois se escolhe
 
 Pedido do promotor, descrito em linguagem corrente: o cliente abre a obra com uma data para receber

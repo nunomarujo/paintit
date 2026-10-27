@@ -330,16 +330,16 @@ export default async function OrganizationPage({
               <h2 className="font-semibold">Documentos</h2>
               <p className="mt-1 text-[17px] text-slate-600">Documentos para candidaturas a obras.</p>
               {missing.length > 0 ? (
-                <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px]">
-                  <p className="font-semibold text-red-900">
+                <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-[17px]">
+                  <p className="font-semibold text-amber-900">
                     {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
                   </p>
-                  <ul className="mt-2 list-disc pl-5 text-red-900">
+                  <ul className="mt-2 list-disc pl-5 text-amber-900">
                     {missing.map((group) => (
                       <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-red-800">
+                  <p className="mt-2 text-amber-800">
                     A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos. Submeta-o já aqui abaixo.
                   </p>
                 </div>
@@ -769,16 +769,16 @@ export default async function OrganizationPage({
       <section id="documentos" className={`${card} scroll-mt-6`}>
         <h2 className="font-semibold">Documentos de verificação</h2>
         {missing.length > 0 ? (
-          <div className="mt-3 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-[17px]">
-            <p className="font-semibold text-red-900">
+          <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-[17px]">
+            <p className="font-semibold text-amber-900">
               {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
             </p>
-            <ul className="mt-2 list-disc pl-5 text-red-900">
+            <ul className="mt-2 list-disc pl-5 text-amber-900">
               {missing.map((group) => (
                 <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
               ))}
             </ul>
-            <p className="mt-2 text-red-800">
+            <p className="mt-2 text-amber-800">
               A maioria dos orçamentos sem este documento é eliminada pelos clientes antes de serem lidos. Submeta-o já aqui abaixo.
             </p>
           </div>
