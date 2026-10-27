@@ -133,10 +133,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </div>
 
       {draft && (suspensions ?? []).length > 0 && (
-        <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-[17px]">
-          <h2 className="font-semibold text-red-900">O anúncio foi suspenso pela equipa da plataforma</h2>
+        // Regra 13 do CLAUDE.md: resolve-se corrigindo e publicando de novo — não é "já fechou,
+        // caducou ou foi recusado", por isso âmbar, não vermelho (27/10/2026).
+        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-6 text-[17px]">
+          <h2 className="font-semibold text-amber-900">O anúncio foi suspenso pela equipa da plataforma</h2>
           <p className="mt-1">{suspensions![0]!.resolucao}</p>
-          <p className="mt-1 text-red-900">Corrija o pedido e publique de novo: os pintores veem a nova versão.</p>
+          <p className="mt-1 text-amber-900">Corrija o pedido e publique de novo: os pintores veem a nova versão.</p>
         </section>
       )}
 

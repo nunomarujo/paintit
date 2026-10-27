@@ -255,9 +255,11 @@ export default async function WorksitePage({ params, searchParams }: { params: P
             <dt className="text-slate-500">Por receber</dt>
             <dd className="sm:text-right">{formatEuros(sum.porReceber)}</dd>
             {sum.emAtraso > 0 && (
+              // Regra 13 do CLAUDE.md: uma tranche em atraso ainda se cobra — âmbar, não vermelho
+              // (27/10/2026); dentro de lista, o alarme é texto, nunca fundo de cor.
               <>
-                <dt className="text-red-700">Tranches em atraso</dt>
-                <dd className="text-red-700 sm:text-right">{formatEuros(sum.emAtraso)}</dd>
+                <dt className="text-amber-800">Tranches em atraso</dt>
+                <dd className="text-amber-800 sm:text-right">{formatEuros(sum.emAtraso)}</dd>
               </>
             )}
             <dt className="text-slate-500">Custos registados</dt>
@@ -593,7 +595,9 @@ export default async function WorksitePage({ params, searchParams }: { params: P
                 </span>
                 <span>
                   <span className="font-medium">{ph.nome}</span> · {pt(ph.inicio)} a {pt(ph.fim)} · {PHASE[ph.estado]}
-                  {ph.estado !== 'concluida' && ph.fim && ph.fim < today && <span className="ml-2 text-red-700">atrasada</span>}
+                  {/* Regra 13 do CLAUDE.md: a fase ainda está em curso, só passou da data prevista —
+                      âmbar, não vermelho (27/10/2026). */}
+                  {ph.estado !== 'concluida' && ph.fim && ph.fim < today && <span className="ml-2 text-amber-800">atrasada</span>}
                 </span>
                 {manager && (
                   <span className="flex gap-3">
