@@ -12,7 +12,9 @@ import type { TipoDia } from '@/domain/overtime';
 import { UNIDADES, worksiteErrors } from '@/domain/worksites';
 import { painterOrgs } from '@/lib/queries';
 import { COST_CATEGORIES, MEMBER_ROLES, PAYMENT_METHODS, PHASE_STATES } from '@/domain/worksite';
+import { parseFases } from '@/domain/proposal';
 import { parseHundredths } from '@/domain/request';
+import { tranchesDoContrato } from '@/domain/tranchesDoContrato';
 import { notifyNewOrder, notifyNewSupplierReview, notifyOrderState } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 
@@ -100,6 +102,73 @@ export async function addEntry(worksiteId: string, tipo: 'custo' | 'tranche' | '
     meio: (PAYMENT_METHODS as readonly string[]).includes(meio) ? meio : null,
   });
   return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Tranche acrescentada.');
+}
+
+/**
+ * Criar as tranches do cliente a partir do contrato, de uma vez.
+ *
+ * O plano de pagamentos foi escrito uma vez na proposta — adiantamento e fases, a somar 100% — e ao
+ * ser escolhida e assinada deixou de ser intenção: é o que o cliente deve e quando o deve. Copiá-lo
+ * à mão para as tranches é voltar a decidir o que já está decidido, e é aí que entram os enganos.
+ *
+ * Só funciona quando a obra veio de um contrato da plataforma e ainda não tem tranches nenhumas:
+ * acrescentar por cima de um plano que o pintor já montou seria duplicar-lhe a cobrança.
+ */
+export async function criarTranchesDoContrato(worksiteId: string, _prev: FormState, _form: FormData): Promise<FormState> {
+  const { supabase } = await getUser();
+  const { data: obra } = await supabase
+    .from('worksites')
+    .select('id, engagement_id, inicio, fim')
+    .eq('id', worksiteId)
+    .maybeSingle();
+  if (!obra?.engagement_id) return { errors: {}, message: 'Esta obra não veio de um contrato da plataforma.' };
+
+  const { data: jaHa } = await supabase
+    .from('worksite_entries')
+    .select('id')
+    .eq('worksite_id', worksiteId)
+    .eq('tipo', 'tranche')
+    .limit(1);
+  if (jaHa && jaHa.length > 0) return { errors: {}, message: 'Esta obra já tem tranches. Apague-as primeiro, se quiser recomeçar pelo contrato.' };
+
+  const { data: contrato } = await supabase
+    .from('engagements')
+    .select('proposal_id')
+    .eq('id', obra.engagement_id)
+    .maybeSingle();
+  if (!contrato) return { errors: {}, message: 'Não foi possível ler o contrato desta obra.' };
+
+  const { data: proposta } = await supabase
+    .from('proposals')
+    .select('adiantamento_bps, fases, base_cents, iva_cents')
+    .eq('id', contrato.proposal_id)
+    .maybeSingle();
+  if (!proposta) return { errors: {}, message: 'Não foi possível ler o plano de pagamentos do contrato.' };
+
+  // O que o cliente paga é o preço com IVA: é sobre isso que as percentagens do plano incidem.
+  const total = (proposta.base_cents ?? 0) + (proposta.iva_cents ?? 0);
+  const tranches = tranchesDoContrato({
+    totalCents: total,
+    adiantamentoBps: proposta.adiantamento_bps,
+    fases: parseFases(proposta.fases),
+    inicio: obra.inicio,
+    fim: obra.fim,
+  });
+  if (tranches.length === 0) return { errors: {}, message: 'O contrato não tem plano de pagamentos para copiar.' };
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase.from('worksite_entries').insert(
+    tranches.map((t) => ({
+      worksite_id: worksiteId,
+      tipo: 'tranche' as const,
+      data: hoje,
+      descricao: t.descricao,
+      valor_cents: t.valorCents,
+      prevista: t.prevista,
+    })),
+  );
+  if (error) return { errors: {}, message: 'Não foi possível criar as tranches.' };
+  return done(worksiteId, `${tranches.length} ${tranches.length === 1 ? 'tranche criada' : 'tranches criadas'} a partir do contrato.`);
 }
 
 /**

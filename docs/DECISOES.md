@@ -4,6 +4,28 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (noite, 3) — As tranches saem do contrato
+
+O plano de pagamentos é escrito uma vez, na proposta: um adiantamento e as fases, a somar 100%.
+Quando essa proposta é escolhida e assinada deixa de ser uma intenção — passa a ser o que o cliente
+deve e quando o deve. Obrigar o pintor a copiá-lo à mão para as tranches é pedir-lhe que volte a
+decidir o que já está decidido, e é aí que entram os enganos.
+
+Três decisões:
+
+- **Não se cria sozinho.** O cartão mostra o plano inteiro — descrições, valores e datas — e espera
+  por um toque. O que ali se cria é o que o cliente vai ser lembrado de pagar, em nome do pintor;
+  um toque é pouco preço para isso.
+- **Só quando não há tranches nenhumas.** Acrescentar por cima de um plano que o pintor já montou à
+  mão seria duplicar-lhe a cobrança, por isso nem se oferece.
+- **Os cêntimos perdidos vão à última.** Quatro fases de 25% sobre um total ímpar perdem cêntimos no
+  arredondamento. A última leva o resto, para a soma das tranches ser exactamente o contrato — de
+  outro modo ficava sempre uma dívida de cêntimos por explicar.
+
+As datas repartem-se pelo período previsto da obra: a primeira no início, a última no fim, as do
+meio por igual. **Sem início e fim conhecidos ficam por datar**, e diz-se porquê: uma data inventada
+faria a cobrança automática escrever ao cliente no dia errado.
+
 ## 28/10/2026 (noite, 2) — O catálogo a sugerir no diário, e uma falha na procura de toda a aplicação
 
 **O campo "Produto aplicado" do diário** era texto livre com um exemplo lá dentro. Quem o preenche

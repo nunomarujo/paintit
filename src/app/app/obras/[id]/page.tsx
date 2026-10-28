@@ -10,12 +10,16 @@ import { DayLog } from './DayLog';
 import { Cobranca } from './Cobranca';
 import { ExpenseForm } from './ExpenseForm';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
+import { TranchesDoContrato } from './TranchesDoContrato';
+import { parseFases } from '@/domain/proposal';
+import { tranchesDoContrato, type TrancheDoContrato } from '@/domain/tranchesDoContrato';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
 import { notFound } from 'next/navigation';
 import {
   addEntry,
   addMember,
   addPhase,
+  criarTranchesDoContrato,
   deleteWorksiteRow,
   markTrancheReceived,
   orderMaterial,
@@ -126,6 +130,28 @@ export default async function WorksitePage({ params, searchParams }: { params: P
       detalhe: r.acabamento,
     })),
   ];
+
+  // O plano de pagamentos do contrato, só quando faz falta: a obra veio da plataforma e ainda não
+  // tem tranches nenhumas. Acrescentar por cima de um plano que o pintor já montou à mão seria
+  // duplicar-lhe a cobrança, e por isso nem se oferece.
+  const semTranches = !(entries ?? []).some((x) => x.tipo === 'tranche');
+  let planoDoContrato: TrancheDoContrato[] = [];
+  if (w.engagement_id && semTranches) {
+    const { data: contrato } = await supabase.from('engagements').select('proposal_id').eq('id', w.engagement_id).maybeSingle();
+    const { data: proposta } = contrato
+      ? await supabase.from('proposals').select('adiantamento_bps, fases, base_cents, iva_cents').eq('id', contrato.proposal_id).maybeSingle()
+      : { data: null };
+    if (proposta) {
+      planoDoContrato = tranchesDoContrato({
+        // O que o cliente paga é o preço com IVA: é sobre isso que as percentagens incidem.
+        totalCents: (proposta.base_cents ?? 0) + (proposta.iva_cents ?? 0),
+        adiantamentoBps: proposta.adiantamento_bps,
+        fases: parseFases(proposta.fases),
+        inicio: w.inicio,
+        fim: w.fim,
+      });
+    }
+  }
 
   const supplierIds = [...new Set((products ?? []).map((p) => p.org_id))];
   const [{ data: suppliers }, { data: myReviews }] = await Promise.all([
@@ -673,6 +699,15 @@ export default async function WorksitePage({ params, searchParams }: { params: P
           </div>
           <div>
             <h3 className="font-semibold">Tranches do cliente</h3>
+            {manager && planoDoContrato.length > 0 && (
+              <div className="mt-2">
+                <TranchesDoContrato
+                  action={criarTranchesDoContrato.bind(null, id)}
+                  plano={planoDoContrato}
+                  datadas={planoDoContrato.some((t) => t.prevista !== null)}
+                />
+              </div>
+            )}
             <ul className="mt-2 divide-y divide-slate-100">
               {list
                 .filter((x) => x.tipo === 'tranche')
