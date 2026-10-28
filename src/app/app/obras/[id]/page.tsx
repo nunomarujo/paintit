@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { AddendaList } from '@/components/AddendaList';
+import type { ProductType } from '@/domain/catalog';
+import type { ProdutoSugerivel } from '@/domain/produtoSugerido';
+import { loadReferences } from '@/lib/reference';
 import { margemDaObra } from '@/domain/margin';
 import { custoDasHoras, custoHoraEm, suplementaresDe } from '@/domain/overtime';
 import { FASE_LABELS, FASE_PORQUE, faltas, porFase } from '@/domain/worksiteDiary';
@@ -105,6 +108,25 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   }));
   const productIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => Boolean(x)))];
   const { data: products } = productIds.length ? await supabase.from('products').select('*').in('id', productIds) : { data: [] };
+  // O que o campo "Produto aplicado" do diário sugere. Primeiro os produtos que o orçamento desta
+  // obra já previu — é a resposta certa quase sempre, e aparece antes de se escrever uma letra —,
+  // depois o catálogo de referência inteiro. O texto que fica escrito é o nome canónico, para que
+  // `usedProducts` (src/lib/reference.ts) o reconheça mais tarde sem precisar de coluna nenhuma.
+  const produtosSugeridos: ProdutoSugerivel[] = [
+    ...(products ?? []).map((p) => ({
+      label: `${p.marca} ${p.nome}`,
+      tipo: p.tipo as ProductType,
+      origem: 'obra' as const,
+      detalhe: p.embalagem_ml ? `${(p.embalagem_ml / 1000).toLocaleString('pt-PT')} L` : null,
+    })),
+    ...(await loadReferences(supabase)).map((r) => ({
+      label: `${r.marca} ${r.nome}`,
+      tipo: r.tipo as ProductType,
+      origem: 'catalogo' as const,
+      detalhe: r.acabamento,
+    })),
+  ];
+
   const supplierIds = [...new Set((products ?? []).map((p) => p.org_id))];
   const [{ data: suppliers }, { data: myReviews }] = await Promise.all([
     supplierIds.length ? supabase.from('organizations').select('id, nome, email_contacto, telefone').in('id', supplierIds) : Promise.resolve({ data: [] }),
@@ -378,7 +400,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
           {manager && (
             <div className="mt-5 border-t border-slate-200 pt-4">
               <p className="eyebrow mb-2">Juntar uma fotografia</p>
-              <AddDiaryPhoto worksiteId={id} />
+              <AddDiaryPhoto worksiteId={id} produtos={produtosSugeridos} />
             </div>
           )}
         </section>

@@ -54,6 +54,12 @@ function maxTypos(len: number): number {
 export function wordMatches(query: string, word: string): boolean {
   if (!query || !word) return false;
   if (word.startsWith(query) || query.startsWith(word)) return true;
+  // Princípio de palavra com um deslize pelo meio. Sem isto, "vinil" — como se escreve em português —
+  // não encontrava "Vinylmatt": não é prefixo exacto (y contra i) e, medido por inteiro, "vinil" e
+  // "vinylmatt" estão a quatro trocas de distância. Comparar com o princípio da palavra, do mesmo
+  // comprimento, põe os dois a uma só (encontrado a 28/10/2026, ao sugerir produtos no diário).
+  // Até três letras a tolerância é zero, por isso um termo curto continua a ser prefixo exacto.
+  if (query.length < word.length && levenshtein(query, word.slice(0, query.length)) <= maxTypos(query.length)) return true;
   return levenshtein(query, word) <= maxTypos(Math.min(query.length, word.length));
 }
 

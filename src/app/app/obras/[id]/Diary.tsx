@@ -4,11 +4,13 @@ import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
 import { FASES, FASE_LABELS, FASE_PORQUE } from '@/domain/worksiteDiary';
 import { addDiaryPhoto, removeDiaryPhoto } from '@/app/app/obras/actions';
+import { CampoDeProduto } from '@/components/CampoDeProduto';
+import type { ProdutoSugerivel } from '@/domain/produtoSugerido';
 
 const input = 'mt-1 campo';
 
 /** Juntar uma fotografia ao diário. A fase é o campo que dá sentido à fotografia, por isso vem primeiro. */
-export function AddDiaryPhoto({ worksiteId }: { worksiteId: string }) {
+export function AddDiaryPhoto({ worksiteId, produtos = [] }: { worksiteId: string; produtos?: ProdutoSugerivel[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(addDiaryPhoto.bind(null, worksiteId), { errors: {} }, { resetOnSuccess: true });
   const msg = Object.values(state.errors)[0] ?? state.message;
   return (
@@ -32,10 +34,12 @@ export function AddDiaryPhoto({ worksiteId }: { worksiteId: string }) {
           Zona (opcional)
           <input name="zona" placeholder="Alçado nascente, 2.º piso" className={input} />
         </label>
-        <label className="text-[17px]">
-          Produto aplicado (opcional)
-          <input name="produto" placeholder="CIN Vinylmatt, branco gelo" className={input} />
-        </label>
+        <CampoDeProduto
+          name="produto"
+          label="Produto aplicado (opcional)"
+          placeholder="Comece a escrever: o catálogo sugere"
+          candidatos={produtos}
+        />
         <label className="text-[17px] sm:col-span-2">
           Nota (opcional)
           <input name="legenda" placeholder="Fissura junto ao peitoril, antes de tratar" className={input} />

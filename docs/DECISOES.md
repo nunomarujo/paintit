@@ -4,6 +4,31 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (noite, 2) — O catálogo a sugerir no diário, e uma falha na procura de toda a aplicação
+
+**O campo "Produto aplicado" do diário** era texto livre com um exemplo lá dentro. Quem o preenche
+está numa obra, de telemóvel, e escreve o que se lembra — "vinil branco", "a tinta da CIN". Três
+meses depois nem o relatório de entrega nem a comparação de preços sabem o que foi aplicado.
+
+A decisão que importa: **o que se sugere primeiro não vem do catálogo, vem da obra.** Os produtos
+que o orçamento desta obra já previu aparecem **antes de se escrever uma letra** — são a resposta
+certa quase sempre, e um toque resolve. O catálogo entra a partir de duas letras, para a lista não
+saltar à frente de quem ainda está a pensar.
+
+O que fica escrito é o nome canónico ("Barbot Acryl Plus VG (1279)"), não um código. Continua a ser
+texto livre — quem aplicou algo fora do catálogo escreve-o à mesma — mas passa a ser o mesmo texto
+de obra para obra, que é exactamente o que `usedProducts` (src/lib/reference.ts) já precisa para
+reconhecer o produto mais tarde. **Sem coluna nova, sem migração.**
+
+**A falha que apareceu ao testar.** Escrever "vinil" — como se escreve em português — não encontrava
+"Vinylmatt". Não é prefixo exacto (y contra i) e, medidas por inteiro, as duas palavras estão a
+quatro trocas de distância. Isto não era do diário: era de `wordMatches` (src/domain/search.ts), que
+serve **a procura de todo o catálogo da aplicação** desde que foi feita.
+
+Passou a comparar-se também com o princípio da palavra, do mesmo comprimento: aí "vinil" e "vinylmatt"
+estão a uma só troca. Até três letras a tolerância continua a ser zero, por isso um termo curto ainda
+tem de ser prefixo exacto — de outro modo "mur" encontrava meio catálogo.
+
 ## 28/10/2026 (noite) — Procurar nos orçamentos, e o beco do contacto do cliente
 
 **A procura.** Pedida "por localização, nome do cliente, NIPC ou ano, auxiliando com a pesquisa pela

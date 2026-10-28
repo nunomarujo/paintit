@@ -64,3 +64,25 @@ describe('matchesSearch', () => {
     expect(matchesSearch('tinta capoto', tintaExterior)).toBe(false);
   });
 });
+
+describe('princípio de palavra com um deslize', () => {
+  const vinyl = { tipo: 'tinta_interior' as const, texto: 'CIN Vinylmatt 1001 Acetinado' };
+
+  it('"vinil", como se escreve em português, encontra "Vinylmatt"', () => {
+    // Não é prefixo exacto (y contra i) e, medido por inteiro, está a quatro trocas. Comparado com
+    // o princípio da palavra, do mesmo comprimento, está a uma. Encontrado a 28/10/2026.
+    expect(matchesSearch('vinil', vinyl)).toBe(true);
+    expect(matchesSearch('vinyl', vinyl)).toBe(true);
+  });
+
+  it('um termo curto continua a ter de ser prefixo exacto', () => {
+    // Até três letras a tolerância é zero: de outro modo "mur" encontrava meio catálogo.
+    expect(matchesSearch('mur', vinyl)).toBe(false);
+    expect(matchesSearch('cin', vinyl)).toBe(true);
+  });
+
+  it('dois deslizes já não contam', () => {
+    expect(matchesSearch('vynil', vinyl)).toBe(false);
+    expect(matchesSearch('xpto', vinyl)).toBe(false);
+  });
+});
