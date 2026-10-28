@@ -51,9 +51,16 @@ export function ProposalView({
       {lines.length === 0 ? (
         <p className="text-slate-600">Ainda sem linhas.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left">
-            <thead className="text-slate-500">
+        /*
+          A tabela era `min-w-[36rem]` dentro de um `overflow-x-auto`: a 390px tinha de ser
+          arrastada de lado dentro do cartão para se ler a descrição de cada linha. Num ecrã cujo
+          único trabalho é comparar propostas, as linhas que se comparam estavam fora de vista
+          (28/10/2026). No telemóvel cada linha passa a bloco, com os números rotulados; a partir
+          de `sm` volta a ser tabela.
+        */
+        <div>
+          <table className="w-full text-left">
+            <thead className="hidden text-slate-500 sm:table-header-group">
               <tr>
                 <th className="py-1 font-normal">Trabalho</th>
                 <th className="py-1 text-right font-normal">Quantidade</th>
@@ -64,8 +71,8 @@ export function ProposalView({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {lines.map((l) => (
-                <tr key={l.id} className={l.inclusao === 'incluido' ? '' : 'text-slate-500'}>
-                  <td className="py-1.5 pr-2">
+                <tr key={l.id} className={`block py-2 sm:table-row sm:py-0 ${l.inclusao === 'incluido' ? '' : 'text-slate-500'}`}>
+                  <td className="block py-1.5 pr-2 sm:table-cell">
                     <span className="font-medium">{l.descricao}</span>
                     {hasEquivalent(l.descricao) && <span className="ml-2 text-[15px] font-semibold text-amber-800">Produto ou equivalente</span>}
                     {l.productId && (
@@ -99,23 +106,30 @@ export function ProposalView({
                     {l.motivoDiferenca && <span className="block text-[15px] text-slate-600">Motivo: {l.motivoDiferenca}</span>}
                   </td>
                   {global && l.trabalho !== 'global' ? (
-                    <td colSpan={3} className="py-1.5 text-right text-slate-500">
+                    <td colSpan={3} className="block py-0.5 text-slate-500 sm:table-cell sm:py-1.5 sm:text-right">
                       {l.inclusao === 'nao_incluido' ? 'Não incluído' : l.inclusao === 'opcional' ? 'Opcional' : l.inclusao === 'condicionado' ? 'A confirmar' : 'Incluído no preço global'}
                     </td>
                   ) : l.inclusao === 'nao_incluido' ? (
-                    <td colSpan={3} className="py-1.5 text-right text-slate-500">
+                    <td colSpan={3} className="block py-0.5 text-slate-500 sm:table-cell sm:py-1.5 sm:text-right">
                       Não incluído
                     </td>
                   ) : (
                     <>
-                      <td className="py-1.5 text-right">
+                      <td className="block py-0.5 sm:table-cell sm:py-1.5 sm:text-right">
+                        <span className="text-slate-500 sm:hidden">Quantidade: </span>
                         {qty(l.quantidade)} {UNIT_LABELS[l.unidade]}
                       </td>
-                      <td className="py-1.5 text-right">{formatEuros(l.precoUnitario)}</td>
-                      <td className="py-1.5 text-right">{formatEuros(lineTotal(l))}</td>
+                      <td className="block py-0.5 sm:table-cell sm:py-1.5 sm:text-right">
+                        <span className="text-slate-500 sm:hidden">Preço unit.: </span>
+                        {formatEuros(l.precoUnitario)}
+                      </td>
+                      <td className="block py-0.5 font-medium tabular-nums sm:table-cell sm:py-1.5 sm:text-right">
+                        <span className="text-slate-500 sm:hidden">Total: </span>
+                        {formatEuros(lineTotal(l))}
+                      </td>
                     </>
                   )}
-                  {onDelete && <td className="py-1.5 pl-2 text-right">{onDelete(l.id)}</td>}
+                  {onDelete && <td className="block py-0.5 sm:table-cell sm:py-1.5 sm:pl-2 sm:text-right">{onDelete(l.id)}</td>}
                 </tr>
               ))}
             </tbody>

@@ -169,8 +169,17 @@ input[type='radio'] {
 /* Documento de orçamento (ProposalDocument.tsx): folhas A4 para imprimir ou guardar em PDF com a
    impressão do navegador (mesmo princípio da minuta e do dossiê: sem @page próprio, para não mudar
    as margens de impressão do resto da aplicação). Isolado por classe própria. */
+/*
+ * A folha tem 210mm (793,7px) fixos. Numa janela de 390px isso são 640px a sair da página: o
+ * telemóvel ficava com barra horizontal e "margens infinitas nas laterais" (queixa do promotor,
+ * 26/10/2026, medida a 28/10). O arrasto passa a ser dentro do próprio documento, não da página.
+ *
+ * Encolher a folha para caber não serve: a 390px o factor seria 0,47 e o corpo de 11pt ficaria
+ * com 5px. Uma vista de leitura própria para telemóvel é trabalho à parte, e está anotada em
+ * docs/DECISOES.md. Ao imprimir, nada disto se aplica.
+ */
 .proposal-doc {
-  @apply mx-auto max-w-[210mm];
+  @apply mx-auto max-w-full overflow-x-auto print:overflow-visible lg:max-w-[210mm];
 }
 .proposal-sheet {
   width: 210mm;

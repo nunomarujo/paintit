@@ -4,6 +4,36 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 — A crítica de design, aplicada
+
+Revisão de frontend da app inteira (rotas públicas num navegador real; os ecrãs autenticados num
+banco de ensaio que renderiza os componentes verdadeiros, porque não há credenciais na máquina de
+desenvolvimento). O que saiu daí está aplicado em cinco commits; o que fica por decidir está em
+baixo.
+
+**O diagnóstico de fundo:** o `globals.css` tem três sistemas de cor. A app usa `tinta-*`/`slate-*`
+em 177 ficheiros, `marca-*` em 9 — e esses 9 são quase todos a **casca** (layout, navegação, menu,
+marca, página de subscrição). Quem usa a app vê uma navegação creme e tinta à volta de conteúdo
+verde-petróleo: não são duas estéticas em conflito, é **uma migração parada a meio**. Dos oito
+tokens funcionais acrescentados a 26/10, sete não são usados nenhuma vez.
+
+**Isto continua por decidir, e é do promotor:** terminar a migração para `marca-*` ou revertê-la.
+Enquanto não for decidida, cada ecrã novo escolhe sozinho e o fosso alarga. Os sete tokens mortos
+saem ou passam a valer na mesma decisão.
+
+**O que ficou feito:** regra 17 do `CLAUDE.md` (botões, campos e cantos vêm do sistema, 44px de
+alvo mínimo); o dossiê do pintor deixa de sair a uma palavra por linha no telemóvel; a barra de
+separadores do pedido passa de quatro linguagens visuais a uma; os totais da proposta ganham
+hierarquia e a tabela deixa de obrigar a arrastar de lado; o `.eyebrow` deixa de ser maiúsculas
+espaçadas em 53 sítios; 69 setas de texto passam a ícones; as páginas públicas ganham a casca da
+página inicial e um só estilo de ligação; e a regra 13 passa a ser cumprida onde era violada.
+
+**O que fica anotado, e porquê:** a folha A4 do `ProposalDocument` não cabe num telemóvel — 210mm
+são 793px, e encolher para 390px poria o corpo do documento a 5px. O arrasto passou a ser dentro do
+documento em vez de empurrar a página, mas **uma vista de leitura própria para telemóvel é trabalho
+à parte** e ainda não está feita. Também fica por fazer a legenda do âmbito sobre a ilustração da
+página inicial, pela razão escrita na entrada de 27/10.
+
 ## 27/10/2026 (noite) — O âmbito da obra sai do primeiro ecrã
 
 Três tentativas de dizer na página inicial **que obras se orçamentam aqui**, duas rejeitadas pelo
