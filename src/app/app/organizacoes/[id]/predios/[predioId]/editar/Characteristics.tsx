@@ -3,7 +3,7 @@
 import { saveBuildingCharacteristic } from '@/app/app/actions';
 import { AutoSaveField } from '@/components/AutoSaveField';
 import { FormaWizard } from '@/components/FormaWizard';
-import type { Forma } from '@/domain/volume';
+import { FACHADAS, FACHADA_LABELS, type Forma } from '@/domain/volume';
 
 export interface BuildingCharacteristics {
   pisos: number | null;
@@ -14,6 +14,10 @@ export interface BuildingCharacteristics {
   tem_elevador: boolean;
   acessos: string | null;
   forma_implantacao?: string | null;
+  janelas_frente: number | null;
+  janelas_esquerda: number | null;
+  janelas_direita: number | null;
+  janelas_tras: number | null;
   tipo?: string | null;
   artigo_matricial: string | null;
 }
@@ -77,6 +81,30 @@ export function Characteristics({
           await campo('forma_implantacao')({ errors: {} }, formData(forma));
         }}
       />
+      {/*
+        Janelas por piso, uma fachada de cada vez (pedido do promotor, 28/10/2026). O desenho do
+        anúncio mostrava vãos só à frente e em número fixo; o pintor precisa do número real para
+        descontar área e contar protecções, e quem descreve a obra sabe-o de cor por piso.
+        Deixar em branco é diferente de escrever zero: em branco o desenho usa um número genérico,
+        zero desenha a fachada cega.
+      */}
+      <div>
+        <h3 className="font-semibold text-slate-900">Janelas por piso, em cada fachada</h3>
+        <p className="mt-1 text-[17px] text-slate-600">
+          Quantas janelas tem cada piso, de cada lado. Em branco se não souber; zero se a fachada não tiver nenhuma.
+        </p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-4">
+          {FACHADAS.map((f) => (
+            <AutoSaveField
+              key={f}
+              label={FACHADA_LABELS[f]}
+              inputMode="numeric"
+              valorInicial={str(initial[`janelas_${f}` as const])}
+              guardar={campo(`janelas_${f}`)}
+            />
+          ))}
+        </div>
+      </div>
       <div className="flex flex-wrap gap-6">
         <AutoSaveField label="Tem varandas" tipo="checkbox" valorInicial={initial.tem_varandas ? 'sim' : 'nao'} guardar={campo('tem_varandas')} />
         <AutoSaveField label="Tem elevador" tipo="checkbox" valorInicial={initial.tem_elevador ? 'sim' : 'nao'} guardar={campo('tem_elevador')} />

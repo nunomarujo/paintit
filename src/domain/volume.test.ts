@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildingVolume } from './volume';
+import { buildingVolume, FACHADAS, JANELAS_POR_OMISSAO } from './volume';
 
 // Em três quartos (30°), cada caixa mostra três faces: é o ângulo em que se contam os pormenores.
 const base = { pisos: 5, fachadas: 4, temVarandas: false, moradia: false, angulo: 30 };
 const count = (v: ReturnType<typeof buildingVolume>, kind: string) => v.faces.filter((f) => f.kind === kind).length;
+/** Só as faces da caixa do prédio, sem vãos nem pormenores. */
+const corpo = (v: ReturnType<typeof buildingVolume>) =>
+  v.faces.filter((f) => ['frente', 'lado', 'empena', 'topo'].includes(f.kind)).length;
 
 describe('volume do prédio', () => {
   it('é igual para prédios com os mesmos dados (não identifica o prédio)', () => {
@@ -37,9 +40,34 @@ describe('volume do prédio', () => {
   });
 
   // Pormenores caracterizados (24/10/2026).
-  it('desenha janelas em ritmo fixo, duas por piso acima do rés-do-chão', () => {
-    expect(count(buildingVolume(base), 'janela')).toBe(4 * 2);
-    expect(count(buildingVolume({ ...base, pisos: 2 }), 'janela')).toBe(1 * 2);
+  it('desenha o número de janelas declarado para cada fachada', () => {
+    // De frente vê-se só a fachada principal: 5 pisos × 4 janelas, menos o vão do rés-do-chão que
+    // é a entrada.
+    const v = buildingVolume({ ...base, angulo: 0, janelas: { frente: 4 } });
+    expect(count(v, 'janela')).toBe(5 * 4 - 1);
+    expect(count(v, 'porta')).toBe(1);
+  });
+
+  it('uma fachada declarada sem janelas desenha-se cega', () => {
+    const v = buildingVolume({ ...base, angulo: 180, janelas: { tras: 0 } });
+    expect(count(v, 'janela')).toBe(0);
+  });
+
+  it('sem declaração nenhuma, cada fachada leva o número por omissão', () => {
+    const v = buildingVolume({ ...base, angulo: 90 });
+    expect(count(v, 'janela')).toBe(5 * JANELAS_POR_OMISSAO);
+  });
+
+  it('o número de janelas tem tecto: não se desenham cem numa fachada', () => {
+    const v = buildingVolume({ ...base, angulo: 0, janelas: { frente: 100 } });
+    expect(count(v, 'janela')).toBeLessThanOrEqual(5 * 8);
+  });
+
+  it('a entrada é uma só, no rés-do-chão da fachada principal', () => {
+    for (const angulo of [0, 30, 90, 180, 270]) {
+      expect(count(buildingVolume({ ...base, angulo }), 'porta')).toBeLessThanOrEqual(1);
+    }
+    expect(count(buildingVolume({ ...base, angulo: 180 }), 'porta')).toBe(0);
   });
 
   it('toda a varanda leva guarda: uma por piso com varanda, nenhuma sem varandas', () => {
@@ -53,8 +81,9 @@ describe('volume do prédio', () => {
     expect(count(buildingVolume(base), 'pala')).toBe(0);
     expect(count(buildingVolume({ ...base, elementos: { muro: true } }), 'muro')).toBe(3);
     expect(count(buildingVolume({ ...base, elementos: { beirais: true } }), 'beiral')).toBe(3);
-    // Uma pala por vão: dois vãos por piso, quatro pisos acima do rés-do-chão.
-    expect(count(buildingVolume({ ...base, elementos: { palas: true } }), 'pala')).toBe(4 * 2 * 3);
+    // Uma pala por janela da fachada principal — nunca sobre a entrada — e cada pala é uma caixa,
+    // de que se veem três faces em três quartos.
+    expect(count(buildingVolume({ ...base, elementos: { palas: true } }), 'pala')).toBe((5 * 2 - 1) * 3);
   });
 
   it('os pormenores não quebram o anonimato: as mesmas declarações dão o mesmo desenho', () => {
@@ -89,21 +118,38 @@ describe('rodar o volume', () => {
     for (const angulo of [0, 25, 90, 155, 180, 275, 340]) {
       // Rés-do-chão só: um corpo, sem vãos nem varandas.
       const v = buildingVolume({ ...base, pisos: 1, fachadas: 4, angulo });
-      expect(v.faces.length).toBeGreaterThanOrEqual(2);
-      expect(v.faces.length).toBeLessThanOrEqual(3);
+      expect(corpo(v)).toBeGreaterThanOrEqual(2);
+      expect(corpo(v)).toBeLessThanOrEqual(3);
     }
   });
 
   it('em três quartos vê-se duas fachadas e a cobertura; de frente, só a fachada e a cobertura', () => {
-    expect(buildingVolume({ ...base, pisos: 1, fachadas: 4, angulo: 30 }).faces.length).toBe(3);
-    expect(buildingVolume({ ...base, pisos: 1, fachadas: 4, angulo: 0 }).faces.length).toBe(2);
+    expect(corpo(buildingVolume({ ...base, pisos: 1, fachadas: 4, angulo: 30 }))).toBe(3);
+    expect(corpo(buildingVolume({ ...base, pisos: 1, fachadas: 4, angulo: 0 }))).toBe(2);
   });
 
-  it('visto de trás, os vãos da fachada principal deixam de aparecer', () => {
-    const frente = buildingVolume({ ...base, angulo: 0 });
-    const tras = buildingVolume({ ...base, angulo: 180 });
-    expect(count(frente, 'janela')).toBeGreaterThan(0);
-    expect(count(tras, 'janela')).toBe(0);
+  it('as janelas não desaparecem ao rodar: um prédio tem janelas de todos os lados', () => {
+    // Era isto que parecia avaria (28/10/2026): os vãos só existiam na fachada da frente, e ao
+    // rodar mudavam de número e de sítio até se esgotarem.
+    for (const angulo of [0, 30, 90, 155, 180, 270, 340]) {
+      expect(count(buildingVolume({ ...base, angulo }), 'janela')).toBeGreaterThan(0);
+    }
+  });
+
+  it('cada fachada mostra as suas janelas, e só as suas', () => {
+    // Uma fachada de cada vez, com um número diferente em cada: o que se vê de cada ângulo é o
+    // número daquela fachada, nunca o da vizinha.
+    const janelas = { frente: 1, direita: 2, tras: 3, esquerda: 4 };
+    const deFrente = buildingVolume({ ...base, angulo: 0, janelas });
+    // A única janela do rés-do-chão da frente é a entrada.
+    expect(count(deFrente, 'janela')).toBe(5 * 1 - 1);
+    expect(count(buildingVolume({ ...base, angulo: 90, janelas }), 'janela')).toBe(5 * 2);
+    expect(count(buildingVolume({ ...base, angulo: 180, janelas }), 'janela')).toBe(5 * 3);
+    expect(count(buildingVolume({ ...base, angulo: 270, janelas }), 'janela')).toBe(5 * 4);
+  });
+
+  it('as quatro fachadas têm nome', () => {
+    expect(FACHADAS).toHaveLength(4);
   });
 });
 

@@ -10,6 +10,9 @@ const FILL: Record<FaceKind, string> = {
   vizinho: 'fill-slate-100 stroke-slate-300',
   // Pormenores caracterizados: cinzentos, para lerem como pormenor e não competirem com o volume.
   janela: 'fill-slate-500 stroke-slate-700',
+  // A entrada, no rés-do-chão da fachada principal: mais escura do que uma janela, para se perceber
+  // de que lado se entra sem precisar de legenda.
+  porta: 'fill-slate-700 stroke-slate-800',
   grade: 'fill-slate-400 stroke-slate-700',
   muro: 'fill-slate-200 stroke-slate-500',
   beiral: 'fill-slate-200 stroke-slate-600',

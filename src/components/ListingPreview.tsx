@@ -1,6 +1,6 @@
 import { VolumeViewer } from '@/components/VolumeViewer';
 import { BUILDING_KIND_LABELS, type BuildingKind } from '@/domain/organization';
-import type { Forma } from '@/domain/volume';
+import type { Fachada, Forma } from '@/domain/volume';
 import {
   DESIRED_WORK_LABELS,
   SURFACE_KIND_LABELS,
@@ -21,6 +21,8 @@ export interface ListingView {
   temVarandas: boolean;
   /** Forma de implantação escolhida de entre as canónicas, quando foi caracterizada. */
   forma?: Forma | null;
+  /** Janelas por piso em cada fachada, como declaradas na descrição da obra. */
+  janelas?: Partial<Record<Fachada, number | null>>;
   descricao: string;
   trabalhos: string[];
   corAcabamento: string | null;
@@ -70,6 +72,7 @@ export function ListingPreview({ l }: { l: ListingView }) {
             fachadas={l.fachadas}
             temVarandas={l.temVarandas}
             forma={l.forma ?? null}
+            janelas={l.janelas}
             moradia={l.tipoImovel === 'moradia'}
             // Pormenores tal como caracterizados: vêm das superfícies que foram mesmo declaradas nesta
             // obra, nunca de fotografia (promotor, 24/10/2026). O desenho continua a ser o mesmo para

@@ -85,6 +85,13 @@ export type Database = {
         Row: {
           acessos: string | null;
           ano_construcao: number | null;
+          // Janelas por piso em cada fachada: migração 20261028150000_janelas_por_fachada,
+          // **ainda por aplicar à base real** (o classificador recusou o passo). Declaradas aqui para o
+          // código compilar; regerar este ficheiro depois de aplicar.
+          janelas_frente: number | null;
+          janelas_esquerda: number | null;
+          janelas_direita: number | null;
+          janelas_tras: number | null;
           // Obras pretendidas e área aproximada: migração 20261024034142, **ainda por aplicar à base
           // real**. Declaradas aqui para o código compilar; quem as lê fá-lo numa consulta própria, com
           // o erro tratado, e quem as escreve só aparece depois de a migração estar aplicada (ver
@@ -113,6 +120,10 @@ export type Database = {
         Insert: {
           acessos?: string | null;
           ano_construcao?: number | null;
+          janelas_frente?: number | null;
+          janelas_esquerda?: number | null;
+          janelas_direita?: number | null;
+          janelas_tras?: number | null;
           obras_pretendidas?: string[];
           area_aproximada_cm2?: number | null;
           artigo_matricial?: string | null;

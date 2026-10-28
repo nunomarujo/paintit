@@ -44,7 +44,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }, { count: proposalCount }] =
     await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
-    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao').eq('id', req.building_id).single(),
+    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao, janelas_frente, janelas_esquerda, janelas_direita, janelas_tras').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
     supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
@@ -330,6 +330,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             fachadas: building.fachadas,
             temVarandas: building.tem_varandas,
             forma: (building.forma_implantacao as Forma | null) ?? null,
+            janelas: {
+              frente: building.janelas_frente,
+              esquerda: building.janelas_esquerda,
+              direita: building.janelas_direita,
+              tras: building.janelas_tras,
+            },
             descricao: req.descricao,
             trabalhos: req.trabalhos,
             corAcabamento: req.cor_acabamento,

@@ -38,6 +38,17 @@ export interface VolumeInput {
    * fotografia nenhuma — e por isso o volume continua a não identificar o prédio: **dois prédios com as
    * mesmas declarações continuam a dar exatamente o mesmo desenho**.
    */
+  /**
+   * Janelas **por piso** em cada fachada, tal como declaradas na descrição da obra.
+   *
+   * Desenham-se em ritmo regular, igualmente espaçadas: o número é fiel, a arrumação não. É o
+   * número que o pintor precisa (área de vãos a descontar, trabalho de protecção), e é a
+   * arrumação que identificaria o prédio — dois prédios com quatro janelas por piso continuam a
+   * dar exactamente o mesmo desenho, que é o que a regra 6 do CLAUDE.md exige.
+   *
+   * Omitido: {@link JANELAS_POR_OMISSAO} em cada fachada à vista.
+   */
+  janelas?: Partial<Record<Fachada, number | null>>;
   elementos?: {
     /** Superfície `elementos_metalicos` declarada: grades, portões, guardas. */
     metalicos?: boolean;
@@ -50,7 +61,27 @@ export interface VolumeInput {
   };
 }
 
-export type FaceKind = 'frente' | 'lado' | 'empena' | 'topo' | 'varanda' | 'vizinho' | 'janela' | 'grade' | 'muro' | 'beiral' | 'pala';
+/**
+ * As quatro fachadas, pelos nomes que o cliente e o avaliador usam (pedido do promotor,
+ * 28/10/2026). "Frente" é a que dá para a via principal; as laterais são vistas de quem está de
+ * frente para ela.
+ */
+export const FACHADAS = ['frente', 'esquerda', 'direita', 'tras'] as const;
+export type Fachada = (typeof FACHADAS)[number];
+export const FACHADA_LABELS: Record<Fachada, string> = {
+  frente: 'Fachada principal',
+  esquerda: 'Lateral esquerda',
+  direita: 'Lateral direita',
+  tras: 'Tardoz (traseiras)',
+};
+
+/** Janelas por piso em cada fachada. Mais do que isto não se distingue no desenho. */
+export const MAX_JANELAS_POR_PISO = 8;
+
+/** Quantas janelas se desenham por omissão, quando ninguém declarou nada. */
+export const JANELAS_POR_OMISSAO = 2;
+
+export type FaceKind = 'frente' | 'lado' | 'empena' | 'topo' | 'varanda' | 'vizinho' | 'janela' | 'porta' | 'grade' | 'muro' | 'beiral' | 'pala';
 export interface Face {
   kind: FaceKind;
   /** Pontos já rodados e projetados (axonometria), em unidades do desenho. */
@@ -173,18 +204,60 @@ export function buildingVolume(input: VolumeInput): Volume {
   if (livres <= 3) encostado(box(px0 - 6, py0, 0, px0, front, height * 0.8, 'vizinho'), px0, px0 - 6);
   if (livres <= 2) encostado(box(px1, py0, 0, px1 + 6, front, height * 0.7, 'vizinho'), px1, px1 + 6);
 
-  // Vãos da fachada principal, em ritmo fixo: iguais em todos os prédios, por isso não identificam
-  // nenhum, e dão escala — sem eles o volume é um paralelepípedo e não se percebe a altura.
-  const bays: [number, number][] = [
-    [px0 + width * 0.1, px0 + width * 0.32],
-    [px0 + width * 0.68, px0 + width * 0.9],
+  // Vãos. Até 28/10/2026 só existiam na fachada da frente, e por isso desapareciam e reapareciam ao
+  // rodar o volume — o promotor leu isso como avaria, e tinha razão: um prédio tem janelas de todos
+  // os lados. Agora desenham-se nas quatro fachadas, pelo número declarado em cada uma.
+  //
+  // **Ritmo regular, de propósito.** O número é fiel; a arrumação não. É o número que o pintor
+  // precisa (vãos a descontar, protecções a montar) e seria a arrumação a identificar o prédio.
+  // Dois prédios com quatro janelas por piso dão o mesmo desenho — regra 6 do CLAUDE.md.
+  const quantas = (f: Fachada) => {
+    const v = input.janelas?.[f];
+    const n = v === null || v === undefined ? JANELAS_POR_OMISSAO : v;
+    return Math.max(0, Math.min(MAX_JANELAS_POR_PISO, Math.floor(n)));
+  };
+
+  /** Os vãos de uma fachada, igualmente espaçados ao longo do seu comprimento. */
+  const vaos = (de: number, ate: number, n: number): [number, number][] => {
+    if (n <= 0) return [];
+    const passo = (ate - de) / n;
+    const largura = Math.min(1.8, passo * 0.55);
+    return Array.from({ length: n }, (_, i) => {
+      const meio = de + passo * (i + 0.5);
+      return [round(meio - largura / 2), round(meio + largura / 2)] as [number, number];
+    });
+  };
+
+  const depth = front - py0;
+  // Cada fachada: onde fica o plano, para que lado olha, e ao longo de que eixo se espalham os vãos.
+  const planos: { f: Fachada; plano: number; eixo: 'x' | 'y'; de: number; ate: number; n: [number, number, number] }[] = [
+    { f: 'frente', plano: front, eixo: 'x', de: px0, ate: px1, n: [0, 1, 0] },
+    { f: 'tras', plano: py0, eixo: 'x', de: px0, ate: px1, n: [0, -1, 0] },
+    { f: 'direita', plano: px1, eixo: 'y', de: py0, ate: front, n: [1, 0, 0] },
+    { f: 'esquerda', plano: px0, eixo: 'y', de: py0, ate: front, n: [-1, 0, 0] },
   ];
-  for (let p = 1; p < pisos; p++) {
-    const z = p * FLOOR + 0.9;
-    for (const [x0, x1] of bays) {
-      quads.push({ kind: 'janela', n: [0, 1, 0], pts: [[x0, front, z], [x1, front, z], [x1, front, z + 1.3], [x0, front, z + 1.3]] });
-      // Pala: uma aba estreita por cima do vão, saliente da fachada.
-      if (el.palas) quads.push(...box(x0 - 0.3, front, z + 1.3, x1 + 0.3, front + 0.6, z + 1.5, 'pala'));
+
+  for (const { f, plano, eixo, de, ate, n } of planos) {
+    const lista = vaos(de, ate, quantas(f));
+    for (let p = 0; p < pisos; p++) {
+      const z = p * FLOOR + 0.9;
+      for (const [a0, a1] of lista) {
+        // No rés-do-chão da fachada principal o primeiro vão é a entrada, não uma janela: sem ela o
+        // volume não se lê como prédio, e com ela percebe-se de que lado se entra.
+        const entrada = p === 0 && f === 'frente' && a0 === lista[0]![0];
+        const kind: FaceKind = entrada ? 'porta' : 'janela';
+        const zb = entrada ? p * FLOOR : z;
+        const zt = entrada ? p * FLOOR + 2.1 : z + 1.3;
+        const pts: [number, number, number][] =
+          eixo === 'x'
+            ? [[a0, plano, zb], [a1, plano, zb], [a1, plano, zt], [a0, plano, zt]]
+            : [[plano, a0, zb], [plano, a1, zb], [plano, a1, zt], [plano, a0, zt]];
+        quads.push({ kind, n, pts });
+        // Pala: uma aba estreita por cima do vão, saliente da fachada. Só na frente, como antes.
+        if (el.palas && f === 'frente' && !entrada) {
+          quads.push(...box(a0 - 0.3, front, zt, a1 + 0.3, front + 0.6, zt + 0.2, 'pala'));
+        }
+      }
     }
   }
 
@@ -254,8 +327,21 @@ export function buildingVolume(input: VolumeInput): Volume {
       depth: pts.reduce((n, p) => n + p.ry * COS_E + p.z * SIN_E, 0) / pts.length,
     });
   }
-  // Pintor: o que está mais longe desenha-se primeiro.
-  visible.sort((a2, b2) => a2.depth - b2.depth);
+  // Pintor, em duas camadas: primeiro o corpo, depois o que assenta nele.
+  //
+  // Com uma só ordenação por profundidade média, um vão coplanar com a parede perdia para a
+  // própria parede. A média da parede fica a meia altura; uma janela abaixo dessa cota tinha
+  // profundidade menor, era desenhada antes e a parede tapava-a. Era isto que o promotor via como
+  // avaria a 28/10/2026 — ao rodar, mudava a cota média de cada face e mudava o conjunto de
+  // janelas que sobrevivia, pelo que pareciam mudar de sítio e de número.
+  //
+  // Os pormenores assentam sempre na face que os sustenta e são ocultados pelo mesmo critério que
+  // ela (a normal é a mesma), por isso desenhá-los todos depois do corpo é correcto. Entre si
+  // continuam ordenados por profundidade — é o que põe o muro à frente da porta, e a guarda à
+  // frente da laje da varanda.
+  const CORPO: FaceKind[] = ['frente', 'lado', 'empena', 'topo', 'vizinho'];
+  const camada = (k: FaceKind) => (CORPO.includes(k) ? 0 : 1);
+  visible.sort((a2, b2) => camada(a2.face.kind) - camada(b2.face.kind) || a2.depth - b2.depth);
   const faces = visible.map((v) => v.face);
 
   const xs = faces.flatMap((f) => f.points.map((p) => p[0]));

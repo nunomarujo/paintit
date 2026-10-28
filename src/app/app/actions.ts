@@ -219,14 +219,28 @@ export async function saveBuildingCharacteristic(
 
   // Os mesmos limites de `parseBuilding` (src/domain/organization.ts): dois caminhos a gravar o mesmo
   // campo com regras diferentes seria um bug à espera de acontecer.
-  const LIMITES: Record<string, [number, number]> = { pisos: [0, 100], fracoes: [0, 2000], fachadas: [0, 8], ano_construcao: [1500, 2100] };
+  const LIMITES: Record<string, [number, number]> = {
+    pisos: [0, 100],
+    fracoes: [0, 2000],
+    fachadas: [0, 8],
+    ano_construcao: [1500, 2100],
+    // O mesmo tecto de `MAX_JANELAS_POR_PISO` (src/domain/volume.ts) e da restrição na base.
+    janelas_frente: [0, 8],
+    janelas_esquerda: [0, 8],
+    janelas_direita: [0, 8],
+    janelas_tras: [0, 8],
+  };
 
   let patch: Database['public']['Tables']['buildings']['Update'];
   switch (campo) {
     case 'pisos':
     case 'fracoes':
     case 'fachadas':
-    case 'ano_construcao': {
+    case 'ano_construcao':
+    case 'janelas_frente':
+    case 'janelas_esquerda':
+    case 'janelas_direita':
+    case 'janelas_tras': {
       const [min, max] = LIMITES[campo]!;
       const v = inteiro(max);
       if (v === 'erro' || (typeof v === 'number' && v < min)) return { errors: { valor: `Valor entre ${min} e ${max}.` } };
