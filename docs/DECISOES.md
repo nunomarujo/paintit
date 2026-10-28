@@ -4,6 +4,44 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (noite, 5) — Comparador de propostas: o esquema, revisto pelo promotor
+
+Esquema completo no documento **Comparador de propostas — esquema** (Claude Docs). O essencial, e as
+correcções do promotor ao meu primeiro desenho, porque três delas eram erros a sério:
+
+- **"Margem" passa a "diferença não decomposta".** Chamar margem ao que sobra era uma acusação
+  disfarçada de aritmética: pode ser produtividade, equipamento, transporte, estrutura ou risco.
+- **"Alguém mediu mal" passa a "divergência de medição".** Áreas diferentes podem ser critério —
+  vãos descontados ou não, superfície desenvolvida, varandas à parte — e não erro.
+- **A base comum não pode ser a referência.** É a intersecção de todas as propostas: uma proposta
+  muito incompleta encolhe-a até à insignificância, e quem omitisse trabalho ganhava poder sobre a
+  comparação dos outros. A referência passa a ser a **grelha do pedido** (zona → superfície →
+  trabalho → quantidade → requisito); a base comum fica como leitura complementar e **não se mostra
+  quando cobre pouco do pedido**.
+- **Cinco causas, não quatro:** âmbito, quantidade, execução e materiais, **condições comerciais e
+  de obra**, preço. Andaimes em falta são âmbito; andaimes nas duas com períodos diferentes são
+  condições. Cada diferença conta uma só vez — e acrescentei a **cascata fixa** que torna isso
+  determinístico, senão o mesmo euro é reclamado por duas causas conforme a ordem do cálculo.
+- **Mais demãos não é melhor; tinta mais cara por litro não é melhor.** A segunda já estava escrita
+  na nota do catálogo deste projecto e eu tinha-me afastado dela.
+- **Cobertura não é percentagem.** Dez em doze não diz nada se os dois que faltam forem a
+  impermeabilização. Enumera-se.
+- **"Não indicado" não é exclusão:** é pergunta. Estados distintos, acções distintas.
+- **Cenários usam primeiro o preço opcional do próprio pintor**, e só depois a referência observada
+  nas outras propostas — que se diz ser isso, e nunca preço de mercado.
+
+**Sem pontuação única** (confirmado pelo promotor): três classificações separadas — cobertura,
+definição do orçamento, correspondência técnica — e ordenação por critério explícito. A estrutura de
+dados admite uma pontuação mais tarde sem depender dela agora.
+
+**Regra nova, proposta para a regra 18 do CLAUDE.md:** comissões da plataforma, promoções e relações
+comerciais **nunca alteram a ordenação das propostas**. Mesma família da regra 15 — o dinheiro da
+plataforma não entra na decisão do cliente, nem à vista nem escondido.
+
+**Em aberto:** o critério dos trabalhos directamente comparáveis — âmbito e quantidade (meu) ou
+também execução (do promotor). Exigir execução equivalente faz o subtotal desaparecer quase sempre,
+porque demãos e produtos diferem em quase todas as linhas.
+
 ## 28/10/2026 (noite, 4) — Meteorologia no cronograma: um veredicto, não um quadro de números
 
 **Porquê o Open-Meteo e não o IPMA.** O pedido era temperatura, chuva e **humidade relativa**. O

@@ -347,8 +347,8 @@ export type Database = {
           ref: string;
           status: RequestStatus;
           tipo_obra: WorkType;
-          // Migração `tipos_obra_e_datas_flexiveis`, aplicada a 28/10/2026. Escritas à mão porque a
-          // ligação ao Supabase estava em baixo nesse dia; regenerar o ficheiro quando voltar.
+          // Migração `tipos_obra_e_datas_flexiveis`, aplicada a 28/10/2026 e conferida contra a
+          // base real. Este ficheiro é escrito à mão (aliases e notas próprias); não se regenera.
           tipos_obra: WorkType[];
           datas_flexiveis: string[];
           titulo: string;
@@ -655,6 +655,12 @@ export type Database = {
           espessuras_mm: number[]; foto_path: string | null; id: string; m2_por_embalagem: number | null; marca: string; nome: string; nota: string | null;
           nota_interna: string | null; preco_data: string | null; preco_embalagem_l: number | null; preco_fonte: string | null; preco_referencia_cents: number | null;
           reacao_fogo: string | null; rendimento_estimado: boolean; rendimento_m2_l: number | null; secagem_horas: number | null; tipo: ProductType;
+          // Migração `durabilidade_declarada` (28/10/2026). Seis colunas e não uma, de propósito: um
+          // número sem a formulação original, as condições e a fonte vira "dura 10 anos" a partir de
+          // um "até 10 anos" — e a base recusa gravá-lo sozinho. Nulo = não indicada, nunca zero.
+          durabilidade_anos: number | null; durabilidade_tipo: 'declarada' | 'garantia_fabricante' | null;
+          durabilidade_declaracao: string | null; durabilidade_condicoes: string | null;
+          durabilidade_fonte: string | null; durabilidade_verificada_em: string | null;
           unidade_venda: string | null; url_ficha_tecnica: string | null; url_produto: string | null; uso: string | null; visivel: boolean;
         };
         Insert: { marca: string; nome: string; tipo: ProductType; [k: string]: unknown };
@@ -1334,10 +1340,9 @@ export type Database = {
         Row: {
           cliente_contacto: string | null;
           cliente_nome: string;
-          // Migração `cliente_do_orcamento` (28/10/2026), escrita à mão até a ligação ao Supabase voltar.
+          // Migração `cliente_do_orcamento`, aplicada a 28/10/2026.
           cliente_nif: string | null;
           created_at: string;
-          // Migração `seguimento_do_orcamento` (27/10/2026), escrita à mão até ser aplicada.
           seguimento: boolean;
           duracao_dias: number | null;
           enviado_em: string | null;
