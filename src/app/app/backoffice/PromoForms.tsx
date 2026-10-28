@@ -4,7 +4,7 @@ import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { createPromoCode, setPromoActive, setSupplierPlan } from '@/app/app/backoffice/actions';
 
-const input = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2';
+const input = 'mt-1 campo';
 
 export function CreatePromoCode() {
   const { state, pending, formProps } = useFormAction<FormState>(createPromoCode, { errors: {} });

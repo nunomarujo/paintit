@@ -22,7 +22,7 @@ export function AddendaDecision({ engagementId, addendaId }: { engagementId: str
       <form {...recusa.formProps} className="w-full max-w-sm space-y-2">
         <label className="block text-[15px] text-slate-600">
           Porque não aceita? (o pintor vê esta nota)
-          <textarea name="nota" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
+          <textarea name="nota" rows={2} className="mt-1 campo" />
         </label>
         <div className="flex gap-3">
           <button type="submit" disabled={recusa.pending} className="btn-secondary">

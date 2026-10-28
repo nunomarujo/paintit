@@ -50,13 +50,13 @@ export function VolumeViewer({ className, legenda = true, ...input }: VolumeInpu
         <BuildingVolume {...input} angulo={angulo} className="h-full w-full" />
       </div>
       <div className="mt-1 flex items-center justify-center gap-1 text-[15px] text-slate-500">
-        <button type="button" onClick={() => rodar(-45)} aria-label="Rodar para a esquerda" className="rounded px-2 py-0.5 hover:bg-slate-100">
+        <button type="button" onClick={() => rodar(-45)} aria-label="Rodar para a esquerda" className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
           ←
         </button>
-        <button type="button" onClick={() => setAngulo(25)} className="rounded px-2 py-0.5 hover:bg-slate-100">
+        <button type="button" onClick={() => setAngulo(25)} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
           De frente
         </button>
-        <button type="button" onClick={() => rodar(45)} aria-label="Rodar para a direita" className="rounded px-2 py-0.5 hover:bg-slate-100">
+        <button type="button" onClick={() => rodar(45)} aria-label="Rodar para a direita" className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
           →
         </button>
       </div>

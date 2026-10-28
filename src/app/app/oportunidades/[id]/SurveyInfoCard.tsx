@@ -17,7 +17,7 @@ export interface SurveyInfoView {
 }
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'btn-secondary';
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
@@ -74,7 +74,7 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
             rows={3}
             maxLength={2000}
             placeholder="Ex.: falta saber se há andaime montado e qual a altura das fachadas de tardoz."
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
+            className="mt-1 campo"
           />
         </label>
         <p className="text-[15px] text-slate-500">
@@ -108,7 +108,7 @@ export function SurveyInfoCard({ requestId, info }: { requestId: string; info: S
             rows={2}
             maxLength={2000}
             placeholder="O que faltava, ou o que estava bem (opcional)"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
+            className="campo"
           />
           {msg(rate.state)}
           <button type="submit" disabled={rate.pending} className={button}>

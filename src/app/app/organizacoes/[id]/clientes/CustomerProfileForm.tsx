@@ -27,14 +27,14 @@ export function CustomerProfileForm({
           rows={3}
           defaultValue={initial.nota}
           placeholder="Ex.: pagamento a 30 dias combinado, entrega grátis acima de 50 €…"
-          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"
+          className="mt-1 campo"
         />
       </label>
       {m && <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="btn-secondary"
       >
         {pending ? 'A guardar…' : 'Guardar'}
       </button>

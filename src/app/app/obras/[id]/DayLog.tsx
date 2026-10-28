@@ -178,15 +178,15 @@ export function DayLog({
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-[17px] sm:col-span-3">
             Nota do dia (opcional)
-            <input name="nota" placeholder="Choveu de manhã, só se pintou o alçado sul" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input name="nota" placeholder="Choveu de manhã, só se pintou o alçado sul" className="mt-1 campo" />
           </label>
           <label className="text-[17px] sm:col-span-2">
             Custo do dia (opcional)
-            <input name="custoDescricao" placeholder="Tinta comprada a caminho" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input name="custoDescricao" placeholder="Tinta comprada a caminho" className="mt-1 campo" />
           </label>
           <label className="text-[17px]">
             Valor (€)
-            <input name="custo" inputMode="decimal" placeholder="0,00" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-right" />
+            <input name="custo" inputMode="decimal" placeholder="0,00" className="mt-1 campo text-right" />
           </label>
         </div>
       ))}

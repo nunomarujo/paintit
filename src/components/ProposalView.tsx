@@ -67,14 +67,14 @@ export function ProposalView({
                 <tr key={l.id} className={l.inclusao === 'incluido' ? '' : 'text-slate-500'}>
                   <td className="py-1.5 pr-2">
                     <span className="font-medium">{l.descricao}</span>
-                    {hasEquivalent(l.descricao) && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[15px] font-semibold text-amber-900">Produto ou equivalente</span>}
+                    {hasEquivalent(l.descricao) && <span className="ml-2 text-[15px] font-semibold text-amber-800">Produto ou equivalente</span>}
                     {l.productId && (
                       <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Material comprometido</span>
                     )}
                     {l.productId && products[l.productId] && (() => {
                       const check = materialCheck(l.quantidade, l.demaos, products[l.productId]!);
                       return check.demaosAcimaDoEsperado ? (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[15px] font-semibold text-amber-900">
+                        <span className="ml-2 text-[15px] font-semibold text-amber-800">
                           Mais demãos do que o produto recomenda
                         </span>
                       ) : null;

@@ -6,7 +6,7 @@ import { useFormAction } from '@/components/useFormAction';
 import { PasswordInput } from '@/components/PasswordInput';
 
 type Mode = 'entrar' | 'criar' | 'link';
-const input = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]';
+const input = 'mt-1 campo';
 const button = 'w-full rounded-lg bg-tinta-600 px-4 py-2 font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
 
 export function SignInForm({ next }: { next: string }) {

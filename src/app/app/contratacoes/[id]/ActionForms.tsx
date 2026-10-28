@@ -8,7 +8,7 @@ import { partyAction, platformAction } from '@/app/app/contratacoes/actions';
 const primary =
   'rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60';
 const secondary =
-  'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+  'btn-secondary';
 const danger =
   'rounded-lg border border-red-300 px-4 py-2 text-[17px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60';
 
@@ -66,7 +66,7 @@ export function PartyAction({ engagementId, kind }: { engagementId: string; kind
         </label>
       )}
       {c.reason && (
-        <textarea name="motivo" rows={2} placeholder="Motivo" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
+        <textarea name="motivo" rows={2} placeholder="Motivo" className="campo" />
       )}
       <Status state={state} />
       <button type="submit" disabled={pending} className={c.style}>

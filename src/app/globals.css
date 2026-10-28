@@ -106,11 +106,45 @@ input[type='radio'] {
   .badge-amber {
     @apply bg-amber-100 text-amber-700;
   }
+  /*
+   * Botões (28/10/2026). Havia duas classes e 99 botões feitos à mão em 22 geometrias, e a
+   * geometria do próprio `.btn-primary` aparecia uma única vez entre esses 99 — sinal de que o
+   * que se copiava era o botão do ecrã do lado, não a classe. As duas passam a três tamanhos e
+   * uma variante calada, para não haver desculpa para escrever padding à mão. Regra 17 do
+   * CLAUDE.md.
+   *
+   * `min-h-[44px]` em todas: é o piso de alvo de toque, e sai de graça aqui em vez de ser
+   * lembrado 99 vezes.
+   */
+  .btn-base {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-[17px] font-semibold transition-colors disabled:opacity-45;
+  }
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-tinta-600 px-4 py-2.5 text-[17px] font-semibold text-white transition-colors hover:bg-tinta-700 disabled:opacity-45;
+    @apply btn-base bg-tinta-600 text-white hover:bg-tinta-700;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[17px] font-semibold text-tinta-600 transition-colors hover:bg-slate-100 disabled:opacity-45;
+    @apply btn-base border border-slate-300 bg-white text-tinta-600 hover:bg-slate-100;
+  }
+  /** Acção terciária: sem contorno nem fundo, mas com o mesmo alvo. */
+  .btn-quiet {
+    @apply btn-base text-tinta-700 hover:bg-slate-100;
+  }
+  /** Compacto: dentro de linhas de lista e barras de ferramentas. Mantém os 44px de altura. */
+  .btn-sm {
+    @apply px-3 text-[15px];
+  }
+  /** Acção principal de um ecrã ou de um primeiro passo. */
+  .btn-lg {
+    @apply min-h-[52px] px-6;
+  }
+  /*
+   * Campo de formulário. A mesma combinação — contorno cinzento, canto, `px-3 py-2` — estava
+   * escrita à mão em cerca de 40 sítios, com meia dúzia de variantes que só diferiam em `block`,
+   * `w-full` ou no tamanho da letra. O tamanho vem do `body` (17px) e nunca desce abaixo de 16,
+   * senão o Safari do iPhone dá zoom a cada toque (regra 14).
+   */
+  .campo {
+    @apply block w-full min-h-[44px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px];
   }
   .stat {
     @apply rounded-xl border border-slate-200 bg-white px-6 py-5;

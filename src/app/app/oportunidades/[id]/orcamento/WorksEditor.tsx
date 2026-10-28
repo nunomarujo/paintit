@@ -99,7 +99,7 @@ function SuggestField({
       )}
       {open && (
         <div id={`${id}-lista`} className="absolute right-0 z-20 mt-1 w-full max-w-xl rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por marca ou nome" aria-label="Filtrar sugestões" className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por marca ou nome" aria-label="Filtrar sugestões" className="mb-2 campo" />
           <p className="px-2 pb-1 text-[15px] text-slate-500">Produtos do catálogo adequados a este trabalho.</p>
           <ul className="max-h-72 space-y-1 overflow-auto">
             {shown.length === 0 && <li className="px-2 py-3 text-[17px] text-slate-600">Sem produtos com este filtro.</li>}
@@ -119,7 +119,7 @@ function SuggestField({
                   >
                     <span className="block text-[17px] font-medium text-slate-900">
                       {o.marca} {o.nome}
-                      {asked && <span className={`ml-2 rounded-full px-2 py-0.5 text-[15px] font-semibold ${asked.fixo ? 'bg-amber-100 text-amber-800' : 'bg-tinta-50 text-tinta-700'}`}>{asked.fixo ? 'Pedido pelo cliente: não substituir' : 'Pedido pelo cliente'}</span>}
+                      {asked && <span className={`ml-2 text-[15px] font-semibold ${asked.fixo ? 'text-amber-800' : 'text-tinta-700'}`}>{asked.fixo ? 'Pedido pelo cliente: não substituir' : 'Pedido pelo cliente'}</span>}
                     </span>
                     <span className="block text-[15px] text-slate-500">
                       {PRODUCT_TYPE_LABELS[o.tipo as ProductType] ?? o.tipo}

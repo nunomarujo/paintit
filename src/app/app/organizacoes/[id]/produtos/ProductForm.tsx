@@ -96,7 +96,7 @@ export function ProductForm({ orgId, references = [] }: { orgId: string; referen
         </div>
       </fieldset>
       <Field name="descricao" label="Descrição" error={e.descricao}>
-        <textarea name="descricao" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <textarea name="descricao" rows={2} className="mt-1 campo" />
       </Field>
       <Field name="ficha" label="Ficha técnica" error={e.ficha} hint="PDF até 10 MB.">
         <input name="ficha" type="file" accept="application/pdf" className="mt-1 block w-full text-[17px]" />

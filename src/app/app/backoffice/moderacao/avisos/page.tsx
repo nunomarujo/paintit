@@ -28,7 +28,7 @@ export default async function WarningsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>
                     <b>{emailOf.get(uid) ?? uid}</b> · {mine.length} {mine.length === 1 ? 'aviso' : 'avisos'}
-                    {blocked.has(uid) && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[15px] font-semibold text-red-800">Bloqueada</span>}
+                    {blocked.has(uid) && <span className="ml-2 text-[15px] font-semibold text-red-800">Bloqueada</span>}
                   </span>
                   {blocked.has(uid) && (
                     <form action={unblockAccount.bind(null, uid)}>

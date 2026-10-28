@@ -6,7 +6,7 @@ import { PasswordInput } from '@/components/PasswordInput';
 
 export function PasswordForm() {
   const { state, pending, formProps } = useFormAction<SignInState>(setPassword, { status: 'idle' }, { resetOnSuccess: true });
-  const input = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2';
+  const input = 'mt-1 campo';
   return (
     <form {...formProps} className="space-y-3">
       <h2 className="font-semibold">Palavra-passe</h2>

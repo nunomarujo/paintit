@@ -20,7 +20,7 @@ export function RejectionReasons({ reasons, value, onChange }: { reasons: readon
             setPicked(reason);
             onChange(reason === OTHER_REASON ? '' : reason);
           }}
-          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]"
+          className="mt-1 campo"
         >
           <option value="">Escolher um motivo…</option>
           {reasons.map((r) => (
@@ -37,7 +37,7 @@ export function RejectionReasons({ reasons, value, onChange }: { reasons: readon
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Texto que a outra parte vê (pode ajustar o motivo escolhido, ou escrever o seu)"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
+        className="campo"
       />
     </div>
   );

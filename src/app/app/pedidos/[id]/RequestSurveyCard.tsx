@@ -12,7 +12,7 @@ export interface SurveyInfo {
 }
 
 const card = 'rounded-2xl border border-tinta-200 bg-tinta-50 p-6 text-[17px]';
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'btn-secondary';
 
 function msg(state: FormState) {
   const m = Object.values(state.errors)[0] ?? state.message;
@@ -79,7 +79,7 @@ function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: 
                   </label>
                 ))}
               </div>
-              <textarea name="comentario" rows={2} placeholder="Comentário (opcional)" className="w-full rounded-lg border border-slate-300 px-3 py-2" />
+              <textarea name="comentario" rows={2} placeholder="Comentário (opcional)" className="campo" />
               {msg(rate.state)}
               <button type="submit" disabled={rate.pending} className={button}>
                 Avaliar

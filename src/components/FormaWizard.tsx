@@ -146,7 +146,7 @@ export function FormaWizard({
                   onClick={() =>
                     setGrelha((g) => g.map((linha2, l2) => (l2 === l ? linha2.map((v, c2) => (c2 === c ? !v : v)) : linha2)))
                   }
-                  className={`h-9 w-9 rounded ${on ? 'bg-tinta-600' : 'bg-slate-100 hover:bg-slate-200'}`}
+                  className={`h-11 w-11 rounded-lg ${on ? 'bg-tinta-600' : 'bg-slate-100 hover:bg-slate-200'}`}
                 />
               )),
             )}

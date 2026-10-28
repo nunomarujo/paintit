@@ -113,3 +113,22 @@ npm run build
     painel — `src/domain/aceitacaoSimples.ts` devolve sempre falso com `NODE_ENV=production`
     (27/10/2026). Qualquer atalho de teste futuro faz-se assim: a variável decide **fora** de
     produção, nunca dentro.
+
+17. **Nada se desenha duas vezes: botões, campos e cantos vêm do sistema.** A auditoria de
+    27/10/2026 encontrou 2 classes de botão definidas e **99 botões feitos à mão em 22
+    geometrias** — e a geometria do próprio `.btn-primary` aparecia **uma única vez** entre esses
+    99, sinal de que o que se copiava era o botão do ecrã do lado, não a classe. Mais 88 alvos de
+    toque abaixo dos 44px e 8 raios de canto distintos, quatro deles entre 8 e 11px, que ninguém
+    distingue a olho. Daí as três regras:
+    - **Botões:** `btn-primary`, `btn-secondary` ou `btn-quiet`, com `btn-sm` ou `btn-lg` se for
+      preciso. Nenhum ecrã escreve `rounded` + `px` + `py` num `<button>`, `<Link>` ou `<a>`. As
+      classes já trazem os 44px de altura mínima.
+    - **Campos:** `campo` (`globals.css`). Nunca abaixo de 16px — o Safari do iPhone dá zoom a cada
+      toque, e quem preenche um levantamento está em obra (regra 14).
+    - **Cantos:** dois raios, e o `tailwind.config.ts` colapsa os degraus intermédios para eles —
+      **8px** no que se toca (botões, campos, pastilhas, itens de lista), **16px** no que contém
+      (cartões, painéis, diálogos), e `rounded-full` em pílulas e pontos. Não se escreve
+      `rounded-[Npx]`.
+    **Tudo o que se clica tem 44px de altura mínima**, venha de uma classe `btn-*` ou não: é o
+    mínimo para um dedo, e metade dos ecrãs da app são usados em obra, de telemóvel.
+

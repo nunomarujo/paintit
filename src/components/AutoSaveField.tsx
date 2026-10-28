@@ -6,7 +6,7 @@ import type { FormState } from '@/app/app/actions';
 type Guardar = (prev: FormState, form: FormData) => Promise<FormState>;
 type Estado = 'parado' | 'a_guardar' | 'guardado' | 'erro';
 
-const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]';
+const inputClass = 'mt-1 campo';
 
 /**
  * Campo que se grava sozinho, sem botão (pedido do promotor, 24/10/2026). Grava quando a pessoa sai do

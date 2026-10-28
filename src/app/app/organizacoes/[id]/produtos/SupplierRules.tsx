@@ -16,7 +16,7 @@ import {
   FREQUENT_MIN_ORDERS,
 } from '@/domain/catalog';
 
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'btn-secondary';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;

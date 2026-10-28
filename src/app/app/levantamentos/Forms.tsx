@@ -6,7 +6,7 @@ import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import { requestSurveyRedemption, setSurveyCoverage, submitSurveyRedemptionInvoice } from './actions';
 
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'btn-secondary';
 const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? (

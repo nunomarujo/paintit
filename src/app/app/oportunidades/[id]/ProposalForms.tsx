@@ -27,7 +27,7 @@ const status = (s: FormState) =>
     </p>
   );
 const button =
-  'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+  'btn-secondary';
 const hundredths = (n: number | null) => (n === null ? '' : (n / 100).toString().replace('.', ','));
 
 export function TermsForm({ proposalId, requestId, terms }: { proposalId: string; requestId: string; terms: ProposalTerms }) {
@@ -115,10 +115,10 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
         <p className="text-[15px] text-slate-600">Quem declara não ter seguro pode submeter, mas o cliente vê um aviso a vermelho.</p>
       </fieldset>
       <Field name="exclusoes" label="Exclusões" error={e.exclusoes} hint="O que não está incluído (licenças, ocupação de via…).">
-        <textarea name="exclusoes" rows={2} defaultValue={terms.exclusoes} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <textarea name="exclusoes" rows={2} defaultValue={terms.exclusoes} className="mt-1 campo" />
       </Field>
       <Field name="notas" label="Notas para o cliente" error={e.notas}>
-        <textarea name="notas" rows={3} defaultValue={terms.notas} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <textarea name="notas" rows={3} defaultValue={terms.notas} className="mt-1 campo" />
       </Field>
       {status(state)}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -149,11 +149,11 @@ function PaymentPlan({ phases, error }: { phases: PaymentPhase[]; error?: string
         <div key={i} className="grid grid-cols-[1fr_6rem_auto] items-end gap-3">
           <label className="block text-[17px] font-medium text-slate-700">
             {i === 0 ? 'Fase' : <span className="sr-only">Fase</span>}
-            <input name="faseNome" value={r.nome} onChange={(ev) => set(i, 'nome', ev.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" placeholder="Ex.: Ao concluir a fachada principal" />
+            <input name="faseNome" value={r.nome} onChange={(ev) => set(i, 'nome', ev.target.value)} maxLength={60} className="mt-1 campo" placeholder="Ex.: Ao concluir a fachada principal" />
           </label>
           <label className="block text-[17px] font-medium text-slate-700">
             {i === 0 ? '%' : <span className="sr-only">Percentagem</span>}
-            <input name="fasePct" value={r.pct} onChange={(ev) => set(i, 'pct', ev.target.value)} inputMode="decimal" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
+            <input name="fasePct" value={r.pct} onChange={(ev) => set(i, 'pct', ev.target.value)} inputMode="decimal" className="mt-1 campo" />
           </label>
           <button type="button" onClick={() => setRows((x) => (x.length > 1 ? x.filter((_, j) => j !== i) : [{ nome: '', pct: '' }]))} className="mb-1 text-[17px] text-slate-600 hover:underline">
             Remover

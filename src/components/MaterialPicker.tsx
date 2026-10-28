@@ -122,7 +122,7 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
           )}
           <label className="block">
             Ou descreva o produto
-            <input name="produto" placeholder="Marca e referência" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input name="produto" placeholder="Marca e referência" className="mt-1 campo" />
           </label>
         </>
       )}

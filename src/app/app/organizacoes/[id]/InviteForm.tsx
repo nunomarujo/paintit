@@ -32,7 +32,7 @@ export function InviteForm({ orgId, orgKind }: { orgId: string; orgKind: OrgKind
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="btn-secondary"
       >
         {pending ? 'A criar…' : 'Criar convite'}
       </button>

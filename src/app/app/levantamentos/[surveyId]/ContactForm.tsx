@@ -16,7 +16,7 @@ export function ContactForm({ surveyId, initial }: { surveyId: string; initial: 
           rows={3}
           defaultValue={initial.notas}
           placeholder="Ex.: ligado a 23/10 às 10h, agendada visita para 24/10."
-          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"
+          className="mt-1 campo"
         />
       </label>
       <label className="block">
@@ -29,7 +29,7 @@ export function ContactForm({ surveyId, initial }: { surveyId: string; initial: 
         />
       </label>
       {msg && <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{msg}</p>}
-      <button type="submit" disabled={pending} className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60">
+      <button type="submit" disabled={pending} className="btn-secondary">
         {pending ? 'A guardar…' : 'Guardar'}
       </button>
     </form>

@@ -5,7 +5,7 @@ import { useFormAction } from '@/components/useFormAction';
 import { FASES, FASE_LABELS, FASE_PORQUE } from '@/domain/worksiteDiary';
 import { addDiaryPhoto, removeDiaryPhoto } from '@/app/app/obras/actions';
 
-const input = 'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px]';
+const input = 'mt-1 campo';
 
 /** Juntar uma fotografia ao diário. A fase é o campo que dá sentido à fotografia, por isso vem primeiro. */
 export function AddDiaryPhoto({ worksiteId }: { worksiteId: string }) {

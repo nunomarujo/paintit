@@ -59,7 +59,7 @@ export function MessageThread({
             rows={2}
             maxLength={2000}
             placeholder="Pergunta ou esclarecimento técnico. Sem contactos, nomes ou moradas."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="campo"
           />
           {(state.errors.texto || state.message) && (
             <p className="text-red-700" role="alert">

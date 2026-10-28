@@ -102,7 +102,7 @@ export function ClarificationCard({ surveyId, clarification }: { surveyId: strin
               rows={5}
               maxLength={2000}
               placeholder="Responda ao que foi perguntado. Não indique nomes, moradas nem contactos."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]"
+              className="campo"
             />
             {msg(respond.state)}
             <button type="submit" disabled={respond.pending} className={button}>

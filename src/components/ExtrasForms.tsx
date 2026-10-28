@@ -8,7 +8,7 @@ const msg = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
   return m ? <p className={`text-[17px] ${s.ok ? 'text-tinta-700' : 'text-red-700'}`}>{m}</p> : null;
 };
-const button = 'rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60';
+const button = 'btn-secondary';
 
 export function InvitePainter({ requestId, painters }: { requestId: string; painters: { id: string; nome: string }[] }) {
   const { state, pending, formProps } = useFormAction<FormState>(invitePainter.bind(null, requestId), { errors: {} });
@@ -65,7 +65,7 @@ export function ReviewForm({
         rows={3}
         defaultValue={initial?.comentario ?? ''}
         placeholder="Comentário (opcional)"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="campo"
       />
       {msg(state)}
       <button type="submit" disabled={pending} className={button}>
@@ -84,7 +84,7 @@ export function AnswerForm({ engagementId, initial }: { engagementId: string; in
         rows={2}
         defaultValue={initial ?? ''}
         placeholder="A sua resposta à avaliação"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="campo"
       />
       {msg(state)}
       <button type="submit" disabled={pending} className={button}>

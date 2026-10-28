@@ -139,7 +139,7 @@ export default async function ProposalsPage({
                 className={`flex flex-col rounded-2xl bg-white p-6 ${p.status === 'selecionada' ? 'border-2 border-tinta-600' : 'border border-slate-200'}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[11px] bg-sage text-[15px] font-bold text-tinta-600">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-sage text-[15px] font-bold text-tinta-600">
                     {r.alias.replace('Pintor ', '')}
                   </span>
                   <span className="flex flex-wrap justify-end gap-1">

@@ -13,7 +13,7 @@ export function ResolveReport({ reportId }: { reportId: string }) {
         name="resolucao"
         rows={2}
         placeholder="Decisão. Se suspender, o cliente lê isto e corrige o pedido."
-        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="campo"
       />
       {(state.errors.resolucao || state.message) && <p className="text-red-700">{state.errors.resolucao ?? state.message}</p>}
       <div className="flex gap-2">

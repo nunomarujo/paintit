@@ -14,10 +14,10 @@ export function SupplierReviewAnswer({ reviewId, supplierOrgId, initial }: { rev
         rows={2}
         defaultValue={initial ?? ''}
         placeholder="A sua resposta a esta avaliação"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="campo"
       />
       {msg && <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{msg}</p>}
-      <button type="submit" disabled={pending} className="rounded-lg border border-slate-300 px-4 py-2 text-[17px] font-semibold hover:bg-slate-50 disabled:opacity-60">
+      <button type="submit" disabled={pending} className="btn-secondary">
         {pending ? 'A guardar…' : initial ? 'Atualizar resposta' : 'Responder'}
       </button>
     </form>

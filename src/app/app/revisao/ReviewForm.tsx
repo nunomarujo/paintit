@@ -12,7 +12,7 @@ export function ReviewForm() {
   return (
     <form {...formProps} className="space-y-4">
       <Field name="texto" label="Porque considera que foi um engano?" required error={e.texto} hint={`Até ${APPEAL_MAX} letras. Sem contactos nem moradas: a equipa responde por email.`}>
-        <textarea name="texto" rows={5} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-[17px]" />
+        <textarea name="texto" rows={5} className="mt-1 campo" />
       </Field>
       {state.message && (
         <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">

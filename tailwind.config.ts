@@ -70,9 +70,23 @@ const config: Config = {
         terracota: '#a8441f', // escurecido de #c4572f: branco por cima passa de 4,42:1 para 5,98:1 (WCAG AA)
         paper: '#f6f5f0',
       },
+      /*
+       * Escala de cantos fechada em dois raios (28/10/2026). Havia oito — 4, 6, 8, 9, 10, 11, 16px
+       * e a pílula — e quatro deles (8, 9, 10, 11) são indistinguíveis a olho mas obrigam a
+       * escolher. Em vez de reescrever 350 className, os degraus intermédios passam a resolver
+       * para os dois que valem:
+       *   8px  — o que se toca: botões, campos, pastilhas, itens de lista
+       *   16px — o que contém: cartões, painéis, diálogos
+       *   full — pílulas e pontos
+       * Ver regra 17 do CLAUDE.md.
+       */
       borderRadius: {
-        xl: '10px',
+        DEFAULT: '8px',
+        md: '8px',
+        lg: '8px',
+        xl: '8px',
         '2xl': '16px',
+        '3xl': '16px',
       },
     },
   },

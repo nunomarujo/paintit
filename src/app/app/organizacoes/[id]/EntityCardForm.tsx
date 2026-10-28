@@ -49,7 +49,7 @@ export function EntityCardForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-tinta-600 px-5 py-2 font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
+        className="btn-primary"
       >
         {pending ? 'A guardar…' : 'Guardar'}
       </button>

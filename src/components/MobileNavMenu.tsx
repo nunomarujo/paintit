@@ -43,7 +43,7 @@ export function MobileNavMenu({
     <details ref={ref} className="relative md:hidden">
       <summary
         aria-label="Abrir navegação"
-        className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-[9px] text-marca-ink hover:bg-marca-cream/60 [&::-webkit-details-marker]:hidden"
+        className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-lg text-marca-ink hover:bg-marca-cream/60 [&::-webkit-details-marker]:hidden"
       >
         <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M4 6h16M4 12h16M4 18h16" />
@@ -55,7 +55,7 @@ export function MobileNavMenu({
         <div className="space-y-4">{groups.map(renderGroup)}</div>
         <div className="mt-4 space-y-0.5 border-t border-marca-border pt-3 text-[15px]">
           {meuPerfil ? (
-            <Link href={`/app/organizacoes/${meuPerfil.id}`} onClick={fecha} className="-mx-1 flex min-h-[44px] items-center rounded-[9px] px-1 py-1.5 hover:bg-marca-cream/60">
+            <Link href={`/app/organizacoes/${meuPerfil.id}`} onClick={fecha} className="-mx-1 flex min-h-[44px] items-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60">
               <span className="block text-marca-muted">O meu Perfil</span>
               <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>
             </Link>
@@ -63,17 +63,17 @@ export function MobileNavMenu({
             <p className="truncate px-1 py-1 font-semibold text-marca-ink">{email}</p>
           )}
           {mostrarSubscricao && (
-            <Link href="/app/subscricao" onClick={fecha} className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+            <Link href="/app/subscricao" onClick={fecha} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
               Plano e subscrição
             </Link>
           )}
           {pintorId && (
-            <Link href={`/app/organizacoes/${pintorId}/referencias`} onClick={fecha} className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+            <Link href={`/app/organizacoes/${pintorId}/referencias`} onClick={fecha} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
               Referências de fornecedores
             </Link>
           )}
           {!meuPerfil && (
-            <Link href="/app/perfil" onClick={fecha} className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+            <Link href="/app/perfil" onClick={fecha} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
               Perfil
             </Link>
           )}
@@ -82,7 +82,7 @@ export function MobileNavMenu({
             onSubmit={fecha}
             className="mt-1 border-t border-marca-border pt-2"
           >
-            <button type="submit" className="flex min-h-[44px] w-full items-center rounded-[9px] px-1 py-1 text-left text-[17px] font-semibold text-marca-orange-deep hover:underline">
+            <button type="submit" className="flex min-h-[44px] w-full items-center rounded-lg px-1 py-1 text-left text-[17px] font-semibold text-marca-orange-deep hover:underline">
               Sair
             </button>
           </form>

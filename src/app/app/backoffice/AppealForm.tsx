@@ -10,7 +10,7 @@ export function AppealForm({ appealId }: { appealId: string }) {
   return (
     <form {...formProps} className="mt-3 space-y-2">
       <Field name="motivo" label="Decisão (a pessoa recebe-a por email)" required error={state.errors.motivo}>
-        <textarea name="motivo" rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <textarea name="motivo" rows={2} className="mt-1 campo" />
       </Field>
       {state.message && (
         <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">

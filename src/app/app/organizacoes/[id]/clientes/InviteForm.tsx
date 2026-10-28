@@ -11,22 +11,22 @@ export function InviteForm({ orgId }: { orgId: string }) {
     <form {...formProps} className="mt-4 grid gap-3 sm:grid-cols-2">
       <label className="block text-[17px]">
         Nome
-        <input name="nome" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <input name="nome" required className="mt-1 campo" />
         {e.nome && <span className="mt-1 block text-red-700">{e.nome}</span>}
       </label>
       <label className="block text-[17px]">
         Email
-        <input name="email" type="email" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <input name="email" type="email" required className="mt-1 campo" />
         {e.email && <span className="mt-1 block text-red-700">{e.email}</span>}
       </label>
       <label className="block text-[17px]">
         Telefone
-        <input name="telefone" type="tel" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <input name="telefone" type="tel" required className="mt-1 campo" />
         {e.telefone && <span className="mt-1 block text-red-700">{e.telefone}</span>}
       </label>
       <label className="block text-[17px]">
         Morada, sede ou localização
-        <input name="morada" required className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <input name="morada" required className="mt-1 campo" />
         {e.morada && <span className="mt-1 block text-red-700">{e.morada}</span>}
       </label>
       <label className="block text-[17px] sm:col-span-2">
