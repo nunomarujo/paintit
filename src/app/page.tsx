@@ -14,8 +14,19 @@ const compare = [
   { t: 'Prazo e preço total', d: 'Duração, condições e IVA identificado.' },
 ];
 
+// O `apoio` do primeiro passo é a melhor coisa que a plataforma faz e estava só dentro da app, em
+// dois ecrãs que ninguém vê antes de criar conta (28/10/2026). Quem chega aqui pensa que vai ter de
+// medir e fotografar um prédio inteiro, e é aí que desiste.
+//
+// Diz "pode" e não "tem": a visita depende de haver um avaliador com catálogo activo na zona que
+// reserve o pedido dentro do prazo. Se não houver, o levantamento feito pelo próprio cliente continua
+// sempre disponível (`src/domain/survey.ts`). Prometer a visita como garantida seria vender silêncio.
 const steps = [
-  { t: 'Descrever a obra', d: 'Fotografias, áreas e o que é preciso fazer.' },
+  {
+    t: 'Descrever a obra',
+    d: 'Fotografias, áreas e o que é preciso fazer.',
+    apoio: 'Não tem de medir nada sozinho: um avaliador da plataforma pode ir ao local fazer o levantamento consigo, sem acrescentar custo à obra.',
+  },
   { t: 'Comparar propostas', d: 'O que está incluído em cada orçamento, lado a lado.' },
   { t: 'Escolher a empresa', d: 'Confirmar as condições e assinar o contrato.' },
 ];
@@ -137,6 +148,11 @@ export default function Home() {
               <span>
                 <h3 className="font-semibold text-tinta-900">{s.t}</h3>
                 <p className="mt-1 text-[17px] text-slate-600">{s.d}</p>
+                {s.apoio && (
+                  <p className="mt-2 border-l-2 border-tinta-300 pl-3 text-[15px] leading-snug text-tinta-700">
+                    {s.apoio}
+                  </p>
+                )}
               </span>
             </li>
           ))}
