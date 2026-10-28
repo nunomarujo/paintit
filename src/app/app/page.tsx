@@ -108,7 +108,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">Avisos</h2>
             <form action={markNotificationsRead}>
-              <button type="submit" className="text-tinta-700 hover:underline">
+              <button type="submit" className="inline-flex min-h-[44px] items-center text-tinta-700 hover:underline">
                 Marcar todos como lidos
               </button>
             </form>
@@ -119,13 +119,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               correção de dados: os textos guardados já começam maiúsculos. */}
           <ul className="mt-2 space-y-2">
             {notes.map((n) => (
-              <li key={n.id} className="rounded-xl border border-slate-200 p-3">
-                <Link href={n.link} className="block text-tinta-900 first-letter:uppercase hover:underline">
-                  {n.texto}
+              // O cartão inteiro é o alvo, não só a frase (pedido do promotor, 28/10/2026). Antes a
+              // ligação era o texto e a data ficava de fora: carregar ao lado da frase, ou na data,
+              // não fazia nada. A data vai para dentro da ligação; o `block` com padding próprio
+              // dá o cartão todo.
+              <li key={n.id} className="rounded-lg border border-slate-200">
+                <Link
+                  href={n.link}
+                  className="block rounded-lg p-3 hover:bg-slate-50 focus-visible:bg-slate-50"
+                >
+                  <span className="block text-tinta-900 first-letter:uppercase">{n.texto}</span>
+                  <span className="mt-0.5 block text-[15px] text-slate-500">
+                    {new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
+                  </span>
                 </Link>
-                <span className="mt-0.5 block text-[15px] text-slate-500">
-                  {new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-                </span>
               </li>
             ))}
           </ul>

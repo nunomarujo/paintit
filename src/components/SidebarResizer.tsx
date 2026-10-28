@@ -26,7 +26,8 @@ const maxFor = () => Math.max(MIN, Math.min(MAX, window.innerWidth - MIN_CONTENT
  *
  * Só mexe na variável CSS `--sidebar-w` diretamente no `<html>`, sem passar pelo React a cada
  * pixel arrastado — `src/app/app/layout.tsx` lê-a em `grid-template-columns`
- * (`md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)]`), 235px é o valor de sempre.
+ * (`md:grid-cols-[var(--sidebar-w,300px)_minmax(0,1fr)]`), 300px é a omissão — a largura a que
+ * nenhum rótulo da barra parte em duas linhas (medido a 28/10/2026).
  */
 export function SidebarResizer() {
   const draggingRef = useRef(false);

@@ -181,11 +181,19 @@ input[type='radio'] {
 .proposal-doc {
   @apply mx-auto max-w-full overflow-x-auto print:overflow-visible lg:max-w-[210mm];
 }
+/*
+ * `overflow: hidden` é o que estava a faltar, e explica a queixa do promotor de 28/10: o documento
+ * podia ser arrastado para fora de vista. A culpada não era a folha — era a marca de água. O
+ * "quempinta.pt" a 90px e rodado 26 graus mede 1205px dentro de uma folha de 794px, e esses 206px
+ * de excesso tornavam-se largura arrastável no contentor. Uma folha A4 é uma página: nada deve
+ * sair dela, e ao imprimir já não saía.
+ */
 .proposal-sheet {
   width: 210mm;
   min-height: 297mm;
   padding: 16mm 15mm;
   margin: 0 auto 10mm;
+  overflow: hidden;
   box-shadow: 0 2px 20px rgb(0 0 0 / 0.12);
 }
 .proposal-watermark {

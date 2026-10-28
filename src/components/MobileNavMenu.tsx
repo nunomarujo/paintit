@@ -55,7 +55,7 @@ export function MobileNavMenu({
         <div className="space-y-4">{groups.map(renderGroup)}</div>
         <div className="mt-4 space-y-0.5 border-t border-marca-border pt-3 text-[15px]">
           {meuPerfil ? (
-            <Link href={`/app/organizacoes/${meuPerfil.id}`} onClick={fecha} className="-mx-1 flex min-h-[44px] items-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60">
+            <Link href={`/app/organizacoes/${meuPerfil.id}`} onClick={fecha} className="-mx-1 flex min-h-[44px] flex-col justify-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60">
               <span className="block text-marca-muted">O meu Perfil</span>
               <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>
             </Link>

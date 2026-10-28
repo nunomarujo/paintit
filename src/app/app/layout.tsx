@@ -123,8 +123,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     redirect('/');
   }
 
+  // 300px de omissão, e não 235 (pedido do promotor, 28/10/2026). O número sai da medição e não do
+  // gosto: o rótulo mais longo da barra, "Referências de fornecedores", ocupa 233px de texto no
+  // Inter a 15px, e leva 36px de margem da barra, 24 do grupo e 8 do item — 301 ao todo. Abaixo
+  // disso há sempre um nome a partir em duas linhas, e uma barra com rótulos partidos lê-se como
+  // descuido. Continua a arrastar-se, e o valor arrastado continua a mandar.
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[var(--sidebar-w,235px)_minmax(0,1fr)] print:block">
+    <div className="min-h-screen md:grid md:grid-cols-[var(--sidebar-w,300px)_minmax(0,1fr)] print:block">
       {/* `overflow-hidden`: rede de segurança contra qualquer transbordo de texto (ex.: um nome de
           item da navegação que a quebra de linha, por si só, não consiga conter a tempo) — nunca
           mais pode sair da barra para cima do conteúdo, aconteça o que acontecer lá dentro
@@ -165,7 +170,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           {meuPerfil ? (
             <Link
               href={`/app/organizacoes/${meuPerfil.id}`}
-              className="-mx-1 flex min-h-[44px] items-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60"
+              className="-mx-1 flex min-h-[44px] flex-col justify-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60"
             >
               <span className="block text-marca-muted">O meu Perfil</span>
               <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>

@@ -9,6 +9,7 @@ import { BudgetContext, outcome, type StepSaver } from './BudgetContext';
 import { BudgetSteps } from './BudgetSteps';
 import { BudgetPendingBar } from './PendingBar';
 import { STEP_IDS, STEP_LABELS, type StepId } from './steps';
+import { useConfirmacao } from '@/components/Confirmar';
 
 export interface TemplateOption {
   id: string;
@@ -106,6 +107,7 @@ export function BudgetShell({
 
   const [picked, setPicked] = useState(templates[0]?.id ?? '');
   const [naming, setNaming] = useState(false);
+  const [pedirConfirmacao, dialogoDeConfirmacao] = useConfirmacao();
   const [name, setName] = useState('');
   const chosen = templates.find((t) => t.id === picked) ?? templates[0] ?? null;
 
@@ -127,7 +129,16 @@ export function BudgetShell({
 
   async function apply() {
     if (!chosen) return;
-    if (hasWork && !window.confirm('Aplicar o método substitui os trabalhos e as condições deste rascunho. Continuar?')) return;
+    if (
+      hasWork &&
+      !(await pedirConfirmacao({
+        titulo: 'Aplicar o método substitui este rascunho',
+        texto: 'Os trabalhos e as condições que já estão aqui são trocados pelos do método. Os preços guardados na sua biblioteca não se perdem.',
+        confirmar: 'Aplicar o método',
+      }))
+    ) {
+      return;
+    }
     await run(() => applyTemplate(proposalId, requestId, chosen.id), true);
   }
 
@@ -145,12 +156,20 @@ export function BudgetShell({
   }
 
   async function remove() {
-    if (!chosen || !window.confirm(`Apagar o método “${chosen.nome}”?`)) return;
+    if (!chosen) return;
+    const ok = await pedirConfirmacao({
+      titulo: `Apagar o método “${chosen.nome}”?`,
+      texto: 'Os orçamentos já feitos com ele não mudam. O método deixa de aparecer na lista.',
+      confirmar: 'Apagar',
+      destrutivo: true,
+    });
+    if (!ok) return;
     await run(() => deleteTemplate(requestId, chosen.id));
   }
 
   return (
     <BudgetContext.Provider value={api}>
+      {dialogoDeConfirmacao}
       <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Métodos de trabalho">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-0 basis-full sm:flex-1">
