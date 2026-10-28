@@ -12,6 +12,7 @@ import {
   grupoDe,
   orcamentosPorEnviar,
   podeApagar,
+  porqueNaoApaga,
   type GrupoOrcamentos,
 } from '@/domain/quoteBoard';
 import { caeAviso, caeElegibilidade } from '@/domain/organization';
@@ -86,7 +87,11 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           {avisos.some((a) => a.id === q.id) && <span className="ml-1 font-semibold text-amber-800">· por enviar</span>}
         </p>
       </Link>
-      {podeApagar(q.estado) && <RemoveQuote quoteId={q.id} numero={q.numero} />}
+      {podeApagar(q.estado) ? (
+        <RemoveQuote quoteId={q.id} numero={q.numero} />
+      ) : (
+        <span className="hidden max-w-[22ch] shrink-0 text-[15px] leading-snug text-slate-500 sm:block">{porqueNaoApaga(q.estado)}</span>
+      )}
     </li>
   );
 

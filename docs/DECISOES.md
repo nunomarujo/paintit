@@ -4,6 +4,45 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (tarde) — Quem assina os toques, e o que a lei diz sobre escrever a entidades públicas
+
+**A frase dos toques.** A regra de 26/10 manda que cada mensagem diga que é o assistente de IA do
+pintor, com o consentimento dele, pela quempinta.pt — e o que o cliente recebe sempre disse isso,
+correctamente. O que estava errado eram os **dois ecrãs que descrevem o mecanismo ao pintor**:
+diziam "escritas pelo assistente de IA **da sua empresa**", que não é o que sai nem é verdade (a
+plataforma é que corre o assistente). Passaram a descrever o texto verdadeiro. Não se mudou a
+mensagem; corrigiu-se a descrição dela.
+
+**A investigação jurídica sobre convites de entidades públicas** (28/10/2026) corrige três coisas
+que estavam assumidas:
+
+- **A escolha de quem se convida é livre, por lei** (CCP, art. 112.º: «convida directamente à sua
+  escolha»), e **"manifestação de interesse" não existe no CCP** — zero ocorrências. O artigo
+  público promete "preparar a manifestação de interesse" como se fosse figura do processo; **tem
+  de ser reescrito**.
+- **Existe um registo legal e é a melhor via:** o Portal Nacional de Fornecedores do Estado
+  (DL 72/2018), do IMPIC, gratuito, cujo art. 10.º, n.º 3 diz que a informação **pode ser usada
+  para escolher quem convidar** em ajuste directo e consulta prévia. É um formulário, não uma
+  campanha.
+- **A rotação forçada enfraqueceu no pior momento.** O tecto trienal por fornecedor do art. 113.º,
+  n.º 2 é definido por remissão para os limiares do procedimento, e o DL 177/2026 (em vigor desde
+  1/10/2026) multiplicou-os: em empreitadas, 30 000 € → 150 000 € no ajuste directo e
+  150 000 € → 1 000 000 € na consulta prévia. Fica **retirada** a ideia de usar esse tecto como
+  sinal de temporização.
+
+**Sobre email não solicitado:** o art. 22.º do DL 7/2004 está revogado; vale a Lei 41/2004,
+arts. 13.º-A e 13.º-B. Pessoas colectivas são opt-out — escrever para `geral@cm-x.pt` é permitido
+até à recusa, com natureza publicitária ostensiva, anunciante identificado e meio de cessar desde
+a primeira mensagem, e com obrigação de consultar a lista de oposição da DGC (não é pública: pede-se).
+A lei agarra quem **promove** o envio, não só quem envia, e proíbe dissimular em nome de quem se
+comunica — pelo que **o pintor envia da sua conta e a plataforma escreve**, que é o que o artigo
+público já dizia.
+
+**Por verificar:** o DL 177/2026 criou a consulta prévia especial (arts. 127.º-A a 127.º-C) e uma
+circular da APCMC afirma que as regras de rotação de convidados estão no **art. 127.º-C**, cujo
+texto não foi possível abrir. Se há regra legal de rotação em Portugal, é ali — DR n.º 172/2026,
+Série I, de 4/09/2026.
+
 ## 28/10/2026 — A crítica de design, aplicada
 
 Revisão de frontend da app inteira (rotas públicas num navegador real; os ecrãs autenticados num

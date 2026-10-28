@@ -29,9 +29,9 @@ export function Cobranca({
         {ligada ? 'A Quem Pinta está a lembrar o cliente' : 'Quer que lembremos o cliente?'}
       </p>
       <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
-        Três mensagens por cada tranche que passe da data prevista: no próprio dia, aos oito dias e aos vinte. Dizem que
-        são escritas pelo assistente de IA da sua empresa, com a sua autorização, e dão ao cliente forma de as fazer
-        parar. Sem juros, sem ameaças, sem uma quarta. Ao fim de um mês deixamos de escrever ao cliente e avisamo-lo a
+        Três mensagens por cada tranche que passe da data prevista: no próprio dia, aos oito dias e aos vinte. Dizem o que
+        dizem mesmo: que são escritas em nome da sua empresa, com a sua autorização, pelo assistente de IA da
+        quempinta.pt — e dão ao cliente forma de as fazer parar. Sem juros, sem ameaças, sem uma quarta. Ao fim de um mês deixamos de escrever ao cliente e avisamo-lo a
         si — a partir daí isto não se resolve por email.
         {emAtrasoCents > 0 && (
           <>

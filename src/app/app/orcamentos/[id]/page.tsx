@@ -248,8 +248,8 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 </p>
                 <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
                   Três mensagens a {q.cliente_contacto}, ao 3.º, ao 10.º e ao 20.º dia, enquanto não souber se ganhou ou
-                  perdeu. Dizem que são escritas pelo assistente de IA da sua empresa, com a sua autorização, e dão ao
-                  cliente forma de as fazer parar. Sem juros, sem prazos inventados, sem uma quarta.
+                  perdeu. Dizem o que dizem mesmo: que são escritas em nome da sua empresa, com a sua
+                  autorização, pelo assistente de IA da quempinta.pt — e dão ao cliente forma de as fazer parar. Sem juros, sem prazos inventados, sem uma quarta.
                 </p>
                 <div className="mt-3">
                   <ActionButton

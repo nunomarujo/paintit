@@ -75,3 +75,18 @@ export function orcamentosPorEnviar(os: OrcamentoDoPainel[], hoje: string, limit
 export function podeApagar(estado: EstadoOrcamento): boolean {
   return estado === 'rascunho' || estado === 'perdido';
 }
+
+/**
+ * Porque é que este não se apaga.
+ *
+ * O botão desaparecia sem explicação e o promotor estranhou (28/10/2026): no arquivo, um orçamento
+ * perdido mostrava "Apagar" e um ganho não, sem nada que dissesse porquê. A regra estava certa e só
+ * vivia dentro da acção, onde ninguém a lê antes de carregar. Um controlo escondido sem motivo
+ * parece avaria; com o motivo escrito ao lado, passa a ser uma regra.
+ */
+export function porqueNaoApaga(estado: EstadoOrcamento): string | null {
+  if (podeApagar(estado)) return null;
+  return estado === 'enviado'
+    ? 'Enviado ao cliente: fica como prova do que propôs. Pode registá-lo como não ganho.'
+    : 'Deu origem a uma obra. Apague a obra primeiro, se for esse o caso.';
+}
