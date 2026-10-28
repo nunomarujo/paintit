@@ -11,7 +11,7 @@ import type { Cents } from './money';
 // proposta, é uma intenção — e é assim que aparece no ecrã, para o pintor não contar com dinheiro que
 // ainda não tem.
 
-export const ADDENDA_STATES = ['proposta', 'aceite', 'recusada', 'retirada'] as const;
+export const ADDENDA_STATES = ['proposta', 'aceite', 'recusada', 'retirada', 'oferecido'] as const;
 export type AddendaState = (typeof ADDENDA_STATES)[number];
 
 export const ADDENDA_STATE_LABELS: Record<AddendaState, string> = {
@@ -19,6 +19,7 @@ export const ADDENDA_STATE_LABELS: Record<AddendaState, string> = {
   aceite: 'Aceite',
   recusada: 'Recusada',
   retirada: 'Retirada',
+  oferecido: 'Oferecido — não cobrado',
 };
 
 export interface Addenda {
@@ -34,6 +35,15 @@ export interface Addenda {
 export interface AddendaInput {
   descricao: string;
   valorCents: Cents;
+  /**
+   * Trabalho feito e **não cobrado** (28/10/2026).
+   *
+   * O pintor fez o que não estava contratado e decide oferecê-lo. Continua a querer que o cliente
+   * saiba — é esse o ponto: "fiz isto a mais e nem lhe cobro" é a melhor propaganda que ele tem.
+   * Não espera resposta, não acresce ao valor da obra, e fica no registo para o relatório de
+   * entrega.
+   */
+  oferta?: boolean;
 }
 
 /** O que falta para a adenda poder ser enviada ao cliente. Vazio = pode seguir. */
@@ -42,9 +52,18 @@ export function addendaErrors(input: AddendaInput): Record<string, string> {
   const descricao = input.descricao.trim();
   if (descricao.length < 8) errors.descricao = 'Descreva o trabalho a mais em poucas palavras — é isto que o cliente aceita.';
   if (descricao.length > 600) errors.descricao = 'Até 600 caracteres.';
-  if (!Number.isInteger(input.valorCents) || input.valorCents <= 0) errors.valor = 'Indique o preço do trabalho a mais, sem IVA.';
+  if (input.oferta) {
+    // Numa oferta o preço é opcional: se o pintor o escrever, fica a dizer quanto ofereceu.
+    if (!Number.isInteger(input.valorCents) || input.valorCents < 0) errors.valor = 'O valor não pode ser negativo.';
+  } else if (!Number.isInteger(input.valorCents) || input.valorCents <= 0) {
+    errors.valor = 'Indique o preço do trabalho a mais, sem IVA. Se não o vai cobrar, marque "ofereço este trabalho".';
+  }
   return errors;
 }
+
+/** O que o pintor fez e não cobrou. Não acresce ao valor; conta para o relatório de entrega. */
+export const oferecidas = (as: Addenda[]): Addenda[] => as.filter((a) => a.estado === 'oferecido');
+export const totalOferecido = (as: Addenda[]): Cents => oferecidas(as).reduce((n, a) => n + a.valorCents, 0);
 
 /** Só o que o cliente aceitou acresce ao valor da obra. */
 export const aceites = (as: Addenda[]): Addenda[] => as.filter((a) => a.estado === 'aceite');

@@ -1,4 +1,4 @@
-import { ADDENDA_STATE_LABELS, diasAEsperar, totalAceite, totalProposto, type Addenda } from '@/domain/addenda';
+import { ADDENDA_STATE_LABELS, diasAEsperar, oferecidas, totalAceite, totalOferecido, totalProposto, type Addenda } from '@/domain/addenda';
 import { formatEuros } from '@/domain/money';
 
 const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
@@ -30,6 +30,8 @@ export function AddendaList({
 
   const aceite = totalAceite(addenda);
   const proposto = totalProposto(addenda);
+  const ofertas = oferecidas(addenda);
+  const oferecido = totalOferecido(addenda);
 
   return (
     <div className="space-y-3">
@@ -42,6 +44,16 @@ export function AddendaList({
           <span>
             <span className="eyebrow">À espera de resposta</span>
             <span className="ml-2 font-semibold tabular-nums text-slate-600">{formatEuros(proposto)}</span>
+          </span>
+        )}
+        {/* O que foi feito e não cobrado. Não acresce ao valor — por isso aparece ao lado e não
+            somado — mas é o que o pintor quer que o cliente veja (28/10/2026). */}
+        {ofertas.length > 0 && (
+          <span>
+            <span className="eyebrow">{lado === 'cliente' ? 'Feito e não cobrado' : 'Ofereceu'}</span>
+            <span className="ml-2 font-semibold tabular-nums text-tinta-700">
+              {oferecido > 0 ? formatEuros(oferecido) : `${ofertas.length} ${ofertas.length === 1 ? 'trabalho' : 'trabalhos'}`}
+            </span>
           </span>
         )}
       </div>

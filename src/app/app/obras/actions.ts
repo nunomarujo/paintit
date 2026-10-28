@@ -215,12 +215,20 @@ export async function answerSupplierReview(reviewId: string, supplierOrgId: stri
 /**
  * Trabalho a mais proposto ao cliente. Fica sempre em 'proposta': quem aceita é o cliente, do seu
  * lado, e as políticas da base de dados recusam que o pintor o marque como aceite (regra 10).
+ *
+ * Excepção: a **oferta** (28/10/2026). Trabalho que o pintor fez e decide não cobrar nasce em
+ * 'oferecido' e não espera resposta nenhuma — não há preço para o cliente aceitar. Continua a ser
+ * mostrado ao cliente, que é o ponto: é a única forma de "fiz isto a mais e nem lhe cobro" deixar
+ * rasto. Não acresce ao valor da obra, e entra no relatório de entrega.
  */
 export async function proposeAddenda(worksiteId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const descricao = String(form.get('descricao') ?? '').trim();
-  const valorCents = parseHundredths(form.get('valor'));
-  if (valorCents === null || Number.isNaN(valorCents)) return fail('valor', 'Indique o preço do trabalho a mais, sem IVA.');
-  const errors = addendaErrors({ descricao, valorCents });
+  const oferta = form.get('oferta') === 'on' || form.get('oferta') === 'sim';
+  const bruto = parseHundredths(form.get('valor'));
+  // Numa oferta o preço é opcional: em branco vale zero, escrito fica a dizer quanto se ofereceu.
+  const valorCents = bruto === null || Number.isNaN(bruto) ? (oferta ? 0 : null) : bruto;
+  if (valorCents === null) return fail('valor', 'Indique o preço do trabalho a mais, sem IVA.');
+  const errors = addendaErrors({ descricao, valorCents, oferta });
   if (Object.keys(errors).length > 0) {
     const [campo, mensagem] = Object.entries(errors)[0]!;
     return fail(campo, mensagem);
@@ -230,8 +238,10 @@ export async function proposeAddenda(worksiteId: string, _prev: FormState, form:
     worksite_id: worksiteId,
     descricao,
     valor_cents: valorCents,
+    ...(oferta ? { estado: 'oferecido' as const } : {}),
   });
-  return error ? { errors: {}, message: 'Não foi possível guardar.' } : done(worksiteId, 'Trabalho a mais enviado ao cliente.');
+  if (error) return { errors: {}, message: 'Não foi possível guardar.' };
+  return done(worksiteId, oferta ? 'Trabalho registado como oferecido. O cliente vê-o, sem nada a pagar.' : 'Trabalho a mais enviado ao cliente.');
 }
 
 /** Retirar um trabalho a mais que ainda não foi respondido. */

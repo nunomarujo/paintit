@@ -389,7 +389,8 @@ export default async function WorksitePage({ params, searchParams }: { params: P
           <h2 className="text-[17px] font-semibold">Trabalhos a mais</h2>
           <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
             O que o cliente pediu a mais durante a obra, com preço e aceitação registados. Sem isto escrito, ou não se
-            cobra ou cobra-se e discute-se — e só conta para o valor da obra depois de o cliente aceitar.
+            cobra ou cobra-se e discute-se — e só conta para o valor da obra depois de o cliente aceitar. O que fizer
+            e não quiser cobrar também se regista aqui: fica a dizer ao cliente o que recebeu de borla.
           </p>
           <div className="mt-4">
             <AddendaList

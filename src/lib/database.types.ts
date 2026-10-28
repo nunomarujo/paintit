@@ -698,7 +698,7 @@ export type Database = {
           criada_em: string;
           descricao: string;
           worksite_id: string;
-          estado: 'proposta' | 'aceite' | 'recusada' | 'retirada';
+          estado: 'proposta' | 'aceite' | 'recusada' | 'retirada' | 'oferecido';
           foto_path: string | null;
           id: string;
           nota_cliente: string | null;
@@ -710,7 +710,7 @@ export type Database = {
           criada_em?: string;
           descricao: string;
           worksite_id: string;
-          estado?: 'proposta' | 'aceite' | 'recusada' | 'retirada';
+          estado?: 'proposta' | 'aceite' | 'recusada' | 'retirada' | 'oferecido';
           foto_path?: string | null;
           id?: string;
           nota_cliente?: string | null;
