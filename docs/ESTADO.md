@@ -579,24 +579,21 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
 ## 6. Travões ativos agora (o que impede avançar, não é falta de código)
 
-0. **TRÊS MIGRAÇÕES ESCRITAS, TESTADAS E POR APLICAR (28/10/2026).** O classificador recusa
-   `apply_migration` com "Production Deploy" e precisa de instrução explícita do promotor. Já
-   custaram uma avaria: a página do pedido lia as colunas das janelas antes de elas existirem e
-   **todos os pedidos davam "Não encontrado"**. O código passou a aguentar a falta delas, mas enquanto
-   não forem aplicadas a app grava menos do que mostra.
+0. **Ligação ao Supabase em baixo nesta sessão (28/10/2026).** A partir de certa altura todas as
+   chamadas — leituras incluídas — passaram a responder "não tem permissão". As três migrações desse
+   dia foram por isso aplicadas **à mão pelo promotor**, no SQL Editor, com ficheiros preparados e
+   ensaiados numa base Postgres em memória. Estão aplicadas: `janelas_por_fachada`,
+   `adenda_oferecida` e `tipos_obra_e_datas_flexiveis`.
 
-   - `20261028150000_janelas_por_fachada.sql` — janelas por piso em cada fachada, em `buildings`.
-     **Sem ela:** guardar o número de janelas no prédio dá "Não foi possível guardar", e o volume 3D
-     do anúncio desenha-as pelo número por omissão.
-   - `20261028160000_adenda_oferecida.sql` — o estado `oferecido` nas adendas. **Sem ela:** registar
-     um trabalho a mais oferecido falha contra a restrição de estado.
-   - `20261028170000_tipos_obra_e_datas_flexiveis.sql` — `tipos_obra`, `datas_flexiveis` e o que disso
-     chega ao anúncio. **Sem ela:** o pedido grava só o tipo principal e perde as datas indicativas;
-     o formulário deixa escolher vários, mas só o primeiro sobrevive.
+   **Falta fazer quando a ligação voltar:** regenerar `src/lib/database.types.ts` (as colunas novas
+   estão escritas à mão, com nota no sítio) e ler os avisos de segurança e desempenho, que não
+   puderam ser consultados depois de aplicar.
 
-   As três passam nos 218 testes de regras de acesso, que correm todas as migrações por ordem numa
-   base Postgres em memória. Para aplicar, o promotor diz os nomes.
-
+   **A lição, que custou um 404 em produção:** o código chega sempre à produção antes da migração, e
+   uma migração que corrige dados antigos tem de contar com os dados que lá estão. O último passo da
+   terceira usava um `update` para preencher os pedidos antigos e esbarrou no guardião que proíbe
+   alterar pedidos publicados — o ensaio não o apanhou porque corria sobre uma base **sem dados**.
+   Passou a usar `alter table ... using`, que reescreve a tabela sem acordar gatilhos de linha.
 
 1. **Moloni: falta a conta de testes** — a Moloni respondeu a 23/10/2026 (ticket J98-JYQ-L177): registo normal em
    `moloni.pt/registo` com NIF fictício dá 30 dias de API completa, e é essa a "sandbox". Falta o promotor criar

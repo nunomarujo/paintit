@@ -347,8 +347,8 @@ export type Database = {
           ref: string;
           status: RequestStatus;
           tipo_obra: WorkType;
-          // Migração `tipos_obra_e_datas_flexiveis` (28/10/2026), ainda por aplicar quando isto foi
-          // escrito à mão. Regenerar com `generate_typescript_types` depois de aplicada.
+          // Migração `tipos_obra_e_datas_flexiveis`, aplicada a 28/10/2026. Escritas à mão porque a
+          // ligação ao Supabase estava em baixo nesse dia; regenerar o ficheiro quando voltar.
           tipos_obra: WorkType[];
           datas_flexiveis: string[];
           titulo: string;
@@ -1844,8 +1844,7 @@ export type Database = {
           forma_implantacao: string | null;
           tipo_imovel: BuildingKind;
           tipo_obra: WorkType;
-          // Migração `tipos_obra_e_datas_flexiveis` (28/10/2026), escritas à mão enquanto não é
-          // aplicada. Regenerar com `generate_typescript_types` depois disso.
+          // Migração `tipos_obra_e_datas_flexiveis`, aplicada a 28/10/2026 (ver nota em work_requests).
           tipos_obra: WorkType[];
           datas_flexiveis: string[];
           janelas_frente: number | null;
