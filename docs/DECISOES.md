@@ -4,6 +4,31 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (noite, 4) — Meteorologia no cronograma: um veredicto, não um quadro de números
+
+**Porquê o Open-Meteo e não o IPMA.** O pedido era temperatura, chuva e **humidade relativa**. O
+IPMA seria o primeiro a considerar — é o nacional — mas a previsão diária que publica traz
+temperatura, vento e probabilidade de chuva, **e não traz humidade**; e vem por concelho, não por
+coordenadas. Sem a humidade, metade da decisão de pintar no exterior ficava de fora. O Open-Meteo dá
+as três por coordenadas, sem chave nem registo — menos um segredo para gerir e menos uma conta para
+expirar sem ninguém dar por isso.
+
+**O que se mostra não são os números.** O pintor já tem meteorologia no telemóvel; o que não tem é a
+leitura dela contra as regras de aplicação da tinta. Por isso cada dia traz um veredicto — *dá para
+pintar / com cuidado / não dá* — **sempre com a razão à frente**, e os números mais pequenos por
+baixo, para confirmar. Os limiares são os que as fichas técnicas das tintas de exterior repetem, e o
+ecrã diz que a ficha do produto manda sempre.
+
+Uma regra que não é óbvia: **o frio conta pela temperatura mínima, não pela máxima.** Uma demão
+aplicada às três da tarde ainda está a curar às seis da manhã seguinte, e é aí que o filme se perde.
+
+**Onde fica a obra.** O código postal vem do texto do local, onde o pintor já o escreve, ou do
+prédio do contrato quando a obra veio da plataforma. As coordenadas vêm do geoapi.pt, o mesmo
+serviço que já preenche as moradas: não se acrescentou fornecedor nenhum para isto.
+
+**E um extra nunca derruba o ecrã.** Sem código postal, sem rede ou sem resposta em três segundos e
+meio, o cronograma é o mesmo menos esta secção. É a lição do 404 desta manhã, aplicada de propósito.
+
 ## 28/10/2026 (noite, 3) — As tranches saem do contrato
 
 O plano de pagamentos é escrito uma vez, na proposta: um adiantamento e as fases, a somar 100%.

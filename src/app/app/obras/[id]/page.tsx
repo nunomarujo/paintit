@@ -11,6 +11,9 @@ import { Cobranca } from './Cobranca';
 import { ExpenseForm } from './ExpenseForm';
 import { AddDiaryPhoto, RemoveDiaryPhoto } from './Diary';
 import { TranchesDoContrato } from './TranchesDoContrato';
+import { Meteorologia } from '@/components/Meteorologia';
+import type { DiaDeTempo } from '@/domain/meteorologia';
+import { codigoPostalNoTexto, coordenadasDoCodigoPostal, previsao } from '@/lib/meteorologia';
 import { parseFases } from '@/domain/proposal';
 import { tranchesDoContrato, type TrancheDoContrato } from '@/domain/tranchesDoContrato';
 import { ProposeAddenda, WithdrawAddenda } from './AddendaForms';
@@ -150,6 +153,35 @@ export default async function WorksitePage({ params, searchParams }: { params: P
         inicio: w.inicio,
         fim: w.fim,
       });
+    }
+  }
+
+  // Meteorologia do local da obra, só quando o cronograma está aberto: é o único ecrã onde serve,
+  // e é uma chamada a um serviço de fora. O código postal vem do que a obra já tem — do texto do
+  // local, que é onde o pintor o escreve, ou do prédio do contrato quando a obra veio da plataforma.
+  // Nada disto é obrigatório: sem código postal, sem rede ou sem resposta, o cronograma é o mesmo
+  // menos esta secção. Um extra nunca derruba o ecrã (a lição do 404 desta manhã).
+  let tempo: DiaDeTempo[] = [];
+  let localDoTempo = '';
+  if (section === 'cronograma') {
+    let cp = codigoPostalNoTexto(w.local);
+    if (!cp && w.engagement_id) {
+      const { data: contrato } = await supabase.from('engagements').select('request_id').eq('id', w.engagement_id).maybeSingle();
+      const { data: pedido } = contrato
+        ? await supabase.from('work_requests').select('building_id').eq('id', contrato.request_id).maybeSingle()
+        : { data: null };
+      const { data: predio } = pedido
+        ? await supabase.from('buildings').select('codigo_postal, localidade').eq('id', pedido.building_id).maybeSingle()
+        : { data: null };
+      cp = predio?.codigo_postal ?? null;
+      localDoTempo = predio?.localidade ?? '';
+    }
+    if (cp) {
+      const coords = await coordenadasDoCodigoPostal(cp);
+      if (coords) {
+        tempo = (await previsao(coords.lat, coords.lon)) ?? [];
+        localDoTempo = localDoTempo || w.local || cp;
+      }
     }
   }
 
@@ -629,6 +661,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
 
       {section === 'cronograma' && (
         <section className={`${card} space-y-6 text-[17px]`}>
+          <Meteorologia dias={tempo} local={localDoTempo} />
           <ol>
             {(phases ?? []).map((ph, i, all) => (
               <li key={ph.id} className="relative flex flex-wrap items-start justify-between gap-2 pb-6 pl-12">
