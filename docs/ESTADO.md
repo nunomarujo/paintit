@@ -585,9 +585,13 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
    ensaiados numa base Postgres em memória. Estão aplicadas: `janelas_por_fachada`,
    `adenda_oferecida` e `tipos_obra_e_datas_flexiveis`.
 
+   **Por aplicar, da mesma sessão:** `20261028180000_cliente_do_orcamento.sql` — o NIPC do cliente no
+   orçamento do pintor. Sem ela, a procura nos orçamentos funciona por cliente, localidade, número e
+   ano mas não por NIPC, e guardar os dados do cliente dá erro. Ficheiro pronto e ensaiado.
+
    **Falta fazer quando a ligação voltar:** regenerar `src/lib/database.types.ts` (as colunas novas
-   estão escritas à mão, com nota no sítio) e ler os avisos de segurança e desempenho, que não
-   puderam ser consultados depois de aplicar.
+   estão escritas à mão, com nota no sítio), ler os avisos de segurança e desempenho, e confirmar se
+   `seguimento_do_orcamento` (27/10) chegou mesmo a ser aplicada — os tipos ainda dizem que não.
 
    **A lição, que custou um 404 em produção:** o código chega sempre à produção antes da migração, e
    uma migração que corrige dados antigos tem de contar com os dados que lá estão. O último passo da
