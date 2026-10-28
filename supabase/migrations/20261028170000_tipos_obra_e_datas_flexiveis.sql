@@ -37,7 +37,17 @@ drop trigger if exists work_requests_tipos_obra on public.work_requests;
 create trigger work_requests_tipos_obra before insert or update on public.work_requests for each row execute function private.tipos_da_obra();
 
 -- Pedidos já existentes: a lista passa a ter o tipo que sempre tiveram.
-update public.work_requests set tipos_obra = array[tipo_obra] where cardinality(tipos_obra) = 0;
+--
+-- E faz-se com um `alter table`, não com um `update`. Um `update` acorda o guardião das transições
+-- (`work_request_transition`), que recusa tocar em qualquer pedido já publicado — e foi isso que
+-- aconteceu ao correr isto no Supabase a 28/10/2026: «Um pedido publicado não pode ser alterado».
+-- O ensaio não o tinha apanhado porque a base de ensaio não tinha pedidos nenhuns.
+--
+-- Mudar o tipo da coluna para o mesmo tipo, com `using`, reescreve a tabela inteira sem passar pelos
+-- gatilhos de linha. É a mesma correcção, pela porta certa.
+alter table public.work_requests
+  alter column tipos_obra type public.work_type[]
+  using (case when tipos_obra is null or cardinality(tipos_obra) = 0 then array[tipo_obra] else tipos_obra end);
 
 comment on column public.work_requests.tipo_obra is 'Tipo principal: o primeiro de tipos_obra, pela ordem do enum. Mantido pelo gatilho work_requests_tipos_obra.';
 comment on column public.work_requests.tipos_obra is 'Todos os tipos da obra, sem repetidos e pela ordem do enum. Nunca vazio.';
@@ -95,5 +105,8 @@ begin
   return new;
 end $$;
 
--- Anúncios já publicados: a lista passa a ter o tipo que já lá estava, para o pintor nunca ver vazio.
-update public.request_listings set tipos_obra = array[tipo_obra] where cardinality(tipos_obra) = 0;
+-- Anúncios já publicados: a lista passa a ter o tipo que já lá estava, para o pintor nunca ver
+-- vazio. Pela mesma porta, e pela mesma razão.
+alter table public.request_listings
+  alter column tipos_obra type public.work_type[]
+  using (case when tipos_obra is null or cardinality(tipos_obra) = 0 then array[tipo_obra] else tipos_obra end);
