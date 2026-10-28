@@ -1334,6 +1334,8 @@ export type Database = {
         Row: {
           cliente_contacto: string | null;
           cliente_nome: string;
+          // Migração `cliente_do_orcamento` (28/10/2026), escrita à mão até a ligação ao Supabase voltar.
+          cliente_nif: string | null;
           created_at: string;
           // Migração `seguimento_do_orcamento` (27/10/2026), escrita à mão até ser aplicada.
           seguimento: boolean;
@@ -1355,6 +1357,7 @@ export type Database = {
         };
         Insert: {
           cliente_contacto?: string | null;
+          cliente_nif?: string | null;
           seguimento?: boolean;
           cliente_nome: string;
           created_at?: string;

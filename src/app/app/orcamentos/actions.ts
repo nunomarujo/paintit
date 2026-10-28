@@ -7,6 +7,7 @@ import { LINE_CATEGORIES, UNITS, type LineCategory, type Unit } from '@/domain/p
 import { chaveDe } from '@/domain/priceBook';
 import { podeApagar } from '@/domain/quoteBoard';
 import { linhasQueHerdam, trabalhosDosModelos } from '@/domain/quoteTemplates';
+import { isValidNif, normalizeNif } from '@/domain/nif';
 import { parseHundredths } from '@/domain/request';
 import { learnPrices } from '@/lib/priceBook';
 import { painterOrgs } from '@/lib/queries';
@@ -183,6 +184,45 @@ export async function saveQuoteTerms(quoteId: string, _prev: FormState, form: Fo
   if (error) return { errors: {}, message: 'Não foi possível guardar as condições.' };
   revalidatePath(`/app/orcamentos/${quoteId}`);
   return { errors: {}, ok: true, message: 'Condições guardadas.' };
+}
+
+/**
+ * Os dados do cliente, depois de o orçamento existir.
+ *
+ * Até 28/10/2026 o nome, o local e o contacto ficavam como tivessem sido escritos na criação, e o
+ * contacto não era escrito em lado nenhum — não havia ecrã que o gravasse. O orçamento dizia ao
+ * pintor «o contacto do cliente está por preencher» e não lhe dava onde: o seguimento, que depende
+ * desse email, estava inalcançável para todos os orçamentos.
+ *
+ * O NIPC é novo e serve duas coisas: encontrar o orçamento mais tarde, e não ter de o escrever outra
+ * vez na hora de faturar.
+ */
+export async function saveQuoteClient(quoteId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const nome = texto(form.get('cliente'), 160);
+  if (nome.length < 2) return fail('cliente', 'Indique o cliente — basta o nome do condomínio ou da pessoa.');
+  const nifEscrito = texto(form.get('nif'), 20);
+  // Vazio é legítimo: nem todo o cliente é empresa, e nem sempre se sabe à partida. Errado não é.
+  if (nifEscrito && !isValidNif(nifEscrito)) return fail('nif', 'NIPC ou NIF inválido. São nove dígitos, e o último confere os outros.');
+
+  const { supabase, org } = await myOrg();
+  if (!org) return { errors: {}, message: 'Sem empresa.' };
+  const { data, error } = await supabase
+    .from('painter_quotes')
+    .update({
+      cliente_nome: nome,
+      cliente_contacto: texto(form.get('contacto'), 160) || null,
+      cliente_nif: nifEscrito ? normalizeNif(nifEscrito) : null,
+      local: texto(form.get('local'), 160) || null,
+      titulo: texto(form.get('titulo'), 200) || null,
+    })
+    .eq('id', quoteId)
+    .eq('org_id', org.id)
+    .select('id');
+  // O NIPC só entra depois da migração `cliente_do_orcamento`. Sem o erro à vista, um formulário
+  // que não grava parece um formulário partido.
+  if (error || !data || data.length === 0) return { errors: {}, message: 'Não foi possível guardar os dados do cliente.' };
+  revalidatePath(`/app/orcamentos/${quoteId}`);
+  return { errors: {}, ok: true, message: 'Dados do cliente guardados.' };
 }
 
 /**

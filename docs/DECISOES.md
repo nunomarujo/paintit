@@ -4,6 +4,38 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (noite) — Procurar nos orçamentos, e o beco do contacto do cliente
+
+**A procura.** Pedida "por localização, nome do cliente, NIPC ou ano, auxiliando com a pesquisa pela
+base de dados quando já existente". Três decisões:
+
+- **A caixa aparece sempre**, com lista vazia ou não (foi pedido explicitamente). Quem só descobre a
+  procura quando já não encontra nada aprendeu a desistir antes disso.
+- **Procura sobre tudo**, não sobre o separador aberto. Quem escreve o nome de um cliente quer
+  encontrá-lo, não quer lembrar-se primeiro de onde é que ele estava arrumado.
+- **As sugestões saem do que já lá está** — as localidades e os clientes que existem mesmo nos
+  orçamentos desta empresa, numa lista nativa do navegador. É isto que "auxiliar pela base de dados"
+  quer dizer: nunca se sugere um termo que não dê resultados. O NIPC fica de fora das sugestões de
+  propósito: ninguém escolhe um NIPC numa lista, escreve-o.
+
+Cada palavra do termo pode estar numa parte diferente do orçamento — "viana condominio" encontra o
+condomínio de Viana sem obrigar a saber como é que as coisas foram guardadas. Sem acentos e sem
+maiúsculas. Um termo só de números compara-se também ao NIPC e ao número do orçamento pelos dígitos,
+porque é assim que as pessoas os escrevem e os copiam.
+
+**O beco que apareceu a caminho.** O NIPC não existia no orçamento do pintor — só no documento
+fiscal, escrito à mão na hora de faturar. E, ao procurá-lo, deu-se com coisa pior: `cliente_contacto`
+decide se a plataforma pode perguntar ao cliente se o orçamento foi visto, e **não havia um único
+ecrã que o escrevesse**. O orçamento dizia "o contacto do cliente está por preencher" e não dava
+onde. O seguimento estava inalcançável para todos os orçamentos, desde que foi feito.
+
+Daí "Dados do cliente" na página do orçamento: nome, NIPC, email, local e título, corrigíveis depois
+de criado. Abre sozinho quando falta o email e o orçamento já saiu — que é quando o seguimento está
+à espera dele.
+
+**Um separador vazio passa a dizer porquê.** "Enviados" sem nada lá dentro não mostrava linha
+nenhuma. Agora diz o que aquele separador é e o que lá vai parar.
+
 ## 28/10/2026 (fim do dia) — O pedido do cliente: vários tipos, datas com margem, catálogo numa janela
 
 **O 404 em todos os pedidos, e a regra que daí sai.** A página do pedido passou a pedir quatro

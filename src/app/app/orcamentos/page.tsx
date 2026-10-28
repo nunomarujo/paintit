@@ -18,6 +18,8 @@ import {
 import { caeAviso, caeElegibilidade } from '@/domain/organization';
 import { CreateQuote, RemoveQuote } from './QuoteForms';
 import { ICONES } from '@/components/NavIcons';
+import { Busca } from './Busca';
+import { filtrar, semResultados, sugestoes as sugestoesDe } from '@/domain/orcamentoBusca';
 
 const ESTADO_LABELS = { rascunho: 'Rascunho', enviado: 'Enviado', ganho: 'Ganho', perdido: 'Perdido' } as const;
 const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
@@ -30,8 +32,8 @@ const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
  * é a medida honesta de quanto é que o próximo vai custar em tempo.
  */
 /** Os separadores vivem no endereço: sem estado de cliente, e um link partilhado abre no mesmo sítio. */
-export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ ver?: string; grupo?: string }> }) {
-  const { ver, grupo } = await searchParams;
+export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ ver?: string; grupo?: string; q?: string; ano?: string }> }) {
+  const { ver, grupo, q: termo, ano } = await searchParams;
   const { supabase, user } = await getUser();
   const orgs = await painterOrgs(supabase, user!.id);
   const org = orgs[0];
@@ -41,6 +43,24 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     supabase.from('painter_quotes').select('*').eq('org_id', org.id).order('created_at', { ascending: false }),
     supabase.from('org_price_book').select('id', { count: 'exact', head: true }).eq('org_id', org.id),
   ]);
+
+  // Procurar é sobre tudo o que a empresa tem, não sobre o separador aberto: quem escreve o nome de
+  // um cliente quer encontrá-lo, não quer lembrar-se primeiro de onde é que ele estava arrumado.
+  const todos = (quotes ?? []).map((q) => ({
+    numero: q.numero,
+    clienteNome: q.cliente_nome,
+    clienteNif: q.cliente_nif,
+    local: q.local,
+    titulo: q.titulo,
+    criadoEm: q.created_at,
+    estado: q.estado,
+    id: q.id,
+  }));
+  const sugestoes = sugestoesDe(todos);
+  const filtro = { termo, ano };
+  const encontrados = new Set(filtrar(todos, filtro).map((o) => o.id));
+  const aFiltrar = Boolean(termo?.trim() || ano);
+  const visiveis = aFiltrar ? (quotes ?? []).filter((q) => encontrados.has(q.id)) : (quotes ?? []);
 
   const ids = (quotes ?? []).map((q) => q.id);
   const { data: linhas } = ids.length
@@ -73,6 +93,19 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     grupo && (GRUPOS as readonly string[]).includes(grupo) ? (grupo as GrupoOrcamentos) : 'todos';
   const total = (quotes ?? []).length;
 
+  // O separador aberto, já filtrado — e o que dizer quando não sobra nada lá dentro. Um separador
+  // vazio sem uma linha a explicar porquê parece um ecrã partido, e foi assim que os Enviados
+  // apareceram ao promotor (28/10/2026).
+  const noSeparador = grupoActivo === 'todos' ? visiveis : visiveis.filter((q) => grupoDe(q.estado) === grupoActivo);
+  const totalDoSeparador = grupoActivo === 'todos' ? total : contagem[grupoActivo];
+  const vazio = aFiltrar
+    ? semResultados(filtro)
+    : total === 0
+      ? 'Ainda não há orçamentos. O primeiro é o que ensina os seus preços à aplicação.'
+      : grupoActivo === 'todos'
+        ? 'Nenhum orçamento.'
+        : `Nenhum orçamento em “${GRUPO_LABELS[grupoActivo]}”. ${GRUPO_EXPLICACOES[grupoActivo]}`;
+
   const linha = (q: NonNullable<typeof quotes>[number]) => (
     <li key={q.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
       <Link href={`/app/orcamentos/${q.id}`} className="min-w-0 flex-1">
@@ -96,7 +129,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
   );
 
   const grupo1 = (g: GrupoOrcamentos) => {
-    const doGrupo = (quotes ?? []).filter((q) => grupoDe(q.estado) === g);
+    const doGrupo = visiveis.filter((q) => grupoDe(q.estado) === g);
     if (doGrupo.length === 0) return null;
     return (
       <section key={g}>
@@ -180,8 +213,17 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
               })),
             ]}
           />
-          {total === 0 ? (
-            <p className="text-[17px] text-slate-600">Nada aqui.</p>
+          <Busca
+            ver="feitos"
+            grupo={grupoActivo === 'todos' ? undefined : grupoActivo}
+            termo={termo}
+            ano={ano}
+            sugestoes={sugestoes}
+            encontrados={noSeparador.length}
+            total={totalDoSeparador}
+          />
+          {noSeparador.length === 0 ? (
+            <p className="text-[17px] text-slate-600">{vazio}</p>
           ) : grupoActivo === 'todos' ? (
             <div className="space-y-5">{GRUPOS.map(grupo1)}</div>
           ) : (

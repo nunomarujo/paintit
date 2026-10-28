@@ -8,11 +8,12 @@ import { lembretes } from '@/domain/quoteTemplates';
 import { avisoDePreco, historico } from '@/domain/margin';
 import { painterOrgs, painterWorkHistory } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
-import { saveQuoteTerms, markQuoteSent, setQuoteOutcome, setSeguimento } from '../actions';
+import { saveQuoteClient, saveQuoteTerms, markQuoteSent, setQuoteOutcome, setSeguimento } from '../actions';
 import { ehEmail } from '@/domain/toques';
 import { ActionButton } from '../QuoteForms';
 import { AddLine, EditLine, RemoveLine } from './LineForms';
 import { Voltar } from '@/components/Voltar';
+import { DadosDoCliente } from './DadosDoCliente';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5';
 
@@ -74,6 +75,13 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           </Link>
         </div>
       </div>
+
+      <DadosDoCliente
+        action={saveQuoteClient.bind(null, id)}
+        inicial={{ nome: q.cliente_nome, contacto: q.cliente_contacto, nif: q.cliente_nif, local: q.local, titulo: q.titulo }}
+        // Abre sozinho quando falta o email e o orçamento já saiu: é aí que o seguimento está à espera dele.
+        abrir={q.estado === 'enviado' && !ehEmail(q.cliente_contacto)}
+      />
 
       {(semPreco > 0 || avisos.length > 0) && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
@@ -263,7 +271,8 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
             ) : (
               <p className="text-[15px] text-slate-600">
                 Para a Quem Pinta poder perguntar por si se o orçamento foi visto, o contacto do cliente tem de ser um
-                email. Hoje está{q.cliente_contacto ? ` «${q.cliente_contacto}»` : ' por preencher'}.
+                email. Hoje está{q.cliente_contacto ? ` «${q.cliente_contacto}»` : ' por preencher'} — escreva-o em
+                “Dados do cliente”, no topo desta página.
               </p>
             )}
           </div>
