@@ -579,6 +579,25 @@ por latência). Caixas `nm@`, `info@`, `suporte@quempinta.pt` (ImprovMX, entregu
 
 ## 6. Travões ativos agora (o que impede avançar, não é falta de código)
 
+0. **TRÊS MIGRAÇÕES ESCRITAS, TESTADAS E POR APLICAR (28/10/2026).** O classificador recusa
+   `apply_migration` com "Production Deploy" e precisa de instrução explícita do promotor. Já
+   custaram uma avaria: a página do pedido lia as colunas das janelas antes de elas existirem e
+   **todos os pedidos davam "Não encontrado"**. O código passou a aguentar a falta delas, mas enquanto
+   não forem aplicadas a app grava menos do que mostra.
+
+   - `20261028150000_janelas_por_fachada.sql` — janelas por piso em cada fachada, em `buildings`.
+     **Sem ela:** guardar o número de janelas no prédio dá "Não foi possível guardar", e o volume 3D
+     do anúncio desenha-as pelo número por omissão.
+   - `20261028160000_adenda_oferecida.sql` — o estado `oferecido` nas adendas. **Sem ela:** registar
+     um trabalho a mais oferecido falha contra a restrição de estado.
+   - `20261028170000_tipos_obra_e_datas_flexiveis.sql` — `tipos_obra`, `datas_flexiveis` e o que disso
+     chega ao anúncio. **Sem ela:** o pedido grava só o tipo principal e perde as datas indicativas;
+     o formulário deixa escolher vários, mas só o primeiro sobrevive.
+
+   As três passam nos 218 testes de regras de acesso, que correm todas as migrações por ordem numa
+   base Postgres em memória. Para aplicar, o promotor diz os nomes.
+
+
 1. **Moloni: falta a conta de testes** — a Moloni respondeu a 23/10/2026 (ticket J98-JYQ-L177): registo normal em
    `moloni.pt/registo` com NIF fictício dá 30 dias de API completa, e é essa a "sandbox". Falta o promotor criar
    essa conta e passar as credenciais dela (nunca as da conta real) para se testar fora da produção. Até lá, não
