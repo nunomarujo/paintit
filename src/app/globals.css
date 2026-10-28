@@ -60,13 +60,41 @@ select,
 textarea {
   @apply rounded-xl border-slate-500 text-slate-900;
 }
+/* Um `select` com `py-1` ou `py-1.5` ficava nos 36-40px. Aqui o piso é 44px para todos, e os
+   ecrãs deixam de ter de se lembrar disso um a um (28/10/2026). */
+select {
+  @apply min-h-[44px];
+}
+/*
+ * Caixas e rádios ficavam no tamanho por omissão do navegador — 13px — em 31 sítios. Quem
+ * preenche um levantamento ou uma avaliação está em obra, com o telemóvel na mão: 13px não se
+ * acerta. 20px é o mínimo decente, e com o rótulo ao lado chega-se aos 44px de alvo (28/10/2026).
+ */
 input[type='checkbox'],
 input[type='radio'] {
+  @apply h-5 w-5 shrink-0;
   accent-color: #173f42;
 }
 
 @layer components {
+  /*
+   * `.eyebrow` era maiúsculas espaçadas (`uppercase tracking-[0.18em]`), em 53 sítios de 23
+   * ficheiros. O promotor rejeitou esse padrão duas vezes na página inicial — "não adequado a uma
+   * imagem pro" — e ele continuava vivo no resto da aplicação, a começar pelo "ÁREA DE TRABALHO"
+   * do ecrã de entrada. Mudar a classe arruma os 53 de uma vez (28/10/2026).
+   *
+   * O que fica é o que um rótulo de campo deve ser: pequeno, firme, calado. Onde o eyebrow era
+   * título de secção passa a ler-se como rótulo — que é o uso correcto.
+   */
   .eyebrow {
+    @apply text-[13px] font-semibold text-slate-500;
+  }
+  /*
+   * A folha A4 é outro meio: num documento impresso o rótulo em maiúsculas espaçadas é
+   * convenção e lê-se bem. `ProposalDocument` guarda o estilo antigo nesta classe própria
+   * (mesmo princípio da regra 14 do CLAUDE.md, que já isenta a folha da escala do ecrã).
+   */
+  .doc-label {
     @apply text-[13px] font-bold uppercase tracking-[0.18em] text-slate-500;
   }
   .badge {

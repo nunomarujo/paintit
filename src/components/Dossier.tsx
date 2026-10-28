@@ -35,7 +35,10 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
 
         <ul className="mt-3 divide-y divide-slate-100">
           {linhas.map((l) => (
-            <li key={l.kind} className="flex items-baseline justify-between gap-4 py-2">
+            // A 390px a linha partia-se: o estado à direita tem `shrink-0` e o nome não tinha largura
+            // mínima, por isso "Seguro de acidentes de trabalho" saía a uma palavra por linha e a
+            // descrição ficava numa coluna de 4px (medido a 390px, 27/10/2026). No telemóvel empilha.
+            <li key={l.kind} className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
               <span className="min-w-0">
                 <span className="text-[17px] font-semibold text-slate-900">{l.label}</span>
                 <span className="block text-[15px] leading-snug text-slate-500">
@@ -43,17 +46,17 @@ export function Dossier({ linhas, resumo, orgId }: { linhas: LinhaDossier[]; res
                   {VALIDADE_MESES[l.kind] ? ` Vale ${VALIDADE_MESES[l.kind]} meses.` : ''}
                 </span>
               </span>
-              <span className="shrink-0 text-right text-[15px]">
+              <span className="text-[15px] sm:shrink-0 sm:text-right">
                 {l.estado === 'caducado' ? (
-                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-red-700 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="inline-flex min-h-[44px] items-center font-semibold text-red-700 underline underline-offset-4">
                     Caducou em {dataPt(l.validoAte!)} — substituir
                   </Link>
                 ) : l.estado === 'a_caducar' ? (
-                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-amber-800 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="inline-flex min-h-[44px] items-center font-semibold text-amber-800 underline underline-offset-4">
                     Caduca em {l.dias} {l.dias === 1 ? 'dia' : 'dias'} — renovar
                   </Link>
                 ) : l.estado === 'em_falta' ? (
-                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="font-semibold text-tinta-700 underline underline-offset-4">
+                  <Link href={`/app/organizacoes/${orgId}?ver=documentos`} className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 underline underline-offset-4">
                     Enviar
                   </Link>
                 ) : l.estado === 'por_validar' ? (

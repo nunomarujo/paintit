@@ -247,16 +247,24 @@ export function WorksEditor({
               const active = mine.some((i) => i.key === current);
               return (
                 <li key={w.code} className="w-60 shrink-0 md:w-auto">
+                  {/*
+                    O estado "seleccionado mas por preencher" era um fundo âmbar (28/10/2026). Numa
+                    lista de trabalhos isso punha caixas verdes, âmbares e brancas lado a lado — a
+                    lista aos quadrados que a regra 13 do CLAUDE.md proíbe — e usava cor de aviso
+                    para dizer "escolhido", que é o hábito que ensina a ignorar avisos a sério.
+                    O progresso passa a ser dito pelo contorno; o que falta continua em âmbar, mas
+                    como texto.
+                  */}
                   <div
                     className={`flex items-start gap-3 rounded-xl border p-3 ${
-                      complete ? 'border-tinta-600 bg-tinta-50' : selected ? 'border-amber-300 bg-amber-50' : 'border-transparent bg-white'
+                      complete ? 'border-tinta-600 bg-tinta-50' : selected ? 'border-tinta-300 bg-white' : 'border-transparent bg-white'
                     } ${active ? 'ring-2 ring-tinta-500' : ''}`}
                   >
                     <input type="checkbox" checked={selected} onChange={() => toggle(w.code)} className="mt-1 h-5 w-5" aria-label={`Incluir ${w.label}`} />
                     <button type="button" onClick={() => (selected ? setCurrent(mine[0]!.key) : add(w.code))} className="min-w-0 flex-1 text-left">
                       <span className="block font-medium text-slate-900">{w.label}</span>
                       <span className={`block text-[15px] ${complete ? 'font-semibold text-tinta-700' : selected ? 'text-amber-800' : 'text-slate-500'}`}>
-                        {complete ? '✓ Preenchido' : selected ? 'Selecionado: por preencher' : 'Por selecionar'}
+                        {complete ? 'Preenchido' : selected ? 'Por preencher' : 'Por selecionar'}
                       </span>
                     </button>
                   </div>
@@ -267,7 +275,7 @@ export function WorksEditor({
                           <button
                             type="button"
                             onClick={() => setCurrent(i.key)}
-                            className={`rounded-full px-2.5 py-0.5 text-[15px] font-semibold ${i.key === current ? 'bg-tinta-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}
+                            className={`inline-flex min-h-[44px] items-center rounded-full px-3.5 text-[15px] font-semibold ${i.key === current ? 'bg-tinta-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}
                           >
                             Versão {n + 1}
                           </button>

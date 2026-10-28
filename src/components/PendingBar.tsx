@@ -50,7 +50,7 @@ export function PendingBar<P extends Pendencia>({
             onClick={() => andar(-1)}
             disabled={total < 2}
             aria-label={`${rotulo} anterior`}
-            className="rounded-lg px-2 py-1 font-semibold hover:bg-amber-100 disabled:opacity-40"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 font-semibold hover:bg-amber-100 disabled:opacity-40"
           >
             ‹
           </button>
@@ -62,18 +62,18 @@ export function PendingBar<P extends Pendencia>({
             onClick={() => andar(1)}
             disabled={total < 2}
             aria-label={`${rotulo} seguinte`}
-            className="rounded-lg px-2 py-1 font-semibold hover:bg-amber-100 disabled:opacity-40"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 font-semibold hover:bg-amber-100 disabled:opacity-40"
           >
             ›
           </button>
-          <button type="button" onClick={() => void onIr(atual)} className="ml-1 rounded-lg bg-amber-800 px-3 py-1 font-semibold text-amber-50">
+          <button type="button" onClick={() => void onIr(atual)} className="ml-1 inline-flex min-h-[44px] items-center rounded-lg bg-amber-800 px-3.5 font-semibold text-amber-50">
             Ir para
           </button>
           <button
             type="button"
             onClick={() => setAberto(!aberto)}
             aria-expanded={aberto}
-            className="rounded-lg px-2 py-1 text-[15px] underline hover:bg-amber-100"
+            className="inline-flex min-h-[44px] items-center rounded-lg px-2 text-[15px] underline hover:bg-amber-100"
           >
             {aberto ? 'Fechar' : 'Ver todas'}
           </button>
@@ -82,8 +82,8 @@ export function PendingBar<P extends Pendencia>({
       {aberto && (
         <ul className="border-t border-amber-200 px-4 py-2 text-[15px]">
           {pendings.map((p, k) => (
-            <li key={p.id} className="py-0.5">
-              <button type="button" onClick={() => setI(k)} className={`text-left hover:underline ${k === n ? 'font-semibold' : ''}`}>
+            <li key={p.id}>
+              <button type="button" onClick={() => setI(k)} className={`flex min-h-[44px] w-full items-center text-left hover:underline ${k === n ? 'font-semibold' : ''}`}>
                 {k + 1}. {p.texto}
               </button>
             </li>

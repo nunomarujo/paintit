@@ -37,6 +37,8 @@ export function SeverityScale({
             {valor} — {SEVERITY_BAND_LABELS[band]}
           </span>
         </div>
+        {/* `h-11`: a caixa do cursor tinha 16px de altura e quem classifica uma patologia está em
+            obra, com o telemóvel na mão. 44px de alvo sem mudar o desenho do cursor. */}
         <input
           id={id}
           type="range"
@@ -45,7 +47,7 @@ export function SeverityScale({
           step={1}
           value={valor}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="mt-2 w-full"
+          className="mt-2 h-11 w-full"
           aria-describedby={`${id}-escala`}
         />
         <p id={`${id}-escala`} className="mt-1 flex justify-between text-xs text-slate-500">

@@ -47,7 +47,7 @@ export function Hoje({
               id="obra-a-consultar"
               name="obra"
               defaultValue={obra.id}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] text-slate-900"
+              className="min-h-[44px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-[17px] text-slate-900"
             >
               {obras.map((o) => (
                 <option key={o.id} value={o.id}>

@@ -205,8 +205,31 @@ export const IconServer = (p: SVGProps<SVGSVGElement>) => (
  * sessão seguinte): os nomes seguem agora os ícones novos (`IconWork`, `IconPublic`, `IconQuote`,
  * `IconContract`, `IconTeam`, `IconExpense`), não os que a correcção original tinha mapeado.
  */
+/* Cadeado e folha: entraram a 28/10/2026 para substituir os caracteres 🔒 e ▤ que o Workspace
+   escrevia como texto — um emoji e um glifo de caixa não têm o traço deste conjunto nem o
+   acompanham quando muda. Mesmo viewBox e mesma espessura dos restantes. */
+function IconLock(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="4.5" y="10.5" width="15" height="9.5" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </Icon>
+  );
+}
+
+function IconSheet(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M6 3.5h8l4 4V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20V4a.5.5 0 0 1 .5-.5Z" />
+      <path d="M14 3.5v4h4M9 12.5h6M9 16h4" />
+    </Icon>
+  );
+}
+
 export const ICONES = {
   casa: IconHome,
+  cadeado: IconLock,
+  folha: IconSheet,
   recibo: IconQuote,
   capacete: IconWork,
   caixa: IconBox,

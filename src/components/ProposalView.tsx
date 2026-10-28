@@ -142,33 +142,58 @@ export function ProposalView({
             {byCategory.map(([c, total]) => (
               <div key={c} className="flex justify-between gap-3 py-1.5">
                 <dt className="text-slate-600">{LINE_CATEGORY_LABELS[c]}</dt>
-                <dd className="font-medium">{formatEuros(total)}</dd>
+                <dd className="font-medium tabular-nums">{formatEuros(total)}</dd>
               </div>
             ))}
           </dl>
         )}
       </section>
 
-      <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
-        <dt className="text-slate-500">Preço sem IVA (incluído)</dt>
-        <dd className="text-[17px] font-semibold sm:text-right">{formatEuros(t.base)}</dd>
-        <dt className="text-slate-500">IVA ({terms.ivaBps / 100}%)</dt>
-        <dd className="sm:text-right">{formatEuros(t.iva)}</dd>
-        <dt className="text-slate-500">Total com IVA</dt>
-        <dd className="font-semibold sm:text-right">{formatEuros(t.totalComIva)}</dd>
-        {t.opcionais > 0 && (
-          <>
-            <dt className="text-slate-500">Opcionais (não somados)</dt>
-            <dd className="sm:text-right">{formatEuros(t.opcionais)}</dd>
-          </>
-        )}
-        {t.condicionados > 0 && (
-          <>
-            <dt className="text-slate-500">Só depois de observar (indicativo)</dt>
-            <dd className="sm:text-right">{formatEuros(t.condicionados)}</dd>
-          </>
-        )}
+      {/*
+        Hierarquia dos valores (28/10/2026). Este bloco era uma grelha que no telemóvel se desfazia
+        em rótulo numa linha e valor na seguinte — enquanto o "Resumo por capítulo" logo acima
+        mantinha rótulo à esquerda e valor à direita. Dois layouts para o mesmo tipo de dado no
+        mesmo cartão, e o leitor tinha de reaprender a meio.
+
+        Pior: os seis valores tinham todos o mesmo tamanho, e dois deles — opcionais e
+        condicionados — **não entram na conta**. Num ecrã cujo único trabalho é comparar
+        propostas, o total comparável passa a ser o maior número da página, e o que não soma vai
+        para baixo de uma linha que o diz por extenso.
+      */}
+      <dl className="divide-y divide-slate-100">
+        <div className="flex justify-between gap-3 py-1.5">
+          <dt className="text-slate-600">Preço sem IVA (incluído)</dt>
+          <dd className="font-medium tabular-nums">{formatEuros(t.base)}</dd>
+        </div>
+        <div className="flex justify-between gap-3 py-1.5">
+          <dt className="text-slate-600">IVA ({terms.ivaBps / 100}%)</dt>
+          <dd className="font-medium tabular-nums">{formatEuros(t.iva)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 border-t-2 border-slate-900 pt-2.5">
+          <dt className="text-[17px] font-semibold text-slate-900">Total com IVA</dt>
+          <dd className="text-[26px] leading-tight font-bold tabular-nums text-slate-900">{formatEuros(t.totalComIva)}</dd>
+        </div>
       </dl>
+
+      {(t.opcionais > 0 || t.condicionados > 0) && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p className="text-[15px] font-semibold text-slate-700">Não somados no total acima</p>
+          <dl className="mt-1 divide-y divide-slate-200">
+            {t.opcionais > 0 && (
+              <div className="flex justify-between gap-3 py-1.5 text-[15px]">
+                <dt className="text-slate-600">Opcionais</dt>
+                <dd className="font-medium tabular-nums">{formatEuros(t.opcionais)}</dd>
+              </div>
+            )}
+            {t.condicionados > 0 && (
+              <div className="flex justify-between gap-3 py-1.5 text-[15px]">
+                <dt className="text-slate-600">Só depois de observar (indicativo)</dt>
+                <dd className="font-medium tabular-nums">{formatEuros(t.condicionados)}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
 
       <dl className="grid gap-x-6 gap-y-1 border-t border-slate-100 pt-3 sm:grid-cols-2">
         <dt className="text-slate-500">Válida até</dt>

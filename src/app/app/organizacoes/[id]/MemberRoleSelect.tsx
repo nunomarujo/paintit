@@ -19,7 +19,7 @@ export function MemberRoleSelect({ orgId, userId, orgKind, role }: { orgId: stri
         defaultValue={role}
         onChange={() => ref.current?.requestSubmit()}
         aria-label="Papel"
-        className={`${selectClass} py-1 text-[15px]`}
+        className={`${selectClass} min-h-[44px] py-1.5`}
       >
         {MEMBER_ROLES.filter((r) => r !== 'proprietario').map((r) => (
           <option key={r} value={r} title={roleDescription(orgKind, r)}>

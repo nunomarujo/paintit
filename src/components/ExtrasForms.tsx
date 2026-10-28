@@ -14,7 +14,9 @@ export function InvitePainter({ requestId, painters }: { requestId: string; pain
   const { state, pending, formProps } = useFormAction<FormState>(invitePainter.bind(null, requestId), { errors: {} });
   return (
     <form {...formProps} className="flex flex-wrap items-center gap-2 text-[17px]">
-      <select name="painter" defaultValue="" className="rounded-lg border border-slate-300 bg-white px-3 py-2">
+      {/* `max-w-full`: sem ele o select estica-se até à largura do nome mais longo da lista e, a
+          390px, empurra a página 139px para fora (medido a 27/10/2026). */}
+      <select name="painter" defaultValue="" className="w-full max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 sm:w-auto">
         <option value="" disabled>
           Pintor…
         </option>
@@ -52,7 +54,7 @@ export function ReviewForm({
         <fieldset key={k} className="flex flex-wrap items-center gap-3">
           <legend className="w-48 text-slate-600">{label}</legend>
           {[1, 2, 3, 4, 5].map((n) => (
-            <label key={n} className="flex items-center gap-1">
+            <label key={n} className="flex min-h-[44px] items-center gap-2 px-1">
               <input type="radio" name={k} value={n} defaultChecked={initial?.[k] === n} /> {n}
             </label>
           ))}

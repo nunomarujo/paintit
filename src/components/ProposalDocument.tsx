@@ -90,7 +90,7 @@ export function ProposalDocument({
             </div>
             <div>
               <h1 className="font-serif text-[19px] leading-tight text-slate-900">{painter.label}</h1>
-              <p className="eyebrow mt-1">
+              <p className="doc-label mt-1">
                 {painter.nif ? `NIF ${painter.nif}` : ''}
                 {painter.telefone ? ` · ${painter.telefone}` : ''}
                 {painter.emailContacto ? ` · ${painter.emailContacto}` : ''}
@@ -106,12 +106,12 @@ export function ProposalDocument({
               </div>
               <div>
                 <h1 className="font-serif text-[19px] leading-tight text-slate-900">QuemPinta.pt</h1>
-                <p className="eyebrow mt-1">Proposta preparada por empresa de pintura verificada</p>
+                <p className="doc-label mt-1">Proposta preparada por empresa de pintura verificada</p>
               </div>
             </div>
           )}
           <div className="shrink-0 text-right text-[11px] text-slate-500">
-            <p className="eyebrow">Ref. do pedido</p>
+            <p className="doc-label">Ref. do pedido</p>
             <p className="font-mono text-slate-700">{request.ref}</p>
             {submittedAt && <p className="mt-1">Enviada a {pt(submittedAt.slice(0, 10))}</p>}
           </div>
@@ -127,25 +127,25 @@ export function ProposalDocument({
 
         <dl className="grid grid-cols-4 gap-4 border-b border-slate-200 py-4 text-[12.5px]">
           <div>
-            <dt className="eyebrow">Concelho</dt>
+            <dt className="doc-label">Concelho</dt>
             <dd className="mt-0.5">{request.concelho}</dd>
           </div>
           <div>
-            <dt className="eyebrow">Tipo de edifício</dt>
+            <dt className="doc-label">Tipo de edifício</dt>
             <dd className="mt-0.5">{request.tipoImovel ? BUILDING_KIND_LABELS[request.tipoImovel] : WORK_TYPE_LABELS[request.tipoObra]}</dd>
           </div>
           <div>
-            <dt className="eyebrow">Tipo de obra</dt>
+            <dt className="doc-label">Tipo de obra</dt>
             <dd className="mt-0.5">{WORK_TYPE_LABELS[request.tipoObra]}</dd>
           </div>
           <div>
-            <dt className="eyebrow">Área total</dt>
+            <dt className="doc-label">Área total</dt>
             <dd className="mt-0.5">{formatArea(request.areaTotalCm2)}</dd>
           </div>
         </dl>
 
         <div className="border-b border-slate-200 py-4" style={{ minHeight: '22mm' }}>
-          <p className="eyebrow mb-1.5">Nota da proposta</p>
+          <p className="doc-label mb-1.5">Nota da proposta</p>
           <p className="max-w-[68ch] text-[12.5px] leading-relaxed text-slate-700">{intro}</p>
         </div>
 
@@ -241,7 +241,7 @@ export function ProposalDocument({
                 <p className="mt-0.5 text-[10.5px] text-slate-600">{iso.resumo}</p>
                 <div className="mt-2 grid grid-cols-1 gap-2 text-[10px]">
                   <div>
-                    <p className="eyebrow">Vantagens</p>
+                    <p className="doc-label">Vantagens</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-slate-700">
                       {iso.vantagens.map((v) => (
                         <li key={v}>{v}</li>
@@ -249,7 +249,7 @@ export function ProposalDocument({
                     </ul>
                   </div>
                   <div>
-                    <p className="eyebrow">A ter em conta</p>
+                    <p className="doc-label">A ter em conta</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-slate-700">
                       {iso.cuidados.map((v) => (
                         <li key={v}>{v}</li>
@@ -268,7 +268,7 @@ export function ProposalDocument({
                 <p className="mt-0.5 text-[10.5px] text-slate-600">{acab.resumo}</p>
                 <div className="mt-2 grid grid-cols-1 gap-2 text-[10px]">
                   <div>
-                    <p className="eyebrow">Vantagens</p>
+                    <p className="doc-label">Vantagens</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-slate-700">
                       {acab.vantagens.map((v) => (
                         <li key={v}>{v}</li>
@@ -276,7 +276,7 @@ export function ProposalDocument({
                     </ul>
                   </div>
                   <div>
-                    <p className="eyebrow">A ter em conta</p>
+                    <p className="doc-label">A ter em conta</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-3.5 text-slate-700">
                       {acab.cuidados.map((v) => (
                         <li key={v}>{v}</li>
@@ -327,7 +327,7 @@ export function ProposalDocument({
 
         <div className="mt-3 flex items-baseline justify-between gap-4 bg-tinta-50 px-4 py-3 print:bg-tinta-50">
           <div>
-            <p className="eyebrow text-tinta-700">Total da proposta</p>
+            <p className="doc-label text-tinta-700">Total da proposta</p>
             <p className="mt-0.5 text-[10.5px] text-slate-600">Com IVA incluído, à taxa de {terms.ivaBps / 100}%</p>
           </div>
           <p className="font-serif text-[26px] leading-none text-tinta-800">{formatEuros(totals.totalComIva)}</p>
@@ -337,7 +337,7 @@ export function ProposalDocument({
           <div className="mt-4 grid grid-cols-3 gap-3">
             {terms.adiantamentoBps > 0 && (
               <div className="border border-slate-200 p-2.5">
-                <p className="eyebrow">Adiantamento de adjudicação</p>
+                <p className="doc-label">Adiantamento de adjudicação</p>
                 <p className="mt-0.5 font-mono text-[11px]">
                   {terms.adiantamentoBps / 100}% — {formatEuros(percentOf(totals.base, terms.adiantamentoBps))}
                 </p>
@@ -345,7 +345,7 @@ export function ProposalDocument({
             )}
             {terms.fases.map((f) => (
               <div key={f.nome} className="border border-slate-200 p-2.5">
-                <p className="eyebrow">{f.nome}</p>
+                <p className="doc-label">{f.nome}</p>
                 <p className="mt-0.5 font-mono text-[11px]">
                   {f.bps / 100}% — {formatEuros(percentOf(totals.base, f.bps))}
                 </p>
@@ -356,21 +356,21 @@ export function ProposalDocument({
 
         <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-3 border-t border-slate-200 pt-4 text-[11px]">
           <div>
-            <dt className="eyebrow">Validade da proposta</dt>
+            <dt className="doc-label">Validade da proposta</dt>
             <dd className="mt-0.5">Até {pt(terms.validade)}</dd>
           </div>
           <div>
-            <dt className="eyebrow">Duração estimada</dt>
+            <dt className="doc-label">Duração estimada</dt>
             <dd className="mt-0.5">{terms.duracaoDias ? `${terms.duracaoDias} dias úteis` : 'Não indicada'}</dd>
           </div>
           <div>
-            <dt className="eyebrow">Garantias</dt>
+            <dt className="doc-label">Garantias</dt>
             <dd className="mt-0.5">
               A legal, sempre aplicável{terms.garantiaAnos ? ` · mais ${terms.garantiaAnos} ${terms.garantiaAnos === 1 ? 'ano' : 'anos'} de garantia adicional` : ''}
             </dd>
           </div>
           <div>
-            <dt className="eyebrow">Seguros</dt>
+            <dt className="doc-label">Seguros</dt>
             <dd className="mt-0.5">
               {terms.seguroRc === 'sim' ? 'RC declarada' : terms.seguroRc === 'nao' ? 'Sem RC declarada' : 'RC por declarar'} ·{' '}
               {terms.seguroAt === 'sim' ? 'acidentes de trabalho declarado' : terms.seguroAt === 'nao' ? 'sem seguro de acidentes declarado' : 'acidentes de trabalho por declarar'}
@@ -378,13 +378,13 @@ export function ProposalDocument({
           </div>
           {terms.exclusoes && (
             <div className="col-span-2">
-              <dt className="eyebrow">Exclusões</dt>
+              <dt className="doc-label">Exclusões</dt>
               <dd className="mt-0.5 whitespace-pre-line">{terms.exclusoes}</dd>
             </div>
           )}
           {terms.notas && (
             <div className="col-span-2">
-              <dt className="eyebrow">Notas</dt>
+              <dt className="doc-label">Notas</dt>
               <dd className="mt-0.5 whitespace-pre-line">{terms.notas}</dd>
             </div>
           )}
@@ -411,7 +411,7 @@ function RunningHeader({
         <span className={revelado ? '' : 'print:hidden'}>{painter.label}</span>
         {!revelado && <span className="hidden print:inline">QuemPinta.pt</span>}
       </p>
-      <p className="eyebrow">Ref. {request.ref}</p>
+      <p className="doc-label">Ref. {request.ref}</p>
     </div>
   );
 }

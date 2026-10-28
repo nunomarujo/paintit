@@ -165,7 +165,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           {meuPerfil ? (
             <Link
               href={`/app/organizacoes/${meuPerfil.id}`}
-              className="-mx-1 block rounded-[9px] px-1 py-1.5 hover:bg-marca-cream/60"
+              className="-mx-1 flex min-h-[44px] items-center rounded-[9px] px-1 py-1.5 hover:bg-marca-cream/60"
             >
               <span className="block text-marca-muted">O meu Perfil</span>
               <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>
@@ -175,17 +175,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           )}
           <nav aria-label="Empresa e conta" className="mt-2 space-y-0.5">
             {kinds.has('pintor') && (
-              <Link href="/app/subscricao" className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href="/app/subscricao" className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
                 Plano e subscrição
               </Link>
             )}
             {pintorId && (
-              <Link href={`/app/organizacoes/${pintorId}/referencias`} className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href={`/app/organizacoes/${pintorId}/referencias`} className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
                 Referências de fornecedores
               </Link>
             )}
             {!meuPerfil && (
-              <Link href="/app/perfil" className="block rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href="/app/perfil" className="flex min-h-[44px] items-center rounded-[9px] px-1 py-1 text-marca-muted hover:text-marca-ink">
                 Perfil
               </Link>
             )}

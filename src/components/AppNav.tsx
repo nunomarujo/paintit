@@ -97,7 +97,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                 href={i.href}
                 onClick={onNavigate}
                 aria-current={active(i) ? 'page' : undefined}
-                className={`flex items-center justify-between gap-2 rounded-[9px] px-3 py-2 text-[15px] ${
+                className={`flex min-h-[44px] items-center justify-between gap-2 rounded-[9px] px-3 py-2 text-[15px] ${
                   active(i)
                     ? 'bg-marca-cream font-semibold text-marca-ink'
                     : 'text-marca-muted hover:bg-marca-cream/60 hover:text-marca-ink'
@@ -119,7 +119,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                       href={c.href}
                       onClick={onNavigate}
                       aria-current={activo(c) ? 'page' : undefined}
-                      className={`flex items-center gap-1.5 rounded-[9px] py-1.5 pl-4 text-[15px] ${
+                      className={`flex min-h-[44px] items-center gap-1.5 rounded-[9px] py-1.5 pl-4 text-[15px] ${
                         activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
                       }`}
                     >
