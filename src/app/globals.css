@@ -143,6 +143,15 @@ input[type='radio'] {
    * `w-full` ou no tamanho da letra. O tamanho vem do `body` (17px) e nunca desce abaixo de 16,
    * senão o Safari do iPhone dá zoom a cada toque (regra 14).
    */
+  /*
+   * Ligação dentro de texto corrido das páginas públicas. No Livro de Reclamações havia três
+   * estilos em dois parágrafos — negrito sublinhado escuro, verde sem sublinhado, verde
+   * sublinhado — e o leitor não conseguia aprender o que era uma ligação (28/10/2026).
+   * 44px de alvo, por ser num parágrafo que se lê no telemóvel.
+   */
+  .ligacao {
+    @apply font-medium text-tinta-700 underline underline-offset-4 hover:text-tinta-800;
+  }
   .campo {
     @apply block w-full min-h-[44px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px];
   }

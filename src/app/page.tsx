@@ -54,12 +54,14 @@ export default function Home() {
       */}
       <header className="sticky top-0 z-20 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-          <BrandMark size="sm" />
+          <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center">
+            <BrandMark size="sm" />
+          </Link>
           <nav className="flex items-center gap-6 text-[17px] text-slate-700">
             <a href="#como-funciona" className="hidden sm:inline">Como funciona</a>
             <a href="#condominios" className="hidden sm:inline">Condomínios</a>
             <a href="#profissionais" className="hidden sm:inline">Para profissionais</a>
-            <Link href="/entrar" className="font-semibold text-tinta-700 underline-offset-4 hover:underline">
+            <Link href="/entrar" className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 underline-offset-4 hover:underline">
               Entrar
             </Link>
           </nav>
@@ -91,7 +93,7 @@ export default function Home() {
           >
             Pedir orçamentos
           </Link>
-          <a href="#condominios" className="text-[17px] font-semibold text-tinta-700 underline underline-offset-4 sm:text-center">
+          <a href="#condominios" className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-tinta-700 underline underline-offset-4">
             Gerir vários edifícios
           </a>
         </div>
@@ -162,7 +164,7 @@ export default function Home() {
         <div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">
           {faqs.map((f) => (
             <details key={f.q} className="group py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 font-semibold">
                 {f.q}
                 <span aria-hidden className="text-[20px] leading-snug group-open:rotate-45">+</span>
               </summary>

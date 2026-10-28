@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { PublicHeader } from '@/components/LegalPage';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
 import { formatEuros } from '@/domain/money';
@@ -15,10 +15,9 @@ const pct = (bp: number) => `${(bp / 100).toLocaleString('pt-PT')}%`;
 export default function TransparencyPage() {
   const r = CURRENT_RULES;
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 text-[17px] leading-relaxed">
-      <Link href="/" className="text-slate-600 hover:underline">
-        ← {BRAND.name}
-      </Link>
+    <>
+      <PublicHeader />
+      <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 text-[17px] leading-relaxed">
       <h1 className="text-[26px] leading-tight font-semibold">Transparência</h1>
 
       <section>
@@ -65,13 +64,15 @@ export default function TransparencyPage() {
         <h2 className="text-[20px] font-semibold">O que verificamos</h2>
         <p className="mt-2">
           Validamos os documentos que as empresas enviam, à data em que os enviam. Quando falta a habilitação IMPIC para o
-          valor de uma obra, ou uma assinatura não se liga ao Cartão de Cidadão ou à Chave Móvel Digital, assinalamos a
-          vermelho; as partes podem continuar, assumindo a responsabilidade.
+          valor de uma obra, ou uma assinatura não se liga ao Cartão de Cidadão ou à Chave Móvel Digital, assinalamos esse
+          aviso na própria proposta, em âmbar; as partes podem continuar, assumindo a responsabilidade. O vermelho fica
+          para o que já caducou, fechou ou foi recusado.
         </p>
       </section>
       <p className="text-slate-600">
-        Dúvidas: <a href={`mailto:${BRAND.email}`} className="text-tinta-700 hover:underline">{BRAND.email}</a>
+        Dúvidas: <a href={`mailto:${BRAND.email}`} className="ligacao">{BRAND.email}</a>
       </p>
     </main>
+    </>
   );
 }

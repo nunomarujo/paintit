@@ -5,19 +5,19 @@ const options = [
     href: '/app/organizacoes/nova?perfil=cliente',
     title: 'Preciso de pintar',
     who: 'Administração de condomínio, condomínio ou particular',
-    text: 'Descreve a obra, recebe propostas comparáveis de pintores verificados e assina o contrato.',
+    text: 'Descrever a obra, receber propostas comparáveis de pintores verificados e assinar o contrato.',
   },
   {
     href: '/app/organizacoes/nova?tipo=pintor',
     title: 'Sou pintor',
     who: 'Empresa de pintura ou empresário em nome individual',
-    text: 'Vê obras na sua zona, orçamenta e, se for escolhido, assina o contrato.',
+    text: 'Ver obras na zona de trabalho, orçamentar e, se for escolhido, assinar o contrato.',
   },
   {
     href: '/app/organizacoes/nova?tipo=fornecedor',
     title: 'Vendo tintas e materiais',
     who: 'Fornecedor ou revendedor',
-    text: 'Põe os seus produtos e descontos à frente dos pintores quando orçamentam.',
+    text: 'Pôr os seus produtos e descontos à frente dos pintores quando orçamentam.',
   },
 ];
 

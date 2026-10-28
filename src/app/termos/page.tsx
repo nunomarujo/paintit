@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { LegalPage, Section } from '@/components/LegalPage';
 import { BRAND } from '@/config/brand';
 import { COMPANY } from '@/config/company';
@@ -77,7 +78,7 @@ export default function TermsPage() {
       <Section title="9. Alterações, lei e litígios">
         <p>
           Estes termos podem ser alterados; as alterações relevantes são comunicadas com antecedência e não afetam contratações já iniciadas. Aplica-se a lei portuguesa. Os consumidores podem usar o
-          Livro de Reclamações e as entidades de resolução alternativa de litígios (ver página própria). Foro: o legalmente competente.
+          Livro de Reclamações e as entidades de resolução alternativa de litígios (<Link href="/livro-de-reclamacoes" className="ligacao">ver página própria</Link>). Foro: o legalmente competente.
         </p>
       </Section>
     </LegalPage>

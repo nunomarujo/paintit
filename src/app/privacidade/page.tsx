@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <Section title="Quem trata os dados">
         <p>
           O responsável pelo tratamento é a <b>{COMPANY.name}</b>, NIF {COMPANY.nif}, {COMPANY.address}, {COMPANY.postalCode} {COMPANY.city}. Contacto para qualquer questão sobre dados
-          pessoais: <a className="text-tinta-700 hover:underline" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>.
+          pessoais: <a className="ligacao" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>.
         </p>
       </Section>
       <Section title="Que dados tratamos e para quê">

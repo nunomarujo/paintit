@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { PublicHeader } from '@/components/LegalPage';
 import { BRAND } from '@/config/brand';
 
 export const metadata = {
@@ -25,10 +25,9 @@ const MEDIDO = '26 de Outubro de 2026';
 
 export default function ObraPublicaPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 text-[17px] leading-relaxed text-slate-800">
-      <Link href="/" className="text-[15px] text-slate-600 hover:underline">
-        ← {BRAND.name}
-      </Link>
+    <>
+      <PublicHeader />
+      <main className="mx-auto max-w-5xl px-4 py-6 text-[17px] leading-relaxed text-slate-800">
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,64ch)_280px] lg:items-start lg:gap-12">
       <article className="space-y-5">
@@ -209,5 +208,6 @@ export default function ObraPublicaPage() {
       </aside>
       </div>
     </main>
+    </>
   );
 }

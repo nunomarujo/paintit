@@ -10,7 +10,7 @@ export default function LegalNoticePage() {
       <Section title="Quem presta o serviço">
         <p>
           {BRAND.name} ({BRAND.domain}) é um serviço da <b>{COMPANY.name}</b>, {COMPANY.legalForm.toLowerCase()}, NIF/NIPC {COMPANY.nif}, com sede na {COMPANY.address},{' '}
-          {COMPANY.postalCode} {COMPANY.city}, Portugal. Contacto: <a className="text-tinta-700 hover:underline" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>.
+          {COMPANY.postalCode} {COMPANY.city}, Portugal. Contacto: <a className="ligacao" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>.
         </p>
         <p className="text-slate-600">Registo comercial e capital social: a completar antes do lançamento público.</p>
       </Section>
