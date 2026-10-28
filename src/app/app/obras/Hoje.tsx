@@ -126,7 +126,7 @@ export function Hoje({
                 {formatHoras(dia.horasConfirmadas)} h confirmadas de {formatHoras(dia.horasPrevistas)} h previstas
               </span>
               <Link href="/app/obras?ver=equipa" className="font-semibold text-tinta-700 hover:underline">
-                Ver semana →
+                Ver semana
               </Link>
             </div>
           )}
@@ -145,7 +145,7 @@ export function Hoje({
                       href={a.href}
                       className="mt-1.5 inline-block rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[15px] font-semibold text-amber-900 hover:bg-amber-100"
                     >
-                      Rever →
+                      Rever
                     </Link>
                   </li>
                 ))}
@@ -167,7 +167,7 @@ export function Hoje({
           <div className="flex items-baseline justify-between gap-3 px-5 py-4">
             <h2 className="text-[17px] font-semibold text-slate-900">Últimos registos</h2>
             <Link href={`/app/obras/${obra.id}?s=diario`} className="text-[15px] font-semibold text-tinta-700 hover:underline">
-              Ver todos →
+              Ver todos
             </Link>
           </div>
           <ul className="divide-y divide-slate-100 border-t border-slate-100">
@@ -204,7 +204,6 @@ function Accao({ href, titulo, detalhe, destaque }: { href: string; titulo: stri
         <span className={`block text-[15px] leading-snug ${destaque ? 'text-white/80' : 'text-slate-600'}`}>{detalhe}</span>
       </span>
       <span aria-hidden className="text-[17px] opacity-70">
-        →
       </span>
     </Link>
   );
@@ -235,7 +234,7 @@ function Fases({ fases, obraId }: { fases: DiaDaObra['fases']; obraId: string })
         <span>{fases.at(-1)?.nome}</span>
       </p>
       <Link href={`/app/obras/${obraId}?s=cronograma`} className="mt-3 inline-block text-[15px] font-semibold text-tinta-700 hover:underline">
-        Ver planeamento →
+        Ver planeamento
       </Link>
     </>
   );

@@ -5,6 +5,7 @@ import { ProposalDocument } from '@/components/ProposalDocument';
 import { temPro } from '@/domain/painterPlan';
 import { painterOrgs, painterSubscription } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 /**
  * O documento de um orçamento a cliente próprio. Mesmo componente do orçamento do mercado — não
@@ -37,9 +38,7 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/orcamentos/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← Voltar ao orçamento
-        </Link>
+        <Voltar href={`/app/orcamentos/${id}`}>Voltar ao orçamento</Voltar>
         <PrintButton />
       </div>
       {/* Dito antes de imprimir, não depois: quem imprimir sem saber entrega ao cliente um documento

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { ICONES } from '@/components/NavIcons';
 import { BuildingVolume } from '@/components/BuildingVolume';
 import type { VolumeInput } from '@/domain/volume';
 
@@ -51,13 +52,13 @@ export function VolumeViewer({ className, legenda = true, ...input }: VolumeInpu
       </div>
       <div className="mt-1 flex items-center justify-center gap-1 text-[15px] text-slate-500">
         <button type="button" onClick={() => rodar(-45)} aria-label="Rodar para a esquerda" className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
-          ←
+          <ICONES.voltar className="h-[18px] w-[18px]" />
         </button>
         <button type="button" onClick={() => setAngulo(25)} className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
           De frente
         </button>
         <button type="button" onClick={() => rodar(45)} aria-label="Rodar para a direita" className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg px-2 hover:bg-slate-100">
-          →
+          <ICONES.voltar className="h-[18px] w-[18px] rotate-180" />
         </button>
       </div>
       {legenda && <p className="text-center text-[15px] text-slate-500">Volume genérico, não à escala. Arrastar para rodar.</p>}

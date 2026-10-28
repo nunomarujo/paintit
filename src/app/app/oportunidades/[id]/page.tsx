@@ -35,6 +35,7 @@ import { loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 import { Workspace } from '@/components/Workspace';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
@@ -75,9 +76,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   if (!accepted) {
     return (
       <div className="space-y-8">
-        <Link href="/app/oportunidades" className="text-[17px] text-slate-600 hover:underline">
-          ← Oportunidades
-        </Link>
+        <Voltar href="/app/oportunidades">Oportunidades</Voltar>
         {listing && (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
             <p className="font-semibold">
@@ -255,9 +254,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
   return (
     <div className="space-y-6">
-      <Link href="/app/oportunidades" className="text-[17px] text-slate-600 hover:underline">
-        ← Oportunidades
-      </Link>
+      <Voltar href="/app/oportunidades">Oportunidades</Voltar>
 
       <Workspace
         titulo={listing ? `${WORK_TYPE_LABELS[listing.tipo_obra]} · ${listing.concelho}` : 'Pedido'}
@@ -366,7 +363,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   href={`/app/organizacoes/${org.id}?ver=documentos`}
                   className="mt-2 inline-block rounded-lg border-2 border-amber-500 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100"
                 >
-                  Preencher documento em falta →
+                  Preencher documento em falta
                 </Link>
               </div>
             )}
@@ -375,7 +372,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 href={`/app/contratacoes/${engagement.id}`}
                 className="mt-3 block rounded-xl bg-tinta-50 p-3 text-[17px] font-semibold text-tinta-900 hover:bg-tinta-100"
               >
-                Ir para a contratação (comissão, contrato e assinatura) →
+                Ir para a contratação (comissão, contrato e assinatura)
               </Link>
             )}
             {proposal.status === 'submetida' && listing && proposal.request_version !== null && proposal.request_version < (listing.version ?? 0) && (

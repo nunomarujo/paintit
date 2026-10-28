@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import { createOrganization } from '@/app/app/actions';
 import { ACCOUNT_PROFILE_LABELS, ORG_KINDS, accountProfile, allowedOrgKinds, type OrgKind } from '@/domain/organization';
 import { managedAdministradoras } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { OrgForm } from './OrgForm';
+import { Voltar } from '@/components/Voltar';
 
 export default async function NewOrganizationPage({
   searchParams,
@@ -24,9 +24,7 @@ export default async function NewOrganizationPage({
   if (kinds.length === 0) {
     return (
       <div className="max-w-2xl space-y-3">
-        <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
-          ← As suas entidades
-        </Link>
+        <Voltar href="/app">As suas entidades</Voltar>
         <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
           Uma conta de pintor ou de fornecedor corresponde a uma só empresa, que já está registada. Para outra empresa,
           crie outra conta com outro email; para dar acesso a colegas, convide-os na equipa da sua entidade.
@@ -37,9 +35,7 @@ export default async function NewOrganizationPage({
 
   return (
     <div className="max-w-2xl">
-      <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
-        ← As suas entidades
-      </Link>
+      <Voltar href="/app">As suas entidades</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Nova entidade</h1>
       <p className="mt-2 text-[17px] text-slate-600">
         Estes dados servem para o contrato e para a verificação da conta. Só são revelados à outra parte depois da

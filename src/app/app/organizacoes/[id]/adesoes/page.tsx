@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
 import { payoutStatus, supplierBalance } from '@/domain/referral';
@@ -10,6 +9,7 @@ const COMPANY_NAME = COMPANY.name;
 const COMPANY_NIF = COMPANY.nif;
 import { cancelRedemption, setReferralActive } from './actions';
 import { InvoiceForm, NewCodeForm, PayoutDetailsForm, RedeemButton } from './Forms';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const ptDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
@@ -43,9 +43,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${id}`}>{org.nome}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Descontos a novos aderentes</h1>
         <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Crie um código e entregue-o a um pintor que ainda não use a plataforma. O código não se esgota: desative-o quando

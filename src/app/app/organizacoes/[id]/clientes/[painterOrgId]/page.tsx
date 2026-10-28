@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { deleteDiscount } from '@/app/app/catalogo/actions';
 import { BUYER_PROFILE_LABELS, PAYMENT_TERMS_LABELS, PRODUCT_TYPE_LABELS, productLabel } from '@/domain/catalog';
@@ -7,6 +6,7 @@ import { canManage, myRole } from '@/lib/access';
 import { getUser } from '@/lib/supabase/server';
 import { CustomerProfileForm } from '../CustomerProfileForm';
 import { DiscountForm } from '../../produtos/SupplierRules';
+import { Voltar } from '@/components/Voltar';
 
 const ORDER_STATE_LABELS: Record<string, string> = { pedida: 'pedida', confirmada: 'confirmada', entregue: 'entregue', cancelada: 'cancelada' };
 
@@ -38,9 +38,7 @@ export default async function SupplierCustomerPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}/clientes`} className="text-[17px] text-slate-600 hover:underline">
-          ← Clientes
-        </Link>
+        <Voltar href={`/app/organizacoes/${id}/clientes`}>Clientes</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">{painter.nome}</h1>
         <p className="mt-1 text-[17px] text-slate-600">
           {painter.email_contacto ?? 'Sem email indicado'}

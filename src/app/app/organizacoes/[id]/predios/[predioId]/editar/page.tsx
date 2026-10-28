@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { updateBuildingIdentity } from '@/app/app/actions';
 import { canManage, myRole } from '@/lib/access';
@@ -6,6 +5,7 @@ import { getUser } from '@/lib/supabase/server';
 import { BuildingForm } from '../../novo/BuildingForm';
 import { Characteristics } from './Characteristics';
 import { Needs } from './Needs';
+import { Voltar } from '@/components/Voltar';
 
 export default async function EditBuildingPage({ params }: { params: Promise<{ id: string; predioId: string }> }) {
   const { id, predioId } = await params;
@@ -29,9 +29,7 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-        ← {org.nome}
-      </Link>
+      <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">{building.nome_interno}</h1>
       <p className="mt-1 text-[17px] text-slate-600">Ficha do prédio. As características gravam-se à medida que escreve.</p>
 

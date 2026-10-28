@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { IsoDate } from '@/domain/deadline';
 import { combinedPainterDiscountBp, linkedSupplierDiscountBp } from '@/domain/referral';
@@ -8,6 +7,7 @@ import { linkedSupplierCodes } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { NewInviteForm } from './Forms';
 import { setInviteActive } from './actions';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const ptDate = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
@@ -63,9 +63,7 @@ export default async function ReferralsPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${id}`}>{org.nome}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Referências de fornecedores</h1>
         <p className="mt-1 max-w-3xl text-[17px] text-slate-600">
           Crie um código e entregue-o a um fornecedor que ainda não esteja na plataforma. Quando essa empresa se registar com o código e assinar a primeira

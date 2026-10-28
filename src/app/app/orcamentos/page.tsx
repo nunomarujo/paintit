@@ -16,6 +16,7 @@ import {
 } from '@/domain/quoteBoard';
 import { caeAviso, caeElegibilidade } from '@/domain/organization';
 import { CreateQuote, RemoveQuote } from './QuoteForms';
+import { ICONES } from '@/components/NavIcons';
 
 const ESTADO_LABELS = { rascunho: 'Rascunho', enviado: 'Enviado', ganho: 'Ganho', perdido: 'Perdido' } as const;
 const dataPt = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
@@ -127,7 +128,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[17px] text-amber-900">
           {avisos.length > 0 && (
             <p>
-              <span aria-hidden className="mr-1">⚠</span>
+              <ICONES.aviso className="mr-1 inline-block h-4 w-4 align-[-2px]" />
               <strong className="font-semibold">
                 {avisos.length === 1 ? 'Há um orçamento feito que nunca foi enviado' : `Há ${avisos.length} orçamentos feitos que nunca foram enviados`}
               </strong>{' '}
@@ -137,7 +138,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           )}
           {avisoCae && (
             <p>
-              <span aria-hidden className="mr-1">⚠</span>
+              <ICONES.aviso className="mr-1 inline-block h-4 w-4 align-[-2px]" />
               {avisoCae}
             </p>
           )}

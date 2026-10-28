@@ -185,7 +185,7 @@ export function PricesEditor({
             {pending ? 'A guardar…' : 'Guardar rascunho'}
           </button>
           <button type="button" disabled={pending || !validIva} onClick={() => go('condicoes')} className="btn-primary">
-            Continuar para as condições →
+            Continuar para as condições
           </button>
         </div>
       </div>

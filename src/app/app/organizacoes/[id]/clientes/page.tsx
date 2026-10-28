@@ -6,6 +6,7 @@ import { canManage, myRole } from '@/lib/access';
 import { supplierCustomers } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { InviteForm } from './InviteForm';
+import { Voltar } from '@/components/Voltar';
 
 const DESCONTO = (REFERRAL_BPS / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
 
@@ -31,9 +32,7 @@ export default async function SupplierCustomersPage({ params }: { params: Promis
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/app/organizacoes/${id}/produtos`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${id}/produtos`}>{org.nome}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Clientes</h1>
         <p className="mt-1 max-w-2xl text-[17px] text-slate-600">
           Pintores que já encomendaram a esta empresa. Na ficha de cada um: classificar como premium, escrever condições

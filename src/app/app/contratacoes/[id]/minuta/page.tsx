@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { draftText, plainSummary } from '@/domain/contracting';
 import { engagementSide, loadDraft, loadReplay } from '@/lib/engagements';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 // Minuta do contrato, gerada da proposta escolhida. Para imprimir ou guardar em
 // PDF, use a impressão do navegador.
@@ -21,9 +21,7 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <Link href={`/app/contratacoes/${id}`} className="text-[17px] text-slate-600 hover:underline print:hidden">
-        ← Contratação
-      </Link>
+      <Voltar href={`/app/contratacoes/${id}`} className="print:hidden">Contratação</Voltar>
       <aside className="rounded-2xl border border-tinta-100 bg-tinta-50 p-6 text-[17px] print:hidden">
         <h2 className="font-semibold">Em linguagem simples</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5">

@@ -63,7 +63,7 @@ export default async function BackofficeDashboard() {
       </div>
       {failing.length > 0 && (
         <Link href="/app/backoffice/sistema" className="block rounded-2xl border border-red-300 bg-red-50 p-5 text-[17px] text-red-900 hover:bg-red-100">
-          <b>Há {failing.length === 1 ? 'uma ligação' : `${failing.length} ligações`} do servidor com problema</b> ({failing.map((f) => f.label).join(', ')}). Ver em Sistema →
+          <b>Há {failing.length === 1 ? 'uma ligação' : `${failing.length} ligações`} do servidor com problema</b> ({failing.map((f) => f.label).join(', ')}). Ver em Sistema
         </Link>
       )}
       {groups.map((g) => (

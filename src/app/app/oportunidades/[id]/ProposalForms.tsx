@@ -126,7 +126,7 @@ export function TermsForm({ proposalId, requestId, terms }: { proposalId: string
           {pending ? 'A guardar…' : 'Guardar condições'}
         </button>
         <button type="button" disabled={pending} onClick={() => go('rever')} className="btn-primary">
-          Continuar para a revisão →
+          Continuar para a revisão
         </button>
       </div>
     </form>

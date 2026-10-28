@@ -226,8 +226,42 @@ function IconSheet(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/* Seta de voltar: substitui o carácter ←, que estava escrito como texto em 30 ecrãs. Uma seta de
+   texto desenha-se com a fonte do sistema — não tem o traço deste conjunto, não alinha com os
+   ícones ao lado e muda de forma conforme o aparelho (28/10/2026). */
+function IconBack(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M15 5 8 12l7 7" />
+    </Icon>
+  );
+}
+
+/* Aviso e fechar: o ⚠ e o ✕ estavam escritos como texto. O ⚠ é pior do que uma seta — em vários
+   sistemas o tipo de letra substitui-o por um emoji amarelo, que entra na página com uma cor que
+   não é da paleta e não obedece ao `text-amber-*` ao lado (28/10/2026). */
+function IconWarn(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 4.5 2.8 20h18.4L12 4.5Z" />
+      <path d="M12 10v4.5M12 17.2v.1" />
+    </Icon>
+  );
+}
+
+function IconClose(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Icon>
+  );
+}
+
 export const ICONES = {
   casa: IconHome,
+  voltar: IconBack,
+  aviso: IconWarn,
+  fechar: IconClose,
   cadeado: IconLock,
   folha: IconSheet,
   recibo: IconQuote,

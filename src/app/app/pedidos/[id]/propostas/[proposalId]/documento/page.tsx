@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProposalDocument } from '@/components/ProposalDocument';
 import { alias } from '@/domain/proposal';
@@ -7,6 +6,7 @@ import { myRole } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { toLine, toTerms } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 // Documento de orçamento (PROPOSTA.md, "Rever e enviar"): a versão A4, para imprimir ou guardar em
 // PDF, de uma proposta submetida. O pintor vê sempre a sua própria identidade (é a sua própria
@@ -51,9 +51,7 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/pedidos/${id}/propostas`} className="text-[17px] text-slate-600 hover:underline">
-          ← Propostas recebidas
-        </Link>
+        <Voltar href={`/app/pedidos/${id}/propostas`}>Propostas recebidas</Voltar>
         <p className="text-[17px] text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
       <ProposalDocument

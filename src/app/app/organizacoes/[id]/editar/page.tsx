@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { updateOrganization } from '@/app/app/actions';
 import { canManage, myRole } from '@/lib/access';
 import { managedAdministradoras } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { OrgForm } from '../../nova/OrgForm';
+import { Voltar } from '@/components/Voltar';
 
 export default async function EditOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,9 +15,7 @@ export default async function EditOrganizationPage({ params }: { params: Promise
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-        ← {org.nome}
-      </Link>
+      <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Editar dados</h1>
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <OrgForm action={updateOrganization.bind(null, org.id)} administradoras={administradoras} initial={org} />

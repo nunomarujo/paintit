@@ -5,6 +5,7 @@ import { ISOLAMENTO_E_ACESSORIOS, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
 import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
@@ -49,9 +50,7 @@ export default async function ReferencePage({
 
   return (
     <div className="space-y-6">
-      <Link href="/app/catalogo" className="text-[17px] text-slate-600 hover:underline">
-        ← Catálogo
-      </Link>
+      <Voltar href="/app/catalogo">Catálogo</Voltar>
       <div className={`${card} flex gap-5`}>
         <ProductPhotoZoom
           fotoPath={r.foto_path}

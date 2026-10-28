@@ -98,7 +98,7 @@ export default async function SurveysPage() {
                 </div>
                 {(s.status === 'reservado' || s.status === 'concluido') && (
                   <Link href={`/app/levantamentos/${s.id}`} className="mt-1 inline-block font-medium text-tinta-700 hover:underline">
-                    Abrir o levantamento →
+                    Abrir o levantamento
                   </Link>
                 )}
               </li>

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PrintButton } from '@/components/PrintButton';
 import { ProposalDocument } from '@/components/ProposalDocument';
@@ -8,6 +7,7 @@ import { loadReplay } from '@/lib/engagements';
 import { toLine, toTerms } from '@/lib/proposals';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 /**
  * O orçamento como documento, do lado do pintor: ver no ecrã e guardar em PDF (pedido do promotor,
@@ -44,9 +44,7 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/oportunidades/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← Voltar ao pedido
-        </Link>
+        <Voltar href={`/app/oportunidades/${id}`}>Voltar ao pedido</Voltar>
         <PrintButton />
       </div>
       <ProposalDocument

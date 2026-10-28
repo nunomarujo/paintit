@@ -484,7 +484,7 @@ export function WorksEditor({
             {pending ? 'A guardar…' : 'Guardar rascunho'}
           </button>
           <button type="button" disabled={pending || items.length === 0} onClick={() => go('precos')} className="btn-primary">
-            Continuar para os preços →
+            Continuar para os preços
           </button>
         </div>
       </div>

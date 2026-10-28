@@ -22,6 +22,7 @@ import { RequestInvites, type RequestInvite } from './RequestInvites';
 import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { SurfaceForm } from './SurfaceForm';
+import { Voltar } from '@/components/Voltar';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   rascunho: { label: 'Rascunho', className: 'bg-slate-100 text-slate-700' },
@@ -116,9 +117,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="text-[26px] leading-tight font-semibold">{req.titulo}</h1>
           <span className={`rounded-full px-3 py-0.5 text-[15px] font-semibold ${status.className}`}>{status.label}</span>

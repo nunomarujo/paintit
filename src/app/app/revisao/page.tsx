@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 import { ReviewForm } from './ReviewForm';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
@@ -11,9 +11,7 @@ export default async function ReviewPage() {
   const v = await appealView(supabase, user!.id);
   return (
     <div className="max-w-2xl space-y-6">
-      <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
-        ← Início
-      </Link>
+      <Voltar href="/app">Início</Voltar>
       <h1 className="text-[26px] leading-tight font-semibold">Revisão do segundo aviso</h1>
 
       {v.strikes < 2 && <p className={`${card} text-[17px]`}>Não há nenhum segundo aviso. O pedido de revisão só existe nesse caso.</p>}

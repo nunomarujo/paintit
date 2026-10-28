@@ -18,6 +18,7 @@ import { CarryForm } from './CarryForm';
 import { PdfSign } from './PdfSign';
 import { PayButton } from './PayButton';
 import { stripeConfigured } from '@/lib/stripe';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -115,12 +116,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
       )}
 
       <div>
-        <Link
-          href={side === 'cliente' ? `/app/pedidos/${row.request_id}/propostas` : '/app/contratacoes'}
-          className="text-[17px] text-slate-600 hover:underline"
-        >
-          ← {side === 'cliente' ? 'Propostas do pedido' : 'Contratações'}
-        </Link>
+        <Voltar href={side === 'cliente' ? `/app/pedidos/${row.request_id}/propostas` : '/app/contratacoes'}>{side === 'cliente' ? 'Propostas do pedido' : 'Contratações'}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Contratação {reference}</h1>
         <p className="mt-1 text-[17px] font-medium text-tinta-700">{STATUS_LABELS[e.status]}</p>
         {v2 ? (
@@ -147,7 +143,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         )}
         <div className="mt-2 flex flex-wrap gap-4 text-[17px]">
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
-            Ver {e.status === 'assinado' ? 'contrato' : 'minuta'} →
+            Ver {e.status === 'assinado' ? 'contrato' : 'minuta'}
           </Link>
           {events.some((v) => v.kind === 'pintor_assinou' && (v.payload as { metodo?: string }).metodo === 'cmd_pdf') && (
             <a href={`/app/contratacoes/${id}/pdf?v=pintor`} className="text-tinta-700 hover:underline">
@@ -303,7 +299,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                   para obrigar o condomínio.
                 </p>
                 <Link href={`/app/organizacoes/${row.client_org_id}`} className="mt-2 inline-block font-semibold text-tinta-700 hover:underline">
-                  Ir para os documentos do condomínio →
+                  Ir para os documentos do condomínio
                 </Link>
               </div>
             )}

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PhotoUpload } from '@/app/app/pedidos/[id]/PhotoUpload';
 import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
@@ -12,6 +11,7 @@ import { AcceptTerms } from './AcceptTerms';
 import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { SurveyWorkspace } from './SurveyWorkspace';
 import { ConcludeButton, ContactForm } from './ContactForm';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
@@ -31,9 +31,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   if (!accepted) {
     return (
       <div className="space-y-8">
-        <Link href="/app/levantamentos" className="text-[17px] text-slate-600 hover:underline">
-          ← Levantamentos
-        </Link>
+        <Voltar href="/app/levantamentos">Levantamentos</Voltar>
         <AcceptTerms surveyId={survey.id} />
       </div>
     );
@@ -99,9 +97,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
-      <Link href="/app/levantamentos" className="text-[17px] text-slate-600 hover:underline">
-        ← Levantamentos
-      </Link>
+      <Voltar href="/app/levantamentos">Levantamentos</Voltar>
 
       <SurveyWorkspace
         morada={building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null}

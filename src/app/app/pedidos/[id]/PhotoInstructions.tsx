@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { ICONES } from '@/components/NavIcons';
 
 /**
  * Instruções de fotografia do levantamento ("fotos originais" — o nome que o promotor usa para as
@@ -50,7 +51,7 @@ export function PhotoInstructions() {
               aria-label="Fechar"
               className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
             >
-              ✕
+              <ICONES.fechar className="h-[18px] w-[18px]" />
             </button>
           </div>
 

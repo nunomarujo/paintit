@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { formatEuros } from '@/domain/money';
 import { INVOICE_REASONS, invoiceTotal } from '@/domain/invoicing';
 import { moloniConfigured } from '@/lib/moloni';
 import { pendingInvoices } from '@/lib/invoicing';
 import { getUser } from '@/lib/supabase/server';
 import { EmitAllButton, EmitOneButton } from '../FaturacaoForms';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const REASON_LABELS: Record<string, string> = { comissao: 'Comissão de sucesso (pintor)', subscricao: 'Subscrição (fornecedor)', caucao_retida: 'Caução retida (cliente)' };
@@ -40,7 +40,7 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
       {moloniConfigured && (
         <p className="rounded-xl border border-slate-200 bg-white p-4 text-[17px]">
           <a href="/api/moloni/connect" className="font-semibold text-tinta-700 hover:underline">
-            Ligar (ou religar) a conta Moloni →
+            Ligar (ou religar) a conta Moloni
           </a>{' '}
           Precisa de o fazer uma vez, e de novo sempre que a ligação expirar (até 14 dias sem uso).
         </p>
@@ -111,9 +111,7 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
         )}
       </section>
       <p className="text-[15px] text-slate-500">Motivos previstos: {INVOICE_REASONS.map((r) => REASON_LABELS[r]).join(', ')}.</p>
-      <Link href="/app/backoffice/contabilidade" className="text-[17px] text-slate-600 hover:underline">
-        ← Contabilidade
-      </Link>
+      <Voltar href="/app/backoffice/contabilidade">Contabilidade</Voltar>
     </div>
   );
 }

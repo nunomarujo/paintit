@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { createRequest } from '@/app/app/pedidos/actions';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 export default async function NewRequestPage({
   params,
@@ -33,9 +34,7 @@ export default async function NewRequestPage({
       : { data: [] };
     return (
       <div className="max-w-2xl">
-        <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Novo pedido de orçamento</h1>
         <p className="mt-2 text-[17px] text-slate-600">
           Escolha o condomínio a que a obra diz respeito. O pedido, o contrato e a fatura ficam em nome desse
@@ -52,9 +51,12 @@ export default async function NewRequestPage({
                   <ul className="mt-3 space-y-1">
                     {own.map((b) => (
                       <li key={b.id}>
-                        <Link href={`/app/organizacoes/${c.id}/pedidos/novo?predio=${b.id}`} className="font-medium text-tinta-700 hover:underline">
+                        <Link
+                          href={`/app/organizacoes/${c.id}/pedidos/novo?predio=${b.id}`}
+                          className="inline-flex min-h-[44px] items-center font-medium text-tinta-700 hover:underline"
+                        >
                           {b.nome_interno}
-                          {b.concelho ? ` · ${b.concelho}` : ''} →
+                          {b.concelho ? ` · ${b.concelho}` : ''}
                         </Link>
                       </li>
                     ))}
@@ -91,9 +93,7 @@ export default async function NewRequestPage({
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-        ← {org.nome}
-      </Link>
+      <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Novo pedido de orçamento</h1>
       <p className="mt-2 text-[17px] text-slate-600">
         Fica em rascunho até o publicar. Depois de criar, acrescenta as superfícies e as áreas.

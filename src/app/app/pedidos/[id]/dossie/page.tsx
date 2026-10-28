@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProposalView } from '@/components/ProposalView';
 import { EVENT_LABELS, STATUS_LABELS } from '@/domain/contracting';
@@ -9,6 +8,7 @@ import { loadReplay } from '@/lib/engagements';
 import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { getUser } from '@/lib/supabase/server';
+import { Voltar } from '@/components/Voltar';
 
 const dt = (iso: string) => new Date(iso).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
 
@@ -52,9 +52,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={`/app/pedidos/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {req.titulo}
-        </Link>
+        <Voltar href={`/app/pedidos/${id}`}>{req.titulo}</Voltar>
         <p className="text-[17px] text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
       <article className="rounded-2xl border border-slate-200 bg-white p-8 text-[17px] print:border-0 print:p-0">

@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { UNIDADE_LABELS, formatQuantidade, saldos, type Consumivel, type Movimento } from '@/domain/worksites';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { AddConsumable, MoveConsumable } from './ConsumableForms';
+import { Voltar } from '@/components/Voltar';
 
 /**
  * Consumíveis da empresa: fita, rolos, lixas, diluente — o que se gasta em obra e tem de ser reposto.
@@ -32,9 +32,7 @@ export default async function ConsumablesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/app/obras" className="text-[17px] text-slate-600 hover:underline">
-          ← Obras
-        </Link>
+        <Voltar href="/app/obras">Obras</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Consumíveis</h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           O que se gasta em obra e tem de ser reposto. O stock é a soma das entradas e das saídas — registe a compra

@@ -39,7 +39,7 @@ function ContaDeUmaObra({ c }: { c: ContaDaObra }) {
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <h2 className="text-[17px] font-semibold text-slate-900">{c.nome}</h2>
         <Link href={`/app/obras/${c.id}?s=financeiro`} className="text-[15px] font-semibold text-tinta-700 hover:underline">
-          Abrir a obra →
+          Abrir a obra
         </Link>
       </div>
 

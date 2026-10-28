@@ -24,6 +24,7 @@ import { InviteForm } from './InviteForm';
 import { DeleteOrg } from './DeleteOrg';
 import { MemberRoleSelect } from './MemberRoleSelect';
 import { SupplierReviewAnswer } from './SupplierReviewAnswer';
+import { Voltar } from '@/components/Voltar';
 
 const STATUS_LABELS: Record<string, string> = {
   submetido: 'Submetido',
@@ -164,9 +165,7 @@ export default async function OrganizationPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href="/app" className="text-[17px] text-slate-600 hover:underline">
-          ← As suas entidades
-        </Link>
+        <Voltar href="/app">As suas entidades</Voltar>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-[26px] leading-tight font-semibold">{org.nome}</h1>
@@ -202,7 +201,7 @@ export default async function OrganizationPage({
       {org.kind === 'administradora' && (
         <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
           <Link href={`/app/organizacoes/${org.id}/pedidos/novo`} className="hover:underline">
-            Novo pedido de orçamento →
+            Novo pedido de orçamento
           </Link>
           <Link href="#predios" className="font-normal text-slate-600 hover:underline">
             Prédios sob administração

@@ -106,7 +106,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                 <span className="flex items-center gap-2.5">
                   {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-marca-orange-deep' : 'text-marca-muted/80'}`} />}
                   {i.label}
-                  {i.aviso && <span aria-hidden className="text-marca-attention">⚠</span>}
+                  {i.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-marca-attention" />}
                 </span>
                 {i.count ? <span className="rounded-full bg-marca-orange-deep px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
               </Link>
@@ -123,7 +123,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                         activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
                       }`}
                     >
-                      {c.aviso && <span aria-hidden className="text-amber-700">⚠</span>}
+                      {c.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-amber-700" />}
                       {c.label}
                     </Link>
                   ))}

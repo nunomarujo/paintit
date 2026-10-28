@@ -12,6 +12,7 @@ import { saveQuoteTerms, markQuoteSent, setQuoteOutcome, setSeguimento } from '.
 import { ehEmail } from '@/domain/toques';
 import { ActionButton } from '../QuoteForms';
 import { AddLine, EditLine, RemoveLine } from './LineForms';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5';
 
@@ -60,9 +61,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/app/orcamentos" className="text-[17px] text-slate-600 hover:underline">
-          ← Orçamentos
-        </Link>
+        <Voltar href="/app/orcamentos">Orçamentos</Voltar>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-[26px] leading-tight font-semibold">

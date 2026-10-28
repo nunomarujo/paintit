@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createBuilding } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
 import { BuildingForm } from './BuildingForm';
+import { Voltar } from '@/components/Voltar';
 
 export default async function NewBuildingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,9 +12,7 @@ export default async function NewBuildingPage({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-2xl">
-      <Link href={`/app/organizacoes/${org.id}`} className="text-[17px] text-slate-600 hover:underline">
-        ← {org.nome}
-      </Link>
+      <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">{org.kind === 'particular' ? 'Novo imóvel' : 'Novo prédio'}</h1>
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <BuildingForm

@@ -18,6 +18,7 @@ import { adherence, parsePreferences } from '@/domain/reference';
 import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
+import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : 'Não indicado');
@@ -109,9 +110,7 @@ export default async function ProposalsPage({
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/pedidos/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {req.titulo}
-        </Link>
+        <Voltar href={`/app/pedidos/${id}`}>{req.titulo}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Propostas recebidas</h1>
         <p className="mt-1 text-[17px] text-slate-600">
           Os pintores aparecem como Pintor A, B, C… pela ordem de chegada. A identidade e os contactos só são revelados
@@ -124,7 +123,7 @@ export default async function ProposalsPage({
           href={`/app/contratacoes/${engagement.id}`}
           className={`${card} block border-tinta-100 bg-tinta-50 font-semibold text-tinta-900 hover:bg-tinta-100`}
         >
-          Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura) →
+          Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura)
         </Link>
       )}
 
@@ -377,7 +376,7 @@ export default async function ProposalsPage({
               <span className="flex items-center gap-3 text-[17px] text-slate-600">
                 {STATUS[p.status]}
                 <Link href={`${path}/${r.id}/documento`} className="text-tinta-600 hover:underline" target="_blank">
-                  Ver documento →
+                  Ver documento
                 </Link>
               </span>
             </div>

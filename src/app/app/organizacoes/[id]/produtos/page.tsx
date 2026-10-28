@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { deleteDelivery, deleteDiscount, setProductActive } from '@/app/app/catalogo/actions';
 import { BUYER_PROFILE_LABELS, PAYMENT_TERMS_LABELS, PRODUCT_TYPE_LABELS, productLabel } from '@/domain/catalog';
@@ -14,6 +13,7 @@ import { DeliveryForm, DiscountForm } from './SupplierRules';
 import { PLAN_INFO, planAllows, withVat } from '@/domain/subscription';
 import { stripeConfigured } from '@/lib/stripe';
 import { SubscribeButton } from './SubscribeButton';
+import { Voltar } from '@/components/Voltar';
 
 export default async function SupplierProductsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,9 +50,7 @@ export default async function SupplierProductsPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div>
-        <Link href={`/app/organizacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← {org.nome}
-        </Link>
+        <Voltar href={`/app/organizacoes/${id}`}>{org.nome}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Catálogo de produtos</h1>
         <p className="mt-1 text-[17px] text-slate-600">
           Os pintores veem os produtos ativos ao orçamentar. Um produto não se apaga, porque pode estar numa proposta antiga:

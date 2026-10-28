@@ -38,6 +38,7 @@ import {
   type PaymentMethod,
 } from '@/domain/worksite';
 import { canManage, myRole } from '@/lib/access';
+import { Voltar } from '@/components/Voltar';
 import { getUser } from '@/lib/supabase/server';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -214,9 +215,7 @@ export default async function WorksitePage({ params, searchParams }: { params: P
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/app/contratacoes/${id}`} className="text-[17px] text-slate-600 hover:underline">
-          ← Contratação
-        </Link>
+        <Voltar href={`/app/contratacoes/${id}`}>Contratação</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Gestão de obra</h1>
         <p className="mt-1 text-[17px] text-slate-600">
           Obra {listing?.ref ?? id.slice(0, 8).toUpperCase()} · {listing?.concelho ?? ''}. Só a sua equipa vê esta página; a
