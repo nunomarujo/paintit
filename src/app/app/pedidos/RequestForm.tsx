@@ -2,15 +2,28 @@
 
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
-import { DESIRED_WORKS, DESIRED_WORK_LABELS, VIA_PUBLICA, VIA_PUBLICA_LABELS, WORKS_MODES, WORKS_MODE_LABELS, WORK_TYPES, WORK_TYPE_LABELS } from '@/domain/request';
+import {
+  DATA_FLEXIVEL_LABELS,
+  DESIRED_WORKS,
+  DESIRED_WORK_LABELS,
+  VIA_PUBLICA,
+  VIA_PUBLICA_LABELS,
+  WORKS_MODES,
+  WORKS_MODE_LABELS,
+  WORK_TYPES,
+  WORK_TYPE_LABELS,
+  type DataFlexivel,
+} from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
-import { PRODUCT_TYPE_LABELS, type ProductType } from '@/domain/catalog';
+import { EscolherProdutos, type ProdutoEscolhivel } from '@/components/EscolherProdutos';
 import type { Preference } from '@/domain/reference';
 
 export interface RequestInitial {
   building_id: string;
   titulo: string;
   tipo_obra: string;
+  tipos_obra?: string[] | null;
+  datas_flexiveis?: string[] | null;
   descricao: string;
   trabalhos: string[];
   cor_acabamento: string | null;
@@ -27,12 +40,21 @@ interface Props {
   buildings: { id: string; nome_interno: string }[];
   initial?: RequestInitial;
   disabled?: boolean;
-  references?: { id: string; marca: string; nome: string; tipo: ProductType }[];
+  references?: ProdutoEscolhivel[];
 }
 
 export function RequestForm({ action: submit, buildings, initial, disabled, references = [] }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
+  // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
+  const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
+  const flexiveisIniciais = initial?.datas_flexiveis ?? [];
+  const flexivel = (d: DataFlexivel) => (
+    <label className="mt-2 flex min-h-[44px] items-start gap-2 text-[15px] font-normal text-slate-600">
+      <input type="checkbox" name="dataFlexivel" value={d} defaultChecked={flexiveisIniciais.includes(d)} className="mt-0.5" />
+      {DATA_FLEXIVEL_LABELS[d]}
+    </label>
+  );
 
   return (
     <form {...formProps} className="space-y-5">
@@ -57,15 +79,27 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
           />
         </div>
 
-        <Field name="tipoObra" label="Tipo de obra" required error={e.tipoObra}>
-          <select name="tipoObra" required defaultValue={initial?.tipo_obra ?? 'fachadas'} className={selectClass}>
+        <fieldset>
+          <legend className="text-[17px] font-medium text-slate-700">
+            Tipo de obra <span className="text-red-700">*</span>
+          </legend>
+          <p className="mt-1 text-[15px] text-slate-500">
+            Assinale todos os que se aplicam. Uma obra pode ser exterior e interior ao mesmo tempo.
+          </p>
+          <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-2">
             {WORK_TYPES.map((t) => (
-              <option key={t} value={t}>
+              <label key={t} className="flex min-h-[44px] items-center gap-2">
+                <input type="checkbox" name="tipoObra" value={t} defaultChecked={tiposIniciais.includes(t)} />
                 {WORK_TYPE_LABELS[t]}
-              </option>
+              </label>
             ))}
-          </select>
-        </Field>
+          </div>
+          {e.tipoObra && (
+            <p className="mt-1 text-[15px] text-red-700" role="alert">
+              {e.tipoObra}
+            </p>
+          )}
+        </fieldset>
 
         <Field
           name="descricao"
@@ -118,40 +152,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
         />
 
         {references.length > 0 && (
-          <details className="rounded-xl bg-slate-50 p-4" open={(initial?.produtos_preferidos?.length ?? 0) > 0}>
-            <summary className="cursor-pointer text-[17px] font-medium text-slate-700">
-              Produtos preferidos (opcional)
-            </summary>
-            <p className="mt-2 text-[15px] text-slate-600">
-              Indique os produtos que gostaria que fossem usados. Marque “fixo” se o pintor não os pode trocar; sem “fixo”,
-              pode propor outro e a comparação mostra se é mais caro ou mais barato. Veja as fichas no catálogo.
-            </p>
-            {(Object.keys(PRODUCT_TYPE_LABELS) as ProductType[])
-              .filter((t) => references.some((r) => r.tipo === t))
-              .map((t) => (
-                <fieldset key={t} className="mt-3">
-                  <legend className="text-[15px] font-semibold uppercase text-slate-500">{PRODUCT_TYPE_LABELS[t]}</legend>
-                  <ul className="mt-1 grid gap-1 text-[17px] sm:grid-cols-2">
-                    {references
-                      .filter((r) => r.tipo === t)
-                      .map((r) => {
-                        const pref = initial?.produtos_preferidos?.find((x) => x.id === r.id);
-                        return (
-                          <li key={r.id} className="flex items-center justify-between gap-2">
-                            <label className="flex items-center gap-2">
-                              <input type="checkbox" name="preferido" value={r.id} defaultChecked={!!pref} />
-                              {r.marca} {r.nome}
-                            </label>
-                            <label className="flex items-center gap-1 text-[15px] text-slate-600">
-                              <input type="checkbox" name="fixo" value={r.id} defaultChecked={pref?.fixo} /> fixo
-                            </label>
-                          </li>
-                        );
-                      })}
-                  </ul>
-                </fieldset>
-              ))}
-          </details>
+          <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />
         )}
 
         <Field
@@ -170,28 +171,37 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-3">
-          <Field
-            name="prazoPropostas"
-            label="Propostas até"
-            type="date"
-            defaultValue={initial?.prazo_propostas ?? undefined}
-            error={e.prazoPropostas}
-            hint="Pelo menos 7 dias."
-          />
-          <Field
-            name="execucaoDesde"
-            label="Execução a partir de"
-            type="date"
-            defaultValue={initial?.execucao_desde ?? undefined}
-            error={e.execucaoDesde}
-          />
-          <Field
-            name="execucaoAte"
-            label="Execução até"
-            type="date"
-            defaultValue={initial?.execucao_ate ?? undefined}
-            error={e.execucaoAte}
-          />
+          <div>
+            <Field
+              name="prazoPropostas"
+              label="Propostas até"
+              type="date"
+              defaultValue={initial?.prazo_propostas ?? undefined}
+              error={e.prazoPropostas}
+              hint="Pelo menos 7 dias."
+            />
+            {flexivel('propostas')}
+          </div>
+          <div>
+            <Field
+              name="execucaoDesde"
+              label="Execução a partir de"
+              type="date"
+              defaultValue={initial?.execucao_desde ?? undefined}
+              error={e.execucaoDesde}
+            />
+            {flexivel('execucao_desde')}
+          </div>
+          <div>
+            <Field
+              name="execucaoAte"
+              label="Execução até"
+              type="date"
+              defaultValue={initial?.execucao_ate ?? undefined}
+              error={e.execucaoAte}
+            />
+            {flexivel('execucao_ate')}
+          </div>
         </div>
       </fieldset>
 

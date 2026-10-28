@@ -347,6 +347,10 @@ export type Database = {
           ref: string;
           status: RequestStatus;
           tipo_obra: WorkType;
+          // Migração `tipos_obra_e_datas_flexiveis` (28/10/2026), ainda por aplicar quando isto foi
+          // escrito à mão. Regenerar com `generate_typescript_types` depois de aplicada.
+          tipos_obra: WorkType[];
+          datas_flexiveis: string[];
           titulo: string;
           trabalhos: string[];
           updated_at: string;
@@ -370,6 +374,8 @@ export type Database = {
           ref?: string;
           status?: RequestStatus;
           tipo_obra: WorkType;
+          tipos_obra?: WorkType[];
+          datas_flexiveis?: string[];
           titulo: string;
           trabalhos?: string[];
           updated_at?: string;
@@ -1838,6 +1844,14 @@ export type Database = {
           forma_implantacao: string | null;
           tipo_imovel: BuildingKind;
           tipo_obra: WorkType;
+          // Migração `tipos_obra_e_datas_flexiveis` (28/10/2026), escritas à mão enquanto não é
+          // aplicada. Regenerar com `generate_typescript_types` depois disso.
+          tipos_obra: WorkType[];
+          datas_flexiveis: string[];
+          janelas_frente: number | null;
+          janelas_esquerda: number | null;
+          janelas_direita: number | null;
+          janelas_tras: number | null;
           trabalhos: string[];
           version: number;
           ocupacao_via_publica: ViaPublica;

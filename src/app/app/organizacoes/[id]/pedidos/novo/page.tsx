@@ -1,4 +1,4 @@
-import { loadReferences } from '@/lib/reference';
+import { escolhivel, loadReferences } from '@/lib/reference';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createRequest } from '@/app/app/pedidos/actions';
@@ -132,7 +132,7 @@ export default async function NewRequestPage({
             </Link>
           </p>
         ) : (
-          <RequestForm action={createRequest.bind(null, org.id)} buildings={ordered} references={await loadReferences(supabase)} />
+          <RequestForm action={createRequest.bind(null, org.id)} buildings={ordered} references={(await loadReferences(supabase)).map(escolhivel)} />
         )}
       </div>
     </div>

@@ -4,8 +4,9 @@ import type { Fachada, Forma } from '@/domain/volume';
 import {
   DESIRED_WORK_LABELS,
   SURFACE_KIND_LABELS,
-  WORK_TYPE_LABELS,
+  etiquetaDosTipos,
   formatArea,
+  type DataFlexivel,
   type DesiredWork,
   type SurfaceKind,
   type WorkType,
@@ -14,6 +15,10 @@ import {
 export interface ListingView {
   ref: string;
   tipoObra: WorkType;
+  /** Todos os tipos da obra; sem isto, só o principal. */
+  tiposObra?: WorkType[] | null;
+  /** Datas que o cliente deu por indicativas. */
+  datasFlexiveis?: string[] | null;
   concelho: string;
   tipoImovel: BuildingKind;
   pisos: number | null;
@@ -49,6 +54,7 @@ const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
  */
 export function ListingPreview({ l }: { l: ListingView }) {
   const total = l.surfaces.reduce((n, s) => n + s.area, 0);
+  const flexivel = (d: DataFlexivel) => (l.datasFlexiveis ?? []).includes(d);
   const caracteristicas = [
     BUILDING_KIND_LABELS[l.tipoImovel],
     l.pisos !== null ? `${l.pisos} pisos` : null,
@@ -62,7 +68,7 @@ export function ListingPreview({ l }: { l: ListingView }) {
         <div>
           <p className="text-[15px] font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
           <h3 className="mt-1 text-[20px] font-semibold">
-            {WORK_TYPE_LABELS[l.tipoObra]} · {l.concelho}
+            {etiquetaDosTipos(l.tiposObra?.length ? l.tiposObra : [l.tipoObra])} · {l.concelho}
           </h3>
           <p className="text-slate-600">{caracteristicas.join(' · ')}</p>
         </div>
@@ -97,10 +103,21 @@ export function ListingPreview({ l }: { l: ListingView }) {
         <div>
           <dt className="text-slate-500">Propostas até</dt>
           <dd className="font-semibold">{pt(l.prazoPropostas)}</dd>
+          {flexivel('propostas') && <dd className="text-[15px] text-slate-500">O cliente aceita prolongar, a pedido.</dd>}
         </div>
         <div>
           <dt className="text-slate-500">Execução</dt>
           <dd>{l.execucaoDesde || l.execucaoAte ? `${pt(l.execucaoDesde)} a ${pt(l.execucaoAte)}` : 'A combinar'}</dd>
+          {/* Uma data com margem muda o que o pintor pode propor: diz-se aqui, ao lado da data. */}
+          {(flexivel('execucao_desde') || flexivel('execucao_ate')) && (
+            <dd className="text-[15px] text-slate-500">
+              {flexivel('execucao_desde') && flexivel('execucao_ate')
+                ? 'Datas indicativas: pode propor outras.'
+                : flexivel('execucao_desde')
+                  ? 'Início indicativo: pode propor outro.'
+                  : 'Fim indicativo: pode propor outro.'}
+            </dd>
+          )}
         </div>
       </dl>
 

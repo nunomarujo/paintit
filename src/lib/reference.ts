@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ProductType } from '@/domain/catalog';
+import { ISOLAMENTO_E_ACESSORIOS, type ProdutoEscolhivel, type ProductType } from '@/domain/catalog';
 import { parsePreferences, pricePerLitre, type UsedProduct } from '@/domain/reference';
 import type { Database } from '@/lib/database.types';
 
@@ -63,4 +63,29 @@ export async function preferredView(supabase: SupabaseClient<Database>, raw: unk
     const r = refs.find((x) => x.id === p.id);
     return r ? [{ id: p.id, fixo: p.fixo, label: `${r.marca} ${r.nome}` }] : [];
   });
+}
+
+/**
+ * O produto de referência como o cliente o escolhe no pedido (`EscolherProdutos`).
+ *
+ * Só o que ajuda a escolher: fotografia, tipo, acabamento, embalagem e preço. O preço é o de
+ * referência do fabricante — venda ao público, sem desconto nenhum. Descontos de fornecedor são
+ * matéria do pintor e não aparecem de nenhuma forma do lado do cliente (CLAUDE.md, regra 15).
+ */
+export function escolhivel(r: ReferenceProduct): ProdutoEscolhivel {
+  const porArea = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
+  const quantidade = porArea ? r.m2_por_embalagem : r.preco_embalagem_l;
+  return {
+    id: r.id,
+    marca: r.marca,
+    nome: r.nome,
+    tipo: r.tipo as ProductType,
+    acabamento: r.acabamento,
+    descricao: r.descricao,
+    fotoPath: r.foto_path,
+    embalagem: quantidade ? `${quantidade.toLocaleString('pt-PT')} ${porArea ? 'm²' : 'L'}` : null,
+    precoCents: r.preco_referencia_cents,
+    unitarioCents: porArea ? refPerM2(r) : refPerLitre(r),
+    unidade: porArea ? 'm²' : 'L',
+  };
 }

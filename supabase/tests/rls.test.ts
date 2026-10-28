@@ -392,6 +392,68 @@ describe('pedidos e anúncios', () => {
   });
 });
 
+describe('tipos de obra e datas indicativas', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado acima
+  let buildingId: string;
+
+  beforeAll(async () => {
+    buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+  });
+
+  // `tipos_obra` vem sempre convertido para text[]: o cliente do Postgres em memória não traz
+  // descodificador para arrays de enum definidos pelo utilizador e devolveria a cadeia "{a,b}" em
+  // bruto. Os valores testados são os mesmos; o que muda é só quem os lê.
+  const criar = (tipos: string | null, flexiveis = '{}') =>
+    as(A, () =>
+      one<{ id: string; tipo_obra: string; tipos_obra: string[] }>(
+        `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, tipos_obra, datas_flexiveis, descricao, prazo_propostas)
+         values ($1, $2, 'Obra mista', 'interior', coalesce($3::public.work_type[], '{}'), $4::text[], $5, current_date + 10)
+         returning id, tipo_obra, tipos_obra::text[] as tipos_obra`,
+        [condo, buildingId, tipos, flexiveis, 'Pintura das fachadas e das escadas, com fissuras a reparar.'],
+      ),
+    );
+
+  it('sem lista, o tipo principal vale por lista de um (pedidos antigos e gravações sem a coluna)', async () => {
+    const r = await criar(null);
+    expect(r.tipos_obra).toEqual(['interior']);
+    expect(r.tipo_obra).toBe('interior');
+  });
+
+  it('com lista, o principal passa a ser o primeiro pela ordem do enum — mesmo contra o que foi gravado', async () => {
+    // Grava-se 'interior' como principal e uma lista que começa por 'interior'; a base corrige para
+    // 'fachadas', que é o primeiro do enum. A mesma regra de `tipoPrincipal` em src/domain/request.ts.
+    const r = await criar('{interior,fachadas}');
+    expect(r.tipos_obra).toEqual(['fachadas', 'interior']);
+    expect(r.tipo_obra).toBe('fachadas');
+  });
+
+  it('repetidos desaparecem', async () => {
+    const r = await criar('{interior,interior,fachadas}');
+    expect(r.tipos_obra).toEqual(['fachadas', 'interior']);
+  });
+
+  it('uma data indicativa fora das três é recusada pela base', async () => {
+    await expect(criar('{fachadas}', '{tudo}')).rejects.toThrow(/datas_flexiveis/);
+  });
+
+  it('publicado: a lista e as datas indicativas chegam ao anúncio do pintor', async () => {
+    const r = await criar('{interior,fachadas}', '{execucao_desde,propostas}');
+    await as(A, () =>
+      db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 10000)`, [r.id]),
+    );
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [r.id]));
+    const l = await as(P, () =>
+      one<{ tipo_obra: string; tipos_obra: string[]; datas_flexiveis: string[] }>(
+        'select tipo_obra, tipos_obra::text[] as tipos_obra, datas_flexiveis from public.request_listings where request_id = $1',
+        [r.id],
+      ),
+    );
+    expect(l.tipo_obra).toBe('fachadas');
+    expect(l.tipos_obra).toEqual(['fachadas', 'interior']);
+    expect(l.datas_flexiveis.sort()).toEqual(['execucao_desde', 'propostas']);
+  });
+});
+
 describe('fotografias do pedido', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
   let requestId: string;

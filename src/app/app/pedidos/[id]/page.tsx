@@ -13,7 +13,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
 import { qrCodeSvg } from '@/lib/qrcode';
-import { loadReferences, preferredView } from '@/lib/reference';
+import { escolhivel, loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { PhotoUpload } from './PhotoUpload';
 import { ProlongarPrazo } from './ProlongarPrazo';
@@ -44,7 +44,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const [{ data: org }, { data: building }, { data: buildings }, { data: surfaces }, { data: photos }, { count: proposalCount }] =
     await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
-    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao, janelas_frente, janelas_esquerda, janelas_direita, janelas_tras').eq('id', req.building_id).single(),
+    supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
     supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
@@ -57,6 +57,22 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     .eq('status', 'suspenso')
     .order('resolved_at', { ascending: false });
   if (!org || !building) notFound();
+
+  // As janelas por fachada vêm à parte, e de propósito.
+  //
+  // O código chega sempre à produção antes da migração: são dois lançamentos independentes e nenhum
+  // espera pelo outro. Pedi estas quatro colunas dentro da consulta acima e, enquanto a migração não
+  // correu, o PostgREST devolveu erro à consulta inteira — `building` nulo, `notFound()`, e todos os
+  // pedidos a dar «Não encontrado», incluindo o que o cliente acabava de criar (28/10/2026).
+  //
+  // Uma coluna que só decide quantos vãos o desenho mostra não pode derrubar o ecrã. Fica numa
+  // consulta própria, cujo fracasso só custa o número por omissão. Regra: ler coluna recém-nascida
+  // à parte; falhar alto só onde o valor é preciso para gravar.
+  const { data: janelas } = await supabase
+    .from('buildings')
+    .select('janelas_frente, janelas_esquerda, janelas_direita, janelas_tras')
+    .eq('id', req.building_id)
+    .maybeSingle();
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
@@ -213,7 +229,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             buildings={buildings ?? []}
             initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
             disabled={!manager || !draft}
-            references={await loadReferences(supabase)}
+            references={(await loadReferences(supabase)).map(escolhivel)}
           />
         </div>
       </section>
@@ -324,6 +340,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           l={{
             ref: req.ref,
             tipoObra: req.tipo_obra,
+            tiposObra: req.tipos_obra,
+            datasFlexiveis: req.datas_flexiveis,
             concelho: building.concelho,
             tipoImovel: building.tipo,
             pisos: building.pisos,
@@ -331,10 +349,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             temVarandas: building.tem_varandas,
             forma: (building.forma_implantacao as Forma | null) ?? null,
             janelas: {
-              frente: building.janelas_frente,
-              esquerda: building.janelas_esquerda,
-              direita: building.janelas_direita,
-              tras: building.janelas_tras,
+              frente: janelas?.janelas_frente ?? null,
+              esquerda: janelas?.janelas_esquerda ?? null,
+              direita: janelas?.janelas_direita ?? null,
+              tras: janelas?.janelas_tras ?? null,
             },
             descricao: req.descricao,
             trabalhos: req.trabalhos,

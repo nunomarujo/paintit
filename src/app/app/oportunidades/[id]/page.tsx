@@ -26,7 +26,7 @@ import { parseTemplate } from '@/domain/templates';
 import { budgetPendings, isComplete, itemsFromLines, type CatalogueProduct, type Zone } from '@/domain/works';
 import { parsePreferences } from '@/domain/reference';
 import type { DesiredWork } from '@/domain/request';
-import { SURFACE_KIND_LABELS, WORK_TYPE_LABELS, formatArea } from '@/domain/request';
+import { SURFACE_KIND_LABELS, etiquetaDosTipos, formatArea } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { toLine, toTerms } from '@/lib/proposals';
 import { materialOptions, productsFor } from '@/lib/materials';
@@ -81,7 +81,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         {listing && (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
             <p className="font-semibold">
-              {WORK_TYPE_LABELS[listing.tipo_obra]} · {listing.concelho}
+              {etiquetaDosTipos(listing.tipos_obra?.length ? listing.tipos_obra : [listing.tipo_obra])} · {listing.concelho}
             </p>
             <p className="text-[17px] text-slate-600">Pedido {listing.ref}</p>
           </div>
@@ -258,7 +258,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
       <Voltar href="/app/oportunidades">Oportunidades</Voltar>
 
       <Workspace
-        titulo={listing ? `${WORK_TYPE_LABELS[listing.tipo_obra]} · ${listing.concelho}` : 'Pedido'}
+        titulo={listing ? `${etiquetaDosTipos(listing.tipos_obra?.length ? listing.tipos_obra : [listing.tipo_obra])} · ${listing.concelho}` : 'Pedido'}
         referencia={listing?.ref ?? '—'}
         resumo={[
           { label: 'Área', valor: formatArea(listing?.area_total_cm2 ?? 0) },
@@ -285,6 +285,8 @@ export default async function OpportunityPage({ params, searchParams }: { params
           l={{
             ref: listing.ref,
             tipoObra: listing.tipo_obra,
+            tiposObra: listing.tipos_obra,
+            datasFlexiveis: listing.datas_flexiveis,
             concelho: listing.concelho,
             tipoImovel: listing.tipo_imovel,
             pisos: listing.pisos,

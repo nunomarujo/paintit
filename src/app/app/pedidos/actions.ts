@@ -19,6 +19,25 @@ import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
+/**
+ * O código chega à produção antes da migração — são dois lançamentos e nenhum espera pelo outro.
+ *
+ * A 28/10/2026 um ecrã pediu quatro colunas que ainda não existiam na base e todos os pedidos
+ * passaram a dar «Não encontrado», incluindo o que o cliente acabava de criar. Aqui o risco é pior:
+ * uma gravação que falha perde o que a pessoa escreveu. Por isso o que é novo vai à parte, e se a
+ * base ainda não o conhece (`42703: column does not exist`) grava-se o pedido na mesma, sem ele.
+ *
+ * `tipo_obra` leva sempre o tipo principal, e é o que todo o resto já lê: o anúncio, o filtro das
+ * oportunidades, os documentos. Um pedido gravado nesta janela fica certo, só menos detalhado.
+ *
+ * Isto sai daqui quando `tipos_obra` e `datas_flexiveis` estiverem aplicadas nos dois ambientes.
+ */
+const COLUNA_NOVA = '42703';
+
+function colunasNovas(v: NonNullable<ReturnType<typeof parseRequest>['value']>) {
+  return { tipos_obra: v.tiposObra, datas_flexiveis: v.datasFlexiveis };
+}
+
 function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>, form: FormData) {
   return {
     produtos_preferidos: preferencesFromForm(form).map((p) => ({ id: p.id, fixo: p.fixo })) as Json,
@@ -44,11 +63,9 @@ export async function createRequest(orgId: string, _prev: FormState, form: FormD
   const refused = await guardContact(supabase, user.id, 'pedido', { descricao: parsed.value.descricao, corAcabamento: parsed.value.corAcabamento });
   if (refused) return refused;
 
-  const { data, error } = await supabase
-    .from('work_requests')
-    .insert({ org_id: orgId, ...requestColumns(parsed.value, form), created_by: user.id })
-    .select('id')
-    .single();
+  const base = { org_id: orgId, ...requestColumns(parsed.value, form), created_by: user.id };
+  let { data, error } = await supabase.from('work_requests').insert({ ...base, ...colunasNovas(parsed.value) }).select('id').single();
+  if (error?.code === COLUNA_NOVA) ({ data, error } = await supabase.from('work_requests').insert(base).select('id').single());
   if (error || !data) return { errors: {}, message: 'Não foi possível criar o pedido. Só gestores da entidade o podem fazer.' };
   redirect(`/app/pedidos/${data.id}`);
 }
@@ -61,12 +78,11 @@ export async function updateRequest(requestId: string, _prev: FormState, form: F
   const refused = await guardContact(supabase, user.id, 'pedido', { descricao: parsed.value.descricao, corAcabamento: parsed.value.corAcabamento });
   if (refused) return refused;
 
-  const { data, error } = await supabase
-    .from('work_requests')
-    .update(requestColumns(parsed.value, form))
-    .eq('id', requestId)
-    .eq('status', 'rascunho')
-    .select('id');
+  const base = requestColumns(parsed.value, form);
+  const alterar = (patch: typeof base | (typeof base & ReturnType<typeof colunasNovas>)) =>
+    supabase.from('work_requests').update(patch).eq('id', requestId).eq('status', 'rascunho').select('id');
+  let { data, error } = await alterar({ ...base, ...colunasNovas(parsed.value) });
+  if (error?.code === COLUNA_NOVA) ({ data, error } = await alterar(base));
   if (error || !data || data.length === 0) {
     return { errors: {}, message: 'Não foi possível guardar. Um pedido publicado tem de voltar a rascunho para ser alterado.' };
   }

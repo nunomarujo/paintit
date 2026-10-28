@@ -4,6 +4,38 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 28/10/2026 (fim do dia) — O pedido do cliente: vários tipos, datas com margem, catálogo numa janela
+
+**O 404 em todos os pedidos, e a regra que daí sai.** A página do pedido passou a pedir quatro
+colunas (`janelas_*`) que a migração ainda não tinha criado na base real. O PostgREST recusa a
+consulta inteira quando uma coluna não existe: `building` vinha nulo, a página chamava `notFound()`
+e **todos os pedidos davam "Não encontrado"**, incluindo o que o cliente acabava de criar. A causa
+não foi a migração estar por aplicar — isso é normal — foi o código assumir que já estava.
+
+> **Regra:** o código chega à produção antes da migração; são dois lançamentos e nenhum espera pelo
+> outro. Uma coluna recém-nascida lê-se **numa consulta à parte**, cujo fracasso custa só o valor
+> por omissão. Numa gravação, o que é novo vai num objecto à parte e, se a base ainda não o conhece
+> (`42703`), grava-se o essencial na mesma — perder o que a pessoa escreveu é pior do que gravar
+> menos detalhe.
+
+**Uma obra pode ser de mais do que um tipo.** O pedido escolhia um tipo numa lista pendente, e uma
+empreitada que pinta a fachada e as escadas cabia num ou noutro, nunca nos dois. Passa a haver
+`tipos_obra`, e `tipo_obra` fica a ser o **principal** — o que o título do anúncio mostra, o que
+filtra as oportunidades e o que vai nos documentos —, definido como o primeiro da lista pela ordem
+do enum. Essa ligação vive **num gatilho**, não só na aplicação: o mesmo conjunto dá sempre o mesmo
+principal, venha do formulário, de SQL à mão ou de uma gravação feita antes da migração.
+
+**Datas com margem.** Uma data de execução sem margem é uma condição; com margem é um desejo, e o
+pintor precisa de saber a diferença antes de orçamentar. Cada uma das três datas tem agora a sua
+caixa. O prazo das propostas continua a ser o único que a plataforma faz cumprir: marcá-lo não o
+move, diz ao pintor que o cliente aceita prolongá-lo a pedido.
+
+**O catálogo sai do formulário.** Os 263 produtos de referência estavam todos em caixas de selecção
+no meio do pedido, sem procura e sem preço. Passam para uma janela com a mesma lista que o pintor vê
+no catálogo — fotografia, tipo, acabamento, embalagem e preço — e com a mesma procura tolerante a
+gíria e a erros. O preço é o de referência do fabricante, venda ao público: descontos de fornecedor
+são do pintor e não aparecem de nenhuma forma do lado do cliente (regra 15).
+
 ## 28/10/2026 (tarde) — Quem assina os toques, e o que a lei diz sobre escrever a entidades públicas
 
 **A frase dos toques.** A regra de 26/10 manda que cada mensagem diga que é o assistente de IA do

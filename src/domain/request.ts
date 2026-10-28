@@ -15,6 +15,52 @@ export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   interior: 'Interior de habitação',
 };
 
+/**
+ * Uma obra pode ser de mais do que um tipo — e quase sempre é.
+ *
+ * Até 28/10/2026 o pedido escolhia um só tipo, numa lista pendente. Uma empreitada de condomínio
+ * que pinta a fachada e as escadas cabia em "Fachadas e varandas" ou em "Zonas comuns interiores",
+ * nunca nas duas, e o pintor recebia o anúncio com metade da obra escondida no texto (queixa do
+ * promotor, repetida: primeiro nos modelos de orçamento, depois aqui).
+ *
+ * `tipo_obra` continua a existir e continua a ser o principal: é o que o anúncio põe no título, o
+ * que filtra a lista de oportunidades e o que vai nos documentos. É sempre o primeiro de
+ * `tipos_obra` pela ordem acima, para que o mesmo conjunto dê sempre o mesmo principal.
+ */
+export function tipoPrincipal(tipos: readonly WorkType[]): WorkType {
+  return WORK_TYPES.find((t) => tipos.includes(t)) ?? 'fachadas';
+}
+
+/** Ordena pela ordem canónica e tira repetidos: a lista do formulário não manda na ordem. */
+export function tiposCanonicos(tipos: readonly string[]): WorkType[] {
+  return WORK_TYPES.filter((t) => tipos.includes(t));
+}
+
+/** "Fachadas e varandas · Interior de habitação" — um só tipo dá a etiqueta de sempre. */
+export function etiquetaDosTipos(tipos: readonly WorkType[]): string {
+  const lista = tiposCanonicos(tipos);
+  return (lista.length ? lista : (['fachadas'] as WorkType[])).map((t) => WORK_TYPE_LABELS[t]).join(' · ');
+}
+
+/**
+ * Datas que o cliente dá por indicativas.
+ *
+ * Uma data de execução sem margem é uma condição; a mesma data com margem é um desejo. O pintor
+ * precisa de saber a diferença antes de orçamentar: com margem pode propor outra semana e ganhar a
+ * obra; sem margem, ou pode naquelas datas ou não concorre (pedido do promotor, 28/10/2026).
+ *
+ * O prazo das propostas é o único que a plataforma faz cumprir — as propostas só chegam ao cliente
+ * no fim dele. Marcá-lo flexível não o move: diz ao pintor que o cliente aceita prolongá-lo a
+ * pedido, e o prolongamento tem o seu próprio caminho (`prolongar_prazo`).
+ */
+export const DATAS_FLEXIVEIS = ['propostas', 'execucao_desde', 'execucao_ate'] as const;
+export type DataFlexivel = (typeof DATAS_FLEXIVEIS)[number];
+export const DATA_FLEXIVEL_LABELS: Record<DataFlexivel, string> = {
+  propostas: 'Aceito prolongar o prazo, se for pedido',
+  execucao_desde: 'Data indicativa: pode começar noutra altura',
+  execucao_ate: 'Data indicativa: aceito outra data de fim',
+};
+
 export const SURFACE_KINDS = [
   'fachada',
   'empena',
@@ -263,7 +309,10 @@ export const VIA_PUBLICA_LABELS: Record<ViaPublica, string> = {
 export interface RequestInput {
   buildingId: string;
   titulo: string;
+  /** O principal: o primeiro de `tiposObra` pela ordem de WORK_TYPES. */
   tipoObra: WorkType;
+  /** Todos os tipos escolhidos, pela ordem canónica. Nunca vazio. */
+  tiposObra: WorkType[];
   descricao: string;
   trabalhos: DesiredWork[];
   corAcabamento: string | null;
@@ -272,6 +321,7 @@ export interface RequestInput {
   execucaoAte: string | null;
   ocupacaoViaPublica: ViaPublica;
   trabalhosModo: WorksMode;
+  datasFlexiveis: DataFlexivel[];
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -283,8 +333,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
   if (!buildingId) errors.buildingId = 'Escolha o prédio.';
   const titulo = get('titulo');
   if (!titulo) errors.titulo = 'Dê um nome interno ao pedido.';
-  const tipoObra = get('tipoObra');
-  if (!(WORK_TYPES as readonly string[]).includes(tipoObra)) errors.tipoObra = 'Escolha o tipo de obra.';
+  const tiposObra = tiposCanonicos(form.getAll('tipoObra').map(String));
+  if (tiposObra.length === 0) errors.tipoObra = 'Escolha pelo menos um tipo de obra.';
   const trabalhos = form.getAll('trabalhos').map(String);
   if (trabalhos.some((t) => !(DESIRED_WORKS as readonly string[]).includes(t))) errors.trabalhos = 'Trabalho inválido.';
   const dates: Record<string, string | null> = {};
@@ -293,6 +343,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
     if (v && !DATE.test(v)) errors[k] = 'Data inválida.';
     dates[k] = v || null;
   }
+  const flexiveis = form.getAll('dataFlexivel').map(String).filter((d): d is DataFlexivel => (DATAS_FLEXIVEIS as readonly string[]).includes(d));
   const modo = get('trabalhosModo') || 'iguais';
   if (!(WORKS_MODES as readonly string[]).includes(modo)) errors.trabalhosModo = 'Escolha uma opção.';
   const via = get('ocupacaoViaPublica') || 'a_avaliar';
@@ -306,7 +357,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
     value: {
       buildingId,
       titulo,
-      tipoObra: tipoObra as WorkType,
+      tipoObra: tipoPrincipal(tiposObra),
+      tiposObra,
       descricao: get('descricao'),
       trabalhos: trabalhos as DesiredWork[],
       corAcabamento: get('corAcabamento') || null,
@@ -315,6 +367,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
       execucaoAte: dates.execucaoAte ?? null,
       ocupacaoViaPublica: via as ViaPublica,
       trabalhosModo: modo as WorksMode,
+      datasFlexiveis: [...new Set(flexiveis)],
     },
   };
 }

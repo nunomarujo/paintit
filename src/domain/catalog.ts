@@ -362,3 +362,21 @@ export function parsePercent(v: FormDataEntryValue | null): number | null {
   if (h === null) return null;
   return Number.isNaN(h) || h > 10000 ? Number.NaN : h;
 }
+
+/** O que o cliente precisa de ver para escolher um produto — nada do que é do pintor. */
+export interface ProdutoEscolhivel {
+  id: string;
+  marca: string;
+  nome: string;
+  tipo: ProductType;
+  acabamento: string | null;
+  descricao: string | null;
+  fotoPath: string | null;
+  /** Embalagem a que o preço diz respeito: "5 L", "6 m²". */
+  embalagem: string | null;
+  /** Preço de referência do fabricante, da embalagem acima. */
+  precoCents: number | null;
+  /** O mesmo preço por unidade, para comparar embalagens diferentes. */
+  unitarioCents: number | null;
+  unidade: 'L' | 'm²';
+}
