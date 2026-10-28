@@ -108,7 +108,9 @@ export async function Concursos({
             o que aparece aqui é uma parte do mercado, não o mercado todo.
           </p>
           {habilitacao.titulo === 'nenhum' && (
-            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            // Segunda banda do mesmo ecrã: contra a regra 13, e logo no ficheiro de onde a regra
+            // subiu para o CLAUDE.md. Dentro de um bloco que já é banda, o aviso é texto.
+            <p className="mt-3 font-medium text-amber-900">
               Sem alvará nem certificado do IMPIC validado, nenhuma obra pública é elegível. O certificado habilita até
               40 000 € e, nas subcategorias de pintura e de impermeabilizações, não exige quadro técnico.
             </p>

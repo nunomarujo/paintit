@@ -36,6 +36,7 @@ import { getUser } from '@/lib/supabase/server';
 import { LineForm, SubmitProposal, TermsForm } from './ProposalForms';
 import { Workspace } from '@/components/Workspace';
 import { Voltar } from '@/components/Voltar';
+import { ICONES } from '@/components/NavIcons';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
@@ -376,7 +377,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               </Link>
             )}
             {proposal.status === 'submetida' && listing && proposal.request_version !== null && proposal.request_version < (listing.version ?? 0) && (
-              <p className="mt-3 rounded-xl bg-amber-50 p-3 text-[17px]">
+              <p className="mt-3 text-[17px] font-medium text-amber-800">
                 O cliente alterou o pedido depois da sua submissão. Reveja a proposta para continuar a concorrer.
               </p>
             )}
@@ -526,7 +527,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                       )}
                       <section className={`${card} mx-auto max-w-[210mm]`}>
                         {licenseWarning && (
-                          <p className="mb-3 rounded border-2 border-amber-400 bg-amber-50 p-3 text-[17px] font-semibold text-amber-900" role="alert">
+                          <p className="mb-3 text-[17px] font-semibold text-amber-800">
                             Em falta: {licenseWarning} Ver aviso e atalho no topo da página.
                           </p>
                         )}
@@ -572,9 +573,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
         ]}
       />
 
+      {/*
+        Era a quarta banda âmbar deste ecrã (regra 13: uma por ecrã, no topo). Mas esta nem alarme
+        é — é uma regra permanente da plataforma, que está sempre verdadeira e nunca se "resolve".
+        Nota neutra, para o âmbar ficar reservado ao que exige acção (28/10/2026).
+      */}
       {listing?.aberto && (
-        <p className="flex gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-[17px] text-amber-900" role="note">
-          <span aria-hidden className="font-bold">(!)</span>
+        <p className="flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[17px] text-slate-700" role="note">
+          <ICONES.aviso className="mt-1 h-[18px] w-[18px] shrink-0 text-slate-500" />
           <span>
             <b>É proibida a identificação das partes</b> (nomes ou moradas). Não forneça contactos: tentar fazê-lo conta como aviso e pode levar ao
             bloqueio da conta.
