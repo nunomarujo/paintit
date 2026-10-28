@@ -175,11 +175,11 @@ export function ProposalView({
         para baixo de uma linha que o diz por extenso.
       */}
       <dl className="divide-y divide-slate-100">
-        <div className="flex justify-between gap-3 py-1.5">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
           <dt className="text-slate-600">Preço sem IVA (incluído)</dt>
           <dd className="font-medium tabular-nums">{formatEuros(t.base)}</dd>
         </div>
-        <div className="flex justify-between gap-3 py-1.5">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
           <dt className="text-slate-600">IVA ({terms.ivaBps / 100}%)</dt>
           <dd className="font-medium tabular-nums">{formatEuros(t.iva)}</dd>
         </div>
@@ -209,23 +209,41 @@ export function ProposalView({
         </div>
       )}
 
-      <dl className="grid gap-x-6 gap-y-1 border-t border-slate-100 pt-3 sm:grid-cols-2">
-        <dt className="text-slate-500">Válida até</dt>
-        <dd className="sm:text-right">{pt(terms.validade)}</dd>
-        <dt className="text-slate-500">Início possível</dt>
-        <dd className="sm:text-right">{pt(terms.inicioPossivel)}</dd>
-        <dt className="text-slate-500">Duração estimada</dt>
-        <dd className="sm:text-right">{terms.duracaoDias ? `${terms.duracaoDias} dias` : 'Não indicada'}</dd>
-        <dt className="text-slate-500">Adiantamento de adjudicação</dt>
-        <dd className="sm:text-right">{terms.adiantamentoBps > 0 ? `${terms.adiantamentoBps / 100}%` : 'Nenhum'}</dd>
-        <dt className="text-slate-500">Preço por m² para correções de área</dt>
-        <dd className="sm:text-right">{terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'Não indicado'}</dd>
-        <dt className="text-slate-500">Garantia legal</dt>
-        <dd className="sm:text-right">A exigida por lei, que se aplica sempre</dd>
-        <dt className="text-slate-500">Garantia adicional da obra</dt>
-        <dd className="sm:text-right">{terms.garantiaAnos ? `${terms.garantiaAnos} ${terms.garantiaAnos === 1 ? 'ano' : 'anos'}, além da legal` : 'Nenhuma'}</dd>
-        <dt className="text-slate-500">Mão-de-obra</dt>
-        <dd className="sm:text-right">Qualificada, incluída no preço{terms.confirmaMaoObra ? '' : ' (por confirmar)'}</dd>
+      {/* Mesmo layout do bloco de valores acima: rótulo à esquerda, valor à direita, em qualquer
+          largura. A grelha de duas colunas partia em rótulo e valor empilhados no telemóvel. */}
+      <dl className="divide-y divide-slate-100 border-t border-slate-100">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Válida até</dt>
+          <dd className="ml-auto text-right font-medium">{pt(terms.validade)}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Início possível</dt>
+          <dd className="ml-auto text-right font-medium">{pt(terms.inicioPossivel)}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Duração estimada</dt>
+          <dd className="ml-auto text-right font-medium">{terms.duracaoDias ? `${terms.duracaoDias} dias` : 'Não indicada'}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Adiantamento de adjudicação</dt>
+          <dd className="ml-auto text-right font-medium">{terms.adiantamentoBps > 0 ? `${terms.adiantamentoBps / 100}%` : 'Nenhum'}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Preço por m² para correções de área</dt>
+          <dd className="ml-auto text-right font-medium">{terms.precoAjusteM2 !== null ? formatEuros(terms.precoAjusteM2) : 'Não indicado'}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Garantia legal</dt>
+          <dd className="ml-auto text-right font-medium">A exigida por lei, que se aplica sempre</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Garantia adicional da obra</dt>
+          <dd className="ml-auto text-right font-medium">{terms.garantiaAnos ? `${terms.garantiaAnos} ${terms.garantiaAnos === 1 ? 'ano' : 'anos'}, além da legal` : 'Nenhuma'}</dd>
+        </div>
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
+          <dt className="text-slate-600">Mão-de-obra</dt>
+          <dd className="ml-auto text-right font-medium">Qualificada, incluída no preço{terms.confirmaMaoObra ? '' : ' (por confirmar)'}</dd>
+        </div>
       </dl>
       {(terms.seguroRc === 'nao' || terms.seguroAt === 'nao') && (
         <p className="rounded-lg bg-amber-50 p-3 font-medium text-amber-900" role="alert">
@@ -241,7 +259,7 @@ export function ProposalView({
           <h3 className="font-semibold">Plano de pagamentos</h3>
           <dl className="mt-1 divide-y divide-slate-100">
             {terms.adiantamentoBps > 0 && (
-              <div className="flex justify-between gap-3 py-1.5">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 py-1.5">
                 <dt className="text-slate-600">Adiantamento de adjudicação</dt>
                 <dd>{terms.adiantamentoBps / 100}% · {formatEuros(percentOf(t.base, terms.adiantamentoBps))}</dd>
               </div>
