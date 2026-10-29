@@ -290,8 +290,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                       <br />
                       Critérios completos: {enderecoMetodologia}
                       <br />
-                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. A comissão da
-                      plataforma, promoções e relações comerciais não entram em nenhum destes cálculos.
+                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. Os custos das
+                      relações comerciais com a plataforma {BRAND.domain} não entram em nenhum destes cálculos.
                     </p>
                   </div>
                 </div>
