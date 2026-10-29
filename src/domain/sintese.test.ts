@@ -112,7 +112,9 @@ describe('a tabela de síntese', () => {
     expect(c.texto).toContain('diverge');
     expect(c.motivo).toContain('310 m² onde o pedido diz 240 m²');
     // Oferece as duas hipóteses pela ordem certa: medir de outra forma antes de alguém estar errado.
-    expect(c.motivo!.indexOf('outra forma de medir')).toBeLessThan(c.motivo!.indexOf('enganado'));
+    // Não sugere engano: diz o que confirmar. Uma diferença de medição pode ser critério, não erro.
+    expect(c.motivo).toContain('Confirme o que cada medição abrange');
+    expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('engan');
     expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('a mais');
     expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('erro');
   });
@@ -141,7 +143,8 @@ describe('a tabela de síntese', () => {
     const a = proposta('Pintor A');
     const c = proposta('Pintor C', {}, [linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 })]);
     const celulas = linhaPor(sinteseDasPropostas([a, c], ctx()), 'essencial')!.celulas;
-    expect(celulas[0]!.texto).toBe('Pedido completo; preço definido');
+    // Não diz «preço definido»: não haver condicionados declarados não prova um preço confirmado.
+    expect(celulas[0]!.texto).toBe('Cobre o pedido; sem custos por fechar declarados');
     expect(celulas[1]!.texto.toLowerCase()).toContain('esclarecer');
     for (const cel of celulas) {
       const t = cel.texto.toLowerCase();
@@ -288,6 +291,73 @@ describe('o que o cliente lê é português de cliente', () => {
       // Frases inteiras, com verbo: «Não indicada» sozinho não explica nada a ninguém.
       expect(m.length).toBeGreaterThan(40);
       expect(m.trim().endsWith('.')).toBe(true);
+    }
+  });
+});
+
+describe('não afirmar o que os dados não mostram', () => {
+  const motivosDe = (ps: PropostaNaSintese[], semEssencial = false) =>
+    sinteseDasPropostas(ps, ctx())
+      .filter((l) => !(semEssencial && l.id === 'essencial'))
+      .flatMap((l) => l.celulas)
+      .map((c) => c.motivo)
+      .filter((m): m is string => !!m);
+
+  it('um trabalho não indicado não vira trabalho excluído', () => {
+    // «Não indicar não comprova exclusão» (promotor, 29/10/2026): o pintor pode tê-lo esquecido ou
+    // dado por implícito. Afirmar que não o faz é pôr-lhe na boca o que ele não disse.
+    // Três trabalhos pedidos, dois na proposta: o terceiro não foi referido.
+    const pedidos = ['lavagem', 'pintura', 'reparacao_fissuras'] as const;
+    const trabalhos = trabalhosDaProposta(pedidos, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 }),
+    ]);
+    const p = proposta('Pintor C', { trabalhos });
+    const celula = sinteseDasPropostas([p, proposta('Pintor A')], ctx({ pedidos }))
+      .find((l) => l.id === 'trabalhos')!.celulas[0]!;
+    expect(celula.texto).toContain('por esclarecer');
+    expect(celula.motivo).toContain('não esclarece se inclui');
+    expect(celula.motivo).toContain('Pergunte ao pintor');
+    for (const afirmacao of ['não estão nesta proposta', 'não faz', 'exclui']) {
+      expect(celula.motivo!.toLowerCase()).not.toContain(afirmacao);
+    }
+  });
+
+  it('nenhum motivo afirma efeitos que não decorrem dos dados', () => {
+    const ps = [
+      proposta('Pintor A'),
+      proposta('Pintor B', { garantiaAnos: null, duracaoDias: null }, [
+        linha({ trabalho: 'lavagem' }),
+        linha({ trabalho: 'pintura_final', quantidade: 31000 }),
+      ]),
+    ];
+    const texto = motivosDe(ps).join(' ').toLowerCase();
+    // Não há garantia escrita não quer dizer que não haja direitos; não saber a duração não prova
+    // que haverá andaimes; medir diferente não prova engano.
+    for (const invencao of ['não há prazo', 'andaimes', 'varandas ocupadas', 'engan', 'não tem direito']) {
+      expect(texto).not.toContain(invencao);
+    }
+  });
+
+  it('cada motivo diz o que confirmar, e não só o que falta', () => {
+    const ps = [
+      proposta('Pintor A'),
+      proposta('Pintor B', { garantiaAnos: null, duracaoDias: null }, [
+        linha({ trabalho: 'lavagem' }),
+        linha({ trabalho: 'pintura_final', quantidade: 31000 }),
+      ]),
+    ];
+    // O «essencial» fica de fora: resume as linhas de cima, e a acção está em cada uma delas.
+    for (const m of motivosDe(ps, true)) {
+      expect(/confirme|pergunte|peça/i.test(m)).toBe(true);
+    }
+  });
+
+  it('nunca se afirma que um preço está fechado ou garantido', () => {
+    const ls = sinteseDasPropostas([proposta('Pintor A'), proposta('Pintor B')], ctx());
+    const tudo = ls.flatMap((l) => l.celulas.map((c) => `${c.texto} ${c.motivo ?? ''}`)).join(' ').toLowerCase();
+    for (const promessa of ['preço definido', 'preço fixo', 'preço garantido', 'preço confirmado']) {
+      expect(tudo).not.toContain(promessa);
     }
   });
 });

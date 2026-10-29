@@ -126,16 +126,29 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       ];
       const [naoIndicados, excluidos] = faltas as [number, number];
       const partes = [
-        naoIndicados ? `${naoIndicados} não ${naoIndicados === 1 ? 'indicado' : 'indicados'}` : '',
+        naoIndicados ? `${naoIndicados} por esclarecer` : '',
         excluidos ? `${excluidos} ${excluidos === 1 ? 'excluído' : 'excluídos'}` : '',
       ].filter(Boolean);
       const opcionais = p.trabalhos.filter((t) => t.estado === 'opcional').length;
       if (partes.length === 0) {
         return opcionais
-          ? atencao(`${opcionais} em opção`, 'Pediu estes trabalhos e o pintor deixou-os à sua escolha. Se os quiser, somam ao total; se não, não são feitos.')
+          ? atencao(`${opcionais} em opção`, 'O pintor deixa estes trabalhos à sua escolha. Confirme o preço de cada um: se os quiser, somam ao total apresentado.')
           : neutro('Todos incluídos');
       }
-      return atencao(partes.join(', '), 'Estes trabalhos não estão nesta proposta. Se for esta a escolhida, terá de os contratar à parte, e o que pagar por eles acresce a este total.');
+      // Não indicar **não comprova exclusão** (correcção do promotor, 29/10/2026): o pintor pode
+      // tê-los esquecido, ou tê-los dado por implícitos. Dizer «não estão nesta proposta» afirma o
+      // que a proposta não diz. O que se pode afirmar é que não está esclarecido — e o que fazer.
+      const motivo = [
+        naoIndicados
+          ? `A proposta não esclarece se inclui ${naoIndicados === 1 ? 'este trabalho' : `estes ${naoIndicados} trabalhos`}. Pergunte ao pintor se os faz e por que preço, antes de comparar este total com os outros.`
+          : '',
+        excluidos
+          ? `O pintor indica expressamente que não faz ${excluidos === 1 ? 'um dos trabalhos pedidos' : `${excluidos} dos trabalhos pedidos`}. Para os ter feitos, terá de os contratar a outra pessoa.`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return atencao(partes.join(', '), motivo);
     }),
   });
 
@@ -150,7 +163,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
         n ? `${n} ${n === 1 ? 'trabalho' : 'trabalhos'} após observação` : '',
         zonas ? 'zonas sem preço' : '',
       ].filter(Boolean);
-      return atencao(partes.join(', '), 'Há trabalhos cujo preço o pintor só fecha depois de ver a obra de perto. O total pode subir, e ainda não se sabe quanto.');
+      return atencao(partes.join(', '), 'Há trabalhos cujo preço o pintor só fecha depois de ver a obra. Peça um limite máximo, ou o preço unitário e a forma de medir, para saber até onde o total pode subir.');
     }),
   });
 
@@ -162,13 +175,13 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: 'Área de pintura',
       celulas: ps.map((p, i) => {
         const a = areas[i]!;
-        if (a === null) return naoIndicada('O pintor não diz quantos metros quadrados vai pintar, e por isso não se sabe se contou a fachada toda.');
+        if (a === null) return naoIndicada('Não indica a área. Confirme sobre que metros quadrados foi feito o orçamento.');
         const texto = ctx.formataArea(a);
         if (ctx.areaPedidoCm2 === null || a === ctx.areaPedidoCm2) return neutro(texto);
         // Dizer «diverge», e não «conta a mais»: pode ser outro critério de medição, e não um erro.
         return atencao(
           `${texto} — diverge`,
-          `O pintor conta ${texto} onde o pedido diz ${ctx.formataArea(ctx.areaPedidoCm2)}. Pode ser outra forma de medir, ou um dos dois estar enganado — vale a pena perguntar antes de decidir.`,
+          `O pintor conta ${texto} onde o pedido diz ${ctx.formataArea(ctx.areaPedidoCm2)}. Confirme o que cada medição abrange e como foi feita, antes de comparar os preços.`,
         );
       }),
     });
@@ -180,7 +193,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: 'Preparação do suporte',
       celulas: porCada((p) => {
         const incluidos = p.trabalhos.filter((t) => PREPARACAO.includes(t.work) && t.estado === 'incluido');
-        if (incluidos.length === 0) return naoIndicada('O pintor não diz o que faz à parede antes de pintar — lavar, tapar fissuras, aplicar primário. É essa preparação que decide quanto tempo a pintura dura.');
+        if (incluidos.length === 0) return naoIndicada('Não indica a preparação do suporte. Confirme o que faz antes de pintar — lavagem, tratamento de fissuras, primário — e se está incluído no preço.');
         // Separador em vez de «e»: o próprio rótulo «Lavagem e limpeza» já traz um, e encadeá-los
         // dava «lavagem e limpeza, reparação de fissuras e primário», que não se lê.
         return neutro(incluidos.map((t) => t.label.toLocaleLowerCase('pt-PT')).join(' · '));
@@ -195,7 +208,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: work === 'pintura' ? 'Pintura de acabamento' : 'Impermeabilização',
       celulas: porCada((p) => {
         const t = p.trabalhos.find((x) => x.work === work);
-        if (!t || t.estado !== 'incluido') return naoIndicada('Este trabalho não está nesta proposta: se o quiser feito, terá de o contratar a outra pessoa.');
+        if (!t || t.estado !== 'incluido') return naoIndicada('A proposta não se pronuncia sobre este trabalho. Confirme se o faz e por que preço.');
         return celulaDeExecucao(t);
       }),
     });
@@ -206,7 +219,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     criterio: 'Garantia da execução',
     celulas: porCada((p) =>
       p.garantiaAnos === null
-        ? naoIndicada('O pintor não indica garantia. Se a pintura falhar, não há prazo escrito dentro do qual ele a refaça.')
+        ? naoIndicada('Não indica garantia. Pergunte que garantia dá e por quanto tempo — a ausência de prazo escrito não afasta os direitos que a lei já lhe dá, mas deixa-os por concretizar.')
         : neutro(`${p.garantiaAnos} ${p.garantiaAnos === 1 ? 'ano' : 'anos'}`),
     ),
   });
@@ -219,7 +232,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       const dur = p.duracaoDias === null ? 'duração não indicada' : `${p.duracaoDias} ${p.duracaoDias === 1 ? 'dia útil' : 'dias úteis'}`;
       const texto = `${inicio} · ${dur}`;
       return p.duracaoDias === null
-        ? atencao(texto, 'O pintor não diz quantos dias demora. Numa fachada, isso é o tempo com andaimes montados e varandas ocupadas.')
+        ? atencao(texto, 'Não indica a duração. Confirme o prazo e as limitações de utilização previstas durante a obra.')
         : neutro(texto);
     }),
   });
@@ -255,9 +268,9 @@ function celulaDeExecucao(t: TrabalhoNaProposta): CelulaDaSintese {
   const leva = TRABALHOS_COM_DEMAOS.includes(t.work);
   const demaos = t.demaos === null ? null : `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}`;
   if (produto && (demaos || !leva)) return neutro([produto, demaos].filter(Boolean).join(' · '));
-  if (produto && !demaos) return atencao(`${produto} · demãos não indicadas`, 'O pintor diz que tinta usa, mas não quantas camadas aplica. Duas camadas da mesma tinta cobrem melhor e duram mais do que uma.');
-  if (!produto && demaos) return atencao(`Produto não indicado · ${demaos}`, 'O pintor diz quantas camadas aplica, mas não que tinta usa — e a tinta decide quanto tempo a pintura aguenta.');
-  return naoIndicada('O pintor não diz que tinta usa nem quantas camadas aplica neste trabalho.');
+  if (produto && !demaos) return atencao(`${produto} · demãos não indicadas`, 'Indica a tinta mas não o número de camadas. Confirme quantas demãos aplica, porque é isso que falta para comparar com as outras propostas.');
+  if (!produto && demaos) return atencao(`Produto não indicado · ${demaos}`, 'Indica o número de camadas mas não a tinta. Confirme que produto aplica e se é adequado ao suporte.');
+  return naoIndicada('Não indica a tinta nem o número de camadas deste trabalho. Confirme os dois antes de comparar o preço.');
 }
 
 /**
@@ -273,11 +286,14 @@ function oEssencial(p: PropostaNaSintese): { texto: string; atencao: boolean; mo
   if (cobertura.semPrecoFirme || !definicao.definido) pendencias.push('fechar o preço em falta');
   if (!tecnica.confirmada) pendencias.push('confirmar a execução');
 
-  if (pendencias.length === 0) return { texto: 'Pedido completo; preço definido', atencao: false, motivo: null };
+  // «Preço definido» afirmava mais do que os dados mostram: não haver condicionados declarados não é
+  // o mesmo que o pintor ter confirmado um preço fixo (correcção do promotor, 29/10/2026). O que se
+  // pode dizer é o que está declarado — e não o que daí se concluiria.
+  if (pendencias.length === 0) return { texto: 'Cobre o pedido; sem custos por fechar declarados', atencao: false, motivo: null };
   return {
     texto: maiuscula(listar(pendencias)),
     atencao: true,
-    motivo: 'Até isto ficar esclarecido, o que vai pagar no fim pode ser diferente do valor que está aqui.',
+    motivo: 'Até isto ficar esclarecido, o valor final pode ser diferente do que está aqui.',
   };
 }
 

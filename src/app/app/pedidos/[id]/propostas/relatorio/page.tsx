@@ -164,7 +164,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         id: r.id,
         alias: r.alias,
         totalComIva: r.totals.totalComIva,
-        emFalta: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado' || t.estado === 'excluido').length,
+        naoIndicados: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado').length,
+        excluidos: porProposta.get(r.id)!.filter((t) => t.estado === 'excluido').length,
         semPrecoFirme: c.cobertura.semPrecoFirme,
         zonasSemPreco: c.definicao.reparos.includes('há zonas do pedido sem preço') ? 1 : 0,
         // `media` vem nula quando ainda não há avaliação nenhuma: isso é «sem obras avaliadas»,
@@ -290,8 +291,9 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                       <br />
                       Critérios completos: {enderecoMetodologia}
                       <br />
-                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. Os custos das
-                      relações comerciais com a plataforma {BRAND.domain} não entram em nenhum destes cálculos.
+                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. As comissões e
+                      outras condições comerciais com a plataforma {BRAND.domain} não influenciam a ordenação nem as
+                      indicações apresentadas.
                     </p>
                   </div>
                 </div>
@@ -384,10 +386,11 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                 <section className="mt-6">
                   <h2 className="font-semibold">3.1 Diferenças para {referencia.alias}</h2>
                   <p className="text-slate-600">
-                    Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a primeira da ordenação por
-                    omissão (&laquo;{ORDEM_LABELS.padrao}&raquo;), que é a usada em todas as contas abaixo e não muda com a
-                    ordem em que as propostas sejam vistas no ecrã. Cada euro de diferença é atribuído a uma causa; o que
-                    não se consegue atribuir é dito como tal.
+                    Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a proposta de menor total entre
+                    as que cobrem o pedido e não declaram custos por fechar, que é a primeira da ordenação por omissão
+                    (&laquo;{ORDEM_LABELS.padrao}&raquo;). É contra ela que se medem as outras, não muda com a ordem em que
+                    as propostas sejam vistas no ecrã, e as contas abaixo são todas feitas a partir dela. Cada euro de
+                    diferença é atribuído a uma causa; o que não se consegue atribuir é dito como tal.
                   </p>
                   {contra.map((r) => {
                     const rec = reconciliar(lado(referencia), lado(r));

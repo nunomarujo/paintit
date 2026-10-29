@@ -43,12 +43,13 @@ export interface PropostaNaMatriz {
   alias: string;
   totalComIva: Cents;
   /**
-   * Trabalhos do pedido excluídos ou não referidos. **É este campo, e só este, que decide se o
-   * pedido está coberto** — um trabalho condicionado está previsto, e o que lhe falta é o preço
-   * fechar, não o âmbito. Guardar à parte um `cobreTudo` deixava os dois divergirem, e divergiam:
-   * uma proposta com um trabalho condicionado aparecia com «0 trabalhos em falta» a âmbar.
+   * Trabalhos pedidos sobre os quais a proposta **não se pronuncia**. Não indicar não comprova
+   * exclusão: o pintor pode tê-los esquecido ou dado por implícitos, e afirmar que não os faz é
+   * pôr-lhe na boca o que não disse (correcção do promotor, 29/10/2026).
    */
-  emFalta: number;
+  naoIndicados: number;
+  /** Trabalhos pedidos que a proposta **declara expressamente** que não faz. */
+  excluidos: number;
   /** Trabalhos previstos cujo preço só fecha depois de observar. */
   semPrecoFirme: number;
   /** Zonas do pedido sem nenhuma linha que as cubra. */
@@ -68,16 +69,25 @@ export function matrizDasPropostas(
     propostaId: p.id,
     alias: p.alias,
     total: formata(p.totalComIva),
-    pedido: p.emFalta === 0
-      ? { texto: 'Completo', atencao: false }
-      : {
-          texto: `${p.emFalta} ${p.emFalta === 1 ? 'trabalho em falta' : 'trabalhos em falta'}`,
-          atencao: true,
-        },
+    pedido: celulaDoPedido(p),
     custosPorFechar: celulaDosCustos(p),
     reputacao: celulaDaReputacao(p.avaliacao),
     indicacoes: ind.atribuidas.filter((x) => x.propostaId === p.id).map((x) => NOME_DA_INDICACAO.get(x.indicacao) ?? x.indicacao),
   }));
+}
+
+/**
+ * «Em falta» juntava duas coisas diferentes e dizia mal as duas. Um trabalho que a proposta não
+ * refere está **por esclarecer**; um que ela declara não fazer está **excluído**. A diferença muda o
+ * que o cliente tem de fazer a seguir: num caso pergunta, no outro contrata a outra pessoa.
+ */
+function celulaDoPedido(p: PropostaNaMatriz): Celula {
+  if (p.naoIndicados === 0 && p.excluidos === 0) return { texto: 'Completo', atencao: false };
+  const partes = [
+    p.naoIndicados ? `${p.naoIndicados} por esclarecer` : '',
+    p.excluidos ? `${p.excluidos} ${p.excluidos === 1 ? 'excluído' : 'excluídos'}` : '',
+  ].filter(Boolean);
+  return { texto: partes.join(', '), atencao: true };
 }
 
 function celulaDosCustos(p: PropostaNaMatriz): Celula {
@@ -85,7 +95,11 @@ function celulaDosCustos(p: PropostaNaMatriz): Celula {
     p.semPrecoFirme ? `${p.semPrecoFirme} após observação` : '',
     p.zonasSemPreco ? `${p.zonasSemPreco} ${p.zonasSemPreco === 1 ? 'zona sem preço' : 'zonas sem preço'}` : '',
   ].filter(Boolean);
-  return partes.length === 0 ? { texto: 'Não', atencao: false } : { texto: partes.join(', '), atencao: true };
+  // «Não» afirmava que não há custos por fechar. O que se sabe é que não foram declarados — e a
+  // diferença importa: a proposta pode simplesmente não se pronunciar sobre o que a faria variar.
+  return partes.length === 0
+    ? { texto: 'Nenhum declarado', atencao: false }
+    : { texto: partes.join(', '), atencao: true };
 }
 
 /**

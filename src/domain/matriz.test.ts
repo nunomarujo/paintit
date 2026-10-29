@@ -7,7 +7,8 @@ const m = (alias: string, total: number, o: Partial<PropostaNaMatriz> = {}): Pro
   id: alias,
   alias,
   totalComIva: total,
-  emFalta: 0,
+  naoIndicados: 0,
+  excluidos: 0,
   semPrecoFirme: 0,
   zonasSemPreco: 0,
   avaliacao: { media: 4.6, n: 61 },
@@ -19,7 +20,7 @@ const paraIndicacao = (p: PropostaNaMatriz): PropostaParaIndicacao => ({
   alias: p.alias,
   totalComIva: p.totalComIva,
   precoFirme: p.semPrecoFirme === 0 && p.zonasSemPreco === 0,
-  emFalta: p.emFalta,
+  emFalta: p.naoIndicados + p.excluidos,
 });
 
 const matriz = (ps: PropostaNaMatriz[]) =>
@@ -33,7 +34,7 @@ describe('a matriz de todas as propostas', () => {
 
   it('as indicações aparecem na linha da proposta a que pertencem', () => {
     const ls = matriz([
-      m('Pintor A', 1_400_000, { emFalta: 2 }),
+      m('Pintor A', 1_400_000, { naoIndicados: 2 }),
       m('Pintor B', 1_600_000),
       m('Pintor C', 1_640_000),
     ]);
@@ -48,8 +49,8 @@ describe('a matriz de todas as propostas', () => {
   });
 
   it('o que falta ao pedido conta-se, e pede atenção', () => {
-    const ls = matriz([m('Pintor A', 1_400_000, { emFalta: 2 }), m('Pintor B', 1_600_000)]);
-    expect(ls[0]!.pedido).toEqual({ texto: '2 trabalhos em falta', atencao: true });
+    const ls = matriz([m('Pintor A', 1_400_000, { naoIndicados: 2 }), m('Pintor B', 1_600_000)]);
+    expect(ls[0]!.pedido).toEqual({ texto: '2 por esclarecer', atencao: true });
     expect(ls[1]!.pedido).toEqual({ texto: 'Completo', atencao: false });
   });
 
@@ -57,7 +58,8 @@ describe('a matriz de todas as propostas', () => {
     const ls = matriz([m('Pintor A', 1_400_000, { semPrecoFirme: 1, zonasSemPreco: 2 }), m('Pintor B', 1_600_000)]);
     expect(ls[0]!.custosPorFechar.texto).toBe('1 após observação, 2 zonas sem preço');
     expect(ls[0]!.custosPorFechar.atencao).toBe(true);
-    expect(ls[1]!.custosPorFechar).toEqual({ texto: 'Não', atencao: false });
+    // «Nenhum declarado» e não «Não»: o que se sabe é o que a proposta declarou.
+    expect(ls[1]!.custosPorFechar).toEqual({ texto: 'Nenhum declarado', atencao: false });
   });
 
   it('histórico curto diz-se, e não vira nota baixa nem aviso', () => {
@@ -98,24 +100,54 @@ describe('âmbito e preço não se confundem na matriz', () => {
   it('um trabalho condicionado cobre o pedido: a coluna diz Completo, e o custo por fechar avisa', () => {
     // O defeito que isto fixa apareceu no render da primeira página: a linha dizia «0 trabalhos em
     // falta» a âmbar, porque a cobertura vinha de um campo que exigia todos os trabalhos firmes.
-    const ls = matriz([m('Pintor A', 1_600_000, { emFalta: 0, semPrecoFirme: 1 }), m('Pintor B', 1_700_000)]);
+    const ls = matriz([m('Pintor A', 1_600_000, { naoIndicados: 0, semPrecoFirme: 1 }), m('Pintor B', 1_700_000)]);
     expect(ls[0]!.pedido).toEqual({ texto: 'Completo', atencao: false });
     expect(ls[0]!.custosPorFechar.texto).toBe('1 após observação');
     expect(ls[0]!.custosPorFechar.atencao).toBe(true);
   });
 
   it('e não ganha o preço completo, porque o total ainda pode subir', () => {
-    const ls = matriz([m('Pintor A', 1_600_000, { emFalta: 0, semPrecoFirme: 1 }), m('Pintor B', 1_700_000)]);
+    const ls = matriz([m('Pintor A', 1_600_000, { naoIndicados: 0, semPrecoFirme: 1 }), m('Pintor B', 1_700_000)]);
     expect(ls[0]!.indicacoes).toEqual(['Menor preço apresentado']);
     expect(ls[1]!.indicacoes).toEqual(['Melhor preço para o pedido completo']);
   });
 
   it('nenhuma célula do pedido mostra um zero', () => {
     const ls = matriz([
-      m('Pintor A', 1_600_000, { emFalta: 0, semPrecoFirme: 2 }),
-      m('Pintor B', 1_700_000, { emFalta: 3 }),
+      m('Pintor A', 1_600_000, { naoIndicados: 0, semPrecoFirme: 2 }),
+      m('Pintor B', 1_700_000, { naoIndicados: 3 }),
       m('Pintor C', 1_800_000),
     ]);
     for (const l of ls) expect(l.pedido.texto).not.toMatch(/\b0\b/);
+  });
+});
+
+describe('não indicar não é excluir, também na matriz', () => {
+  it('um trabalho sobre o qual a proposta se cala fica «por esclarecer»', () => {
+    const ls = matriz([m('Pintor A', 1_400_000, { naoIndicados: 3 }), m('Pintor B', 1_600_000)]);
+    expect(ls[0]!.pedido.texto).toBe('3 por esclarecer');
+    expect(ls[0]!.pedido.texto).not.toContain('falta');
+    expect(ls[0]!.pedido.texto).not.toContain('excluí');
+  });
+
+  it('um trabalho que o pintor declara não fazer fica «excluído»', () => {
+    const ls = matriz([m('Pintor A', 1_400_000, { excluidos: 2 }), m('Pintor B', 1_600_000)]);
+    expect(ls[0]!.pedido.texto).toBe('2 excluídos');
+  });
+
+  it('os dois contam-se em separado, porque o cliente faz coisas diferentes com cada um', () => {
+    const ls = matriz([m('Pintor A', 1_400_000, { naoIndicados: 2, excluidos: 1 }), m('Pintor B', 1_600_000)]);
+    expect(ls[0]!.pedido.texto).toBe('2 por esclarecer, 1 excluído');
+  });
+
+  it('nenhum dos dois ganha a indicação do pedido completo', () => {
+    const ls = matriz([
+      m('Pintor A', 1_400_000, { naoIndicados: 1 }),
+      m('Pintor B', 1_500_000, { excluidos: 1 }),
+      m('Pintor C', 1_600_000),
+    ]);
+    expect(ls[2]!.indicacoes).toContain('Melhor preço para o pedido completo');
+    expect(ls[0]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
+    expect(ls[1]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
   });
 });

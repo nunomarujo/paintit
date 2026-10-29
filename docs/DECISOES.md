@@ -3831,3 +3831,50 @@ caracteres e obrigou a dizer a consequência em vez do facto.
 
 A mesma revisão foi feita à metodologia pública e ao bloco de interpretação do relatório, que
 repetiam a mesma construção.
+
+### Não afirmar o que os dados não mostram (29/10/2026)
+
+Segunda revisão do promotor ao texto, e esta corrige a minha correcção anterior: ao fugir do jargão,
+passei a afirmar consequências que não posso demonstrar. Quatro correcções, todas da mesma família.
+
+**1. Não indicar não comprova exclusão.** Uma proposta que não refere um trabalho pode tê-lo
+esquecido ou dado por implícito. Dizer «estes trabalhos não estão nesta proposta» põe na boca do
+pintor o que ele não disse. Os dois estados passam a contar-se **em separado**, na síntese e na
+matriz, porque o que o cliente faz a seguir é diferente: num caso pergunta, no outro contrata a
+outra pessoa.
+
+| Estado | Célula | O que se diz |
+|---|---|---|
+| `nao_indicado` | «3 por esclarecer» | Não esclarece se inclui. Pergunte se os faz e por que preço. |
+| `excluido` | «2 excluídos» | O pintor indica expressamente que não faz. Terá de os contratar a outra pessoa. |
+
+**2. Ausência de garantia escrita não é ausência de direitos.** Escrevi «se a pintura falhar, não há
+prazo escrito dentro do qual ele a refaça» — que sugere que o cliente fica sem nada. Passa a dizer
+que a falta de prazo escrito **não afasta os direitos que a lei já dá**, mas deixa-os por concretizar.
+
+**3. Não saber a duração não prova que haverá andaimes.** A frase inventava o cenário. Passa à forma
+que o promotor escreveu: «Não indica a duração. Confirme o prazo e as limitações de utilização
+previstas durante a obra.»
+
+**4. «Nenhum declarado» não significa preço fechado.** Não haver condicionados declarados não prova
+que o pintor tenha confirmado um preço fixo. «O essencial» deixa de dizer «preço definido» e passa a
+«Cobre o pedido; sem custos por fechar declarados», e a matriz troca «Não» por «Nenhum declarado».
+
+**A régua que ficou**, e que três testes passam a impor: cada motivo diz **o facto e o que
+confirmar**, nunca o efeito que daí se concluiria. Um teste proíbe as afirmações inventadas
+(*não há prazo*, *andaimes*, *engano*), outro exige que cada motivo traga um verbo de acção
+(confirme, pergunte, peça), e um terceiro proíbe afirmar preço fechado, fixo, garantido ou
+confirmado em qualquer célula.
+
+**Mais duas correcções do promotor, mais pequenas:**
+
+- **A nota comercial era abrangente de mais.** «Não entram em nenhum destes cálculos» é falso se o
+  preço que o pintor apresenta já incorporar o custo da sua relação com a plataforma — e incorpora.
+  O que é verdade, e é o que passa a estar escrito: «As comissões e outras condições comerciais com a
+  plataforma não influenciam a ordenação nem as indicações apresentadas.»
+- **A referência dos quadros não se explicava.** Dizia-se qual era, não porquê. Passa a dizer que é a
+  proposta de menor total entre as que cobrem o pedido e não declaram custos por fechar.
+
+**Um mal-entendido que foi culpa minha:** enviei uma imagem do banco de ensaio da secção 2 e o
+promotor leu-a como sendo a primeira página, concluindo que a matriz faltava. A matriz existe e está
+na primeira página desde a manhã. As imagens de ensaio passam a identificar que secção mostram.
