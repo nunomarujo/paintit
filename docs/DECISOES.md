@@ -3645,3 +3645,29 @@ disponíveis, duas propostas inteiras e a terceira a espreitar, que é o própri
 **Por decidir:** no papel o total fica a negrito mas não maior, porque a regra 14 avisa contra
 substituições de tamanho dentro da folha A4. Se o promotor quiser o preço maior também no impresso,
 decide-se o tamanho em pontos de papel, não em pixéis.
+
+### O total no impresso, e o que o PDF revelou (29/10/2026)
+
+Decisão do promotor: na folha A4 o total vai a **14pt negrito**, com a indicação do IVA a **9pt** por
+baixo do valor — por baixo e não ao lado, porque ao lado empurrava a coluna e com cinco propostas a
+tabela deixava de caber na largura útil. Em **pontos** e não em pixéis, pela mesma razão que o
+`doc-label`: a folha é outro meio, e a regra 14 do CLAUDE.md isenta-a da escala do ecrã. As classes
+`doc-total` e `doc-total-nota` vivem no `globals.css`, ao lado dela.
+
+**Quantas propostas cabem, medido e não estimado:** a largura útil da folha são 681px; a tabela mede
+680px com quatro propostas e **781px com cinco**. Daí `MAXIMO_NO_PAPEL = 4`. Acima disso a comparação
+divide-se em quadros, cada um repetindo os critérios e a **proposta de referência** — sem a
+referência em todos, os quadros não se comparam entre si. A razão da divisão diz-se uma vez, no
+primeiro quadro. O total a 14pt fica numa linha em todos os casos: 162px no mais largo, dentro de
+células de 175px.
+
+**Dois defeitos que só o PDF mostrou**, e nenhum deles era visível no ecrã nem na leitura do código:
+
+1. **A primeira página saía quase em branco.** O `globals.css` dá `break-inside: avoid` a qualquer
+   `section` dentro da folha, e a síntese inteira saltava para a página seguinte. A secção passa a
+   poder partir; o que não parte é cada linha e o bloco de atenções.
+2. **A tabela saltava inteira na mesma**, pela regra irmã para `table`, desperdiçando duas páginas.
+   Uma tabela de onze critérios tem de partir — **entre linhas, nunca dentro de uma** — e o `thead`
+   repete-se sozinho na página seguinte, que é o comportamento certo e sai de graça.
+
+Fica como lembrete: uma folha A4 não se valida no ecrã. Gera-se o PDF e olha-se para as páginas.

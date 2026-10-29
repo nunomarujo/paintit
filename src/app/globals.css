@@ -97,6 +97,27 @@ input[type='radio'] {
   .doc-label {
     @apply text-[13px] font-bold uppercase tracking-[0.18em] text-slate-500;
   }
+  /*
+   * O total na tabela de síntese do relatório (29/10/2026, decisão do promotor). Em **pontos**, e
+   * não em pixéis, pela mesma razão que o `doc-label` acima: a folha A4 é outro meio, e a regra 14
+   * do CLAUDE.md isenta-a da escala do ecrã. Quem lê isto tem o papel na mão numa assembleia, e o
+   * preço é a primeira coisa que procura.
+   *
+   * A nota do IVA a 9pt vai por baixo do valor, e não ao lado: ao lado empurrava a coluna e, com
+   * cinco propostas, a tabela deixava de caber na largura útil da folha.
+   */
+  .doc-total {
+    font-size: 14pt;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .doc-total-nota {
+    font-size: 9pt;
+    line-height: 1.3;
+    @apply text-slate-600;
+  }
   .badge {
     @apply inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[15px] font-semibold text-slate-600;
   }

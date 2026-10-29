@@ -159,7 +159,13 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
           ) : (
             <>
               <div className="mt-6">
-                <SinteseDasPropostas linhas={linhasDaSintese} aliases={ordenadas.map((r) => r.alias)} leitura={leituraDaSintese} variante="papel" />
+                <SinteseDasPropostas
+                  linhas={linhasDaSintese}
+                  aliases={ordenadas.map((r) => r.alias)}
+                  leitura={leituraDaSintese}
+                  referencia={referencia?.alias}
+                  variante="papel"
+                />
                 {grupos.length > 1 && (
                   <p className="mt-2 text-slate-600">
                     {grupos.map((g) => `${g.titulo}: ${g.propostas.map((x) => rowOf.get(x.id)!.alias).join(', ')}`).join(' · ')}.
