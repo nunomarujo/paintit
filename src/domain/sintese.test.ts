@@ -1,0 +1,193 @@
+import { describe, expect, it } from 'vitest';
+import { classificar, trabalhosDaProposta, type SinaisDaProposta, type TrabalhoNaProposta } from './comparador';
+import { formatEuros } from './money';
+import { formatArea, type DesiredWork } from './request';
+import { leituraImediata, sinteseDasPropostas, type ContextoDaSintese, type PropostaNaSintese } from './sintese';
+import type { ProposalLine } from './proposal';
+
+const linha = (p: Partial<ProposalLine>): ProposalLine => ({
+  categoria: 'pintura',
+  descricao: '',
+  superficie: null,
+  quantidade: 24000,
+  unidade: 'm2',
+  precoUnitario: 200,
+  demaos: null,
+  produto: null,
+  inclusao: 'incluido',
+  ...p,
+});
+
+const PEDIDOS: readonly DesiredWork[] = ['lavagem', 'pintura'];
+
+const LINHAS_OK = [
+  linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+  linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
+];
+
+function proposta(alias: string, p: Partial<PropostaNaSintese> = {}, linhas = LINHAS_OK): PropostaNaSintese {
+  const trabalhos: TrabalhoNaProposta[] = p.trabalhos ?? trabalhosDaProposta(PEDIDOS, linhas);
+  const sinais: SinaisDaProposta = { trabalhos, temCondicionados: false, zonasSemPreco: 0, precoGlobal: false };
+  return {
+    id: alias,
+    alias,
+    totalComIva: 1_845_000,
+    classificacao: classificar(sinais),
+    trabalhos,
+    garantiaAnos: 5,
+    duracaoDias: 20,
+    inicioPossivel: '2026-11-15',
+    adiantamentoBps: 2000,
+    ...p,
+    ...(p.trabalhos ? { trabalhos: p.trabalhos, classificacao: classificar({ ...sinais, trabalhos: p.trabalhos }) } : {}),
+  };
+}
+
+const ctx = (p: Partial<ContextoDaSintese> = {}): ContextoDaSintese => ({
+  pedidos: PEDIDOS,
+  areaPedidoCm2: 24000,
+  formataEuros: formatEuros,
+  formataArea: formatArea,
+  formataData: (iso) => iso,
+  ...p,
+});
+
+const linhaPor = (ls: ReturnType<typeof sinteseDasPropostas>, id: string) => ls.find((l) => l.id === id);
+
+describe('a tabela de síntese', () => {
+  it('abre pelo preço e fecha pelo essencial: a ordem dos critérios não muda', () => {
+    const ls = sinteseDasPropostas([proposta('Pintor A')], ctx());
+    expect(ls[0]!.id).toBe('total');
+    expect(ls[ls.length - 1]!.id).toBe('essencial');
+    expect(ls[0]!.destacada).toBe(true);
+  });
+
+  it('nada fica âmbar sem dizer porquê: a cor nunca carrega sozinha a informação', () => {
+    const comFalhas = proposta('Pintor C', { garantiaAnos: null, duracaoDias: null }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', quantidade: 31000 }),
+    ]);
+    const ls = sinteseDasPropostas([comFalhas], ctx());
+    const celulas = ls.flatMap((l) => l.celulas);
+    expect(celulas.some((c) => c.tom === 'atencao')).toBe(true);
+    for (const c of celulas) {
+      if (c.tom === 'atencao') expect(c.motivo && c.motivo.length > 10).toBe(true);
+      else expect(c.motivo).toBeNull();
+    }
+  });
+
+  it('cumprir não ganha destaque nenhum: só há neutro e atenção', () => {
+    const ls = sinteseDasPropostas([proposta('Pintor A')], ctx());
+    const tons = new Set(ls.flatMap((l) => l.celulas).map((c) => c.tom));
+    expect([...tons]).toEqual(['neutro']);
+  });
+
+  it('mais demãos e mais anos de garantia não são tratados como melhores', () => {
+    const duas = proposta('Pintor A');
+    const uma = proposta('Pintor B', { garantiaAnos: 1 }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'Robbialac', demaos: 1 }),
+    ]);
+    const ls = sinteseDasPropostas([duas, uma], ctx());
+    // As duas declararam o que lhes competia: nenhuma é assinalada, para nenhum dos lados.
+    expect(linhaPor(ls, 'acabamento_pintura')!.celulas.map((c) => c.tom)).toEqual(['neutro', 'neutro']);
+    expect(linhaPor(ls, 'garantia')!.celulas.map((c) => c.tom)).toEqual(['neutro', 'neutro']);
+    expect(linhaPor(ls, 'garantia')!.celulas.map((c) => c.texto)).toEqual(['5 anos', '1 ano']);
+  });
+
+  it('a área que não bate diz que diverge, e não que alguém contou a mais', () => {
+    const p = proposta('Pintor C', {}, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2, quantidade: 31000 }),
+    ]);
+    const c = linhaPor(sinteseDasPropostas([p], ctx()), 'area')!.celulas[0]!;
+    expect(c.tom).toBe('atencao');
+    expect(c.texto).toContain('diverge');
+    expect(c.motivo).toContain('diferente da do levantamento');
+    expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('a mais');
+    expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('erro');
+  });
+
+  it('um preço por fechar conta nos custos, e não como trabalho em falta', () => {
+    const p = proposta('Pintor B', {}, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2, inclusao: 'condicionado' }),
+    ]);
+    const ls = sinteseDasPropostas([p], ctx());
+    expect(linhaPor(ls, 'custos_por_fechar')!.celulas[0]!.tom).toBe('atencao');
+    expect(linhaPor(ls, 'custos_por_fechar')!.celulas[0]!.texto).toContain('após observação');
+    expect(linhaPor(ls, 'trabalhos')!.celulas[0]!.texto).not.toContain('não indicado');
+  });
+
+  it('só entram as linhas que o pedido torna relevantes', () => {
+    const soLavagem = ['lavagem'] as const;
+    const trabalhos = trabalhosDaProposta(soLavagem, [linha({ trabalho: 'lavagem', produto: 'Alta pressão' })]);
+    const ls = sinteseDasPropostas([proposta('Pintor A', { trabalhos })], ctx({ pedidos: soLavagem, areaPedidoCm2: null }));
+    expect(linhaPor(ls, 'acabamento_pintura')).toBeUndefined();
+    expect(linhaPor(ls, 'area')).toBeUndefined();
+    expect(linhaPor(ls, 'preparacao')).toBeDefined();
+  });
+
+  it('o essencial resume sem eleger ninguém', () => {
+    const a = proposta('Pintor A');
+    const c = proposta('Pintor C', {}, [linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 })]);
+    const celulas = linhaPor(sinteseDasPropostas([a, c], ctx()), 'essencial')!.celulas;
+    expect(celulas[0]!.texto).toBe('Pedido completo; preço definido');
+    expect(celulas[1]!.texto.toLowerCase()).toContain('esclarecer');
+    for (const cel of celulas) {
+      const t = cel.texto.toLowerCase();
+      for (const palavra of ['melhor', 'pior', 'mais barata', 'recomend', 'vencedor', 'preferível']) {
+        expect(t).not.toContain(palavra);
+      }
+    }
+  });
+
+  it('muitos produtos no mesmo trabalho remetem para o detalhe em vez de encherem a célula', () => {
+    const p = proposta('Pintor A', {}, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 }),
+      linha({ trabalho: 'pintura_final', produto: 'Robbialac', demaos: 2 }),
+      linha({ trabalho: 'pintura_final', produto: 'Dyrup', demaos: 2 }),
+    ]);
+    expect(linhaPor(sinteseDasPropostas([p], ctx({ areaPedidoCm2: null })), 'acabamento_pintura')!.celulas[0]!.texto)
+      .toContain('ver detalhe');
+  });
+});
+
+describe('a frase que se lê antes da tabela', () => {
+  const barataCompleta = () => ({ ...proposta('Pintor A'), totalComIva: 1_690_000 });
+  const barataIncompleta = () => ({
+    ...proposta('Pintor C', {}, [linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 })]),
+    totalComIva: 1_398_000,
+  });
+
+  it('diz qual é a mais barata completa e, se for outra, qual é a mais barata de todas e o que lhe falta', () => {
+    const f = leituraImediata([barataCompleta(), barataIncompleta()], formatEuros)!;
+    expect(f).toContain('Pintor A tem o menor total');
+    expect(f).toContain('incluem todos os trabalhos pedidos');
+    expect(f).toContain('Pintor C apresenta o menor total');
+    expect(f.toLowerCase()).toContain('esclarecer');
+  });
+
+  it('quando a mais barata é também a completa, diz-se numa frase só', () => {
+    const cara = { ...proposta('Pintor B'), id: 'Pintor B', alias: 'Pintor B', totalComIva: 1_900_000 };
+    const f = leituraImediata([barataCompleta(), cara], formatEuros)!;
+    expect(f).toBe(`Pintor A tem o menor total (${formatEuros(1_690_000)}) e inclui todos os trabalhos pedidos, sem custos por fechar.`);
+  });
+
+  it('sem nenhuma completa, não se finge que há uma', () => {
+    const f = leituraImediata([barataIncompleta(), { ...barataIncompleta(), id: 'Pintor D', alias: 'Pintor D', totalComIva: 1_500_000 }], formatEuros)!;
+    expect(f).toContain('Nenhuma proposta inclui todos os trabalhos pedidos');
+  });
+
+  it('não recomenda nem elege: só descreve factos', () => {
+    const f = leituraImediata([barataCompleta(), barataIncompleta()], formatEuros)!.toLowerCase();
+    for (const palavra of ['recomend', 'melhor', 'escolha', 'aconselh', 'preferível', 'vencedor']) {
+      expect(f).not.toContain(palavra);
+    }
+  });
+
+  it('com uma proposta só não há comparação para fazer', () => {
+    expect(leituraImediata([barataCompleta()], formatEuros)).toBeNull();
+  });
+});

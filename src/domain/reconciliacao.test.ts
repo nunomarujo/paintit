@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { trabalhosDaProposta } from './comparador';
-import { emPalavras, perguntas, reconciliar, type LadoDaReconciliacao } from './reconciliacao';
+import { emPalavras, perguntas, reconciliar, type LadoDaReconciliacao, diferencaEmPalavras } from './reconciliacao';
 import { formatEuros } from './money';
 import type { LineCategory, ProposalLine } from './proposal';
 
@@ -151,11 +151,34 @@ describe('a frase que o cliente lê', () => {
       linha({ trabalho: 'pintura_final', precoUnitario: 200, demaos: 2, produto: 'CIN' }),
       linha({ trabalho: 'impermeabilizacao', unidade: 'ml', quantidade: 3200, precoUnitario: 3400 }),
     ]);
-    const f = emPalavras('A', 'B', reconciliar(a, b), formatEuros);
+    const d = diferencaEmPalavras('A', 'B', reconciliar(a, b), formatEuros);
     // O valor escreve-se com a própria função: o euro leva espaço não-quebrável, que não se
     // distingue a olho de um espaço normal num literal de teste.
-    expect(f[0]).toBe(`B custa mais ${formatEuros(108800)}, sem IVA.`);
-    expect(f[1]).toBe(`${formatEuros(108800)}: B inclui impermeabilização, A não.`);
+    expect(d.abertura).toBe(`B custa mais ${formatEuros(108800)}, sem IVA.`);
+    // O preço da impermeabilização está escrito na proposta de B: é prova, não simulação, e sai no
+    // bloco que o diz. Sem convenção pelo meio, portanto sem nota.
+    expect(d.blocos.map((b) => b.id)).toEqual(['declarado']);
+    expect(d.blocos[0]!.linhas).toEqual([`${formatEuros(108800)}: B inclui impermeabilização, A não.`]);
+    expect(d.blocos[0]!.nota).toBeNull();
+  });
+
+  it('separa o que está escrito na proposta do que é conta nossa, e diz a convenção ao lado', () => {
+    const a = lado('A', [linha({ trabalho: 'pintura_final', quantidade: 24000, precoUnitario: 200, demaos: 2, produto: 'CIN' })]);
+    const b = lado('B', [linha({ trabalho: 'pintura_final', quantidade: 31000, precoUnitario: 200, demaos: 2, produto: 'CIN' })]);
+    const d = diferencaEmPalavras('A', 'B', reconciliar(a, b), formatEuros);
+    // Os 70 m² a mais valorizados ao preço unitário de A não estão escritos em lado nenhum: é uma
+    // repartição nossa, e tem de o dizer antes dos números.
+    expect(d.blocos.map((b) => b.id)).toEqual(['calculado']);
+    expect(d.blocos[0]!.titulo).toBe('Efeito calculado a partir das quantidades declaradas');
+    expect(d.blocos[0]!.nota).toContain('preço unitário de A');
+    expect(d.blocos[0]!.nota).toContain('não estão escritos nas propostas');
+  });
+
+  it('com as quantidades iguais, a diferença de preço é declarada: não há repartição pelo meio', () => {
+    const a = lado('A', [linha({ trabalho: 'pintura_final', quantidade: 24000, precoUnitario: 200, demaos: 2, produto: 'CIN' })]);
+    const b = lado('B', [linha({ trabalho: 'pintura_final', quantidade: 24000, precoUnitario: 260, demaos: 2, produto: 'CIN' })]);
+    const r = reconciliar(a, b);
+    expect(r.parcelas.map((p) => [p.causa, p.proveniencia])).toEqual([['preco', 'declarado']]);
   });
 
   it('o mesmo preço diz-se, em vez de se calar', () => {

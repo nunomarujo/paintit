@@ -183,20 +183,40 @@ export interface Leitura {
   reparos: string[];
 }
 
+/**
+ * Os trabalhos que se aplicam por camadas: neles, o número de demãos é um requisito técnico e a sua
+ * falta é uma lacuna. Uma lavagem ou uma reparação de fissuras não tem demãos, e exigir-lhas daria
+ * um reparo falso.
+ */
+export const TRABALHOS_COM_DEMAOS: readonly DesiredWork[] = ['primario', 'pintura', 'impermeabilizacao', 'tratamento_metais'];
+
 export interface Classificacao {
-  cobertura: Leitura & { completa: boolean; porEsclarecer: number };
+  cobertura: Leitura & { completa: boolean; porEsclarecer: number; semPrecoFirme: number };
   definicao: Leitura & { definido: boolean };
-  tecnica: Leitura;
+  /**
+   * `confirmada` não quer dizer que a execução corresponda ao que foi pedido — isso exigiria
+   * verificar preparação do suporte, sistema, consumo e compatibilidade, que a proposta não é
+   * obrigada a declarar. Quer dizer que **o que é verificável nos dados está preenchido**. A frase
+   * descreve o que foi verificado; nunca declara conformidade (correcção do promotor, 29/10/2026).
+   */
+  tecnica: Leitura & { confirmada: boolean };
 }
 
 export function classificar(s: SinaisDaProposta): Classificacao {
   const porEsclarecerN = s.trabalhos.filter((t) => porEsclarecer(t.estado)).length;
   const excluidos = s.trabalhos.filter((t) => t.estado === 'excluido').length;
+  // Âmbito e preço são perguntas diferentes, e juntá-las escondia qual dos dois riscos se corria
+  // (correcção do promotor, 29/10/2026). Um trabalho **condicionado está previsto** — o que falta é
+  // o preço fechar depois de observar. Um **não indicado** é silêncio sobre o próprio trabalho.
+  // Por isso o condicionado conta nas duas dimensões, e o não indicado só no âmbito.
+  const semPrecoFirme = s.trabalhos.filter((t) => t.estado === 'condicionado').length;
+  const naoIndicados = s.trabalhos.filter((t) => t.estado === 'nao_indicado').length;
   const completa = s.trabalhos.length > 0 && s.trabalhos.every((t) => t.estado === 'incluido');
 
   const reparosCobertura = [
     excluidos ? `${excluidos} ${excluidos === 1 ? 'trabalho excluído' : 'trabalhos excluídos'}` : '',
-    porEsclarecerN ? `${porEsclarecerN} ${porEsclarecerN === 1 ? 'trabalho por esclarecer' : 'trabalhos por esclarecer'}` : '',
+    naoIndicados ? `${naoIndicados} ${naoIndicados === 1 ? 'trabalho não indicado' : 'trabalhos não indicados'}` : '',
+    semPrecoFirme ? `${semPrecoFirme} ${semPrecoFirme === 1 ? 'trabalho com preço por fechar' : 'trabalhos com preço por fechar'}` : '',
     s.zonasSemPreco ? `${s.zonasSemPreco} ${s.zonasSemPreco === 1 ? 'zona sem preço' : 'zonas sem preço'}` : '',
   ].filter(Boolean);
 
@@ -212,17 +232,20 @@ export function classificar(s: SinaisDaProposta): Classificacao {
 
   const incluidos = s.trabalhos.filter((t) => t.estado === 'incluido');
   const semProduto = incluidos.filter((t) => t.produtos.length === 0).length;
+  const semDemaos = incluidos.filter((t) => TRABALHOS_COM_DEMAOS.includes(t.work) && t.demaos === null).length;
   const p = s.produtosPedidos;
   const reparosTecnica = [
     p && p.substitui ? `substitui ${p.substitui} ${p.substitui === 1 ? 'produto pedido' : 'produtos pedidos'}` : '',
     p && p.semIndicacao ? `não diz o que usa em ${p.semIndicacao} ${p.semIndicacao === 1 ? 'produto pedido' : 'produtos pedidos'}` : '',
     !p && semProduto ? `${semProduto} ${semProduto === 1 ? 'trabalho incluído sem produto nomeado' : 'trabalhos incluídos sem produto nomeado'}` : '',
+    semDemaos ? `não indica as demãos em ${semDemaos} ${semDemaos === 1 ? 'trabalho que as leva' : 'trabalhos que as levam'}` : '',
   ].filter(Boolean);
 
   return {
     cobertura: {
       completa,
       porEsclarecer: porEsclarecerN,
+      semPrecoFirme,
       frase: coberturaEmPalavras(s.trabalhos),
       reparos: reparosCobertura,
     },
@@ -236,11 +259,14 @@ export function classificar(s: SinaisDaProposta): Classificacao {
       reparos: reparosDefinicao,
     },
     tecnica: {
+      confirmada: reparosTecnica.length === 0,
+      // Mesmo sem reparos, a frase diz o que foi verificado e não que a execução corresponde ao
+      // pedido: nomear o produto é preenchimento, não correspondência técnica.
       frase: reparosTecnica.length === 0
         ? p
-          ? 'Segue os produtos pedidos.'
-          : 'Nomeia o produto em todos os trabalhos incluídos.'
-        : `${maiuscula(junta(reparosTecnica))}.`,
+          ? 'Segue os produtos pedidos e indica as demãos.'
+          : 'Identifica produto e demãos em todos os trabalhos incluídos.'
+        : `Correspondência técnica por confirmar: ${junta(reparosTecnica)}.`,
       reparos: reparosTecnica,
     },
   };

@@ -3571,3 +3571,77 @@ pagamento.
 Vale a pena guardar o padrão: foi um campo vazio numa linha da base — não um erro, não um teste
 vermelho — que levou ao segundo problema, que era o grave. Olhar para os dados depois de uma
 funcionalidade entrar paga-se.
+
+## 29/10/2026 — a verdade das contas, antes da apresentação delas
+
+Revisão do promotor ao comparador, depois de o passo 4 estar feito. Cinco reparos; dois eram defeitos
+reais, dois não se verificaram no código, e um era do relato e não do produto. Fica tudo escrito
+porque a distinção entre os cinco é a parte útil.
+
+**1. A conta fechar não prova que a explicação esteja certa.** *Confirmado e corrigido.* A parcela
+não decomposta é definida como o resto, por construção: a conta fecha sempre ao cêntimo, e fechar não
+demonstra que cada atribuição seja legítima. Pior, as parcelas saíam todas com a mesma forma — o
+preço que o pintor **escreveu** para um trabalho que a outra não inclui e o efeito que a plataforma
+**calcula** medindo a quantidade ao preço unitário da referência apareciam iguais ao leitor. Atribuir
+1.400 € à quantidade é uma simulação segundo uma convenção; se a outra proposta também mudou produto
+e demãos, não demonstra que os 70 m² expliquem aquele custo.
+
+Cada parcela passa a ter proveniência (`declarado` ou `calculado`), e a diferença apresenta-se em
+quatro blocos identificados: valores escritos nas propostas, efeito calculado, diferenças sem valor
+separado, diferença não decomposta. **A convenção vai junto da conta**, onde o cliente a lê, e saiu
+dos pressupostos no fim do relatório. Subtileza que ficou em teste: com as quantidades iguais, a
+parcela de preço é `T(b) − T(a)` entre dois valores declarados — é `declarado`; com quantidades
+diferentes, o que sobra depende de onde se cortou a parcela de quantidade, e é `calculado`.
+
+**2. «Nomeia o produto» não é correspondência técnica.** *Confirmado e corrigido.* A frase media
+preenchimento e era lida como conformidade. Passa a verificar também as demãos — que estavam nos
+dados e ninguém olhava — e, quando falta algo, diz **«Correspondência técnica por confirmar: …»**.
+Mesmo sem reparos a frase descreve o que foi verificado e nunca declara conformidade: a preparação do
+suporte, o sistema e o consumo não são declarados e não se podem dar por bons. As demãos só se exigem
+aos trabalhos que as levam (`TRABALHOS_COM_DEMAOS`); pedi-las a uma lavagem seria um reparo falso.
+
+**3. Âmbito e preço são perguntas diferentes.** *Acrescentado.* `porEsclarecer` juntava
+`condicionado` e `nao_indicado` numa contagem só, e isso escondia qual dos dois riscos se corria. Um
+trabalho **condicionado está previsto** — falta o preço fechar depois de observar — e um **não
+indicado** é silêncio sobre o próprio trabalho. O condicionado conta nas duas dimensões; o não
+indicado só no âmbito.
+
+**4. A referência do relatório mudaria com a ordenação.** *Não se verificava.* O relatório ordena com
+a constante `'padrao'` escrita no código e não lê parâmetro nenhum do endereço. Ficou, ainda assim,
+**dita no documento**: a referência e a ordenação identificam-se no corpo do relatório, para que duas
+cópias impressas saiam iguais e a assembleia não discuta sobre papéis diferentes.
+
+**5. Anonimato antes da escolha.** *Não se verificava.* As propostas aparecem como «Pintor A», «B»,
+«C» por uma função própria; o único nome no relatório é o do condomínio. Verificado por ser a regra 6
+do CLAUDE.md e o reparo mais grave dos cinco, se fosse verdadeiro.
+
+### A tabela de síntese
+
+Pedida pelo promotor no mesmo dia: uma coluna por proposta, critérios fixos à esquerda e sempre na
+mesma ordem, no topo do comparador e como secção 1 do relatório. Três regras, e nenhuma é cosmética:
+
+- **Sem fundo de cor e sem verde.** A regra 13 do CLAUDE.md proíbe fundo colorido em linhas
+  repetidas e proíbe cor de aviso como destaque. Trinta células pintadas são uma manta; e pintar de
+  verde o que cumpre ensina a ignorar o que falha. Fica o âmbar no texto, só onde há o que resolver.
+- **A cor nunca carrega a informação sozinha.** O texto da célula já diz o que se passa («310 m² —
+  diverge»), e o motivo por extenso sai debaixo da tabela — não atrás de um toque, que não se imprime.
+- **A última linha não elege ninguém.** «O essencial» resume as linhas de cima numa frase por
+  proposta. Acima da tabela, uma frase factual diz qual tem o menor total entre as completas e, quando
+  é outra, qual tem o menor total de todas e o que lhe falta: ser a mais barata e estar incompleta são
+  dois factos, e vêem-se juntos.
+
+Mais demãos ou mais anos de garantia **não** são tratados como melhores: a tabela mostra o que cada
+proposta declara. Uma tinta mais cara não é uma tinta melhor, e isso já estava escrito na nota do
+catálogo deste projecto.
+
+**O que o render apanhou e a leitura do código não apanharia:** «O essencial» repetia-se na lista de
+motivos com a mesma frase genérica debaixo de cada proposta; «lavagem e limpeza, reparação de fissuras
+e primário» encadeava três «e» porque o próprio rótulo já traz um; e a 390px via-se **uma** proposta
+em vez de duas, porque `min-w-max` dava a cada coluna a largura do seu texto mais longo. A primeira
+tentativa de correcção — hifenizar — produziu «Tra-ba-lhos pedi-dos», pior do que o defeito. Medidas as
+colunas uma a uma, ficou em 6,5rem para os critérios e 6,875rem por proposta: 324px dentro dos 328
+disponíveis, duas propostas inteiras e a terceira a espreitar, que é o próprio convite a deslizar.
+
+**Por decidir:** no papel o total fica a negrito mas não maior, porque a regra 14 avisa contra
+substituições de tamanho dentro da folha A4. Se o promotor quiser o preço maior também no impresso,
+decide-se o tamanho em pontos de papel, não em pixéis.

@@ -60,11 +60,26 @@ export const CAUSA_EXPLICACOES: Record<Causa, string> = {
   nao_decomposta: 'O orçamento não permite separar esta parcela. Não é margem.',
 };
 
+/**
+ * De onde vem o número. A distinção é a diferença entre uma prova e uma simulação, e o cliente tem
+ * direito a vê-la antes de decidir: fechar a conta ao cêntimo não prova que cada atribuição seja
+ * legítima — a parcela não decomposta fecha-a sempre, por construção.
+ *
+ * - `declarado`: o valor está escrito na proposta. O preço de um trabalho que uma inclui e a outra
+ *   não; a diferença entre dois valores de acessos. Não há conta nossa pelo meio.
+ * - `calculado`: o valor resulta de uma convenção de repartição nossa, aplicada a números
+ *   declarados. Medir a quantidade ao preço unitário da proposta de referência é uma escolha, não
+ *   um facto: medi-la ao preço da outra daria outra repartição com a mesma diferença total.
+ */
+export const PROVENIENCIAS_DE_VALOR = ['declarado', 'calculado'] as const;
+export type ProvenienciaDeValor = (typeof PROVENIENCIAS_DE_VALOR)[number];
+
 export interface Parcela {
   causa: Causa;
   descricao: string;
   /** Cêntimos. Positivo: torna a segunda proposta mais cara. Null: descrita, sem euros atribuídos. */
   valorCents: Cents | null;
+  proveniencia: ProvenienciaDeValor;
 }
 
 export interface LadoDaReconciliacao {
@@ -110,11 +125,11 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     const naB = tb.estado === 'incluido';
 
     if (naA && !naB) {
-      parcelas.push({ causa: 'ambito', descricao: `${a.alias} inclui ${min(ta.label)}, ${b.alias} não`, valorCents: -ta.precoCents });
+      parcelas.push({ causa: 'ambito', descricao: `${a.alias} inclui ${min(ta.label)}, ${b.alias} não`, valorCents: -ta.precoCents, proveniencia: 'declarado' });
       continue;
     }
     if (!naA && naB) {
-      parcelas.push({ causa: 'ambito', descricao: `${b.alias} inclui ${min(tb.label)}, ${a.alias} não`, valorCents: tb.precoCents });
+      parcelas.push({ causa: 'ambito', descricao: `${b.alias} inclui ${min(tb.label)}, ${a.alias} não`, valorCents: tb.precoCents, proveniencia: 'declarado' });
       continue;
     }
     if (!naA && !naB) continue;
@@ -136,6 +151,7 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
         causa: 'quantidade',
         descricao: `${min(ta.label)}: ${b.alias} declara ${qt(tb)} onde ${a.alias} declara ${qt(ta)}`,
         valorCents: efeitoQuantidade,
+        proveniencia: 'calculado',
       });
     }
 
@@ -149,6 +165,10 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
         causa: 'preco',
         descricao: `${min(ta.label)}: mesma quantidade e mesma execução, preço diferente`,
         valorCents: efeitoRestante,
+        // Com as quantidades iguais isto é `T(b) − T(a)`, a diferença entre dois totais escritos:
+        // nenhuma convenção lá dentro. Com quantidades diferentes, o que sobra depende de onde se
+        // cortou a parcela de quantidade, e aí é tão convencional como ela.
+        proveniencia: efeitoQuantidade === 0 ? 'declarado' : 'calculado',
       });
     }
   }
@@ -163,9 +183,9 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     if (va === 0 || vb === 0) {
       const quem = va === 0 ? b.alias : a.alias;
       const outro = va === 0 ? a.alias : b.alias;
-      parcelas.push({ causa: 'ambito', descricao: `${quem} inclui ${nome}, ${outro} não`, valorCents: vb - va });
+      parcelas.push({ causa: 'ambito', descricao: `${quem} inclui ${nome}, ${outro} não`, valorCents: vb - va, proveniencia: 'declarado' });
     } else {
-      parcelas.push({ causa: 'condicoes', descricao: `${nome}: as duas incluem, com valores diferentes`, valorCents: vb - va });
+      parcelas.push({ causa: 'condicoes', descricao: `${nome}: as duas incluem, com valores diferentes`, valorCents: vb - va, proveniencia: 'declarado' });
     }
   }
 
@@ -187,26 +207,112 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
   };
 }
 
-/** A frase que o cliente lê primeiro. */
-export function emPalavras(a: string, b: string, r: Reconciliacao, formata: (c: Cents) => string): string[] {
-  if (r.diferencaCents === 0) return [`${a} e ${b} apresentam o mesmo preço sem IVA.`];
+/**
+ * A diferença de preço, dita em blocos pela **origem do número** e não só pela causa.
+ *
+ * A razão é a que o promotor apontou a 29/10/2026: a conta fecha sempre ao cêntimo, porque a
+ * parcela não decomposta é definida como o resto. Fechar não prova que cada atribuição seja
+ * legítima. Atribuir 1.400 € à quantidade medindo-a ao preço unitário de A é uma simulação segundo
+ * uma convenção — e se B também mudou o produto e as demãos, não demonstra que os 70 m² a mais
+ * expliquem efectivamente aquele custo.
+ *
+ * Por isso os quatro blocos saem separados e identificados, e **a convenção vai junto da conta**,
+ * onde o cliente a lê, e não só no código ou num anexo de pressupostos.
+ */
+export const BLOCOS_DA_DIFERENCA = ['declarado', 'calculado', 'descrito', 'nao_decomposto'] as const;
+export type BlocoId = (typeof BLOCOS_DA_DIFERENCA)[number];
+
+export interface BlocoDaDiferenca {
+  id: BlocoId;
+  titulo: string;
+  /** A convenção ou o limite que sustenta este bloco. Lê-se antes dos números, não depois. */
+  nota: string | null;
+  linhas: string[];
+}
+
+export interface DiferencaEmPalavras {
+  /** A frase que o cliente lê primeiro. */
+  abertura: string;
+  blocos: BlocoDaDiferenca[];
+}
+
+export function diferencaEmPalavras(
+  a: string,
+  b: string,
+  r: Reconciliacao,
+  formata: (c: Cents) => string,
+): DiferencaEmPalavras {
+  if (r.diferencaCents === 0) {
+    return { abertura: `${a} e ${b} apresentam o mesmo preço sem IVA.`, blocos: [] };
+  }
   const maisCara = r.diferencaCents > 0 ? b : a;
-  const abs = Math.abs(r.diferencaCents);
-  const frases = [`${maisCara} custa mais ${formata(abs)}, sem IVA.`];
+  const abertura = `${maisCara} custa mais ${formata(Math.abs(r.diferencaCents))}, sem IVA.`;
 
   if (r.indecomponivel) {
-    frases.push('Uma das propostas tem preço global, sem repartição por trabalho: a diferença não se pode decompor.');
-    return frases;
+    return {
+      abertura,
+      blocos: [{
+        id: 'nao_decomposto',
+        titulo: 'Sem repartição possível',
+        nota: null,
+        linhas: ['Uma das propostas tem preço global, sem repartição por trabalho: a diferença não se pode decompor.'],
+      }],
+    };
   }
-  for (const p of r.parcelas) {
-    if (p.valorCents === null || p.valorCents === 0) continue;
-    frases.push(`${formata(Math.abs(p.valorCents))}: ${p.descricao}.`);
+
+  const comValor = (prov: ProvenienciaDeValor) =>
+    r.parcelas.filter((p) => p.proveniencia === prov && p.valorCents !== null && p.valorCents !== 0)
+      .map((p) => `${formata(Math.abs(p.valorCents!))}: ${p.descricao}.`);
+
+  const blocos: BlocoDaDiferenca[] = [];
+
+  const declarado = comValor('declarado');
+  if (declarado.length) {
+    blocos.push({
+      id: 'declarado',
+      titulo: 'Valores escritos nas propostas',
+      nota: null,
+      linhas: declarado,
+    });
   }
-  frases.push(...r.notasTecnicas.map((n) => `${n} — esse custo não está separado.`));
+
+  const calculado = comValor('calculado');
+  if (calculado.length) {
+    blocos.push({
+      id: 'calculado',
+      titulo: 'Efeito calculado a partir das quantidades declaradas',
+      nota: `A quantidade é medida ao preço unitário de ${a}. Medi-la ao preço de ${b} daria outra repartição entre quantidade e preço, com a mesma diferença total. Estes valores não estão escritos nas propostas.`,
+      linhas: calculado,
+    });
+  }
+
+  if (r.notasTecnicas.length) {
+    blocos.push({
+      id: 'descrito',
+      titulo: 'Diferenças sem valor separado',
+      nota: 'Separar quanto custa uma demão a mais, ou um produto diferente, exigiria saber o custo de cada empresa. Descreve-se a diferença; os euros desse trabalho ficam por decompor.',
+      linhas: r.notasTecnicas.map((n) => `${n}.`),
+    });
+  }
+
   if (r.naoDecompostaCents !== 0) {
-    frases.push(`${formata(Math.abs(r.naoDecompostaCents))} não podem ser decompostos com os dados disponíveis.`);
+    blocos.push({
+      id: 'nao_decomposto',
+      titulo: 'Diferença que os orçamentos não permitem decompor',
+      // Sem nomear aquilo que não sabemos — nem para o negar. A decisão do promotor (28/10/2026)
+      // é não escrever a palavra: negá-la planta-a na mesma, e o teste fixa-o.
+      nota: 'Pode ser produtividade, equipamento, transporte, estrutura de custos ou risco assumido. Dizer qual exigiria saber o custo de cada empresa, que não se conhece.',
+      linhas: [`${formata(Math.abs(r.naoDecompostaCents))} não podem ser decompostos com os dados disponíveis.`],
+    });
   }
-  return frases;
+
+  return { abertura, blocos };
+}
+
+/** O mesmo, achatado, para onde só couber uma lista de frases. */
+export function emPalavras(a: string, b: string, r: Reconciliacao, formata: (c: Cents) => string): string[] {
+  const { abertura, blocos } = diferencaEmPalavras(a, b, r, formata);
+  return [abertura, ...blocos.flatMap((bl) => [`${bl.titulo}:`, ...bl.linhas])];
 }
 
 const min = (s: string) => s.toLocaleLowerCase('pt-PT');

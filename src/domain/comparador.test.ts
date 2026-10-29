@@ -152,7 +152,7 @@ import { classificar, ordenar, ORDEM_LABELS, type Ordenavel, type SinaisDaPropos
 const sinais = (p: Partial<SinaisDaProposta> = {}): SinaisDaProposta => ({
   trabalhos: trabalhosDaProposta(['lavagem', 'pintura'], [
     linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
-    linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt' }),
+    linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
   ]),
   temCondicionados: false,
   zonasSemPreco: 0,
@@ -167,7 +167,10 @@ describe('as três dimensões, sem pontuação nenhuma', () => {
     expect(c.cobertura.reparos).toEqual([]);
     expect(c.definicao.definido).toBe(true);
     expect(c.definicao.frase).toBe('Total apresentado, com preço por trabalho.');
-    expect(c.tecnica.frase).toBe('Nomeia o produto em todos os trabalhos incluídos.');
+    expect(c.tecnica.confirmada).toBe(true);
+    // Diz o que verificou. Não diz que a execução corresponde ao pedido: isso exigiria a preparação
+    // do suporte, o sistema e o consumo, que a proposta não é obrigada a declarar.
+    expect(c.tecnica.frase).toBe('Identifica produto e demãos em todos os trabalhos incluídos.');
   });
 
   it('a definição é sobre o preço, não sobre o âmbito: tudo incluído e metade por observar', () => {
@@ -191,19 +194,62 @@ describe('as três dimensões, sem pontuação nenhuma', () => {
 
   it('com produtos pedidos pelo cliente, a leitura técnica é sobre eles', () => {
     const c = classificar(sinais({ produtosPedidos: { segue: 1, substitui: 1, semIndicacao: 0 } }));
-    expect(c.tecnica.frase).toBe('Substitui 1 produto pedido.');
+    expect(c.tecnica.frase).toBe('Correspondência técnica por confirmar: substitui 1 produto pedido.');
     const ok = classificar(sinais({ produtosPedidos: { segue: 2, substitui: 0, semIndicacao: 0 } }));
-    expect(ok.tecnica.frase).toBe('Segue os produtos pedidos.');
+    expect(ok.tecnica.frase).toBe('Segue os produtos pedidos e indica as demãos.');
   });
 
   it('sem produtos pedidos, repara-se no trabalho incluído que não diz o que aplica', () => {
     const c = classificar(sinais({
       trabalhos: trabalhosDaProposta(['lavagem', 'pintura'], [
         linha({ trabalho: 'lavagem' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
+      ]),
+    }));
+    expect(c.tecnica.frase).toBe('Correspondência técnica por confirmar: 1 trabalho incluído sem produto nomeado.');
+  });
+
+  it('as demãos em falta são um reparo técnico — nomear o produto não é corresponder ao pedido', () => {
+    const c = classificar(sinais({
+      trabalhos: trabalhosDaProposta(['lavagem', 'pintura'], [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
         linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt' }),
       ]),
     }));
-    expect(c.tecnica.frase).toBe('1 trabalho incluído sem produto nomeado.');
+    expect(c.tecnica.confirmada).toBe(false);
+    expect(c.tecnica.frase).toBe('Correspondência técnica por confirmar: não indica as demãos em 1 trabalho que as leva.');
+  });
+
+  it('à lavagem não se exigem demãos: o reparo seria falso', () => {
+    const c = classificar(sinais({
+      trabalhos: trabalhosDaProposta(['lavagem'], [linha({ trabalho: 'lavagem', produto: 'Alta pressão' })]),
+    }));
+    expect(c.tecnica.reparos).toEqual([]);
+  });
+});
+
+describe('âmbito e preço são perguntas diferentes', () => {
+  it('um trabalho com preço por fechar está previsto: conta no preço, não como omissão', () => {
+    const c = classificar(sinais({
+      trabalhos: trabalhosDaProposta(['lavagem', 'pintura'], [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2, inclusao: 'condicionado' }),
+      ]),
+    }));
+    expect(c.cobertura.semPrecoFirme).toBe(1);
+    expect(c.cobertura.reparos).toContain('1 trabalho com preço por fechar');
+    expect(c.cobertura.reparos).not.toContain('1 trabalho não indicado');
+  });
+
+  it('um trabalho que a proposta nem refere é omissão de âmbito, e não um preço por fechar', () => {
+    const c = classificar(sinais({
+      trabalhos: trabalhosDaProposta(['lavagem', 'pintura', 'reparacao_fissuras'], [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
+      ]),
+    }));
+    expect(c.cobertura.semPrecoFirme).toBe(0);
+    expect(c.cobertura.reparos).toContain('1 trabalho não indicado');
   });
 });
 

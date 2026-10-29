@@ -11,12 +11,15 @@ import { formatEuros } from '@/domain/money';
 import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, type DesiredWork } from '@/domain/request';
 import {
   ESTADO_LABELS,
+  ORDEM_LABELS,
   classificar,
   ordenar,
   quantidadeEmPalavras,
   trabalhosDaProposta,
 } from '@/domain/comparador';
-import { CAUSA_LABELS, emPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
+import { CAUSA_LABELS, diferencaEmPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
+import { leituraImediata, sinteseDasPropostas } from '@/domain/sintese';
+import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
 
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
 const dataHora = (iso: string | null) =>
@@ -104,6 +107,29 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
   const referencia = ordenadas[0];
   const contra = ordenadas.slice(1);
 
+  const propostasDaSintese = ordenadas.map((r) => {
+      const p = byId.get(r.id)!;
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        classificacao: classificacaoDe.get(r.id)!,
+        trabalhos: porProposta.get(r.id)!,
+        garantiaAnos: p.garantia_anos,
+        duracaoDias: p.duracao_dias,
+        inicioPossivel: p.inicio_possivel,
+        adiantamentoBps: p.adiantamento_bps,
+      };
+  });
+  const linhasDaSintese = sinteseDasPropostas(propostasDaSintese, {
+      pedidos: trabalhos,
+      areaPedidoCm2: areaTotal > 0 ? areaTotal : null,
+      formataEuros: formatEuros,
+      formataArea: formatArea,
+      formataData: pt,
+  });
+  const leituraDaSintese = leituraImediata(propostasDaSintese, formatEuros);
+
   // Coluna recente; lida à parte para o relatório não cair se a migração ainda não correu.
   const { data: motivo } = await supabase.from('work_requests').select('motivo_escolha, motivo_escolha_em').eq('id', id).maybeSingle();
 
@@ -132,62 +158,51 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
             <p className="mt-6">Não há propostas submetidas para este pedido.</p>
           ) : (
             <>
-              <section className="mt-6">
-                <h2 className="text-[20px] font-semibold">1. Resumo</h2>
-                {grupos.map((g) => (
-                  <div key={g.titulo} className="mt-3">
-                    {grupos.length > 1 && <h3 className="font-semibold">{g.titulo}</h3>}
-                    <p className="text-slate-600">{g.nota}</p>
-                    <table className="mt-2 w-full text-left">
-                      <thead>
-                        <tr className="border-b border-slate-300">
-                          <th className="py-1 pr-3 font-semibold">Proposta</th>
-                          <th className="py-1 pr-3 text-right font-semibold whitespace-nowrap">Total a pagar</th>
-                          <th className="py-1 pr-3 font-semibold">Cobertura do pedido</th>
-                          <th className="py-1 font-semibold">Por esclarecer</th>
-                        </tr>
-                      </thead>
-                      <tbody className="align-top">
-                        {g.propostas.map((o) => {
-                          const r = rowOf.get(o.id)!;
-                          const c = classificacaoDe.get(o.id)!;
-                          return (
-                            <tr key={o.id} className="border-b border-slate-100">
-                              <td className="py-1.5 pr-3 font-medium">{r.alias}</td>
-                              <td className="py-1.5 pr-3 text-right tabular-nums">{formatEuros(r.totals.totalComIva)}</td>
-                              <td className="py-1.5 pr-3">{c.cobertura.frase}</td>
-                              <td className="py-1.5">{c.cobertura.reparos.length ? c.cobertura.reparos.join('; ') : '—'}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </section>
+              <div className="mt-6">
+                <SinteseDasPropostas linhas={linhasDaSintese} aliases={ordenadas.map((r) => r.alias)} leitura={leituraDaSintese} variante="papel" />
+                {grupos.length > 1 && (
+                  <p className="mt-2 text-slate-600">
+                    {grupos.map((g) => `${g.titulo}: ${g.propostas.map((x) => rowOf.get(x.id)!.alias).join(', ')}`).join(' · ')}.
+                  </p>
+                )}
+              </div>
 
               {referencia && contra.length > 0 && (
                 <section className="mt-6">
                   <h2 className="text-[20px] font-semibold">2. Diferenças para {referencia.alias}</h2>
                   <p className="text-slate-600">
-                    Cada proposta comparada com {referencia.alias}, que é a primeira da ordenação por omissão. Cada euro de
-                    diferença é atribuído a uma causa; o que não se consegue atribuir é dito como tal, e não se chama margem.
+                    Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a primeira da ordenação por
+                    omissão (&laquo;{ORDEM_LABELS.padrao}&raquo;), que é a usada em todas as contas abaixo e não muda com a
+                    ordem em que as propostas sejam vistas no ecrã. Cada euro de diferença é atribuído a uma causa; o que
+                    não se consegue atribuir é dito como tal.
                   </p>
                   {contra.map((r) => {
                     const rec = reconciliar(lado(referencia), lado(r));
-                    const frases = emPalavras(referencia.alias, r.alias, rec, formatEuros);
+                    const d = diferencaEmPalavras(referencia.alias, r.alias, rec, formatEuros);
+                    const comEuros = (prov: 'declarado' | 'calculado') =>
+                      rec.parcelas.filter((x) => x.proveniencia === prov && x.valorCents !== null && x.valorCents !== 0);
+                    const grupos = (['declarado', 'calculado'] as const)
+                      .map((id) => ({ bloco: d.blocos.find((x) => x.id === id), parcelas: comEuros(id) }))
+                      .filter((g) => g.bloco && g.parcelas.length > 0);
+                    const naoDecomposto = d.blocos.find((x) => x.id === 'nao_decomposto');
+                    const descrito = d.blocos.find((x) => x.id === 'descrito');
                     return (
                       <div key={r.id} className="mt-3 break-inside-avoid">
                         <h3 className="font-semibold">{r.alias}</h3>
-                        <p>{frases[0]}</p>
+                        <p>{d.abertura}</p>
                         {rec.indecomponivel ? (
-                          <p className="text-slate-600">{frases[1]}</p>
+                          <p className="text-slate-600">{naoDecomposto?.linhas[0]}</p>
                         ) : (
                           <table className="mt-1 w-full text-left">
-                            <tbody>
-                              {rec.parcelas
-                                .filter((x) => x.valorCents !== null && x.valorCents !== 0)
-                                .map((x, i) => (
+                            {grupos.map(({ bloco, parcelas }) => (
+                              <tbody key={bloco!.id}>
+                                <tr>
+                                  <th colSpan={2} scope="colgroup" className="pt-2 text-left align-bottom">
+                                    <span className="block font-semibold">{bloco!.titulo}</span>
+                                    {bloco!.nota && <span className="block font-normal text-slate-600">{bloco!.nota}</span>}
+                                  </th>
+                                </tr>
+                                {parcelas.map((x, i) => (
                                   <tr key={`${x.causa}-${i}`} className="border-b border-slate-100">
                                     <td className="py-1 pr-3">
                                       <span className="font-medium">{CAUSA_LABELS[x.causa]}</span> · {x.descricao}
@@ -197,28 +212,37 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                                     </td>
                                   </tr>
                                 ))}
-                              {rec.naoDecompostaCents !== 0 && (
+                              </tbody>
+                            ))}
+                            {naoDecomposto && rec.naoDecompostaCents !== 0 && (
+                              <tbody>
+                                <tr>
+                                  <th colSpan={2} scope="colgroup" className="pt-2 text-left align-bottom">
+                                    <span className="block font-semibold">{naoDecomposto.titulo}</span>
+                                    {naoDecomposto.nota && <span className="block font-normal text-slate-600">{naoDecomposto.nota}</span>}
+                                  </th>
+                                </tr>
                                 <tr className="border-b border-slate-100">
-                                  <td className="py-1 pr-3">
-                                    <span className="font-medium">{CAUSA_LABELS.nao_decomposta}</span> · o orçamento não permite separar
-                                  </td>
+                                  <td className="py-1 pr-3 font-medium">{CAUSA_LABELS.nao_decomposta}</td>
                                   <td className="py-1 text-right tabular-nums whitespace-nowrap">
                                     {rec.naoDecompostaCents > 0 ? '+' : '−'}{formatEuros(Math.abs(rec.naoDecompostaCents))}
                                   </td>
                                 </tr>
-                              )}
+                              </tbody>
+                            )}
+                            <tfoot>
                               <tr className="border-t-2 border-slate-900">
                                 <td className="py-1 pr-3 font-semibold">Diferença</td>
                                 <td className="py-1 text-right font-semibold tabular-nums whitespace-nowrap">
                                   {rec.diferencaCents > 0 ? '+' : '−'}{formatEuros(Math.abs(rec.diferencaCents))}
                                 </td>
                               </tr>
-                            </tbody>
+                            </tfoot>
                           </table>
                         )}
-                        {rec.notasTecnicas.length > 0 && (
+                        {descrito && (
                           <p className="mt-1 text-slate-600">
-                            Sem preço separado: {rec.notasTecnicas.join('; ')}.
+                            {descrito.titulo}: {descrito.linhas.join(' ')} {descrito.nota}
                           </p>
                         )}
                       </div>
@@ -283,16 +307,13 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                     Uma estimativa não tem o mesmo valor de uma medição confirmada.
                   </li>
                   <li>
-                    Repartição da diferença: a parcela de quantidade mede-se ao preço unitário de {referencia?.alias ?? 'a proposta de referência'}.
-                    Não é a única repartição possível; é a que foi usada em todas as contas deste relatório.
+                    Origem de cada valor: as contas da secção 2 separam o que está <strong>escrito nas propostas</strong> do
+                    que é <strong>efeito calculado</strong> pela plataforma, e a convenção de cada cálculo vai escrita junto
+                    dos números, não aqui.
                   </li>
                   <li>
-                    Diferenças de execução — demãos ou produto — são descritas sem lhes atribuir euros: separá-las do preço
-                    exigiria saber o custo de cada empresa.
-                  </li>
-                  <li>
-                    A ordenação segue o critério indicado em cada quadro. Comissões da plataforma, promoções e relações
-                    comerciais não a alteram.
+                    Ordenação deste documento: &laquo;{ORDEM_LABELS.padrao}&raquo;, fixada na impressão para que duas cópias
+                    saiam iguais. Comissões da plataforma, promoções e relações comerciais não a alteram.
                   </li>
                   <li>As empresas aparecem como {ordenadas.map((r) => r.alias).join(', ')}; a identidade é revelada depois da escolha.</li>
                 </ul>

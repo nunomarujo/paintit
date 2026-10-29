@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MessageThread } from '@/components/MessageThread';
+import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
 import { ProposalView } from '@/components/ProposalView';
 import { parseCapoto } from '@/lib/capoto';
 import { clientGuarantee } from '@/domain/commission';
@@ -30,6 +31,7 @@ import { canManage, myRole } from '@/lib/access';
 import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
 import { adherence, parsePreferences } from '@/domain/reference';
+import { leituraImediata, sinteseDasPropostas } from '@/domain/sintese';
 import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
@@ -195,6 +197,31 @@ export default async function ProposalsPage({
   const parEsquerda = escolhe(parA, 0);
   const parDireita = sorted.length > 1 ? escolhe(parB === parA ? undefined : parB, 1) : undefined;
 
+  // A síntese segue a ordem escolhida pelo cliente, como os cartões. A referência da reconciliação
+  // não vem daqui: é fixa, e por isso não muda quando as colunas trocam de sítio.
+  const propostasDaSintese = sorted.map((r) => {
+      const p = byId.get(r.id)!;
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        classificacao: classificacaoDe.get(r.id)!,
+        trabalhos: trabalhosPorProposta.get(r.id)!,
+        garantiaAnos: p.garantia_anos,
+        duracaoDias: p.duracao_dias,
+        inicioPossivel: p.inicio_possivel,
+        adiantamentoBps: p.adiantamento_bps,
+      };
+  });
+  const linhasDaSintese = sinteseDasPropostas(propostasDaSintese, {
+      pedidos: desiredWorks,
+      areaPedidoCm2: areaTotal > 0 ? areaTotal : null,
+      formataEuros: formatEuros,
+      formataArea: formatArea,
+      formataData: pt,
+  });
+  const leituraDaSintese = leituraImediata(propostasDaSintese, formatEuros);
+
   const chosen = list.find((p) => p.status === 'selecionada');
   const threadsWithoutProposal = [...new Set((messages ?? []).map((m) => m.proposal_id))].filter((pid) => !byId.has(pid));
   const path = `/app/pedidos/${id}/propostas`;
@@ -221,6 +248,8 @@ export default async function ProposalsPage({
           Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura)
         </Link>
       )}
+
+      {sorted.length > 1 && <SinteseDasPropostas linhas={linhasDaSintese} aliases={sorted.map((r) => r.alias)} leitura={leituraDaSintese} />}
 
       {sorted.length > 0 && (
         <div className="space-y-6">
