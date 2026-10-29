@@ -10,8 +10,15 @@ import { BRAND } from '@/config/brand';
  *
  * **Porquê um PNG e não um SVG.** O original veio em imagem, não em vectores. O ficheiro foi
  * recortado à caixa do desenho — vinha com uma tela quadrada e uma sombra muito ténue à volta, que
- * obrigavam a centrá-lo à mão em cada sítio — e reduzido a 128 cores, o que o deixa em 43 kB sem
- * diferença visível. A 1200px de largura, impresso a 40mm, dá mais de 700 pontos por polegada.
+ * obrigavam a centrá-lo à mão em cada sítio — e reduzido a 128 cores.
+ *
+ * Os pontos por polegada **não são uma propriedade do ficheiro**: dependem do tamanho a que se
+ * imprime (correcção do promotor, 29/10/2026). O que se pode dizer é que os 600px de largura deste
+ * ficheiro dão cerca de 690 ppp aos 22mm a que o logótipo sai na faixa do relatório, que é o maior
+ * sítio onde aparece — mais do dobro dos 300 que uma gráfica pede.
+ *
+ * O original tal como foi entregue, e os mestres de que este ficheiro é gerado, ficam em
+ * `docs/marca/`. `npm run marca` regenera tudo.
  *
  * **Altura, nunca largura.** O logótipo tem duas linhas de texto; é a altura que decide se se lê.
  * Abaixo de uns 30px cada linha fica com menos de 12px e deixa de se distinguir — por isso os
@@ -19,10 +26,17 @@ import { BRAND } from '@/config/brand';
  */
 
 /** As dimensões do ficheiro. Ficam aqui para o navegador reservar o espaço antes de o carregar. */
-export const LOGOTIPO = { src: '/img/logotipo.png', largura: 1200, altura: 816 } as const;
+export const LOGOTIPO = { src: '/img/logotipo.png', largura: 600, altura: 408 } as const;
 
-/** Altura por tamanho, em píxeis de ecrã. */
-const ALTURAS = { sm: 34, md: 44, lg: 60 } as const;
+/**
+ * Altura por tamanho, em píxeis de ecrã.
+ *
+ * Subiu de 34/44/60 a 29/10/2026: «ficou demasiadamente pequeno o logo na landing page» (promotor).
+ * A barra de topo tinha 56px e o logótipo 34px — sobrava-lhe espaço de cada lado e a marca lia-se
+ * como um selo. A barra passou a 68px e o logótipo a 46px, as medidas que o promotor indicou, que
+ * lhe deixam 11px de folga acima e abaixo.
+ */
+const ALTURAS = { sm: 46, md: 58, lg: 78 } as const;
 
 export function Logotipo({
   tamanho = 'md',

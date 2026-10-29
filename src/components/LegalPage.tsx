@@ -36,7 +36,7 @@ export function LegalLinks({ className = '' }: { className?: string }) {
  */
 export function PublicHeader() {
   return (
-    <header className="sticky top-0 z-20 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur print:hidden">
+    <header className="sticky top-0 z-20 h-[var(--altura-cabecalho)] border-b border-slate-200/80 bg-white/95 backdrop-blur print:hidden">
       <div className="mx-auto flex h-full max-w-3xl items-center justify-between px-4">
         <Link href="/" aria-label={`Ir para a página inicial de ${BRAND.name}`} className="inline-flex min-h-[44px] items-center">
           <BrandMark size="sm" />

@@ -10,7 +10,8 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "marca": "node scripts/marca.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

@@ -63,7 +63,7 @@ export default function Home() {
         pessoa faça. A marca desce para 20px e o "Entrar" passa a ligação — quem tem conta procura-o e
         encontra-o; quem não tem fica com um caminho só à vista, o botão do primeiro ecrã.
       */}
-      <header className="sticky top-0 z-20 h-14 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 h-[var(--altura-cabecalho)] border-b border-slate-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
           <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center">
             <BrandMark size="sm" />

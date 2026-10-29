@@ -6,6 +6,15 @@
   color-scheme: light;
 
   /*
+   * A altura da barra de topo. Vive aqui porque três sítios dependem dela e dependiam cada um por
+   * sua conta: a barra em `page.tsx`, a mesma barra em `LegalPage.tsx`, e o primeiro ecrã em
+   * `PaintedHero.tsx`, que se cola por baixo dela (`top`) e ocupa o que sobra (`100svh menos` isto).
+   * Com o número escrito à mão em cada um, mudar a altura da barra partia o primeiro ecrã em
+   * silêncio — e foi o que quase aconteceu ao aumentar o logótipo a 29/10/2026.
+   */
+  --altura-cabecalho: 4.25rem; /* 68px — medida pedida pelo promotor a 29/10/2026 */
+
+  /*
    * Paleta da marca, tal como veio do desenho do site (25/10/2026). Valores exactos, não
    * aproximações: a aplicação tinha um petróleo (#173f42) e a marca é um verde-escuro.
    * Por agora vive na página de planos; o resto da aplicação ainda segue a paleta antiga.
