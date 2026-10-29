@@ -266,11 +266,11 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   <p className="mt-1">{prioridadeEmPalavras()}</p>
                   <ul className="mt-2 list-disc space-y-0.5 pl-5">
                     <li>
-                      <strong>Cobertura:</strong> verifica se os trabalhos pedidos estão incluídos — um trabalho em falta
-                      torna o total não comparável.
+                      <strong>Cobertura:</strong> verifica se os trabalhos que pediu estão incluídos. Uma proposta a que
+                      falte trabalho fica mais barata por isso, e esse trabalho terá de ser contratado à parte.
                     </li>
                     <li>
-                      <strong>Preço:</strong> distingue o que está apresentado do que ainda fecha depois de observar.
+                      <strong>Preço:</strong> separa o valor já fechado do que o pintor só fecha depois de ver a obra.
                     </li>
                     <li>
                       <strong>Execução:</strong> produto e demãos declarados assinalam o que falta confirmar; não afirmam

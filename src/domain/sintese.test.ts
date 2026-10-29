@@ -110,7 +110,9 @@ describe('a tabela de síntese', () => {
     const c = linhaPor(sinteseDasPropostas([p], ctx()), 'area')!.celulas[0]!;
     expect(c.tom).toBe('atencao');
     expect(c.texto).toContain('diverge');
-    expect(c.motivo).toContain('diferente da do levantamento');
+    expect(c.motivo).toContain('310 m² onde o pedido diz 240 m²');
+    // Oferece as duas hipóteses pela ordem certa: medir de outra forma antes de alguém estar errado.
+    expect(c.motivo!.indexOf('outra forma de medir')).toBeLessThan(c.motivo!.indexOf('enganado'));
     expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('a mais');
     expect(`${c.texto} ${c.motivo}`.toLowerCase()).not.toContain('erro');
   });
@@ -249,6 +251,43 @@ describe('o que sobe à primeira página', () => {
     const ls = sinteseDasPropostas(ps, ctx());
     for (const p of pendenciasQueImportam(ls, ps.map((x) => x.alias), ['Pintor C'])) {
       expect(p.motivo.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe('o que o cliente lê é português de cliente', () => {
+  // O promotor apanhou «o preço não é comparável sem os somar» e disse o que era: linguagem de quem
+  // construiu a tabela. Quem lê isto é um condómino numa assembleia, não quem fez o comparador.
+  const JARGAO = ['comparável', 'comparáveis', 'âmbito', 'parcela', 'índice', 'critério de medição', 'valorização'];
+
+  const todosOsMotivos = () => {
+    const ps = [
+      proposta('Pintor A'),
+      proposta('Pintor B', { garantiaAnos: null, duracaoDias: null }, [
+        linha({ trabalho: 'lavagem' }),
+        linha({ trabalho: 'pintura_final', quantidade: 31000 }),
+      ]),
+      proposta('Pintor C', {}, [linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2, inclusao: 'condicionado' })]),
+    ];
+    return sinteseDasPropostas(ps, ctx())
+      .flatMap((l) => l.celulas)
+      .map((c) => c.motivo)
+      .filter((m): m is string => !!m);
+  };
+
+  it('nenhum motivo usa palavras que só nós percebemos', () => {
+    const motivos = todosOsMotivos();
+    expect(motivos.length).toBeGreaterThan(3);
+    for (const m of motivos) {
+      for (const palavra of JARGAO) expect(m.toLowerCase()).not.toContain(palavra);
+    }
+  });
+
+  it('cada motivo diz o que acontece a quem escolher aquela proposta, e não o estado de um campo', () => {
+    for (const m of todosOsMotivos()) {
+      // Frases inteiras, com verbo: «Não indicada» sozinho não explica nada a ninguém.
+      expect(m.length).toBeGreaterThan(40);
+      expect(m.trim().endsWith('.')).toBe(true);
     }
   });
 });

@@ -132,10 +132,10 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       const opcionais = p.trabalhos.filter((t) => t.estado === 'opcional').length;
       if (partes.length === 0) {
         return opcionais
-          ? atencao(`${opcionais} em opção`, 'Trabalho pedido que a proposta deixa como opção: só entra no preço se for aceite.')
+          ? atencao(`${opcionais} em opção`, 'Pediu estes trabalhos e o pintor deixou-os à sua escolha. Se os quiser, somam ao total; se não, não são feitos.')
           : neutro('Todos incluídos');
       }
-      return atencao(partes.join(', '), 'Trabalhos do pedido que esta proposta não cobre: o preço não é comparável sem os somar.');
+      return atencao(partes.join(', '), 'Estes trabalhos não estão nesta proposta. Se for esta a escolhida, terá de os contratar à parte, e o que pagar por eles acresce a este total.');
     }),
   });
 
@@ -150,7 +150,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
         n ? `${n} ${n === 1 ? 'trabalho' : 'trabalhos'} após observação` : '',
         zonas ? 'zonas sem preço' : '',
       ].filter(Boolean);
-      return atencao(partes.join(', '), 'Parte do preço só fecha depois de observar: o total pode subir.');
+      return atencao(partes.join(', '), 'Há trabalhos cujo preço o pintor só fecha depois de ver a obra de perto. O total pode subir, e ainda não se sabe quanto.');
     }),
   });
 
@@ -162,13 +162,13 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: 'Área de pintura',
       celulas: ps.map((p, i) => {
         const a = areas[i]!;
-        if (a === null) return naoIndicada('A proposta não declara a área em que trabalha.');
+        if (a === null) return naoIndicada('O pintor não diz quantos metros quadrados vai pintar, e por isso não se sabe se contou a fachada toda.');
         const texto = ctx.formataArea(a);
         if (ctx.areaPedidoCm2 === null || a === ctx.areaPedidoCm2) return neutro(texto);
         // Dizer «diverge», e não «conta a mais»: pode ser outro critério de medição, e não um erro.
         return atencao(
           `${texto} — diverge`,
-          `A proposta considera uma área diferente da do levantamento do condomínio (${ctx.formataArea(ctx.areaPedidoCm2)}). A diferença fica por esclarecer.`,
+          `O pintor conta ${texto} onde o pedido diz ${ctx.formataArea(ctx.areaPedidoCm2)}. Pode ser outra forma de medir, ou um dos dois estar enganado — vale a pena perguntar antes de decidir.`,
         );
       }),
     });
@@ -180,7 +180,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: 'Preparação do suporte',
       celulas: porCada((p) => {
         const incluidos = p.trabalhos.filter((t) => PREPARACAO.includes(t.work) && t.estado === 'incluido');
-        if (incluidos.length === 0) return naoIndicada('A proposta não diz como prepara o suporte antes de pintar.');
+        if (incluidos.length === 0) return naoIndicada('O pintor não diz o que faz à parede antes de pintar — lavar, tapar fissuras, aplicar primário. É essa preparação que decide quanto tempo a pintura dura.');
         // Separador em vez de «e»: o próprio rótulo «Lavagem e limpeza» já traz um, e encadeá-los
         // dava «lavagem e limpeza, reparação de fissuras e primário», que não se lê.
         return neutro(incluidos.map((t) => t.label.toLocaleLowerCase('pt-PT')).join(' · '));
@@ -195,7 +195,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: work === 'pintura' ? 'Pintura de acabamento' : 'Impermeabilização',
       celulas: porCada((p) => {
         const t = p.trabalhos.find((x) => x.work === work);
-        if (!t || t.estado !== 'incluido') return naoIndicada('Trabalho não incluído nesta proposta.');
+        if (!t || t.estado !== 'incluido') return naoIndicada('Este trabalho não está nesta proposta: se o quiser feito, terá de o contratar a outra pessoa.');
         return celulaDeExecucao(t);
       }),
     });
@@ -206,7 +206,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     criterio: 'Garantia da execução',
     celulas: porCada((p) =>
       p.garantiaAnos === null
-        ? naoIndicada('Sem garantia declarada na proposta.')
+        ? naoIndicada('O pintor não indica garantia. Se a pintura falhar, não há prazo escrito dentro do qual ele a refaça.')
         : neutro(`${p.garantiaAnos} ${p.garantiaAnos === 1 ? 'ano' : 'anos'}`),
     ),
   });
@@ -219,7 +219,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       const dur = p.duracaoDias === null ? 'duração não indicada' : `${p.duracaoDias} ${p.duracaoDias === 1 ? 'dia útil' : 'dias úteis'}`;
       const texto = `${inicio} · ${dur}`;
       return p.duracaoDias === null
-        ? atencao(texto, 'Sem duração declarada não se sabe quanto tempo a obra ocupa o prédio.')
+        ? atencao(texto, 'O pintor não diz quantos dias demora. Numa fachada, isso é o tempo com andaimes montados e varandas ocupadas.')
         : neutro(texto);
     }),
   });
@@ -255,9 +255,9 @@ function celulaDeExecucao(t: TrabalhoNaProposta): CelulaDaSintese {
   const leva = TRABALHOS_COM_DEMAOS.includes(t.work);
   const demaos = t.demaos === null ? null : `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}`;
   if (produto && (demaos || !leva)) return neutro([produto, demaos].filter(Boolean).join(' · '));
-  if (produto && !demaos) return atencao(`${produto} · demãos não indicadas`, 'A proposta nomeia o produto mas não diz quantas demãos aplica.');
-  if (!produto && demaos) return atencao(`Produto não indicado · ${demaos}`, 'A proposta diz as demãos mas não o produto que aplica.');
-  return naoIndicada('A proposta não diz o produto nem as demãos deste trabalho.');
+  if (produto && !demaos) return atencao(`${produto} · demãos não indicadas`, 'O pintor diz que tinta usa, mas não quantas camadas aplica. Duas camadas da mesma tinta cobrem melhor e duram mais do que uma.');
+  if (!produto && demaos) return atencao(`Produto não indicado · ${demaos}`, 'O pintor diz quantas camadas aplica, mas não que tinta usa — e a tinta decide quanto tempo a pintura aguenta.');
+  return naoIndicada('O pintor não diz que tinta usa nem quantas camadas aplica neste trabalho.');
 }
 
 /**
@@ -277,7 +277,7 @@ function oEssencial(p: PropostaNaSintese): { texto: string; atencao: boolean; mo
   return {
     texto: maiuscula(listar(pendencias)),
     atencao: true,
-    motivo: 'Enquanto estes pontos não forem esclarecidos, o total desta proposta não é comparável com o das outras.',
+    motivo: 'Até isto ficar esclarecido, o que vai pagar no fim pode ser diferente do valor que está aqui.',
   };
 }
 

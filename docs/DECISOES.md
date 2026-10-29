@@ -3805,3 +3805,29 @@ nem o da letra.
 **Por fazer:** a quarta parte que o promotor descreveu — as propostas individuais por extenso, com
 documentos discriminados e condições — não está feita. O relatório diz hoje a versão de cada proposta
 na secção 3.2, mas não reproduz os documentos.
+
+### O texto que o cliente lê (29/10/2026)
+
+O promotor apanhou uma frase minha — **«o preço não é comparável sem os somar»** — e disse o que ela
+era: linguagem de quem construiu a tabela. Quem lê isto é um condómino numa assembleia.
+
+Revistos **todos** os motivos que o cliente lê, não só esse. A régua passou a ser: cada motivo diz o
+que acontece a quem escolher aquela proposta, e não o estado de um campo.
+
+| Antes | Depois |
+|---|---|
+| Trabalhos do pedido que esta proposta não cobre: o preço não é comparável sem os somar. | Estes trabalhos não estão nesta proposta. Se for esta a escolhida, terá de os contratar à parte, e o que pagar por eles acresce a este total. |
+| Parte do preço só fecha depois de observar: o total pode subir. | Há trabalhos cujo preço o pintor só fecha depois de ver a obra de perto. O total pode subir, e ainda não se sabe quanto. |
+| A proposta nomeia o produto mas não diz quantas demãos aplica. | O pintor diz que tinta usa, mas não quantas camadas aplica. Duas camadas da mesma tinta cobrem melhor e duram mais do que uma. |
+| Sem garantia declarada na proposta. | O pintor não indica garantia. Se a pintura falhar, não há prazo escrito dentro do qual ele a refaça. |
+| Sem duração declarada não se sabe quanto tempo a obra ocupa o prédio. | O pintor não diz quantos dias demora. Numa fachada, isso é o tempo com andaimes montados e varandas ocupadas. |
+| A proposta considera uma área diferente da do levantamento do condomínio (240 m²). | O pintor conta 310 m² onde o pedido diz 240 m². Pode ser outra forma de medir, ou um dos dois estar enganado — vale a pena perguntar antes de decidir. |
+
+**Dois testes impedem a reincidência**, e são mais úteis do que a lista de correcções: nenhum motivo
+pode conter as palavras que só nós percebemos (*comparável*, *âmbito*, *parcela*, *índice*,
+*valorização*), e cada motivo tem de ser uma frase inteira com mais de 40 caracteres — «Não
+indicada» sozinho não explica nada a ninguém. O segundo teste apanhou logo uma frase de 38
+caracteres e obrigou a dizer a consequência em vez do facto.
+
+A mesma revisão foi feita à metodologia pública e ao bloco de interpretação do relatório, que
+repetiam a mesma construção.

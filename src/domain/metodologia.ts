@@ -51,21 +51,21 @@ export const PARAMETROS: ParametroDeClassificacao[] = [
     nome: 'Cobertura do pedido',
     descricao: 'Quantos dos trabalhos pedidos a proposta inclui, exclui ou não refere.',
     importancia:
-      'É o primeiro critério, e prevalece sobre o preço. Uma proposta que não cobre tudo não é comparável em preço com uma que cobre: falta-lhe trabalho que alguém terá de fazer e pagar.',
+      'É o primeiro critério, e vem antes do preço. Uma proposta a que falte trabalho fica mais barata por isso mesmo, e não por ser melhor negócio: esse trabalho vai ter de ser feito e pago na mesma, a ela ou a outra pessoa.',
   },
   {
     id: 'definicao',
     nome: 'Preço fechado',
     descricao: 'Se o preço está firme ou se parte dele só se determina depois de observar a obra.',
     importancia:
-      'Segundo critério. Um total que ainda pode subir não se compara com um total firme, e por isso separa-se antes de qualquer ordenação por valor.',
+      'Segundo critério. Quando o pintor diz que só fecha parte do preço depois de ver a obra, o total que apresenta ainda pode subir — e um valor que pode subir fica separado dos valores já fechados, antes de se ordenar seja o que for.',
   },
   {
     id: 'preco',
     nome: 'Total a pagar',
     descricao: 'O valor com IVA que o cliente pagará, tal como a proposta o apresenta.',
     importancia:
-      'Terceiro critério, e é o que ordena as propostas dentro de cada grupo — entre propostas comparáveis, decide o preço.',
+      'Terceiro critério, e é o que ordena as propostas dentro de cada grupo: feita a separação acima, entre propostas que cobrem o mesmo e têm o preço fechado, decide o preço.',
   },
   {
     id: 'tecnica',
@@ -104,7 +104,7 @@ export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
     elegibilidade: 'Todas as propostas submetidas com um total conhecido.',
     criterio: 'O menor total com IVA, tal como cada proposta o apresenta.',
     limite:
-      'Não significa que seja a mais barata para a obra: se lhe faltarem trabalhos pedidos ou tiver preço por fechar, o valor final pode ser outro. As omissões aparecem ao lado.',
+      'Não quer dizer que seja a mais barata para a obra. Se lhe faltarem trabalhos que pediu, terá de os contratar à parte; se tiver preço por fechar, o total ainda pode subir. O que lhe falta aparece na linha ao lado.',
   },
   {
     id: 'menor_preco_completo',
@@ -113,7 +113,7 @@ export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
       'Propostas que incluem todos os trabalhos pedidos e cujo preço está firme — sem partes por determinar depois de observar.',
     criterio: 'Entre essas, o menor total com IVA.',
     limite:
-      'Compara preço entre propostas comparáveis. Não avalia a qualidade da execução, os produtos nem o histórico do pintor.',
+      'Compara o preço entre propostas que fazem o mesmo trabalho e já têm o preço fechado. Não diz nada sobre a qualidade da execução, sobre os produtos nem sobre o pintor.',
   },
 ];
 
