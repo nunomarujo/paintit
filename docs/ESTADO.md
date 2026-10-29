@@ -1693,8 +1693,9 @@ comissões, promoções e relações comerciais não alteram a ordenação.
    destinatário; falta ligá-la ao `sendMessage`.
 4. **As versões da proposta não aparecem na comparação.** O relatório já diz a versão de cada uma na
    secção dos pressupostos; o ecrã não.
-5. **O critério de «trabalhos directamente comparáveis»** continua sem resposta: âmbito e quantidade,
-   ou âmbito, quantidade e execução.
+5. ~~**O critério de «trabalhos directamente comparáveis»**~~ — **decidido a 29/10/2026**: âmbito,
+   quantidade e execução equivalentes, materiais incluídos. Está feito, testado, e a razão está em
+   `docs/DECISOES.md`.
 
 ### Por resolver, técnico
 

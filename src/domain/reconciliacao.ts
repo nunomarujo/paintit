@@ -1,6 +1,12 @@
 import type { Cents } from './money';
 import type { LineCategory } from './proposal';
-import { porEsclarecer, type TrabalhoNaProposta } from './comparador';
+import {
+  equivalenciaDeTrabalhos,
+  porEsclarecer,
+  type Equivalencia,
+  type MotivoDeNaoEquivalencia,
+  type TrabalhoNaProposta,
+} from './comparador';
 
 /**
  * Explicar a diferença de preço entre duas propostas, sem inventar a decomposição.
@@ -134,13 +140,24 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     }
     if (!naA && !naB) continue;
 
-    // Ambas incluem. A quantidade só se compara dentro da mesma unidade.
-    const comparavel = ta.unidade !== null && ta.unidade === tb.unidade && ta.quantidade !== null && tb.quantidade !== null && ta.quantidade > 0;
-    const execucaoDifere = ta.demaos !== tb.demaos || !mesmosProdutos(ta.produtos, tb.produtos);
+    // Ambas incluem. Daqui para a frente, a regra é a de `equivalenciaDeTrabalhos`: só se atribuem
+    // euros a trabalhos **directamente comparáveis** — âmbito, quantidade e execução equivalentes.
+    const eq = equivalenciaDeTrabalhos(ta, tb);
 
-    if (!comparavel) {
-      // Sem quantidade comparável não há repartição possível: o trabalho inteiro fica por decompor.
-      if (execucaoDifere) notasTecnicas.push(diferencaTecnica(a.alias, ta, b.alias, tb));
+    if (!eq.execucaoEquivalente) {
+      // Decisão do promotor, 29/10/2026. Antes, demãos ou produtos diferentes tiravam só a parcela
+      // de **preço** e deixavam ficar a de **quantidade** — e essa valoriza os metros a mais ao
+      // preço unitário de quem serve de referência, que traz lá dentro a execução dela. Era uma
+      // comparação de preço entre coisas que não são comparáveis. Agora o trabalho inteiro fica por
+      // decompor, e a diferença diz-se por palavras.
+      notasTecnicas.push(diferencaTecnica(a.alias, ta, b.alias, tb, eq));
+      continue;
+    }
+
+    if (!eq.quantidadeComparavel) {
+      // Unidades diferentes, ou quantidade não declarada: não há preço unitário por onde
+      // multiplicar. Antes isto passava em silêncio; agora diz-se, que é metade da informação.
+      if (eq.motivos.length > 0) notasTecnicas.push(diferencaTecnica(a.alias, ta, b.alias, tb, eq));
       continue;
     }
 
@@ -156,11 +173,7 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     }
 
     const efeitoRestante = tb.precoCents - ta.precoCents - efeitoQuantidade;
-    if (execucaoDifere) {
-      // O custo de uma demão a mais não se separa do preço sem saber o custo do pintor. Descreve-se,
-      // e os euros deste trabalho ficam por decompor.
-      notasTecnicas.push(diferencaTecnica(a.alias, ta, b.alias, tb));
-    } else if (efeitoRestante !== 0) {
+    if (efeitoRestante !== 0) {
       parcelas.push({
         causa: 'preco',
         descricao: `${min(ta.label)}: mesma quantidade e mesma execução, preço diferente`,
@@ -316,9 +329,6 @@ export function emPalavras(a: string, b: string, r: Reconciliacao, formata: (c: 
 }
 
 const min = (s: string) => s.toLocaleLowerCase('pt-PT');
-const mesmosProdutos = (x: readonly string[], y: readonly string[]) =>
-  x.length === y.length && x.every((p) => y.some((q) => q.toLocaleLowerCase('pt-PT') === p.toLocaleLowerCase('pt-PT')));
-
 function qt(t: TrabalhoNaProposta): string {
   return t.quantidade !== null && t.unidade ? `${(t.quantidade / 100).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} ${t.unidade === 'm2' ? 'm²' : t.unidade === 'ml' ? 'm' : 'un.'}` : 'quantidade não indicada';
 }
@@ -329,13 +339,22 @@ function qt(t: TrabalhoNaProposta): string {
  * Dizer "A 2 demãos com CIN; B 2 demãos com Robbialac" quando as demãos são iguais é fazer o leitor
  * procurar a diferença dentro da frase que devia apontá-la (visto no relatório impresso, 29/10/2026).
  */
-function diferencaTecnica(aliasA: string, ta: TrabalhoNaProposta, aliasB: string, tb: TrabalhoNaProposta): string {
-  const demaosDiferem = ta.demaos !== tb.demaos;
-  const produtosDiferem = !mesmosProdutos(ta.produtos, tb.produtos);
+function diferencaTecnica(
+  aliasA: string,
+  ta: TrabalhoNaProposta,
+  aliasB: string,
+  tb: TrabalhoNaProposta,
+  eq: Equivalencia,
+): string {
+  const tem = (m: MotivoDeNaoEquivalencia) => eq.motivos.includes(m);
+  // A quantidade entra na frase quando difere, e passou a entrar a 29/10/2026: sem execução
+  // equivalente ela deixou de ter parcela em euros, e se também não fosse dita desaparecia do
+  // documento — o cliente ficava sem saber que um pinta 240 m² e o outro 310.
   const descreve = (alias: string, t: TrabalhoNaProposta) => {
     const partes = [
-      demaosDiferem ? (t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : 'demãos não indicadas') : null,
-      ...(produtosDiferem ? (t.produtos.length ? t.produtos : ['produto não indicado']) : []),
+      tem('quantidade') || tem('unidade') ? qt(t) : null,
+      tem('demaos') ? (t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : 'demãos não indicadas') : null,
+      ...(tem('produtos') ? (t.produtos.length ? t.produtos : ['produto não indicado']) : []),
     ].filter(Boolean);
     return `${alias} ${partes.join(' com ')}`;
   };

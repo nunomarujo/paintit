@@ -90,13 +90,21 @@ describe('a conta fecha sempre', () => {
     expect(reconciliar(a, b).notasTecnicas[0]).toBe('pintura final: A 2 demãos; B 1 demão');
   });
 
-  it('quantidade e execução ao mesmo tempo: a quantidade sai com euros, o resto não', () => {
+  it('execução diferente trava também a parcela de quantidade: não se valorizam metros que não são iguais', () => {
+    // Decisão do promotor, 29/10/2026. Antes saía uma parcela de 140,00 € de «quantidade»,
+    // valorizando os 70 m² a mais ao preço unitário de A — que é o preço de A com **duas** demãos.
+    // B dá uma. Multiplicar um pelo outro é comparar preços de coisas diferentes.
     const a = lado('A', [linha({ trabalho: 'pintura_final', quantidade: 24000, precoUnitario: 200, demaos: 2 })]);
     const b = lado('B', [linha({ trabalho: 'pintura_final', quantidade: 31000, precoUnitario: 240, demaos: 1 })]);
     const r = fecha(a, b);
-    expect(r.parcelas.map((p) => p.causa)).toEqual(['quantidade']);
-    expect(r.parcelas[0]!.valorCents).toBe(14000);
+    expect(r.parcelas).toEqual([]);
+    expect(r.naoDecompostaCents).toBe(r.diferencaCents);
+    // E a diferença não desaparece: diz-se, com as quantidades e as demãos das duas.
     expect(r.notasTecnicas).toHaveLength(1);
+    expect(r.notasTecnicas[0]).toContain('240 m²');
+    expect(r.notasTecnicas[0]).toContain('310 m²');
+    expect(r.notasTecnicas[0]).toContain('2 demãos');
+    expect(r.notasTecnicas[0]).toContain('1 demão');
   });
 
   it('acessos só numa é âmbito; nas duas com valores diferentes é condição de obra', () => {
@@ -140,7 +148,12 @@ describe('a conta fecha sempre', () => {
     ], { categorias: { ...SEM_CATEGORIAS, acessos: 90000 } });
     const r = fecha(a, b);
     // Pela ordem da cascata, não pela ordem do cálculo nem por ordem alfabética.
-    expect(r.parcelas.map((p) => p.causa)).toEqual(['ambito', 'quantidade', 'condicoes', 'preco']);
+    // A pintura final tem demãos e produtos diferentes: fica inteira por decompor, sem parcela de
+    // quantidade nem de preço. Sobra o âmbito (a impermeabilização que só A inclui), a condição de
+    // obra (os acessos) e o preço da lavagem, que essa é mesmo comparável — mesmo produto, mesma
+    // quantidade, preço diferente.
+    expect(r.parcelas.map((p) => p.causa)).toEqual(['ambito', 'condicoes', 'preco']);
+    expect(r.notasTecnicas).toHaveLength(1);
   });
 });
 

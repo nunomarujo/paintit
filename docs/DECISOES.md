@@ -109,9 +109,28 @@ dados admite uma pontuação mais tarde sem depender dela agora.
 comerciais **nunca alteram a ordenação das propostas**. Mesma família da regra 15 — o dinheiro da
 plataforma não entra na decisão do cliente, nem à vista nem escondido.
 
-**Em aberto:** o critério dos trabalhos directamente comparáveis — âmbito e quantidade (meu) ou
-também execução (do promotor). Exigir execução equivalente faz o subtotal desaparecer quase sempre,
-porque demãos e produtos diferem em quase todas as linhas.
+**Decidido a 29/10/2026 pelo promotor, e contra a minha proposta:** exige-se **âmbito, quantidade e
+execução suficientemente equivalentes, materiais incluídos**. Eu defendia âmbito e quantidade, com o
+argumento de que exigir execução faz a parcela de preço desaparecer em quase todas as linhas —
+demãos e produtos diferem quase sempre. A resposta dele foi a certa: «a definição de directamente
+comparável é mais importante para a validade das conclusões». Uma parcela que aparece muitas vezes
+e está errada é pior do que uma que aparece poucas vezes e está certa.
+
+**O que isto mudou em concreto.** Demãos ou produtos diferentes já tiravam a parcela de **preço**,
+mas deixavam ficar a de **quantidade** — e essa valoriza os metros a mais ao preço unitário de quem
+serve de referência, que traz lá dentro a execução dela. Aplicar o preço de quem dá duas demãos aos
+metros de quem dá uma é comparar coisas diferentes e apresentar o resultado em euros. Agora, sem
+execução equivalente, o trabalho inteiro fica por decompor.
+
+**E a diferença não desaparece: muda de forma.** Passa a dizer-se por palavras, com as quantidades
+e as demãos das duas propostas — antes a quantidade só aparecia se tivesse parcela em euros, e sem
+ela o cliente ficava sem saber que um pinta 240 m² e o outro 310. É a segunda metade da instrução
+do promotor: «mostrar a diferença sem a apresentar como comparação directa de preço».
+
+A regra vive em `equivalenciaDeTrabalhos` (`src/domain/comparador.ts`), num sítio só, com os motivos
+nomeados — âmbito, unidade, quantidade, demãos, produtos — e testada em `comparador.test.ts`. Por
+trabalho, a proposta declara hoje quantidade, unidade, demãos e produtos: são esses os «materiais e
+condições relevantes». Acessos, licenças e taxas comparam-se à parte, por serem da obra inteira.
 
 ## 28/10/2026 (noite, 4) — Meteorologia no cronograma: um veredicto, não um quadro de números
 

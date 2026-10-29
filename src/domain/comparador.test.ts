@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { coberturaEmPalavras, porEsclarecer, quantidadeEmPalavras, trabalhosDaProposta } from './comparador';
+import {
+  coberturaEmPalavras,
+  equivalenciaDeTrabalhos,
+  mesmosProdutos,
+  porEsclarecer,
+  quantidadeEmPalavras,
+  trabalhosDaProposta,
+  type TrabalhoNaProposta,
+} from './comparador';
 import type { ProposalLine } from './proposal';
 
 // Os códigos são os do catálogo do orçamento guiado (src/domain/works.ts): o trabalho que o cliente
@@ -307,5 +315,89 @@ describe('ordenar sem recomendar', () => {
   it('empates resolvem-se pelo total, nunca ao acaso', () => {
     const g = ordenar([prop({ id: 'b', duracaoDias: 20, totalComIva: 5000 }), prop({ id: 'a', duracaoDias: 20, totalComIva: 1000 })], 'duracao');
     expect(g[0]!.propostas.map((p) => p.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('o que é um trabalho directamente comparável', () => {
+  // A definição ficou fixada a 29/10/2026, pelo promotor: âmbito, quantidade e execução
+  // suficientemente equivalentes, materiais incluídos. A razão é a validade das conclusões — uma
+  // parcela em euros que apareça muitas vezes e esteja errada é pior do que uma que apareça poucas
+  // e esteja certa.
+  const t = (o: Partial<TrabalhoNaProposta> = {}): TrabalhoNaProposta => ({
+    work: 'pintura',
+    label: 'Pintura de acabamento',
+    estado: 'incluido',
+    quantidade: 24000,
+    unidade: 'm2',
+    demaos: 2,
+    produtos: ['CIN Vinylmatt'],
+    precoCents: 480000,
+    ...o,
+  });
+
+  it('tudo igual: comparáveis, e sem nada a assinalar', () => {
+    const e = equivalenciaDeTrabalhos(t(), t());
+    expect(e.equivalentes).toBe(true);
+    expect(e.motivos).toEqual([]);
+    expect(e.execucaoEquivalente).toBe(true);
+    expect(e.quantidadeComparavel).toBe(true);
+  });
+
+  it('só o preço diferente continua a ser comparável: é essa a única comparação que vale', () => {
+    expect(equivalenciaDeTrabalhos(t(), t({ precoCents: 600000 })).equivalentes).toBe(true);
+  });
+
+  it('uma demão a mais quebra a equivalência, e a razão fica nomeada', () => {
+    const e = equivalenciaDeTrabalhos(t(), t({ demaos: 1 }));
+    expect(e.equivalentes).toBe(false);
+    expect(e.motivos).toContain('demaos');
+    expect(e.execucaoEquivalente).toBe(false);
+  });
+
+  it('produto diferente quebra a equivalência — os materiais contam, foi o que o promotor exigiu', () => {
+    const e = equivalenciaDeTrabalhos(t(), t({ produtos: ['Robbialac Vinylsilk'] }));
+    expect(e.motivos).toContain('produtos');
+    expect(e.execucaoEquivalente).toBe(false);
+  });
+
+  it('o mesmo produto escrito de outra maneira não é um produto diferente', () => {
+    expect(mesmosProdutos(['CIN Vinylmatt'], ['cin vinylmatt '])).toBe(true);
+    expect(equivalenciaDeTrabalhos(t(), t({ produtos: ['  CIN VINYLMATT'] })).execucaoEquivalente).toBe(true);
+  });
+
+  it('nenhum dos dois indicar produto é um empate, e não uma diferença', () => {
+    expect(equivalenciaDeTrabalhos(t({ produtos: [] }), t({ produtos: [] })).execucaoEquivalente).toBe(true);
+  });
+
+  it('quantidade diferente quebra a equivalência, mas a quantidade continua a poder medir-se', () => {
+    const e = equivalenciaDeTrabalhos(t(), t({ quantidade: 31000 }));
+    expect(e.equivalentes).toBe(false);
+    expect(e.motivos).toContain('quantidade');
+    // É esta distinção que deixa atribuir euros à quantidade quando tudo o resto é igual.
+    expect(e.quantidadeComparavel).toBe(true);
+    expect(e.execucaoEquivalente).toBe(true);
+  });
+
+  it('unidades diferentes não se comparam, e diz-se que é a unidade e não a quantidade', () => {
+    const e = equivalenciaDeTrabalhos(t(), t({ unidade: 'ml', quantidade: 3200 }));
+    expect(e.motivos).toContain('unidade');
+    expect(e.motivos).not.toContain('quantidade');
+    expect(e.quantidadeComparavel).toBe(false);
+  });
+
+  it('sem quantidade declarada não há preço unitário por onde multiplicar', () => {
+    expect(equivalenciaDeTrabalhos(t(), t({ quantidade: null })).quantidadeComparavel).toBe(false);
+    expect(equivalenciaDeTrabalhos(t({ quantidade: 0 }), t()).quantidadeComparavel).toBe(false);
+  });
+
+  it('um trabalho que só uma inclui é diferença de âmbito, e nada mais se compara nele', () => {
+    const e = equivalenciaDeTrabalhos(t(), t({ estado: 'nao_indicado' }));
+    expect(e.motivos).toEqual(['ambito']);
+    expect(e.equivalentes).toBe(false);
+  });
+
+  it('o que nenhuma das duas inclui não produz diferença nenhuma', () => {
+    const e = equivalenciaDeTrabalhos(t({ estado: 'nao_indicado' }), t({ estado: 'excluido' }));
+    expect(e.motivos).toEqual([]);
   });
 });

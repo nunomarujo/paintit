@@ -354,3 +354,88 @@ export function ordenar<T extends Ordenavel>(ps: readonly T[], ordem: Ordem): Gr
 }
 
 const junta = (xs: readonly string[]) => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} e ${xs[xs.length - 1]}`);
+
+/**
+ * Quando é que dois trabalhos são **directamente comparáveis**.
+ *
+ * ## A decisão, e porque demorou
+ *
+ * Esta pergunta esteve em aberto desde 28/10/2026, com duas respostas em cima da mesa: âmbito e
+ * quantidade (minha), ou âmbito, quantidade **e execução** (do promotor). A minha objecção era
+ * prática — exigir execução equivalente faz a parcela de preço desaparecer em quase todas as
+ * linhas, porque demãos e produtos diferem quase sempre. O promotor decidiu a 29/10/2026, e
+ * decidiu bem: «a definição de directamente comparável é mais importante para a validade das
+ * conclusões». Uma parcela que aparece muitas vezes e está errada é pior do que uma parcela que
+ * aparece poucas vezes e está certa.
+ *
+ * **Exige-se âmbito, quantidade e execução suficientemente equivalentes, materiais incluídos.**
+ * Não sendo, mostra-se a diferença — mas não como comparação de preço.
+ *
+ * ## O que isto corrige, em concreto
+ *
+ * Até aqui, duas propostas com demãos diferentes já não produziam parcela de **preço**, mas ainda
+ * produziam parcela de **quantidade**: os metros a mais eram valorizados ao preço unitário da
+ * primeira. Ora esse preço unitário traz lá dentro a execução dela — uma demão, um produto. Aplicá-lo
+ * aos metros de quem dá duas demãos com outra tinta é comparar coisas diferentes e apresentar o
+ * resultado em euros, que é exactamente o que a regra proíbe. Agora, sem execução equivalente, o
+ * trabalho inteiro fica por decompor e a diferença diz-se por palavras.
+ *
+ * ## O que entra na conta
+ *
+ * De cada trabalho, a proposta declara hoje a quantidade, a unidade, as demãos e os produtos. São
+ * esses os «materiais e condições relevantes» que se comparam — não há outros declarados por
+ * trabalho. Acessos, licenças e taxas comparam-se à parte, por serem da obra inteira e não de um
+ * trabalho. Se um dia se recolher mais alguma condição por trabalho, entra aqui.
+ */
+export type MotivoDeNaoEquivalencia = 'ambito' | 'unidade' | 'quantidade' | 'demaos' | 'produtos';
+
+export const MOTIVO_LABELS: Record<MotivoDeNaoEquivalencia, string> = {
+  ambito: 'uma inclui o trabalho e a outra não',
+  unidade: 'as quantidades vêm em unidades diferentes',
+  quantidade: 'as quantidades declaradas são diferentes',
+  demaos: 'o número de demãos é diferente',
+  produtos: 'os produtos declarados são diferentes',
+};
+
+export interface Equivalencia {
+  /** Mesma obra, mesma quantidade, feita da mesma maneira. Só aqui se compara preço com preço. */
+  equivalentes: boolean;
+  /** Em que diferem, pela ordem em que importam para quem decide. */
+  motivos: MotivoDeNaoEquivalencia[];
+  /** Demãos e produtos iguais. É o que falta à minha definição antiga e o que o promotor exigiu. */
+  execucaoEquivalente: boolean;
+  /**
+   * A quantidade pode medir-se: mesma unidade, as duas declaradas, e a da referência maior que zero
+   * — sem isso não há preço unitário por onde multiplicar.
+   */
+  quantidadeComparavel: boolean;
+}
+
+/** Dois conjuntos de produtos dizem o mesmo, sem olhar à ordem nem a maiúsculas. */
+export const mesmosProdutos = (a: readonly string[], b: readonly string[]): boolean => {
+  const n = (xs: readonly string[]) => [...new Set(xs.map((x) => x.trim().toLocaleLowerCase('pt-PT')))].sort();
+  const [x, y] = [n(a), n(b)];
+  return x.length === y.length && x.every((v, i) => v === y[i]);
+};
+
+export function equivalenciaDeTrabalhos(a: TrabalhoNaProposta, b: TrabalhoNaProposta): Equivalencia {
+  const motivos: MotivoDeNaoEquivalencia[] = [];
+  const naA = a.estado === 'incluido';
+  const naB = b.estado === 'incluido';
+  if (naA !== naB) motivos.push('ambito');
+
+  const mesmaUnidade = a.unidade !== null && a.unidade === b.unidade;
+  const quantidadeComparavel = mesmaUnidade && a.quantidade !== null && b.quantidade !== null && a.quantidade > 0;
+  if (naA && naB) {
+    if (!mesmaUnidade) motivos.push('unidade');
+    else if (a.quantidade !== b.quantidade) motivos.push('quantidade');
+  }
+
+  const execucaoEquivalente = a.demaos === b.demaos && mesmosProdutos(a.produtos, b.produtos);
+  if (naA && naB) {
+    if (a.demaos !== b.demaos) motivos.push('demaos');
+    if (!mesmosProdutos(a.produtos, b.produtos)) motivos.push('produtos');
+  }
+
+  return { equivalentes: motivos.length === 0, motivos, execucaoEquivalente, quantidadeComparavel };
+}
