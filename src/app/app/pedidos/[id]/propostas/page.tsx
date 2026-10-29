@@ -592,6 +592,7 @@ export default async function ProposalsPage({
                 <ChooseButton
                   proposalId={p.id}
                   requestId={id}
+                  alias={r.alias}
                   summary={[
                     'É uma escolha preliminar: o pedido deixa de receber propostas e as outras ficam em espera.',
                     `Quando quiser, deposita no parceiro de pagamentos uma caução de ${formatEuros(guarantee)} (3% sem IVA), como garantia de interesse. É esse depósito que torna a escolha efetiva e avisa o pintor; é-lhe devolvida quando as duas partes assinarem.`,

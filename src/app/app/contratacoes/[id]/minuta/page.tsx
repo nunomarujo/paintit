@@ -31,6 +31,24 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
         </ul>
         <p className="mt-2 text-[15px] text-slate-600">Este resumo ajuda a ler; o que vale é o texto do contrato abaixo.</p>
       </aside>
+
+      {/*
+        A minuta é um ponto de partida, e isso não estava dito em lado nenhum (29/10/2026). Quem a
+        abria podia tomá-la por um texto fechado, imposto pela plataforma. É o contrário: é entre as
+        duas partes, e a plataforma só o prepara.
+      */}
+      <aside className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] print:hidden">
+        <h2 className="font-semibold">Esta minuta é um ponto de partida</h2>
+        <p className="mt-2">
+          O contrato é entre si e a outra parte; a plataforma prepara-o, não o impõe. Qualquer uma das partes pode propor
+          ajustes ao texto, e uma alteração só passa a valer <strong>se as duas concordarem</strong>. Enquanto não houver
+          acordo sobre uma alteração proposta, vale o que está escrito aqui.
+        </p>
+        <p className="mt-2 text-[15px] text-slate-600">
+          Os ajustes propõem-se nas mensagens da contratação, para ficarem registados com data. Depois de as duas partes
+          assinarem, o texto fica fechado e só se muda por adenda, também assinada pelas duas.
+        </p>
+      </aside>
       <article className="rounded-2xl border border-slate-200 bg-white p-8 text-[17px] leading-relaxed print:border-0 print:p-0">
         <h1 className="text-[20px] leading-snug font-semibold">{draft.title}</h1>
         {draft.sections.map((s) => (
