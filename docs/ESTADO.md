@@ -1668,3 +1668,36 @@ ausente. A asserção comparava só `.name` e deitava fora essa distinção.
 
 Não se encontrou a causa, e por isso não se finge corrigida: o que mudou foi a asserção, que passa a
 comparar o objecto todo. Da próxima vez que falhar, o output diz qual das vias foi. Fica a seguir.
+
+## O comparador de propostas, fechado em 29/10/2026
+
+Os cinco passos estão feitos, em produção e verificados. O que o cliente tem hoje, pela ordem em que
+lê: a **tabela de síntese** no topo (critérios fixos à esquerda, uma coluna por proposta, uma frase
+factual por cima e «O essencial» por baixo); os **cartões agrupados**, com as três dimensões em
+palavras e sem pontuação; a **reconciliação** entre duas propostas, com cada euro atribuído a uma
+causa e a origem de cada número à vista; e o **relatório para a assembleia**, que se lê no ecrã, num
+tablet e no papel.
+
+**A regra que atravessa tudo e não se negoceia:** a plataforma mostra o que as propostas declaram e
+o que calcula, diz qual é qual, e não elege nenhuma. Não há pontuação única, não há vencedor, e as
+comissões, promoções e relações comerciais não alteram a ordenação.
+
+### Em aberto, à espera de decisão do promotor
+
+1. **A divisão dos quadros no impresso com cinco propostas.** Hoje reparte-se 4 + 1, com a
+   referência nos dois. Repartir 3 + 3 daria quadros equilibrados — é uma linha a mudar, e a decisão
+   é de leitura, não técnica.
+2. **O sexto estado do trabalho, «alternativa proposta».** Ficou decidido no plano de 28/10 e não
+   está feito: precisa de coluna própria e de migração.
+3. **As perguntas geradas ainda não se enviam num clique.** A reconciliação já produz a pergunta e o
+   destinatário; falta ligá-la ao `sendMessage`.
+4. **As versões da proposta não aparecem na comparação.** O relatório já diz a versão de cada uma na
+   secção dos pressupostos; o ecrã não.
+5. **O critério de «trabalhos directamente comparáveis»** continua sem resposta: âmbito e quantidade,
+   ou âmbito, quantidade e execução.
+
+### Por resolver, técnico
+
+- **`pades.test.ts` falha de vez em quando** na segunda assinatura sobre um PDF já assinado: uma vez
+  em três suites completas, nunca em doze corridas isoladas. A causa não foi encontrada. A asserção
+  já compara o objecto todo, portanto a próxima falha diz por que via veio o `name: null`.
