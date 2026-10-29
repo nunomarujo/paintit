@@ -34,6 +34,7 @@ import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
 import { Voltar } from '@/components/Voltar';
+import { ComparacaoEmBlocos, type PropostaEmBloco } from '@/components/ComparacaoEmBlocos';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : 'Não indicado');
@@ -51,10 +52,10 @@ export default async function ProposalsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ordem?: string }>;
+  searchParams: Promise<{ ordem?: string; a?: string; b?: string }>;
 }) {
   const { id } = await params;
-  const { ordem } = await searchParams;
+  const { ordem, a: parA, b: parB } = await searchParams;
   const criterio: Ordem = (ORDENS as readonly string[]).includes(ordem ?? '') ? (ordem as Ordem) : 'padrao';
   const { supabase, user } = await getUser();
 
@@ -158,6 +159,32 @@ export default async function ProposalsPage({
   // A tabela detalhada segue a mesma ordem dos cartões, para que as colunas não troquem de sítio.
   const ordemDosCartoes = grupos.flatMap((g) => g.propostas.map((x) => x.id));
   const sorted = ordemDosCartoes.map((pid) => active.find((r) => r.id === pid)!);
+  // O par em comparação no telemóvel: do endereço, ou as duas primeiras da ordem escolhida.
+  const emBloco = (r: (typeof sorted)[number]): PropostaEmBloco => {
+    const p = byId.get(r.id)!;
+    return {
+      id: r.id,
+      alias: r.alias,
+      totalComIva: r.totals.totalComIva,
+      base: r.totals.base,
+      opcionais: r.totals.opcionais,
+      condicionados: r.totals.condicionados,
+      trabalhos: trabalhosPorProposta.get(r.id)!,
+      classificacao: classificacaoDe.get(r.id)!,
+      inicioPossivel: p.inicio_possivel,
+      duracaoDias: p.duracao_dias,
+      adiantamentoBps: p.adiantamento_bps,
+      garantiaAnos: p.garantia_anos,
+      seguroRc: p.seguro_rc,
+      seguroAt: p.seguro_at,
+      verificado: Boolean(p.pintor_verificado),
+    };
+  };
+  const escolhe = (pedido: string | undefined, porOmissao: number) =>
+    sorted.find((r) => r.id === pedido) ?? sorted[porOmissao] ?? sorted[0];
+  const parEsquerda = escolhe(parA, 0);
+  const parDireita = sorted.length > 1 ? escolhe(parB === parA ? undefined : parB, 1) : undefined;
+
   const chosen = list.find((p) => p.status === 'selecionada');
   const threadsWithoutProposal = [...new Set((messages ?? []).map((m) => m.proposal_id))].filter((pid) => !byId.has(pid));
   const path = `/app/pedidos/${id}/propostas`;
@@ -318,6 +345,44 @@ export default async function ProposalsPage({
             A ordenação é só pelo critério escolhido; não é uma recomendação. Valores em falta aparecem como “não indicado”
             e nunca como incluídos.
           </p>
+          {/* No telemóvel, duas de cada vez e por assunto: a tabela de catorze linhas arrasta-se
+              para o lado e perde-se a linha e a coluna ao mesmo tempo. A tabela continua por
+              baixo, para quem a quiser percorrer. */}
+          {parEsquerda && parDireita && (
+            <div className="mt-4 sm:hidden">
+              <form className="flex flex-wrap items-end gap-2 text-[15px]">
+                <input type="hidden" name="ordem" value={criterio} />
+                <label className="flex-1">
+                  Comparar
+                  <select name="a" defaultValue={parEsquerda.id} className="campo">
+                    {sorted.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.alias}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex-1">
+                  com
+                  <select name="b" defaultValue={parDireita.id} className="campo">
+                    {sorted.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.alias}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="submit" className="btn-secondary btn-sm">
+                  Ver
+                </button>
+              </form>
+              <div className="mt-4">
+                <ComparacaoEmBlocos a={emBloco(parEsquerda)} b={emBloco(parDireita)} />
+              </div>
+              <h3 className="mt-6 font-semibold">Tabela completa</h3>
+              <p className="text-[15px] text-slate-600">Todas as propostas lado a lado. Arrasta-se para o lado.</p>
+            </div>
+          )}
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[40rem] text-left text-[17px]">
               <thead>
