@@ -1684,9 +1684,9 @@ comissões, promoções e relações comerciais não alteram a ordenação.
 
 ### Em aberto, à espera de decisão do promotor
 
-1. **A divisão dos quadros no impresso com cinco propostas.** Hoje reparte-se 4 + 1, com a
-   referência nos dois. Repartir 3 + 3 daria quadros equilibrados — é uma linha a mudar, e a decisão
-   é de leitura, não técnica.
+1. ~~**A divisão dos quadros no impresso**~~ — **decidido a 29/10/2026**: nunca um candidato
+   sozinho. Cinco candidatos saem 3 + 2, não 2 + 2 + 1. A regra vive em `src/components/quadros.ts`,
+   com quinze testes.
 2. **O sexto estado do trabalho, «alternativa proposta».** Ficou decidido no plano de 28/10 e não
    está feito: precisa de coluna própria e de migração.
 3. **As perguntas geradas ainda não se enviam num clique.** A reconciliação já produz a pergunta e o
