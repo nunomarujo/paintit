@@ -20,6 +20,11 @@ import {
 import { CAUSA_LABELS, diferencaEmPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
 import { leituraImediata, sinteseDasPropostas } from '@/domain/sintese';
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
+import { MatrizDasPropostas } from '@/components/MatrizDasPropostas';
+import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
+import { matrizDasPropostas } from '@/domain/matriz';
+import { REGRAS_DAS_INDICACOES, VERSAO_METODOLOGIA, enderecoDaMetodologia, prioridadeEmPalavras } from '@/domain/metodologia';
+import { qrCodeSvg } from '@/lib/qrcode';
 
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
 const dataHora = (iso: string | null) =>
@@ -59,6 +64,12 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
     ? await supabase.from('proposal_lines').select('*').in('proposal_id', ids).order('created_at')
     : { data: [] };
   const linesOf = (pid: string) => (lines ?? []).filter((l) => l.proposal_id === pid).map(toLine);
+  // O histórico de cada pintor, para a matriz. Mostra-se; não ordena nem atribui indicação nenhuma
+  // nesta versão da metodologia — o limiar que decidiria entre preço e reputação não está calibrado.
+  const ratings = await Promise.all(
+    ids.map(async (pid) => [pid, (await supabase.rpc('painter_rating', { p_proposal: pid })).data?.[0] ?? null] as const),
+  );
+  const ratingOf = new Map(ratings);
   const areaTotal = (surfaces ?? []).reduce((n, s) => n + s.area_cm2, 0);
   const rows = compareProposals(
     list.map((p) => ({
@@ -130,6 +141,43 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
   });
   const leituraDaSintese = leituraImediata(propostasDaSintese, formatEuros);
 
+  // As indicações da fase 1: factos verificáveis na própria matriz, sem valorizar materiais nem
+  // tempos. O que não se pode atribuir diz porquê, em vez de ficar calado.
+  const indicacoes = calcularIndicacoes(
+    ordenadas.map((r) => {
+      const c = classificacaoDe.get(r.id)!;
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        precoFirme: c.cobertura.semPrecoFirme === 0 && c.definicao.definido,
+        emFalta: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado' || t.estado === 'excluido').length,
+      };
+    }),
+    formatEuros,
+  );
+  const linhasDaMatriz = matrizDasPropostas(
+    ordenadas.map((r) => {
+      const c = classificacaoDe.get(r.id)!;
+      const av = ratingOf.get(r.id);
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        emFalta: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado' || t.estado === 'excluido').length,
+        semPrecoFirme: c.cobertura.semPrecoFirme,
+        zonasSemPreco: c.definicao.reparos.includes('há zonas do pedido sem preço') ? 1 : 0,
+        // `media` vem nula quando ainda não há avaliação nenhuma: isso é «sem obras avaliadas»,
+        // e não uma média de zero.
+        avaliacao: av && av.media !== null ? { media: av.media, n: av.n } : null,
+      };
+    }),
+    indicacoes,
+    formatEuros,
+  );
+  const enderecoMetodologia = enderecoDaMetodologia();
+  const qrMetodologia = qrCodeSvg(enderecoMetodologia, 'Código QR da metodologia usada neste relatório');
+
   // Coluna recente; lida à parte para o relatório não cair se a migração ainda não correu.
   const { data: motivo } = await supabase.from('work_requests').select('motivo_escolha, motivo_escolha_em').eq('id', id).maybeSingle();
 
@@ -158,12 +206,80 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
             <p className="mt-6">Não há propostas submetidas para este pedido.</p>
           ) : (
             <>
+              <section className="mt-6">
+                <h2 className="font-semibold">1. Conclusões e todas as propostas</h2>
+
+                {indicacoes.atribuidas.length > 0 && (
+                  <dl className="mt-2 space-y-1">
+                    {indicacoes.atribuidas.map((a) => (
+                      <div key={`${a.indicacao}-${a.propostaId}`}>
+                        <dt className="inline font-semibold">
+                          {REGRAS_DAS_INDICACOES.find((r) => r.id === a.indicacao)?.nome}:{' '}
+                        </dt>
+                        <dd className="inline">
+                          {a.alias} — {a.justificacao}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                {indicacoes.naoAtribuidas.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-slate-600">
+                    {indicacoes.naoAtribuidas.map((n) => (
+                      <li key={n.indicacao}>
+                        Sem «{REGRAS_DAS_INDICACOES.find((r) => r.id === n.indicacao)?.nome.toLocaleLowerCase('pt-PT')}»: {n.motivo}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />
+
+                {/* O bloco que a lei pede e que uma lista de factores não cumpre: a prioridade
+                    efectivamente usada, e o endereço da versão exacta que produziu estes números. */}
+                <div className="mt-3 border-t border-slate-200 pt-3 break-inside-avoid">
+                  <h3 className="font-semibold">Como interpretar esta comparação</h3>
+                  <p className="mt-1">{prioridadeEmPalavras()}</p>
+                  <ul className="mt-2 list-disc space-y-0.5 pl-5">
+                    <li>
+                      <strong>Cobertura:</strong> verifica se os trabalhos pedidos estão incluídos — um trabalho em falta
+                      torna o total não comparável.
+                    </li>
+                    <li>
+                      <strong>Preço:</strong> distingue o que está apresentado do que ainda fecha depois de observar.
+                    </li>
+                    <li>
+                      <strong>Execução:</strong> produto e demãos declarados assinalam o que falta confirmar; não afirmam
+                      adequação ao pedido.
+                    </li>
+                    <li>
+                      <strong>Histórico:</strong> mostra-se, e não ordena nem atribui indicação nesta versão.
+                    </li>
+                    <li>
+                      <strong>Incerteza:</strong> sem base suficiente não se atribui indicação, e diz-se porquê.
+                    </li>
+                  </ul>
+                  <div className="mt-3 flex items-start gap-3">
+                    <div className="w-16 shrink-0" dangerouslySetInnerHTML={{ __html: qrMetodologia }} />
+                    <p className="doc-nota">
+                      <strong>Metodologia utilizada: versão {VERSAO_METODOLOGIA}</strong> · calculado a {dataHora(new Date().toISOString())}
+                      <br />
+                      Critérios completos: {enderecoMetodologia}
+                      <br />
+                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. A comissão da
+                      plataforma, promoções e relações comerciais não entram em nenhum destes cálculos.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
               <div className="mt-6">
                 <SinteseDasPropostas
                   linhas={linhasDaSintese}
                   aliases={ordenadas.map((r) => r.alias)}
                   leitura={leituraDaSintese}
                   referencia={referencia?.alias}
+                  titulo="2. Comparação lado a lado"
                   variante="papel"
                 />
                 {grupos.length > 1 && (
@@ -175,7 +291,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
 
               {referencia && contra.length > 0 && (
                 <section className="mt-6">
-                  <h2 className="font-semibold">2. Diferenças para {referencia.alias}</h2>
+                  <h2 className="font-semibold">3. Diferenças para {referencia.alias}</h2>
                   <p className="text-slate-600">
                     Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a primeira da ordenação por
                     omissão (&laquo;{ORDEM_LABELS.padrao}&raquo;), que é a usada em todas as contas abaixo e não muda com a
@@ -259,7 +375,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
 
               {trabalhos.length > 0 && (
                 <section className="mt-6 break-inside-avoid">
-                  <h2 className="font-semibold">3. Trabalho a trabalho</h2>
+                  <h2 className="font-semibold">4. Trabalho a trabalho</h2>
                   <table className="mt-2 w-full text-left">
                     <thead>
                       <tr className="border-b border-slate-300">
@@ -292,7 +408,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               )}
 
               <section className="mt-6 break-inside-avoid">
-                <h2 className="font-semibold">4. Pressupostos, fontes e versões</h2>
+                <h2 className="font-semibold">5. Pressupostos, fontes e versões</h2>
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                   <li>
                     Pedido {req.ref}, versão {req.version}. As propostas abaixo responderam à versão indicada; uma versão
@@ -326,7 +442,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               </section>
 
               <section className="mt-6 break-inside-avoid border-t border-slate-300 pt-3">
-                <h2 className="font-semibold">5. A decisão</h2>
+                <h2 className="font-semibold">6. A decisão</h2>
                 {motivo?.motivo_escolha ? (
                   <>
                     <p className="whitespace-pre-line">{motivo.motivo_escolha}</p>

@@ -2,7 +2,9 @@ import { PublicHeader } from '@/components/LegalPage';
 import { BRAND } from '@/config/brand';
 import { CURRENT_RULES } from '@/domain/rules';
 import { formatEuros } from '@/domain/money';
-import { SORT_LABELS } from '@/domain/proposal';
+import Link from 'next/link';
+import { ORDEM_LABELS } from '@/domain/comparador';
+import { prioridadeEmPalavras } from '@/domain/metodologia';
 import { FREQUENT_MIN_ORDERS } from '@/domain/catalog';
 import { PLAN_INFO, SUPPLIER_PLANS } from '@/domain/subscription';
 
@@ -45,8 +47,16 @@ export default function TransparencyPage() {
       <section>
         <h2 className="text-[20px] font-semibold">Como ordenamos as propostas</h2>
         <p className="mt-2">
-          O cliente escolhe a ordem: {Object.values(SORT_LABELS).join(', ').toLowerCase()}. Por omissão, pelo preço sem IVA. Nenhum
-          pintor paga para aparecer primeiro.
+          Por omissão, as propostas que incluem todos os trabalhos pedidos e têm o preço firme aparecem primeiro, e dentro
+          de cada grupo ordenam-se pelo total a pagar. O cliente pode trocar o critério a qualquer momento:{' '}
+          {Object.values(ORDEM_LABELS).join(', ').toLocaleLowerCase('pt-PT')}. Nenhum pintor paga para aparecer primeiro.
+        </p>
+        <p className="mt-2">
+          {prioridadeEmPalavras()}{' '}
+          <Link className="underline" href="/metodologia">
+            Como comparamos as propostas
+          </Link>{' '}
+          explica por extenso o que pesa, o que cada indicação significa e quando não indicamos nada.
         </p>
       </section>
 

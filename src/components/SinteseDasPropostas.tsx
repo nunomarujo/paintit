@@ -49,6 +49,7 @@ export function SinteseDasPropostas({
   aliases,
   leitura,
   referencia,
+  titulo,
   variante = 'ecra',
 }: {
   linhas: LinhaDaSintese[];
@@ -57,6 +58,8 @@ export function SinteseDasPropostas({
   leitura?: string | null;
   /** A proposta que se repete em todos os quadros, quando é preciso dividir. Por omissão, a primeira. */
   referencia?: string;
+  /** O título no papel, que leva o número da secção do relatório onde a tabela entrar. */
+  titulo?: string;
   /** No papel não há coluna fixa nem deslize: a folha é o que é, e a tabela tem de caber nela. */
   variante?: 'ecra' | 'papel';
 }) {
@@ -87,7 +90,7 @@ export function SinteseDasPropostas({
       style={papel ? { breakInside: 'auto' } : undefined}
     >
       {papel ? (
-        <h2 className="font-semibold">1. Resumo das propostas</h2>
+        <h2 className="font-semibold">{titulo ?? 'Resumo das propostas'}</h2>
       ) : (
         <h2 className="font-semibold">Resumo das propostas</h2>
       )}

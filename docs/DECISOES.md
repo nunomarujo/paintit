@@ -3700,3 +3700,72 @@ de colunas por quadro, não o tamanho do preço.
 No ecrã a tabela desceu de 15px para **13px**, o último degrau da escala da regra 14 — abaixo disso
 não se vai. O total do ecrã desceu de 20px para 17px: sobre células a 13px, 20 era um salto
 desproporcionado, e dois degraus chegam.
+
+## 29/10/2026 — transparência da classificação, e as indicações da fase 1
+
+O promotor corrigiu-me num ponto de enquadramento, e a correcção muda a prioridade do trabalho.
+
+**Eu disse** que as obrigações de transparência nasciam quando a plataforma passasse de descrever a
+recomendar. **Está errado:** o Regulamento (UE) 2019/1150 usa um conceito **amplo** de classificação,
+que abrange a organização das ofertas e os destaques visuais. A app já agrupa e ordena propostas —
+logo a obrigação de explicar os principais parâmetros e a razão da sua importância relativa **já se
+aplicava**, e não estava cumprida. Do lado do consumidor, o artigo 4.º-A do Decreto-Lei n.º 24/2014
+pede a mesma informação numa secção directa e acessível a partir de onde as propostas se comparam.
+Nenhum dos dois exige publicar o algoritmo: exigem dizer o que pesa, porquê, e o que prevalece.
+
+**Um defeito presente que isto revelou:** a página pública de Transparência dizia que a ordenação por
+omissão era «pelo preço sem IVA». Deixou de ser verdade quando a ordenação passou a agrupar por
+cobertura e preço firme — a informação legalmente exigida estava publicada e errada. Corrigida.
+
+### A metodologia, escrita uma vez e lida em quatro sítios
+
+`src/domain/metodologia.ts` guarda os parâmetros por ordem de importância, as regras de cada
+indicação, as condições em que não se indica nada, o que não influencia, e as fontes. É a fonte
+comum do ecrã, do relatório, da página pública e das condições dos pintores: escrita em quatro
+sítios divergiria em semanas.
+
+É **versionada**, e o endereço que o relatório imprime leva a versão — `/metodologia/1.0`, não
+`/metodologia`. Um PDF emitido hoje explica-se com as regras que o produziram, e não com as que
+estiverem em vigor quando alguém o abrir. Mesma disciplina da regra 3 do CLAUDE.md.
+
+### As indicações: duas, e as duas são factos
+
+«Menor preço apresentado» e «Melhor preço para o pedido completo». Lêem-se directamente do que as
+propostas declaram, sem valorizar materiais, tempos ou equipamentos — e por isso não dependem de
+referências que ainda não existem calibradas.
+
+**O destaque que combinaria preço e reputação não foi feito**, de propósito: exige um limiar («dentro
+de uma faixa de preço próxima da melhor») que não está calibrado com obras reais. Inventá-lo seria
+produzir uma recomendação frágil com ar de regra. O histórico mostra-se na matriz e **não ordena nem
+atribui nada** — e a metodologia publicada diz isso com todas as letras, em vez de o omitir.
+
+Uma indicação não atribuída **diz porquê**: empate, nenhuma completa, uma proposta só. O silêncio
+lê-se como desinteresse ou como falha; a razão escrita lê-se como o que é.
+
+### A matriz, e o limite das quatro colunas resolvido
+
+Ideia do promotor: **uma linha por proposta** escala para dez candidatos, onde a tabela transposta
+parava nas quatro colunas por causa do total a 14pt. Muda-se de forma em vez de encolher a letra. As
+duas convivem — a matriz dá a vista de todos, a transposta serve a comparação final de duas ou três.
+Medido: com seis propostas a matriz ocupa 680px dos 681 úteis, e a primeira página inteira — com
+conclusões, matriz, bloco de interpretação e QR — cabe em exactamente uma folha A4.
+
+**Histórico curto não é mau histórico.** Abaixo de três avaliações escreve-se que o histórico ainda é
+limitado, e a célula **não** vai a âmbar: um pintor novo não é um pintor pior, e assinalá-lo como
+defeito seria uma barreira à entrada criada por nós.
+
+### O defeito que o render apanhou
+
+A linha de uma proposta com um trabalho condicionado dizia **«0 trabalhos em falta»**, a âmbar. A
+causa era a confusão que o promotor já me tinha mandado separar: a cobertura vinha de um campo que
+exigia todos os trabalhos firmes, enquanto a contagem de faltas só contava omissões. Corrigido na
+raiz — o campo paralelo desapareceu, e a cobertura deriva só da contagem de faltas, que é o que a
+define. Um trabalho condicionado cobre o pedido; o que lhe falta é o preço fechar, e isso aparece na
+coluna ao lado.
+
+### Por fazer, nesta frente
+
+- As condições dos pintores ainda não referem os parâmetros de classificação.
+- O ecrã das propostas ainda não diz o critério activo nem liga para a metodologia.
+- O motor de valorização por materiais, tempos e equipamentos: por construir, e a publicar
+  recomendações que dele dependam só depois de as referências estarem validadas.
