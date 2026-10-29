@@ -166,6 +166,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         totalComIva: r.totals.totalComIva,
         naoIndicados: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado').length,
         excluidos: porProposta.get(r.id)!.filter((t) => t.estado === 'excluido').length,
+        trabalhosPedidos: trabalhos.length,
         semPrecoFirme: c.cobertura.semPrecoFirme,
         zonasSemPreco: c.definicao.reparos.includes('há zonas do pedido sem preço') ? 1 : 0,
         // `media` vem nula quando ainda não há avaliação nenhuma: isso é «sem obras avaliadas»,
@@ -291,9 +292,9 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                       <br />
                       Critérios completos: {enderecoMetodologia}
                       <br />
-                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. As comissões e
-                      outras condições comerciais com a plataforma {BRAND.domain} não influenciam a ordenação nem as
-                      indicações apresentadas.
+                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. A comissão e as
+                      restantes condições comerciais com a plataforma {BRAND.domain} não são usadas como critérios de
+                      ordenação ou recomendação. O preço apresentado pelo pintor é considerado na comparação.
                     </p>
                   </div>
                 </div>

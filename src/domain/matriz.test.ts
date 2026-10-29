@@ -9,6 +9,7 @@ const m = (alias: string, total: number, o: Partial<PropostaNaMatriz> = {}): Pro
   totalComIva: total,
   naoIndicados: 0,
   excluidos: 0,
+  trabalhosPedidos: 5,
   semPrecoFirme: 0,
   zonasSemPreco: 0,
   avaliacao: { media: 4.6, n: 61 },
@@ -149,5 +150,19 @@ describe('não indicar não é excluir, também na matriz', () => {
     expect(ls[2]!.indicacoes).toContain('Melhor preço para o pedido completo');
     expect(ls[0]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
     expect(ls[1]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
+  });
+});
+
+describe('casos que estão mesmo na base', () => {
+  it('um pedido sem trabalhos indicados não aparece como coberto', () => {
+    // Há pedidos publicados na base com a lista de trabalhos vazia. Sem este caso tratado, a matriz
+    // dizia «Completo» — não havia nada por esclarecer nem excluído — e contradizia a classificação,
+    // que com zero trabalhos nunca dá o pedido por completo.
+    const ls = matriz([
+      m('Pintor A', 1_400_000, { trabalhosPedidos: 0 }),
+      m('Pintor B', 1_600_000, { trabalhosPedidos: 0 }),
+    ]);
+    expect(ls[0]!.pedido).toEqual({ texto: 'Pedido sem trabalhos indicados', atencao: true });
+    expect(ls[0]!.pedido.texto).not.toBe('Completo');
   });
 });

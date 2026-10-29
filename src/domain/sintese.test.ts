@@ -339,7 +339,7 @@ describe('não afirmar o que os dados não mostram', () => {
     }
   });
 
-  it('cada motivo diz o que confirmar, e não só o que falta', () => {
+  it('as pendências dizem o que confirmar; uma explicação neutra não tem de o fazer', () => {
     const ps = [
       proposta('Pintor A'),
       proposta('Pintor B', { garantiaAnos: null, duracaoDias: null }, [
@@ -347,17 +347,31 @@ describe('não afirmar o que os dados não mostram', () => {
         linha({ trabalho: 'pintura_final', quantidade: 31000 }),
       ]),
     ];
+    // Só as células em atenção: são essas as pendências. Uma explicação que acompanhe uma célula
+    // neutra — se um dia houver — não tem nada que o leitor precise de ir confirmar.
     // O «essencial» fica de fora: resume as linhas de cima, e a acção está em cada uma delas.
-    for (const m of motivosDe(ps, true)) {
-      expect(/confirme|pergunte|peça/i.test(m)).toBe(true);
+    const pendencias = sinteseDasPropostas(ps, ctx())
+      .filter((l) => l.id !== 'essencial')
+      .flatMap((l) => l.celulas)
+      .filter((c) => c.tom === 'atencao' && c.motivo);
+    expect(pendencias.length).toBeGreaterThan(2);
+    for (const c of pendencias) {
+      expect(/confirme|pergunte|peça/i.test(c.motivo!)).toBe(true);
     }
   });
 
-  it('nunca se afirma que um preço está fechado ou garantido', () => {
-    const ls = sinteseDasPropostas([proposta('Pintor A'), proposta('Pintor B')], ctx());
-    const tudo = ls.flatMap((l) => l.celulas.map((c) => `${c.texto} ${c.motivo ?? ''}`)).join(' ').toLowerCase();
-    for (const promessa of ['preço definido', 'preço fixo', 'preço garantido', 'preço confirmado']) {
-      expect(tudo).not.toContain(promessa);
+  it('da ausência de condicionados não se conclui que o preço esteja fechado', () => {
+    // O teste é sobre a **derivação**, não sobre as palavras: «preço fixo» pode e deve aparecer
+    // quando o pintor o confirmar expressamente (correcção do promotor, 29/10/2026). O que não pode
+    // é nascer do silêncio — de não haver condicionados declarados.
+    const semCondicionados = [proposta('Pintor A'), proposta('Pintor B')];
+    const ls = sinteseDasPropostas(semCondicionados, ctx());
+    const custos = ls.find((l) => l.id === 'custos_por_fechar')!;
+    const essencial = ls.find((l) => l.id === 'essencial')!;
+    expect(custos.celulas[0]!.texto).toBe('Nenhum declarado');
+    expect(essencial.celulas[0]!.texto).toBe('Cobre o pedido; sem custos por fechar declarados');
+    for (const conclusao of ['preço fixo', 'preço garantido', 'preço confirmado', 'preço definido']) {
+      expect(`${custos.celulas[0]!.texto} ${essencial.celulas[0]!.texto}`.toLowerCase()).not.toContain(conclusao);
     }
   });
 });

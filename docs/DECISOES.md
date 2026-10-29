@@ -3878,3 +3878,40 @@ confirmado em qualquer célula.
 **Um mal-entendido que foi culpa minha:** enviei uma imagem do banco de ensaio da secção 2 e o
 promotor leu-a como sendo a primeira página, concluindo que a matriz faltava. A matriz existe e está
 na primeira página desde a manhã. As imagens de ensaio passam a identificar que secção mostram.
+
+### Fecho da ronda: coerência verificada, e o que a base revelou (29/10/2026)
+
+**Dois testes meus eram absolutos de mais**, e o promotor apanhou os dois:
+
+- O que proibia «preço fixo» proibia **informação verdadeira**: se um dia o pintor confirmar
+  expressamente um preço fixo, isso deve poder dizer-se. O teste passa a ser sobre a **derivação** —
+  da ausência de condicionados declarados não se conclui preço fechado — e não sobre as palavras.
+- O que exigia verbo de acção exigia-o em **todas** as explicações. Passa a exigi-lo só nas células
+  em atenção, que são as pendências. Uma explicação que acompanhe uma célula neutra não tem nada que
+  o leitor precise de ir confirmar.
+
+**A nota comercial**, na formulação do promotor: «A comissão e as restantes condições comerciais com
+a plataforma não são usadas como critérios de ordenação ou recomendação. O preço apresentado pelo
+pintor é considerado na comparação.» Diz as duas coisas que são verdade, incluindo a segunda, que as
+versões anteriores calavam.
+
+**A coerência entre as quatro vistas passa a ser testada** (`src/domain/coerencia.test.ts`). Não
+testa nenhum módulo: testa que a matriz, o comparativo lado a lado, as indicações e a metodologia
+**concordam entre si** a partir dos mesmos dados. Nove verificações — totais iguais, cobertura igual
+incluindo a distinção entre calar e excluir, custos por fechar iguais, a indicação na linha certa e
+em mais nenhuma, a referência a ser a mais barata entre as completas e firmes, e toda a indicação
+atribuída a estar publicada na metodologia com o mesmo identificador. Passaram todas à primeira: as
+vistas já estavam coerentes, e agora ficam obrigadas a continuar.
+
+**O que a base real revelou, e o PDF não revelaria:**
+
+1. **Não há dados para um PDF representativo.** Os dois únicos pedidos com propostas têm **uma**
+   proposta cada. Com uma só, não há comparação: a leitura imediata não sai, as indicações dizem que
+   não há o que comparar. Um PDF gerado assim não exercitaria nada do que foi construído.
+2. **Há um pedido publicado com a lista de trabalhos vazia.** Nesse caso a matriz dizia «Completo» —
+   não havia nada por esclarecer nem excluído — e contradizia a classificação, que com zero trabalhos
+   nunca dá o pedido por completo. Passa a dizer **«Pedido sem trabalhos indicados»**, em atenção.
+   Cobrir zero trabalhos não é cobrir o pedido: é não haver pedido que se cubra.
+
+O segundo é um defeito que só apareceu por se ter ido ver o que lá está, e que nenhum ensaio com
+dados inventados teria encontrado.

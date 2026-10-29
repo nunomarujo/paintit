@@ -50,6 +50,12 @@ export interface PropostaNaMatriz {
   naoIndicados: number;
   /** Trabalhos pedidos que a proposta **declara expressamente** que não faz. */
   excluidos: number;
+  /**
+   * Quantos trabalhos o pedido indica. Zero acontece na base real — há pedidos publicados com a
+   * lista vazia — e sem isto a matriz dizia «Completo», porque não havia nada por esclarecer nem
+   * excluído. Cobrir zero trabalhos não é cobrir o pedido: é não haver pedido que se cubra.
+   */
+  trabalhosPedidos: number;
   /** Trabalhos previstos cujo preço só fecha depois de observar. */
   semPrecoFirme: number;
   /** Zonas do pedido sem nenhuma linha que as cubra. */
@@ -82,6 +88,9 @@ export function matrizDasPropostas(
  * que o cliente tem de fazer a seguir: num caso pergunta, no outro contrata a outra pessoa.
  */
 function celulaDoPedido(p: PropostaNaMatriz): Celula {
+  if (p.trabalhosPedidos === 0) {
+    return { texto: 'Pedido sem trabalhos indicados', atencao: true };
+  }
   if (p.naoIndicados === 0 && p.excluidos === 0) return { texto: 'Completo', atencao: false };
   const partes = [
     p.naoIndicados ? `${p.naoIndicados} por esclarecer` : '',
