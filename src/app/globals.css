@@ -124,6 +124,21 @@ input[type='radio'] {
   .doc-relatorio table {
     font-size: 9pt;
   }
+  /*
+   * A folha dá `break-inside: avoid` a qualquer `section`, o que serve o orçamento — secções curtas
+   * que não devem partir. No relatório são secções longas, com tabelas de dez linhas, e a regra
+   * atirava cada uma inteira para a página seguinte: com dez propostas, a primeira página saía com
+   * o título e mais nada (visto no PDF de demonstração, 29/10/2026).
+   *
+   * Aqui as secções podem partir. O que não parte continua a não partir, porque o declara por si:
+   * cada linha de tabela, o bloco de interpretação, os quadros do comparativo.
+   */
+  .proposal-sheet.doc-relatorio section,
+  .proposal-sheet.doc-relatorio article,
+  .doc-relatorio section,
+  .doc-relatorio article {
+    break-inside: auto;
+  }
   .doc-relatorio h1 {
     font-size: 16pt;
   }
@@ -294,6 +309,15 @@ input[type='radio'] {
   .proposal-sheet table,
   .proposal-sheet section,
   .proposal-sheet figure {
+    break-inside: avoid;
+  }
+  /* O relatório é a excepção: secções longas que têm de poder partir. Ver a nota em `doc-relatorio`. */
+  .proposal-sheet.doc-relatorio section,
+  .proposal-sheet.doc-relatorio article,
+  .proposal-sheet.doc-relatorio table {
+    break-inside: auto;
+  }
+  .proposal-sheet.doc-relatorio tr {
     break-inside: avoid;
   }
   .proposal-footer {

@@ -128,3 +128,17 @@ describe('a metodologia que se publica', () => {
     for (const n of r.naoAtribuidas) expect(publicadas.has(n.indicacao)).toBe(true);
   });
 });
+
+describe('sem pedido definido não há recomendação que dele dependa', () => {
+  it('a indicação do pedido completo não se atribui, e diz porquê', () => {
+    const r = indicacoes([p('Pintor A', 1_400_000), p('Pintor B', 1_600_000)], formatEuros, 0);
+    expect(r.atribuidas.map((x) => x.indicacao)).toEqual(['menor_preco']);
+    const nao = r.naoAtribuidas.find((x) => x.indicacao === 'menor_preco_completo')!;
+    expect(nao.motivo).toBe('O pedido não indica que trabalhos quer: não há cobertura que se possa aferir.');
+  });
+
+  it('o menor preço continua a poder dizer-se: não depende de cobertura nenhuma', () => {
+    const r = indicacoes([p('Pintor A', 1_400_000), p('Pintor B', 1_600_000)], formatEuros, 0);
+    expect(r.atribuidas[0]!.alias).toBe('Pintor A');
+  });
+});

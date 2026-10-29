@@ -93,7 +93,7 @@ export function leituraImediata(ps: PropostaNaSintese[], formata: (c: Cents) => 
   if (barataCompleta && barataCompleta.id === barataGlobal.id) {
     return `${barataCompleta.alias} tem o menor total (${formata(barataCompleta.totalComIva)}) e inclui todos os trabalhos pedidos, sem custos por fechar.`;
   }
-  const pendencias = oEssencial(barataGlobal).texto.toLocaleLowerCase('pt-PT');
+  const pendencias = oEssencial(barataGlobal, false).texto.toLocaleLowerCase('pt-PT');
   if (!barataCompleta) {
     return `Nenhuma proposta inclui todos os trabalhos pedidos com o preço fechado. ${barataGlobal.alias} apresenta o menor total (${formata(barataGlobal.totalComIva)}), mas falta ${pendencias}.`;
   }
@@ -112,12 +112,22 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     celulas: porCada((p) => neutro(ctx.formataEuros(p.totalComIva))),
   });
 
+  // Sem trabalhos no pedido não há cobertura que se classifique: a linha diria «todos incluídos» de
+  // uma lista vazia, ou «0 por esclarecer». Acontece na base real — há pedidos publicados com a
+  // lista de trabalhos vazia — e o que se pode dizer é que o pedido não os indica.
+  const semPedido = ctx.pedidos.length === 0;
   // Âmbito e preço, separados: um trabalho previsto com preço por fechar não é uma omissão, e uma
   // omissão não é uma incerteza de preço (correcção do promotor, 29/10/2026).
   linhas.push({
     id: 'trabalhos',
     criterio: 'Trabalhos pedidos',
     celulas: porCada((p) => {
+      if (semPedido) {
+        return atencao(
+          'Pedido sem trabalhos indicados',
+          'O pedido não indica que trabalhos quer, e por isso não se pode dizer se esta proposta os cobre. Complete o pedido ou peça ao pintor a lista do que inclui.',
+        );
+      }
       const c = p.classificacao.cobertura;
       if (c.completa) return neutro('Todos incluídos');
       const faltas = [
@@ -247,7 +257,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     id: 'essencial',
     criterio: 'O essencial',
     celulas: porCada((p) => {
-      const frase = oEssencial(p);
+      const frase = oEssencial(p, semPedido);
       return frase.atencao ? atencao(frase.texto, frase.motivo!) : neutro(frase.texto);
     }),
   });
@@ -278,7 +288,7 @@ function celulaDeExecucao(t: TrabalhoNaProposta): CelulaDaSintese {
  * as outras e sem eleger nenhuma — a ordem de prioridade é âmbito, depois preço, depois execução,
  * porque é essa a ordem em que uma falha estraga a comparação.
  */
-function oEssencial(p: PropostaNaSintese): { texto: string; atencao: boolean; motivo: string | null } {
+function oEssencial(p: PropostaNaSintese, semPedido: boolean): { texto: string; atencao: boolean; motivo: string | null } {
   const { cobertura, definicao, tecnica } = p.classificacao;
   const faltaAmbito = p.trabalhos.filter((t) => t.estado === 'nao_indicado' || t.estado === 'excluido').length;
   const pendencias: string[] = [];
@@ -289,6 +299,13 @@ function oEssencial(p: PropostaNaSintese): { texto: string; atencao: boolean; mo
   // «Preço definido» afirmava mais do que os dados mostram: não haver condicionados declarados não é
   // o mesmo que o pintor ter confirmado um preço fixo (correcção do promotor, 29/10/2026). O que se
   // pode dizer é o que está declarado — e não o que daí se concluiria.
+  if (semPedido) {
+    return {
+      texto: 'Sem pedido definido para comparar',
+      atencao: true,
+      motivo: 'Enquanto o pedido não indicar que trabalhos quer, nenhuma proposta pode ser dada como completa.',
+    };
+  }
   if (pendencias.length === 0) return { texto: 'Cobre o pedido; sem custos por fechar declarados', atencao: false, motivo: null };
   return {
     texto: maiuscula(listar(pendencias)),
@@ -314,6 +331,9 @@ function listar(xs: string[]): string {
  * O total fica de fora por ser sempre diferente e já estar em cima, e «O essencial» também, por ser
  * o resumo das linhas e não uma delas.
  */
+/** Acima disto, um grupo diz-se pelo número em vez de se nomear proposta a proposta. */
+const LIMITE_PARA_NOMEAR = 3;
+
 export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]): { criterio: string; frase: string }[] {
   const fora = new Set(['total', 'essencial']);
   return linhas
@@ -328,7 +348,17 @@ export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]
         if (!quem) return;
         porTexto.set(c.texto, [...(porTexto.get(c.texto) ?? []), quem]);
       });
-      const partes = [...porTexto.entries()].map(([texto, quem]) => `${listar(quem)}: ${texto}`);
+      // Com dez propostas, nomear as nove que dizem o mesmo é pior do que não dizer nada: a frase
+      // enche-se de aliases e a diferença — que é o ponto — desaparece no meio. O grupo maior passa
+      // a «as restantes N», e nomeiam-se as minorias, que são as que distinguem.
+      const grupos = [...porTexto.entries()].sort((a, b) => a[1].length - b[1].length);
+      const maior = grupos[grupos.length - 1];
+      const partes = grupos.map(([texto, quem], i) => {
+        const ultimo = i === grupos.length - 1;
+        const nomear = !ultimo || quem.length <= LIMITE_PARA_NOMEAR || grupos.length === 1;
+        if (nomear) return `${listar(quem)}: ${texto}`;
+        return `${quem.length === maior![1].length && grupos.length > 1 ? `as restantes ${quem.length}` : listar(quem)}: ${texto}`;
+      });
       return { criterio: l.criterio, frase: partes.join(' · ') };
     });
 }

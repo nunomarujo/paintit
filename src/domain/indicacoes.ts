@@ -56,7 +56,13 @@ const maisBaratas = (ps: PropostaParaIndicacao[]): PropostaParaIndicacao[] => {
   return ps.filter((p) => p.totalComIva === minimo);
 };
 
-export function indicacoes(ps: PropostaParaIndicacao[], formata: (c: Cents) => string): Indicacoes {
+export function indicacoes(
+  ps: PropostaParaIndicacao[],
+  formata: (c: Cents) => string,
+  /** Quantos trabalhos o pedido indica. Zero: não há cobertura que se afira, e a indicação que dela
+   *  depende não se atribui — diz-se porquê, em vez de se atribuir a partir de uma lista vazia. */
+  trabalhosPedidos = 1,
+): Indicacoes {
   const atribuidas: IndicacaoAtribuida[] = [];
   const naoAtribuidas: IndicacaoNaoAtribuida[] = [];
 
@@ -94,6 +100,14 @@ export function indicacoes(ps: PropostaParaIndicacao[], formata: (c: Cents) => s
   }
 
   // 2. Melhor preço para o pedido completo: só entre as comparáveis entre si.
+  if (trabalhosPedidos === 0) {
+    naoAtribuidas.push({
+      indicacao: 'menor_preco_completo',
+      motivo: 'O pedido não indica que trabalhos quer: não há cobertura que se possa aferir.',
+    });
+    return { atribuidas, naoAtribuidas };
+  }
+
   const completas = ps.filter((p) => p.emFalta === 0 && p.precoFirme);
   if (completas.length === 0) {
     naoAtribuidas.push({

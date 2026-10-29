@@ -221,7 +221,8 @@ describe('o que sobe à primeira página', () => {
     const ps = tres();
     const ds = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
     const area = ds.find((d) => d.criterio === 'Área de pintura')!;
-    expect(area.frase).toBe('Pintor A e Pintor B: 240 m² · Pintor C: 310 m² — diverge');
+    // A minoria vem primeiro: é ela a diferença, e é o que se quer ler antes do que é comum.
+    expect(area.frase).toBe('Pintor C: 310 m² — diverge · Pintor A e Pintor B: 240 m²');
   });
 
   it('um critério em que todas dizem o mesmo não é uma diferença', () => {
@@ -373,5 +374,64 @@ describe('não afirmar o que os dados não mostram', () => {
     for (const conclusao of ['preço fixo', 'preço garantido', 'preço confirmado', 'preço definido']) {
       expect(`${custos.celulas[0]!.texto} ${essencial.celulas[0]!.texto}`.toLowerCase()).not.toContain(conclusao);
     }
+  });
+});
+
+describe('um pedido sem trabalhos indicados', () => {
+  const nenhum = ctx({ pedidos: [], areaPedidoCm2: null });
+  const duas = () => {
+    const trabalhos = trabalhosDaProposta([], []);
+    return [proposta('Pintor A', { trabalhos }), proposta('Pintor B', { trabalhos })];
+  };
+
+  it('não classifica cobertura: diz que o pedido não indica trabalhos', () => {
+    const c = sinteseDasPropostas(duas(), nenhum).find((l) => l.id === 'trabalhos')!.celulas[0]!;
+    expect(c.texto).toBe('Pedido sem trabalhos indicados');
+    expect(c.tom).toBe('atencao');
+    expect(c.motivo).toContain('não se pode dizer se esta proposta os cobre');
+  });
+
+  it('não dá nenhuma proposta por completa', () => {
+    const e = sinteseDasPropostas(duas(), nenhum).find((l) => l.id === 'essencial')!.celulas[0]!;
+    expect(e.texto).toBe('Sem pedido definido para comparar');
+    expect(e.texto.toLowerCase()).not.toContain('cobre o pedido');
+  });
+
+  it('não mostra linhas que dependam dos trabalhos pedidos', () => {
+    const ids = sinteseDasPropostas(duas(), nenhum).map((l) => l.id);
+    expect(ids).not.toContain('preparacao');
+    expect(ids).not.toContain('acabamento_pintura');
+  });
+
+  it('não há leitura imediata que afirme cobertura', () => {
+    const f = leituraImediata(duas(), formatEuros);
+    expect(f === null || !f.includes('incluem todos os trabalhos pedidos')).toBe(true);
+  });
+});
+
+describe('as diferenças relevantes à escala de dez propostas', () => {
+  const muitas = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      proposta(`Pintor ${String.fromCharCode(65 + i)}`, {}, [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2, quantidade: i === 0 ? 31000 : 24000 }),
+      ]),
+    );
+
+  it('o grupo maioritário diz-se pelo número, em vez de se nomearem nove aliases', () => {
+    const ps = muitas(10);
+    const d = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
+    const area = d.find((x) => x.criterio === 'Área de pintura')!;
+    expect(area.frase).toContain('Pintor A: 310 m² — diverge');
+    expect(area.frase).toContain('as restantes 9: 240 m²');
+    // A frase não pode encher-se de aliases: com dez propostas, no máximo dois nomes.
+    expect((area.frase.match(/Pintor /g) ?? []).length).toBeLessThanOrEqual(2);
+  });
+
+  it('com poucas propostas continuam todas nomeadas', () => {
+    const ps = muitas(3);
+    const d = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
+    const area = d.find((x) => x.criterio === 'Área de pintura')!;
+    expect(area.frase).toBe('Pintor A: 310 m² — diverge · Pintor B e Pintor C: 240 m²');
   });
 });

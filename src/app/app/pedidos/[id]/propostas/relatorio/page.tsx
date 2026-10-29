@@ -155,6 +155,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
       };
     }),
     formatEuros,
+    trabalhos.length,
   );
   const linhasDaMatriz = matrizDasPropostas(
     ordenadas.map((r) => {
@@ -251,11 +252,12 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                       {pendencias.map((x) => (
                         <li key={`${x.alias}-${x.criterio}`}>
                           <span className="font-medium">{x.alias}</span> ·{' '}
-                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}{' '}
-                          <span className="text-slate-600">Ver 2. Comparativo detalhado.</span>
+                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}
                         </li>
                       ))}
                     </ul>
+                    {/* A remissão dizia-se em cada linha, e com seis pendências aparecia seis vezes. */}
+                    <p className="mt-1 text-slate-600">Todos estes pontos estão desenvolvidos em 2. Comparativo detalhado.</p>
                   </div>
                 )}
 

@@ -3915,3 +3915,46 @@ vistas já estavam coerentes, e agora ficam obrigadas a continuar.
 
 O segundo é um defeito que só apareceu por se ter ido ver o que lá está, e que nenhum ensaio com
 dados inventados teria encontrado.
+
+### O cenário de demonstração com dez propostas (29/10/2026)
+
+**Não foi criado na base.** O pedido era um ambiente de teste; a base Supabase é só uma, de produção,
+e o plano não tem branches. Verifiquei que seria inerte — `private.notify` apenas escreve numa tabela,
+e os três triggers de proposta são só de UPDATE, pelo que inserir já com o estado final não dispara
+nada — mas inerte não é o mesmo que ser um ambiente de teste, e a aprovação automática recusou a
+criação do utilizador, com razão. O cenário foi montado com os **componentes reais e as mesmas
+funções de domínio**; o que muda é a camada HTTP, não a lógica nem a apresentação.
+
+Dez propostas, com todos os estados que o produto conhece: sete completas, uma que se cala sobre dois
+trabalhos e mede 310 m² onde o pedido diz 240, uma que exclui expressamente a impermeabilização, uma
+com o preço das fissuras condicionado, e históricos de 1 a 112 obras, incluindo um pintor sem nenhuma.
+
+**Três defeitos que só apareceram à escala de dez, e nenhum apareceria com três:**
+
+1. **A primeira página saía com o título e mais nada.** O `break-inside: avoid` da folha aplica-se a
+   qualquer `section`, e eu tinha corrigido isso **dentro** do componente da síntese — as secções
+   escritas na própria página continuavam a herdá-lo. Corrigido na raiz, no `globals.css`, para todas
+   as secções do relatório: a regra geral serve o orçamento, que tem secções curtas, e não o
+   relatório, que tem tabelas de dez linhas. A primeira correcção não pegou porque a regra do
+   `@media print` vem depois com a mesma especificidade — foi preciso qualificá-la com as duas
+   classes.
+2. **«Ver 2. Comparativo detalhado» repetia-se em cada pendência**, seis vezes seguidas. Passa a
+   dizer-se uma vez, no fim da lista.
+3. **As diferenças relevantes nomeavam nove aliases por critério.** «Pintor I, Pintor B, Pintor D,
+   Pintor G, Pintor A, Pintor H, Pintor J e Pintor E: Todos incluídos» enche a linha e esconde o que
+   é a diferença. O grupo maior passa a dizer-se pelo número — «as restantes 8» — e a minoria vem
+   **primeiro**, porque é ela que distingue: «Pintor C: 310 m² — diverge · as restantes 9: 240 m²».
+
+**Coerência confirmada no documento gerado:** a conclusão, a referência da explicação económica e a
+referência que se repete nos quadros são a mesma proposta; a matriz tem as dez linhas; a metodologia
+citada é a 1.0, que é a que produziu os números.
+
+### Sem pedido definido não há cobertura nem recomendação que dela dependa
+
+Pedido do promotor, e o caso existe na base. Com a lista de trabalhos vazia:
+
+- a linha da cobertura diz **«Pedido sem trabalhos indicados»** em vez de classificar;
+- «O essencial» diz **«Sem pedido definido para comparar»**, e nunca que a proposta cobre o pedido;
+- as linhas que dependem dos trabalhos pedidos (preparação, acabamento) não aparecem;
+- a indicação **«melhor preço para o pedido completo» não se atribui**, e diz porquê;
+- **«menor preço apresentado» continua a atribuir-se**: não depende de cobertura nenhuma.
