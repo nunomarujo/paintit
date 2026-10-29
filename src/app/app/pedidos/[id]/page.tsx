@@ -8,7 +8,9 @@ import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
 import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
-import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, publishBlockers, type DesiredWork } from '@/domain/request';
+import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, bloqueiosDaPublicacao, formatArea, type DesiredWork } from '@/domain/request';
+import { percursoDoPedido } from '@/domain/percurso';
+import { Percurso } from './Percurso';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
@@ -121,7 +123,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   }));
   const list = surfaces ?? [];
   const total = list.reduce((n, s) => n + s.area_cm2, 0);
-  const blockers = publishBlockers({
+  const blockers = bloqueiosDaPublicacao({
     descricao: req.descricao,
     otherTexts: [req.cor_acabamento ?? '', ...list.map((s) => s.descricao ?? '')],
     prazoPropostas: req.prazo_propostas,
@@ -129,6 +131,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     today: localDate(new Date(), CURRENT_RULES.timeZone),
   });
   const status = STATUS[req.status]!;
+  // Em que ponto está isto, e de quem é a vez. É a primeira pergunta de quem abre a página, e a
+  // que ela não respondia: mostrava campos e bloqueios, e deixava o cliente a adivinhar.
+  const percurso = percursoDoPedido({
+    estadoDoPedido: req.status,
+    levantamento: surveyRow ? { status: surveyRow.status, marcadoPara: surveyRow.scheduled_at } : null,
+    bloqueiosDaPublicacao: blockers.length,
+  });
+  const tecnicoDoCliente = percurso.tecnicoPertenceAoCliente;
 
   return (
     <div className="space-y-8">
@@ -156,6 +166,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <p className="mt-1 text-amber-900">Corrija o pedido e publique de novo: os pintores veem a nova versão.</p>
         </section>
       )}
+
+      <Percurso estado={percurso} marcadoPara={surveyRow?.scheduled_at ?? null} houveLevantamento={!!surveyRow} />
 
       {req.status !== 'rascunho' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
@@ -244,9 +256,19 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">Superfícies e áreas</h2>
-          <span className="text-[17px] text-slate-600">Total: {formatArea(total)}</span>
+          <h2 className="font-semibold">{tecnicoDoCliente ? 'Superfícies e áreas' : 'Levantamento da obra'}</h2>
+          {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
+              errada (promotor, 29/10/2026). */}
+          <span className="text-[17px] text-slate-600">
+            {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
+          </span>
         </div>
+        {!tecnicoDoCliente && (
+          <p className="mt-1 text-[17px] text-slate-600">
+            Será preenchido pelo profissional que fizer a visita. Pode consultar e acrescentar o que souber, mas não
+            precisa de indicar medidas nenhumas.
+          </p>
+        )}
         {list.length > 0 ? (
           <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {list.map((s) => (
@@ -367,7 +389,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
           }}
         />
-        {manager && draft && <PublishButton requestId={req.id} blockers={blockers} />}
+        {manager && draft && <PublishButton requestId={req.id} blockers={blockers} aguardaLevantamento={!tecnicoDoCliente} />}
       </section>
     </div>
   );

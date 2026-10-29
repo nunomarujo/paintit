@@ -1702,3 +1702,30 @@ comissões, promoções e relações comerciais não alteram a ordenação.
 - **`pades.test.ts` falha de vez em quando** na segunda assinatura sobre um PDF já assinado: uma vez
   em três suites completas, nunca em doze corridas isoladas. A causa não foi encontrada. A asserção
   já compara o objecto todo, portanto a próxima falha diz por que via veio o `name: null`.
+
+## O percurso do cliente, primeira parte (29/10/2026)
+
+O promotor apanhou a contradição de fundo: **a aplicação promete um profissional que faz o
+levantamento, e depois apresenta ao cliente um formulário técnico e bloqueia-o por não ter medidas.**
+
+Duas coisas que o código já tinha e que mudam o diagnóstico:
+
+- **A ajuda já existe e já está sempre ligada.** `request_surveys` (23/10) abre uma vaga de
+  levantamento em cada pedido; os avaliadores veem-na no mercado, reservam, e as políticas RLS já
+  garantem que só vê o pedido quem a tem reservada. Não faltava o botão «pedir visita» — a visita já
+  estava pedida. Faltava a aplicação dizer isso.
+- **O formulário não bloqueia a criação, bloqueia a publicação.** E isso está certo, pela regra do
+  próprio promotor: não se publica um pedido incompleto só porque foi pedida uma visita. O defeito
+  era de apresentação.
+
+**O que ficou feito.** `src/domain/percurso.ts` responde a duas perguntas que a página não
+respondia: em que fase está o pedido, e de quem é a vez. A página abre agora com isso, e com a régua
+`Pedido de visita → Visita → Levantamento → Revisão → Propostas` — a curta, sem as duas primeiras,
+para quem trata de tudo sozinho. Os bloqueios da publicação passaram a ter dono
+(`bloqueiosDaPublicacao`): os que são do levantamento saem da caixa âmbar enquanto houver visita a
+caminho e dizem-se noutra frase. «0 m²» passou a «Área por levantar». E saiu a frase «a
+responsabilidade pelos dados continua sua, como se os preenchesse sozinho».
+
+**Por fazer, pela ordem acordada:** as áreas por zona com os quatro estados; a escolha no início
+(«Quero ajuda no local» / «Já tenho os dados»); marcação, reagendamento, cancelamento e o caso de
+não haver quem vá; a revisão antes de publicar; as fotografias e a linguagem; e o desenho.

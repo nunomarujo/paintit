@@ -41,13 +41,18 @@ function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: 
       {survey.status === 'aberto' && (
         <>
           <p className="mt-1 text-slate-700">
-            Um profissional qualificado de um fornecedor da plataforma pode visitar a obra em breve e preencher as
-            superfícies e fotografias em seu lugar. <strong>Não acrescenta nenhum custo à obra</strong> — é só uma
-            ajuda, e a responsabilidade pelos dados continua sua, como se os preenchesse sozinho.
+            {/*
+              Substituiu «a responsabilidade pelos dados continua sua, como se os preenchesse
+              sozinho» (promotor, 29/10/2026). Além de desencorajadora, a frase não dizia quem mediu
+              nem o que o cliente tem de confirmar — e deixava-o a responder por uma medição que não
+              fez. O registo guarda quem mediu e quando; o que ele faz é rever e pedir correcções.
+            */}
+            O profissional regista as medições e os trabalhos que observar. Antes da publicação, poderá rever o pedido e
+            pedir correcções. <strong>Não acrescenta nenhum custo à obra.</strong>
           </p>
           <p className="mt-2 text-slate-700">
-            Pode continuar a preencher sozinho entretanto, a qualquer momento, sem perder nada — ou, se preferir não
-            receber esta ajuda, desistir abaixo.
+            Pode ir preenchendo o que souber entretanto, sem perder nada — ou, se preferir tratar de tudo sozinho,
+            desistir abaixo.
           </p>
           <form {...cancel.formProps} className="mt-3">
             {msg(cancel.state)}
@@ -57,17 +62,20 @@ function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: 
           </form>
         </>
       )}
+      {/* O estado — à espera, marcada, entregue — diz-se uma vez, no topo da página. Aqui fica o
+          que é só deste cartão: quem é o profissional, e o que o cliente pode fazer. */}
       {survey.status === 'reservado' && (
         <p className="mt-1 text-slate-700">
-          Um profissional reservou a visita{survey.vendorRating ? ratingText(survey.vendorRating) : ''}. Avisamos quando o
-          levantamento estiver registado.
+          Ficou com a visita um profissional qualificado de um fornecedor da plataforma
+          {survey.vendorRating ? ratingText(survey.vendorRating) : ''}. Avisamos quando o levantamento estiver
+          registado.
         </p>
       )}
       {survey.status === 'concluido' && (
         <>
           <p className="mt-1 text-slate-700">
             O levantamento foi registado por um profissional{survey.vendorRating ? ratingText(survey.vendorRating) : ''}.
-            Pode continuar a rever e a acrescentar superfícies, se faltar algo.
+            Reveja o que está aqui e peça correcções se alguma coisa não corresponder ao que viu.
           </p>
           {!survey.rated && (
             <form {...rate.formProps} className="mt-3 space-y-2">

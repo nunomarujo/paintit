@@ -252,25 +252,44 @@ export interface PublishCheckInput {
 
 export const MIN_PROPOSAL_DAYS = 7;
 
-/** O que impede a publicação. Vazio = pode ser publicado. */
-export function publishBlockers(input: PublishCheckInput): string[] {
-  const out: string[] = [];
+/** Só os textos, para quem não precisa de saber de quem é cada coisa (as acções do servidor). */
+export const publishBlockers = (input: PublishCheckInput): string[] => bloqueiosDaPublicacao(input).map((b) => b.texto);
+
+/**
+ * De quem é cada coisa que falta.
+ *
+ * A distinção entrou a 29/10/2026, e é a correcção de fundo que o promotor pediu: a aplicação
+ * promete um profissional que mede a obra, e depois mostra ao cliente «indique pelo menos uma
+ * superfície com área» como se fosse falha dele. As medições são do **levantamento**; o prazo e o
+ * texto do anúncio são do **cliente**. São coisas diferentes e não se dizem da mesma maneira.
+ */
+export type DonoDoBloqueio = 'cliente' | 'levantamento';
+
+export interface Bloqueio {
+  texto: string;
+  de: DonoDoBloqueio;
+}
+
+/** O que impede a publicação, com o dono de cada coisa. Vazio = pode ser publicado. */
+export function bloqueiosDaPublicacao(input: PublishCheckInput): Bloqueio[] {
+  const out: Bloqueio[] = [];
   if (input.surfacesArea.length === 0 || input.surfacesArea.every((a) => a <= 0)) {
-    out.push('Indique pelo menos uma superfície com área.');
+    out.push({ texto: 'Indique pelo menos uma superfície com área.', de: 'levantamento' });
   }
-  if (input.descricao.trim().length < 30) out.push('Descreva a obra em pelo menos 30 caracteres.');
+  if (input.descricao.trim().length < 30) out.push({ texto: 'Descreva a obra em pelo menos 30 caracteres.', de: 'cliente' });
   const revealing = [...new Set([input.descricao, ...(input.otherTexts ?? [])].flatMap(revealingContent))];
   if (revealing.length > 0) {
-    out.push(
-      `O texto do anúncio parece conter ${revealing.join(', ')}. Retire-o: a identificação só é revelada depois da escolha.`,
-    );
+    out.push({
+      texto: `O texto do anúncio parece conter ${revealing.join(', ')}. Retire-o: a identificação só é revelada depois da escolha.`,
+      de: 'cliente',
+    });
   }
-  if (!input.prazoPropostas) out.push('Indique até quando aceita propostas.');
+  if (!input.prazoPropostas) out.push({ texto: 'Indique até quando aceita propostas.', de: 'cliente' });
   else {
     const min = new Date(`${input.today}T00:00:00Z`);
     min.setUTCDate(min.getUTCDate() + MIN_PROPOSAL_DAYS);
     if (input.prazoPropostas < min.toISOString().slice(0, 10)) {
-      out.push(`Dê pelo menos ${MIN_PROPOSAL_DAYS} dias aos pintores para orçamentarem.`);
+      out.push({ texto: `Dê pelo menos ${MIN_PROPOSAL_DAYS} dias aos pintores para orçamentarem.`, de: 'cliente' });
     }
   }
   return out;
