@@ -144,13 +144,188 @@ export function coberturaEmPalavras(ts: readonly TrabalhoNaProposta[]): string {
   // nos dois sítios saía "não indica lavagem e limpeza e reparação de fissuras e deixa como
   // opcional impermeabilização", que ninguém lê até ao fim.
   const frase = partes.join('; ');
-  // Quando sobra alguma coisa incluída, diz-se primeiro o que inclui; quando não sobra nada, a
-  // frase começa pela ressalva e leva maiúscula.
-  const haIncluidos = excluidos.length + naoIndicados.length + opcionais.length + condicionados.length < ts.length;
-  return haIncluidos ? `Inclui os trabalhos pedidos, mas ${frase}.` : `${frase[0]!.toLocaleUpperCase('pt-PT')}${frase.slice(1)}.`;
+  const incluidos = nomes('incluido');
+
+  // "Inclui os trabalhos pedidos, mas não indica três deles" é enganador: só se diz assim quando o
+  // que falta é a excepção. Quando os incluídos são minoria, nomeiam-se — é a leitura honesta de
+  // uma proposta que só orçamentou parte da obra.
+  if (incluidos.length === 0) return `${frase[0]!.toLocaleUpperCase('pt-PT')}${frase.slice(1)}.`;
+  if (incluidos.length * 2 < ts.length) return `Inclui apenas ${lista(incluidos)}; ${frase}.`;
+  return `Inclui os trabalhos pedidos, mas ${frase}.`;
 }
 
 function lista(xs: readonly string[], ultimo = ' e '): string {
   if (xs.length <= 1) return xs[0] ?? '';
   return `${xs.slice(0, -1).join(', ')}${ultimo}${xs[xs.length - 1]}`;
 }
+
+// --- Classificação em três dimensões ------------------------------------------------
+//
+// Em vez de uma escala única — que exigiria pesos, e pesos são uma opinião escrita em números —
+// três leituras independentes (decisão do promotor, 28/10/2026). Nenhuma delas pontua: cada uma diz
+// o que se passa, em palavras, e o cliente pesa-as como lhe convier.
+
+export interface SinaisDaProposta {
+  trabalhos: TrabalhoNaProposta[];
+  /** Há linhas cujo preço só se fecha depois de observar. */
+  temCondicionados: boolean;
+  /** Zonas do pedido sem nenhuma linha incluída que as cubra. */
+  zonasSemPreco: number;
+  /** Preço fechado da obra toda, sem repartição por trabalho. */
+  precoGlobal: boolean;
+  /** Produtos que o cliente pediu: quantos a proposta segue, substitui, ou não refere. */
+  produtosPedidos?: { segue: number; substitui: number; semIndicacao: number };
+}
+
+export interface Leitura {
+  frase: string;
+  /** O que impede de dar a dimensão por resolvida. Vazio = está resolvida. */
+  reparos: string[];
+}
+
+export interface Classificacao {
+  cobertura: Leitura & { completa: boolean; porEsclarecer: number };
+  definicao: Leitura & { definido: boolean };
+  tecnica: Leitura;
+}
+
+export function classificar(s: SinaisDaProposta): Classificacao {
+  const porEsclarecerN = s.trabalhos.filter((t) => porEsclarecer(t.estado)).length;
+  const excluidos = s.trabalhos.filter((t) => t.estado === 'excluido').length;
+  const completa = s.trabalhos.length > 0 && s.trabalhos.every((t) => t.estado === 'incluido');
+
+  const reparosCobertura = [
+    excluidos ? `${excluidos} ${excluidos === 1 ? 'trabalho excluído' : 'trabalhos excluídos'}` : '',
+    porEsclarecerN ? `${porEsclarecerN} ${porEsclarecerN === 1 ? 'trabalho por esclarecer' : 'trabalhos por esclarecer'}` : '',
+    s.zonasSemPreco ? `${s.zonasSemPreco} ${s.zonasSemPreco === 1 ? 'zona sem preço' : 'zonas sem preço'}` : '',
+  ].filter(Boolean);
+
+  // A definição é sobre o preço e as condições, não sobre o âmbito: uma proposta pode cobrir tudo e
+  // ter metade sujeita a observação.
+  const reparosDefinicao = [
+    s.temCondicionados ? 'parte do preço só se fecha depois de observar' : '',
+    s.zonasSemPreco ? 'há zonas do pedido sem preço' : '',
+    // Preço global não é falta de definição — é falta de repartição. Diz-se, sem contar como reparo
+    // da definição, porque o que o cliente paga está firme.
+  ].filter(Boolean);
+  const definido = reparosDefinicao.length === 0;
+
+  const incluidos = s.trabalhos.filter((t) => t.estado === 'incluido');
+  const semProduto = incluidos.filter((t) => t.produtos.length === 0).length;
+  const p = s.produtosPedidos;
+  const reparosTecnica = [
+    p && p.substitui ? `substitui ${p.substitui} ${p.substitui === 1 ? 'produto pedido' : 'produtos pedidos'}` : '',
+    p && p.semIndicacao ? `não diz o que usa em ${p.semIndicacao} ${p.semIndicacao === 1 ? 'produto pedido' : 'produtos pedidos'}` : '',
+    !p && semProduto ? `${semProduto} ${semProduto === 1 ? 'trabalho incluído sem produto nomeado' : 'trabalhos incluídos sem produto nomeado'}` : '',
+  ].filter(Boolean);
+
+  return {
+    cobertura: {
+      completa,
+      porEsclarecer: porEsclarecerN,
+      frase: coberturaEmPalavras(s.trabalhos),
+      reparos: reparosCobertura,
+    },
+    definicao: {
+      definido,
+      frase: definido
+        ? s.precoGlobal
+          ? 'Total apresentado, a preço global: não se reparte por trabalho.'
+          : 'Total apresentado, com preço por trabalho.'
+        : `Total apresentado, mas ${junta(reparosDefinicao)}.`,
+      reparos: reparosDefinicao,
+    },
+    tecnica: {
+      frase: reparosTecnica.length === 0
+        ? p
+          ? 'Segue os produtos pedidos.'
+          : 'Nomeia o produto em todos os trabalhos incluídos.'
+        : `${maiuscula(junta(reparosTecnica))}.`,
+      reparos: reparosTecnica,
+    },
+  };
+}
+
+// --- Ordenação ----------------------------------------------------------------------
+//
+// Ordenar sem afirmar que uma proposta é globalmente melhor. O critério está sempre à vista, e
+// **comissões da plataforma, promoções e relações comerciais nunca o alteram** — mesma família da
+// regra 15 do CLAUDE.md: o dinheiro da plataforma não entra na decisão do cliente.
+
+export const ORDENS = ['padrao', 'preco', 'cobertura', 'esclarecer', 'duracao', 'inicio'] as const;
+export type Ordem = (typeof ORDENS)[number];
+
+export const ORDEM_LABELS: Record<Ordem, string> = {
+  padrao: 'Completas e com preço firme primeiro',
+  preco: 'Menor valor total a pagar',
+  cobertura: 'Maior cobertura do pedido',
+  esclarecer: 'Menos pontos por esclarecer',
+  duracao: 'Menor duração prevista',
+  inicio: 'Data de início mais próxima',
+};
+
+export interface Ordenavel {
+  id: string;
+  totalComIva: Cents;
+  completa: boolean;
+  definido: boolean;
+  porEsclarecer: number;
+  trabalhosIncluidos: number;
+  duracaoDias: number | null;
+  /** AAAA-MM-DD, ou null. */
+  inicioPossivel: string | null;
+}
+
+export interface GrupoOrdenado<T> {
+  titulo: string;
+  nota: string;
+  propostas: T[];
+}
+
+const LONGE = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Por omissão, dois grupos: primeiro as propostas que incluem todos os trabalhos pedidos **e** têm
+ * o preço firme, por total a pagar; depois as restantes, com as pendências à vista. Se nenhuma
+ * reunir as condições, diz-se — e nenhuma fica escondida.
+ *
+ * Com um critério escolhido, uma lista só, por esse critério e mais nada.
+ */
+export function ordenar<T extends Ordenavel>(ps: readonly T[], ordem: Ordem): GrupoOrdenado<T>[] {
+  const porTotal = (a: T, b: T) => a.totalComIva - b.totalComIva;
+  if (ordem !== 'padrao') {
+    const chave = (x: T) =>
+      ordem === 'preco' ? x.totalComIva
+      : ordem === 'cobertura' ? -x.trabalhosIncluidos
+      : ordem === 'esclarecer' ? x.porEsclarecer
+      : ordem === 'duracao' ? (x.duracaoDias ?? LONGE)
+      : x.inicioPossivel ? Number(x.inicioPossivel.replaceAll('-', '')) : LONGE;
+    return [{ titulo: ORDEM_LABELS[ordem], nota: 'A ordenação é só por este critério; não é uma recomendação.', propostas: [...ps].sort((a, b) => chave(a) - chave(b) || porTotal(a, b)) }];
+  }
+
+  const prontas = ps.filter((x) => x.completa && x.definido).sort(porTotal);
+  const resto = ps.filter((x) => !(x.completa && x.definido)).sort(porTotal);
+  if (prontas.length === 0) {
+    return [{
+      titulo: 'Todas as propostas',
+      nota: 'Nenhuma inclui todos os trabalhos pedidos com o preço firme. Veja as pendências de cada uma antes de escolher.',
+      propostas: resto,
+    }];
+  }
+  const grupos: GrupoOrdenado<T>[] = [{
+    titulo: 'Incluem tudo o que pediu, com preço firme',
+    nota: 'Por total a pagar. Dentro deste grupo, a comparação de preço é directa.',
+    propostas: prontas,
+  }];
+  if (resto.length > 0) {
+    grupos.push({
+      titulo: 'Com pendências',
+      nota: 'Falta-lhes algum trabalho pedido, ou parte do preço ainda não está firme.',
+      propostas: resto,
+    });
+  }
+  return grupos;
+}
+
+const junta = (xs: readonly string[]) => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} e ${xs[xs.length - 1]}`);
+const maiuscula = (s: string) => (s ? `${s[0]!.toLocaleUpperCase('pt-PT')}${s.slice(1)}` : s);
