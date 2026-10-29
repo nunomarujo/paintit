@@ -17,8 +17,8 @@ import {
   quantidadeEmPalavras,
   trabalhosDaProposta,
 } from '@/domain/comparador';
-import { CAUSA_LABELS, diferencaEmPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
-import { alternativaProxima, diferencasRelevantes, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
+import { quadroEconomico, type LadoDaReconciliacao } from '@/domain/reconciliacao';
+import { alternativaProxima, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
 import { MatrizDasPropostas } from '@/components/MatrizDasPropostas';
 import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
@@ -27,6 +27,8 @@ import { REGRAS_DAS_INDICACOES, VERSAO_METODOLOGIA, enderecoDaMetodologia, prior
 import { qrCodeSvg } from '@/lib/qrcode';
 
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
+/** Um valor com o seu sinal, e um travessão quando é zero: «+0,00 €» não é informação. */
+const comSinal = (c: number) => (c === 0 ? '—' : `${c > 0 ? '+' : '−'}${formatEuros(Math.abs(c))}`);
 const dataHora = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
@@ -199,7 +201,6 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
     aliasesDaSintese,
     indicacoes.atribuidas.map((a) => a.alias),
   );
-  const diferencas = diferencasRelevantes(linhasDaSintese, aliasesDaSintese);
   // A alternativa mais próxima em preço da proposta indicada, e o que traz de diferente. Sem isto, a
   // primeira página destacava a mais barata e escondia que a seguinte, por 2%, trazia mais.
   const indicadaCompleta = indicacoes.atribuidas.find((a) => a.indicacao === 'menor_preco_completo');
@@ -212,6 +213,9 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         new Map(ordenadas.map((r) => [r.alias, r.totals.totalComIva])),
       )
     : null;
+  // O quadro económico: uma linha por proposta comparada com a referência, em vez de um bloco por
+  // par. A decomposição par a par produzia nove secções todas numeradas «3.1».
+  const economico = referencia ? quadroEconomico(lado(referencia), contra.map(lado), formatEuros) : [];
   const enderecoMetodologia = enderecoDaMetodologia();
   const qrMetodologia = qrCodeSvg(enderecoMetodologia, 'Código QR da metodologia usada neste relatório');
 
@@ -407,39 +411,22 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                 </section>
               )}
 
-              <section className="mt-6">
+              {/* Páginas de consulta: uma folha por grupo de três, com as suas diferenças ao pé. */}
+              <section className="doc-quebra mt-6">
                 <h2 className="font-semibold">2. Comparativo detalhado</h2>
                 <p className="text-slate-600">
                   O mesmo trabalho na mesma linha, para não ser preciso procurá-lo em cada proposta e compará-lo de
                   memória.
                 </p>
 
-                {diferencas.length > 0 && (
-                  <div className="mt-3 break-inside-avoid">
-                    <h3 className="font-semibold">2.1 Diferenças relevantes</h3>
-                    <p className="text-slate-600">
-                      Só o que distingue as propostas. A grelha completa vem a seguir, com os critérios em que todas
-                      coincidem — é assim que se confirma que a cobertura é a mesma.
-                    </p>
-                    <dl className="mt-1 space-y-1">
-                      {diferencas.map((d) => (
-                        <div key={d.criterio}>
-                          <dt className="inline font-medium">{d.criterio}: </dt>
-                          <dd className="inline">{d.frase}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                )}
-              </section>
-
-              <div className="mt-4">
                 <SinteseDasPropostas
                   linhas={linhasDaSintese}
                   aliases={ordenadas.map((r) => r.alias)}
                   leitura={leituraDaSintese}
                   referencia={referencia?.alias}
-                  titulo="2.2 Comparação lado a lado"
+                  titulo="2.1 Comparação lado a lado"
+                  jaExplicadas={pendencias.map((x) => x.alias)}
+                  remissao="1.2 O que pode ainda alterar a escolha"
                   variante="papel"
                 />
                 {grupos.length > 1 && (
@@ -447,11 +434,11 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                     {grupos.map((g) => `${g.titulo}: ${g.propostas.map((x) => rowOf.get(x.id)!.alias).join(', ')}`).join(' · ')}.
                   </p>
                 )}
-              </div>
+              </section>
 
               {trabalhos.length > 0 && (
                 <section className="mt-6 break-inside-avoid">
-                  <h2 className="font-semibold">2.3 Trabalho a trabalho</h2>
+                  <h2 className="font-semibold">2.2 Trabalho a trabalho</h2>
                   <table className="mt-2 w-full text-left">
                     <thead>
                       <tr className="border-b border-slate-300">
@@ -496,82 +483,84 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   <p className="text-slate-600">
                     Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a proposta de menor total entre
                     as que cobrem o pedido e não declaram custos por fechar, que é a primeira da ordenação por omissão
-                    (&laquo;{ORDEM_LABELS.padrao}&raquo;). É contra ela que se medem as outras, não muda com a ordem em que
-                    as propostas sejam vistas no ecrã, e as contas abaixo são todas feitas a partir dela. Cada euro de
-                    diferença é atribuído a uma causa; o que não se consegue atribuir é dito como tal.
+                    (&laquo;{ORDEM_LABELS.padrao}&raquo;). Compara-se cada proposta com ela, e não todas entre si: assim são{' '}
+                    {contra.length} comparações que respondem à pergunta da assembleia — porque é que não se escolheu
+                    aquela —, e não as {(ordenadas.length * (ordenadas.length - 1)) / 2} que ninguém lê. As contas são
+                    sobre a base sem IVA, e a referência não muda com a ordem em que as propostas sejam vistas no ecrã.
                   </p>
-                  {contra.map((r) => {
-                    const rec = reconciliar(lado(referencia), lado(r));
-                    const d = diferencaEmPalavras(referencia.alias, r.alias, rec, formatEuros);
-                    const comEuros = (prov: 'declarado' | 'calculado') =>
-                      rec.parcelas.filter((x) => x.proveniencia === prov && x.valorCents !== null && x.valorCents !== 0);
-                    const grupos = (['declarado', 'calculado'] as const)
-                      .map((id) => ({ bloco: d.blocos.find((x) => x.id === id), parcelas: comEuros(id) }))
-                      .filter((g) => g.bloco && g.parcelas.length > 0);
-                    const naoDecomposto = d.blocos.find((x) => x.id === 'nao_decomposto');
-                    const descrito = d.blocos.find((x) => x.id === 'descrito');
-                    return (
-                      <div key={r.id} className="mt-3 break-inside-avoid">
-                        <h3 className="font-semibold">{r.alias}</h3>
-                        <p>{d.abertura}</p>
-                        {rec.indecomponivel ? (
-                          <p className="text-slate-600">{naoDecomposto?.linhas[0]}</p>
-                        ) : (
-                          <table className="mt-1 w-full text-left">
-                            {grupos.map(({ bloco, parcelas }) => (
-                              <tbody key={bloco!.id}>
-                                <tr>
-                                  <th colSpan={2} scope="colgroup" className="pt-2 text-left align-bottom">
-                                    <span className="block font-semibold">{bloco!.titulo}</span>
-                                    {bloco!.nota && <span className="block font-normal text-slate-600">{bloco!.nota}</span>}
-                                  </th>
-                                </tr>
-                                {parcelas.map((x, i) => (
-                                  <tr key={`${x.causa}-${i}`} className="border-b border-slate-100">
-                                    <td className="py-1 pr-3">
-                                      <span className="font-medium">{CAUSA_LABELS[x.causa]}</span> · {x.descricao}
-                                    </td>
-                                    <td className="py-1 text-right tabular-nums whitespace-nowrap">
-                                      {x.valorCents! > 0 ? '+' : '−'}{formatEuros(Math.abs(x.valorCents!))}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            ))}
-                            {naoDecomposto && rec.naoDecompostaCents !== 0 && (
-                              <tbody>
-                                <tr>
-                                  <th colSpan={2} scope="colgroup" className="pt-2 text-left align-bottom">
-                                    <span className="block font-semibold">{naoDecomposto.titulo}</span>
-                                    {naoDecomposto.nota && <span className="block font-normal text-slate-600">{naoDecomposto.nota}</span>}
-                                  </th>
-                                </tr>
-                                <tr className="border-b border-slate-100">
-                                  <td className="py-1 pr-3 font-medium">{CAUSA_LABELS.nao_decomposta}</td>
-                                  <td className="py-1 text-right tabular-nums whitespace-nowrap">
-                                    {rec.naoDecompostaCents > 0 ? '+' : '−'}{formatEuros(Math.abs(rec.naoDecompostaCents))}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            )}
-                            <tfoot>
-                              <tr className="border-t-2 border-slate-900">
-                                <td className="py-1 pr-3 font-semibold">Diferença</td>
-                                <td className="py-1 text-right font-semibold tabular-nums whitespace-nowrap">
-                                  {rec.diferencaCents > 0 ? '+' : '−'}{formatEuros(Math.abs(rec.diferencaCents))}
-                                </td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        )}
-                        {descrito && (
-                          <p className="mt-1 text-slate-600">
-                            {descrito.titulo}: {descrito.linhas.join(' ')} {descrito.nota}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                  <table className="mt-3 w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-slate-300">
+                        <th scope="col" className="py-2 pr-3 align-bottom font-semibold">Proposta</th>
+                        <th scope="col" className="py-2 pr-3 text-right align-bottom font-semibold">
+                          Diferença para {referencia.alias}
+                        </th>
+                        <th scope="col" className="py-2 pr-3 text-right align-bottom font-semibold">Parcela identificada</th>
+                        <th scope="col" className="py-2 text-right align-bottom font-semibold">Por decompor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {economico.map((l) => (
+                        <tr key={l.alias} className="border-b border-slate-100">
+                          <th scope="row" className="py-1.5 pr-3 text-left font-medium">{l.alias}</th>
+                          <td className="py-1.5 pr-3 text-right font-semibold tabular-nums whitespace-nowrap">
+                            {comSinal(l.diferencaCents)}
+                          </td>
+                          <td className="py-1.5 pr-3 text-right tabular-nums whitespace-nowrap">
+                            {l.identificadaCents === null ? '—' : comSinal(l.identificadaCents)}
+                          </td>
+                          <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{comSinal(l.porDecomporCents)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* A nota de método, uma vez. Repetida em cada par, ocupava uma página inteira a
+                      dizer nove vezes a mesma coisa. */}
+                  <p className="doc-nota mt-2 text-slate-600">
+                    <strong>Parcela identificada</strong> é a parte da diferença cuja causa se consegue atribuir — âmbito,
+                    quantidade, execução, condições ou preço unitário — a partir do que as propostas declaram.{' '}
+                    <strong>Por decompor</strong> é o resto: pode ser produtividade, equipamento, transporte, estrutura de
+                    custos ou risco assumido, e dizer qual exigiria saber o custo de cada empresa, que não se conhece. Uma
+                    proposta a preço global não reparte por trabalho, e nesse caso só o total se compara.
+                  </p>
+
+                  {/*
+                    Só as propostas com parcela identificada. Para as outras, a coluna já diz «—» e a
+                    nota de método diz porquê; as diferenças técnicas sem euros estão na grelha de
+                    2.1, e repeti-las aqui era contá-las uma terceira vez — sete linhas a dizer, com
+                    palavras diferentes, «uma demão contra duas».
+                  */}
+                  {economico.some((l) => l.detalhe.length > 0) && (
+                    <div className="doc-tema">
+                      <h3 className="font-semibold">Onde está cada diferença identificada</h3>
+                      <dl className="mt-1 space-y-1">
+                        {economico
+                          .filter((l) => l.detalhe.length > 0)
+                          .map((l) => (
+                            <div key={l.alias} className="break-inside-avoid">
+                              <dt className="inline font-medium">{l.alias}: </dt>
+                              <dd className="inline">
+                                {l.detalhe.join('; ')}
+                                {l.detalhe.length > 0 && l.notasTecnicas.length > 0 ? '. ' : ''}
+                                {l.notasTecnicas.length > 0 && (
+                                  <span className="text-slate-600">
+                                    Sem valor separado: {l.notasTecnicas.join('; ')}.
+                                  </span>
+                                )}
+                              </dd>
+                            </div>
+                          ))}
+                      </dl>
+                      {economico.some((l) => l.detalhe.length === 0) && (
+                        <p className="mt-1 text-slate-600">
+                          Nas restantes, nenhuma parcela da diferença tem causa atribuível com o que as propostas
+                          declaram. O que as distingue tecnicamente está em 2.1.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </section>
               )}
 

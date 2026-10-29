@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { trabalhosDaProposta } from './comparador';
-import { emPalavras, perguntas, reconciliar, type LadoDaReconciliacao, diferencaEmPalavras } from './reconciliacao';
+import { emPalavras, perguntas, quadroEconomico, reconciliar, type LadoDaReconciliacao, diferencaEmPalavras } from './reconciliacao';
 import { formatEuros } from './money';
 import type { LineCategory, ProposalLine } from './proposal';
 
@@ -221,5 +221,38 @@ describe('as perguntas que ficam por fazer', () => {
     expect(paraA!.texto).toContain('A proposta não refere lavagem e limpeza');
     expect(paraB!.texto).toContain('fica sujeito a observação');
     expect(paraA!.propostaId).toBe('a');
+  });
+});
+
+describe('o quadro económico: uma linha por proposta, em vez de um bloco por par', () => {
+  const ref = lado('Pintor A', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN' })]);
+
+  it('a conta de cada linha fecha: identificada mais por decompor dá a diferença', () => {
+    const b = lado('Pintor B', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN', precoUnitario: 260 })]);
+    const c = lado('Pintor C', [linha({ trabalho: 'pintura_final', demaos: 3, produto: 'Outra', precoUnitario: 240 })]);
+    for (const l of quadroEconomico(ref, [b, c], formatEuros)) {
+      expect((l.identificadaCents ?? 0) + l.porDecomporCents).toBe(l.diferencaCents);
+    }
+  });
+
+  it('uma linha por proposta comparada, pela ordem recebida, e a referência não se compara consigo', () => {
+    const b = lado('Pintor B', [linha({ trabalho: 'pintura_final', precoUnitario: 260 })]);
+    const c = lado('Pintor C', [linha({ trabalho: 'pintura_final', precoUnitario: 240 })]);
+    expect(quadroEconomico(ref, [b, c], formatEuros).map((l) => l.alias)).toEqual(['Pintor B', 'Pintor C']);
+  });
+
+  it('preço global: nada se decompõe, e diz-se — a identificada fica nula, não a zero', () => {
+    const g = lado('Pintor G', [linha({ trabalho: 'pintura_final', precoUnitario: 260 })], { precoGlobal: true });
+    const [l] = quadroEconomico(ref, [g], formatEuros);
+    expect(l!.indecomponivel).toBe(true);
+    expect(l!.identificadaCents).toBeNull();
+    expect(l!.porDecomporCents).toBe(l!.diferencaCents);
+    expect(l!.detalhe).toEqual([]);
+  });
+
+  it('o detalhe traz o sinal e a causa, e só as parcelas que têm euros', () => {
+    const b = lado('Pintor B', [linha({ trabalho: 'pintura_final', precoUnitario: 260 })]);
+    const [l] = quadroEconomico(ref, [b], formatEuros);
+    for (const d of l!.detalhe) expect(d).toMatch(/[+\u2212]\d/);
   });
 });

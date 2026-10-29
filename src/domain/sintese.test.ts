@@ -223,7 +223,7 @@ describe('o que sobe à primeira página', () => {
     const ds = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
     const area = ds.find((d) => d.criterio === 'Área de pintura')!;
     // A minoria vem primeiro: é ela a diferença, e é o que se quer ler antes do que é comum.
-    expect(area.frase).toBe('Pintor C: 310 m² — diverge · Pintor A e Pintor B: 240 m²');
+    expect(area.frase).toBe('Pintor C: 310 m² — diverge; Pintor A e Pintor B: 240 m²');
   });
 
   it('um critério em que todas dizem o mesmo não é uma diferença', () => {
@@ -433,7 +433,7 @@ describe('as diferenças relevantes à escala de dez propostas', () => {
     const ps = muitas(3);
     const d = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
     const area = d.find((x) => x.criterio === 'Área de pintura')!;
-    expect(area.frase).toBe('Pintor A: 310 m² — diverge · Pintor B e Pintor C: 240 m²');
+    expect(area.frase).toBe('Pintor A: 310 m² — diverge; Pintor B e Pintor C: 240 m²');
   });
 });
 

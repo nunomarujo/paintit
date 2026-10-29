@@ -36,11 +36,36 @@ export interface CelulaDaSintese {
    * mostra quando se abre o detalhe.
    */
   motivo: string | null;
+  /**
+   * A segunda linha da célula, quando o que ela diz são duas coisas de natureza diferente — a tinta
+   * e as demãos, o início e a duração. Numa coluna de meia polegada, «CIN Vinylmatt · 2 demãos»
+   * parte-se onde calha e lê-se como uma frase só; em duas linhas lê-se como o que é (promotor,
+   * 29/10/2026). Quem não tiver espaço para duas linhas — o ecrã estreito — junta-as com « · ».
+   */
+  segunda?: string;
 }
+
+/**
+ * Os três temas por que os critérios se agrupam no papel. A grelha com onze linhas seguidas lia-se
+ * como uma lista; agrupada, responde a três perguntas por ordem: o que vai ser feito, como vai ser
+ * executado, e em que condições (promotor, 29/10/2026). O total fica fora dos três, em cima: é a
+ * âncora de que os outros critérios são a explicação.
+ */
+export const BLOCOS = {
+  ambito: 'O que vai ser feito',
+  execucao: 'Como vai ser executado',
+  condicoes: 'Condições da proposta',
+} as const;
+export type Bloco = keyof typeof BLOCOS;
+
+/** A ordem por que os blocos saem na tabela. */
+const ORDEM_DOS_BLOCOS: Bloco[] = ['ambito', 'execucao', 'condicoes'];
 
 export interface LinhaDaSintese {
   id: string;
   criterio: string;
+  /** O tema a que o critério pertence. Sem bloco: fica onde está, fora dos agrupamentos. */
+  bloco?: Bloco;
   celulas: CelulaDaSintese[];
   /** O preço, que se lê maior. Não é destaque de cor. */
   destacada?: boolean;
@@ -120,6 +145,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
   // omissão não é uma incerteza de preço (correcção do promotor, 29/10/2026).
   linhas.push({
     id: 'trabalhos',
+      bloco: 'ambito',
     criterio: 'Trabalhos pedidos',
     celulas: porCada((p) => {
       if (semPedido) {
@@ -164,6 +190,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
 
   linhas.push({
     id: 'custos_por_fechar',
+      bloco: 'condicoes',
     criterio: 'Custos por fechar',
     celulas: porCada((p) => {
       const n = p.classificacao.cobertura.semPrecoFirme;
@@ -182,6 +209,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
   if (areas.some((a) => a !== null)) {
     linhas.push({
       id: 'area',
+      bloco: 'ambito',
       criterio: 'Área de pintura',
       celulas: ps.map((p, i) => {
         const a = areas[i]!;
@@ -200,6 +228,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
   if (ctx.pedidos.some((w) => PREPARACAO.includes(w))) {
     linhas.push({
       id: 'preparacao',
+      bloco: 'execucao',
       criterio: 'Preparação do suporte',
       celulas: porCada((p) => {
         const incluidos = p.trabalhos.filter((t) => PREPARACAO.includes(t.work) && t.estado === 'incluido');
@@ -215,6 +244,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     if (!ctx.pedidos.includes(work)) continue;
     linhas.push({
       id: `acabamento_${work}`,
+      bloco: 'execucao',
       criterio: work === 'pintura' ? 'Pintura de acabamento' : 'Impermeabilização',
       celulas: porCada((p) => {
         const t = p.trabalhos.find((x) => x.work === work);
@@ -246,6 +276,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
 
   linhas.push({
     id: 'garantia',
+      bloco: 'condicoes',
     criterio: 'Garantia da execução',
     celulas: porCada((p) =>
       p.garantiaAnos === null
@@ -256,6 +287,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
 
   linhas.push({
     id: 'prazos',
+      bloco: 'condicoes',
     criterio: 'Início / duração',
     celulas: porCada((p) => {
       const inicio = p.inicioPossivel ? ctx.formataData(p.inicioPossivel) : 'A combinar';
@@ -269,6 +301,7 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
 
   linhas.push({
     id: 'adiantamento',
+      bloco: 'condicoes',
     criterio: 'Adiantamento',
     celulas: porCada((p) => neutro(`${Math.round(p.adiantamentoBps / 100)}%`)),
   });
@@ -282,8 +315,18 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
     }),
   });
 
-  return linhas;
+  // Os critérios foram escritos pela ordem em que se pensam; saem pela ordem em que se lêem. A
+  // ordenação é estável, por isso dentro de cada bloco mantém-se a ordem acima.
+  const peso = (l: LinhaDaSintese) => (l.bloco ? ORDEM_DOS_BLOCOS.indexOf(l.bloco) + 1 : l.id === 'total' ? 0 : 99);
+  return linhas.map((l, i) => ({ l, i })).sort((a, b) => peso(a.l) - peso(b.l) || a.i - b.i).map((x) => x.l);
 }
+
+/**
+ * A célula dita por extenso. A tabela parte-a em duas linhas porque tem uma coluna estreita; uma
+ * frase corrida não tem esse problema e junta-as — e, sobretudo, **compara-as**: sem isto, duas
+ * propostas com a mesma tinta e demãos diferentes apareciam como iguais.
+ */
+export const textoDaCelula = (c: CelulaDaSintese): string => (c.segunda ? `${c.texto} · ${c.segunda}` : c.texto);
 
 /** A área só se soma quando todos os trabalhos de pintura a declaram na mesma unidade. */
 function areaDeclarada(ts: TrabalhoNaProposta[]): number | null {
@@ -297,9 +340,9 @@ function celulaDeExecucao(t: TrabalhoNaProposta): CelulaDaSintese {
   const produto = t.produtos.length === 0 ? null : t.produtos.length <= 2 ? t.produtos.join(' e ') : `${t.produtos.length} produtos — ver detalhe`;
   const leva = TRABALHOS_COM_DEMAOS.includes(t.work);
   const demaos = t.demaos === null ? null : `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}`;
-  if (produto && (demaos || !leva)) return neutro([produto, demaos].filter(Boolean).join(' · '));
-  if (produto && !demaos) return atencao(`${produto} · demãos não indicadas`, 'Indica a tinta mas não o número de camadas. Confirme quantas demãos aplica, porque é isso que falta para comparar com as outras propostas.');
-  if (!produto && demaos) return atencao(`Produto não indicado · ${demaos}`, 'Indica o número de camadas mas não a tinta. Confirme que produto aplica e se é adequado ao suporte.');
+  if (produto && (demaos || !leva)) return { ...neutro(produto), segunda: demaos ?? undefined };
+  if (produto && !demaos) return { ...atencao(produto, 'Indica a tinta mas não o número de camadas. Confirme quantas demãos aplica, porque é isso que falta para comparar com as outras propostas.'), segunda: 'demãos não indicadas' };
+  if (!produto && demaos) return { ...atencao('Produto não indicado', 'Indica o número de camadas mas não a tinta. Confirme que produto aplica e se é adequado ao suporte.'), segunda: demaos };
   return naoIndicada('Não indica a tinta nem o número de camadas deste trabalho. Confirme os dois antes de comparar o preço.');
 }
 
@@ -359,7 +402,7 @@ export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]
   return linhas
     .filter((l) => !fora.has(l.id))
     .filter((l) => {
-      const distintos = new Set(l.celulas.map((c) => c.texto)).size;
+      const distintos = new Set(l.celulas.map(textoDaCelula)).size;
       // Um critério em que quase todas dizem coisas diferentes — garantias, datas, adiantamentos —
       // produz uma lista tão longa que deixa de informar. A tabela apresenta-o melhor, e é para lá
       // que se remete (promotor, 29/10/2026).
@@ -372,7 +415,8 @@ export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]
       l.celulas.forEach((c, i) => {
         const quem = aliases[i];
         if (!quem) return;
-        porTexto.set(c.texto, [...(porTexto.get(c.texto) ?? []), quem]);
+        const t = textoDaCelula(c);
+        porTexto.set(t, [...(porTexto.get(t) ?? []), quem]);
       });
       // Com dez propostas, nomear as nove que dizem o mesmo é pior do que não dizer nada: a frase
       // enche-se de aliases e a diferença — que é o ponto — desaparece no meio. O grupo maior passa
@@ -385,7 +429,10 @@ export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]
         if (nomear) return `${listar(quem)}: ${texto}`;
         return `${quem.length === maior![1].length && grupos.length > 1 ? `as restantes ${quem.length}` : listar(quem)}: ${texto}`;
       });
-      return { criterio: l.criterio, frase: partes.join(' · ') };
+      // Ponto e vírgula entre grupos, e não « · »: o « · » passou a viver **dentro** das células
+      // («CIN Vinylmatt · 2 demãos»), e com o mesmo separador aos dois níveis deixava de se saber
+      // onde acabava uma proposta e começava a seguinte.
+      return { criterio: l.criterio, frase: partes.join('; ') };
     });
 }
 
@@ -456,8 +503,8 @@ export function alternativaProxima(
   const pontos = linhas
     .filter((l) => interessam.has(l.id))
     .map((l) => ({ l, a: l.celulas[i], b: l.celulas[seguinte.j] }))
-    .filter((x) => x.a && x.b && x.a.texto !== x.b.texto)
-    .map((x) => `${x.l.criterio}: ${x.b!.texto} (${indicada}: ${x.a!.texto})`);
+    .filter((x) => x.a && x.b && textoDaCelula(x.a) !== textoDaCelula(x.b))
+    .map((x) => `${x.l.criterio}: ${textoDaCelula(x.b!)} (${indicada}: ${textoDaCelula(x.a!)})`);
 
   const diferencaCents = seguinte.total - base;
   return {

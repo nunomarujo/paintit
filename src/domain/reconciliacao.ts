@@ -398,3 +398,52 @@ export function perguntas(a: LadoDaReconciliacao, b: LadoDaReconciliacao, r: Rec
     return true;
   });
 }
+
+/**
+ * O quadro económico: **uma linha por proposta**, em vez de um bloco por par.
+ *
+ * Com dez propostas, a decomposição par a par produzia nove secções numeradas todas «3.1», cada uma
+ * com os seus títulos, a sua nota de método e a sua tabela — três páginas a dizer nove vezes a
+ * mesma coisa por nove valores diferentes (defeito apontado pelo promotor, 29/10/2026). O que a
+ * assembleia precisa de ver é a conta: quanto mais, quanto disso se sabe de onde vem, e quanto não
+ * se consegue atribuir. Isso são três números por proposta, e cabem numa linha.
+ *
+ * O detalhe não desaparece: as parcelas com euros saem por baixo do quadro, e só para as propostas
+ * que as têm. A nota de método — porque é que parte da diferença não se decompõe — diz-se uma vez.
+ */
+export interface LinhaEconomica {
+  alias: string;
+  /** Positivo: esta proposta é mais cara do que a referência. Sobre a base sem IVA. */
+  diferencaCents: Cents;
+  /** Quanto da diferença tem causa identificada. Null quando nada se pôde decompor. */
+  identificadaCents: Cents | null;
+  porDecomporCents: Cents;
+  /** As parcelas com euros, já escritas, para a nota por baixo do quadro. */
+  detalhe: string[];
+  /** Diferenças técnicas sem euros atribuídos — ditas, mesmo sem valor. */
+  notasTecnicas: string[];
+  /** Uma das duas tem preço global: só o total se compara. */
+  indecomponivel: boolean;
+}
+
+export function quadroEconomico(
+  referencia: LadoDaReconciliacao,
+  outras: LadoDaReconciliacao[],
+  formata: (c: Cents) => string,
+): LinhaEconomica[] {
+  const sinal = (c: Cents) => `${c > 0 ? '+' : '−'}${formata(Math.abs(c))}`;
+  return outras.map((b) => {
+    const r = reconciliar(referencia, b);
+    const comEuros = r.parcelas.filter((x) => x.valorCents !== null && x.valorCents !== 0);
+    const identificada = comEuros.reduce((n, x) => n + x.valorCents!, 0);
+    return {
+      alias: b.alias,
+      diferencaCents: r.diferencaCents,
+      identificadaCents: r.indecomponivel || comEuros.length === 0 ? null : identificada,
+      porDecomporCents: r.naoDecompostaCents,
+      detalhe: comEuros.map((x) => `${CAUSA_LABELS[x.causa]} · ${x.descricao}: ${sinal(x.valorCents!)}`),
+      notasTecnicas: r.notasTecnicas,
+      indecomponivel: r.indecomponivel,
+    };
+  });
+}

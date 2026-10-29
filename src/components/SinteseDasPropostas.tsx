@@ -1,4 +1,4 @@
-import type { LinhaDaSintese } from '@/domain/sintese';
+import { BLOCOS, diferencasRelevantes, textoDaCelula, type LinhaDaSintese } from '@/domain/sintese';
 
 /**
  * A síntese, no topo: uma linha por critério, uma coluna por proposta.
@@ -36,6 +36,9 @@ import type { LinhaDaSintese } from '@/domain/sintese';
  */
 const MAXIMO_NO_PAPEL = 3;
 
+/** Quantas diferenças se escrevem ao pé de cada quadro. Mais do que três deixa de ser um resumo. */
+const MAXIMO_DE_DIFERENCAS = 3;
+
 function gruposDeColunas(total: number, referencia: number): number[][] {
   if (total <= MAXIMO_NO_PAPEL) return [[...Array(total).keys()]];
   const outras = [...Array(total).keys()].filter((i) => i !== referencia);
@@ -52,6 +55,8 @@ export function SinteseDasPropostas({
   leitura,
   referencia,
   titulo,
+  jaExplicadas,
+  remissao,
   variante = 'ecra',
 }: {
   linhas: LinhaDaSintese[];
@@ -62,6 +67,14 @@ export function SinteseDasPropostas({
   referencia?: string;
   /** O título no papel, que leva o número da secção do relatório onde a tabela entrar. */
   titulo?: string;
+  /**
+   * As propostas cujas pendências já foram escritas antes, por extenso. No relatório, as das
+   * propostas indicadas sobem à secção 1.2; repeti-las aqui era a mesma lista palavra por palavra
+   * duas vezes no mesmo documento. Remete-se para onde estão, em vez de as calar.
+   */
+  jaExplicadas?: string[];
+  /** Onde estão as que não se repetem. Sem isto, não se remete — cala-se, e isso seria pior. */
+  remissao?: string;
   /** No papel não há coluna fixa nem deslize: a folha é o que é, e a tabela tem de caber nela. */
   variante?: 'ecra' | 'papel';
 }) {
@@ -70,14 +83,16 @@ export function SinteseDasPropostas({
   const fixa = papel ? '' : 'sticky left-0 z-10 bg-white';
   const iRef = Math.max(0, referencia ? aliases.indexOf(referencia) : 0);
   const quadros = papel ? gruposDeColunas(aliases.length, iRef) : [[...Array(aliases.length).keys()]];
-  // «O essencial» repetido igual em oito de dez colunas acrescenta pouco e ocupa a altura toda. Se
-  // todas disserem o mesmo, diz-se uma vez por baixo da tabela (promotor, 29/10/2026).
+  // «O essencial» repetido igual em três colunas acrescenta pouco e ocupa três linhas de altura. Se
+  // todas as do **quadro** disserem o mesmo, diz-se uma vez por baixo dele (promotor, 29/10/2026).
+  // Antes isto media-se sobre as dez propostas, e bastava uma diferir para a frase genérica voltar
+  // a aparecer três vezes em cada folha.
   const essencial = linhas.find((l) => l.id === 'essencial');
-  const essencialIgual =
-    essencial && essencial.celulas.length > 2 && new Set(essencial.celulas.map((c) => c.texto)).size === 1
-      ? essencial.celulas[0]!.texto
-      : null;
-  const linhasVisiveis = essencialIgual ? linhas.filter((l) => l.id !== 'essencial') : linhas;
+  const essencialIgualEm = (indices: number[]): string | null => {
+    if (!essencial || indices.length < 2) return null;
+    const textos = new Set(indices.map((i) => essencial.celulas[i]?.texto));
+    return textos.size === 1 ? essencial.celulas[indices[0]!]!.texto : null;
+  };
 
   const atencoes = aliases
     .map((alias, i) => ({
@@ -90,6 +105,9 @@ export function SinteseDasPropostas({
         .filter((x) => x.celula?.tom === 'atencao' && x.celula.motivo),
     }))
     .filter((x) => x.pontos.length > 0);
+  const ja = new Set(jaExplicadas ?? []);
+  const repetidas = atencoes.filter((x) => ja.has(x.alias)).map((x) => x.alias);
+  const porDizer = remissao ? atencoes.filter((x) => !ja.has(x.alias)) : atencoes;
 
   return (
     <section
@@ -105,13 +123,31 @@ export function SinteseDasPropostas({
       ) : (
         <h2 className="font-semibold">Resumo das propostas</h2>
       )}
-      <p className={papel ? 'text-slate-600' : 'mt-1 text-[15px] text-slate-600'}>
-        O que distingue cada proposta, critério a critério. O detalhe abaixo confirma o que aqui se resume.
-      </p>
+      {/* No papel, a secção que acolhe a tabela já escreveu a sua própria entrada: duas frases
+          seguidas a dizer o mesmo eram a primeira coisa que se lia em cada folha de consulta. */}
+      {!papel && (
+        <p className="mt-1 text-[15px] text-slate-600">
+          O que distingue cada proposta, critério a critério. O detalhe abaixo confirma o que aqui se resume.
+        </p>
+      )}
       {leitura && <p className={papel ? 'mt-2' : 'mt-2 text-[17px] text-slate-900'}>{leitura}</p>}
 
-      {quadros.map((indices, n) => (
-        <div key={`quadro-${n}`} className={papel ? 'mt-2' : '-mx-5 mt-4 overflow-x-auto sm:mx-0'}>
+      {quadros.map((indices, n) => {
+        // As diferenças deste quadro, e só deste: com dez propostas, uma lista única no início
+        // nomeava nove aliases por critério e não se seguia. Ao pé da página, e sobre as três
+        // propostas que estão acima, cada diferença tem onde ser confirmada (promotor, 29/10/2026).
+        const generico = essencialIgualEm(indices);
+        const linhasVisiveis = generico ? linhas.filter((l) => l.id !== 'essencial') : linhas;
+        const sub = linhasVisiveis.map((l) => ({ ...l, celulas: indices.map((i) => l.celulas[i]!) }));
+        const difs = diferencasRelevantes(sub, indices.map((i) => aliases[i]!)).slice(0, MAXIMO_DE_DIFERENCAS);
+        return (
+        <div
+          key={`quadro-${n}`}
+          className={papel ? 'mt-2' : '-mx-5 mt-4 overflow-x-auto sm:mx-0'}
+          // Um quadro por folha: três propostas, os seus critérios e as suas diferenças, sem nada
+          // de outro quadro pelo meio.
+          style={papel && n > 0 ? { breakBefore: 'page' } : undefined}
+        >
           {quadros.length > 1 && (
             <p className="mt-3 font-semibold" style={papel ? { breakAfter: 'avoid' } : undefined}>
               Comparação {n + 1} de {quadros.length}
@@ -161,8 +197,21 @@ export function SinteseDasPropostas({
               </tr>
             </thead>
             <tbody>
-              {linhasVisiveis.map((l) => (
-                <tr key={l.id} className="border-b border-slate-100" style={papel ? { breakInside: 'avoid' } : undefined}>
+              {linhasVisiveis.map((l, k) => (
+                <Fragmento key={l.id}>
+                {l.bloco && (k === 0 || linhasVisiveis[k - 1]!.bloco !== l.bloco) && (
+                  <tr>
+                    <th
+                      colSpan={indices.length + 1}
+                      scope="colgroup"
+                      className={`doc-rotulo text-left ${k === 0 ? 'pt-3' : 'pt-5'} pb-1`}
+                      style={papel ? undefined : { fontSize: '11px' }}
+                    >
+                      {BLOCOS[l.bloco]}
+                    </th>
+                  </tr>
+                )}
+                <tr className="border-b border-slate-100" style={papel ? { breakInside: 'avoid' } : undefined}>
                   <th
                     scope="row"
                     className={`${fixa} py-2 pr-3 text-left align-top font-medium ${papel ? '' : 'hyphens-auto pl-5 sm:pl-0'} ${
@@ -196,30 +245,56 @@ export function SinteseDasPropostas({
                             <span className="doc-total block">{c.texto}</span>
                             <span className="doc-total-nota block">com IVA</span>
                           </>
+                        ) : papel && c.segunda ? (
+                          <>
+                            <span className="block">{c.texto}</span>
+                            <span className="block text-slate-600">{c.segunda}</span>
+                          </>
                         ) : (
-                          c.texto
+                          textoDaCelula(c)
                         )}
                       </td>
                     );
                   })}
                 </tr>
+                </Fragmento>
               ))}
             </tbody>
           </table>
+          {generico && (
+            <p className={`mt-2 ${papel ? '' : 'text-[15px]'}`}>
+              <span className="font-medium">O essencial:</span> {generico} — nas {indices.length} propostas deste quadro.
+            </p>
+          )}
+          {difs.length > 0 && (
+            <div className={papel ? 'doc-tema break-inside-avoid' : 'mt-4 border-t border-slate-200 pt-3'}>
+              <p className="doc-rotulo">O que distingue estas {indices.length}</p>
+              <dl className={`mt-1 space-y-0.5 ${papel ? '' : 'text-[15px]'}`}>
+                {difs.map((d) => (
+                  <div key={d.criterio}>
+                    <dt className="inline font-medium">{d.criterio}: </dt>
+                    <dd className="inline">{d.frase}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
-      ))}
+        );
+      })}
 
-      {essencialIgual && (
-        <p className={`mt-2 ${papel ? '' : 'text-[15px]'}`}>
-          <span className="font-medium">O essencial:</span> {essencialIgual} — em todas as propostas deste quadro.
-        </p>
-      )}
-
-      {atencoes.length > 0 && (
+      {(porDizer.length > 0 || repetidas.length > 0) && (
         <div className={`mt-4 border-t border-slate-200 pt-4 ${papel ? 'break-inside-avoid' : ''}`}>
           <h3 className={papel ? 'font-semibold' : 'text-[17px] font-semibold'}>O que exige atenção</h3>
+          {repetidas.length > 0 && remissao && (
+            <p className={`mt-1 text-slate-600 ${papel ? '' : 'text-[15px]'}`}>
+              {repetidas.length === 1
+                ? `A de ${repetidas[0]} está em «${remissao}», e não se repete aqui.`
+                : `As de ${repetidas.join(', ')} estão em «${remissao}», e não se repetem aqui.`}
+            </p>
+          )}
           <dl className={`mt-2 space-y-3 ${papel ? '' : 'text-[15px]'}`}>
-            {atencoes.map((a) => (
+            {porDizer.map((a) => (
               <div key={a.alias}>
                 <dt className="font-medium">{a.alias}</dt>
                 <dd className="mt-1 space-y-1 text-slate-700">
@@ -236,4 +311,9 @@ export function SinteseDasPropostas({
       )}
     </section>
   );
+}
+
+/** Duas linhas irmãs — o título do bloco e o critério — sem um elemento entre elas. */
+function Fragmento({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
