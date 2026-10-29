@@ -10,7 +10,16 @@ import { DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, type DesiredWork 
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
 import { CURRENT_RULES } from '@/domain/rules';
-import { WORK_STATE_LABELS, requestedCoverage } from '@/domain/works';
+import {
+  ESTADO_ACCAO,
+  ESTADO_LABELS,
+  coberturaEmPalavras,
+  porEsclarecer,
+  quantidadeEmPalavras,
+  trabalhosDaProposta,
+  type EstadoNoPedido,
+  type TrabalhoNaProposta,
+} from '@/domain/comparador';
 import { canManage, myRole } from '@/lib/access';
 import { productsFor } from '@/lib/materials';
 import { toLine, toTerms } from '@/lib/proposals';
@@ -97,7 +106,9 @@ export default async function ProposalsPage({
   const refName = new Map(prefRefs.map((r) => [r.id, `${r.marca} ${r.nome}`]));
   const adherenceOf = (pid: string) => adherence(prefs, refInfo, used.get(pid) ?? []);
   const desiredWorks = (req.trabalhos ?? []) as DesiredWork[];
-  const coverageByProposal = new Map(list.map((p) => [p.id, requestedCoverage(desiredWorks, linesOf(p.id))]));
+  // O que cada proposta diz sobre cada trabalho pedido — com a quantidade, as demãos, o produto e o
+  // preço, que já estavam guardados em cada linha e só apareciam dentro da proposta aberta.
+  const trabalhosPorProposta = new Map(list.map((p) => [p.id, trabalhosDaProposta(desiredWorks, linesOf(p.id))]));
   const active = rows.filter((r) => byId.get(r.id)!.status !== 'retirada');
   const sorted = sortRows(active, sortKey, Object.fromEntries(list.map((p) => [p.id, p.duracao_dias])));
   const chosen = list.find((p) => p.status === 'selecionada');
@@ -169,6 +180,11 @@ export default async function ProposalsPage({
                       {r.superficiesEmFalta.length ? `Falta ${missing(r)}` : 'Todas com preço'}
                     </b>
                   </span>
+                  {/* A cobertura dita por extenso, nunca em percentagem: "dez em doze" não diz nada
+                      se os dois que faltam forem a impermeabilização (DECISOES.md, 28/10/2026). */}
+                  {desiredWorks.length > 0 && (
+                    <span className="block py-2 text-slate-600">{coberturaEmPalavras(trabalhosPorProposta.get(r.id)!)}</span>
+                  )}
                 </div>
                 <div className="mt-auto flex gap-2">
                   <a href={`#${r.id}`} className="btn-secondary flex-1">
@@ -265,15 +281,7 @@ export default async function ProposalsPage({
                   <Row
                     key={w}
                     label={`${DESIRED_WORK_LABELS[w]} (pedido)`}
-                    cells={sorted.map((r) => {
-                      const state = coverageByProposal.get(r.id)![i]!.state;
-                      if (!state) return <Missing key={r.id} />;
-                      return (
-                        <span key={r.id} className={state === 'nao_incluido' ? 'text-red-700' : state === 'base' ? 'text-tinta-700' : 'text-amber-700'}>
-                          {WORK_STATE_LABELS[state]}
-                        </span>
-                      );
-                    })}
+                    cells={sorted.map((r) => <Trabalho key={r.id} t={trabalhosPorProposta.get(r.id)![i]!} />)}
                   />
                 ))}
                 {LINE_CATEGORIES.map((c) => (
@@ -458,3 +466,36 @@ function Row({ label, cells }: { label: string; cells: React.ReactNode[] }) {
 function Missing() {
   return <span className="text-slate-600">Não indicado</span>;
 }
+
+/**
+ * O que uma proposta diz sobre um trabalho pedido: o estado, e por baixo o que a proposta
+ * comprometeu — quantidade, demãos, produto e preço.
+ *
+ * As demãos e o produto estavam guardados em cada linha desde sempre e nunca apareciam aqui; o
+ * cliente tinha de abrir cada proposta e guardar de cabeça quem dava duas demãos e com quê.
+ *
+ * A cor segue a regra 13 do CLAUDE.md: vermelho só para o que fechou (o pintor recusou o trabalho),
+ * âmbar para o que ainda se resolve com uma pergunta.
+ */
+function Trabalho({ t }: { t: TrabalhoNaProposta }) {
+  const detalhe = [quantidadeEmPalavras(t), t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : null, ...t.produtos]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <span className="block">
+      <span className={COR_DO_ESTADO[t.estado]}>{ESTADO_LABELS[t.estado]}</span>
+      {t.precoCents > 0 && <span className="ml-2 tabular-nums text-slate-900">{formatEuros(t.precoCents)}</span>}
+      {detalhe && <span className="block text-[15px] text-slate-600">{detalhe}</span>}
+      {/* "Não indicado" não é exclusão: é uma pergunta por fazer (DECISOES.md, 28/10/2026). */}
+      {porEsclarecer(t.estado) && <span className="block text-[15px] text-amber-800">{ESTADO_ACCAO[t.estado]}</span>}
+    </span>
+  );
+}
+
+const COR_DO_ESTADO: Record<EstadoNoPedido, string> = {
+  incluido: 'text-tinta-700',
+  opcional: 'text-slate-900',
+  condicionado: 'text-amber-800',
+  excluido: 'text-red-700',
+  nao_indicado: 'text-slate-600',
+};
