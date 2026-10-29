@@ -20,9 +20,16 @@ import type { LinhaDaSintese } from '@/domain/sintese';
  * duas de cada vez, sem nada para configurar.
  */
 /**
- * Quantas propostas cabem num quadro da folha A4 — medido, não estimado: com o total a 14pt a
- * largura útil da folha são 681px, e a tabela mede 680px com quatro propostas e 781px com cinco.
- * Daí o quatro. Acima disso divide-se em quadros, e cada um **repete os critérios e a proposta de
+ * Quantas propostas cabem num quadro da folha A4 — medido, não estimado. A largura útil da folha
+ * são 681px, e a tabela mede 680px com quatro propostas, 736px com cinco e 861px com seis.
+ *
+ * O que fixa este limite **não é o tamanho da letra das células**: mesmo depois de a tabela descer
+ * para 9pt, cinco colunas continuam a transbordar. É o **total a 14pt**, que precisa de 112px só
+ * para «15 552,12 €» e por isso impõe uma largura mínima a cada coluna. É uma consequência querida
+ * da decisão do promotor — numa assembleia o preço é a primeira coisa que se procura —, e portanto
+ * o que cede é o número de colunas por quadro, não o tamanho do preço.
+ *
+ * Acima de quatro divide-se em quadros, e cada um **repete os critérios e a proposta de
  * referência**: sem a referência em todos, os quadros não se comparam entre si.
  */
 const MAXIMO_NO_PAPEL = 4;
@@ -80,7 +87,7 @@ export function SinteseDasPropostas({
       style={papel ? { breakInside: 'auto' } : undefined}
     >
       {papel ? (
-        <h2 className="text-[20px] font-semibold">1. Resumo das propostas</h2>
+        <h2 className="font-semibold">1. Resumo das propostas</h2>
       ) : (
         <h2 className="font-semibold">Resumo das propostas</h2>
       )}
@@ -111,7 +118,7 @@ export function SinteseDasPropostas({
               longa parte — entre linhas, nunca dentro de uma — e o `thead` repete-se sozinho na
               página seguinte. */}
           <table
-            className={`w-full border-collapse text-left ${papel ? '' : 'text-[15px]'}`}
+            className={`w-full border-collapse text-left ${papel ? '' : 'text-[13px]'}`}
             style={papel ? { breakInside: 'auto' } : { minWidth: `${6.5 + aliases.length * 6.875}rem` }}
           >
             <caption className="sr-only">
@@ -158,12 +165,12 @@ export function SinteseDasPropostas({
                         key={`${l.id}-${aliases[i]}`}
                         className={[
                           'py-2 pr-3 align-top',
-                          // No ecrã: 17px no telemóvel e 20px a partir de sm — destaca-se das
-                          // linhas a 15px sem forçar uma largura que empurre a segunda proposta
-                          // para fora. No papel o total vai a 14pt pela classe `doc-total`
+                          // No ecrã: 17px sobre células a 13px — dois degraus da escala, que
+                          // chegam. Os 20px que aqui estavam davam um salto desproporcionado
+                          // depois de a tabela descer. No papel o total vai a 14pt por `doc-total`
                           // (globals.css), em pontos: a folha A4 é outro meio, e a regra 14 do
                           // CLAUDE.md isenta-a da escala do ecrã.
-                          l.destacada && !papel ? 'font-semibold tabular-nums whitespace-nowrap text-[17px] sm:text-[20px]' : '',
+                          l.destacada && !papel ? 'font-semibold tabular-nums whitespace-nowrap text-[17px]' : '',
                           l.id === 'essencial' ? 'font-medium' : '',
                           c.tom === 'atencao' ? 'text-amber-800' : '',
                         ]

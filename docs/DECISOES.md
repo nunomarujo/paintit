@@ -3671,3 +3671,32 @@ células de 175px.
    repete-se sozinho na página seguinte, que é o comportamento certo e sai de graça.
 
 Fica como lembrete: uma folha A4 não se valida no ecrã. Gera-se o PDF e olha-se para as páginas.
+
+### A escala de papel do relatório (29/10/2026)
+
+Pedido do promotor depois de ver o impresso: «o tamanho da letra deve ser menor, sobretudo na
+tabela». Tinha razão, e a medição explicou porquê: a folha herdava a escala do **ecrã** — corpo a
+15px, que numa A4 são 11,3pt — e a tabela ia atrás. Num documento impresso o corpo anda nos 10pt e um
+quadro denso nos 9pt.
+
+A classe `.doc-relatorio` passa a dar a escala em **pontos de papel**: corpo 10pt, tabela 9pt,
+títulos 16pt e 12pt. Classe própria, e não uma alteração à `.proposal-sheet`: essa é partilhada com o
+orçamento (`ProposalDocument.tsx`), que tem a sua composição e não foi pedido que mudasse.
+
+**Dois efeitos que não eram o pedido e valem mais do que ele:**
+
+1. **O total a 14pt passou a destacar-se.** Com o corpo a 11,3pt, os 14pt eram 2,7pt de diferença —
+   quase nada. Contra 9pt da tabela, o preço é agora a primeira coisa que o olho encontra, que é
+   exactamente o que a decisão dos 14pt queria e não estava a conseguir.
+2. **Quatro propostas cabem numa só página A4**, tabela e notas de atenção incluídas. Antes, três
+   propostas gastavam duas páginas.
+
+**O limite das quatro colunas mantém-se, e agora sabe-se porquê.** Medido outra vez depois da
+redução: cinco colunas transbordam 55px e seis transbordam 180px. Não é a letra das células que
+manda — é o **total a 14pt**, que precisa de 112px só para «15 552,12 €» e impõe uma largura mínima
+a cada coluna. É uma consequência querida da decisão do promotor, e por isso o que cede é o número
+de colunas por quadro, não o tamanho do preço.
+
+No ecrã a tabela desceu de 15px para **13px**, o último degrau da escala da regra 14 — abaixo disso
+não se vai. O total do ecrã desceu de 20px para 17px: sobre células a 13px, 20 era um salto
+desproporcionado, e dois degraus chegam.

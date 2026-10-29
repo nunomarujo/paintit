@@ -354,4 +354,3 @@ export function ordenar<T extends Ordenavel>(ps: readonly T[], ordem: Ordem): Gr
 }
 
 const junta = (xs: readonly string[]) => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} e ${xs[xs.length - 1]}`);
-const maiuscula = (s: string) => (s ? `${s[0]!.toLocaleUpperCase('pt-PT')}${s.slice(1)}` : s);

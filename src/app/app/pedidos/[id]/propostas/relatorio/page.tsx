@@ -8,7 +8,7 @@ import { getUser } from '@/lib/supabase/server';
 import { toLine } from '@/lib/proposals';
 import { compareProposals } from '@/domain/proposal';
 import { formatEuros } from '@/domain/money';
-import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, formatArea, type DesiredWork } from '@/domain/request';
+import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, formatArea, type DesiredWork } from '@/domain/request';
 import {
   ESTADO_LABELS,
   ORDEM_LABELS,
@@ -143,11 +143,11 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="proposal-doc">
-        <article className="proposal-sheet relative bg-white text-[15px] text-slate-900">
+        <article className="proposal-sheet doc-relatorio relative bg-white text-slate-900">
           <div className="proposal-watermark" aria-hidden="true">{BRAND.domain}</div>
 
           <header className="border-b-2 border-slate-900 pb-3">
-            <h1 className="text-[26px] leading-tight font-semibold">Propostas recebidas — {req.ref}</h1>
+            <h1 className="leading-tight font-semibold">Propostas recebidas — {req.ref}</h1>
             <p className="mt-1 text-slate-600">
               {org.nome} · {list.length} {list.length === 1 ? 'proposta' : 'propostas'} · prazo até {pt(req.prazo_propostas)} ·
               área do pedido {formatArea(areaTotal)}
@@ -175,7 +175,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
 
               {referencia && contra.length > 0 && (
                 <section className="mt-6">
-                  <h2 className="text-[20px] font-semibold">2. Diferenças para {referencia.alias}</h2>
+                  <h2 className="font-semibold">2. Diferenças para {referencia.alias}</h2>
                   <p className="text-slate-600">
                     Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a primeira da ordenação por
                     omissão (&laquo;{ORDEM_LABELS.padrao}&raquo;), que é a usada em todas as contas abaixo e não muda com a
@@ -259,7 +259,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
 
               {trabalhos.length > 0 && (
                 <section className="mt-6 break-inside-avoid">
-                  <h2 className="text-[20px] font-semibold">3. Trabalho a trabalho</h2>
+                  <h2 className="font-semibold">3. Trabalho a trabalho</h2>
                   <table className="mt-2 w-full text-left">
                     <thead>
                       <tr className="border-b border-slate-300">
@@ -292,7 +292,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               )}
 
               <section className="mt-6 break-inside-avoid">
-                <h2 className="text-[20px] font-semibold">4. Pressupostos, fontes e versões</h2>
+                <h2 className="font-semibold">4. Pressupostos, fontes e versões</h2>
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                   <li>
                     Pedido {req.ref}, versão {req.version}. As propostas abaixo responderam à versão indicada; uma versão
@@ -326,7 +326,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               </section>
 
               <section className="mt-6 break-inside-avoid border-t border-slate-300 pt-3">
-                <h2 className="text-[20px] font-semibold">5. A decisão</h2>
+                <h2 className="font-semibold">5. A decisão</h2>
                 {motivo?.motivo_escolha ? (
                   <>
                     <p className="whitespace-pre-line">{motivo.motivo_escolha}</p>
