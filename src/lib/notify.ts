@@ -30,10 +30,16 @@ interface MailOptions {
   links?: { label: string; href: string }[];
 }
 
+/*
+ * O logótipo vai por URL absoluto, como qualquer imagem de email: o cliente de correio não conhece
+ * o nosso servidor e não resolve caminhos relativos. Quem bloquear imagens — e muita gente bloqueia
+ * — lê o `alt`, que é o nome da marca, e não fica sem cabeçalho. As dimensões vão escritas no
+ * atributo porque o Outlook ignora o `style`.
+ */
 function html(subject: string, lines: string[], link: string, o: MailOptions = {}) {
   return `<!doctype html><html lang="pt-PT"><body style="margin:0;background:#f6f5f0;font-family:Inter,Arial,sans-serif;color:#172c35">
 <div style="max-width:520px;margin:0 auto;padding:28px 20px">
-<p style="font-size:20px;font-weight:700;color:#173f42;margin:0 0 20px">${escapeHtml(BRAND.name)}<span style="font-weight:400;font-size:13px;color:#62716c"> · ${escapeHtml(BRAND.domain)}</span></p>
+<p style="margin:0 0 18px"><a href="${escapeHtml(BRAND.url)}" style="text-decoration:none"><img src="${escapeHtml(BRAND.url)}/img/logotipo.png" width="118" height="80" alt="${escapeHtml(BRAND.name)}" style="display:block;border:0;width:118px;height:auto"></a></p>
 <div style="background:#fff;border:1px solid #e1e5de;border-radius:14px;overflow:hidden">
 ${o.image ? `<a href="${escapeHtml(link)}"><img src="${escapeHtml(BRAND.url + o.image)}" width="520" alt="${escapeHtml(BRAND.name)}: orçamentos de pintura" style="display:block;width:100%;height:auto;border:0"></a>` : ''}
 <div style="padding:24px">

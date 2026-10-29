@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { Voltar } from '@/components/Voltar';
+import { Logotipo } from '@/components/Logotipo';
 import { MotivoDaEscolha } from './MotivoDaEscolha';
 import { guardarMotivoDaEscolha } from '@/app/app/pedidos/actions';
 import { BRAND } from '@/config/brand';
@@ -242,11 +243,18 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
           */}
           <header className="doc-faixa flex items-start justify-between gap-8">
             <div>
-              <p className="doc-rotulo text-tinta-700">{BRAND.name}</p>
-              <h1 className="mt-1 font-semibold">Propostas recebidas</h1>
+              <h1 className="font-semibold">Propostas recebidas</h1>
               <p className="mt-1">{org.nome}</p>
             </div>
-            <dl className="shrink-0 text-right text-[8.5pt] leading-snug text-tinta-800">
+              <div className="shrink-0 text-right">
+              {/*
+                O logótipo fica deste lado, e não por cima do título. Um logótipo de duas linhas
+                precisa de altura para se ler — a 10mm as palavras eram um borrão —, e à esquerda,
+                com a altura de que precisa, passava a ser a primeira coisa que se lê. Aqui é o que
+                deve ser: a marca de quem emite o documento, e não o assunto dele.
+              */}
+              <Logotipo altura="15mm" className="ml-auto" />
+              <dl className="mt-2 text-[8.5pt] leading-snug text-tinta-800">
               <dt className="sr-only">Referência do pedido</dt>
               <dd className="font-semibold tabular-nums">{req.ref}</dd>
               <dt className="sr-only">Propostas recebidas</dt>
@@ -257,7 +265,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               <dd>{formatArea(areaTotal)}</dd>
               <dt className="sr-only">Emitido a</dt>
               <dd>{dataHora(new Date().toISOString())}</dd>
-            </dl>
+              </dl>
+            </div>
           </header>
 
           {list.length === 0 ? (

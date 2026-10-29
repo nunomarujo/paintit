@@ -1,3 +1,4 @@
+import { Logotipo } from '@/components/Logotipo';
 import { CapotoCorte } from '@/components/CapotoFigure';
 import { ACABAMENTO_INFO, CAMADAS, ISOLANTE_INFO, SITUACAO_LABELS, camadasDe, resumoCapoto, type CapotoSpec } from '@/domain/etics';
 import { formatEuros, percentOf } from '@/domain/money';
@@ -101,12 +102,13 @@ export function ProposalDocument({
               assina o documento: o nome, o logótipo e os contactos do pintor não saem daqui. */}
           {!revelado && (
             <div className="hidden items-start gap-3 print:flex">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
-                QP
-              </div>
               <div>
-                <h1 className="font-serif text-[19px] leading-tight text-slate-900">QuemPinta.pt</h1>
-                <p className="doc-label mt-1">Proposta preparada por empresa de pintura verificada</p>
+                {/* O logótipo é o título desta folha enquanto a obra não for ganha: traz o nome
+                    dentro dele, e por isso não leva nome escrito ao lado. */}
+                <h1 className="leading-none">
+                  <Logotipo altura="13mm" />
+                </h1>
+                <p className="doc-label mt-2">Proposta preparada por empresa de pintura verificada</p>
               </div>
             </div>
           )}
