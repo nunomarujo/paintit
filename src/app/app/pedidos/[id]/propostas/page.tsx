@@ -183,6 +183,7 @@ export default async function ProposalsPage({
     };
   };
   const emLado = (r: (typeof sorted)[number]): LadoDaReconciliacao => ({
+    id: r.id,
     alias: r.alias,
     base: r.totals.base,
     trabalhos: trabalhosPorProposta.get(r.id)!,
@@ -336,6 +337,9 @@ export default async function ProposalsPage({
         <section className={card}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">Comparação detalhada</h2>
+            <Link href={`${path}/relatorio`} className="btn-secondary btn-sm">
+              Relatório para a assembleia
+            </Link>
             <form className="flex items-center gap-2 text-[17px]">
               <label htmlFor="ordem">Ordenar por</label>
               <select id="ordem" name="ordem" defaultValue={criterio} className="campo w-auto">

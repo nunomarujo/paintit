@@ -47,6 +47,34 @@ para o lado e perdia-se a linha e a coluna ao mesmo tempo.
 **Falta** o passo 4: esclarecimentos ligados às mensagens, versões da proposta, e o relatório para a
 assembleia — no ecrã e impresso.
 
+## 29/10/2026 (2) — Comparador, passo 4: perguntas, versões e o relatório para a assembleia
+
+**O relatório** vive em `/app/pedidos/[id]/propostas/relatorio`, na folha A4 do projecto: lê-se no
+ecrã, num tablet, e imprime-se. Cinco secções — resumo, diferenças, trabalho a trabalho,
+pressupostos e a decisão.
+
+Três decisões de desenho:
+
+- **A referência das comparações é a primeira da ordenação por omissão**, e cada proposta é
+  comparada com ela. Todos os pares dariam N×(N−1)/2 contas e nenhuma leitura; comparar com a
+  referência responde à pergunta que a assembleia faz — *porque é que não se escolheu aquela*.
+- **A secção dos pressupostos não é um rodapé.** Diz a versão de cada proposta e do pedido, a data
+  de submissão, a origem das áreas, a convenção usada na repartição quantidade/preço, e que
+  comissões e promoções não alteram a ordenação. Quem ler daqui a seis meses tem de poder verificar
+  sobre que propostas é que a análise foi feita.
+- **A decisão fica separada da análise.** O motivo da escolha é do cliente, escrito por ele, numa
+  secção com o nome de quem o escreveu. É a diferença entre um relatório que ajuda a decidir e um
+  que parece ter decidido. Precisa da migração `motivo_da_escolha` (escrita, por aplicar).
+
+**As perguntas passam a ter destinatário.** Uma divergência de medição pergunta-se **aos dois** —
+com duas propostas não há forma de saber qual mediu outra coisa, e perguntar só a um é tratá-lo
+como suspeito. O texto vai na primeira pessoa e nunca diz que houve erro: pergunta pelo critério,
+que é o que realmente varia.
+
+**Corrigido ao ver o relatório impresso:** a frase das diferenças técnicas dizia "A 2 demãos com
+CIN; B 2 demãos com Robbialac" quando as demãos eram iguais — obrigava o leitor a procurar a
+diferença dentro da frase que devia apontá-la. Passa a nomear só o que difere.
+
 ## 28/10/2026 (noite, 5) — Comparador de propostas: o esquema, revisto pelo promotor
 
 Esquema completo no documento **Comparador de propostas — esquema** (Claude Docs). O essencial, e as

@@ -88,13 +88,16 @@ export function Reconciliacao({ a, b }: { a: LadoDaReconciliacao; b: LadoDaRecon
       {qs.length > 0 && (
         <div className="mt-4 border-t border-slate-200 pt-4">
           <h3 className="text-[17px] font-semibold">Perguntas que valem a pena fazer</h3>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-[17px] text-slate-700">
+          <ul className="mt-1 space-y-3 text-[17px] text-slate-700">
             {qs.map((q) => (
-              <li key={q}>{q}</li>
+              <li key={`${q.propostaId}-${q.texto}`}>
+                <span className="block text-[15px] font-medium text-slate-500">A perguntar a {q.alias}</span>
+                {q.texto}
+              </li>
             ))}
           </ul>
-          <p className="mt-1 text-[15px] text-slate-500">
-            Pode enviá-las a cada pintor nas mensagens, sem se identificar.
+          <p className="mt-2 text-[15px] text-slate-500">
+            Pode enviá-las nas mensagens de cada proposta, sem se identificar.
           </p>
         </div>
       )}

@@ -68,6 +68,8 @@ export interface Parcela {
 }
 
 export interface LadoDaReconciliacao {
+  /** Identificador da proposta: é por ele que a pergunta sabe a quem se envia. */
+  id: string;
   alias: string;
   /** Soma das linhas incluídas, sem IVA. */
   base: Cents;
@@ -215,28 +217,78 @@ function qt(t: TrabalhoNaProposta): string {
   return t.quantidade !== null && t.unidade ? `${(t.quantidade / 100).toLocaleString('pt-PT', { maximumFractionDigits: 2 })} ${t.unidade === 'm2' ? 'm²' : t.unidade === 'ml' ? 'm' : 'un.'}` : 'quantidade não indicada';
 }
 
+/**
+ * A frase só nomeia o que **difere**.
+ *
+ * Dizer "A 2 demãos com CIN; B 2 demãos com Robbialac" quando as demãos são iguais é fazer o leitor
+ * procurar a diferença dentro da frase que devia apontá-la (visto no relatório impresso, 29/10/2026).
+ */
 function diferencaTecnica(aliasA: string, ta: TrabalhoNaProposta, aliasB: string, tb: TrabalhoNaProposta): string {
+  const demaosDiferem = ta.demaos !== tb.demaos;
+  const produtosDiferem = !mesmosProdutos(ta.produtos, tb.produtos);
   const descreve = (alias: string, t: TrabalhoNaProposta) => {
-    const partes = [t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : null, ...t.produtos].filter(Boolean);
-    return `${alias} ${partes.length ? partes.join(' com ') : 'não diz como executa'}`;
+    const partes = [
+      demaosDiferem ? (t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : 'demãos não indicadas') : null,
+      ...(produtosDiferem ? (t.produtos.length ? t.produtos : ['produto não indicado']) : []),
+    ].filter(Boolean);
+    return `${alias} ${partes.join(' com ')}`;
   };
   return `${min(ta.label)}: ${descreve(aliasA, ta)}; ${descreve(aliasB, tb)}`;
 }
 
-/** Perguntas que a reconciliação deixa por fazer, para o cliente enviar ao pintor. */
-export function perguntas(a: LadoDaReconciliacao, b: LadoDaReconciliacao, r: Reconciliacao): string[] {
-  const qs: string[] = [];
-  for (const p of r.parcelas) {
-    if (p.causa === 'quantidade') {
-      qs.push(`${p.descricao}. Pode confirmar os elementos incluídos e o critério de desconto dos vãos?`);
-    }
-  }
+export interface Pergunta {
+  /** A quem se pergunta. */
+  propostaId: string;
+  alias: string;
+  /** O texto tal como vai ser enviado, na primeira pessoa e sem identificar ninguém. */
+  texto: string;
+}
+
+/**
+ * As perguntas que a conta deixou por fazer, prontas a enviar.
+ *
+ * Cada uma tem destinatário: uma divergência de medição pergunta-se **aos dois**, porque com duas
+ * propostas não há forma de saber qual delas mediu outra coisa — e porque perguntar só a um é
+ * tratá-lo como suspeito. O texto nunca diz que houve erro: pergunta pelo critério, que é o que
+ * realmente varia (vãos descontados ou não, superfície desenvolvida, varandas à parte).
+ */
+export function perguntas(a: LadoDaReconciliacao, b: LadoDaReconciliacao, r: Reconciliacao): Pergunta[] {
+  const qs: Pergunta[] = [];
+
   for (const [i, ta] of a.trabalhos.entries()) {
     const tb = b.trabalhos[i];
     if (!tb) continue;
-    for (const [alias, t] of [[a.alias, ta], [b.alias, tb]] as const) {
-      if (porEsclarecer(t.estado)) qs.push(`${alias}: ${min(t.label)} está "${t.estado === 'nao_indicado' ? 'não indicado' : 'só depois de observar'}". Pode dizer se está incluído e em que condições?`);
+
+    // Divergência de medição: aos dois, pelo critério e não pelo número.
+    const temParcelaDeQuantidade = r.parcelas.some((p) => p.causa === 'quantidade' && p.descricao.toLocaleLowerCase('pt-PT').startsWith(min(ta.label)));
+    if (temParcelaDeQuantidade) {
+      for (const [lado, propria, outra] of [[a, ta, tb], [b, tb, ta]] as const) {
+        qs.push({
+          propostaId: lado.id,
+          alias: lado.alias,
+          texto: `Em ${min(ta.label)} indica ${qt(propria)}, e outra proposta indica ${qt(outra)} para a mesma obra. Pode confirmar que elementos incluiu e qual foi o critério — vãos descontados, superfície desenvolvida, varandas contadas à parte?`,
+        });
+      }
+    }
+
+    for (const [lado, t] of [[a, ta], [b, tb]] as const) {
+      if (!porEsclarecer(t.estado)) continue;
+      qs.push({
+        propostaId: lado.id,
+        alias: lado.alias,
+        texto: t.estado === 'nao_indicado'
+          ? `A proposta não refere ${min(t.label)}, que faz parte do que pedi. Está incluído no preço apresentado? Se não estiver, quanto custaria?`
+          : `Em ${min(t.label)} o preço fica sujeito a observação. O que pode mudar depois de ver a obra, e até que valor?`,
+      });
     }
   }
-  return [...new Set(qs)];
+
+  // Sem repetidos: a mesma pergunta ao mesmo pintor conta uma vez.
+  const vistas = new Set<string>();
+  return qs.filter((q) => {
+    const chave = `${q.propostaId}|${q.texto}`;
+    if (vistas.has(chave)) return false;
+    vistas.add(chave);
+    return true;
+  });
 }

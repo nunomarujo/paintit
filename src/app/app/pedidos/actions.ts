@@ -55,6 +55,31 @@ export async function createRequest(orgId: string, _prev: FormState, form: FormD
   redirect(`/app/pedidos/${data.id}`);
 }
 
+/**
+ * O motivo da escolha, nas palavras de quem decide.
+ *
+ * Fica separado da análise da plataforma de propósito: no relatório para a assembleia aparece numa
+ * secção própria, dita de quem a escreveu. É a diferença entre um relatório que ajuda a decidir e
+ * um que parece ter decidido.
+ */
+export async function guardarMotivoDaEscolha(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const texto = String(form.get('motivo') ?? '').trim().slice(0, 4000);
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data, error } = await supabase
+    .from('work_requests')
+    .update({ motivo_escolha: texto || null, motivo_escolha_em: texto ? new Date().toISOString() : null })
+    .eq('id', requestId)
+    .select('id');
+  // Sem a migração `motivo_da_escolha` isto falha, e o erro aparece: um formulário que não grava e
+  // não se queixa parece um formulário partido.
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar o motivo. Só gestores da entidade o podem escrever.' };
+  }
+  revalidatePath(`/app/pedidos/${requestId}/propostas/relatorio`);
+  return { errors: {}, ok: true, message: texto ? 'Motivo guardado.' : 'Motivo apagado.' };
+}
+
 export async function updateRequest(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const parsed = parseRequest(form);
   if (!parsed.value) return { errors: parsed.errors };

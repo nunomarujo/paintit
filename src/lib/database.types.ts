@@ -351,6 +351,10 @@ export type Database = {
           // base real. Este ficheiro é escrito à mão (aliases e notas próprias); não se regenera.
           tipos_obra: WorkType[];
           datas_flexiveis: string[];
+          // Migração `motivo_da_escolha` (29/10/2026), por aplicar: o classificador recusou-a sem
+          // instrução do promotor. O relatório lê-a numa consulta à parte, para não cair sem ela.
+          motivo_escolha: string | null;
+          motivo_escolha_em: string | null;
           titulo: string;
           trabalhos: string[];
           updated_at: string;
@@ -376,6 +380,8 @@ export type Database = {
           tipo_obra: WorkType;
           tipos_obra?: WorkType[];
           datas_flexiveis?: string[];
+          motivo_escolha?: string | null;
+          motivo_escolha_em?: string | null;
           titulo: string;
           trabalhos?: string[];
           updated_at?: string;

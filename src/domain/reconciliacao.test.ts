@@ -17,7 +17,7 @@ const SEM_CATEGORIAS = Object.fromEntries(
 const lado = (alias: string, linhas: ProposalLine[], extra: Partial<LadoDaReconciliacao> = {}): LadoDaReconciliacao => {
   const trabalhos = trabalhosDaProposta(PEDIDOS, linhas);
   const base = linhas.filter((l) => l.inclusao === 'incluido').reduce((n, l) => n + Math.round((l.quantidade * l.precoUnitario) / 100), 0);
-  return { alias, base, trabalhos, categorias: SEM_CATEGORIAS, precoGlobal: false, ...extra };
+  return { id: alias.toLowerCase(), alias, base, trabalhos, categorias: SEM_CATEGORIAS, precoGlobal: false, ...extra };
 };
 
 /** A invariante: as parcelas com euros, mais a não decomposta, dão exactamente a diferença. */
@@ -74,6 +74,20 @@ describe('a conta fecha sempre', () => {
     expect(r.parcelas.filter((p) => p.causa === 'preco')).toEqual([]);
     expect(r.naoDecompostaCents).toBe(9600);
     expect(r.notasTecnicas[0]).toBe('pintura final: A 2 demãos com CIN; B 1 demão com Barbot');
+  });
+
+  it('a frase só nomeia o que difere: demãos iguais não se repetem', () => {
+    // Visto no relatório impresso: "A 2 demãos com CIN; B 2 demãos com Robbialac" obriga o leitor a
+    // procurar a diferença dentro da frase que devia apontá-la.
+    const a = lado('A', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN' })]);
+    const b = lado('B', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'Robbialac' })]);
+    expect(reconciliar(a, b).notasTecnicas[0]).toBe('pintura final: A CIN; B Robbialac');
+  });
+
+  it('produto igual e demãos diferentes nomeia só as demãos', () => {
+    const a = lado('A', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN' })]);
+    const b = lado('B', [linha({ trabalho: 'pintura_final', demaos: 1, produto: 'CIN' })]);
+    expect(reconciliar(a, b).notasTecnicas[0]).toBe('pintura final: A 2 demãos; B 1 demão');
   });
 
   it('quantidade e execução ao mesmo tempo: a quantidade sai com euros, o resto não', () => {
@@ -163,15 +177,26 @@ describe('as perguntas que ficam por fazer', () => {
     const a = lado('A', [linha({ trabalho: 'pintura_final', quantidade: 24000, demaos: 2 })]);
     const b = lado('B', [linha({ trabalho: 'pintura_final', quantidade: 31000, demaos: 2 })]);
     const qs = perguntas(a, b, reconciliar(a, b));
-    expect(qs[0]).toContain('critério de desconto dos vãos');
-    expect(qs.join(' ').toLowerCase()).not.toContain('erro');
+    // Pergunta-se aos dois: com duas propostas não há forma de saber qual mediu outra coisa, e
+    // perguntar só a um é tratá-lo como suspeito. (As outras perguntas da lista são dos trabalhos
+    // que nenhuma das duas indicou.)
+    const medicao = qs.filter((q) => q.texto.includes('qual foi o critério'));
+    expect(medicao.map((q) => q.alias)).toEqual(['A', 'B']);
+    expect(medicao[0]!.texto).toContain('indica 240 m²');
+    expect(medicao[1]!.texto).toContain('indica 310 m²');
+    expect(qs.map((q) => q.texto).join(' ').toLowerCase()).not.toContain('erro');
+    expect(qs.map((q) => q.texto).join(' ').toLowerCase()).not.toContain('mediu mal');
   });
 
   it('o que está por esclarecer em qualquer das duas vira pergunta', () => {
     const a = lado('A', [linha({ trabalho: 'pintura_final' })]);
     const b = lado('B', [linha({ trabalho: 'pintura_final' }), linha({ trabalho: 'lavagem', inclusao: 'condicionado' })]);
     const qs = perguntas(a, b, reconciliar(a, b));
-    expect(qs.some((q) => q.startsWith('A: lavagem e limpeza está "não indicado"'))).toBe(true);
-    expect(qs.some((q) => q.startsWith('B: lavagem e limpeza está "só depois de observar"'))).toBe(true);
+    // O texto vai na primeira pessoa, como o cliente o enviaria, e cada um sabe a quem se dirige.
+    const paraA = qs.find((q) => q.alias === 'A' && q.texto.includes('lavagem'));
+    const paraB = qs.find((q) => q.alias === 'B' && q.texto.includes('lavagem'));
+    expect(paraA!.texto).toContain('A proposta não refere lavagem e limpeza');
+    expect(paraB!.texto).toContain('fica sujeito a observação');
+    expect(paraA!.propostaId).toBe('a');
   });
 });
