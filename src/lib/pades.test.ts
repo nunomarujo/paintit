@@ -104,7 +104,9 @@ describe('PDF assinado (PAdES)', () => {
     const second = await signPdf(first, await testCertificate('JOAO PINTOR'));
     expect(checkSignedPdf(second, first)).toEqual({ ok: true, newSignatures: 1 });
     expect(findSignatures(second)).toHaveLength(2);
-    expect((await verifyLastSignature(second)).name).toBe('JOAO PINTOR');
+    // Comparar o objecto todo, e não só o nome: quando esta verificacao falha, o `reason` do
+    // catch de verifySignature diz porque falhou. A assercao antiga dizia so "esperava null".
+    expect(await verifyLastSignature(second)).toMatchObject({ valid: true, name: 'JOAO PINTOR', serialNumber: 'BI12345678' });
   }, 30_000);
 
   it('recusa um documento diferente do gerado, ou sem assinatura', async () => {

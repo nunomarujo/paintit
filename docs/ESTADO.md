@@ -1626,3 +1626,45 @@ extraía o IVA de dentro — a fatura saía correcta e a receita perdia 23%, sem
    se automatiza ou acumula-se incumprimento.
 2. **O pintor não tem onde ver as facturas dele.** Falta um ecrã; o PDF já fica guardado.
 3. **Três pagamentos antigos por facturar** estão na fila desde os testes anteriores.
+
+## Auditoria das migrações (29/10/2026)
+
+Cem ficheiros em `supabase/migrations/`, cem versões registadas no Supabase, e as catorze colunas das
+cinco migrações desta sessão confirmadas na base (janelas por fachada, tipos de obra e datas
+flexíveis, cliente do orçamento, seis campos de durabilidade, motivo da escolha). Nada falta ao
+esquema. Sobram três desencontros de **número de versão**, nenhum de conteúdo:
+
+| Ficheiro | Registado como | Porquê |
+|---|---|---|
+| `20261027140000_pessoas_da_empresa` | `20261027190517` | Excepção já documentada no cabeçalho e no CLAUDE.md: a versão de hoje punha-a depois da `indice_da_pessoa`, que precisa da coluna que ela cria |
+| `20261027170000_comprovativo_da_despesa` | `20261027190344` | A mesma razão, com a nota no cabeçalho |
+| ~~`20261029090000_motivo_da_escolha`~~ | **Resolvido no mesmo dia** | Tinha ficado registada duas vezes, como `20261029090000` e `20261029120639`. Correu duas vezes; é idempotente, e o esquema estava certo — a coluna e a restrição `work_requests_motivo_escolha_check` confirmadas. O promotor apagou a linha a mais a 29/10/2026 e ficou só a `20261029090000`, que é a que bate certo com o nome do ficheiro |
+
+A linha a mais não afectava a aplicação: tornava ruidosa qualquer auditoria futura e fazia um
+`supabase db push` ver uma migração remota sem ficheiro. Foi apagada à mão no painel, por ser escrita
+no registo das migrações (CLAUDE.md: operações destrutivas pedem confirmação manual):
+
+```sql
+delete from supabase_migrations.schema_migrations
+ where version = '20261029120639' and name = 'motivo_da_escolha';
+```
+
+**Auditoria repetida depois disso:** sobram só as duas excepções de 27/10, as que têm a nota no
+cabeçalho. Mais nada.
+
+**A lição, que é de comunicação e não de base de dados:** entreguei esta correcção ao promotor como
+um ficheiro `.patch` do git ao lado da linha de SQL, sem dizer onde cada coisa se usa. Ele colou o
+patch no SQL Editor, que é onde as minhas coisas costumam ir parar, e levou com um erro de sintaxe.
+Não estragou nada — o Supabase recusou na primeira linha. Mas o tempo perdido foi meu a causá-lo. Uma
+instrução para o painel e uma instrução para o repositório não se entregam na mesma frase.
+
+## Um teste de assinatura intermitente (29/10/2026)
+
+`src/lib/pades.test.ts > aceita a segunda assinatura sobre o PDF já assinado` falhou **uma vez em três**
+suites completas e **nunca** em doze corridas isoladas do ficheiro. Nada nesta sessão tocou em
+assinaturas. A falha dizia `expected null to be 'JOAO PINTOR'`, e `name: null` sai de duas vias
+diferentes em `verifySignature` — o `catch`, que guarda a razão em `reason`, ou um certificado
+ausente. A asserção comparava só `.name` e deitava fora essa distinção.
+
+Não se encontrou a causa, e por isso não se finge corrigida: o que mudou foi a asserção, que passa a
+comparar o objecto todo. Da próxima vez que falhar, o output diz qual das vias foi. Fica a seguir.
