@@ -82,20 +82,33 @@ export default function Home() {
       {/*
         O primeiro ecrã leva o mínimo que decide: o que isto é, como funciona, e o que fazer a seguir.
 
-        O âmbito da obra saiu daqui ao fim de três tentativas (27/10/2026). Primeiro era a linha
-        "Fachadas · Condomínios · Zonas comuns", maiúsculas espaçadas que partiam ao meio no
-        telemóvel; depois foi enfiado na frase de apoio. O promotor rejeitou as duas, e a razão não
-        era de forma: o título já diz "do seu prédio", e fachadas e zonas comuns são o que um prédio
-        tem — repeti-lo em letra menor logo abaixo lê-se como enchimento. O espaço passou a dizer o
-        que só esta plataforma faz (todas as propostas ao mesmo tempo, no mesmo formato), e o âmbito
-        desceu para a secção "Que obras se orçamentam aqui", onde é resposta e não anúncio.
+        O âmbito da obra saiu daqui ao fim de três tentativas (27/10/2026): era uma linha de
+        maiúsculas espaçadas que partia ao meio no telemóvel, depois foi enfiado na frase de apoio, e
+        o promotor rejeitou as duas. Desceu para a secção "Que obras se orçamentam aqui", onde é
+        resposta e não anúncio.
+
+        O texto é do promotor, palavra por palavra (29/10/2026). O título passou a pergunta e
+        resposta em duas linhas, e a frase de apoio a três passos — pedir, comparar, acompanhar —,
+        um por linha. Não se juntam num parágrafo corrido: cada linha é um passo, e corridas perdem
+        o ritmo que as fez escrever assim.
       */}
       <PaintedHero>
         <h1 className="text-[34px] font-bold leading-[1.05] text-tinta-900 sm:text-5xl lg:text-6xl">
-          Orçamente a pintura do seu prédio.
+          {/* Duas linhas, e a quebra é a mensagem: a pergunta em cima, a resposta por baixo. O
+              `block` em vez de um `<br>` para que o espaço entre as duas se possa afinar. */}
+          {/* «Pintura» com maiúscula é como o promotor o escreveu, e fica como ele o escreveu. */}
+          <span className="block">Obras de Pintura?</span>
+          <span className="block">Orçamentos fáceis.</span>
         </h1>
+        {/* Três frases, uma por linha. Seguidas num parágrafo corrido perdiam o ritmo — cada uma é
+            um passo: pedir, comparar, acompanhar. */}
         <p className="mt-3 max-w-md text-[17px] leading-snug text-slate-600 sm:text-[20px]">
-          Um pedido, várias propostas. Chegam todas no fim do prazo e no mesmo formato, prontas a comparar.
+          <span className="block">Um pedido, várias propostas.</span>
+          <span className="block">Compare trabalhos e materiais diferentes.</span>
+          <span className="block">É tão fácil escolher como acompanhar a obra.</span>
+        </p>
+        <p className="mt-3 max-w-md text-[17px] font-semibold text-tinta-700 sm:text-[20px]">
+          Com a garantia de {BRAND.name}
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Link
