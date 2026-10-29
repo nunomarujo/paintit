@@ -1,15 +1,22 @@
 import type { LinhaDaMatriz } from '@/domain/matriz';
 
 /**
- * Todas as propostas, uma por linha.
+ * Todas as propostas, uma por linha — a peça principal da primeira página.
  *
- * A síntese transposta lê-se melhor, mas pára nas quatro colunas: o total a 14pt impõe uma largura
- * mínima a cada uma e a quinta sai da folha. A matriz muda de forma em vez de encolher a letra —
- * dez candidatos são dez linhas, e altura é o que uma A4 tem.
+ * **Redesenhada a 29/10/2026**, a pedido do promotor, e as mudanças não são cosméticas:
  *
- * As regras de cor são as da síntese e da regra 13 do CLAUDE.md: nenhum fundo colorido, nenhum verde
- * a assinalar cumprimento, e o âmbar só no texto do que exige atenção. Uma indicação **não** é
- * destaque de cor: é uma palavra numa coluna, com a razão escrita por baixo da tabela.
+ * - **A coluna das indicações saiu.** Os dois destaques estão em blocos no topo da página, e
+ *   repeti-los aqui gastava a largura de uma coluna inteira em frases longas que diziam o mesmo.
+ * - **O âmbito e o que falta esclarecer separam-se em duas colunas.** «Incluído» ou «Por confirmar»
+ *   numa, a contagem — «2 trabalhos», «1 preço» — na outra. Cada célula é uma palavra ou dois
+ *   números, nunca um parágrafo.
+ * - **Dois grupos, com um pequeno título.** As propostas sem pendências primeiro, as que precisam
+ *   de esclarecimento depois, separadas por um fio e não por fundos coloridos em cada linha.
+ * - **O preço desceu de 14pt para 12,5pt.** Com dez linhas, dez números a 14pt disputavam a atenção
+ *   uns com os outros; o destaque está nos blocos de cima, e aqui basta que se leiam.
+ *
+ * Mantém-se a regra 13 do CLAUDE.md: nenhum fundo de cor nas linhas, nenhum verde a assinalar
+ * cumprimento, e o âmbar apenas no texto do que exige atenção.
  */
 export function MatrizDasPropostas({
   linhas,
@@ -23,16 +30,20 @@ export function MatrizDasPropostas({
   const cel = (c: { texto: string; atencao: boolean }) => (
     <span className={c.atencao ? 'text-amber-800' : undefined}>{c.texto}</span>
   );
+  // Um título só quando o grupo muda, e só se houver mais do que um: com um grupo só, o título
+  // seria um rótulo por cima da única lista da página.
+  const grupos = [...new Set(linhas.map((l) => l.grupo))];
+  const abreGrupo = (l: LinhaDaMatriz, i: number) => grupos.length > 1 && (i === 0 || linhas[i - 1]!.grupo !== l.grupo);
 
   return (
-    <div className={papel ? 'mt-2' : '-mx-5 mt-4 overflow-x-auto sm:mx-0'}>
+    <div className={papel ? 'mt-4' : '-mx-5 mt-4 overflow-x-auto sm:mx-0'}>
       <table
         className={`w-full border-collapse text-left ${papel ? '' : 'text-[13px]'}`}
-        style={papel ? { breakInside: 'auto' } : { minWidth: '44rem' }}
+        style={papel ? { breakInside: 'auto' } : { minWidth: '36rem' }}
       >
         <caption className="sr-only">
-          Todas as propostas recebidas, uma por linha: total, cobertura do pedido, custos por fechar, histórico do pintor
-          e as indicações atribuídas.
+          Todas as propostas recebidas, uma por linha: total, cobertura do pedido, o que falta esclarecer e o histórico
+          do pintor.
         </caption>
         <thead>
           <tr className="border-b border-slate-300">
@@ -46,51 +57,51 @@ export function MatrizDasPropostas({
               Pedido
             </th>
             <th scope="col" className="py-2 pr-3 align-bottom font-semibold">
-              Custos por fechar
-            </th>
-            <th scope="col" className="py-2 pr-3 align-bottom font-semibold">
-              Histórico
+              A esclarecer
             </th>
             <th scope="col" className="py-2 align-bottom font-semibold">
-              Indicação
+              Clientes
             </th>
           </tr>
         </thead>
         <tbody>
-          {linhas.map((l) => (
-            <tr
-              key={l.propostaId}
-              className="border-b border-slate-100"
-              style={papel ? { breakInside: 'avoid' } : undefined}
-            >
-              <th scope="row" className={`py-2 pr-3 text-left align-top font-medium ${papel ? '' : 'pl-5 sm:pl-0'}`}>
-                {l.alias}
-              </th>
-              <td
-                className={`py-2 pr-3 text-right align-top font-semibold tabular-nums whitespace-nowrap ${
-                  papel ? '' : 'text-[15px]'
-                }`}
-              >
-                {papel ? <span className="doc-total">{l.total}</span> : l.total}
-              </td>
-              <td className="py-2 pr-3 align-top">{cel(l.pedido)}</td>
-              <td className="py-2 pr-3 align-top">{cel(l.custosPorFechar)}</td>
-              <td className="py-2 pr-3 align-top">{cel(l.reputacao)}</td>
-              <td className="py-2 align-top">
-                {l.indicacoes.length === 0 ? (
-                  <span className="text-slate-500">—</span>
-                ) : (
-                  l.indicacoes.map((i) => (
-                    <span key={i} className="block font-medium">
-                      {i}
-                    </span>
-                  ))
-                )}
-              </td>
-            </tr>
+          {linhas.map((l, i) => (
+            <Fragmento key={l.propostaId}>
+              {abreGrupo(l, i) && (
+                <tr>
+                  <th
+                    colSpan={5}
+                    scope="colgroup"
+                    className={`doc-rotulo text-left ${i === 0 ? 'pt-3' : 'pt-5'} pb-1`}
+                    style={papel ? undefined : { fontSize: '11px' }}
+                  >
+                    {l.grupo}
+                  </th>
+                </tr>
+              )}
+              <tr className="border-b border-slate-100" style={papel ? { breakInside: 'avoid' } : undefined}>
+                <th scope="row" className={`py-1.5 pr-3 text-left align-baseline font-medium ${papel ? '' : 'pl-5 sm:pl-0'}`}>
+                  {l.alias}
+                </th>
+                <td
+                  className="py-1.5 pr-3 text-right align-baseline font-semibold tabular-nums whitespace-nowrap"
+                  style={papel ? { fontSize: '12.5pt' } : undefined}
+                >
+                  {l.total}
+                </td>
+                <td className="py-1.5 pr-3 align-baseline">{cel(l.pedido)}</td>
+                <td className="py-1.5 pr-3 align-baseline">{cel(l.aEsclarecer)}</td>
+                <td className="py-1.5 align-baseline">{cel(l.reputacao)}</td>
+              </tr>
+            </Fragmento>
           ))}
         </tbody>
       </table>
     </div>
   );
+}
+
+/** Duas linhas irmãs por proposta — o título do grupo e a linha — sem um elemento entre elas. */
+function Fragmento({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

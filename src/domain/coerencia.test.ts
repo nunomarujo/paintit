@@ -133,7 +133,6 @@ const linhasMatriz = matrizDasPropostas(
     zonasSemPreco: 0,
     avaliacao: p.avaliacao,
   })),
-  ind,
   formatEuros,
 );
 const linhasSintese = sinteseDasPropostas(
@@ -169,12 +168,17 @@ describe('as quatro vistas dizem o mesmo', () => {
       const naSintese = linhaDe('trabalhos').celulas[col(p.alias)]!;
       // Ou as duas dizem que está completo, ou as duas assinalam — nunca uma de cada.
       expect(naMatriz.atencao).toBe(naSintese.tom === 'atencao');
+      // As palavras diferem porque o espaço difere — a matriz tem uma coluna estreita e a síntese
+      // uma linha inteira —, mas nenhuma das duas pode dizer que um trabalho está excluído quando a
+      // proposta apenas se calou sobre ele.
       if (p.naoIndicados > 0) {
-        expect(naMatriz.texto).toContain('por esclarecer');
+        expect(naMatriz.texto).toBe('Por confirmar');
         expect(naSintese.texto).toContain('por esclarecer');
+        expect(naMatriz.texto).not.toContain('excluí');
+        expect(naSintese.texto).not.toContain('excluí');
       }
-      if (p.naoIndicados === 0 && p.excluidos === 0) {
-        expect(naMatriz.texto).toBe('Completo');
+      if (p.naoIndicados === 0 && p.excluidos === 0 && p.trabalhos.length > 0) {
+        expect(naMatriz.texto).toBe('Incluído');
         expect(naSintese.texto).toBe('Todos incluídos');
       }
     }
@@ -183,42 +187,36 @@ describe('as quatro vistas dizem o mesmo', () => {
   it('os custos por fechar contam o mesmo nas duas', () => {
     for (const p of CASO) {
       const n = p.classificacao.cobertura.semPrecoFirme;
-      const naMatriz = matrizDe(p.alias).custosPorFechar;
+      const naMatriz = matrizDe(p.alias).aEsclarecer;
       const naSintese = linhaDe('custos_por_fechar').celulas[col(p.alias)]!;
-      expect(naMatriz.atencao).toBe(naSintese.tom === 'atencao');
-      if (n === 0) {
-        expect(naMatriz.texto).toBe('Nenhum declarado');
+      if (n === 0 && p.naoIndicados === 0) {
+        expect(naMatriz.texto).toBe('—');
         expect(naSintese.texto).toBe('Nenhum declarado');
       } else {
-        expect(naMatriz.texto).toContain('após observação');
-        expect(naSintese.texto).toContain('após observação');
+        expect(naMatriz.atencao).toBe(true);
+        if (n > 0) expect(naMatriz.texto).toContain('preço');
       }
     }
   });
 
   it('um trabalho condicionado cobre o pedido e conta no preço, nas duas vistas', () => {
     const d = matrizDe('Pintor D');
-    expect(d.pedido.texto).toBe('Completo');
-    expect(d.custosPorFechar.texto).toContain('após observação');
+    expect(d.pedido.texto).toBe('Incluído');
+    expect(d.aEsclarecer.texto).toContain('preço');
     expect(linhaDe('trabalhos').celulas[col('Pintor D')]!.texto).toBe('Todos incluídos');
     expect(linhaDe('custos_por_fechar').celulas[col('Pintor D')]!.tom).toBe('atencao');
   });
 
-  it('a indicação atribuída aparece na linha certa da matriz, e em mais nenhuma', () => {
-    for (const a of ind.atribuidas) {
-      const nome = METODOLOGIA.indicacoes.find((r) => r.id === a.indicacao)!.nome;
-      expect(matrizDe(a.alias).indicacoes).toContain(nome);
-      for (const outra of CASO.filter((p) => p.alias !== a.alias)) {
-        expect(matrizDe(outra.alias).indicacoes).not.toContain(nome);
-      }
-    }
+  it('cada indicação atribuída pertence a uma proposta que está na matriz', () => {
+    const naMatriz = new Set(linhasMatriz.map((l) => l.alias));
+    for (const a of ind.atribuidas) expect(naMatriz.has(a.alias)).toBe(true);
   });
 
   it('quem leva «melhor preço para o pedido completo» está completo e sem custos por fechar nas duas vistas', () => {
     const a = ind.atribuidas.find((x) => x.indicacao === 'menor_preco_completo');
     expect(a).toBeDefined();
-    expect(matrizDe(a!.alias).pedido.texto).toBe('Completo');
-    expect(matrizDe(a!.alias).custosPorFechar.texto).toBe('Nenhum declarado');
+    expect(matrizDe(a!.alias).pedido.texto).toBe('Incluído');
+    expect(matrizDe(a!.alias).aEsclarecer.texto).toBe('—');
     expect(linhaDe('essencial').celulas[col(a!.alias)]!.tom).toBe('neutro');
   });
 
@@ -249,7 +247,8 @@ describe('as quatro vistas dizem o mesmo', () => {
   });
 
   it('nenhuma vista inventa uma proposta que a outra não tenha', () => {
-    expect(linhasMatriz.map((x) => x.alias)).toEqual(aliases);
+    // A matriz reordena por grupo, por isso compara-se o conjunto e não a sequência.
+    expect([...linhasMatriz.map((x) => x.alias)].sort()).toEqual([...aliases].sort());
     for (const linha of linhasSintese) expect(linha.celulas).toHaveLength(aliases.length);
   });
 });

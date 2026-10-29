@@ -1,6 +1,4 @@
 import type { Cents } from './money';
-import { REGRAS_DAS_INDICACOES } from './metodologia';
-import type { Indicacoes } from './indicacoes';
 
 /**
  * A matriz: **uma linha por proposta**, para quando são muitas.
@@ -31,11 +29,16 @@ export interface LinhaDaMatriz {
   propostaId: string;
   alias: string;
   total: string;
+  /** O âmbito: incluído, por confirmar, ou excluído. Uma palavra, não uma frase. */
   pedido: Celula;
-  custosPorFechar: Celula;
+  /** O que falta saber, contado: «2 trabalhos», «1 preço». Travessão quando não há nada. */
+  aEsclarecer: Celula;
   reputacao: Celula;
-  /** Os nomes das indicações desta proposta. Vazio é o caso normal, não uma falha. */
-  indicacoes: string[];
+  /**
+   * O grupo a que a linha pertence, para a matriz os separar com um pequeno título em vez de os
+   * misturar. Linhas seguidas com o mesmo grupo ficam juntas.
+   */
+  grupo: string;
 }
 
 export interface PropostaNaMatriz {
@@ -64,22 +67,29 @@ export interface PropostaNaMatriz {
   avaliacao: { media: number; n: number } | null;
 }
 
-const NOME_DA_INDICACAO = new Map(REGRAS_DAS_INDICACOES.map((r) => [r.id, r.nome]));
+export const GRUPO_SEM_PENDENCIAS = 'Sem pendências de âmbito ou de preço';
+export const GRUPO_COM_PENDENCIAS = 'Com pontos a esclarecer antes de comparar o total';
 
-export function matrizDasPropostas(
-  ps: PropostaNaMatriz[],
-  ind: Indicacoes,
-  formata: (c: Cents) => string,
-): LinhaDaMatriz[] {
-  return ps.map((p) => ({
-    propostaId: p.id,
-    alias: p.alias,
-    total: formata(p.totalComIva),
-    pedido: celulaDoPedido(p),
-    custosPorFechar: celulaDosCustos(p),
-    reputacao: celulaDaReputacao(p.avaliacao),
-    indicacoes: ind.atribuidas.filter((x) => x.propostaId === p.id).map((x) => NOME_DA_INDICACAO.get(x.indicacao) ?? x.indicacao),
-  }));
+export function matrizDasPropostas(ps: PropostaNaMatriz[], formata: (c: Cents) => string): LinhaDaMatriz[] {
+  const linhas = ps.map((p) => {
+    const pedido = celulaDoPedido(p);
+    const aEsclarecer = celulaDoQueFalta(p);
+    return {
+      propostaId: p.id,
+      alias: p.alias,
+      total: formata(p.totalComIva),
+      pedido,
+      aEsclarecer,
+      reputacao: celulaDaReputacao(p.avaliacao),
+      grupo: pedido.atencao || aEsclarecer.atencao ? GRUPO_COM_PENDENCIAS : GRUPO_SEM_PENDENCIAS,
+    };
+  });
+  // As que não têm nada a esclarecer primeiro, mantendo dentro de cada grupo a ordem recebida —
+  // que é a ordenação do relatório, por total.
+  return [
+    ...linhas.filter((l) => l.grupo === GRUPO_SEM_PENDENCIAS),
+    ...linhas.filter((l) => l.grupo === GRUPO_COM_PENDENCIAS),
+  ];
 }
 
 /**
@@ -88,27 +98,22 @@ export function matrizDasPropostas(
  * que o cliente tem de fazer a seguir: num caso pergunta, no outro contrata a outra pessoa.
  */
 function celulaDoPedido(p: PropostaNaMatriz): Celula {
-  if (p.trabalhosPedidos === 0) {
-    return { texto: 'Pedido sem trabalhos indicados', atencao: true };
+  if (p.trabalhosPedidos === 0) return { texto: 'Pedido por definir', atencao: true };
+  if (p.excluidos > 0) {
+    return { texto: `${p.excluidos} excluído${p.excluidos === 1 ? '' : 's'}`, atencao: true };
   }
-  if (p.naoIndicados === 0 && p.excluidos === 0) return { texto: 'Completo', atencao: false };
-  const partes = [
-    p.naoIndicados ? `${p.naoIndicados} por esclarecer` : '',
-    p.excluidos ? `${p.excluidos} ${p.excluidos === 1 ? 'excluído' : 'excluídos'}` : '',
-  ].filter(Boolean);
-  return { texto: partes.join(', '), atencao: true };
+  if (p.naoIndicados > 0) return { texto: 'Por confirmar', atencao: true };
+  return { texto: 'Incluído', atencao: false };
 }
 
-function celulaDosCustos(p: PropostaNaMatriz): Celula {
+/** O que falta saber, contado. A contagem vive aqui; o âmbito vive na coluna ao lado. */
+function celulaDoQueFalta(p: PropostaNaMatriz): Celula {
   const partes = [
-    p.semPrecoFirme ? `${p.semPrecoFirme} após observação` : '',
-    p.zonasSemPreco ? `${p.zonasSemPreco} ${p.zonasSemPreco === 1 ? 'zona sem preço' : 'zonas sem preço'}` : '',
+    p.naoIndicados ? `${p.naoIndicados} ${p.naoIndicados === 1 ? 'trabalho' : 'trabalhos'}` : '',
+    p.semPrecoFirme ? `${p.semPrecoFirme} ${p.semPrecoFirme === 1 ? 'preço' : 'preços'}` : '',
+    p.zonasSemPreco ? `${p.zonasSemPreco} ${p.zonasSemPreco === 1 ? 'zona' : 'zonas'}` : '',
   ].filter(Boolean);
-  // «Não» afirmava que não há custos por fechar. O que se sabe é que não foram declarados — e a
-  // diferença importa: a proposta pode simplesmente não se pronunciar sobre o que a faria variar.
-  return partes.length === 0
-    ? { texto: 'Nenhum declarado', atencao: false }
-    : { texto: partes.join(', '), atencao: true };
+  return partes.length === 0 ? { texto: '—', atencao: false } : { texto: partes.join(' · '), atencao: true };
 }
 
 /**

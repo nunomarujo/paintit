@@ -44,6 +44,19 @@ const dataHora = (iso: string | null) =>
  *   3. **Separa a decisão da análise.** O motivo da escolha é do cliente, escrito por ele, e
  *      aparece ao lado — nunca misturado com — o que a plataforma calculou.
  */
+/**
+ * O título da janela é o que o Chrome escreve no cabeçalho da impressão, e ao lado dele escreve
+ * «X/Y». Um rodapé «página X de Y» em CSS não existe no caminho que o cliente usa — o navegador não
+ * expõe contador de páginas a uma folha que parte —, e portanto a referência e a versão da
+ * metodologia vão por aqui, onde o navegador já as imprime em todas as páginas.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { supabase } = await getUser();
+  const { data } = await supabase.from('work_requests').select('ref').eq('id', id).maybeSingle();
+  return { title: `Propostas recebidas — ${data?.ref ?? ''} · metodologia ${VERSAO_METODOLOGIA}` };
+}
+
 export default async function RelatorioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, user } = await getUser();
@@ -176,7 +189,6 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         avaliacao: av && av.media !== null ? { media: av.media, n: av.n } : null,
       };
     }),
-    indicacoes,
     formatEuros,
   );
   // O que sobe à primeira página: as pendências das propostas que receberam indicação. Uma pendência
@@ -219,115 +231,181 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         <article className="proposal-sheet doc-relatorio relative bg-white text-slate-900">
           <div className="proposal-watermark" aria-hidden="true">{BRAND.domain}</div>
 
-          <header className="border-b-2 border-slate-900 pb-3">
-            <h1 className="leading-tight font-semibold">Propostas recebidas — {req.ref}</h1>
-            <p className="mt-1 text-slate-600">
-              {org.nome} · {list.length} {list.length === 1 ? 'proposta' : 'propostas'} · prazo até {pt(req.prazo_propostas)} ·
-              área do pedido {formatArea(areaTotal)}
-            </p>
+          {/*
+            Cabeçalho baixo, e a única banda com fundo de cor do documento (CLAUDE.md, regra 13). À
+            esquerda o que se lê de longe; à direita, em pequeno, o que se confere: referência, data
+            e quantas propostas. A marca fica discreta — quem recebe este papel sabe de onde vem.
+          */}
+          <header className="doc-faixa flex items-start justify-between gap-8">
+            <div>
+              <p className="doc-rotulo text-tinta-700">{BRAND.name}</p>
+              <h1 className="mt-1 font-semibold">Propostas recebidas</h1>
+              <p className="mt-1">{org.nome}</p>
+            </div>
+            <dl className="shrink-0 text-right text-[8.5pt] leading-snug text-tinta-800">
+              <dt className="sr-only">Referência do pedido</dt>
+              <dd className="font-semibold tabular-nums">{req.ref}</dd>
+              <dt className="sr-only">Propostas recebidas</dt>
+              <dd>{list.length} {list.length === 1 ? 'proposta' : 'propostas'}</dd>
+              <dt className="sr-only">Prazo para propostas</dt>
+              <dd>Prazo até {pt(req.prazo_propostas)}</dd>
+              <dt className="sr-only">Área do pedido</dt>
+              <dd>{formatArea(areaTotal)}</dd>
+              <dt className="sr-only">Emitido a</dt>
+              <dd>{dataHora(new Date().toISOString())}</dd>
+            </dl>
           </header>
 
           {list.length === 0 ? (
             <p className="mt-6">Não há propostas submetidas para este pedido.</p>
           ) : (
             <>
+              {/*
+                A primeira página é um documento de decisão: quatro áreas e nada mais — o cabeçalho,
+                duas conclusões, a matriz de todas as propostas e uma observação. Tudo o que explica
+                como se chegou aqui passou para 1.1, numa folha nova: posto a seguir à matriz,
+                empurrava-a para fora da página, que é exactamente o defeito que o promotor apontou.
+              */}
               <section className="mt-6">
-                <h2 className="font-semibold">1. Síntese e apreciação Quem Pinta</h2>
+                <p className="doc-rotulo">1 · Síntese e apreciação {BRAND.name}</p>
 
-                {indicacoes.atribuidas.length > 0 && (
-                  <dl className="mt-2 space-y-1">
-                    {indicacoes.atribuidas.map((a) => (
-                      <div key={`${a.indicacao}-${a.propostaId}`}>
-                        <dt className="inline font-semibold">
-                          {REGRAS_DAS_INDICACOES.find((r) => r.id === a.indicacao)?.nome}:{' '}
-                        </dt>
-                        <dd className="inline">
-                          {a.alias} — {a.justificacao}
-                        </dd>
+                {/*
+                  Dois blocos, sempre os dois, com um rótulo pequeno e um valor grande. Sem fundo de
+                  aviso, sem medalha e sem anúncio a um vencedor: apresentam um facto lido das
+                  propostas. Quando não há indicação, o bloco fica e diz porquê — é informação, e o
+                  silêncio lia-se como desinteresse.
+                */}
+                <div className="mt-3 grid grid-cols-2 gap-x-8">
+                  {REGRAS_DAS_INDICACOES.map((regra) => {
+                    const atribuida = indicacoes.atribuidas.find((x) => x.indicacao === regra.id);
+                    const sem = indicacoes.naoAtribuidas.find((x) => x.indicacao === regra.id);
+                    return (
+                      <div key={regra.id} className="doc-conclusao break-inside-avoid">
+                        <p className="doc-rotulo">{regra.rotulo}</p>
+                        {atribuida ? (
+                          <>
+                            <p className="doc-destaque mt-1">{atribuida.valor}</p>
+                            <p className="mt-1">
+                              <strong>{atribuida.alias}</strong> — {atribuida.nota}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-slate-600">Não se atribui: {sem?.motivo}</p>
+                        )}
                       </div>
-                    ))}
-                  </dl>
-                )}
-                {indicacoes.naoAtribuidas.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-slate-600">
-                    {indicacoes.naoAtribuidas.map((n) => (
-                      <li key={n.indicacao}>
-                        Sem «{REGRAS_DAS_INDICACOES.find((r) => r.id === n.indicacao)?.nome.toLocaleLowerCase('pt-PT')}»: {n.motivo}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {alternativa && indicadaCompleta && (
-                  <p className="mt-2">
-                    <strong>A alternativa mais próxima:</strong> por mais {formatEuros(alternativa.diferencaCents)} (
-                    {alternativa.percentagem.toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%), {alternativa.alias}{' '}
-                    {alternativa.pontos.length > 0
-                      ? `apresenta ${alternativa.pontos.join('; ')}.`
-                      : 'apresenta as mesmas condições declaradas.'}{' '}
-                    Isto não demonstra que seja a melhor escolha: confirme a adequação dos sistemas propostos.
-                  </p>
-                )}
+                    );
+                  })}
+                </div>
+                <p className="doc-rodape mt-2">
+                  São factos lidos das propostas, e não uma escolha da plataforma. O que cada indicação não quer
+                  dizer, e a metodologia que a produziu, estão em 1.1.
+                </p>
 
                 <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />
 
-                {/* O bloco que a lei pede e que uma lista de factores não cumpre: a prioridade
-                    efectivamente usada, e o endereço da versão exacta que produziu estes números. */}
-                <div className="mt-3 border-t border-slate-200 pt-3 break-inside-avoid">
-                  <h3 className="font-semibold">Como interpretar esta comparação</h3>
-                  <p className="mt-1">{prioridadeEmPalavras()}</p>
-                  <ul className="mt-2 list-disc space-y-0.5 pl-5">
-                    <li>
-                      <strong>Cobertura:</strong> verifica se os trabalhos que pediu estão incluídos. Uma proposta a que
-                      falte trabalho fica mais barata por isso, e esse trabalho terá de ser contratado à parte.
-                    </li>
-                    <li>
-                      <strong>Preço:</strong> separa o valor já fechado do que o pintor só fecha depois de ver a obra.
-                    </li>
-                    <li>
-                      <strong>Execução:</strong> produto e demãos declarados assinalam o que falta confirmar; não afirmam
-                      adequação ao pedido.
-                    </li>
-                    <li>
-                      <strong>Histórico:</strong> mostra-se, e não ordena nem atribui indicação nesta versão.
-                    </li>
-                    <li>
-                      <strong>Incerteza:</strong> sem base suficiente não se atribui indicação, e diz-se porquê.
-                    </li>
-                  </ul>
-                  <div className="mt-3 flex items-start gap-3">
-                    <div className="w-16 shrink-0" dangerouslySetInnerHTML={{ __html: qrMetodologia }} />
-                    <p className="doc-nota">
-                      <strong>Metodologia utilizada: versão {VERSAO_METODOLOGIA}</strong> · calculado a {dataHora(new Date().toISOString())}
-                      <br />
-                      Critérios completos: {enderecoMetodologia}
-                      <br />
-                      O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. A comissão e as
-                      restantes condições comerciais com a plataforma {BRAND.domain} não são usadas como critérios de
-                      ordenação ou recomendação. O preço apresentado pelo pintor é considerado na comparação.
+                {/* Uma observação editorial, e uma só: a seguinte em preço, e o que traz de diferente. */}
+                {alternativa && indicadaCompleta && (
+                  <div className="doc-tema break-inside-avoid">
+                    <p className="doc-rotulo">Uma alternativa próxima</p>
+                    <p className="mt-1">
+                      Por mais {formatEuros(alternativa.diferencaCents)} (
+                      {alternativa.percentagem.toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%) do que{' '}
+                      {indicadaCompleta.alias}, <strong>{alternativa.alias}</strong>{' '}
+                      {alternativa.pontos.length > 0
+                        ? `apresenta ${alternativa.pontos.join('; ')}.`
+                        : 'apresenta as mesmas condições declaradas.'}{' '}
+                      Isto não demonstra que seja a melhor escolha: confirme a adequação dos sistemas propostos.
                     </p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="mt-6">
-                {pendencias.length > 0 && (
-                  <div className="mt-3 break-inside-avoid">
-                    <h3 className="font-semibold">O que pode ainda alterar a escolha</h3>
-                    <ul className="mt-1 space-y-1">
-                      {pendencias.map((x) => (
-                        <li key={`${x.alias}-${x.criterio}`}>
-                          <span className="font-medium">{x.alias}</span> ·{' '}
-                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}
-                        </li>
-                      ))}
-                    </ul>
-                    {/* A remissão dizia-se em cada linha, e com seis pendências aparecia seis vezes. */}
-                    <p className="mt-1 text-slate-600">Todos estes pontos estão desenvolvidos em 2. Comparativo detalhado.</p>
                   </div>
                 )}
 
+                <p className="doc-rodape mt-4">Diferenças e pontos a confirmar nas páginas seguintes.</p>
               </section>
+
+              {/* O bloco que a lei pede e que uma lista de factores não cumpre: a prioridade
+                  efectivamente usada, o que cada indicação não diz, e o endereço da versão exacta
+                  que produziu estes números. */}
+              <section className="doc-quebra mt-6">
+                <h2 className="font-semibold">1.1 Como se comparou</h2>
+                <p className="mt-1">{prioridadeEmPalavras()}</p>
+                <ul className="mt-2 list-disc space-y-0.5 pl-5">
+                  <li>
+                    <strong>Cobertura:</strong> verifica se os trabalhos que pediu estão incluídos. Uma proposta a que
+                    falte trabalho fica mais barata por isso, e esse trabalho terá de ser contratado à parte.
+                  </li>
+                  <li>
+                    <strong>Preço:</strong> separa o valor já fechado do que o pintor só fecha depois de ver a obra.
+                  </li>
+                  <li>
+                    <strong>Execução:</strong> produto e demãos declarados assinalam o que falta confirmar; não afirmam
+                    adequação ao pedido.
+                  </li>
+                  <li>
+                    <strong>Histórico:</strong> mostra-se, e não ordena nem atribui indicação nesta versão.
+                  </li>
+                  <li>
+                    <strong>Incerteza:</strong> sem base suficiente não se atribui indicação, e diz-se porquê.
+                  </li>
+                </ul>
+
+                <h3 className="mt-4 font-semibold">O que as duas indicações da primeira página não dizem</h3>
+                <dl className="mt-1 space-y-1">
+                  {REGRAS_DAS_INDICACOES.map((regra) => (
+                    <div key={regra.id} className="break-inside-avoid">
+                      <dt className="inline font-medium">{regra.nome}: </dt>
+                      <dd className="inline text-slate-600">{regra.limite}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="doc-tema flex items-start gap-3 break-inside-avoid">
+                  <div className="w-16 shrink-0" dangerouslySetInnerHTML={{ __html: qrMetodologia }} />
+                  <p className="doc-nota">
+                    <strong>Metodologia utilizada: versão {VERSAO_METODOLOGIA}</strong> · calculado a {dataHora(new Date().toISOString())}
+                    <br />
+                    Critérios completos: {enderecoMetodologia}
+                    <br />
+                    O endereço abre a versão usada neste relatório, e não a que estiver em vigor mais tarde. A comissão e as
+                    restantes condições comerciais com a plataforma {BRAND.domain} não são usadas como critérios de
+                    ordenação ou recomendação. O preço apresentado pelo pintor é considerado na comparação.
+                  </p>
+                </div>
+              </section>
+
+              {/* As pendências como lista de acção: de quem é, o que falta, e o que fazer antes de decidir. */}
+              {pendencias.length > 0 && (
+                <section className="mt-6">
+                  <h2 className="font-semibold">1.2 O que pode ainda alterar a escolha</h2>
+                  <table className="mt-2 w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-slate-300">
+                        <th scope="col" className="w-[18%] py-2 pr-3 align-bottom font-semibold">Proposta</th>
+                        <th scope="col" className="w-[22%] py-2 pr-3 align-bottom font-semibold">O que falta confirmar</th>
+                        <th scope="col" className="py-2 align-bottom font-semibold">O que fazer antes de decidir</th>
+                      </tr>
+                    </thead>
+                    <tbody className="align-top">
+                      {pendencias.map((x, i) => {
+                        // O alias escreve-se uma vez por proposta: com seis pendências da mesma, seis
+                        // repetições do nome eram a coluna inteira a dizer o mesmo. Fica no `th` para
+                        // quem ouve a tabela, e desaparece do papel.
+                        const repetido = i > 0 && pendencias[i - 1]!.alias === x.alias;
+                        return (
+                        <tr key={`${x.alias}-${x.criterio}`} className="border-b border-slate-100">
+                          <th scope="row" className="py-1.5 pr-3 text-left font-medium">
+                            <span className={repetido ? 'sr-only' : undefined}>{x.alias}</span>
+                          </th>
+                          <td className="py-1.5 pr-3 text-amber-800">{x.criterio}</td>
+                          <td className="py-1.5">{x.motivo}</td>
+                        </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {/* A remissão dizia-se em cada linha, e com seis pendências aparecia seis vezes. */}
+                  <p className="mt-1 text-slate-600">Todos estes pontos estão desenvolvidos em 2. Comparativo detalhado.</p>
+                </section>
+              )}
 
               <section className="mt-6">
                 <h2 className="font-semibold">2. Comparativo detalhado</h2>

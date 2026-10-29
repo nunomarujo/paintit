@@ -118,11 +118,11 @@ input[type='radio'] {
    * (`ProposalDocument.tsx`), que tem a sua própria composição e não foi pedido que mudasse.
    */
   .doc-relatorio {
-    font-size: 10pt;
-    line-height: 1.45;
+    font-size: 10.5pt;
+    line-height: 1.5;
   }
   .doc-relatorio table {
-    font-size: 9pt;
+    font-size: 10pt;
   }
   /*
    * A folha dá `break-inside: avoid` a qualquer `section`, o que serve o orçamento — secções curtas
@@ -140,13 +140,60 @@ input[type='radio'] {
     break-inside: auto;
   }
   .doc-relatorio h1 {
-    font-size: 16pt;
+    font-size: 23pt;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
   }
   .doc-relatorio h2 {
-    font-size: 12pt;
+    font-size: 15pt;
+    line-height: 1.2;
   }
   .doc-relatorio h3 {
-    font-size: 10pt;
+    font-size: 11.5pt;
+  }
+  /** O rótulo de um bloco de conclusão ou de tema: pequeno, espaçado, calado. */
+  .doc-rotulo {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    @apply text-slate-500;
+  }
+  /** O valor que a primeira página existe para mostrar. */
+  .doc-destaque {
+    font-size: 23pt;
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /**
+   * A faixa do cabeçalho. É a **única** banda com fundo de cor do documento, e vai no topo — a regra
+   * 13 do CLAUDE.md permite uma, e é esta. Pastel, e não cor de aviso: identidade, não alarme.
+   */
+  .doc-faixa {
+    @apply bg-tinta-50 text-tinta-900;
+    margin: -16mm -15mm 0;
+    padding: 10mm 15mm 7mm;
+  }
+  /*
+   * Os dois blocos de conclusão da primeira página. O rótulo da direita diz a regra inteira e ocupa
+   * duas linhas; o da esquerda ocupa uma. Sem esta altura reservada, os dois números grandes ficavam
+   * desencontrados 16px — o olho lê isso como desalinhamento, não como duas regras de comprimento
+   * diferente. Três `em` do próprio rótulo são exactamente as suas duas linhas.
+   */
+  .doc-conclusao > .doc-rotulo {
+    min-height: 3em;
+  }
+  /** Divisória de um bloco temático: espaço primeiro, fio depois, e o fio é fino. */
+  .doc-tema {
+    @apply border-t border-slate-300;
+    padding-top: 2.5mm;
+    margin-top: 5mm;
+  }
+  .doc-rodape {
+    font-size: 8pt;
+    @apply text-slate-500;
   }
   /** Notas de rodapé e listas de pressupostos: abaixo do corpo, acima do ilegível. */
   .doc-nota {
@@ -319,6 +366,19 @@ input[type='radio'] {
   }
   .proposal-sheet.doc-relatorio tr {
     break-inside: avoid;
+  }
+  /*
+   * A faixa cola-se às margens da folha, e no papel as margens são outras (14/13mm em vez de
+   * 16/15mm). Sem esta correcção a banda saía da folha 2mm de cada lado — e com `overflow: hidden`
+   * isso não se vê no ecrã, vê-se no PDF.
+   */
+  .doc-relatorio .doc-faixa {
+    margin: -14mm -13mm 0;
+    padding: 9mm 13mm 6mm;
+  }
+  /* Começa numa folha nova: a primeira página do relatório é composta para caber inteira. */
+  .doc-relatorio .doc-quebra {
+    break-before: page;
   }
   .proposal-footer {
     break-inside: avoid;

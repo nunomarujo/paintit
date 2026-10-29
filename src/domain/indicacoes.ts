@@ -37,6 +37,13 @@ export interface IndicacaoAtribuida {
   alias: string;
   /** A razão, em números verificáveis na própria matriz. */
   justificacao: string;
+  /**
+   * O total, formatado, para o relatório o pôr em grande. E a razão **sem** o total à frente: dito
+   * em grande e repetido na frase a seguir, o mesmo número lia-se duas vezes e nenhuma delas
+   * acrescentava nada. `justificacao` continua a ser os dois juntos, para quem a quiser corrida.
+   */
+  valor: string;
+  nota: string;
 }
 
 export interface IndicacaoNaoAtribuida {
@@ -93,15 +100,18 @@ export function indicacoes(
       p.excluidos ? `${p.excluidos === 1 ? 'um trabalho pedido excluído' : `${p.excluidos} trabalhos pedidos excluídos`}` : '',
       !p.precoFirme ? 'parte do preço só fechar depois de observar' : '',
     ].filter(Boolean);
+    const nota =
+      'o menor total apresentado' +
+      (ressalvas.length
+        ? `, por ${ressalvas.join(' e ')}.`
+        : ', e declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.');
     atribuidas.push({
       indicacao: 'menor_preco',
       propostaId: p.id,
       alias: p.alias,
-      justificacao:
-        `${formata(p.totalComIva)}, o menor total apresentado` +
-        (ressalvas.length
-          ? `, por ${ressalvas.join(' e ')}.`
-          : ', e declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.'),
+      valor: formata(p.totalComIva),
+      nota,
+      justificacao: `${formata(p.totalComIva)}, ${nota}`,
     });
   }
 
@@ -141,11 +151,14 @@ export function indicacoes(
     diferenca > 0
       ? ` Custa mais ${formata(diferenca)} (${(((diferenca / menorDeTodas) * 100)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%) do que o menor preço apresentado, que não cobre o pedido todo.`
       : '';
+  const notaCompleta = `declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.${contraOMenor}`;
   atribuidas.push({
     indicacao: 'menor_preco_completo',
     propostaId: vencedora.id,
     alias: vencedora.alias,
-    justificacao: `${formata(vencedora.totalComIva)}, declarando incluir todos os trabalhos pedidos, sem custos condicionados declarados.${contraOMenor}`,
+    valor: formata(vencedora.totalComIva),
+    nota: notaCompleta,
+    justificacao: `${formata(vencedora.totalComIva)}, ${notaCompleta}`,
   });
 
   return { atribuidas, naoAtribuidas };

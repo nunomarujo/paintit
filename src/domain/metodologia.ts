@@ -88,7 +88,14 @@ export type Indicacao = (typeof INDICACOES)[number];
 
 export interface RegraDaIndicacao {
   id: Indicacao;
+  /** O nome publicado, que diz a regra inteira. É este que a página pública mostra. */
   nome: string;
+  /**
+   * O mesmo, curto, para o bloco de conclusão da primeira página do relatório. O nome publicado diz
+   * a regra inteira e tem de a dizer; num rótulo de meia coluna ocuparia quatro linhas e empurrava
+   * a matriz para fora da folha. O rótulo curto não pode afirmar mais do que o nome — só menos.
+   */
+  rotulo: string;
   /** Quem pode recebê-la. */
   elegibilidade: string;
   /** O que a decide entre os elegíveis. */
@@ -101,6 +108,7 @@ export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
   {
     id: 'menor_preco',
     nome: 'Menor preço apresentado',
+    rotulo: 'Menor total apresentado',
     elegibilidade: 'Todas as propostas submetidas com um total conhecido.',
     criterio: 'O menor total com IVA, tal como cada proposta o apresenta.',
     limite:
@@ -109,6 +117,7 @@ export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
   {
     id: 'menor_preco_completo',
     nome: 'Menor total entre as que declaram incluir tudo, sem custos condicionados',
+    rotulo: 'Menor total com o pedido todo e o preço fechado',
     elegibilidade:
       'Propostas que declaram incluir todos os trabalhos pedidos e não declaram custos que só fechem depois de observar a obra.',
     criterio: 'Entre essas, o menor total com IVA.',
