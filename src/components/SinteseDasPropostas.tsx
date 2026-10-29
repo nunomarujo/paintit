@@ -70,6 +70,15 @@ export function SinteseDasPropostas({
   const fixa = papel ? '' : 'sticky left-0 z-10 bg-white';
   const iRef = Math.max(0, referencia ? aliases.indexOf(referencia) : 0);
   const quadros = papel ? gruposDeColunas(aliases.length, iRef) : [[...Array(aliases.length).keys()]];
+  // «O essencial» repetido igual em oito de dez colunas acrescenta pouco e ocupa a altura toda. Se
+  // todas disserem o mesmo, diz-se uma vez por baixo da tabela (promotor, 29/10/2026).
+  const essencial = linhas.find((l) => l.id === 'essencial');
+  const essencialIgual =
+    essencial && essencial.celulas.length > 2 && new Set(essencial.celulas.map((c) => c.texto)).size === 1
+      ? essencial.celulas[0]!.texto
+      : null;
+  const linhasVisiveis = essencialIgual ? linhas.filter((l) => l.id !== 'essencial') : linhas;
+
   const atencoes = aliases
     .map((alias, i) => ({
       alias,
@@ -152,7 +161,7 @@ export function SinteseDasPropostas({
               </tr>
             </thead>
             <tbody>
-              {linhas.map((l) => (
+              {linhasVisiveis.map((l) => (
                 <tr key={l.id} className="border-b border-slate-100" style={papel ? { breakInside: 'avoid' } : undefined}>
                   <th
                     scope="row"
@@ -199,6 +208,12 @@ export function SinteseDasPropostas({
           </table>
         </div>
       ))}
+
+      {essencialIgual && (
+        <p className={`mt-2 ${papel ? '' : 'text-[15px]'}`}>
+          <span className="font-medium">O essencial:</span> {essencialIgual} — em todas as propostas deste quadro.
+        </p>
+      )}
 
       {atencoes.length > 0 && (
         <div className={`mt-4 border-t border-slate-200 pt-4 ${papel ? 'break-inside-avoid' : ''}`}>

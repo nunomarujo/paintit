@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { formatEuros } from './money';
 import { indicacoes, type PropostaParaIndicacao } from './indicacoes';
 import { matrizDasPropostas, type PropostaNaMatriz } from './matriz';
+import { REGRAS_DAS_INDICACOES } from './metodologia';
+
+/** O nome vem da metodologia publicada: se mudar lá, muda aqui, e o teste continua a valer. */
+const NOME_COMPLETO = REGRAS_DAS_INDICACOES.find((r) => r.id === 'menor_preco_completo')!.nome;
 
 const m = (alias: string, total: number, o: Partial<PropostaNaMatriz> = {}): PropostaNaMatriz => ({
   id: alias,
@@ -21,7 +25,8 @@ const paraIndicacao = (p: PropostaNaMatriz): PropostaParaIndicacao => ({
   alias: p.alias,
   totalComIva: p.totalComIva,
   precoFirme: p.semPrecoFirme === 0 && p.zonasSemPreco === 0,
-  emFalta: p.naoIndicados + p.excluidos,
+  naoIndicados: p.naoIndicados,
+  excluidos: p.excluidos,
 });
 
 const matriz = (ps: PropostaNaMatriz[]) =>
@@ -40,7 +45,7 @@ describe('a matriz de todas as propostas', () => {
       m('Pintor C', 1_640_000),
     ]);
     expect(ls[0]!.indicacoes).toEqual(['Menor preço apresentado']);
-    expect(ls[1]!.indicacoes).toEqual(['Melhor preço para o pedido completo']);
+    expect(ls[1]!.indicacoes).toEqual([NOME_COMPLETO]);
     expect(ls[2]!.indicacoes).toEqual([]);
   });
 
@@ -110,7 +115,7 @@ describe('âmbito e preço não se confundem na matriz', () => {
   it('e não ganha o preço completo, porque o total ainda pode subir', () => {
     const ls = matriz([m('Pintor A', 1_600_000, { naoIndicados: 0, semPrecoFirme: 1 }), m('Pintor B', 1_700_000)]);
     expect(ls[0]!.indicacoes).toEqual(['Menor preço apresentado']);
-    expect(ls[1]!.indicacoes).toEqual(['Melhor preço para o pedido completo']);
+    expect(ls[1]!.indicacoes).toEqual([NOME_COMPLETO]);
   });
 
   it('nenhuma célula do pedido mostra um zero', () => {
@@ -147,9 +152,9 @@ describe('não indicar não é excluir, também na matriz', () => {
       m('Pintor B', 1_500_000, { excluidos: 1 }),
       m('Pintor C', 1_600_000),
     ]);
-    expect(ls[2]!.indicacoes).toContain('Melhor preço para o pedido completo');
-    expect(ls[0]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
-    expect(ls[1]!.indicacoes).not.toContain('Melhor preço para o pedido completo');
+    expect(ls[2]!.indicacoes).toContain(NOME_COMPLETO);
+    expect(ls[0]!.indicacoes).not.toContain(NOME_COMPLETO);
+    expect(ls[1]!.indicacoes).not.toContain(NOME_COMPLETO);
   });
 });
 

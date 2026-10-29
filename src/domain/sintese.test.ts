@@ -3,6 +3,7 @@ import { classificar, trabalhosDaProposta, type SinaisDaProposta, type TrabalhoN
 import { formatEuros } from './money';
 import { formatArea, type DesiredWork } from './request';
 import {
+  alternativaProxima,
   diferencasRelevantes,
   leituraImediata,
   pendenciasQueImportam,
@@ -433,5 +434,77 @@ describe('as diferenças relevantes à escala de dez propostas', () => {
     const d = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
     const area = d.find((x) => x.criterio === 'Área de pintura')!;
     expect(area.frase).toBe('Pintor A: 310 m² — diverge · Pintor B e Pintor C: 240 m²');
+  });
+});
+
+describe('a alternativa mais próxima em preço', () => {
+  const totais = (ps: PropostaNaSintese[]) => new Map(ps.map((p) => [p.alias, p.totalComIva]));
+
+  const par = () => [
+    { ...proposta('Pintor I', { garantiaAnos: 1, adiantamentoBps: 5000 }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 1 }),
+    ]), totalComIva: 1_289_532 },
+    { ...proposta('Pintor B', { garantiaAnos: 3, adiantamentoBps: 3000 }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
+    ]), totalComIva: 1_319_052 },
+  ];
+
+  it('encontra a seguinte em preço e enumera o que ela traz de diferente', () => {
+    const ps = par();
+    const ls = sinteseDasPropostas(ps, ctx());
+    const a = alternativaProxima(ls, ps.map((p) => p.alias), 'Pintor I', formatEuros, totais(ps))!;
+    expect(a.alias).toBe('Pintor B');
+    expect(a.diferencaCents).toBe(29_520);
+    expect(a.percentagem).toBe(2.3);
+    expect(a.pontos.join(' ')).toContain('2 demãos');
+    expect(a.pontos.join(' ')).toContain('Pintor I: CIN Vinylmatt · 1 demão');
+  });
+
+  it('não compara com uma proposta a que falte trabalho: seria comparar coisas diferentes', () => {
+    const ps = [...par(), proposta('Pintor C', {}, [linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 })])];
+    const t = totais(ps);
+    t.set('Pintor C', 1_300_000);
+    const ls = sinteseDasPropostas(ps, ctx());
+    const a = alternativaProxima(ls, ps.map((p) => p.alias), 'Pintor I', formatEuros, t)!;
+    expect(a.alias).toBe('Pintor B');
+  });
+
+  it('não enumera prazos nem datas: diz o que se recebe, não quando', () => {
+    const ps = par();
+    const ls = sinteseDasPropostas(ps, ctx());
+    const a = alternativaProxima(ls, ps.map((p) => p.alias), 'Pintor I', formatEuros, totais(ps))!;
+    expect(a.pontos.join(' ')).not.toContain('Início');
+    expect(a.pontos.join(' ')).not.toContain('dias úteis');
+  });
+
+  it('sem nenhuma mais cara e completa, não há alternativa a mostrar', () => {
+    const ps = par();
+    const ls = sinteseDasPropostas(ps, ctx());
+    expect(alternativaProxima(ls, ps.map((p) => p.alias), 'Pintor B', formatEuros, totais(ps))).toBeNull();
+  });
+});
+
+describe('a alternativa próxima compara o comparável', () => {
+  it('não escolhe uma proposta com preço por fechar: o total dela ainda pode subir', () => {
+    const ps = [
+      { ...proposta('Pintor I', { adiantamentoBps: 5000 }, [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 1 }),
+      ]), totalComIva: 1_289_532 },
+      // Mais perto no preço, mas tem um trabalho por fechar.
+      { ...proposta('Pintor E', {}, [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2, inclusao: 'condicionado' }),
+      ]), totalComIva: 1_314_624 },
+      { ...proposta('Pintor B', { adiantamentoBps: 3000 }, [
+        linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+        linha({ trabalho: 'pintura_final', produto: 'CIN', demaos: 2 }),
+      ]), totalComIva: 1_319_052 },
+    ];
+    const ls = sinteseDasPropostas(ps, ctx());
+    const a = alternativaProxima(ls, ps.map((p) => p.alias), 'Pintor I', formatEuros, new Map(ps.map((p) => [p.alias, p.totalComIva])))!;
+    expect(a.alias).toBe('Pintor B');
   });
 });

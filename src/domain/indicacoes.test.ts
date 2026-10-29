@@ -8,7 +8,8 @@ const p = (alias: string, total: number, o: Partial<PropostaParaIndicacao> = {})
   alias,
   totalComIva: total,
   precoFirme: true,
-  emFalta: 0,
+  naoIndicados: 0,
+  excluidos: 0,
   ...o,
 });
 
@@ -17,7 +18,7 @@ const dadas = (r: ReturnType<typeof indicacoes>) => r.atribuidas.map((x) => [x.i
 describe('as indicações da fase 1', () => {
   it('o menor preço e o melhor preço completo podem ser propostas diferentes', () => {
     const r = indicacoes(
-      [p('Pintor A', 1_400_000, { emFalta: 2 }), p('Pintor B', 1_600_000), p('Pintor C', 1_640_000)],
+      [p('Pintor A', 1_400_000, { naoIndicados: 2 }), p('Pintor B', 1_600_000), p('Pintor C', 1_640_000)],
       formatEuros,
     );
     expect(dadas(r)).toEqual([
@@ -35,9 +36,9 @@ describe('as indicações da fase 1', () => {
   });
 
   it('o menor preço diz o que lhe falta, para não se ler como a mais barata para a obra', () => {
-    const r = indicacoes([p('Pintor A', 1_400_000, { emFalta: 2 }), p('Pintor B', 1_600_000)], formatEuros);
+    const r = indicacoes([p('Pintor A', 1_400_000, { naoIndicados: 2 }), p('Pintor B', 1_600_000)], formatEuros);
     const menor = r.atribuidas.find((x) => x.indicacao === 'menor_preco')!;
-    expect(menor.justificacao).toContain('2 trabalhos do pedido não incluídos');
+    expect(menor.justificacao).toContain('não esclarecer se inclui 2 trabalhos pedidos');
   });
 
   it('um preço por fechar é ressalva do menor preço, mesmo cobrindo tudo', () => {
@@ -48,7 +49,7 @@ describe('as indicações da fase 1', () => {
   });
 
   it('o preço completo diz quanto custa a mais do que o menor total, e a percentagem', () => {
-    const r = indicacoes([p('Pintor A', 1_400_000, { emFalta: 2 }), p('Pintor B', 1_435_000)], formatEuros);
+    const r = indicacoes([p('Pintor A', 1_400_000, { naoIndicados: 2 }), p('Pintor B', 1_435_000)], formatEuros);
     const completo = r.atribuidas.find((x) => x.indicacao === 'menor_preco_completo')!;
     expect(completo.justificacao).toContain(formatEuros(35_000));
     expect(completo.justificacao).toContain('2,5%');
@@ -68,12 +69,12 @@ describe('as indicações da fase 1', () => {
 
   it('sem nenhuma completa, não se finge que há uma — e diz-se porquê', () => {
     const r = indicacoes(
-      [p('Pintor A', 1_400_000, { emFalta: 1 }), p('Pintor B', 1_600_000, { precoFirme: false })],
+      [p('Pintor A', 1_400_000, { naoIndicados: 1 }), p('Pintor B', 1_600_000, { precoFirme: false })],
       formatEuros,
     );
     expect(dadas(r)).toEqual([['menor_preco', 'Pintor A']]);
     expect(r.naoAtribuidas.find((x) => x.indicacao === 'menor_preco_completo')!.motivo)
-      .toBe('Nenhuma proposta inclui todos os trabalhos pedidos com o preço firme.');
+      .toBe('Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados.');
   });
 
   it('com uma proposta só não há indicações, e as duas dizem porquê', () => {
@@ -84,7 +85,7 @@ describe('as indicações da fase 1', () => {
 
   it('nenhuma justificação recomenda, aconselha ou elege', () => {
     const r = indicacoes(
-      [p('Pintor A', 1_400_000, { emFalta: 2 }), p('Pintor B', 1_600_000), p('Pintor C', 1_640_000)],
+      [p('Pintor A', 1_400_000, { naoIndicados: 2 }), p('Pintor B', 1_600_000), p('Pintor C', 1_640_000)],
       formatEuros,
     );
     const texto = [...r.atribuidas.map((x) => x.justificacao), ...r.naoAtribuidas.map((x) => x.motivo)].join(' ').toLowerCase();
@@ -122,7 +123,7 @@ describe('a metodologia que se publica', () => {
   });
 
   it('as regras publicadas cobrem exactamente as indicações que o motor atribui', () => {
-    const r = indicacoes([p('Pintor A', 1_400_000, { emFalta: 1 }), p('Pintor B', 1_600_000)], formatEuros);
+    const r = indicacoes([p('Pintor A', 1_400_000, { naoIndicados: 1 }), p('Pintor B', 1_600_000)], formatEuros);
     const publicadas = new Set(METODOLOGIA.indicacoes.map((x) => x.id));
     for (const a of r.atribuidas) expect(publicadas.has(a.indicacao)).toBe(true);
     for (const n of r.naoAtribuidas) expect(publicadas.has(n.indicacao)).toBe(true);

@@ -25,11 +25,10 @@ export interface PropostaParaIndicacao {
   totalComIva: Cents;
   /** Sem partes por determinar depois de observar, e sem zonas do pedido sem preço. */
   precoFirme: boolean;
-  /**
-   * Trabalhos do pedido que a proposta exclui ou não refere. Zero significa pedido coberto: um
-   * trabalho condicionado conta no preço por fechar, não aqui.
-   */
-  emFalta: number;
+  /** Trabalhos pedidos sobre os quais a proposta não se pronuncia. */
+  naoIndicados: number;
+  /** Trabalhos pedidos que a proposta declara expressamente não fazer. */
+  excluidos: number;
 }
 
 export interface IndicacaoAtribuida {
@@ -86,8 +85,13 @@ export function indicacoes(
   } else {
     const p = baratas[0]!;
     const ressalvas = [
-      p.emFalta ? `${p.emFalta} ${p.emFalta === 1 ? 'trabalho do pedido não incluído' : 'trabalhos do pedido não incluídos'}` : '',
-      !p.precoFirme ? 'parte do preço só fecha depois de observar' : '',
+      // «Não incluídos» afirma o que a proposta não disse, e contradizia a matriz, que diz «por
+      // esclarecer». E «preço firme» conclui do silêncio: o que se sabe é que nada foi declarado.
+      p.naoIndicados
+        ? `não esclarecer se inclui ${p.naoIndicados === 1 ? 'um trabalho pedido' : `${p.naoIndicados} trabalhos pedidos`}`
+        : '',
+      p.excluidos ? `${p.excluidos === 1 ? 'um trabalho pedido excluído' : `${p.excluidos} trabalhos pedidos excluídos`}` : '',
+      !p.precoFirme ? 'parte do preço só fechar depois de observar' : '',
     ].filter(Boolean);
     atribuidas.push({
       indicacao: 'menor_preco',
@@ -95,7 +99,9 @@ export function indicacoes(
       alias: p.alias,
       justificacao:
         `${formata(p.totalComIva)}, o menor total apresentado` +
-        (ressalvas.length ? `, com ${ressalvas.join(' e ')}.` : ', e inclui todos os trabalhos pedidos com preço firme.'),
+        (ressalvas.length
+          ? `, por ${ressalvas.join(' e ')}.`
+          : ', e declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.'),
     });
   }
 
@@ -108,11 +114,11 @@ export function indicacoes(
     return { atribuidas, naoAtribuidas };
   }
 
-  const completas = ps.filter((p) => p.emFalta === 0 && p.precoFirme);
+  const completas = ps.filter((p) => p.naoIndicados === 0 && p.excluidos === 0 && p.precoFirme);
   if (completas.length === 0) {
     naoAtribuidas.push({
       indicacao: 'menor_preco_completo',
-      motivo: 'Nenhuma proposta inclui todos os trabalhos pedidos com o preço firme.',
+      motivo: 'Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados.',
     });
     return { atribuidas, naoAtribuidas };
   }
@@ -139,7 +145,7 @@ export function indicacoes(
     indicacao: 'menor_preco_completo',
     propostaId: vencedora.id,
     alias: vencedora.alias,
-    justificacao: `${formata(vencedora.totalComIva)}, incluindo todos os trabalhos pedidos, com preço firme.${contraOMenor}`,
+    justificacao: `${formata(vencedora.totalComIva)}, declarando incluir todos os trabalhos pedidos, sem custos condicionados declarados.${contraOMenor}`,
   });
 
   return { atribuidas, naoAtribuidas };

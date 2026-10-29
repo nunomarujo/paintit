@@ -218,7 +218,27 @@ export function sinteseDasPropostas(ps: PropostaNaSintese[], ctx: ContextoDaSint
       criterio: work === 'pintura' ? 'Pintura de acabamento' : 'Impermeabilização',
       celulas: porCada((p) => {
         const t = p.trabalhos.find((x) => x.work === work);
-        if (!t || t.estado !== 'incluido') return naoIndicada('A proposta não se pronuncia sobre este trabalho. Confirme se o faz e por que preço.');
+        // Cada estado diz o seu nome. Isto dizia «Não indicada» também quando o pintor tinha
+        // declarado que não o fazia, e contradizia a coluna da cobertura, que dizia «1 excluído».
+        if (!t || t.estado === 'nao_indicado') {
+          return naoIndicada('A proposta não se pronuncia sobre este trabalho. Confirme se o faz e por que preço.');
+        }
+        if (t.estado === 'excluido') {
+          return atencao(
+            'Excluída pelo pintor',
+            'O pintor declara que não faz este trabalho. Para o ter feito, terá de o contratar a outra pessoa, e esse custo acresce a este total.',
+          );
+        }
+        if (t.estado === 'opcional') {
+          return atencao('Em opção', 'O pintor deixa este trabalho à sua escolha. Confirme o preço: se o quiser, soma ao total apresentado.');
+        }
+        if (t.estado === 'condicionado') {
+          return atencao(
+            'Preço por fechar',
+            'O pintor prevê este trabalho mas só fecha o preço depois de ver a obra. Peça um limite máximo, ou o preço unitário e a forma de medir.',
+          );
+        }
+        if (t.estado !== 'incluido') return naoIndicada('A proposta não se pronuncia sobre este trabalho. Confirme se o faz e por que preço.');
         return celulaDeExecucao(t);
       }),
     });
@@ -338,7 +358,13 @@ export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]
   const fora = new Set(['total', 'essencial']);
   return linhas
     .filter((l) => !fora.has(l.id))
-    .filter((l) => new Set(l.celulas.map((c) => c.texto)).size > 1)
+    .filter((l) => {
+      const distintos = new Set(l.celulas.map((c) => c.texto)).size;
+      // Um critério em que quase todas dizem coisas diferentes — garantias, datas, adiantamentos —
+      // produz uma lista tão longa que deixa de informar. A tabela apresenta-o melhor, e é para lá
+      // que se remete (promotor, 29/10/2026).
+      return distintos > 1 && distintos <= Math.max(3, Math.ceil(l.celulas.length / 2));
+    })
     .map((l) => {
       // Agrupar por texto igual: «A e B: 240 m² · C: 310 m² — diverge» lê-se; três cláusulas
       // separadas para dizer o mesmo duas vezes, não.
@@ -387,4 +413,57 @@ export function pendenciasQueImportam(
     });
   }
   return out;
+}
+
+/**
+ * A alternativa mais próxima em preço, e o que ela traz de diferente.
+ *
+ * Pedido do promotor (29/10/2026), e corrige um defeito de leitura: a primeira página destacava a
+ * proposta de menor total e dedicava as pendências todas a outra, deixando escondido que a seguinte
+ * — por 295 € a mais, 2,3% — trazia uma segunda demão, melhor histórico, mais garantia e menos
+ * adiantamento. Isso **não demonstra que seja melhor**, e o texto não o diz: enumera o que difere e
+ * manda confirmar. Mas esconder a comparação é pior do que a mostrar.
+ */
+export function alternativaProxima(
+  linhas: LinhaDaSintese[],
+  aliases: string[],
+  indicada: string,
+  formata: (c: Cents) => string,
+  totais: Map<string, Cents>,
+): { alias: string; diferencaCents: Cents; percentagem: number; pontos: string[] } | null {
+  const i = aliases.indexOf(indicada);
+  if (i < 0) return null;
+  const base = totais.get(indicada);
+  if (base === undefined) return null;
+  // A seguinte em preço entre as que não têm nada assinalado na linha da cobertura: comparar com uma
+  // proposta a que falte trabalho seria comparar coisas diferentes.
+  // Tem de estar nas mesmas condições da indicada: cobertura **e** custos por fechar. Filtrar só
+  // pela cobertura escolhia uma proposta com preço por fechar, cujo total ainda pode subir — e
+  // comparar um total firme com um total que pode subir não é comparar a mesma coisa.
+  const cobertura = linhas.find((l) => l.id === 'trabalhos');
+  const custos = linhas.find((l) => l.id === 'custos_por_fechar');
+  const comparavel = (j: number) =>
+    cobertura?.celulas[j]?.tom !== 'atencao' && custos?.celulas[j]?.tom !== 'atencao';
+  const candidatas = aliases
+    .map((alias, j) => ({ alias, j, total: totais.get(alias) ?? Infinity }))
+    .filter((x) => x.alias !== indicada && x.total > base && comparavel(x.j))
+    .sort((a, b) => a.total - b.total);
+  const seguinte = candidatas[0];
+  if (!seguinte) return null;
+
+  // Só os critérios em que a seguinte difere — e só os que descrevem o que se recebe, não prazos.
+  const interessam = new Set(['acabamento_pintura', 'acabamento_impermeabilizacao', 'preparacao', 'garantia', 'adiantamento']);
+  const pontos = linhas
+    .filter((l) => interessam.has(l.id))
+    .map((l) => ({ l, a: l.celulas[i], b: l.celulas[seguinte.j] }))
+    .filter((x) => x.a && x.b && x.a.texto !== x.b.texto)
+    .map((x) => `${x.l.criterio}: ${x.b!.texto} (${indicada}: ${x.a!.texto})`);
+
+  const diferencaCents = seguinte.total - base;
+  return {
+    alias: seguinte.alias,
+    diferencaCents,
+    percentagem: Math.round((diferencaCents / base) * 1000) / 10,
+    pontos,
+  };
 }

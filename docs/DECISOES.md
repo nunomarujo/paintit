@@ -3958,3 +3958,51 @@ Pedido do promotor, e o caso existe na base. Com a lista de trabalhos vazia:
 - as linhas que dependem dos trabalhos pedidos (preparação, acabamento) não aparecem;
 - a indicação **«melhor preço para o pedido completo» não se atribui**, e diz porquê;
 - **«menor preço apresentado» continua a atribuir-se**: não depende de cobertura nenhuma.
+
+### As imagens apanharam o que os testes não apanhavam (29/10/2026)
+
+Revisão do promotor sobre o PDF de dez propostas. **Os testes passavam e o documento contradizia-se**,
+porque verificavam valores intermédios e não as frases finais.
+
+| Onde | Dizia | Diz |
+|---|---|---|
+| Justificação do menor preço | «2 trabalhos do pedido não incluídos» — e a matriz dizia «2 por esclarecer» | «por não esclarecer se inclui 2 trabalhos pedidos» |
+| Justificação do pedido completo | «incluindo todos os trabalhos pedidos, com preço firme» | «declarando incluir todos os trabalhos pedidos, sem custos condicionados declarados» |
+| Como interpretar | «por terem o preço fechado» | «por declararem, ou não, custos por fechar» |
+| Linha da impermeabilização, Pintor F | «Não indicada» — e a cobertura dizia «1 excluído» | «Excluída pelo pintor», com o motivo correspondente |
+
+A quarta era um defeito a sério: `celulaDeExecucao` tratava tudo o que não fosse «incluído» como não
+indicado. Agora cada estado diz o seu nome — excluída, em opção, preço por fechar — e a linha
+concorda com a coluna da cobertura.
+
+**O destaque mudou de nome**, porque o antigo afirmava mais do que os dados: «Melhor preço para o
+pedido completo» passa a **«Menor total entre as que declaram incluir tudo, sem custos
+condicionados»**. É mais longo e é o que é verdade.
+
+### A alternativa mais próxima
+
+O defeito de leitura que o promotor apanhou: a primeira página destacava a de menor total e dedicava
+as pendências todas a outra proposta, deixando escondido que a seguinte — por 295,20 €, 2,3% — trazia
+uma segunda demão, mais garantia e metade do adiantamento. Não demonstra que seja melhor, e o texto
+não o diz; mas esconder a comparação é pior do que mostrá-la.
+
+Passa a haver uma terceira conclusão, factual: quanto custa a mais, em euros e em percentagem, e o
+que traz de diferente, com os valores das duas lado a lado. Termina em «confirme a adequação dos
+sistemas propostos», que é o que a plataforma pode dizer.
+
+**A alternativa tem de estar nas mesmas condições da indicada** — cobertura **e** custos por fechar.
+À primeira filtrei só pela cobertura e o documento escolheu uma proposta com um trabalho por fechar:
+comparar um total firme com um total que ainda pode subir não é comparar a mesma coisa. O render
+apanhou-o.
+
+### A matriz inteira na primeira página
+
+Era o pedido principal: oito propostas na primeira página e duas na segunda, porque o bloco de
+pendências ocupava o espaço. A ordem passa a ser título, conclusões, **matriz completa**, e as
+pendências vão para depois — a informação já está no detalhe, não precisa de aparecer duas vezes por
+extenso. As dez cabem.
+
+**Mais dois ajustes de densidade:** um critério em que quase todas as propostas dizem coisas
+diferentes — garantias, datas, adiantamentos — deixa de entrar nas «diferenças relevantes», porque a
+lista fica tão longa que não informa; a tabela apresenta-o melhor. E «O essencial», quando é igual em
+todas as colunas, diz-se uma vez por baixo da tabela em vez de se repetir em cada uma.

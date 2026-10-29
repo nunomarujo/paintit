@@ -116,7 +116,8 @@ const ind = indicacoes(
     alias: p.alias,
     totalComIva: p.totalComIva,
     precoFirme: p.classificacao.cobertura.semPrecoFirme === 0 && p.classificacao.definicao.definido,
-    emFalta: p.naoIndicados + p.excluidos,
+    naoIndicados: p.naoIndicados,
+    excluidos: p.excluidos,
   })),
   formatEuros,
 );

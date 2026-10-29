@@ -18,7 +18,7 @@ import {
   trabalhosDaProposta,
 } from '@/domain/comparador';
 import { CAUSA_LABELS, diferencaEmPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
-import { diferencasRelevantes, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
+import { alternativaProxima, diferencasRelevantes, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
 import { MatrizDasPropostas } from '@/components/MatrizDasPropostas';
 import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
@@ -151,7 +151,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         alias: r.alias,
         totalComIva: r.totals.totalComIva,
         precoFirme: c.cobertura.semPrecoFirme === 0 && c.definicao.definido,
-        emFalta: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado' || t.estado === 'excluido').length,
+        naoIndicados: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado').length,
+        excluidos: porProposta.get(r.id)!.filter((t) => t.estado === 'excluido').length,
       };
     }),
     formatEuros,
@@ -187,6 +188,18 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
     indicacoes.atribuidas.map((a) => a.alias),
   );
   const diferencas = diferencasRelevantes(linhasDaSintese, aliasesDaSintese);
+  // A alternativa mais próxima em preço da proposta indicada, e o que traz de diferente. Sem isto, a
+  // primeira página destacava a mais barata e escondia que a seguinte, por 2%, trazia mais.
+  const indicadaCompleta = indicacoes.atribuidas.find((a) => a.indicacao === 'menor_preco_completo');
+  const alternativa = indicadaCompleta
+    ? alternativaProxima(
+        linhasDaSintese,
+        aliasesDaSintese,
+        indicadaCompleta.alias,
+        formatEuros,
+        new Map(ordenadas.map((r) => [r.alias, r.totals.totalComIva])),
+      )
+    : null;
   const enderecoMetodologia = enderecoDaMetodologia();
   const qrMetodologia = qrCodeSvg(enderecoMetodologia, 'Código QR da metodologia usada neste relatório');
 
@@ -245,20 +258,15 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   </ul>
                 )}
 
-                {pendencias.length > 0 && (
-                  <div className="mt-3 break-inside-avoid">
-                    <h3 className="font-semibold">O que pode ainda alterar a escolha</h3>
-                    <ul className="mt-1 space-y-1">
-                      {pendencias.map((x) => (
-                        <li key={`${x.alias}-${x.criterio}`}>
-                          <span className="font-medium">{x.alias}</span> ·{' '}
-                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}
-                        </li>
-                      ))}
-                    </ul>
-                    {/* A remissão dizia-se em cada linha, e com seis pendências aparecia seis vezes. */}
-                    <p className="mt-1 text-slate-600">Todos estes pontos estão desenvolvidos em 2. Comparativo detalhado.</p>
-                  </div>
+                {alternativa && indicadaCompleta && (
+                  <p className="mt-2">
+                    <strong>A alternativa mais próxima:</strong> por mais {formatEuros(alternativa.diferencaCents)} (
+                    {alternativa.percentagem.toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%), {alternativa.alias}{' '}
+                    {alternativa.pontos.length > 0
+                      ? `apresenta ${alternativa.pontos.join('; ')}.`
+                      : 'apresenta as mesmas condições declaradas.'}{' '}
+                    Isto não demonstra que seja a melhor escolha: confirme a adequação dos sistemas propostos.
+                  </p>
                 )}
 
                 <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />
@@ -300,6 +308,25 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                     </p>
                   </div>
                 </div>
+              </section>
+
+              <section className="mt-6">
+                {pendencias.length > 0 && (
+                  <div className="mt-3 break-inside-avoid">
+                    <h3 className="font-semibold">O que pode ainda alterar a escolha</h3>
+                    <ul className="mt-1 space-y-1">
+                      {pendencias.map((x) => (
+                        <li key={`${x.alias}-${x.criterio}`}>
+                          <span className="font-medium">{x.alias}</span> ·{' '}
+                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}
+                        </li>
+                      ))}
+                    </ul>
+                    {/* A remissão dizia-se em cada linha, e com seis pendências aparecia seis vezes. */}
+                    <p className="mt-1 text-slate-600">Todos estes pontos estão desenvolvidos em 2. Comparativo detalhado.</p>
+                  </div>
+                )}
+
               </section>
 
               <section className="mt-6">

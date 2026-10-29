@@ -108,12 +108,12 @@ export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
   },
   {
     id: 'menor_preco_completo',
-    nome: 'Melhor preço para o pedido completo',
+    nome: 'Menor total entre as que declaram incluir tudo, sem custos condicionados',
     elegibilidade:
-      'Propostas que incluem todos os trabalhos pedidos e cujo preço está firme — sem partes por determinar depois de observar.',
+      'Propostas que declaram incluir todos os trabalhos pedidos e não declaram custos que só fechem depois de observar a obra.',
     criterio: 'Entre essas, o menor total com IVA.',
     limite:
-      'Compara o preço entre propostas que fazem o mesmo trabalho e já têm o preço fechado. Não diz nada sobre a qualidade da execução, sobre os produtos nem sobre o pintor.',
+      'Compara apenas o total entre propostas que declaram o mesmo âmbito. Não diz nada sobre a qualidade da execução, sobre os produtos, sobre as demãos nem sobre o pintor — e uma proposta pouco mais cara pode oferecer mais. O relatório mostra a alternativa mais próxima em preço e o que ela traz de diferente.',
   },
 ];
 
@@ -172,7 +172,7 @@ export const enderecoDaMetodologia = (versao: string = VERSAO_METODOLOGIA) =>
 export function prioridadeEmPalavras(): string {
   const [primeiro, segundo, terceiro] = PARAMETROS;
   return (
-    `Primeiro separam-se as propostas pela ${primeiro!.nome.toLocaleLowerCase('pt-PT')} e por terem o ${segundo!.nome.toLocaleLowerCase('pt-PT')}; ` +
+    `Primeiro separam-se as propostas pela ${primeiro!.nome.toLocaleLowerCase('pt-PT')} que declaram e por declararem, ou não, ${segundo!.nome.toLocaleLowerCase('pt-PT')}; ` +
     `só depois, dentro de cada grupo, ordena o ${terceiro!.nome.toLocaleLowerCase('pt-PT')}. ` +
     `O histórico do pintor mostra-se mas não ordena, e a correspondência técnica assinala o que falta confirmar sem alterar a ordem.`
   );
