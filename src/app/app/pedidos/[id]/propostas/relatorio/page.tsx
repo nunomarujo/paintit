@@ -18,7 +18,7 @@ import {
   trabalhosDaProposta,
 } from '@/domain/comparador';
 import { CAUSA_LABELS, diferencaEmPalavras, reconciliar, type LadoDaReconciliacao } from '@/domain/reconciliacao';
-import { leituraImediata, sinteseDasPropostas } from '@/domain/sintese';
+import { diferencasRelevantes, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
 import { MatrizDasPropostas } from '@/components/MatrizDasPropostas';
 import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
@@ -175,6 +175,15 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
     indicacoes,
     formatEuros,
   );
+  // O que sobe à primeira página: as pendências das propostas que receberam indicação. Uma pendência
+  // numa proposta que ninguém está a ponderar não altera escolha nenhuma, e fica no detalhe.
+  const aliasesDaSintese = ordenadas.map((r) => r.alias);
+  const pendencias = pendenciasQueImportam(
+    linhasDaSintese,
+    aliasesDaSintese,
+    indicacoes.atribuidas.map((a) => a.alias),
+  );
+  const diferencas = diferencasRelevantes(linhasDaSintese, aliasesDaSintese);
   const enderecoMetodologia = enderecoDaMetodologia();
   const qrMetodologia = qrCodeSvg(enderecoMetodologia, 'Código QR da metodologia usada neste relatório');
 
@@ -207,7 +216,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
           ) : (
             <>
               <section className="mt-6">
-                <h2 className="font-semibold">1. Conclusões e todas as propostas</h2>
+                <h2 className="font-semibold">1. Síntese e apreciação Quem Pinta</h2>
 
                 {indicacoes.atribuidas.length > 0 && (
                   <dl className="mt-2 space-y-1">
@@ -231,6 +240,21 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                       </li>
                     ))}
                   </ul>
+                )}
+
+                {pendencias.length > 0 && (
+                  <div className="mt-3 break-inside-avoid">
+                    <h3 className="font-semibold">O que pode ainda alterar a escolha</h3>
+                    <ul className="mt-1 space-y-1">
+                      {pendencias.map((x) => (
+                        <li key={`${x.alias}-${x.criterio}`}>
+                          <span className="font-medium">{x.alias}</span> ·{' '}
+                          <span className="text-amber-800">{x.criterio}:</span> {x.motivo}{' '}
+                          <span className="text-slate-600">Ver 2. Comparativo detalhado.</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />
@@ -273,13 +297,39 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                 </div>
               </section>
 
-              <div className="mt-6">
+              <section className="mt-6">
+                <h2 className="font-semibold">2. Comparativo detalhado</h2>
+                <p className="text-slate-600">
+                  O mesmo trabalho na mesma linha, para não ser preciso procurá-lo em cada proposta e compará-lo de
+                  memória.
+                </p>
+
+                {diferencas.length > 0 && (
+                  <div className="mt-3 break-inside-avoid">
+                    <h3 className="font-semibold">2.1 Diferenças relevantes</h3>
+                    <p className="text-slate-600">
+                      Só o que distingue as propostas. A grelha completa vem a seguir, com os critérios em que todas
+                      coincidem — é assim que se confirma que a cobertura é a mesma.
+                    </p>
+                    <dl className="mt-1 space-y-1">
+                      {diferencas.map((d) => (
+                        <div key={d.criterio}>
+                          <dt className="inline font-medium">{d.criterio}: </dt>
+                          <dd className="inline">{d.frase}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+              </section>
+
+              <div className="mt-4">
                 <SinteseDasPropostas
                   linhas={linhasDaSintese}
                   aliases={ordenadas.map((r) => r.alias)}
                   leitura={leituraDaSintese}
                   referencia={referencia?.alias}
-                  titulo="2. Comparação lado a lado"
+                  titulo="2.2 Comparação lado a lado"
                   variante="papel"
                 />
                 {grupos.length > 1 && (
@@ -289,9 +339,50 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                 )}
               </div>
 
+              {trabalhos.length > 0 && (
+                <section className="mt-6 break-inside-avoid">
+                  <h2 className="font-semibold">2.3 Trabalho a trabalho</h2>
+                  <table className="mt-2 w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-300">
+                        <th className="py-1 pr-3 font-semibold">O que pediu</th>
+                        {ordenadas.map((r) => (
+                          <th key={r.id} className="py-1 pr-3 font-semibold">{r.alias}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="align-top">
+                      {trabalhos.map((w, i) => (
+                        <tr key={w} className="border-b border-slate-100">
+                          <td className="py-1.5 pr-3 text-slate-600">{DESIRED_WORK_LABELS[w]}</td>
+                          {ordenadas.map((r) => {
+                            const t = porProposta.get(r.id)![i]!;
+                            const detalhe = [quantidadeEmPalavras(t), t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : null, ...t.produtos].filter(Boolean).join(' · ');
+                            return (
+                              <td key={r.id} className="py-1.5 pr-3">
+                                {ESTADO_LABELS[t.estado]}
+                                {t.precoCents > 0 && <span className="block tabular-nums">{formatEuros(t.precoCents)}</span>}
+                                {detalhe && <span className="block text-slate-600">{detalhe}</span>}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              <section className="mt-6">
+                <h2 className="font-semibold">3. Explicação económica</h2>
+                <p className="text-slate-600">
+                  De onde vem cada euro de diferença, e o que os orçamentos não permitem separar.
+                </p>
+              </section>
+
               {referencia && contra.length > 0 && (
                 <section className="mt-6">
-                  <h2 className="font-semibold">3. Diferenças para {referencia.alias}</h2>
+                  <h2 className="font-semibold">3.1 Diferenças para {referencia.alias}</h2>
                   <p className="text-slate-600">
                     Referência fixa deste relatório: <strong>{referencia.alias}</strong> — a primeira da ordenação por
                     omissão (&laquo;{ORDEM_LABELS.padrao}&raquo;), que é a usada em todas as contas abaixo e não muda com a
@@ -373,42 +464,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                 </section>
               )}
 
-              {trabalhos.length > 0 && (
-                <section className="mt-6 break-inside-avoid">
-                  <h2 className="font-semibold">4. Trabalho a trabalho</h2>
-                  <table className="mt-2 w-full text-left">
-                    <thead>
-                      <tr className="border-b border-slate-300">
-                        <th className="py-1 pr-3 font-semibold">O que pediu</th>
-                        {ordenadas.map((r) => (
-                          <th key={r.id} className="py-1 pr-3 font-semibold">{r.alias}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="align-top">
-                      {trabalhos.map((w, i) => (
-                        <tr key={w} className="border-b border-slate-100">
-                          <td className="py-1.5 pr-3 text-slate-600">{DESIRED_WORK_LABELS[w]}</td>
-                          {ordenadas.map((r) => {
-                            const t = porProposta.get(r.id)![i]!;
-                            const detalhe = [quantidadeEmPalavras(t), t.demaos ? `${t.demaos} ${t.demaos === 1 ? 'demão' : 'demãos'}` : null, ...t.produtos].filter(Boolean).join(' · ');
-                            return (
-                              <td key={r.id} className="py-1.5 pr-3">
-                                {ESTADO_LABELS[t.estado]}
-                                {t.precoCents > 0 && <span className="block tabular-nums">{formatEuros(t.precoCents)}</span>}
-                                {detalhe && <span className="block text-slate-600">{detalhe}</span>}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              )}
-
               <section className="mt-6 break-inside-avoid">
-                <h2 className="font-semibold">5. Pressupostos, fontes e versões</h2>
+                <h2 className="font-semibold">3.2 Pressupostos, fontes e versões</h2>
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                   <li>
                     Pedido {req.ref}, versão {req.version}. As propostas abaixo responderam à versão indicada; uma versão
@@ -442,7 +499,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
               </section>
 
               <section className="mt-6 break-inside-avoid border-t border-slate-300 pt-3">
-                <h2 className="font-semibold">6. A decisão</h2>
+                <h2 className="font-semibold">4. A decisão</h2>
                 {motivo?.motivo_escolha ? (
                   <>
                     <p className="whitespace-pre-line">{motivo.motivo_escolha}</p>

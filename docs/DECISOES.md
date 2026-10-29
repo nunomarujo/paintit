@@ -3769,3 +3769,39 @@ coluna ao lado.
 - O ecrã das propostas ainda não diz o critério activo nem liga para a metodologia.
 - O motor de valorização por materiais, tempos e equipamentos: por construir, e a publicar
   recomendações que dele dependam só depois de as referências estarem validadas.
+
+### O relatório em quatro partes (29/10/2026)
+
+Estrutura decidida pelo promotor, por níveis de leitura:
+
+1. **Síntese e apreciação Quem Pinta** — conclusões, o que pode ainda alterar a escolha, a matriz de
+   todas as propostas, e como interpretar a comparação com o endereço da metodologia.
+2. **Comparativo detalhado** — 2.1 diferenças relevantes, 2.2 comparação lado a lado, 2.3 trabalho a
+   trabalho.
+3. **Explicação económica** — 3.1 diferenças para a referência, 3.2 pressupostos, fontes e versões.
+4. **A decisão** — escrita pelo cliente, separada da apreciação da plataforma.
+
+**O comparativo detalhado não é dispensável pelas propostas individuais**, e é essa a razão de
+existir: alinha o mesmo trabalho na mesma linha. Sem ele o cliente volta a procurar a informação em
+dez documentos e a compará-la de memória.
+
+**Três propostas por quadro, não quatro.** Quatro ainda cabem em largura — 680px dos 681 úteis —, mas
+a decisão é por legibilidade: com quatro, as células de texto comprido partem-se em três e quatro
+linhas e a grelha deixa de se percorrer com o olho. Com três, as colunas passam de 175px para 189px.
+O que continua a impedir de ir acima de quatro não é a letra das células mas o total a 14pt, que
+impõe uma largura mínima por coluna — e o que cede é o número de colunas, nunca o tamanho do preço
+nem o da letra.
+
+**Duas decisões de apresentação, ambas do promotor:**
+
+- **As diferenças relevantes vêm antes da grelha completa**, e a grelha fica: o que distingue lê-se
+  primeiro, mas os critérios em que todas coincidem têm de estar lá, porque é assim que se confirma
+  que a cobertura é a mesma. As propostas que dizem o mesmo juntam-se numa cláusula — «A e B: 240 m²
+  · C: 310 m² — diverge» — em vez de se repetir o valor por proposta.
+- **O que pode alterar a escolha sobe à primeira página**, e só isso: as pendências das propostas que
+  receberam indicação. Uma pendência numa proposta que ninguém está a ponderar não altera escolha
+  nenhuma e fica no detalhe.
+
+**Por fazer:** a quarta parte que o promotor descreveu — as propostas individuais por extenso, com
+documentos discriminados e condições — não está feita. O relatório diz hoje a versão de cada proposta
+na secção 3.2, mas não reproduz os documentos.

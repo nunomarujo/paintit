@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { classificar, trabalhosDaProposta, type SinaisDaProposta, type TrabalhoNaProposta } from './comparador';
 import { formatEuros } from './money';
 import { formatArea, type DesiredWork } from './request';
-import { leituraImediata, sinteseDasPropostas, type ContextoDaSintese, type PropostaNaSintese } from './sintese';
+import {
+  diferencasRelevantes,
+  leituraImediata,
+  pendenciasQueImportam,
+  sinteseDasPropostas,
+  type ContextoDaSintese,
+  type PropostaNaSintese,
+} from './sintese';
 import type { ProposalLine } from './proposal';
 
 const linha = (p: Partial<ProposalLine>): ProposalLine => ({
@@ -189,5 +196,59 @@ describe('a frase que se lê antes da tabela', () => {
 
   it('com uma proposta só não há comparação para fazer', () => {
     expect(leituraImediata([barataCompleta()], formatEuros)).toBeNull();
+  });
+});
+
+describe('o que sobe à primeira página', () => {
+  const tres = () => [
+    proposta('Pintor A'),
+    proposta('Pintor B', { garantiaAnos: 3 }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'Robbialac', demaos: 2 }),
+    ]),
+    proposta('Pintor C', { garantiaAnos: null }, [
+      linha({ trabalho: 'lavagem', produto: 'Alta pressão' }),
+      linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2, quantidade: 31000 }),
+    ]),
+  ];
+
+  it('as diferenças juntam quem diz o mesmo, em vez de repetir', () => {
+    const ps = tres();
+    const ds = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
+    const area = ds.find((d) => d.criterio === 'Área de pintura')!;
+    expect(area.frase).toBe('Pintor A e Pintor B: 240 m² · Pintor C: 310 m² — diverge');
+  });
+
+  it('um critério em que todas dizem o mesmo não é uma diferença', () => {
+    const ps = tres();
+    const ds = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
+    expect(ds.map((d) => d.criterio)).not.toContain('Adiantamento');
+    expect(ds.map((d) => d.criterio)).not.toContain('Trabalhos pedidos');
+  });
+
+  it('o total e o essencial ficam de fora: um está sempre em cima, o outro é o resumo', () => {
+    const ps = tres();
+    const ds = diferencasRelevantes(sinteseDasPropostas(ps, ctx()), ps.map((p) => p.alias));
+    expect(ds.map((d) => d.criterio)).not.toContain('Total com IVA');
+    expect(ds.map((d) => d.criterio)).not.toContain('O essencial');
+  });
+
+  it('só sobem as pendências das propostas que estão a ser consideradas', () => {
+    const ps = tres();
+    const ls = sinteseDasPropostas(ps, ctx());
+    const aliases = ps.map((p) => p.alias);
+    const so_c = pendenciasQueImportam(ls, aliases, ['Pintor C']);
+    expect(so_c.every((p) => p.alias === 'Pintor C')).toBe(true);
+    expect(so_c.some((p) => p.criterio === 'Área de pintura')).toBe(true);
+    // Sem ninguém indicado, nada sobe: não há escolha que uma pendência possa alterar.
+    expect(pendenciasQueImportam(ls, aliases, [])).toEqual([]);
+  });
+
+  it('cada pendência traz o motivo escrito, nunca só o critério', () => {
+    const ps = tres();
+    const ls = sinteseDasPropostas(ps, ctx());
+    for (const p of pendenciasQueImportam(ls, ps.map((x) => x.alias), ['Pintor C'])) {
+      expect(p.motivo.length).toBeGreaterThan(20);
+    }
   });
 });

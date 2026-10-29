@@ -287,3 +287,58 @@ function listar(xs: string[]): string {
   if (xs.length <= 1) return xs[0] ?? '';
   return `${xs.slice(0, -1).join(', ')} e ${xs[xs.length - 1]}`;
 }
+
+/**
+ * As linhas em que as propostas **não dizem todas o mesmo**.
+ *
+ * Pedido do promotor (29/10/2026): destacar o que muda antes da grelha completa, sem dispensar a
+ * grelha — os critérios iguais continuam a ter de aparecer, porque é assim que o cliente confirma
+ * que a cobertura é a mesma. Aqui só se diz o que distingue.
+ *
+ * O total fica de fora por ser sempre diferente e já estar em cima, e «O essencial» também, por ser
+ * o resumo das linhas e não uma delas.
+ */
+export function diferencasRelevantes(linhas: LinhaDaSintese[], aliases: string[]): { criterio: string; frase: string }[] {
+  const fora = new Set(['total', 'essencial']);
+  return linhas
+    .filter((l) => !fora.has(l.id))
+    .filter((l) => new Set(l.celulas.map((c) => c.texto)).size > 1)
+    .map((l) => {
+      // Agrupar por texto igual: «A e B: 240 m² · C: 310 m² — diverge» lê-se; três cláusulas
+      // separadas para dizer o mesmo duas vezes, não.
+      const porTexto = new Map<string, string[]>();
+      l.celulas.forEach((c, i) => {
+        const quem = aliases[i];
+        if (!quem) return;
+        porTexto.set(c.texto, [...(porTexto.get(c.texto) ?? []), quem]);
+      });
+      const partes = [...porTexto.entries()].map(([texto, quem]) => `${listar(quem)}: ${texto}`);
+      return { criterio: l.criterio, frase: partes.join(' · ') };
+    });
+}
+
+/**
+ * As pendências das propostas que receberam indicação — as que o cliente está mesmo a ponderar.
+ *
+ * É a regra que o promotor pediu: se há uma questão capaz de alterar a escolha, aparece na primeira
+ * página e não enterrada no detalhe. Uma pendência numa proposta que ninguém está a considerar não
+ * altera escolha nenhuma, e por isso não sobe.
+ */
+export function pendenciasQueImportam(
+  linhas: LinhaDaSintese[],
+  aliases: string[],
+  indicados: string[],
+): { alias: string; criterio: string; motivo: string }[] {
+  const quais = new Set(indicados);
+  const fora = new Set(['essencial']);
+  const out: { alias: string; criterio: string; motivo: string }[] = [];
+  for (const l of linhas) {
+    if (fora.has(l.id)) continue;
+    l.celulas.forEach((c, i) => {
+      const alias = aliases[i];
+      if (!alias || !quais.has(alias) || c.tom !== 'atencao' || !c.motivo) return;
+      out.push({ alias, criterio: l.criterio, motivo: c.motivo });
+    });
+  }
+  return out;
+}

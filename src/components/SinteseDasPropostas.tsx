@@ -20,19 +20,21 @@ import type { LinhaDaSintese } from '@/domain/sintese';
  * duas de cada vez, sem nada para configurar.
  */
 /**
- * Quantas propostas cabem num quadro da folha A4 — medido, não estimado. A largura útil da folha
- * são 681px, e a tabela mede 680px com quatro propostas, 736px com cinco e 861px com seis.
+ * Quantas propostas por quadro na folha A4. Quatro ainda cabem — medido: 680px dos 681 úteis —, mas
+ * **três é a decisão do promotor** (29/10/2026), e por legibilidade e não por largura: com quatro, as
+ * células de texto comprido («lavagem e limpeza · reparação de fissuras · primário») partem-se em
+ * três e quatro linhas, e a grelha deixa de se percorrer com o olho.
  *
- * O que fixa este limite **não é o tamanho da letra das células**: mesmo depois de a tabela descer
- * para 9pt, cinco colunas continuam a transbordar. É o **total a 14pt**, que precisa de 112px só
- * para «15 552,12 €» e por isso impõe uma largura mínima a cada coluna. É uma consequência querida
- * da decisão do promotor — numa assembleia o preço é a primeira coisa que se procura —, e portanto
- * o que cede é o número de colunas por quadro, não o tamanho do preço.
+ * O que impede de ir **acima** de quatro não é o tamanho da letra das células: mesmo com a tabela a
+ * 9pt, cinco colunas transbordam. É o total a 14pt, que precisa de 112px só para «15 552,12 €» e
+ * impõe uma largura mínima a cada coluna. Consequência querida da decisão dos 14pt — numa assembleia
+ * o preço é a primeira coisa que se procura —, e por isso o que cede é o número de colunas, nunca o
+ * tamanho do preço nem o da letra.
  *
- * Acima de quatro divide-se em quadros, e cada um **repete os critérios e a proposta de
- * referência**: sem a referência em todos, os quadros não se comparam entre si.
+ * Acima de três divide-se em quadros, e cada um **repete os critérios e a proposta de referência**:
+ * sem a referência em todos, os quadros não se comparam entre si.
  */
-const MAXIMO_NO_PAPEL = 4;
+const MAXIMO_NO_PAPEL = 3;
 
 function gruposDeColunas(total: number, referencia: number): number[][] {
   if (total <= MAXIMO_NO_PAPEL) return [[...Array(total).keys()]];
