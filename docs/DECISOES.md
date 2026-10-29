@@ -4,6 +4,49 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 29/10/2026 — Comparador: passos 1 a 3 feitos
+
+**Passo 1 — mostrar o que já estava guardado.** As demãos e o produto vivem em cada linha desde que
+o orçamento guiado existe e só apareciam dentro da proposta aberta. Na comparação, que é onde
+decidem, não apareciam. Cinco estados explícitos, com «não indicado» distinto de «excluído», e a
+cobertura dita por extenso em vez de em percentagem.
+
+**Passo 2 — três leituras, e a ordenação que importa.** Cobertura, definição do orçamento e
+correspondência técnica, cada uma em palavras. Por omissão, as propostas que incluem tudo **e** têm
+preço firme vêm primeiro, por total a pagar; as outras num segundo grupo, com as pendências à
+vista. No ensaio, a mais cara (18.450 €) fica à frente da mais barata (13.980 €), porque a barata
+não indica três dos quatro trabalhos — **omitir trabalho deixa de pagar**, que é o incentivo que
+este mercado precisa de ter. O número grande do cartão passou a ser o total com IVA: era o preço sem
+IVA, que nenhum condomínio paga.
+
+**Passo 3 — a reconciliação.** A invariante que a torna defensável numa assembleia: **as parcelas
+com euros, mais a diferença não decomposta, dão exactamente a diferença de preço**. Está fixada em
+teste, incluindo num caso com âmbito, quantidade, execução e condições ao mesmo tempo.
+
+Decisões que tive de tomar para a cascata se implementar:
+
+- **A ordem é fixa** — âmbito, quantidade, execução, condições, preço, não decomposta — e as
+  parcelas aparecem nessa ordem no ecrã, não na ordem do cálculo. Sem ordem fixa, o mesmo euro é
+  reclamado por duas causas conforme por onde se começa.
+- **A repartição quantidade/preço segue uma convenção escrita:** `T(b) − T(a) = (Q(b) − Q(a))·P(a) +
+  Q(b)·(P(b) − P(a))`, com a quantidade medida ao preço da proposta à esquerda. Não é a única
+  repartição possível; é a que está escrita, e por isso auditável.
+- **Execução diferente não leva euros atribuídos.** Separar quanto da diferença de preço unitário é
+  a demão a mais exigiria saber o custo do pintor. Descreve-se, e os euros desse trabalho vão para a
+  não decomposta. É a correcção do promotor aplicada onde ela tem consequência real.
+- **Acessos e licenças:** só uma a incluir é âmbito; as duas a incluir com valores diferentes é
+  condição de obra — tipicamente o período de andaime.
+- **Preço global numa das duas:** não se decompõe nada, e diz-se. Nunca se inventa uma repartição
+  proporcional.
+
+Um teste verifica que a palavra **margem** não aparece em lado nenhum do texto gerado.
+
+**No telemóvel**, duas propostas de cada vez em cinco blocos; a tabela de catorze linhas arrastava-se
+para o lado e perdia-se a linha e a coluna ao mesmo tempo.
+
+**Falta** o passo 4: esclarecimentos ligados às mensagens, versões da proposta, e o relatório para a
+assembleia — no ecrã e impresso.
+
 ## 28/10/2026 (noite, 5) — Comparador de propostas: o esquema, revisto pelo promotor
 
 Esquema completo no documento **Comparador de propostas — esquema** (Claude Docs). O essencial, e as

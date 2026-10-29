@@ -35,6 +35,8 @@ import { getUser } from '@/lib/supabase/server';
 import { ChooseButton } from './ChooseButton';
 import { Voltar } from '@/components/Voltar';
 import { ComparacaoEmBlocos, type PropostaEmBloco } from '@/components/ComparacaoEmBlocos';
+import { Reconciliacao } from '@/components/Reconciliacao';
+import type { LadoDaReconciliacao } from '@/domain/reconciliacao';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | null) => (d ? d.split('-').reverse().join('/') : 'Não indicado');
@@ -180,6 +182,13 @@ export default async function ProposalsPage({
       verificado: Boolean(p.pintor_verificado),
     };
   };
+  const emLado = (r: (typeof sorted)[number]): LadoDaReconciliacao => ({
+    alias: r.alias,
+    base: r.totals.base,
+    trabalhos: trabalhosPorProposta.get(r.id)!,
+    categorias: r.categorias,
+    precoGlobal: byId.get(r.id)!.modo_preco === 'global',
+  });
   const escolhe = (pedido: string | undefined, porOmissao: number) =>
     sorted.find((r) => r.id === pedido) ?? sorted[porOmissao] ?? sorted[0];
   const parEsquerda = escolhe(parA, 0);
@@ -349,7 +358,7 @@ export default async function ProposalsPage({
               para o lado e perde-se a linha e a coluna ao mesmo tempo. A tabela continua por
               baixo, para quem a quiser percorrer. */}
           {parEsquerda && parDireita && (
-            <div className="mt-4 sm:hidden">
+            <div className="mt-4">
               <form className="flex flex-wrap items-end gap-2 text-[15px]">
                 <input type="hidden" name="ordem" value={criterio} />
                 <label className="flex-1">
@@ -376,11 +385,16 @@ export default async function ProposalsPage({
                   Ver
                 </button>
               </form>
+              {/* A conta, em todos os ecrãs: é a peça que responde à pergunta do cliente. */}
               <div className="mt-4">
-                <ComparacaoEmBlocos a={emBloco(parEsquerda)} b={emBloco(parDireita)} />
+                <Reconciliacao a={emLado(parEsquerda)} b={emLado(parDireita)} />
               </div>
-              <h3 className="mt-6 font-semibold">Tabela completa</h3>
-              <p className="text-[15px] text-slate-600">Todas as propostas lado a lado. Arrasta-se para o lado.</p>
+              {/* Os blocos são a vista do telemóvel; no computador a tabela completa serve melhor. */}
+              <div className="mt-4 sm:hidden">
+                <ComparacaoEmBlocos a={emBloco(parEsquerda)} b={emBloco(parDireita)} />
+                <h3 className="mt-6 font-semibold">Tabela completa</h3>
+                <p className="text-[15px] text-slate-600">Todas as propostas lado a lado. Arrasta-se para o lado.</p>
+              </div>
             </div>
           )}
           <div className="mt-4 overflow-x-auto">
