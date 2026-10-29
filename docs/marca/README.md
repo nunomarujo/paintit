@@ -22,7 +22,8 @@ comprimir.
 
 | Ficheiro | Para quê |
 | --- | --- |
-| `public/img/logotipo.png` | O logótipo na aplicação, nos documentos A4 e nos emails. |
+| `public/img/logotipo.png` | O logótipo na aplicação, nos documentos A4 e nos emails. 600px de largura. |
+| `public/img/logotipo-mono.png` | Uma cor só, para fotocópia e impressão a preto e branco. Nada o usa por agora: não há maneira de saber se quem imprime tem tinta de cor. Existe para cartas, carimbos, e para não ser preciso inventá-lo outra vez. |
 | `src/app/icon.png` | Separador do navegador. |
 | `src/app/apple-icon.png` | Ecrã do telemóvel (iOS). |
 | `src/app/opengraph-image.png` | A imagem que aparece quando alguém partilha uma ligação. |
@@ -40,13 +41,22 @@ de texto e as janelas do prédio tornam-se uma nódoa. Mediu-se — ver abaixo �
 - **Selo escuro com o «Q» a branco:** lê-se melhor do que o «Q» claro num separador de navegador,
   porque uma forma cheia ganha sempre a um contorno nesses tamanhos. É o que está em uso.
 
-A alternativa — o «Q» com as cores do logótipo, sem selo — está feita e troca-se numa linha de
-`scripts/marca.mjs`: `icone(256)` passa a `icone(256, { fundo: false })`.
+O promotor escolheu o selo escuro a 29/10/2026, depois de ver os quatro lado a lado. A alternativa —
+o «Q» com as cores do logótipo, sem selo — fica feita e troca-se numa linha de `scripts/marca.mjs`:
+`icone(256)` passa a `icone(256, { fundo: false })`.
+
+## Os 600px não são um limite
+
+`public/img/logotipo.png` tem 600px de largura porque é o que os sítios de hoje precisam — o maior é
+a faixa do relatório, a 22mm no papel. **Isso não limita usos futuros:** o mestre tem a resolução
+toda, e qualquer tamanho se gera dele mudando um número em `scripts/marca.mjs`. Um cartaz, uma lona
+ou uma montra pedem outra coisa, e a conta faz-se nessa altura: pontos por polegada são o tamanho a
+que se imprime dividido pelos pixéis que se tem, não uma propriedade do ficheiro.
 
 ## O que falta, e não se inventa aqui
 
 - **Não há versão vectorial.** O original é uma imagem. Sem vectores, o logótipo não se pode compor
   em tamanhos muito grandes nem recolorir com rigor; se houver ficheiro de desenho (AI, SVG, Figma),
   é o que deve substituir estes mestres.
-- **Não há versão monocromática.** Um documento fotocopiado a preto e branco converte as cores em
-  cinzentos. Enquanto não houver uma versão a um tom, é o que acontece.
+- **A versão monocromática está feita** (29/10/2026), mas ninguém a usa automaticamente: o navegador
+  não diz se quem imprime tem tinta de cor. Quem precisar dela vai buscá-la.

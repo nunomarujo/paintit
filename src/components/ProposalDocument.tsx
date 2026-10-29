@@ -100,15 +100,25 @@ export function ProposalDocument({
           </div>
           {/* No ficheiro impresso ou descarregado, enquanto a obra não for ganha, é a plataforma que
               assina o documento: o nome, o logótipo e os contactos do pintor não saem daqui. */}
+          {/*
+            Enquanto a identidade não for revelada, este lugar **continua a ser da empresa de
+            pintura** — reservado, não ocupado por outra marca. A 29/10/2026 esteve aqui o logótipo
+            da Quem Pinta, e o promotor corrigiu: a plataforma não toma o lugar de quem assina a
+            obra. A caixa a tracejado diz que falta ali um nome, e não que não exista.
+
+            A Quem Pinta aparece onde lhe compete, no rodapé de todas as folhas.
+          */}
           {!revelado && (
             <div className="hidden items-start gap-3 print:flex">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center border border-dashed border-slate-400 font-serif text-sm text-slate-500"
+                aria-hidden="true"
+              >
+                —
+              </div>
               <div>
-                {/* O logótipo é o título desta folha enquanto a obra não for ganha: traz o nome
-                    dentro dele, e por isso não leva nome escrito ao lado. */}
-                <h1 className="leading-none">
-                  <Logotipo altura="13mm" />
-                </h1>
-                <p className="doc-label mt-2">Proposta preparada por empresa de pintura verificada</p>
+                <h1 className="font-serif text-[19px] leading-tight text-slate-900">Empresa de pintura</h1>
+                <p className="doc-label mt-1">Identidade reservada até à escolha</p>
               </div>
             </div>
           )}
@@ -443,7 +453,12 @@ function Sheet({
       <div className="relative">{children}</div>
       {footer && (
         <footer className="proposal-footer mt-6 flex items-center justify-between border-t border-slate-200 pt-2 text-[9px] text-slate-500">
-          <p>{marca === 'propria' ? 'Suportado por QuemPinta.pt' : 'Orçamento preparado em quempinta.pt'}</p>
+          {/* A marca da plataforma vive aqui: pequena, em todas as folhas, e sem disputar o
+              cabeçalho com quem vai fazer a obra. */}
+          <p className="flex items-center gap-1.5">
+            <Logotipo altura="4.5mm" decorativo />
+            {marca === 'propria' ? 'Suportado por QuemPinta.pt' : 'Orçamento preparado em quempinta.pt'}
+          </p>
           <p className="font-mono">
             {page} / {of}
           </p>

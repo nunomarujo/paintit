@@ -27,6 +27,33 @@ const TINTA = '#12302a';
 /** O fundo da imagem de partilha. É a `tinta-50`. */
 const TINTA_CLARA = { r: 238, g: 243, b: 237, alpha: 1 };
 
+/**
+ * A versão a uma cor, para fotocópia e impressão a preto e branco.
+ *
+ * Fotocopiado, o logótipo a cores vira cinzentos parecidos uns com os outros e perde-se. Esta
+ * versão tira os traços de tinta e fica o desenho de linha: contorno na cor da marca, interior
+ * branco. Para guardar o gesto da tinta em vez de o tirar, trocar `BRANCO` por um cinzento claro
+ * (por exemplo `[214, 219, 214]`) — mas tem de ser claro, senão fecha as contracurvas das letras.
+ */
+const BRANCO = [255, 255, 255];
+async function monocromatico(largura) {
+  const { data, info } = await sharp(mestre('logotipo.png'))
+    .resize({ width: largura })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const tinta = [0x12, 0x30, 0x2a];
+  for (let i = 0; i < data.length; i += 4) {
+    const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+    if (a < 40) continue;
+    const escuro = r < 90 && g < 100 && b < 105;
+    const claro = r > 200 && g > 200 && b > 200;
+    const cor = escuro ? tinta : claro ? BRANCO : BRANCO;
+    [data[i], data[i + 1], data[i + 2], data[i + 3]] = [...cor, 255];
+  }
+  return sharp(data, { raw: info }).png({ palette: true, colours: 8, compressionLevel: 9 }).toBuffer();
+}
+
 /** Um quadrado de cantos redondos, para o selo dos ícones. */
 const selo = (px) =>
   Buffer.from(
@@ -70,6 +97,10 @@ const trabalhos = [
   { nome: 'src/app/icon.png', faz: () => icone(256) },
   // O ecrã do telemóvel. O iOS não mostra transparência, por isso este leva sempre o selo.
   { nome: 'src/app/apple-icon.png', faz: () => icone(180) },
+  // Para fotocópia e impressão a preto e branco. Nada na aplicação o usa por agora — não há maneira
+  // de saber se quem imprime tem tinta de cor. Existe para cartas, carimbos e o que mais precise de
+  // uma cor só, e para que não seja preciso voltar a inventá-lo quando precisar.
+  { nome: 'public/img/logotipo-mono.png', faz: () => monocromatico(600) },
   // A imagem que sai quando alguém partilha uma ligação. Composição própria: o logótipo inteiro,
   // com ar à volta, sobre o fundo claro da marca — e não um ícone esticado.
   {
