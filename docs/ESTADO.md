@@ -1,6 +1,24 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 27/10/2026 (**limite à largura ajustável da barra lateral**: o promotor arrastou-a para mais
+Atualizado a 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
+as seis secções passaram a estar montadas a sério — tinham sido escritas no dia anterior e a página
+nunca chegou a usá-las, ficaram importadas e a desenhar tudo seguido; a galeria de fotografias com
+envio de várias imagens de uma vez, estado por ficheiro e «Tentar de novo» por ficheiro, sem barra de
+progresso inventada; fotografias associadas a zonas; a gravação diz *A guardar…* / *Guardado* / *Não foi
+possível guardar* com nova tentativa que não perde o que está escrito; e **o prédio passou a ser um
+modelo** — frente, fundo e pé-direito em `buildings`, volume à escala que muda enquanto se escreve,
+cotas sobre as arestas verdadeiras, a zona aberta acesa no desenho, e a regra de não inferir geometria
+a partir de áreas (`src/domain/geometria.ts`, 18 testes). Mais o **logótipo da empresa de pintura**, que
+fechava a correcção de 29/10 sobre o cabeçalho do orçamento, e o ecrã do levantamento a usar finalmente
+o mesmo editor de zonas do cliente — tinha ainda o formulário antigo de dez campos de uma vez, no ecrã
+onde isso é pior. **Três migrações por aplicar** (`fotografias_por_zona`, `medidas_do_predio`,
+`logotipo_da_empresa`): o ficheiro SQL foi entregue ao promotor para o painel; até lá o código lê as
+colunas novas em consultas próprias que falham sozinhas, sem derrubar ecrã nenhum. Seis ecrãs do
+percurso do cliente capturados no computador e no telemóvel, sem deslocamento horizontal, sem erro de
+consola e sem alvo de toque abaixo dos 44px — a validação apanhou três coisas, todas corrigidas:
+etiquetas de rádio e de caixa com menos de 44px, a frase «o que falta está indicado mais abaixo» que
+deixou de ser verdade com as secções, e `AreaCm2` que não são centímetros quadrados mas centésimos de
+m². `npm test` 1234, typecheck, lint e build a zero.). Estado anterior, 27/10/2026 (**limite à largura ajustável da barra lateral**: o promotor arrastou-a para mais
 larga numa janela estreita e o conteúdo principal ficou espremido a ponto de parecer sobreposto à barra —
 "estas sobreposições não podem acontecer". `SidebarResizer.tsx` passa a reservar sempre pelo menos 360px
 ao conteúdo principal, calculado contra `window.innerWidth` de cada vez — a arrastar, a abrir a página, e

@@ -4,6 +4,47 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 30/10/2026 — A preparação do pedido, e o prédio como modelo
+
+**As secções estavam escritas mas nunca montadas.** A 30/10/2026 ficou exigido que «os separadores
+troquem o conteúdo visível, não apenas saltem para pontos de uma página interminável». O componente
+foi escrito para isso e a página nunca o usou: ficou importado e a desenhar tudo seguido como antes.
+Está montado. Fica a nota porque o erro não foi de desenho — foi dar por cumprida uma exigência sem
+a ver a funcionar, e é o tipo de erro que se repete se não ficar escrito.
+
+**Galeria de fotografias, com fila de envio.** Várias imagens de uma vez, o estado de cada ficheiro,
+e um «Tentar de novo» por ficheiro que falhe. **Sem barra de progresso, por decisão:** um envio por
+*server action* não devolve bytes transferidos e uma barra que anda sozinha é uma mentira animada.
+Diz-se a posição na fila — «a enviar a 3.ª de 7» —, que é verdade.
+
+**Fotografias por zona.** Coluna `zona_id` em `request_photos`. Quem gere o pedido **e o vendedor do
+levantamento** podem corrigir a legenda e a zona enquanto o pedido é rascunho; quem revê, não. Essa
+separação está no gatilho e não na política, porque a política nova deixa o cliente escrever na
+linha — e o cliente não se aprova a si mesmo.
+
+**A geometria do prédio separou-se das superfícies de intervenção.** Um muro que *existe* e um muro
+que *vai ser pintado* são afirmações diferentes, e o desenho precisa da primeira. As medidas —
+frente, fundo, pé-direito — passaram a viver no prédio (`buildings`), e o volume deixou de ter
+proporções canónicas: tem as do prédio, e muda enquanto se escreve.
+
+**Regra, e é a que manda em `src/domain/geometria.ts`: não se infere geometria a partir de áreas.**
+Dividir a área de uma fachada por uma altura qualquer e anunciar a frente dá um número com cara de
+medida e um palpite lá dentro. Um campo em branco diz «Por medir» e o eixo fica sem cota. Sem
+pé-direito não se arbitra o corrente; sem pisos não se arbitra nada.
+
+**Âmbito do volume com medidas:** é para os ecrãs do cliente e do levantamento, onde o prédio é de
+quem está a olhar. O anúncio continua a mostrar o volume genérico, sem medidas — a regra 6 não muda.
+
+**O logótipo da empresa de pintura**, que fechava a correcção de 29/10/2026 sobre o cabeçalho do
+orçamento. O cofre `logotipos` é **público**, ao contrário de todos os outros desta base, e por duas
+razões: um PDF guardado hoje e aberto daqui a um ano não pode ficar com um buraco no cabeçalho
+quando o link assinado expirar, e o logótipo de uma empresa é a coisa que ela mais quer que se veja.
+O anonimato defende-se onde sempre se defendeu — no que o documento mostra antes da apresentação.
+
+**`AreaCm2` não são centímetros quadrados**, são centésimos de m². O nome fica por compatibilidade
+com a coluna `area_cm2`, mas o comentário passou a ser de documentação, visível ao passar o rato:
+escrever 899000 à espera de 89,9 m² dá 8 990 m², e foi o que aconteceu a preparar os ecrãs de ensaio.
+
 ## 29/10/2026 — Comparador: passos 1 a 3 feitos
 
 **Passo 1 — mostrar o que já estava guardado.** As demãos e o produto vivem em cada linha desde que
