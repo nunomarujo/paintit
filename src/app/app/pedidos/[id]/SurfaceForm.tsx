@@ -91,7 +91,7 @@ export function SurfaceForm({ requestId, modo = 'iguais' }: { requestId: string;
           </p>
           <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
             {DESIRED_WORKS.map((w) => (
-              <label key={w} className="flex items-center gap-2">
+              <label key={w} className="flex min-h-[44px] items-center gap-2">
                 <input type="checkbox" name="trabalhosZona" value={w} />
                 {DESIRED_WORK_LABELS[w]}
               </label>

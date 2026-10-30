@@ -209,7 +209,9 @@ export function percursoDoPedido(e: EntradaDoPercurso): EstadoDoPercurso {
       // uma assentada, vai continuar de onde ficou. E leva-o à primeira pendência a sério, não a
       // uma secção fixa (promotor, 30/10/2026).
       accao: { texto: 'Continuar preparação', alvo: 'pendencia' },
-      explicacao: 'Falta completar o pedido antes de o publicar. O que falta está indicado mais abaixo.',
+      // «Mais abaixo» deixou de ser verdade quando a página passou a ter secções (30/10/2026): o
+      // que falta está numa secção que pode nem estar à vista, e o botão leva lá.
+      explicacao: 'Falta completar o pedido antes de o publicar. Em «Rever e publicar» está a lista do que falta.',
       tecnicoPertenceAoCliente: true,
     };
   }

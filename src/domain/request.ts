@@ -242,7 +242,15 @@ export const WORKS_MODE_LABELS: Record<WorksMode, string> = {
   nao_sei: 'Ainda não sei: descrevo o objetivo e junto fotografias',
 };
 
-// Áreas em centésimos de m² (inteiros), para não acumular erros de arredondamento.
+/**
+ * Áreas em **centésimos de m²** (inteiros), para não acumular erros de arredondamento.
+ *
+ * O nome engana e fica por razões de compatibilidade — a coluna chama-se `area_cm2` e renomeá-la
+ * mexeria em toda a base. Mas a unidade **não é o centímetro quadrado**: 1 m² são 100 aqui, não
+ * 10 000. Quem escrever `899000` à espera de 89,9 m² obtém 8 990 m², que foi exactamente o que
+ * aconteceu ao preparar os ecrãs de ensaio a 30/10/2026. Daí este comentário estar agora onde o
+ * editor o mostra ao passar o rato.
+ */
 export type AreaCm2 = number;
 
 export interface SurfaceInput {

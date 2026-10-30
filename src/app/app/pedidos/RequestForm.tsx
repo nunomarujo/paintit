@@ -142,7 +142,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
           <legend className="text-[17px] font-medium text-slate-700">Trabalhos pretendidos</legend>
           <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
             {DESIRED_WORKS.map((w) => (
-              <label key={w} className="flex items-center gap-2">
+              <label key={w} className="flex min-h-[44px] items-center gap-2">
                 <input type="checkbox" name="trabalhos" value={w} defaultChecked={initial?.trabalhos.includes(w)} />
                 {DESIRED_WORK_LABELS[w]}
               </label>
@@ -154,8 +154,10 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
           <legend className="text-[17px] font-medium text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
           <div className="mt-2 space-y-2 text-[17px]">
             {WORKS_MODES.map((m) => (
-              <label key={m} className="flex items-start gap-2">
-                <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} className="mt-1" />
+              // Regra 17: o alvo é a etiqueta inteira, e tem 44px — o círculo do rádio tem 20 e
+              // ninguém o acerta com o dedo numa obra.
+              <label key={m} className="flex min-h-[44px] items-center gap-2">
+                <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} />
                 {WORKS_MODE_LABELS[m]}
               </label>
             ))}
