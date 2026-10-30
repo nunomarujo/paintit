@@ -45,6 +45,20 @@ O anonimato defende-se onde sempre se defendeu — no que o documento mostra ant
 com a coluna `area_cm2`, mas o comentário passou a ser de documentação, visível ao passar o rato:
 escrever 899000 à espera de 89,9 m² dá 8 990 m², e foi o que aconteceu a preparar os ecrãs de ensaio.
 
+**Auditoria às funções `security definer`.** O analisador do Supabase avisa que as 43 funções
+`security definer` de `public` são chamáveis por qualquer utilizador autenticado, por
+`/rest/v1/rpc/<nome>`. É verdade e não é defeito: o que as torna seguras é verificarem quem as
+chamou lá dentro, que é a alternativa que a própria documentação aponta a revogar o `execute`.
+Passei pelas 43 — as 32 que escrevem têm todas verificação, e a única sem ela (`acc_post`) está
+revogada a `authenticated` e só corre pelo serviço. Não há buraco. Fica um teste
+(`supabase/tests/securityDefiner.test.ts`) para a próxima não poder nascer sem verificação; o teste
+lê texto e di-lo, por isso apanha a ausência de verificação, não a verificação mal feita.
+
+**Continuam em aberto dois avisos da base**, ambos conhecidos e ambos inofensivos como estão:
+`moloni_token` e `toques` têm RLS ligado e nenhuma política — ou seja, ninguém lhes toca a não ser o
+serviço, que é exactamente o que se quer; e a protecção contra palavras-passe conhecidas
+(HaveIBeenPwned) está desligada nas opções do Auth, que é um interruptor do painel e não do código.
+
 ## 29/10/2026 — Comparador: passos 1 a 3 feitos
 
 **Passo 1 — mostrar o que já estava guardado.** As demãos e o produto vivem em cada linha desde que
