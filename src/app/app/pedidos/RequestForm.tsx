@@ -15,6 +15,7 @@ import {
   type DataFlexivel,
 } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
+import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import { useSeccaoActiva } from '@/app/app/pedidos/[id]/PedidoEmSeccoes';
 import { EscolherProdutos, type ProdutoEscolhivel } from '@/components/EscolherProdutos';
 import type { Preference } from '@/domain/reference';
@@ -48,7 +49,7 @@ interface Props {
 
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const seccao = useSeccaoActiva();
-  const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
+  const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
   const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
@@ -233,11 +234,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </div>
       </fieldset>
 
-      {state.message && (
-        <p className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`} role="status">
-          {state.message}
-        </p>
-      )}
+      <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
       {/*
         Os botões sabem em que secção estão. Nas secções de dados, guarda-se; na de publicar,
         guarda-se **e** publica-se, que é o mesmo gesto. Mostrar os dois em todo o lado punha duas

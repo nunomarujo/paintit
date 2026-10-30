@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Field, selectClass } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
+import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import type { FormState } from '@/app/app/actions';
 import { corrigirFotografia, deletePhoto, enviarFotografia } from '@/app/app/pedidos/actions';
 import {
@@ -352,7 +353,7 @@ function NaGaleria({
   abrir: () => void;
   fechar: () => void;
 }) {
-  const { state, pending, formProps } = useFormAction<FormState>(
+  const { state, pending, repetir, formProps } = useFormAction<FormState>(
     corrigirFotografia.bind(null, requestId, foto.id),
     { errors: {} },
   );
@@ -401,17 +402,13 @@ function NaGaleria({
             )}
             <div className="flex flex-wrap items-center gap-3">
               <button type="submit" disabled={pending} className="btn-secondary btn-sm">
-                {pending ? 'A guardar…' : 'Guardar'}
+                Guardar
               </button>
               <button type="button" onClick={fechar} className="btn-quiet btn-sm">
                 Fechar
               </button>
-              {state.message && (
-                <span className={`text-[15px] ${state.ok ? 'text-tinta-700' : 'text-amber-800'}`} role="status">
-                  {state.message}
-                </span>
-              )}
             </div>
+            <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
           </form>
         ) : (
           <button type="button" onClick={abrir} className="btn-quiet btn-sm">

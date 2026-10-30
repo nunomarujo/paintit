@@ -16,6 +16,9 @@ export function useFormAction<S extends object>(
   const [state, dispatch, pending] = useActionState<S, FormData>(submit, initial as Awaited<S>);
   const ok = 'ok' in state && state.ok === true;
   const ref = useRef<HTMLFormElement>(null);
+  // O último envio, guardado para o «Tentar de novo». Repetir com `requestSubmit()` perdia o botão
+  // carregado — e com ele o `accao=publicar`, que faz a diferença entre guardar e publicar.
+  const ultimoEnvio = useRef<FormData | null>(null);
 
   useEffect(() => {
     if (resetOnSuccess && ok) ref.current?.reset();
@@ -54,8 +57,15 @@ export function useFormAction<S extends object>(
     // O botão carregado conta (ex.: Aprovar ou Rejeitar).
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const data = new FormData(event.currentTarget, submitter);
+    ultimoEnvio.current = data;
     startTransition(() => dispatch(data));
   }
 
-  return { state, pending, formProps: { ref, onSubmit } };
+  /** Repete exactamente o último envio, com o mesmo botão. Nada se reescreve nem se perde. */
+  function repetir() {
+    const data = ultimoEnvio.current;
+    if (data) startTransition(() => dispatch(data));
+  }
+
+  return { state, pending, repetir, formProps: { ref, onSubmit } };
 }

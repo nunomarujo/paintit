@@ -5,6 +5,7 @@ import type { FormState } from '@/app/app/actions';
 import { addSurface, deleteSurface, setParticipacaoDaZona, updateSurface } from '@/app/app/pedidos/actions';
 import { Field, selectClass } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
+import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import {
   COMO_MEDIR,
   COMO_MEDIR_LABELS,
@@ -209,7 +210,7 @@ function EditorDaZona({
   aoFechar: () => void;
 }) {
   const accao = zona ? updateSurface.bind(null, requestId, zona.id) : addSurface.bind(null, requestId);
-  const { state, pending, formProps } = useFormAction<FormState>(accao, { errors: {} });
+  const { state, pending, repetir, formProps } = useFormAction<FormState>(accao, { errors: {} });
   const [como, setComo] = useState<ComoMedir>(zona ? comoFoiMedida(zona) : 'area');
   const e = state.errors;
   // Fecha-se sozinho quando gravou: ficar aberto depois de guardar parece que não guardou.
@@ -351,15 +352,11 @@ function EditorDaZona({
         </fieldset>
       )}
 
-      {state.message && !state.ok && (
-        <p className="text-[17px] text-red-700" role="alert">
-          {state.message}
-        </p>
-      )}
+      <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="btn-primary">
-          {pending ? 'A guardar…' : 'Guardar zona'}
+          Guardar zona
         </button>
         <button type="button" onClick={aoFechar} className="btn-quiet">
           Cancelar
