@@ -52,6 +52,7 @@ describe('formulário do pedido', () => {
 const base: SurfaceInput = {
   kind: 'fachada',
   descricao: null,
+  origemQuantidade: 'estimativa',
   areaDireta: null,
   larguraCm: null,
   alturaCm: null,

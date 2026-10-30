@@ -1,7 +1,7 @@
 import type { Forma } from '@/domain/volume';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { changeRequestStatus, deletePhoto, deleteSurface, setParticipacaoDaZona, updateRequest } from '@/app/app/pedidos/actions';
+import { changeRequestStatus, deletePhoto, updateRequest } from '@/app/app/pedidos/actions';
 import { parsePreferences } from '@/domain/reference';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
@@ -18,6 +18,7 @@ import {
   formatArea,
   resumoDasZonas,
   type DesiredWork,
+  type WorksMode,
 } from '@/domain/request';
 import { percursoDoPedido } from '@/domain/percurso';
 import { paraZona } from '@/lib/requests';
@@ -34,7 +35,7 @@ import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
 import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
-import { SurfaceForm } from './SurfaceForm';
+import { ZonasDoPedido } from './ZonasDoPedido';
 import { Voltar } from '@/components/Voltar';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -281,108 +282,60 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <section id="levantamento-da-obra" className={`${card} scroll-mt-6`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">{tecnicoDoCliente ? 'Superfícies e áreas' : 'Levantamento da obra'}</h2>
+          <h2 className="font-semibold">{tecnicoDoCliente ? 'Zonas e medidas' : 'Levantamento da obra'}</h2>
           {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
               errada (promotor, 29/10/2026). */}
           <span className="text-[17px] text-slate-600">
             {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
           </span>
         </div>
-        {(resumo.excluidas > 0 || resumo.porConfirmar > 0) && (
+        {!tecnicoDoCliente && (
+          <p className="mt-1 text-[17px] text-slate-600">
+            Será preenchido pelo profissional que fizer a visita. Pode acrescentar o que souber, mas não precisa de
+            indicar medidas nenhumas.
+          </p>
+        )}
+        {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
           <p className="mt-1 text-[17px] text-slate-600">
             {[
-              resumo.excluidas > 0
-                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora deste pedido, e por isso fora do total`
+              resumo.semQuantidade > 0
+                ? `${resumo.semQuantidade} ${resumo.semQuantidade === 1 ? 'zona' : 'zonas'} por levantar`
                 : '',
               resumo.porConfirmar > 0
-                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar no local`
+                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar`
+                : '',
+              resumo.excluidas > 0
+                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora, e por isso fora do total`
                 : '',
             ]
               .filter(Boolean)
-              .join('. ')}
+              .join(' · ')}
             .
           </p>
         )}
-        {!tecnicoDoCliente && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            Será preenchido pelo profissional que fizer a visita. Pode consultar e acrescentar o que souber, mas não
-            precisa de indicar medidas nenhumas.
-          </p>
-        )}
-        {list.length > 0 ? (
-          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
-            {list.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className={paraZona(s).participacao === 'excluida' ? 'text-slate-500' : undefined}>
-                  <span className="font-medium">{SURFACE_KIND_LABELS[s.kind]}</span>
-                  {/* A participação só se escreve quando não é «incluída»: a lista é das zonas do
-                      pedido, e dizer «incluída» em todas as linhas é escrever o óbvio. */}
-                  {paraZona(s).participacao !== 'incluida' && (
-                    <span className={paraZona(s).participacao === 'por_decidir' ? 'text-amber-800' : ''}>
-                      {' '}
-                      · {PARTICIPACAO_LABELS[paraZona(s).participacao]}
-                    </span>
-                  )}
-                  {s.descricao && <span className="text-slate-500"> · {s.descricao}</span>}
-                  <span className="block text-slate-500">
-                    {s.area_direta_cm2 !== null
-                      ? `${formatArea(s.area_direta_cm2)} indicados`
-                      : `${(s.largura_cm! / 100).toLocaleString('pt-PT')} m × ${(s.altura_cm! / 100).toLocaleString('pt-PT')} m${
-                          s.vaos_cm2 ? ` − ${formatArea(s.vaos_cm2)} de vãos` : ''
-                        }`}
-                    {s.quantidade > 1 ? ` × ${s.quantidade}` : ''}
-                    {paraZona(s).origemDaQuantidade && ` · ${ORIGEM_DA_QUANTIDADE_LABELS[paraZona(s).origemDaQuantidade!]}`}
-                    {/* A confirmação só se diz quando falta: dizer «confirmada» em cada linha enchia
-                        a lista de uma palavra que não muda nada. */}
-                    {paraZona(s).confirmacao === 'por_confirmar' && (
-                      <span className="text-amber-800"> · {CONFIRMACAO_LABELS.por_confirmar}</span>
-                    )}
-                  </span>
-                  {s.trabalhos && s.trabalhos.length > 0 && (
-                    <span className="block text-slate-600">
-                      Nesta zona: {s.trabalhos.map((t) => DESIRED_WORK_LABELS[t as DesiredWork] ?? t).join(', ')}
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-3">
-                  {/* A área de uma zona excluída mostra-se na mesma, apagada: foi considerada, e o
-                      que já se sabia dela não se perde por ficar de fora. Simplesmente não conta. */}
-                  <span className={paraZona(s).participacao === 'excluida' ? 'text-slate-400' : 'font-semibold'}>
-                    {formatArea(s.area_cm2)}
-                  </span>
-                  {manager && draft && (
-                    <>
-                      <form
-                        action={setParticipacaoDaZona.bind(
-                          null,
-                          req.id,
-                          s.id,
-                          paraZona(s).participacao === 'excluida' ? 'incluida' : 'excluida',
-                        )}
-                      >
-                        <button type="submit" className="text-tinta-700 hover:underline">
-                          {paraZona(s).participacao === 'excluida' ? 'Voltar a incluir' : 'Deixar de fora'}
-                        </button>
-                      </form>
-                      <form action={deleteSurface.bind(null, req.id, s.id)}>
-                        <button type="submit" className="text-red-700 hover:underline">
-                          Remover
-                        </button>
-                      </form>
-                    </>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-[17px] text-slate-600">Ainda sem superfícies.</p>
-        )}
-        {manager && draft && (
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <SurfaceForm requestId={req.id} modo={req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei'} />
-          </div>
-        )}
+        <div className="mt-4">
+          <ZonasDoPedido
+            requestId={req.id}
+            zonas={list.map((s) => ({
+              id: s.id,
+              kind: s.kind,
+              descricao: s.descricao,
+              areaCm2: s.area_cm2,
+              areaDiretaCm2: s.area_direta_cm2,
+              larguraCm: s.largura_cm,
+              alturaCm: s.altura_cm,
+              vaosCm2: s.vaos_cm2,
+              quantidade: s.quantidade,
+              participacao: paraZona(s).participacao,
+              origemDaQuantidade: paraZona(s).origemDaQuantidade,
+              confirmacao: paraZona(s).confirmacao,
+              trabalhos: s.trabalhos,
+            }))}
+            modo={req.trabalhos_modo as WorksMode}
+            podeEditar={!!manager && draft}
+            doCliente={tecnicoDoCliente}
+          />
+        </div>
       </section>
 
       <section className={card}>

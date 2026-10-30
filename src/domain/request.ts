@@ -173,6 +173,37 @@ export function resumoDasZonas(zonas: readonly ZonaDoPedido[]): ResumoDasZonas {
   };
 }
 
+/**
+ * Como o cliente quer dar as dimensões de uma zona.
+ *
+ * É a primeira pergunta do editor, e existe porque a anterior não existia: o formulário punha à
+ * frente área, largura, altura, vãos e quantidade ao mesmo tempo, e quem não é do ofício não sabe
+ * o que preencher nem como aqueles campos se relacionam (promotor, 30/10/2026). Respondida esta,
+ * mostram-se só os campos que ela pede.
+ *
+ * **«Não sei as medidas» é uma resposta legítima**, e é a mais importante das três: a zona fica
+ * registada, por levantar, e é disso que o profissional precisa para saber o que vai medir. Sem
+ * ela, quem não sabe medir não conseguia sequer dizer que a fachada existe.
+ */
+export const COMO_MEDIR = ['area', 'largura_altura', 'nao_sei'] as const;
+export type ComoMedir = (typeof COMO_MEDIR)[number];
+export const COMO_MEDIR_LABELS: Record<ComoMedir, string> = {
+  area: 'Sei a área',
+  largura_altura: 'Sei a largura e a altura',
+  nao_sei: 'Não sei as medidas',
+};
+
+/**
+ * A confirmação que se deduz da origem, quando ninguém a declara.
+ *
+ * Uma **medição** é um número que alguém foi ver ao sítio: conta como confirmada. Uma
+ * **estimativa** e um **documento** não — uma planta pode estar desactualizada e uma estimativa é
+ * uma estimativa. Não é um juízo sobre quem a deu: é a diferença entre um número verificado e um
+ * número por verificar, que é o que o pintor precisa de saber para contar com a margem certa.
+ */
+export const confirmacaoDaOrigem = (o: OrigemDaQuantidade | null): Confirmacao =>
+  o === 'medicao' ? 'confirmada' : 'por_confirmar';
+
 /** A origem antiga, traduzida para a nova. Serve a migração e o que ainda não tiver mudado. */
 export const ORIGEM_ANTIGA_PARA_NOVA: Record<AreaSource, OrigemDaQuantidade> = {
   estimativa: 'estimativa',
@@ -224,7 +255,10 @@ export interface SurfaceInput {
   alturaCm: number | null;
   vaosCm2: AreaCm2 | null;
   quantidade: number;
+  /** A origem antiga, que se mantém escrita enquanto a coluna existir. */
   origem: AreaSource;
+  /** Como se chegou ao número. Null numa zona por levantar: ainda não há número nenhum. */
+  origemQuantidade: OrigemDaQuantidade | null;
   /** Trabalhos só desta zona, quando diferem dos comuns do pedido. null = os do pedido. */
   trabalhos: DesiredWork[] | null;
 }
@@ -270,23 +304,43 @@ export function parseSurface(form: FormData): { value?: SurfaceInput; errors: Fi
   const quantidade = /^\d+$/.test(qty) ? Number(qty) : Number.NaN;
   if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 500) errors.quantidade = 'Entre 1 e 500.';
 
-  if (Object.keys(errors).length === 0 && areaDireta === null && (largura === null || altura === null)) {
-    errors.area = 'Indique a área, ou a largura e a altura.';
+  // A primeira pergunta do editor decide o que é obrigatório. Sem ela — formulários antigos, ou um
+  // envio sem o campo — vale a regra de antes: área, ou largura e altura.
+  const comoMedir = String(form.get('comoMedir') ?? '');
+  const como: ComoMedir | null = (COMO_MEDIR as readonly string[]).includes(comoMedir) ? (comoMedir as ComoMedir) : null;
+  if (Object.keys(errors).length === 0) {
+    if (como === 'area' && areaDireta === null) errors.area = 'Indique a área desta zona.';
+    else if (como === 'largura_altura' && (largura === null || altura === null)) {
+      errors[largura === null ? 'largura' : 'altura'] = 'Indique a largura e a altura.';
+    } else if (como === null && areaDireta === null && (largura === null || altura === null)) {
+      errors.area = 'Indique a área, ou a largura e a altura.';
+    }
   }
   if (Object.keys(errors).length > 0) return { errors };
 
+  // «Não sei as medidas» guarda a zona sem números nenhuns: por levantar.
+  const semMedidas = como === 'nao_sei';
+  const origemNova = String(form.get('origemQuantidade') ?? '');
   const value: SurfaceInput = {
     kind: kind as SurfaceKind,
     descricao: String(form.get('descricao') ?? '').trim() || null,
-    areaDireta,
-    larguraCm: largura,
-    alturaCm: altura,
-    vaosCm2: vaos,
-    quantidade,
+    areaDireta: semMedidas || como === 'largura_altura' ? null : areaDireta,
+    larguraCm: semMedidas || como === 'area' ? null : largura,
+    alturaCm: semMedidas || como === 'area' ? null : altura,
+    vaosCm2: semMedidas || como === 'area' ? null : vaos,
+    quantidade: semMedidas ? 1 : quantidade,
     origem: origem as AreaSource,
+    origemQuantidade: semMedidas
+      ? null
+      : (ORIGENS_DA_QUANTIDADE as readonly string[]).includes(origemNova)
+        ? (origemNova as OrigemDaQuantidade)
+        : ORIGEM_ANTIGA_PARA_NOVA[origem as AreaSource],
     trabalhos: zonaTrabalhos.length > 0 ? (zonaTrabalhos as DesiredWork[]) : null,
   };
-  if (surfaceArea(value) <= 0) return { errors: { area: 'A área resultante tem de ser maior do que zero.' } };
+  // Uma zona por levantar tem área zero de propósito, e isso não é um erro: é o que se sabe dela.
+  if (!semMedidas && surfaceArea(value) <= 0) {
+    return { errors: { area: 'A área resultante tem de ser maior do que zero.' } };
+  }
   return { value, errors };
 }
 

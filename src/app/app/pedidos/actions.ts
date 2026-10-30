@@ -9,7 +9,15 @@ import type { Json } from '@/lib/database.types';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
-import { PARTICIPACOES, parseRequest, parseSurface, publishBlockers, type Participacao } from '@/domain/request';
+import {
+  PARTICIPACOES,
+  confirmacaoDaOrigem,
+  parseRequest,
+  parseSurface,
+  publishBlockers,
+  type Participacao,
+  type SurfaceInput,
+} from '@/domain/request';
 import { paraZona } from '@/lib/requests';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
@@ -131,6 +139,23 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
   if (refused) return refused;
   const { error } = await supabase.from('request_surfaces').insert({
     request_id: requestId,
+    ...colunasDaZona(v, user.id),
+  });
+  if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
+  revalidatePath(`/app/pedidos/${requestId}`);
+  return { errors: {}, ok: true };
+}
+
+/**
+ * As colunas de uma zona, a partir do que o editor enviou. Uma só função para acrescentar e para
+ * alterar: eram duas listas de campos a ter de andar a par, e andar a par é coisa que não acontece.
+ *
+ * `registado_por` e `registado_em` guardam-se sempre. O promotor pediu-o de propósito — «o registo
+ * deve conservar quem fez cada medição e quando» —, para que a revisão pelo cliente não transforme
+ * uma medida técnica em algo que se presume que ele verificou pessoalmente.
+ */
+function colunasDaZona(v: SurfaceInput, userId: string) {
+  return {
     kind: v.kind,
     descricao: v.descricao,
     area_direta_cm2: v.areaDireta,
@@ -139,11 +164,37 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
     vaos_cm2: v.areaDireta === null ? v.vaosCm2 : null,
     quantidade: v.quantidade,
     origem: v.origem,
+    origem_quantidade: v.origemQuantidade,
+    confirmacao: confirmacaoDaOrigem(v.origemQuantidade),
     trabalhos: v.trabalhos,
-  });
-  if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
+    registado_por: userId,
+    registado_em: new Date().toISOString(),
+  };
+}
+
+/** Alterar uma zona que já existe. Era o que faltava para o botão «Editar» ter o que fazer. */
+export async function updateSurface(
+  requestId: string,
+  surfaceId: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const parsed = parseSurface(form);
+  if (!parsed.value) return { errors: parsed.errors };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+
+  const v = parsed.value;
+  const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao: v.descricao });
+  if (refused) return refused;
+  const { error } = await supabase
+    .from('request_surfaces')
+    .update(colunasDaZona(v, user.id))
+    .eq('id', surfaceId)
+    .eq('request_id', requestId);
+  if (error) return { errors: {}, message: 'Não foi possível guardar. O pedido tem de estar em rascunho.' };
   revalidatePath(`/app/pedidos/${requestId}`);
-  return { errors: {}, ok: true };
+  return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
 export async function deleteSurface(requestId: string, surfaceId: string) {
