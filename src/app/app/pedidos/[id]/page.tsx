@@ -23,6 +23,9 @@ import {
 import { percursoDoPedido } from '@/domain/percurso';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
+import { PedidoEmSeccoes } from './PedidoEmSeccoes';
+import { RevisaoEPublicacao } from './RevisaoEPublicacao';
+import { estadosDasSeccoes } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
@@ -160,17 +163,28 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     <div className="space-y-8">
       <div>
         <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="text-[26px] leading-tight font-semibold">{req.titulo}</h1>
-          <span className={`rounded-full px-3 py-0.5 text-[15px] font-semibold ${status.className}`}>{status.label}</span>
-          {req.version > 1 && <span className="text-[15px] text-slate-500">versão {req.version}</span>}
-        </div>
+        {/*
+          O cabeçalho diz o nome, o estado e uma linha concreta, e mais nada. A referência e o
+          dossiê são acções de serviço: descem para o fim da linha, em letra pequena, e deixam de
+          disputar a atenção com a preparação do pedido (promotor, 30/10/2026).
+        */}
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">{req.titulo}</h1>
         <p className="mt-1 text-[17px] text-slate-600">
-          Referência pública: {req.ref} ·{' '}
+          {status.label}
+          {req.version > 1 && ` · versão ${req.version}`}
+          {' · '}
+          <span className="text-slate-500">Ref. {req.ref}</span>
+          {' · '}
           <Link href={`/app/pedidos/${req.id}/dossie`} className="text-tinta-700 hover:underline">
             Dossiê para imprimir
           </Link>
         </p>
+        {draft && (
+          <p className="mt-2 max-w-[54ch] text-[17px] text-slate-700">
+            Pode começar pelo que sabe. Se precisar, peça um levantamento profissional — não acrescenta nenhum custo à
+            obra.
+          </p>
+        )}
       </div>
 
       {draft && (suspensions ?? []).length > 0 && (

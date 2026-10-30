@@ -91,7 +91,12 @@ export function ListingPreview({ l }: { l: ListingView }) {
             className="h-32 w-full"
             legenda={false}
           />
-          <figcaption className="text-center text-[15px] text-slate-500">Volume genérico, não à escala. Arrastar para rodar.</figcaption>
+          {/* A legenda diz agora o que faltava dizer: isto **não** representa o levantamento. O
+              promotor apanhou-o a 30/10/2026 — «uma ilustração genérica não deve parecer uma
+              confirmação visual do levantamento». As medidas estão na lista de zonas, não aqui. */}
+          <figcaption className="text-center text-[15px] text-slate-500">
+            Volume genérico, não à escala. Não representa as medidas declaradas. Arrastar para rodar.
+          </figcaption>
         </figure>
       </div>
 
