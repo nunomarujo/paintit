@@ -15,9 +15,18 @@ import type { Forma } from '@/domain/volume';
  * ligava uma coisa à outra — quem lesse «Fachada tardoz, 74 m²» não tinha como confirmar, a olhar
  * para o desenho, que estava a falar da mesma parede.
  *
- * No computador ficam lado a lado, com o volume à direita e a seguir a si próprio enquanto se
- * percorre a lista. No telemóvel o volume vai para cima da lista: é a ordem em que se lê, e pô-lo
- * em baixo obrigava a saltar para trás e para a frente a cada zona.
+ * Lado a lado só a partir de 1280px, e não de 1024 como estava. **Isto foi um defeito a sério**,
+ * visto em produção a 30/10/2026: a 1024 a coluna do conteúdo tem 363px, porque a aplicação já
+ * gasta largura na sua barra lateral e a página do pedido gasta mais 224 na navegação das secções.
+ * Pedir 352 fixos para o volume não deixava nada para a lista, e as duas colunas apareciam
+ * sobrepostas — o texto das zonas a passar por baixo do cartão do desenho.
+ *
+ * O banco de ensaio não o apanhou porque desenha os componentes sozinhos, sem a barra lateral nem
+ * a navegação das secções: a 1280 sobrava-lhe largura que na aplicação verdadeira não sobra. Fica
+ * dito, porque é a limitação do banco e não um descuido pontual.
+ *
+ * Abaixo de 1280 o volume fica por cima da lista — é a ordem em que se lê, e pô-lo em baixo
+ * obrigava a saltar para trás e para a frente a cada zona.
  */
 export function ZonasComVolume({
   requestId,
@@ -65,8 +74,8 @@ export function ZonasComVolume({
   const varandas = predio.temVarandas || temZona('varandas');
 
   return (
-    <div className="lg:flex lg:items-start lg:gap-6">
-      <div className="lg:order-2 lg:w-[22rem] lg:shrink-0">
+    <div className="xl:flex xl:items-start xl:gap-6">
+      <div className="xl:order-2 xl:w-[20rem] xl:shrink-0">
         <GeometriaDoPredio
           buildingId={predio.buildingId}
           requestId={requestId}
@@ -83,7 +92,7 @@ export function ZonasComVolume({
           avisoDoRealce={zona ? avisoDoRealce(zona.kind) : null}
         />
       </div>
-      <div className="mt-5 min-w-0 flex-1 lg:order-1 lg:mt-0">
+      <div className="mt-5 min-w-0 flex-1 xl:order-1 xl:mt-0">
         <ZonasDoPedido
           requestId={requestId}
           zonas={zonas}
