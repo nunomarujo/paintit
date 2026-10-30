@@ -418,7 +418,7 @@ export default async function ProposalsPage({
               </form>
               {/* A conta, em todos os ecrãs: é a peça que responde à pergunta do cliente. */}
               <div className="mt-4">
-                <Reconciliacao a={emLado(parEsquerda)} b={emLado(parDireita)} />
+                <Reconciliacao a={emLado(parEsquerda)} b={emLado(parDireita)} caminho={`/app/pedidos/${id}/propostas`} />
               </div>
               {/* Os blocos são a vista do telemóvel; no computador a tabela completa serve melhor. */}
               <div className="mt-4 sm:hidden">

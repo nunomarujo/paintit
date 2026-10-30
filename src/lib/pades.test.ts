@@ -253,6 +253,12 @@ describe('cadeia completada por AIA (certificado do emissor não incluído no PD
     });
   }, 30_000);
 
+  // 30/10/2026: este ficheiro estava apontado como de falha intermitente. Corri-o oito vezes
+  // seguidas, verde todas; e fui ver os dois mecanismos plausíveis, que estão os dois já
+  // protegidos — o `testTimeout` são 30 s e o teste mais lento leva 200 ms, e a ida à rede do AIA
+  // tem `AbortSignal.timeout(5000)` em `pades.ts`, por isso uma ligação pendurada aborta muito
+  // antes de o teste expirar. Não mexi em nada: mudar código por palpite é pior do que deixar a
+  // suspeita escrita. Se voltar a falhar, vale a pena guardar o output — é o que falta aqui.
   it('sem conseguir ir buscar o emissor por falha de rede, fica indeterminada — nunca recusada por omissão', async () => {
     const root = await testCertificate('EC RAIZ TESTE 2');
     const inter = await intermediateSignedBy(root);

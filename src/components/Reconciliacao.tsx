@@ -1,5 +1,6 @@
 import { CAUSA_LABELS, diferencaEmPalavras, perguntas, reconciliar, type LadoDaReconciliacao, type Parcela } from '@/domain/reconciliacao';
 import { formatEuros } from '@/domain/money';
+import { PerguntasASeguir } from '@/components/PerguntasASeguir';
 
 /**
  * Porque é que uma proposta custa mais do que a outra.
@@ -17,7 +18,16 @@ import { formatEuros } from '@/domain/money';
  * Um valor escrito na proposta e um valor que a plataforma calculou por convenção não podem ter a
  * mesma aparência, e a convenção lê-se aqui, antes dos números, e não num anexo.
  */
-export function Reconciliacao({ a, b }: { a: LadoDaReconciliacao; b: LadoDaReconciliacao }) {
+export function Reconciliacao({
+  a,
+  b,
+  caminho,
+}: {
+  a: LadoDaReconciliacao;
+  b: LadoDaReconciliacao;
+  /** Onde esta secção vive, para a página se redesenhar depois de as perguntas seguirem. */
+  caminho: string;
+}) {
   const r = reconciliar(a, b);
   const d = diferencaEmPalavras(a.alias, b.alias, r, formatEuros);
   const qs = perguntas(a, b, r);
@@ -111,17 +121,7 @@ export function Reconciliacao({ a, b }: { a: LadoDaReconciliacao; b: LadoDaRecon
       {qs.length > 0 && (
         <div className="mt-4 border-t border-slate-200 pt-4">
           <h3 className="text-[17px] font-semibold">Perguntas que valem a pena fazer</h3>
-          <ul className="mt-1 space-y-3 text-[17px] text-slate-700">
-            {qs.map((q) => (
-              <li key={`${q.propostaId}-${q.texto}`}>
-                <span className="block text-[15px] font-medium text-slate-500">A perguntar a {q.alias}</span>
-                {q.texto}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-[15px] text-slate-500">
-            Pode enviá-las nas mensagens de cada proposta, sem se identificar.
-          </p>
+          <PerguntasASeguir perguntas={qs} caminho={caminho} />
         </div>
       )}
     </section>
