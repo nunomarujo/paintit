@@ -258,6 +258,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         <div className="mt-4">
           <RequestForm
             action={updateRequest.bind(null, req.id)}
+            podePublicar={!!manager && draft}
             buildings={buildings ?? []}
             initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
             disabled={!manager || !draft}

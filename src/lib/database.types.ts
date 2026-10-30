@@ -2022,6 +2022,11 @@ export type Database = {
       };
       conclude_survey: { Args: { p_survey_id: string }; Returns: undefined };
       cancel_survey: { Args: { p_survey_id: string }; Returns: undefined };
+      // Migração 20261030140000. Acrescentada à mão, como o resto deste ficheiro.
+      reabrir_levantamento: {
+        Args: { p_request: string };
+        Returns: Database['public']['Tables']['request_surveys']['Row'];
+      };
       survey_vendor_rating: { Args: { p_user: string }; Returns: { n: number; media: number | null }[] };
       survey_preview: { Args: { p_survey_id: string }; Returns: { concelho: string; tipo_obra: string }[] };
       survey_request_redemption: { Args: { p_org: string }; Returns: string };

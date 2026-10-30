@@ -2,7 +2,7 @@
 
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
-import { cancelSurveyHelp, rateSurveyVendor } from './survey-actions';
+import { cancelSurveyHelp, pedirLevantamento, rateSurveyVendor } from './survey-actions';
 
 export interface SurveyInfo {
   id: string;
@@ -28,8 +28,43 @@ const ratingText = (r: { n: number; media: number | null }) =>
  * acontecer para pedidos de antes desta mudança que o backfill da migração já cobriu — por segurança,
  * não mostra nada em vez de um erro. Desistido/expirado: também não mostra nada. */
 export function RequestSurveyCard({ requestId, survey }: { requestId: string; survey: SurveyInfo | null }) {
-  if (!survey || survey.status === 'cancelado' || survey.status === 'expirado') return null;
+  // Sem vaga activa, o cartão **não desaparece**: oferece-a. Era este o defeito — desistir fechava
+  // a porta, e a porta é precisamente a saída de que o cliente precisa quando fica com
+  // dificuldades (promotor, 30/10/2026).
+  if (!survey || survey.status === 'cancelado' || survey.status === 'expirado') {
+    return <PedirAjuda requestId={requestId} jaDesistiu={!!survey} />;
+  }
   return <ActiveSurveyStatus requestId={requestId} survey={survey} />;
+}
+
+/**
+ * Preencher dados e pedir ajuda **não são alternativas incompatíveis**. O cliente pode começar
+ * sozinho, pedir ajuda a meio, e continuar a acrescentar informação enquanto espera.
+ *
+ * A confirmação existe para dizer a única coisa que ele teme ao carregar: que perde o que escreveu.
+ * Não perde.
+ */
+function PedirAjuda({ requestId, jaDesistiu }: { requestId: string; jaDesistiu: boolean }) {
+  const pedir = useFormAction<FormState>(pedirLevantamento.bind(null, requestId), { errors: {} });
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">Precisa de ajuda para preparar o pedido?</h2>
+      <p className="mt-1 text-slate-700">
+        Pode começar com o que sabe. Um profissional qualificado visita o imóvel e completa as medições, as fotografias
+        e os trabalhos — e os dados que já introduziu ficam, e servem-lhe de referência.{' '}
+        <strong>Não acrescenta nenhum custo à obra.</strong>
+      </p>
+      {jaDesistiu && (
+        <p className="mt-2 text-slate-600">Tinha preferido preencher sozinho. Pode mudar de ideias quando quiser.</p>
+      )}
+      <form {...pedir.formProps} className="mt-3">
+        {msg(pedir.state)}
+        <button type="submit" disabled={pedir.pending} className="btn-primary">
+          {pedir.pending ? 'A pedir…' : 'Pedir levantamento'}
+        </button>
+      </form>
+    </section>
+  );
 }
 
 function ActiveSurveyStatus({ requestId, survey }: { requestId: string; survey: SurveyInfo }) {

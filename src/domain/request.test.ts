@@ -290,3 +290,33 @@ describe('as zonas e a publicação', () => {
     expect(r).toEqual([]);
   });
 });
+
+describe('o contexto do pedido, em vez da contagem de caracteres', () => {
+  const base = {
+    prazoPropostas: '2026-11-30',
+    today: '2026-10-30',
+    zonas: [{ areaCm2: 16150, participacao: 'incluida' as const, origemDaQuantidade: 'medicao' as const, confirmacao: 'confirmada' as const }],
+  };
+  const falta = (r: { texto: string }[]) => r.some((x) => x.texto.includes('Diga o que pretende fazer'));
+
+  it('uma descrição curta e clara publica: trinta caracteres não são uma medida de qualidade', () => {
+    // «Pintar o prédio todo por fora» tem 29 caracteres e diz mais do que muitos parágrafos.
+    expect(bloqueiosDaPublicacao({ ...base, descricao: 'Pintar o prédio todo por fora' })).toEqual([]);
+  });
+
+  it('sem descrição mas com trabalhos escolhidos, o pedido tem contexto', () => {
+    const r = bloqueiosDaPublicacao({ ...base, descricao: '   ', trabalhos: ['pintura', 'reparacao_fissuras'] });
+    expect(falta(r)).toBe(false);
+  });
+
+  it('sem descrição e sem trabalhos, não se sabe o que o cliente quer', () => {
+    const r = bloqueiosDaPublicacao({ ...base, descricao: '', trabalhos: [] });
+    expect(falta(r)).toBe(true);
+    expect(r.find((x) => x.texto.includes('Diga o que pretende'))!.de).toBe('cliente');
+  });
+
+  it('nenhum bloqueio fala de caracteres', () => {
+    const r = bloqueiosDaPublicacao({ ...base, descricao: '', trabalhos: [] });
+    expect(r.map((x) => x.texto).join(' ')).not.toContain('caracteres');
+  });
+});

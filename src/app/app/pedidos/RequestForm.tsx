@@ -40,10 +40,12 @@ interface Props {
   buildings: { id: string; nome_interno: string }[];
   initial?: RequestInitial;
   disabled?: boolean;
+  /** Mostra o «Guardar e publicar» ao lado do «Guardar». Só num rascunho, e só a quem o gere. */
+  podePublicar?: boolean;
   references?: ProdutoEscolhivel[];
 }
 
-export function RequestForm({ action: submit, buildings, initial, disabled, references = [] }: Props) {
+export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const { state, pending, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
@@ -211,13 +213,23 @@ export function RequestForm({ action: submit, buildings, initial, disabled, refe
         </p>
       )}
       {!disabled && (
-        <button
-          type="submit"
-          disabled={pending}
-          className="btn-primary"
-        >
-          {pending ? 'A guardar…' : initial ? 'Guardar' : 'Criar pedido'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={pending} className="btn-primary">
+            {pending ? 'A guardar…' : initial ? 'Guardar' : 'Criar pedido'}
+          </button>
+          {/*
+            Um segundo `submit` **deste mesmo formulário**, e não um botão noutro sítio da página.
+            É a correcção do defeito de 30/10/2026: o texto novo vivia aqui, o botão de publicar
+            vivia noutro formulário, e ao ser carregado só enviava o seu — o servidor validava a
+            descrição antiga e recusava com razão, enquanto do lado de cá o botão parecia avariado.
+            `useFormAction` já inclui o botão carregado nos dados enviados.
+          */}
+          {podePublicar && (
+            <button type="submit" name="accao" value="publicar" disabled={pending} className="btn-secondary">
+              {pending ? 'A guardar…' : 'Guardar e publicar'}
+            </button>
+          )}
+        </div>
       )}
     </form>
   );

@@ -328,6 +328,11 @@ export function revealingContent(text: string): string[] {
 
 export interface PublishCheckInput {
   descricao: string;
+  /**
+   * Os trabalhos que o cliente escolheu. Entram na verificação do contexto: quem marcou «pintura» e
+   * «reparação de fissuras» já disse o que quer, mesmo que não escreva um parágrafo sobre isso.
+   */
+  trabalhos?: readonly string[];
   /** Outros textos que chegam aos pintores (descrições das superfícies, cor). */
   otherTexts?: string[];
   prazoPropostas: string | null; // AAAA-MM-DD
@@ -374,7 +379,13 @@ export function bloqueiosDaPublicacao(input: PublishCheckInput): Bloqueio[] {
       de: 'cliente',
     });
   }
-  if (input.descricao.trim().length < 30) out.push({ texto: 'Descreva a obra em pelo menos 30 caracteres.', de: 'cliente' });
+  // A contagem de caracteres saiu a 30/10/2026, por decisão do promotor. Trinta caracteres não são
+  // uma medida de qualidade — «pintar o prédio todo por fora» tem vinte e nove e diz mais do que
+  // muitos parágrafos. O que o pedido precisa é de **contexto suficiente**, e esse pode vir das
+  // respostas estruturadas tanto como da descrição: quem marcou os trabalhos já disse o que quer.
+  if (input.descricao.trim().length === 0 && (input.trabalhos ?? []).length === 0) {
+    out.push({ texto: 'Diga o que pretende fazer: escolha os trabalhos ou descreva a obra.', de: 'cliente' });
+  }
   const revealing = [...new Set([input.descricao, ...(input.otherTexts ?? [])].flatMap(revealingContent))];
   if (revealing.length > 0) {
     out.push({

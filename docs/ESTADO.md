@@ -1743,3 +1743,40 @@ on conflict (version) do nothing;
 
 Sem ela, um `supabase db push` tenta aplicar a migração outra vez. É inofensivo — a migração é toda
 `if not exists` —, mas a lista fica a mentir sobre o que já correu.
+
+## O botão que parecia avariado (30/10/2026)
+
+O promotor escrevia cem caracteres na descrição, carregava em publicar, e o bloqueio dos trinta
+caracteres continuava lá. **A causa não era a validação: eram dois formulários.** O texto novo vivia
+no formulário dos dados do pedido; o botão de publicar vivia noutro, mais abaixo na página, e ao ser
+carregado só enviava o seu. O servidor lia a descrição **guardada** — a antiga — e recusava com
+razão. Do lado de cá, o botão parecia avariado.
+
+Passou a haver um gesto só: «Guardar e publicar» é um segundo `submit` do mesmo formulário
+(`useFormAction` já inclui o botão carregado nos dados enviados), e a acção grava o que está no ecrã
+antes de validar o que ficou gravado. Nunca se valida uma versão que o cliente já não tem à frente.
+
+A contagem dos trinta caracteres saiu. No lugar fica o contexto, que pode vir das respostas
+estruturadas tanto como da descrição: quem marcou «pintura» e «reparação de fissuras» já disse o que
+quer.
+
+## Desistir da ajuda deixou de ser definitivo (30/10/2026)
+
+O cartão da ajuda desaparecia assim que o cliente escolhia «prefiro preencher sozinho», e não havia
+volta: a vaga ficava `cancelado`, e as políticas só deixam o cliente **inserir** uma vaga nova — que
+o `unique (request_id)` impede. Era ao contrário do que faz sentido; é precisamente a saída de que
+ele precisa quando fica com dificuldades.
+
+Sem vaga activa, o cartão passa a oferecê-la. A função `reabrir_levantamento` reabre a vaga sem
+tocar nos dados do pedido, e nunca cria uma segunda para o mesmo pedido.
+
+**Por correr no painel** (a migração `20261030140000_pedir_ajuda_outra_vez` passa nos testes mas não
+pode ser aplicada daqui):
+
+```sql
+-- O conteúdo de supabase/migrations/20261030140000_pedir_ajuda_outra_vez.sql,
+-- e a seguir as duas linhas do registo:
+insert into supabase_migrations.schema_migrations (version, name)
+values ('20261030140000', 'pedir_ajuda_outra_vez')
+on conflict (version) do nothing;
+```

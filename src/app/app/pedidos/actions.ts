@@ -99,6 +99,24 @@ export async function updateRequest(requestId: string, _prev: FormState, form: F
     return { errors: {}, message: 'Não foi possível guardar. Um pedido publicado tem de voltar a rascunho para ser alterado.' };
   }
   revalidatePath(`/app/pedidos/${requestId}`);
+
+  /*
+   * O botão «Guardar e publicar» é um segundo `submit` deste mesmo formulário, e chega aqui no
+   * campo `accao`. É a correcção do defeito que o promotor relatou a 30/10/2026: escrevia cem
+   * caracteres na descrição, carregava em publicar, e o bloqueio continuava lá.
+   *
+   * A causa não era a validação: eram **dois formulários**. O texto novo vivia no formulário dos
+   * dados; o botão de publicar vivia noutro, e ao ser carregado só enviava o seu. O servidor lia a
+   * descrição **guardada** — a antiga — e recusava com razão. Do lado de cá, o botão parecia
+   * avariado.
+   *
+   * Agora é um gesto só: grava-se o que está no ecrã e valida-se o que ficou gravado. Nunca se
+   * valida uma versão que o cliente já não tem à frente.
+   */
+  if (String(form.get('accao') ?? '') === 'publicar') {
+    const r = await publishRequest(requestId);
+    return r.ok ? r : { ...r, message: r.message ?? 'Guardado, mas falta alguma coisa para publicar.' };
+  }
   return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
@@ -161,7 +179,7 @@ export async function publishRequest(requestId: string): Promise<FormState> {
   if (!user) return NOT_SIGNED_IN;
 
   const [{ data: req }, { data: surfaces }] = await Promise.all([
-    supabase.from('work_requests').select('descricao, prazo_propostas, cor_acabamento, status').eq('id', requestId).maybeSingle(),
+    supabase.from('work_requests').select('descricao, prazo_propostas, cor_acabamento, status, trabalhos').eq('id', requestId).maybeSingle(),
     supabase
       .from('request_surfaces')
       .select('area_cm2, descricao, origem, participacao, origem_quantidade, confirmacao')
@@ -171,6 +189,7 @@ export async function publishRequest(requestId: string): Promise<FormState> {
 
   const blockers = publishBlockers({
     descricao: req.descricao,
+    trabalhos: req.trabalhos ?? [],
     otherTexts: [req.cor_acabamento ?? '', ...(surfaces ?? []).map((s) => s.descricao ?? '')],
     prazoPropostas: req.prazo_propostas,
     zonas: (surfaces ?? []).map(paraZona),
