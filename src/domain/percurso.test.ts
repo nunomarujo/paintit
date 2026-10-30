@@ -16,10 +16,15 @@ const p = (o: Partial<EntradaDoPercurso> = {}): EntradaDoPercurso => ({
 });
 
 describe('o percurso do pedido, e de quem é a vez', () => {
-  it('com visita pedida, a vez é do profissional e as medidas não são do cliente', () => {
+  it('vaga aberta não é profissional a caminho, e o texto não o promete', () => {
+    // Correcção do promotor, 30/10/2026: «no primeiro estado ainda ninguém reservou, mas o texto
+    // promete "um profissional vai visitar"».
     const r = percursoDoPedido(p());
     expect(r.fase).toBe('visita_pedida');
-    expect(r.vez).toBe('profissional');
+    expect(r.vez).toBe('a_aguardar_profissional');
+    expect(r.titulo).toBe('A procurar um profissional para o levantamento');
+    expect(r.explicacao).toContain('Ainda não há profissional atribuído nem data marcada');
+    expect(r.explicacao).not.toContain('vai visitar');
     expect(r.tecnicoPertenceAoCliente).toBe(false);
   });
 
@@ -30,7 +35,7 @@ describe('o percurso do pedido, e de quem é a vez', () => {
       const r = percursoDoPedido(p({ levantamento: { status: estado, marcadoPara: null } }));
       expect(r.tecnicoPertenceAoCliente).toBe(false);
       expect(r.explicacao.toLowerCase()).not.toContain('falta');
-      expect(r.explicacao).toContain('Não precisa de indicar as medidas');
+      expect(r.explicacao).toMatch(/Não precisa de (indicar|preencher) as medidas/);
     }
   });
 
@@ -44,7 +49,11 @@ describe('o percurso do pedido, e de quem é a vez', () => {
   it('reservado com data é «visita marcada»', () => {
     const r = percursoDoPedido(p({ levantamento: { status: 'reservado', marcadoPara: '2026-11-04T10:00:00Z' } }));
     expect(r.titulo).toBe('Visita marcada');
-    expect(r.vez).toBe('profissional');
+    expect(r.vez).toBe('a_aguardar_profissional');
+  });
+
+  it('sem data combinada, o que se aguarda é a marcação e não o profissional', () => {
+    expect(percursoDoPedido(p({ levantamento: { status: 'reservado', marcadoPara: null } })).vez).toBe('a_aguardar_marcacao');
   });
 
   it('entregue o levantamento, a vez passa ao cliente — e o técnico passa a ser dele', () => {
@@ -128,10 +137,16 @@ describe('a régua das etapas', () => {
   });
 
   it('a régua avança com a fase, e nunca anda para trás', () => {
-    const ordem = ['visita_pedida', 'visita_marcada', 'levantamento_entregue', 'pronto_a_publicar', 'a_receber_propostas'] as const;
+    const ordem = ['visita_pedida', 'visita_marcada', 'levantamento_entregue', 'a_receber_propostas'] as const;
     const pos = ordem.map((f) => etapaAtingida(f));
     expect(pos).toEqual([...pos].sort((a, b) => a - b));
-    expect(new Set(pos).size).toBe(ordem.length);
+  });
+
+  it('entregue o levantamento, a etapa activa é a revisão e o levantamento fica cumprido', () => {
+    // Correcção do promotor, 30/10/2026: «na imagem, o levantamento continua como etapa actual,
+    // embora já tenha sido entregue».
+    expect(ETAPAS[etapaAtingida('levantamento_entregue')]!.nome).toBe('Revisão');
+    expect(etapaAtingida('levantamento_entregue')).toBe(etapaAtingida('pronto_a_publicar'));
   });
 
   it('um pedido sem visita usa a régua curta: as etapas que não vão acontecer não se mostram', () => {
@@ -142,5 +157,36 @@ describe('a régua das etapas', () => {
     expect(etapaAtingida('a_preencher', ETAPAS_SEM_VISITA)).toBe(0);
     expect(etapaAtingida('pronto_a_publicar', ETAPAS_SEM_VISITA)).toBe(1);
     expect(etapaAtingida('a_receber_propostas', ETAPAS_SEM_VISITA)).toBe(2);
+  });
+});
+
+describe('cada estado tem uma acção, e só se tiver alguma coisa atrás', () => {
+  it('todos os estados em que alguém pode mexer têm acção', () => {
+    const casos: EntradaDoPercurso[] = [
+      p(),
+      p({ levantamento: { status: 'reservado', marcadoPara: null } }),
+      p({ levantamento: { status: 'concluido', marcadoPara: null } }),
+      p({ levantamento: null }),
+      p({ levantamento: null, bloqueiosDaPublicacao: 0 }),
+      p({ estadoDoPedido: 'publicado' }),
+    ];
+    for (const c of casos) expect(percursoDoPedido(c).accao).not.toBeNull();
+  });
+
+  it('um pedido fechado não oferece acção nenhuma', () => {
+    expect(percursoDoPedido(p({ estadoDoPedido: 'cancelado' })).accao).toBeNull();
+    expect(percursoDoPedido(p({ estadoDoPedido: 'encerrado' })).accao).toBeNull();
+  });
+
+  it('o texto da acção diz o que vai acontecer, não «continuar»', () => {
+    expect(percursoDoPedido(p({ levantamento: { status: 'concluido', marcadoPara: null } })).accao!.texto).toBe('Rever levantamento');
+    expect(percursoDoPedido(p({ levantamento: null, bloqueiosDaPublicacao: 0 })).accao!.texto).toBe('Rever e publicar');
+  });
+
+  it('publicado, o estado deixa de prometer que não há nada a fazer', () => {
+    // Pode haver esclarecimentos a responder (promotor, 30/10/2026).
+    const r = percursoDoPedido(p({ estadoDoPedido: 'publicado' }));
+    expect(r.explicacao).not.toContain('não há nada a fazer');
+    expect(r.explicacao).toContain('esclarecimento');
   });
 });

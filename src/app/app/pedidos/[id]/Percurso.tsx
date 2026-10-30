@@ -1,4 +1,5 @@
-import { etapaAtingida, etapasDoPedido, type EstadoDoPercurso } from '@/domain/percurso';
+import { VEZ_LABELS, etapaAtingida, etapasDoPedido, type AlvoDaAccao, type EstadoDoPercurso } from '@/domain/percurso';
+import Link from 'next/link';
 
 /**
  * O estado do pedido, no topo da página: o que já aconteceu, quem actua agora, e o que vem a
@@ -15,23 +16,27 @@ import { etapaAtingida, etapasDoPedido, type EstadoDoPercurso } from '@/domain/p
  */
 export function Percurso({
   estado,
+  requestId,
   marcadoPara,
   houveLevantamento = true,
 }: {
   estado: EstadoDoPercurso;
+  requestId: string;
   marcadoPara?: string | null;
   /** Houve pedido de visita? Sem ele, a régua não mostra as etapas que nunca vão acontecer. */
   houveLevantamento?: boolean;
 }) {
   const etapas = etapasDoPedido(houveLevantamento);
   const actual = etapaAtingida(estado.fase, etapas);
-  const porDizer: Record<EstadoDoPercurso['vez'], string | null> = {
-    profissional: 'Com o profissional do levantamento',
-    cliente: 'Consigo',
-    pintores: 'Com os pintores',
-    ninguem: null,
+  const vez = VEZ_LABELS[estado.vez];
+  // O domínio escolhe o destino; o endereço monta-se aqui, que é onde se sabe como se chamam as
+  // secções e as rotas.
+  const endereco: Record<AlvoDaAccao, string> = {
+    pedido_de_visita: '#pedido-de-visita',
+    levantamento: '#levantamento-da-obra',
+    publicar: '#publicar',
+    propostas: `/app/pedidos/${requestId}/propostas`,
   };
-  const vez = porDizer[estado.vez];
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -80,6 +85,14 @@ export function Percurso({
           );
         })}
       </ol>
+
+      {estado.accao && (
+        <p className="mt-4">
+          <Link href={endereco[estado.accao.alvo]} className="btn-primary">
+            {estado.accao.texto}
+          </Link>
+        </p>
+      )}
     </section>
   );
 }

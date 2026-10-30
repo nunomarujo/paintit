@@ -167,7 +167,12 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </section>
       )}
 
-      <Percurso estado={percurso} marcadoPara={surveyRow?.scheduled_at ?? null} houveLevantamento={!!surveyRow} />
+      <Percurso
+        estado={percurso}
+        requestId={req.id}
+        marcadoPara={surveyRow?.scheduled_at ?? null}
+        houveLevantamento={!!surveyRow}
+      />
 
       {req.status !== 'rascunho' && (
         <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
@@ -246,7 +251,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </div>
       </section>
 
-      {manager && draft && <RequestSurveyCard requestId={req.id} survey={survey} />}
+      {manager && draft && (
+        <div id="pedido-de-visita" className="scroll-mt-6">
+          <RequestSurveyCard requestId={req.id} survey={survey} />
+        </div>
+      )}
 
       {(adendas ?? []).length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -254,7 +263,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </section>
       )}
 
-      <section className={card}>
+      <section id="levantamento-da-obra" className={`${card} scroll-mt-6`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">{tecnicoDoCliente ? 'Superfícies e áreas' : 'Levantamento da obra'}</h2>
           {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
@@ -389,7 +398,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
           }}
         />
-        {manager && draft && <PublishButton requestId={req.id} blockers={blockers} aguardaLevantamento={!tecnicoDoCliente} />}
+        {manager && draft && (
+          <div id="publicar" className="scroll-mt-6">
+            <PublishButton requestId={req.id} blockers={blockers} aguardaLevantamento={!tecnicoDoCliente} />
+          </div>
+        )}
       </section>
     </div>
   );
