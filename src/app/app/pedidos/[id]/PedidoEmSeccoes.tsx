@@ -158,3 +158,27 @@ export function PedidoEmSeccoes({
     </SeccaoActiva.Provider>
   );
 }
+
+/**
+ * Conteúdo que só aparece em certas secções — mas que **continua montado** nas outras.
+ *
+ * É para o formulário dos dados do pedido, que vive em duas secções e não pode ser desmontado ao
+ * mudar de secção: desmontá-lo perdia o que estivesse escrito e por preencher. `hidden` esconde
+ * sem destruir, e é essa a diferença toda.
+ */
+export function CaixaDaSeccao({
+  seccoes,
+  className,
+  children,
+}: {
+  seccoes: readonly SeccaoId[];
+  className?: string;
+  children: ReactNode;
+}) {
+  const activa = useSeccaoActiva();
+  return (
+    <div hidden={!seccoes.includes(activa)} className={className}>
+      {children}
+    </div>
+  );
+}

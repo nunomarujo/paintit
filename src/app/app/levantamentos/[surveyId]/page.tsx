@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { PhotoUpload } from '@/app/app/pedidos/[id]/PhotoUpload';
+import { Fotografias } from '@/app/app/pedidos/[id]/Fotografias';
 import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
 import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
@@ -42,9 +42,16 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
   const [{ data: building }, { data: surfaces }, { data: photos }] = await Promise.all([
     supabase.from('buildings').select('morada, codigo_postal, localidade, concelho, pisos, fachadas, tem_varandas').eq('id', request.building_id).maybeSingle(),
     supabase.from('request_surfaces').select('*').eq('request_id', request.id).order('created_at'),
-    supabase.from('request_photos').select('id, kind, legenda').eq('request_id', request.id).order('created_at'),
+    supabase.from('request_photos').select('*').eq('request_id', request.id).order('created_at'),
   ]);
   const list = surfaces ?? [];
+  // Ver `fotosPorZona` em app/pedidos/[id]/page.tsx: a coluna `zona_id` entrou a 30/10/2026 e, até a
+  // migração estar aplicada, pedi-la devolve erro. Sem ela, a galeria aparece sem zonas.
+  const { error: faltaZonaNasFotos } = await supabase
+    .from('request_photos')
+    .select('zona_id', { head: true, count: 'exact' })
+    .eq('request_id', request.id)
+    .limit(1);
   const total = list.reduce((n, s) => n + s.area_cm2, 0);
   const done = survey.status === 'concluido';
 
@@ -152,24 +159,28 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
             a partir das fotografias.
           </p>
         )}
-        {(photos ?? []).length > 0 && (
-          <ul className="mt-4 grid gap-4 sm:grid-cols-3">
-            {(photos ?? []).map((p) => (
-              <li key={p.id} className="text-[17px]">
-                <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado */}
-                  <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Fotografia'} className="aspect-square w-full rounded-lg object-cover" />
-                </a>
-                <p className="mt-1">{p.legenda ?? (p.kind === 'geral' ? 'Geral' : 'Pormenor')}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-        {!done && (
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <PhotoUpload requestId={request.id} />
-          </div>
-        )}
+        <div className="mt-4">
+          {/*
+            A mesma galeria do cliente, e de propósito: quem está no prédio é quem sabe de que zona
+            é cada fotografia, e escolher doze imagens de uma vez é o que faz sentido em obra. A base
+            de dados deixa o vendedor do levantamento corrigir legenda e zona (migração
+            `fotografias_por_zona`), não só juntar e apagar.
+          */}
+          <Fotografias
+            requestId={request.id}
+            fotografias={(photos ?? []).map((f) => ({
+              id: f.id,
+              kind: f.kind,
+              legenda: f.legenda,
+              revisao: f.revisao,
+              notas_revisao: f.notas_revisao,
+              zonaId: f.zona_id ?? null,
+            }))}
+            zonas={list.map((s) => ({ id: s.id, nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind] }))}
+            podeEditar={!done}
+            porZona={!faltaZonaNasFotos}
+          />
+        </div>
       </section>
 
 

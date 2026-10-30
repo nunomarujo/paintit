@@ -1,18 +1,14 @@
 import type { Forma } from '@/domain/volume';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { changeRequestStatus, deletePhoto, updateRequest } from '@/app/app/pedidos/actions';
+import { changeRequestStatus, updateRequest } from '@/app/app/pedidos/actions';
 import { parsePreferences } from '@/domain/reference';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
-import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import {
-  CONFIRMACAO_LABELS,
   DESIRED_WORK_LABELS,
-  ORIGEM_DA_QUANTIDADE_LABELS,
-  PARTICIPACAO_LABELS,
   SURFACE_KIND_LABELS,
   bloqueiosDaPublicacao,
   formatArea,
@@ -23,7 +19,7 @@ import {
 import { percursoDoPedido } from '@/domain/percurso';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
-import { PedidoEmSeccoes } from './PedidoEmSeccoes';
+import { CaixaDaSeccao, PedidoEmSeccoes } from './PedidoEmSeccoes';
 import { RevisaoEPublicacao } from './RevisaoEPublicacao';
 import { estadosDasSeccoes, primeiraPendencia } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -32,7 +28,7 @@ import { BRAND } from '@/config/brand';
 import { qrCodeSvg } from '@/lib/qrcode';
 import { escolhivel, loadReferences, preferredView } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
-import { PhotoUpload } from './PhotoUpload';
+import { Fotografias } from './Fotografias';
 import { ProlongarPrazo } from './ProlongarPrazo';
 import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
@@ -64,7 +60,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     supabase.from('buildings').select('concelho, tipo, pisos, fachadas, tem_varandas, forma_implantacao').eq('id', req.building_id).single(),
     supabase.from('buildings').select('id, nome_interno').eq('org_id', req.org_id).order('nome_interno'),
     supabase.from('request_surfaces').select('*').eq('request_id', id).order('created_at'),
-    supabase.from('request_photos').select('id, kind, legenda, revisao, notas_revisao').eq('request_id', id).order('created_at'),
+    supabase.from('request_photos').select('*').eq('request_id', id).order('created_at'),
     supabase.from('proposals').select('id', { count: 'exact', head: true }).eq('request_id', id).neq('status', 'rascunho'),
   ]);
   const { data: suspensions } = await supabase
@@ -166,6 +162,67 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     prazoPropostas: req.prazo_propostas,
     bloqueios: blockers,
   });
+
+
+  // A galeria associa fotografias a zonas. A coluna `zona_id` entrou a 30/10/2026 (migração
+  // `fotografias_por_zona`) e, enquanto não estiver aplicada num ambiente, pedi-la devolve erro —
+  // por isso pergunta-se primeiro. Sem a coluna, a galeria aparece sem zonas, em vez de rebentar na
+  // gravação. Esta pergunta sai daqui quando a migração estiver aplicada em todos os ambientes.
+  const { error: faltaZonaNasFotos } = await supabase
+    .from('request_photos')
+    .select('zona_id', { head: true, count: 'exact' })
+    .eq('request_id', id)
+    .limit(1);
+  const fotosPorZona = !faltaZonaNasFotos;
+
+  // O que os pintores vão ver: é a pré-visualização do anúncio, e é também o que fica debaixo da
+  // lista do que falta para publicar. Fica numa variável porque serve nos dois sítios.
+  const oQueOsPintoresVeem = (
+  <section className="space-y-4">
+    <div>
+      <h2 className="font-semibold">O que os pintores vão ver</h2>
+      <p className="text-[17px] text-slate-600">
+        Sem morada, sem nomes e sem o nome interno do pedido. A identificação só é revelada depois da escolha.
+      </p>
+    </div>
+    <ListingPreview
+      l={{
+        ref: req.ref,
+        tipoObra: req.tipo_obra,
+        tiposObra: req.tipos_obra,
+        datasFlexiveis: req.datas_flexiveis,
+        concelho: building.concelho,
+        tipoImovel: building.tipo,
+        pisos: building.pisos,
+        fachadas: building.fachadas,
+        temVarandas: building.tem_varandas,
+        forma: (building.forma_implantacao as Forma | null) ?? null,
+        janelas: {
+          frente: janelas?.janelas_frente ?? null,
+          esquerda: janelas?.janelas_esquerda ?? null,
+          direita: janelas?.janelas_direita ?? null,
+          tras: janelas?.janelas_tras ?? null,
+        },
+        descricao: req.descricao,
+        trabalhos: req.trabalhos,
+        corAcabamento: req.cor_acabamento,
+        prazoPropostas: req.prazo_propostas,
+        execucaoDesde: req.execucao_desde,
+        execucaoAte: req.execucao_ate,
+        surfaces: list.map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+        trabalhosModo: req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
+        ocupacaoViaPublica: req.ocupacao_via_publica,
+        preferidos: await preferredView(supabase, req.produtos_preferidos),
+        photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
+      }}
+    />
+    {manager && draft && (
+      <div id="publicar" className="scroll-mt-6">
+        <PublishButton requestId={req.id} blockers={blockers} aguardaLevantamento={!tecnicoDoCliente} />
+      </div>
+    )}
+  </section>
+  );
 
   return (
     <div className="space-y-8">
@@ -277,177 +334,184 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       {manager && req.status === 'publicado' && <RequestInvites requestId={req.id} invites={invites} />}
 
-      <section className={card}>
-        <h2 className="font-semibold">Dados do pedido</h2>
-        <div className="mt-4">
-          <RequestForm
-            action={updateRequest.bind(null, req.id)}
-            podePublicar={!!manager && draft}
-            buildings={buildings ?? []}
-            initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
-            disabled={!manager || !draft}
-            references={(await loadReferences(supabase)).map(escolhivel)}
-          />
-        </div>
-      </section>
-
-      {manager && draft && (
-        <div id="pedido-de-visita" className="scroll-mt-6">
-          <RequestSurveyCard requestId={req.id} survey={survey} />
-        </div>
-      )}
-
-      {(adendas ?? []).length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <SurveyAddenda addenda={adendas!} />
-        </section>
-      )}
-
-      <section id="levantamento-da-obra" className={`${card} scroll-mt-6`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">{tecnicoDoCliente ? 'Zonas e medidas' : 'Levantamento da obra'}</h2>
-          {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
-              errada (promotor, 29/10/2026). */}
-          <span className="text-[17px] text-slate-600">
-            {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
-          </span>
-        </div>
-        {!tecnicoDoCliente && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            Será preenchido pelo profissional que fizer a visita. Pode acrescentar o que souber, mas não precisa de
-            indicar medidas nenhumas.
-          </p>
-        )}
-        {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            {[
-              resumo.semQuantidade > 0
-                ? `${resumo.semQuantidade} ${resumo.semQuantidade === 1 ? 'zona' : 'zonas'} por levantar`
-                : '',
-              resumo.porConfirmar > 0
-                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar`
-                : '',
-              resumo.excluidas > 0
-                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora, e por isso fora do total`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            .
-          </p>
-        )}
-        <div className="mt-4">
-          <ZonasDoPedido
-            requestId={req.id}
-            zonas={list.map((s) => ({
-              id: s.id,
-              kind: s.kind,
-              descricao: s.descricao,
-              areaCm2: s.area_cm2,
-              areaDiretaCm2: s.area_direta_cm2,
-              larguraCm: s.largura_cm,
-              alturaCm: s.altura_cm,
-              vaosCm2: s.vaos_cm2,
-              quantidade: s.quantidade,
-              participacao: paraZona(s).participacao,
-              origemDaQuantidade: paraZona(s).origemDaQuantidade,
-              confirmacao: paraZona(s).confirmacao,
-              trabalhos: s.trabalhos,
-            }))}
-            modo={req.trabalhos_modo as WorksMode}
-            podeEditar={!!manager && draft}
-            doCliente={tecnicoDoCliente}
-          />
-        </div>
-      </section>
-
-      <section className={card}>
-        <h2 className="font-semibold">Fotografias</h2>
-        {/*
-          A explicação encurtou e deixou de misturar dois regimes. O promotor apanhou a
-          contradição a 30/10/2026: o aviso dizia que **nenhuma** fotografia podia identificar o
-          prédio, quando as gerais são privadas e nunca saem daqui. O aviso restritivo passou para
-          onde pertence — a escolha de «pormenor», que é a que pode ir para o anúncio.
-        */}
-        <p className="mt-1 text-[17px] text-slate-600">
-          As fotografias ajudam a preparar o levantamento. Só as imagens aprovadas para divulgação serão mostradas aos
-          pintores. A localização e os dados do aparelho são retirados de todas.
-        </p>
-        {(photos ?? []).length > 0 && (
-          <ul className="mt-4 grid gap-4 sm:grid-cols-3">
-            {(photos ?? []).map((p) => (
-              <li key={p.id} className="text-[17px]">
-                <a href={`/app/fotos/${p.id}`} target="_blank" rel="noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- link temporário assinado */}
-                  <img src={`/app/fotos/${p.id}`} alt={p.legenda ?? 'Fotografia'} className="aspect-square w-full rounded-lg object-cover" />
-                </a>
-                <p className="mt-1">{p.legenda ?? (p.kind === 'geral' ? 'Geral' : 'Pormenor')}</p>
-                <p className="text-slate-500">
-                  {p.kind === 'geral' ? 'Privada' : PHOTO_REVIEW_LABELS[p.revisao ?? 'pendente']}
-                  {p.revisao === 'rejeitada' && p.notas_revisao ? `: ${p.notas_revisao}` : ''}
+      {/*
+        As seis secções, finalmente montadas. A 30/10/2026 o promotor exigiu que «os separadores
+        troquem o conteúdo visível, não apenas saltem para pontos de uma página interminável», e o
+        `PedidoEmSeccoes` foi escrito para isso — mas a página continuou a desenhar tudo seguido e o
+        componente ficou importado e nunca usado. Era uma exigência dada por cumprida sem o estar.
+        Está aqui o que faltava: cada secção recebe o seu conteúdo, e só uma se vê de cada vez.
+      */}
+      <PedidoEmSeccoes
+        estados={estadosSeccoes}
+        inicial={draft ? (primeiraPendencia(estadosSeccoes) ?? 'resumo') : 'resumo'}
+        formulario={
+          <CaixaDaSeccao seccoes={['pretende', 'preferencias']} className={card}>
+              <RequestForm
+                action={updateRequest.bind(null, req.id)}
+                podePublicar={!!manager && draft}
+                buildings={buildings ?? []}
+                initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
+                disabled={!manager || !draft}
+                references={(await loadReferences(supabase)).map(escolhivel)}
+              />
+          </CaixaDaSeccao>
+        }
+        slots={{
+          resumo: (
+            <div className="space-y-5">
+              <div className={card}>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[15px] text-slate-600">O que pretende</dt>
+                    <dd className="text-[17px]">
+                      {(req.trabalhos ?? []).length > 0
+                        ? (req.trabalhos as DesiredWork[]).map((t) => DESIRED_WORK_LABELS[t]).join(' · ')
+                        : 'Por dizer'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[15px] text-slate-600">Zonas e medidas</dt>
+                    <dd className="text-[17px]">
+                      {list.length === 0
+                        ? 'Por levantar'
+                        : `${list.length} ${list.length === 1 ? 'zona' : 'zonas'} · ${formatArea(total)}`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[15px] text-slate-600">Fotografias</dt>
+                    <dd className="text-[17px]">
+                      {(photos ?? []).length === 0 ? 'Nenhuma' : `${(photos ?? []).length}`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[15px] text-slate-600">Aceita propostas até</dt>
+                    <dd className="text-[17px]">{req.prazo_propostas ? pt(req.prazo_propostas) : 'Por decidir'}</dd>
+                  </div>
+                </dl>
+                <p className="mt-4 max-w-[54ch] text-[17px] text-slate-700">
+                  {req.descricao?.trim() || 'Ainda sem descrição do trabalho.'}
                 </p>
-                {manager && draft && (
-                  <form action={deletePhoto.bind(null, req.id, p.id)}>
-                    <button type="submit" className="text-red-700 hover:underline">
-                      Remover
-                    </button>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {manager && draft && (
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <PhotoUpload requestId={req.id} />
-          </div>
-        )}
-      </section>
+              </div>
+            {manager && draft && (
+              <div id="pedido-de-visita" className="scroll-mt-6">
+                <RequestSurveyCard requestId={req.id} survey={survey} />
+              </div>
+            )}
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-semibold">O que os pintores vão ver</h2>
-          <p className="text-[17px] text-slate-600">
-            Sem morada, sem nomes e sem o nome interno do pedido. A identificação só é revelada depois da escolha.
-          </p>
-        </div>
-        <ListingPreview
-          l={{
-            ref: req.ref,
-            tipoObra: req.tipo_obra,
-            tiposObra: req.tipos_obra,
-            datasFlexiveis: req.datas_flexiveis,
-            concelho: building.concelho,
-            tipoImovel: building.tipo,
-            pisos: building.pisos,
-            fachadas: building.fachadas,
-            temVarandas: building.tem_varandas,
-            forma: (building.forma_implantacao as Forma | null) ?? null,
-            janelas: {
-              frente: janelas?.janelas_frente ?? null,
-              esquerda: janelas?.janelas_esquerda ?? null,
-              direita: janelas?.janelas_direita ?? null,
-              tras: janelas?.janelas_tras ?? null,
-            },
-            descricao: req.descricao,
-            trabalhos: req.trabalhos,
-            corAcabamento: req.cor_acabamento,
-            prazoPropostas: req.prazo_propostas,
-            execucaoDesde: req.execucao_desde,
-            execucaoAte: req.execucao_ate,
-            surfaces: list.map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
-            trabalhosModo: req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
-            ocupacaoViaPublica: req.ocupacao_via_publica,
-            preferidos: await preferredView(supabase, req.produtos_preferidos),
-            photos: (photos ?? []).filter((p) => p.revisao === 'aprovada').map((p) => ({ id: p.id, legenda: p.legenda })),
-          }}
-        />
-        {manager && draft && (
-          <div id="publicar" className="scroll-mt-6">
-            <PublishButton requestId={req.id} blockers={blockers} aguardaLevantamento={!tecnicoDoCliente} />
-          </div>
-        )}
-      </section>
+            {(adendas ?? []).length > 0 && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                <SurveyAddenda addenda={adendas!} />
+              </section>
+            )}
+            </div>
+          ),
+          zonas: (
+            <section id="levantamento-da-obra" className={`${card} scroll-mt-6`}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                {/* O nome da secção já está escrito por cima pelo `PedidoEmSeccoes`; aqui só quando
+                  diz outra coisa — que é quando a medição não é do cliente. */}
+              {tecnicoDoCliente ? <span /> : <h3 className="text-[17px] font-semibold">Levantamento da obra</h3>}
+                {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
+                    errada (promotor, 29/10/2026). */}
+                <span className="text-[17px] text-slate-600">
+                  {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
+                </span>
+              </div>
+              {!tecnicoDoCliente && (
+                <p className="mt-1 text-[17px] text-slate-600">
+                  Será preenchido pelo profissional que fizer a visita. Pode acrescentar o que souber, mas não precisa de
+                  indicar medidas nenhumas.
+                </p>
+              )}
+              {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
+                <p className="mt-1 text-[17px] text-slate-600">
+                  {[
+                    resumo.semQuantidade > 0
+                      ? `${resumo.semQuantidade} ${resumo.semQuantidade === 1 ? 'zona' : 'zonas'} por levantar`
+                      : '',
+                    resumo.porConfirmar > 0
+                      ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar`
+                      : '',
+                    resumo.excluidas > 0
+                      ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora, e por isso fora do total`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  .
+                </p>
+              )}
+              <div className="mt-4">
+                <ZonasDoPedido
+                  requestId={req.id}
+                  zonas={list.map((s) => ({
+                    id: s.id,
+                    kind: s.kind,
+                    descricao: s.descricao,
+                    areaCm2: s.area_cm2,
+                    areaDiretaCm2: s.area_direta_cm2,
+                    larguraCm: s.largura_cm,
+                    alturaCm: s.altura_cm,
+                    vaosCm2: s.vaos_cm2,
+                    quantidade: s.quantidade,
+                    participacao: paraZona(s).participacao,
+                    origemDaQuantidade: paraZona(s).origemDaQuantidade,
+                    confirmacao: paraZona(s).confirmacao,
+                    trabalhos: s.trabalhos,
+                  }))}
+                  modo={req.trabalhos_modo as WorksMode}
+                  podeEditar={!!manager && draft}
+                  doCliente={tecnicoDoCliente}
+                />
+              </div>
+            </section>
+          ),
+          fotografias: (
+            <section className={card}>
+              {/*
+                A explicação encurtou e deixou de misturar dois regimes. O promotor apanhou a
+                contradição a 30/10/2026: o aviso dizia que **nenhuma** fotografia podia identificar
+                o prédio, quando as gerais são privadas e nunca saem daqui. O aviso restritivo
+                passou para onde pertence — a escolha de «pormenor», que é a que pode ir para o
+                anúncio.
+              */}
+              <p className="text-[17px] text-slate-600">
+                As fotografias ajudam a preparar o levantamento. Só as imagens aprovadas para divulgação serão
+                mostradas aos pintores. A localização e os dados do aparelho são retirados de todas.
+              </p>
+              <div className="mt-4">
+                <Fotografias
+                  requestId={req.id}
+                  fotografias={(photos ?? []).map((f) => ({
+                    id: f.id,
+                    kind: f.kind,
+                    legenda: f.legenda,
+                    revisao: f.revisao,
+                    notas_revisao: f.notas_revisao,
+                    zonaId: f.zona_id ?? null,
+                  }))}
+                  zonas={list.map((s) => ({
+                    id: s.id,
+                    nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind],
+                  }))}
+                  podeEditar={!!manager && draft}
+                  porZona={fotosPorZona}
+                />
+              </div>
+            </section>
+          ),
+          publicar:
+            manager && draft ? (
+              <RevisaoEPublicacao
+                bloqueios={blockers}
+                aguardaLevantamento={!tecnicoDoCliente}
+                publicar={oQueOsPintoresVeem}
+              />
+            ) : (
+              oQueOsPintoresVeem
+            ),
+        }}
+      />
     </div>
   );
 }

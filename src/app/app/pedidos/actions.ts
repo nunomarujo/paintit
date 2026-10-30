@@ -309,51 +309,90 @@ export async function setRequestInviteActive(requestId: string, inviteId: string
 
 // --- Fotografias -------------------------------------------------------------------
 
-export async function uploadPhoto(requestId: string, _prev: FormState, form: FormData): Promise<FormState> {
+/**
+ * O resultado de um envio, por fotografia. Não é `FormState` de propósito: quem chama isto é uma
+ * fila no navegador, que precisa de saber se **esta** correu bem para passar à seguinte, e o texto
+ * do erro fica ao lado da miniatura que falhou — não numa mensagem única no fim do formulário.
+ */
+export type ResultadoDoEnvio = { ok: true } | { ok: false; erro: string };
+
+/**
+ * Uma fotografia. Sem `revalidatePath`: a fila envia várias seguidas, e revalidar a página a cada
+ * uma mandava o servidor redesenhar o ecrã oito vezes no meio do envio. Quem chama refresca uma vez
+ * no fim.
+ */
+export async function enviarFotografia(requestId: string, form: FormData): Promise<ResultadoDoEnvio> {
   const kind = String(form.get('kind') ?? '');
   const legenda = String(form.get('legenda') ?? '').trim().slice(0, 200) || null;
+  const zona = String(form.get('zona') ?? '').trim() || null;
   const file = form.get('ficheiro');
-  if (!(PHOTO_KINDS as readonly string[]).includes(kind)) return { errors: { kind: 'Escolha o tipo de fotografia.' } };
-  if (!(file instanceof File)) return { errors: { ficheiro: 'Escolha uma fotografia.' } };
+  if (!(PHOTO_KINDS as readonly string[]).includes(kind)) return { ok: false, erro: 'Escolha o tipo de fotografia.' };
+  if (!(file instanceof File)) return { ok: false, erro: 'Escolha uma fotografia.' };
 
   // Valida pelos bytes e retira os metadados (GPS, aparelho, data) antes de guardar.
   const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
-  if ('error' in clean) return { errors: { ficheiro: clean.error } };
+  if ('error' in clean) return { ok: false, erro: clean.error };
 
   const { supabase, user } = await getUser();
-  if (!user) return NOT_SIGNED_IN;
+  if (!user) return { ok: false, erro: 'A sessão expirou. Entre de novo.' };
   const refusedPhoto = await guardContact(supabase, user.id, 'legenda de fotografia', { legenda });
-  if (refusedPhoto) return refusedPhoto;
+  if (refusedPhoto) return { ok: false, erro: refusedPhoto.message ?? 'A legenda não pode ter contactos.' };
   const { count } = await supabase
     .from('request_photos')
     .select('id', { count: 'exact', head: true })
     .eq('request_id', requestId);
   if ((count ?? 0) >= MAX_PHOTOS_PER_REQUEST) {
-    return { errors: {}, message: `Cada pedido tem no máximo ${MAX_PHOTOS_PER_REQUEST} fotografias.` };
+    return { ok: false, erro: `Cada pedido tem no máximo ${MAX_PHOTOS_PER_REQUEST} fotografias.` };
   }
 
   const path = `${requestId}/${randomUUID()}.${clean.type === 'image/png' ? 'png' : 'jpg'}`;
   const upload = await supabase.storage.from('fotos').upload(path, clean.bytes, { contentType: clean.type });
   if (upload.error) {
-    return { errors: {}, message: 'Não foi possível carregar a fotografia. O pedido tem de estar em rascunho.' };
+    return { ok: false, erro: 'Não foi possível carregar a fotografia. O pedido tem de estar em rascunho.' };
   }
   const { error } = await supabase.from('request_photos').insert({
     request_id: requestId,
     kind: kind as PhotoKind,
     storage_path: path,
     legenda,
+    zona_id: zona,
     submitted_by: user.id,
   });
   if (error) {
     await supabase.storage.from('fotos').remove([path]);
-    return { errors: {}, message: 'Não foi possível registar a fotografia. Tente de novo.' };
+    return { ok: false, erro: 'Não foi possível registar a fotografia. Tente de novo.' };
   }
+  return { ok: true };
+}
+
+/**
+ * Corrigir a legenda e a zona de uma fotografia já enviada.
+ *
+ * Porque é que isto existe em vez de se perguntar tudo antes do envio: quem escolhe oito
+ * fotografias de uma vez não escreve oito legendas antes de as mandar, e a zona de cada uma
+ * percebe-se melhor a olhar para a miniatura. A base de dados só deixa fazer isto a quem gere o
+ * pedido, enquanto for rascunho, e nunca a quem revê (migração `fotografias_por_zona`).
+ */
+export async function corrigirFotografia(
+  requestId: string,
+  photoId: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const legenda = String(form.get('legenda') ?? '').trim().slice(0, 200) || null;
+  const zona = String(form.get('zona') ?? '').trim() || null;
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const refused = await guardContact(supabase, user.id, 'legenda de fotografia', { legenda });
+  if (refused) return refused;
+  const { error } = await supabase
+    .from('request_photos')
+    .update({ legenda, zona_id: zona })
+    .eq('id', photoId)
+    .eq('request_id', requestId);
+  if (error) return { errors: {}, message: 'Não foi possível guardar. Tente de novo.' };
   revalidatePath(`/app/pedidos/${requestId}`);
-  return {
-    errors: {},
-    ok: true,
-    message: kind === 'pormenor' ? 'Fotografia enviada. Vai ser revista antes de chegar aos pintores.' : 'Fotografia guardada.',
-  };
+  return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
 export async function deletePhoto(requestId: string, photoId: string) {

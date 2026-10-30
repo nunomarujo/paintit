@@ -496,10 +496,44 @@ describe('fotografias do pedido', () => {
   });
 
   it('o cliente não aprova as próprias fotografias', async () => {
-    const rows = await as(A, async () =>
-      (await db.query(`update public.request_photos set revisao = 'aprovada', reviewed_by = $2 where id = $1 returning id`, [pormenor, A])).rows,
+    // Desde 30/10/2026 o cliente pode escrever na linha (para corrigir a legenda e a zona), e por
+    // isso quem o impede de se aprovar a si mesmo é o gatilho, não a política.
+    await expect(
+      as(A, () => db.query(`update public.request_photos set revisao = 'aprovada', reviewed_by = $2 where id = $1`, [pormenor, A])),
+    ).rejects.toThrow(/equipa da plataforma/);
+  });
+
+  it('quem gere o pedido corrige a legenda e a zona; quem revê, não', async () => {
+    const zona = (
+      await one<{ id: string }>(
+        `insert into public.request_surfaces (request_id, kind, area_direta_cm2)
+         values ($1, 'fachada', 400000) returning id`,
+        [requestId],
+      )
+    ).id;
+    const r = await as(A, async () =>
+      one<{ legenda: string; zona_id: string }>(
+        `update public.request_photos set legenda = 'Fissura à direita', zona_id = $2 where id = $1
+         returning legenda, zona_id`,
+        [geral, zona],
+      ),
     );
-    expect(rows).toEqual([]);
+    expect(r).toEqual({ legenda: 'Fissura à direita', zona_id: zona });
+    // Uma zona de outro pedido não serve.
+    const outra = await one<{ id: string }>(
+      `select s.id from public.request_surfaces s where s.request_id <> $1 limit 1`,
+      [requestId],
+    ).catch(() => null);
+    if (outra) {
+      await expect(
+        as(A, () => db.query('update public.request_photos set zona_id = $2 where id = $1', [geral, outra.id])),
+      ).rejects.toThrow(/outro pedido/);
+    }
+    // E um estranho não mexe em nada.
+    const nada = await as(B, async () =>
+      (await db.query(`update public.request_photos set legenda = 'minha' where id = $1 returning id`, [geral])).rows,
+    );
+    expect(nada).toEqual([]);
   });
 
   it('a equipa da plataforma revê, mas não muda a fotografia', async () => {
@@ -508,7 +542,7 @@ describe('fotografias do pedido', () => {
     ).rejects.toThrow(/Explique/);
     await expect(
       as(ADMIN, () => db.query(`update public.request_photos set legenda = 'x', reviewed_by = $2 where id = $1`, [pormenor, ADMIN])),
-    ).rejects.toThrow(/Só a revisão/);
+    ).rejects.toThrow(/Só quem gere o pedido/);
     const geralRows = await as(ADMIN, async () =>
       (await db.query(`update public.request_photos set reviewed_by = $2 where id = $1 returning id`, [geral, ADMIN])).rows,
     );

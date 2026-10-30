@@ -1777,6 +1777,8 @@ export type Database = {
           revisao: PhotoReview | null;
           storage_path: string;
           submitted_by: string;
+          /** Zona do pedido a que diz respeito; nulo = o pedido todo (migração `fotografias_por_zona`). */
+          zona_id: string | null;
         };
         Insert: {
           created_at?: string;
@@ -1790,6 +1792,7 @@ export type Database = {
           revisao?: PhotoReview | null;
           storage_path: string;
           submitted_by?: string;
+          zona_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['request_photos']['Insert']>;
         Relationships: [
