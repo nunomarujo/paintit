@@ -64,7 +64,7 @@ export const VEZ_LABELS: Record<Vez, string | null> = {
  * marcação — ainda não têm nada atrás, e por isso não aparecem: um botão que não faz nada é pior
  * do que nenhum.
  */
-export type AlvoDaAccao = 'pedido_de_visita' | 'levantamento' | 'publicar' | 'propostas';
+export type AlvoDaAccao = 'pedido_de_visita' | 'levantamento' | 'publicar' | 'propostas' | 'pendencia';
 
 export interface AccaoDoEstado {
   texto: string;
@@ -205,7 +205,10 @@ export function percursoDoPedido(e: EntradaDoPercurso): EstadoDoPercurso {
       fase: 'a_preencher',
       vez: 'cliente',
       titulo: 'A preparar o pedido',
-      accao: { texto: 'Completar o pedido', alvo: 'levantamento' },
+      // «Continuar preparação», e não «Completar o pedido»: o cliente não vai completar nada de
+      // uma assentada, vai continuar de onde ficou. E leva-o à primeira pendência a sério, não a
+      // uma secção fixa (promotor, 30/10/2026).
+      accao: { texto: 'Continuar preparação', alvo: 'pendencia' },
       explicacao: 'Falta completar o pedido antes de o publicar. O que falta está indicado mais abaixo.',
       tecnicoPertenceAoCliente: true,
     };

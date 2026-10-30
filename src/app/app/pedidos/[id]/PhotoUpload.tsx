@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormAction } from '@/components/useFormAction';
 import type { FormState } from '@/app/app/actions';
 import { uploadPhoto } from '@/app/app/pedidos/actions';
@@ -10,6 +11,8 @@ import { PhotoInstructions } from './PhotoInstructions';
 export function PhotoUpload({ requestId }: { requestId: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(uploadPhoto.bind(null, requestId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
+  // O aviso segue a escolha, e não o ecrã: só as de pormenor podem sair daqui.
+  const [kind, setKind] = useState<string>('geral');
 
   return (
     <form {...formProps} className="space-y-4">
@@ -17,10 +20,7 @@ export function PhotoUpload({ requestId }: { requestId: string }) {
         <h3 className="text-[17px] font-semibold">Acrescentar fotografia</h3>
         <PhotoInstructions />
       </div>
-      <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[15px] text-amber-900">
-        <strong>As fotografias não podem ter nada que identifique o prédio</strong> — números de porta, portas, placas
-        com nomes de rua, caixas de correio, matrículas ou pessoas. Veja as instruções antes da primeira.
-      </p>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           name="kind"
@@ -35,7 +35,13 @@ export function PhotoUpload({ requestId }: { requestId: string }) {
             </>
           }
         >
-          <select name="kind" required defaultValue="geral" className={selectClass}>
+          <select
+            name="kind"
+            required
+            value={kind}
+            onChange={(ev) => setKind(ev.target.value)}
+            className={selectClass}
+          >
             {PHOTO_KINDS.map((k) => (
               <option key={k} value={k}>
                 {PHOTO_KIND_LABELS[k]}
@@ -43,6 +49,13 @@ export function PhotoUpload({ requestId }: { requestId: string }) {
             ))}
           </select>
         </Field>
+        {kind === 'pormenor' && (
+          <p className="text-[15px] text-amber-900 sm:col-span-2">
+            Esta pode ir para o anúncio. <strong>Não pode ter nada que identifique o prédio</strong> — números de porta,
+            placas com nomes de rua, caixas de correio, matrículas ou pessoas. Alguém da equipa confirma antes de a
+            publicar.
+          </p>
+        )}
         <Field
           name="legenda"
           label="Legenda"

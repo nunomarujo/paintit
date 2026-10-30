@@ -25,7 +25,7 @@ import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
 import { PedidoEmSeccoes } from './PedidoEmSeccoes';
 import { RevisaoEPublicacao } from './RevisaoEPublicacao';
-import { estadosDasSeccoes } from '@/domain/seccoes';
+import { estadosDasSeccoes, primeiraPendencia } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
@@ -158,6 +158,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     bloqueiosDaPublicacao: blockers.length,
   });
   const tecnicoDoCliente = percurso.tecnicoPertenceAoCliente;
+  const estadosSeccoes = estadosDasSeccoes({
+    descricao: req.descricao,
+    trabalhos: req.trabalhos ?? [],
+    zonas: { total: list.length, prontas: resumo.incluidas, pendentes: resumo.porDecidir + resumo.semQuantidade },
+    fotografias: (photos ?? []).length,
+    prazoPropostas: req.prazo_propostas,
+    bloqueios: blockers,
+  });
 
   return (
     <div className="space-y-8">
@@ -202,6 +210,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         requestId={req.id}
         marcadoPara={surveyRow?.scheduled_at ?? null}
         houveLevantamento={!!surveyRow}
+        pendencia={primeiraPendencia(estadosSeccoes)}
       />
 
       {req.status !== 'rascunho' && (
@@ -354,10 +363,15 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <section className={card}>
         <h2 className="font-semibold">Fotografias</h2>
+        {/*
+          A explicação encurtou e deixou de misturar dois regimes. O promotor apanhou a
+          contradição a 30/10/2026: o aviso dizia que **nenhuma** fotografia podia identificar o
+          prédio, quando as gerais são privadas e nunca saem daqui. O aviso restritivo passou para
+          onde pertence — a escolha de «pormenor», que é a que pode ir para o anúncio.
+        */}
         <p className="mt-1 text-[17px] text-slate-600">
-          As fotografias gerais ficam só convosco e com a equipa da plataforma. As de pormenor (uma fissura, um teto de
-          varanda) podem ir para o anúncio, mas só depois de a equipa confirmar que não deixam reconhecer o prédio. A
-          localização e os dados do aparelho são retirados de todas.
+          As fotografias ajudam a preparar o levantamento. Só as imagens aprovadas para divulgação serão mostradas aos
+          pintores. A localização e os dados do aparelho são retirados de todas.
         </p>
         {(photos ?? []).length > 0 && (
           <ul className="mt-4 grid gap-4 sm:grid-cols-3">

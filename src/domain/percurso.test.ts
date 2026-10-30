@@ -178,9 +178,17 @@ describe('cada estado tem uma acção, e só se tiver alguma coisa atrás', () =
     expect(percursoDoPedido(p({ estadoDoPedido: 'encerrado' })).accao).toBeNull();
   });
 
-  it('o texto da acção diz o que vai acontecer, não «continuar»', () => {
+  it('o texto da acção diz o que vai acontecer', () => {
     expect(percursoDoPedido(p({ levantamento: { status: 'concluido', marcadoPara: null } })).accao!.texto).toBe('Rever levantamento');
     expect(percursoDoPedido(p({ levantamento: null, bloqueiosDaPublicacao: 0 })).accao!.texto).toBe('Rever e publicar');
+  });
+
+  it('sem ajuda e com coisas por fazer, continua-se a preparação na primeira pendência', () => {
+    // «O botão "Completar o pedido" passa a "Continuar preparação" e abre a primeira pendência
+    // real» (promotor, 30/10/2026).
+    const a = percursoDoPedido(p({ levantamento: null }))!.accao!;
+    expect(a.texto).toBe('Continuar preparação');
+    expect(a.alvo).toBe('pendencia');
   });
 
   it('publicado, o estado deixa de prometer que não há nada a fazer', () => {

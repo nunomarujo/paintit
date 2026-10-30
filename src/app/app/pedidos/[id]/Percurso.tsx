@@ -1,4 +1,8 @@
+'use client';
+
 import { VEZ_LABELS, etapaAtingida, etapasDoPedido, type AlvoDaAccao, type EstadoDoPercurso } from '@/domain/percurso';
+import type { SeccaoId } from '@/domain/seccoes';
+import { useIrParaSeccao } from './PedidoEmSeccoes';
 import Link from 'next/link';
 
 /**
@@ -18,24 +22,34 @@ export function Percurso({
   estado,
   requestId,
   marcadoPara,
+  pendencia,
   houveLevantamento = true,
 }: {
   estado: EstadoDoPercurso;
   requestId: string;
   marcadoPara?: string | null;
+  /** A primeira secção com alguma coisa por fazer, para onde «Continuar preparação» leva. */
+  pendencia?: SeccaoId | null;
   /** Houve pedido de visita? Sem ele, a régua não mostra as etapas que nunca vão acontecer. */
   houveLevantamento?: boolean;
 }) {
   const etapas = etapasDoPedido(houveLevantamento);
   const actual = etapaAtingida(estado.fase, etapas);
   const vez = VEZ_LABELS[estado.vez];
-  // O domínio escolhe o destino; o endereço monta-se aqui, que é onde se sabe como se chamam as
-  // secções e as rotas.
-  const endereco: Record<AlvoDaAccao, string> = {
-    pedido_de_visita: '#pedido-de-visita',
-    levantamento: '#levantamento-da-obra',
-    publicar: '#publicar',
-    propostas: `/app/pedidos/${requestId}/propostas`,
+  const irPara = useIrParaSeccao();
+  /*
+   * O domínio escolhe o destino; aqui sabe-se o que ele é no ecrã.
+   *
+   * Eram âncoras — `#levantamento-da-obra` — e deixaram de poder ser quando a página passou a ter
+   * secções: a âncora apontava para dentro de uma secção escondida, e carregar no botão não fazia
+   * nada. «Não deve depender de uma âncora que pode não existir ou estar oculta», e tinha razão
+   * duas vezes. Agora abre-se a secção.
+   */
+  const seccaoDoAlvo: Partial<Record<AlvoDaAccao, SeccaoId>> = {
+    pedido_de_visita: 'resumo',
+    levantamento: 'zonas',
+    publicar: 'publicar',
+    pendencia: pendencia ?? 'pretende',
   };
 
   return (
@@ -88,9 +102,19 @@ export function Percurso({
 
       {estado.accao && (
         <p className="mt-4">
-          <Link href={endereco[estado.accao.alvo]} className="btn-primary">
-            {estado.accao.texto}
-          </Link>
+          {estado.accao.alvo === 'propostas' ? (
+            <Link href={`/app/pedidos/${requestId}/propostas`} className="btn-primary">
+              {estado.accao.texto}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => irPara(seccaoDoAlvo[estado.accao!.alvo] ?? 'resumo')}
+              className="btn-primary"
+            >
+              {estado.accao.texto}
+            </button>
+          )}
         </p>
       )}
     </section>
