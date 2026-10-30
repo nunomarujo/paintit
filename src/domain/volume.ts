@@ -49,6 +49,18 @@ export interface VolumeInput {
    * Omitido: {@link JANELAS_POR_OMISSAO} em cada fachada à vista.
    */
   janelas?: Partial<Record<Fachada, number | null>>;
+  /**
+   * Medidas reais do prédio, em metros. Com elas o volume deixa de ter proporções canónicas e passa
+   * a ter as do prédio — a unidade do desenho sempre foi o metro (um piso são 3, uma janela 1,30 de
+   * altura), por isso é só substituir a implantação.
+   *
+   * **Sem profundidade declarada, a profundidade não se inventa:** mantém-se a proporção canónica e
+   * quem desenha diz que aquele eixo está por medir (`porqueNaoTemEscala`, em `geometria.ts`).
+   *
+   * Isto é para os ecrãs do cliente e do levantamento, onde o prédio é de quem está a olhar. O
+   * anúncio continua a mostrar o volume genérico, sem medidas — a regra 6 não muda aqui.
+   */
+  escala?: { larguraM: number; profundidadeM: number | null; peDireitoM: number } | null;
   elementos?: {
     /** Superfície `elementos_metalicos` declarada: grades, portões, guardas. */
     metalicos?: boolean;
@@ -102,6 +114,14 @@ export interface Volume {
   fachadasLivres: number;
   /** Ângulo efetivamente desenhado, já normalizado a [0,360). */
   angulo: number;
+  /**
+   * As três arestas onde se põem as cotas, já projetadas: a frente em baixo, o fundo do lado
+   * direito e a altura na aresta vertical entre as duas. Quem desenha decide se as mostra — e só as
+   * deve mostrar para os eixos que alguém mediu.
+   */
+  cotas: { largura: [[number, number], [number, number]]; profundidade: [[number, number], [number, number]]; altura: [[number, number], [number, number]] };
+  /** Altura desenhada, em metros do desenho. */
+  alturaDesenhada: number;
 }
 
 const FLOOR = 3;
@@ -129,6 +149,35 @@ const FOOTPRINTS: Record<Forma, [number, number, number, number][]> = {
     [5, 0, 9, 6],
   ],
 };
+
+/**
+ * A implantação canónica esticada até às medidas reais, mantendo a forma.
+ *
+ * Escala-se o conjunto, e não cada retângulo por si: assim um L continua a ser um L, com os braços
+ * na mesma proporção entre eles, e é a caixa que o envolve que passa a medir o que o prédio mede.
+ */
+function comEscala(
+  plan: [number, number, number, number][],
+  escala: { larguraM: number; profundidadeM: number | null; peDireitoM: number } | null,
+): [number, number, number, number][] {
+  if (!escala || !(escala.larguraM > 0)) return plan;
+  const x0 = Math.min(...plan.map((r) => r[0]));
+  const x1 = Math.max(...plan.map((r) => r[2]));
+  const y0 = Math.min(...plan.map((r) => r[1]));
+  const y1 = Math.max(...plan.map((r) => r[3]));
+  const fx = escala.larguraM / (x1 - x0);
+  // Sem fundo medido, o fundo acompanha a largura: é a proporção canónica, não uma medida.
+  const fy = escala.profundidadeM && escala.profundidadeM > 0 ? escala.profundidadeM / (y1 - y0) : fx;
+  return plan.map(
+    ([a, b, c, d]) =>
+      [round(x0 + (a - x0) * fx), round(y0 + (b - y0) * fy), round(x0 + (c - x0) * fx), round(y0 + (d - y0) * fy)] as [
+        number,
+        number,
+        number,
+        number,
+      ],
+  );
+}
 
 /** Retângulos em planta de uma forma, para desenhar a escolha ao avaliador (vista de cima). */
 export function footprintPlan(forma: Forma): [number, number, number, number][] {
@@ -174,9 +223,10 @@ export function buildingVolume(input: VolumeInput): Volume {
   // "pisos" conta os pisos acima do solo; um rés-do-chão sozinho é 1.
   const pisos = Math.min(MAX_DRAWN_FLOORS, Math.max(1, declared));
   const livres = Math.min(4, Math.max(1, input.fachadas ?? 4));
-  const height = pisos * FLOOR;
+  const piso = input.escala?.peDireitoM && input.escala.peDireitoM > 0 ? input.escala.peDireitoM : FLOOR;
+  const height = pisos * piso;
   const forma = input.forma ?? 'I';
-  const plan: [number, number, number, number][] = FOOTPRINTS[forma];
+  const plan: [number, number, number, number][] = comEscala(FOOTPRINTS[forma], input.escala ?? null);
   const main: [number, number, number, number] = plan[0] ?? [0, 6, 14, 13];
   const [px0, py0, px1, py1] = main;
   const width = px1 - px0;
@@ -240,14 +290,14 @@ export function buildingVolume(input: VolumeInput): Volume {
   for (const { f, plano, eixo, de, ate, n } of planos) {
     const lista = vaos(de, ate, quantas(f));
     for (let p = 0; p < pisos; p++) {
-      const z = p * FLOOR + 0.9;
+      const z = p * piso + 0.9;
       for (const [a0, a1] of lista) {
         // No rés-do-chão da fachada principal o primeiro vão é a entrada, não uma janela: sem ela o
         // volume não se lê como prédio, e com ela percebe-se de que lado se entra.
         const entrada = p === 0 && f === 'frente' && a0 === lista[0]![0];
         const kind: FaceKind = entrada ? 'porta' : 'janela';
-        const zb = entrada ? p * FLOOR : z;
-        const zt = entrada ? p * FLOOR + 2.1 : z + 1.3;
+        const zb = entrada ? p * piso : z;
+        const zt = entrada ? p * piso + 2.1 : z + 1.3;
         const pts: [number, number, number][] =
           eixo === 'x'
             ? [[a0, plano, zb], [a1, plano, zb], [a1, plano, zt], [a0, plano, zt]]
@@ -263,7 +313,7 @@ export function buildingVolume(input: VolumeInput): Volume {
 
   if (input.temVarandas) {
     for (let p = 1; p < pisos; p++) {
-      const z = p * FLOOR;
+      const z = p * piso;
       quads.push(...box(px0 + width * 0.2, front, z, px0 + width * 0.8, front + 1.2, z + 0.25, 'varanda'));
       // Grades na varanda: a guarda sobre o bordo da laje. Desenha-se sempre que há varandas — uma
       // varanda sem guarda não existe — e muda o que o pintor tem de orçamentar.
@@ -344,6 +394,17 @@ export function buildingVolume(input: VolumeInput): Volume {
   visible.sort((a2, b2) => camada(a2.face.kind) - camada(b2.face.kind) || a2.depth - b2.depth);
   const faces = visible.map((v) => v.face);
 
+  // As arestas das cotas, pelas mesmas contas de rotação e projeção das faces.
+  const proj = (x: number, y: number, z: number): [number, number] => {
+    const [rx, ry] = rot(x, y);
+    return iso(rx, ry, z);
+  };
+  const cotas = {
+    largura: [proj(px0, front, 0), proj(px1, front, 0)] as [[number, number], [number, number]],
+    profundidade: [proj(px1, py0, 0), proj(px1, front, 0)] as [[number, number], [number, number]],
+    altura: [proj(px1, front, 0), proj(px1, front, height)] as [[number, number], [number, number]],
+  };
+
   const xs = faces.flatMap((f) => f.points.map((p) => p[0]));
   const ys = faces.flatMap((f) => f.points.map((p) => p[1]));
   const pad = 1;
@@ -355,5 +416,7 @@ export function buildingVolume(input: VolumeInput): Volume {
     pisosDesenhados: pisos,
     fachadasLivres: livres,
     angulo,
+    cotas,
+    alturaDesenhada: round(height),
   };
 }

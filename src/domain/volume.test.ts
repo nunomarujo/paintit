@@ -207,3 +207,49 @@ describe('empenas', () => {
     expect(empenas.every((f) => f.fade === undefined)).toBe(true);
   });
 });
+
+describe('o volume à escala do prédio', () => {
+  // «A alteração de largura, profundidade ou altura deve atualizar o modelo» (promotor, 30/10/2026).
+  const base = { pisos: 4, fachadas: 4, temVarandas: false, moradia: false, forma: 'I' as const, angulo: 0 };
+
+  const larguraDesenhada = (v: ReturnType<typeof buildingVolume>) => {
+    const [a, b] = v.cotas.largura;
+    return Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 100) / 100;
+  };
+
+  it('a frente medida é a frente desenhada', () => {
+    const v = buildingVolume({ ...base, escala: { larguraM: 18, profundidadeM: 9, peDireitoM: 2.9 } });
+    expect(larguraDesenhada(v)).toBeCloseTo(18, 1);
+  });
+
+  it('mudar a medida muda o desenho', () => {
+    const estreito = buildingVolume({ ...base, escala: { larguraM: 9, profundidadeM: 9, peDireitoM: 2.9 } });
+    const largo = buildingVolume({ ...base, escala: { larguraM: 27, profundidadeM: 9, peDireitoM: 2.9 } });
+    expect(larguraDesenhada(largo) / larguraDesenhada(estreito)).toBeCloseTo(3, 1);
+  });
+
+  it('o pé-direito manda na altura, e a altura no desenho', () => {
+    const baixo = buildingVolume({ ...base, escala: { larguraM: 18, profundidadeM: 9, peDireitoM: 2.5 } });
+    const alto = buildingVolume({ ...base, escala: { larguraM: 18, profundidadeM: 9, peDireitoM: 3.5 } });
+    expect(baixo.alturaDesenhada).toBe(10);
+    expect(alto.alturaDesenhada).toBe(14);
+  });
+
+  it('sem fundo medido, o fundo acompanha a largura e não se inventa uma medida', () => {
+    const v = buildingVolume({ ...base, escala: { larguraM: 18, profundidadeM: null, peDireitoM: 2.9 } });
+    const semEscala = buildingVolume(base);
+    const razao = (x: ReturnType<typeof buildingVolume>) => {
+      const [a, b] = x.cotas.profundidade;
+      const [c, d] = x.cotas.largura;
+      return Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.hypot(d[0] - c[0], d[1] - c[1]);
+    };
+    // A proporção entre fundo e frente é a canónica: o desenho não afirma nada sobre o fundo.
+    expect(razao(v)).toBeCloseTo(razao(semEscala), 2);
+  });
+
+  it('sem escala nenhuma, o desenho é o de sempre', () => {
+    const antes = buildingVolume(base);
+    expect(antes.alturaDesenhada).toBe(12);
+    expect(antes.faces.length).toBeGreaterThan(0);
+  });
+});

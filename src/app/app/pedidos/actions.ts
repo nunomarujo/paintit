@@ -425,3 +425,58 @@ export async function reviewPhoto(photoId: string, _prev: FormState, form: FormD
   revalidatePath('/app/backoffice', 'layout');
   return { errors: {}, ok: true, message: decision === 'aprovada' ? 'Aprovada para o anúncio.' : 'Fica fora do anúncio.' };
 }
+
+/**
+ * As medidas do prédio: frente, fundo e pé-direito.
+ *
+ * Vivem no prédio e não no pedido, porque são do prédio: dois pedidos para o mesmo prédio não têm
+ * duas frentes diferentes. É a separação que o promotor pediu a 30/10/2026 — a geometria do
+ * edifício de um lado, as superfícies a pintar do outro.
+ *
+ * Um campo deixado em branco grava **nulo**, e nulo quer dizer «por medir». Não se converte em zero
+ * nem se estima a partir de nada: é a mesma regra de `src/domain/geometria.ts`.
+ */
+export async function guardarMedidasDoPredio(
+  buildingId: string,
+  requestId: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const cm = (nome: string): number | null => {
+    const bruto = String(form.get(nome) ?? '').trim().replace(',', '.');
+    if (bruto === '') return null;
+    const metros = Number(bruto);
+    if (!Number.isFinite(metros) || metros <= 0) return null;
+    return Math.round(metros * 100);
+  };
+  const errors: Record<string, string> = {};
+  const largura = cm('largura');
+  const profundidade = cm('profundidade');
+  const peDireito = cm('peDireito');
+  if (largura !== null && largura > 50000) errors.largura = 'Frente a mais. Confirme o valor em metros.';
+  if (profundidade !== null && profundidade > 50000) errors.profundidade = 'Fundo a mais. Confirme o valor em metros.';
+  if (peDireito !== null && (peDireito < 180 || peDireito > 800)) {
+    errors.peDireito = 'O pé-direito de um piso anda entre 1,8 e 8 metros.';
+  }
+  const origem = String(form.get('origem') ?? 'estimativa');
+  if (!['estimativa', 'medicao', 'planta'].includes(origem)) errors.origem = 'Origem inválida.';
+  if (Object.keys(errors).length > 0) return { errors };
+
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const { data, error } = await supabase
+    .from('buildings')
+    .update({
+      largura_cm: largura,
+      profundidade_cm: profundidade,
+      pe_direito_cm: peDireito,
+      medidas_origem: origem,
+    })
+    .eq('id', buildingId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar as medidas do prédio.' };
+  }
+  revalidatePath(`/app/pedidos/${requestId}`);
+  return { errors: {}, ok: true, message: 'Guardado.' };
+}

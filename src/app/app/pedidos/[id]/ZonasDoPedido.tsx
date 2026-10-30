@@ -80,6 +80,7 @@ export function ZonasDoPedido({
   modo = 'iguais',
   podeEditar,
   doCliente,
+  aoRealcar,
 }: {
   requestId: string;
   zonas: ZonaNaLista[];
@@ -87,8 +88,17 @@ export function ZonasDoPedido({
   podeEditar: boolean;
   /** As medidas são tarefa do cliente? Falso enquanto houver um levantamento a caminho. */
   doCliente: boolean;
+  /**
+   * A zona que está aberta, para quem desenhar o volume a poder acender. Nulo quando se fecha o
+   * editor: o realce segue a atenção, e não fica preso à última coisa em que se tocou.
+   */
+  aoRealcar?: (z: ZonaNaLista | null) => void;
 }) {
   const [aberto, setAberto] = useState<string | null>(null);
+  const abrir = (z: ZonaNaLista | null, id: string | null) => {
+    setAberto(id);
+    aoRealcar?.(z);
+  };
 
   return (
     <div className="space-y-3">
@@ -108,14 +118,14 @@ export function ZonasDoPedido({
                 requestId={requestId}
                 zona={z}
                 modo={modo}
-                aoFechar={() => setAberto(null)}
+                aoFechar={() => abrir(null, null)}
               />
             ) : (
               <LinhaDaZona
                 requestId={requestId}
                 zona={z}
                 podeEditar={podeEditar}
-                aoEditar={() => setAberto(z.id)}
+                aoEditar={() => abrir(z, z.id)}
               />
             )}
           </li>
@@ -124,9 +134,9 @@ export function ZonasDoPedido({
 
       {podeEditar &&
         (aberto === 'nova' ? (
-          <EditorDaZona requestId={requestId} zona={null} modo={modo} aoFechar={() => setAberto(null)} />
+          <EditorDaZona requestId={requestId} zona={null} modo={modo} aoFechar={() => abrir(null, null)} />
         ) : (
-          <button type="button" onClick={() => setAberto('nova')} className="btn-secondary">
+          <button type="button" onClick={() => abrir(null, 'nova')} className="btn-secondary">
             Adicionar zona
           </button>
         ))}

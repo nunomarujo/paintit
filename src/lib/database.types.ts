@@ -91,16 +91,14 @@ export type Database = {
           acessos: string | null;
           ano_construcao: number | null;
           // Janelas por piso em cada fachada: migração 20261028150000_janelas_por_fachada,
-          // **ainda por aplicar à base real** (o classificador recusou o passo). Declaradas aqui para o
-          // código compilar; regerar este ficheiro depois de aplicar.
+          // aplicada e registada (confirmado no registo do Supabase a 30/10/2026).
           janelas_frente: number | null;
           janelas_esquerda: number | null;
           janelas_direita: number | null;
           janelas_tras: number | null;
-          // Obras pretendidas e área aproximada: migração 20261024034142, **ainda por aplicar à base
-          // real**. Declaradas aqui para o código compilar; quem as lê fá-lo numa consulta própria, com
-          // o erro tratado, e quem as escreve só aparece depois de a migração estar aplicada (ver
-          // predios/[predioId]/editar/page.tsx). Sem esse cuidado, era o bug do "Nova entidade" outra vez.
+          // Obras pretendidas e área aproximada: migração 20261024034142, aplicada e registada
+          // (confirmado a 30/10/2026). A leitura continua a ser feita numa consulta própria com o erro
+          // tratado — não custa nada e protege de uma base por actualizar noutro ambiente.
           obras_pretendidas: string[];
           area_aproximada_cm2: number | null;
           artigo_matricial: string | null;
@@ -116,6 +114,13 @@ export type Database = {
           nome_interno: string;
           org_id: string;
           pisos: number | null;
+          // Medidas do prédio: migração 20261030180000_medidas_do_predio, **ainda por aplicar à base
+          // real**. Quem as lê fá-lo numa consulta própria com o erro tratado, e quem as escreve só
+          // aparece depois de a coluna existir (ver GeometriaDoPredio).
+          largura_cm: number | null;
+          profundidade_cm: number | null;
+          pe_direito_cm: number | null;
+          medidas_origem: string;
           tem_elevador: boolean;
           tem_varandas: boolean;
           forma_implantacao: string | null;
@@ -144,6 +149,10 @@ export type Database = {
           nome_interno: string;
           org_id: string;
           pisos?: number | null;
+          largura_cm?: number | null;
+          profundidade_cm?: number | null;
+          pe_direito_cm?: number | null;
+          medidas_origem?: string;
           tem_elevador?: boolean;
           tem_varandas?: boolean;
           forma_implantacao?: string | null;

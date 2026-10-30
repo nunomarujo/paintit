@@ -34,7 +34,7 @@ import { PublishButton } from './PublishButton';
 import { RequestInvites, type RequestInvite } from './RequestInvites';
 import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
-import { ZonasDoPedido } from './ZonasDoPedido';
+import { ZonasComVolume } from './ZonasComVolume';
 import { Voltar } from '@/components/Voltar';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -84,6 +84,15 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const { data: janelas } = await supabase
     .from('buildings')
     .select('janelas_frente, janelas_esquerda, janelas_direita, janelas_tras')
+    .eq('id', req.building_id)
+    .maybeSingle();
+
+  // As medidas do prédio, pela mesma razão e com o mesmo cuidado das janelas: a migração
+  // `medidas_do_predio` é de 30/10/2026 e pode ainda não ter corrido. Sem elas, o volume fica em
+  // proporções genéricas e os campos não aparecem — não se oferece um formulário que não grava.
+  const { data: medidas } = await supabase
+    .from('buildings')
+    .select('largura_cm, profundidade_cm, pe_direito_cm, medidas_origem')
     .eq('id', req.building_id)
     .maybeSingle();
 
@@ -442,8 +451,29 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 </p>
               )}
               <div className="mt-4">
-                <ZonasDoPedido
+                <ZonasComVolume
                   requestId={req.id}
+                  predio={{
+                    buildingId: req.building_id,
+                    pisos: building.pisos,
+                    fachadas: building.fachadas,
+                    temVarandas: !!building.tem_varandas,
+                    moradia: building.tipo === 'moradia',
+                    forma: (building.forma_implantacao as Forma | null) ?? null,
+                    janelas: {
+                      frente: janelas?.janelas_frente ?? null,
+                      esquerda: janelas?.janelas_esquerda ?? null,
+                      direita: janelas?.janelas_direita ?? null,
+                      tras: janelas?.janelas_tras ?? null,
+                    },
+                    medidas: {
+                      larguraM: medidas?.largura_cm ? medidas.largura_cm / 100 : null,
+                      profundidadeM: medidas?.profundidade_cm ? medidas.profundidade_cm / 100 : null,
+                      peDireitoM: medidas?.pe_direito_cm ? medidas.pe_direito_cm / 100 : null,
+                      origem: medidas?.medidas_origem ?? 'estimativa',
+                    },
+                    podeMedir: !!medidas,
+                  }}
                   zonas={list.map((s) => ({
                     id: s.id,
                     kind: s.kind,
