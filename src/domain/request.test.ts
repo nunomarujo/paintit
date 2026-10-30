@@ -5,6 +5,9 @@ import {
   parseRequest,
   parseSurface,
   publishBlockers,
+  bloqueiosDaPublicacao,
+  resumoDasZonas,
+  type ZonaDoPedido,
   revealingContent,
   surfaceArea,
   urgenciaPrazo,
@@ -137,7 +140,7 @@ describe('publicação', () => {
   const ok = {
     descricao: 'Pintura das quatro fachadas e tetos das varandas; há fissuras na fachada norte.',
     prazoPropostas: '2026-11-01',
-    surfacesArea: [16150],
+    zonas: [{ areaCm2: 16150, participacao: 'incluida' as const, origemDaQuantidade: 'medicao' as const, confirmacao: 'confirmada' as const }],
     today: '2026-10-19',
   };
 
@@ -150,7 +153,7 @@ describe('publicação', () => {
   });
 
   it('exige área, descrição sem contactos e pelo menos 7 dias para propostas', () => {
-    const r = publishBlockers({ ...ok, surfacesArea: [], descricao: 'Ligue 912345678 para visitar a obra hoje mesmo', prazoPropostas: '2026-10-22' });
+    const r = publishBlockers({ ...ok, zonas: [], descricao: 'Ligue 912345678 para visitar a obra hoje mesmo', prazoPropostas: '2026-10-22' });
     expect(r).toHaveLength(3);
   });
 });
@@ -196,5 +199,94 @@ describe('contornar a plataforma sem contactos diretos', () => {
     ]) {
       expect(revealingContent(t)).toEqual([]);
     }
+  });
+});
+
+describe('as três dimensões de uma zona', () => {
+  const z = (o: Partial<ZonaDoPedido> = {}): ZonaDoPedido => ({
+    areaCm2: 10000,
+    participacao: 'incluida',
+    origemDaQuantidade: 'medicao',
+    confirmacao: 'confirmada',
+    ...o,
+  });
+
+  it('o total conta só as zonas incluídas', () => {
+    const r = resumoDasZonas([z(), z({ participacao: 'excluida' }), z({ participacao: 'por_decidir' })]);
+    expect(r.areaIncluidaCm2).toBe(10000);
+    expect(r.incluidas).toBe(1);
+    expect(r.excluidas).toBe(1);
+    expect(r.porDecidir).toBe(1);
+  });
+
+  it('uma zona excluída conserva a área que tinha, e mesmo assim não conta', () => {
+    // «Conserva dados anteriores, se existirem» (promotor, 30/10/2026): exclui-se uma zona sem lhe
+    // apagar o que já se sabia dela.
+    const r = resumoDasZonas([z({ participacao: 'excluida', areaCm2: 45000 })]);
+    expect(r.areaIncluidaCm2).toBe(0);
+  });
+
+  it('por confirmar conta-se só nas incluídas: o que está fora não tem nada a confirmar', () => {
+    const r = resumoDasZonas([
+      z({ confirmacao: 'por_confirmar' }),
+      z({ participacao: 'excluida', confirmacao: 'por_confirmar' }),
+    ]);
+    expect(r.porConfirmar).toBe(1);
+  });
+
+  it('uma estimativa é uma quantidade legítima, e não uma zona sem quantidade', () => {
+    const r = resumoDasZonas([z({ origemDaQuantidade: 'estimativa', confirmacao: 'por_confirmar' })]);
+    expect(r.semQuantidade).toBe(0);
+    expect(r.porConfirmar).toBe(1);
+  });
+
+  it('as três dimensões são independentes: medir não é confirmar, e confirmar não é incluir', () => {
+    const r = resumoDasZonas([z({ participacao: 'excluida', origemDaQuantidade: 'medicao', confirmacao: 'confirmada' })]);
+    expect(r.incluidas).toBe(0);
+    expect(r.excluidas).toBe(1);
+  });
+});
+
+describe('as zonas e a publicação', () => {
+  const base = {
+    descricao: 'Pintura das quatro fachadas do prédio, com reparação de fissuras e primário.',
+    prazoPropostas: '2026-11-30',
+    today: '2026-10-30',
+  };
+  const inc = { areaCm2: 16150, participacao: 'incluida' as const, origemDaQuantidade: 'medicao' as const, confirmacao: 'confirmada' as const };
+
+  it('uma zona excluída não serve de área do pedido', () => {
+    const r = bloqueiosDaPublicacao({ ...base, zonas: [{ ...inc, participacao: 'excluida' }] });
+    expect(r.map((x) => x.texto)).toContain('Indique pelo menos uma superfície com área.');
+  });
+
+  it('uma zona por decidir impede publicar, e o bloqueio é do cliente', () => {
+    // Ninguém pode responder por ele se aquela fachada entra ou não.
+    const r = bloqueiosDaPublicacao({ ...base, zonas: [inc, { ...inc, participacao: 'por_decidir' }] });
+    const b = r.find((x) => x.texto.includes('por decidir'))!;
+    expect(b).toBeDefined();
+    expect(b.de).toBe('cliente');
+  });
+
+  it('duas por decidir dizem-se no plural, que é como se lê', () => {
+    const r = bloqueiosDaPublicacao({
+      ...base,
+      zonas: [inc, { ...inc, participacao: 'por_decidir' }, { ...inc, participacao: 'por_decidir' }],
+    });
+    expect(r.some((x) => x.texto.includes('2 zonas por decidir'))).toBe(true);
+  });
+
+  it('uma estimativa por confirmar não impede publicar', () => {
+    // Não é um número errado: é um número por confirmar, e os pintores veem-no como tal.
+    const r = bloqueiosDaPublicacao({
+      ...base,
+      zonas: [{ ...inc, origemDaQuantidade: 'estimativa', confirmacao: 'por_confirmar' }],
+    });
+    expect(r).toEqual([]);
+  });
+
+  it('zonas excluídas à mistura não impedem publicar, desde que sobre uma incluída', () => {
+    const r = bloqueiosDaPublicacao({ ...base, zonas: [inc, { ...inc, participacao: 'excluida' }] });
+    expect(r).toEqual([]);
   });
 });

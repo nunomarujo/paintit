@@ -95,6 +95,91 @@ export const AREA_SOURCE_LABELS: Record<AreaSource, string> = {
   planta: 'Planta ou projeto',
 };
 
+/**
+ * Uma zona tem **três coisas independentes**, e durante muito tempo teve uma só.
+ *
+ * O campo `origem` acima misturava o método com quem o usou — «medição do cliente» são duas
+ * respostas numa — e não dizia nada sobre duas perguntas diferentes: se a zona entra no pedido, e
+ * se a quantidade já foi verificada. Correcção do promotor, 30/10/2026, depois de eu lhe ter
+ * proposto meter os quatro conceitos num campo só:
+ *
+ * | Dimensão | Valores | O que responde |
+ * | --- | --- | --- |
+ * | Participação | incluída · por decidir · excluída | A zona entra nesta obra? |
+ * | Origem da quantidade | medição · estimativa · documento | Como se chegou ao número? |
+ * | Confirmação | por confirmar · confirmada | O número já foi verificado? |
+ *
+ * **«Levantamento» não é um método.** É o processo — e dentro dele o profissional pode medir uma
+ * fachada e estimar outra. Por isso quem registou guarda-se à parte (`registadoPor`), e não dentro
+ * da origem.
+ *
+ * **Excluída é uma decisão, não uma ausência.** Uma zona excluída fica no pedido, identificada,
+ * para não restar dúvida de que foi considerada e deixada de fora; não exige medições, não entra no
+ * total nem nas validações. Uma zona que simplesmente não está na lista não é nada disso — não é
+ * excluída nem confirmada, e ninguém é obrigado a inventariar o imóvel inteiro para a pôr lá.
+ */
+export const PARTICIPACOES = ['incluida', 'por_decidir', 'excluida'] as const;
+export type Participacao = (typeof PARTICIPACOES)[number];
+export const PARTICIPACAO_LABELS: Record<Participacao, string> = {
+  incluida: 'Incluída no pedido',
+  por_decidir: 'Por decidir',
+  excluida: 'Excluída deste pedido',
+};
+
+export const ORIGENS_DA_QUANTIDADE = ['medicao', 'estimativa', 'documento'] as const;
+export type OrigemDaQuantidade = (typeof ORIGENS_DA_QUANTIDADE)[number];
+export const ORIGEM_DA_QUANTIDADE_LABELS: Record<OrigemDaQuantidade, string> = {
+  medicao: 'Medição',
+  estimativa: 'Estimativa',
+  documento: 'Documento existente',
+};
+
+export const CONFIRMACOES = ['por_confirmar', 'confirmada'] as const;
+export type Confirmacao = (typeof CONFIRMACOES)[number];
+export const CONFIRMACAO_LABELS: Record<Confirmacao, string> = {
+  por_confirmar: 'Por confirmar',
+  confirmada: 'Confirmada',
+};
+
+/** A zona, nas três dimensões, para quem só precisa de contar e de validar. */
+export interface ZonaDoPedido {
+  areaCm2: AreaCm2;
+  participacao: Participacao;
+  origemDaQuantidade: OrigemDaQuantidade | null;
+  confirmacao: Confirmacao;
+}
+
+export interface ResumoDasZonas {
+  /** Só as incluídas. Uma zona excluída não entra no total, e uma por decidir ainda não é obra. */
+  areaIncluidaCm2: AreaCm2;
+  incluidas: number;
+  porDecidir: number;
+  excluidas: number;
+  /** Zonas incluídas cuja quantidade ainda não foi verificada. */
+  porConfirmar: number;
+  /** Zonas incluídas sem quantidade nenhuma. */
+  semQuantidade: number;
+}
+
+export function resumoDasZonas(zonas: readonly ZonaDoPedido[]): ResumoDasZonas {
+  const incluidas = zonas.filter((z) => z.participacao === 'incluida');
+  return {
+    areaIncluidaCm2: incluidas.reduce((n, z) => n + z.areaCm2, 0),
+    incluidas: incluidas.length,
+    porDecidir: zonas.filter((z) => z.participacao === 'por_decidir').length,
+    excluidas: zonas.filter((z) => z.participacao === 'excluida').length,
+    porConfirmar: incluidas.filter((z) => z.confirmacao === 'por_confirmar').length,
+    semQuantidade: incluidas.filter((z) => z.areaCm2 <= 0).length,
+  };
+}
+
+/** A origem antiga, traduzida para a nova. Serve a migração e o que ainda não tiver mudado. */
+export const ORIGEM_ANTIGA_PARA_NOVA: Record<AreaSource, OrigemDaQuantidade> = {
+  estimativa: 'estimativa',
+  medicao_cliente: 'medicao',
+  planta: 'documento',
+};
+
 export const DESIRED_WORKS = [
   'lavagem',
   'reparacao_fissuras',
@@ -246,7 +331,8 @@ export interface PublishCheckInput {
   /** Outros textos que chegam aos pintores (descrições das superfícies, cor). */
   otherTexts?: string[];
   prazoPropostas: string | null; // AAAA-MM-DD
-  surfacesArea: AreaCm2[];
+  /** As zonas do pedido, nas três dimensões. Só as incluídas contam. */
+  zonas: readonly ZonaDoPedido[];
   today: string; // AAAA-MM-DD, no fuso de Lisboa
 }
 
@@ -273,8 +359,20 @@ export interface Bloqueio {
 /** O que impede a publicação, com o dono de cada coisa. Vazio = pode ser publicado. */
 export function bloqueiosDaPublicacao(input: PublishCheckInput): Bloqueio[] {
   const out: Bloqueio[] = [];
-  if (input.surfacesArea.length === 0 || input.surfacesArea.every((a) => a <= 0)) {
+  const zonas = resumoDasZonas(input.zonas);
+  if (zonas.incluidas === 0 || zonas.areaIncluidaCm2 <= 0) {
     out.push({ texto: 'Indique pelo menos uma superfície com área.', de: 'levantamento' });
+  }
+  // Uma zona por decidir não é uma zona em falta: é uma pergunta por responder, e a resposta é do
+  // cliente — ninguém a pode dar por ele. Por isso é bloqueio, e é dele.
+  if (zonas.porDecidir > 0) {
+    out.push({
+      texto:
+        zonas.porDecidir === 1
+          ? 'Há uma zona por decidir: diga se entra neste pedido ou se fica de fora.'
+          : `Há ${zonas.porDecidir} zonas por decidir: diga quais entram neste pedido e quais ficam de fora.`,
+      de: 'cliente',
+    });
   }
   if (input.descricao.trim().length < 30) out.push({ texto: 'Descreva a obra em pelo menos 30 caracteres.', de: 'cliente' });
   const revealing = [...new Set([input.descricao, ...(input.otherTexts ?? [])].flatMap(revealingContent))];

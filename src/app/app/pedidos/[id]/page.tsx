@@ -10,6 +10,7 @@ import { estadoDaEntrega } from '@/domain/entrega';
 import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
 import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, bloqueiosDaPublicacao, formatArea, type DesiredWork } from '@/domain/request';
 import { percursoDoPedido } from '@/domain/percurso';
+import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
 import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
@@ -127,7 +128,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     descricao: req.descricao,
     otherTexts: [req.cor_acabamento ?? '', ...list.map((s) => s.descricao ?? '')],
     prazoPropostas: req.prazo_propostas,
-    surfacesArea: list.map((s) => s.area_cm2),
+    zonas: list.map(paraZona),
     today: localDate(new Date(), CURRENT_RULES.timeZone),
   });
   const status = STATUS[req.status]!;

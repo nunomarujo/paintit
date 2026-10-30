@@ -4025,3 +4025,33 @@ extenso. As dez cabem.
 diferentes — garantias, datas, adiantamentos — deixa de entrar nas «diferenças relevantes», porque a
 lista fica tão longa que não informa; a tabela apresenta-o melhor. E «O essencial», quando é igual em
 todas as colunas, diz-se uma vez por baixo da tabela em vez de se repetir em cada uma.
+
+## 30/10/2026 — Uma zona tem três dimensões, não um campo
+
+Perguntei ao promotor se «fora do âmbito» era uma exclusão explícita ou só a ausência da zona na
+lista. A resposta foi a primeira — **é uma exclusão explícita de uma zona conhecida** — mas a
+pergunta revelou um erro maior na minha proposta: eu queria meter quatro conceitos num campo só.
+
+| Dimensão | Valores | O que responde |
+| --- | --- | --- |
+| Participação no pedido | incluída · por decidir · excluída | A zona entra nesta obra? |
+| Origem da quantidade | medição · estimativa · documento | Como se chegou ao número? |
+| Confirmação da quantidade | por confirmar · confirmada | O número já foi verificado? |
+
+**«Levantamento» descreve o processo, não o método da quantidade** — um profissional pode medir uma
+fachada e estimar outra. Por isso quem registou guarda-se à parte (`registado_por`, `registado_em`,
+`observacoes`), e não dentro da origem. Era esse o vício do campo antigo: «medição do cliente» são
+duas respostas numa.
+
+**Uma zona excluída** não exige medições, não entra no total nem nas validações de publicação, fica
+identificada no pedido para não restar dúvida de que foi considerada, e conserva os dados que já
+tivesse. **Uma zona ausente da lista não é nada disso:** não é excluída nem confirmada, e ninguém é
+obrigado a inventariar o imóvel inteiro — basta rever as zonas relevantes para a intervenção.
+
+**Uma zona por decidir é bloqueio de publicação, e é do cliente.** Ninguém pode responder por ele se
+aquela fachada entra ou não. Uma estimativa por confirmar **não** é bloqueio: não é um número
+errado, é um número por confirmar, e os pintores veem-no como tal.
+
+A migração `20261030090000_zonas_em_tres_dimensoes` é aditiva e deixa a coluna `origem` como
+história. Passa nos testes das migrações; **falta aplicá-la à base real** — a aplicação directa foi
+recusada por ser uma alteração em produção, e fica para o promotor correr no painel.

@@ -10,6 +10,7 @@ import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
 import { parseRequest, parseSurface, publishBlockers } from '@/domain/request';
+import { paraZona } from '@/lib/requests';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -139,7 +140,10 @@ export async function publishRequest(requestId: string): Promise<FormState> {
 
   const [{ data: req }, { data: surfaces }] = await Promise.all([
     supabase.from('work_requests').select('descricao, prazo_propostas, cor_acabamento, status').eq('id', requestId).maybeSingle(),
-    supabase.from('request_surfaces').select('area_cm2, descricao').eq('request_id', requestId),
+    // As três colunas novas entram neste `select` quando a migração
+    // `20261030090000_zonas_em_tres_dimensoes` estiver aplicada e os tipos gerados de novo. Até lá,
+    // `paraZona` lê o que existe e trata toda a zona como incluída — que é o que ela era.
+    supabase.from('request_surfaces').select('area_cm2, descricao, origem').eq('request_id', requestId),
   ]);
   if (!req || req.status !== 'rascunho') return { errors: {}, message: 'Só um rascunho pode ser publicado.' };
 
@@ -147,7 +151,7 @@ export async function publishRequest(requestId: string): Promise<FormState> {
     descricao: req.descricao,
     otherTexts: [req.cor_acabamento ?? '', ...(surfaces ?? []).map((s) => s.descricao ?? '')],
     prazoPropostas: req.prazo_propostas,
-    surfacesArea: (surfaces ?? []).map((s) => s.area_cm2),
+    zonas: (surfaces ?? []).map(paraZona),
     today: localDate(new Date(), CURRENT_RULES.timeZone),
   });
   if (blockers.length > 0) return { errors: {}, message: blockers.join(' ') };
