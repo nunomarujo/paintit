@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { Fotografias } from '@/app/app/pedidos/[id]/Fotografias';
-import { SurfaceForm } from '@/app/app/pedidos/[id]/SurfaceForm';
-import { AREA_SOURCE_LABELS, SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
+import { ZonasComVolume } from '@/app/app/pedidos/[id]/ZonasComVolume';
+import { paraZona } from '@/lib/requests';
+import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { surveyPendings } from '@/domain/surveyPendings';
 import { surveyorEarningView } from '@/lib/surveys';
@@ -123,30 +124,53 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
           <>
       <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="superficies" className="scroll-mt-4 font-semibold">Superfícies e áreas</h2>
-          <span className="text-[17px] text-slate-600">Total: {formatArea(total)}</span>
+          <h2 id="superficies" className="scroll-mt-4 font-semibold">Zonas e medidas</h2>
+          <span className="text-[17px] text-slate-600">
+            {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
+          </span>
         </div>
-        {list.length > 0 ? (
-          <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
-            {list.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>
-                  <span className="font-medium">{SURFACE_KIND_LABELS[s.kind]}</span>
-                  {s.descricao && <span className="text-slate-500"> · {s.descricao}</span>}
-                  <span className="block text-slate-500">{AREA_SOURCE_LABELS[s.origem]}</span>
-                </span>
-                <span className="font-semibold">{formatArea(s.area_cm2)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-[17px] text-slate-600">Ainda sem superfícies.</p>
-        )}
-        {!done && (
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <SurfaceForm requestId={request.id} />
-          </div>
-        )}
+        {/*
+          O mesmo editor do cliente, e não o formulário antigo de dez campos de uma vez. Quem está
+          no prédio tem o telemóvel numa mão e a fita métrica na outra: uma pergunta de cada vez é
+          ainda mais necessária aqui do que à secretária. E com o volume ao lado, a zona que se está
+          a medir acende-se — que é a maneira de não registar o tardoz duas vezes e esquecer a empena.
+
+          As medidas do prédio ficam de fora desta página de propósito: quem as grava é quem gere o
+          pedido, e o vendedor regista as zonas. A separação é a mesma do lado do cliente.
+        */}
+        <div className="mt-4">
+          <ZonasComVolume
+            requestId={request.id}
+            zonas={list.map((s) => ({
+              id: s.id,
+              kind: s.kind,
+              descricao: s.descricao,
+              areaCm2: s.area_cm2,
+              areaDiretaCm2: s.area_direta_cm2,
+              larguraCm: s.largura_cm,
+              alturaCm: s.altura_cm,
+              vaosCm2: s.vaos_cm2,
+              quantidade: s.quantidade,
+              participacao: paraZona(s).participacao,
+              origemDaQuantidade: paraZona(s).origemDaQuantidade,
+              confirmacao: paraZona(s).confirmacao,
+              trabalhos: s.trabalhos,
+            }))}
+            modo="iguais"
+            podeEditar={!done}
+            doCliente={false}
+            predio={{
+              buildingId: request.building_id,
+              pisos: building?.pisos ?? null,
+              fachadas: building?.fachadas ?? null,
+              temVarandas: !!building?.tem_varandas,
+              moradia: false,
+              forma: null,
+              medidas: { larguraM: null, profundidadeM: null, peDireitoM: null, origem: 'estimativa' },
+              podeMedir: false,
+            }}
+          />
+        </div>
       </section>
 
       <section className={card}>

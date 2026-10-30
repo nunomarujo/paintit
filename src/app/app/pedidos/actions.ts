@@ -28,6 +28,19 @@ import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
+/**
+ * Redesenhar o pedido **e** os levantamentos.
+ *
+ * As zonas e as fotografias de um pedido vêem-se em dois sítios: a página do pedido, do lado do
+ * cliente, e a página do levantamento, do lado de quem está no prédio. As duas mostram as mesmas
+ * linhas, e as duas são estáticas até alguém as mandar refazer. Revalidar só a do pedido deixava o
+ * vendedor a acrescentar uma zona e a não a ver aparecer — e a acrescentá-la outra vez.
+ */
+function revalidarPedido(requestId: string) {
+  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidatePath('/app/levantamentos', 'layout');
+}
+
 function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>, form: FormData) {
   return {
     produtos_preferidos: preferencesFromForm(form).map((p) => ({ id: p.id, fixo: p.fixo })) as Json,
@@ -142,7 +155,7 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
     ...colunasDaZona(v, user.id),
   });
   if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
   return { errors: {}, ok: true };
 }
 
@@ -193,14 +206,14 @@ export async function updateSurface(
     .eq('id', surfaceId)
     .eq('request_id', requestId);
   if (error) return { errors: {}, message: 'Não foi possível guardar. O pedido tem de estar em rascunho.' };
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
   return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
 export async function deleteSurface(requestId: string, surfaceId: string) {
   const { supabase } = await getUser();
   await supabase.from('request_surfaces').delete().eq('id', surfaceId).eq('request_id', requestId);
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
 }
 
 /**
@@ -222,7 +235,7 @@ export async function setParticipacaoDaZona(requestId: string, surfaceId: string
     .update({ participacao: participacao as Participacao })
     .eq('id', surfaceId)
     .eq('request_id', requestId);
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
 }
 
 export async function publishRequest(requestId: string): Promise<FormState> {
@@ -391,7 +404,7 @@ export async function corrigirFotografia(
     .eq('id', photoId)
     .eq('request_id', requestId);
   if (error) return { errors: {}, message: 'Não foi possível guardar. Tente de novo.' };
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
   return { errors: {}, ok: true, message: 'Guardado.' };
 }
 
@@ -404,7 +417,7 @@ export async function deletePhoto(requestId: string, photoId: string) {
     .eq('request_id', requestId)
     .select('storage_path');
   if (data && data.length > 0) await supabase.storage.from('fotos').remove(data.map((p) => p.storage_path));
-  revalidatePath(`/app/pedidos/${requestId}`);
+  revalidarPedido(requestId);
 }
 
 export async function reviewPhoto(photoId: string, _prev: FormState, form: FormData): Promise<FormState> {
