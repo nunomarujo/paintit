@@ -206,6 +206,17 @@ describe('documentos de verificação', () => {
       as(B, () => db.query(`insert into storage.objects (bucket_id, name) values ('documentos', $1)`, [`${condo}/x.pdf`])),
     ).rejects.toThrow(/row-level security/);
   });
+
+  it('o logótipo é público para ler e só da empresa para escrever', async () => {
+    // O cofre é público de propósito (migração `logotipo_da_empresa`): um orçamento guardado em PDF
+    // tem de continuar a mostrar o logótipo daqui a um ano. O que não pode é qualquer um pôr lá um.
+    await as(A, () => db.query(`insert into storage.objects (bucket_id, name) values ('logotipos', $1)`, [`${condo}/marca.png`]));
+    await expect(
+      as(B, () => db.query(`insert into storage.objects (bucket_id, name) values ('logotipos', $1)`, [`${condo}/falso.png`])),
+    ).rejects.toThrow(/row-level security/);
+    const publico = await one<{ public: boolean }>(`select public from storage.buckets where id = 'logotipos'`);
+    expect(publico.public).toBe(true);
+  });
 });
 
 describe('convites', () => {

@@ -2,7 +2,7 @@
 
 import { isCompanyNif, nameMatchesOfficial } from '@/domain/nif';
 import { sniffPdf } from '@/domain/fileSignature';
-import { sniffImage } from '@/domain/photo';
+import { cleanPhoto, sniffImage } from '@/domain/photo';
 import { lookupNif } from '@/lib/nifpt';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
@@ -564,4 +564,65 @@ export async function deleteOrganization(orgId: string, ...[]: [FormState]): Pro
   if (error) return { errors: {}, message: error.message };
   revalidatePath('/app');
   redirect('/app');
+}
+
+
+/**
+ * O logótipo da empresa de pintura.
+ *
+ * É o que faltava para fechar a regra do cabeçalho: o lugar no orçamento está reservado à empresa
+ * desde 29/10/2026, mas não havia onde guardar o que lá havia de ir (migração
+ * `logotipo_da_empresa`).
+ *
+ * Passa pela mesma limpeza das fotografias — `cleanPhoto` valida pelos bytes e retira os metadados.
+ * Num logótipo isso raramente traz GPS, mas traz com frequência o nome de quem o desenhou e o
+ * caminho do ficheiro no computador dele, e nada disso tem de viajar.
+ *
+ * O ficheiro antigo é apagado **depois** de o novo estar gravado e registado: ao contrário, uma
+ * falha a meio deixava a empresa sem logótipo nenhum.
+ */
+export async function guardarLogotipo(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const file = form.get('ficheiro');
+  if (!(file instanceof File) || file.size === 0) return { errors: { ficheiro: 'Escolha um ficheiro.' } };
+  const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
+  if ('error' in clean) return { errors: { ficheiro: clean.error } };
+
+  const { supabase, user } = await getUser();
+  if (!user) return { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+
+  const { data: antes } = await supabase.from('organizations').select('logotipo_path').eq('id', orgId).maybeSingle();
+  const path = `${orgId}/${randomUUID()}.${clean.type === 'image/png' ? 'png' : 'jpg'}`;
+  const upload = await supabase.storage.from('logotipos').upload(path, clean.bytes, { contentType: clean.type });
+  if (upload.error) return { errors: {}, message: 'Não foi possível carregar o ficheiro.' };
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ logotipo_path: path })
+    .eq('id', orgId)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    await supabase.storage.from('logotipos').remove([path]);
+    return { errors: {}, message: 'Não foi possível guardar o logótipo.' };
+  }
+  const anterior = antes?.logotipo_path;
+  if (anterior && anterior !== path) await supabase.storage.from('logotipos').remove([anterior]);
+  revalidatePath(`/app/organizacoes/${orgId}`);
+  return { errors: {}, ok: true, message: 'Logótipo guardado.' };
+}
+
+/** Tirar o logótipo: volta às iniciais, que é o que havia antes dele. */
+export async function removerLogotipo(orgId: string) {
+  const { supabase } = await getUser();
+  // Ler **antes** de limpar: depois do `update` a coluna já é nula e o ficheiro ficava no cofre para
+  // sempre, sem ninguém a saber dele.
+  const { data: antes } = await supabase.from('organizations').select('logotipo_path').eq('id', orgId).maybeSingle();
+  const { data } = await supabase
+    .from('organizations')
+    .update({ logotipo_path: null })
+    .eq('id', orgId)
+    .select('id');
+  if (data && data.length > 0 && antes?.logotipo_path) {
+    await supabase.storage.from('logotipos').remove([antes.logotipo_path]);
+  }
+  revalidatePath(`/app/organizacoes/${orgId}`);
 }

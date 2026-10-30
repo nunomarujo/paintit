@@ -4,6 +4,7 @@ import { PrintButton } from '@/components/PrintButton';
 import { ProposalDocument } from '@/components/ProposalDocument';
 import { temPro } from '@/domain/painterPlan';
 import { painterOrgs, painterSubscription } from '@/lib/queries';
+import { logotipoDaEmpresa } from '@/lib/logotipo';
 import { getUser } from '@/lib/supabase/server';
 import { Voltar } from '@/components/Voltar';
 
@@ -60,6 +61,7 @@ export default async function PrivateQuoteDocumentPage({ params }: { params: Pro
           nif: empresa?.nif ?? null,
           telefone: empresa?.telefone ?? null,
           emailContacto: empresa?.email_contacto ?? null,
+          logotipo: await logotipoDaEmpresa(supabase, org.id),
         }}
         request={{
           ref: `ORC-${String(q.numero).padStart(4, '0')}`,

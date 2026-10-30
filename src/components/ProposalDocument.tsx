@@ -50,7 +50,17 @@ export function ProposalDocument({
    * (`alias(i)`, src/domain/proposal.ts) e nif/telefone/emailContacto vêm `null` — nunca preencher
    * estes campos com dados reais do pintor antes da identidade estar revelada ao cliente.
    */
-  identity: { label: string; nif: string | null; telefone: string | null; emailContacto: string | null };
+  identity: {
+    label: string;
+    nif: string | null;
+    telefone: string | null;
+    emailContacto: string | null;
+    /**
+     * Endereço do logótipo da empresa, do cofre público. Sem ele ficam as iniciais, que é o que
+     * havia antes de 30/10/2026 — e continua a ser uma saída perfeitamente digna.
+     */
+    logotipo?: string | null;
+  };
   request: { ref: string; concelho: string; tipoObra: WorkType; tipoImovel: BuildingKind | null; areaTotalCm2: number };
   /** Zonas (fachadas) do pedido, para a grelha de âmbito. Omitir quando o pedido não tem zonas identificadas. */
   zones: { id: string; label: string; areaCm2: number }[];
@@ -86,9 +96,24 @@ export function ProposalDocument({
       <Sheet page={1} of={capoto ? 3 : 2} footer marca={marca}>
         <header className="flex items-start justify-between gap-6 border-b border-slate-300 pb-4">
           <div className={`flex items-start gap-3 ${revelado || marca === 'propria' ? '' : 'print:hidden'}`}>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
-              {initials(painter.label)}
-            </div>
+            {/*
+              O lugar que esteve reservado desde 29/10/2026 tem finalmente quem o ocupe: o logótipo
+              da própria empresa de pintura (migração `logotipo_da_empresa`). Sem logótipo, as
+              iniciais — e o quadrado tem a mesma medida nos dois casos, para o cabeçalho não
+              dançar entre um orçamento e o seguinte.
+            */}
+            {painter.logotipo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- documento impresso, sem otimizador
+              <img
+                src={painter.logotipo}
+                alt=""
+                className="h-11 w-11 shrink-0 object-contain"
+              />
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-slate-900 font-serif text-sm text-slate-900">
+                {initials(painter.label)}
+              </div>
+            )}
             <div>
               <h1 className="font-serif text-[19px] leading-tight text-slate-900">{painter.label}</h1>
               <p className="doc-label mt-1">

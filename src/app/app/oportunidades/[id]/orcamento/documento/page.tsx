@@ -6,6 +6,7 @@ import { parseCapoto } from '@/lib/capoto';
 import { loadReplay } from '@/lib/engagements';
 import { toLine, toTerms } from '@/lib/proposals';
 import { painterOrgs } from '@/lib/queries';
+import { logotipoDaEmpresa } from '@/lib/logotipo';
 import { getUser } from '@/lib/supabase/server';
 import { Voltar } from '@/components/Voltar';
 
@@ -40,6 +41,7 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
     .select('nome, nif, telefone, email_contacto')
     .eq('id', proposal.painter_org_id)
     .maybeSingle();
+  const logotipo = await logotipoDaEmpresa(supabase, proposal.painter_org_id);
 
   return (
     <div className="space-y-4">
@@ -53,6 +55,7 @@ export default async function PainterQuoteDocumentPage({ params }: { params: Pro
           nif: org?.nif ?? null,
           telefone: org?.telefone ?? null,
           emailContacto: org?.email_contacto ?? null,
+          logotipo,
         }}
         request={{
           ref: listing.ref,

@@ -5,6 +5,7 @@ import { parseCapoto } from '@/lib/capoto';
 import { myRole } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { toLine, toTerms } from '@/lib/proposals';
+import { logotipoDaEmpresa } from '@/lib/logotipo';
 import { getUser } from '@/lib/supabase/server';
 import { Voltar } from '@/components/Voltar';
 
@@ -57,7 +58,15 @@ export default async function ProposalDocumentPage({ params }: { params: Promise
       <ProposalDocument
         identity={
           reveal
-            ? { label: painterOrg.nome, nif: painterOrg.nif, telefone: painterOrg.telefone, emailContacto: painterOrg.email_contacto }
+            ? {
+                label: painterOrg.nome,
+                nif: painterOrg.nif,
+                telefone: painterOrg.telefone,
+                emailContacto: painterOrg.email_contacto,
+                // Só com a identidade revelada: antes disso o documento não leva marca nenhuma do
+                // pintor, e um logótipo é a marca mais reconhecível que há.
+                logotipo: await logotipoDaEmpresa(supabase, proposal.painter_org_id),
+              }
             : { label: alias(proposalIndex >= 0 ? proposalIndex : 0), nif: null, telefone: null, emailContacto: null }
         }
         request={{

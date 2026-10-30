@@ -19,6 +19,7 @@ import { LocalTabs } from '@/components/LocalTabs';
 import { PasswordForm } from '@/app/app/perfil/PasswordForm';
 import { ChangeEmailForm } from './ChangeEmailForm';
 import { DocumentUpload } from './DocumentUpload';
+import { LogotipoDaEmpresa } from './LogotipoDaEmpresa';
 import { EntityCardForm } from './EntityCardForm';
 import { InviteForm } from './InviteForm';
 import { DeleteOrg } from './DeleteOrg';
@@ -78,6 +79,11 @@ export default async function OrganizationPage({
   if (!org) notFound();
 
   const role = await myRole(supabase, user!.id, org);
+  // O cofre dos logótipos é público (ver a migração `logotipo_da_empresa`): o endereço é estável e
+  // serve num PDF guardado hoje e aberto daqui a um ano, ao contrário de um link assinado.
+  const logotipoUrl = org.logotipo_path
+    ? supabase.storage.from('logotipos').getPublicUrl(org.logotipo_path).data.publicUrl
+    : null;
   const manager = canManage(role);
   const owner = role === 'proprietario';
 
@@ -374,6 +380,11 @@ export default async function OrganizationPage({
               {role && role !== 'leitor' && (
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   <DocumentUpload orgId={org.id} orgKind={org.kind} />
+                </div>
+              )}
+              {role && role !== 'leitor' && (org.kind === 'pintor' || org.kind === 'fornecedor') && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <LogotipoDaEmpresa orgId={org.id} url={logotipoUrl} />
                 </div>
               )}
             </section>
@@ -813,6 +824,11 @@ export default async function OrganizationPage({
         {role && role !== 'leitor' && (
           <div className="mt-6 border-t border-slate-100 pt-6">
             <DocumentUpload orgId={org.id} orgKind={org.kind} />
+          </div>
+        )}
+        {role && role !== 'leitor' && (org.kind === 'pintor' || org.kind === 'fornecedor') && (
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <LogotipoDaEmpresa orgId={org.id} url={logotipoUrl} />
           </div>
         )}
       </section>

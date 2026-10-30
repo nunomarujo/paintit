@@ -270,6 +270,9 @@ export type Database = {
           id: string;
           kind: OrgKind;
           localidade: string | null;
+          // Logótipo da empresa: migração 20261030190000_logotipo_da_empresa, **ainda por aplicar à
+          // base real**. Lido numa consulta própria, com o erro tratado.
+          logotipo_path: string | null;
           morada_fiscal: string | null;
           nif: string | null;
           nome: string;
@@ -290,6 +293,7 @@ export type Database = {
           id?: string;
           kind: OrgKind;
           localidade?: string | null;
+          logotipo_path?: string | null;
           morada_fiscal?: string | null;
           nif?: string | null;
           nome: string;
