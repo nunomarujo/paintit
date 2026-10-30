@@ -9,7 +9,7 @@ import type { Json } from '@/lib/database.types';
 import type { FormState } from '@/app/app/actions';
 import { localDate } from '@/domain/deadline';
 import { MAX_PHOTOS_PER_REQUEST, PHOTO_KINDS, cleanPhoto, type PhotoKind } from '@/domain/photo';
-import { parseRequest, parseSurface, publishBlockers } from '@/domain/request';
+import { PARTICIPACOES, parseRequest, parseSurface, publishBlockers, type Participacao } from '@/domain/request';
 import { paraZona } from '@/lib/requests';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
@@ -134,16 +134,38 @@ export async function deleteSurface(requestId: string, surfaceId: string) {
   revalidatePath(`/app/pedidos/${requestId}`);
 }
 
+/**
+ * Põe uma zona dentro ou fora deste pedido.
+ *
+ * **Excluir não apaga.** É a diferença que o promotor fixou a 30/10/2026: uma zona excluída fica no
+ * pedido, identificada, com os dados que já tivesse — para não restar dúvida de que foi considerada
+ * e deixada de fora. Quem quiser mesmo que ela desapareça usa «Remover», que é outra coisa e está
+ * ali ao lado.
+ *
+ * A participação chega do navegador e por isso valida-se aqui (CLAUDE.md, regra 10); o resto fica
+ * às políticas RLS, que já só deixam mexer em zonas de pedidos da entidade de quem pede.
+ */
+export async function setParticipacaoDaZona(requestId: string, surfaceId: string, participacao: string) {
+  if (!(PARTICIPACOES as readonly string[]).includes(participacao)) return;
+  const { supabase } = await getUser();
+  await supabase
+    .from('request_surfaces')
+    .update({ participacao: participacao as Participacao })
+    .eq('id', surfaceId)
+    .eq('request_id', requestId);
+  revalidatePath(`/app/pedidos/${requestId}`);
+}
+
 export async function publishRequest(requestId: string): Promise<FormState> {
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
 
   const [{ data: req }, { data: surfaces }] = await Promise.all([
     supabase.from('work_requests').select('descricao, prazo_propostas, cor_acabamento, status').eq('id', requestId).maybeSingle(),
-    // As três colunas novas entram neste `select` quando a migração
-    // `20261030090000_zonas_em_tres_dimensoes` estiver aplicada e os tipos gerados de novo. Até lá,
-    // `paraZona` lê o que existe e trata toda a zona como incluída — que é o que ela era.
-    supabase.from('request_surfaces').select('area_cm2, descricao, origem').eq('request_id', requestId),
+    supabase
+      .from('request_surfaces')
+      .select('area_cm2, descricao, origem, participacao, origem_quantidade, confirmacao')
+      .eq('request_id', requestId),
   ]);
   if (!req || req.status !== 'rascunho') return { errors: {}, message: 'Só um rascunho pode ser publicado.' };
 

@@ -1,14 +1,24 @@
 import type { Forma } from '@/domain/volume';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { changeRequestStatus, deletePhoto, deleteSurface, updateRequest } from '@/app/app/pedidos/actions';
+import { changeRequestStatus, deletePhoto, deleteSurface, setParticipacaoDaZona, updateRequest } from '@/app/app/pedidos/actions';
 import { parsePreferences } from '@/domain/reference';
 import { RequestForm } from '@/app/app/pedidos/RequestForm';
 import { ListingPreview } from '@/components/ListingPreview';
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
 import { PHOTO_REVIEW_LABELS } from '@/domain/photo';
-import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, SURFACE_KIND_LABELS, bloqueiosDaPublicacao, formatArea, type DesiredWork } from '@/domain/request';
+import {
+  CONFIRMACAO_LABELS,
+  DESIRED_WORK_LABELS,
+  ORIGEM_DA_QUANTIDADE_LABELS,
+  PARTICIPACAO_LABELS,
+  SURFACE_KIND_LABELS,
+  bloqueiosDaPublicacao,
+  formatArea,
+  resumoDasZonas,
+  type DesiredWork,
+} from '@/domain/request';
 import { percursoDoPedido } from '@/domain/percurso';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
@@ -123,12 +133,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     painterNome: i.painter_org_id ? invitePainterName.get(i.painter_org_id) ?? null : null,
   }));
   const list = surfaces ?? [];
-  const total = list.reduce((n, s) => n + s.area_cm2, 0);
+  // O total é só das zonas incluídas: uma zona excluída foi considerada e deixada de fora, e somá-la
+  // dava ao pedido uma área que ninguém vai pintar (promotor, 30/10/2026).
+  const zonas = list.map(paraZona);
+  const resumo = resumoDasZonas(zonas);
+  const total = resumo.areaIncluidaCm2;
   const blockers = bloqueiosDaPublicacao({
     descricao: req.descricao,
     otherTexts: [req.cor_acabamento ?? '', ...list.map((s) => s.descricao ?? '')],
     prazoPropostas: req.prazo_propostas,
-    zonas: list.map(paraZona),
+    zonas,
     today: localDate(new Date(), CURRENT_RULES.timeZone),
   });
   const status = STATUS[req.status]!;
@@ -273,6 +287,21 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
           </span>
         </div>
+        {(resumo.excluidas > 0 || resumo.porConfirmar > 0) && (
+          <p className="mt-1 text-[17px] text-slate-600">
+            {[
+              resumo.excluidas > 0
+                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora deste pedido, e por isso fora do total`
+                : '',
+              resumo.porConfirmar > 0
+                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar no local`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('. ')}
+            .
+          </p>
+        )}
         {!tecnicoDoCliente && (
           <p className="mt-1 text-[17px] text-slate-600">
             Será preenchido pelo profissional que fizer a visita. Pode consultar e acrescentar o que souber, mas não
@@ -283,8 +312,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
             {list.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>
+                <span className={paraZona(s).participacao === 'excluida' ? 'text-slate-500' : undefined}>
                   <span className="font-medium">{SURFACE_KIND_LABELS[s.kind]}</span>
+                  {/* A participação só se escreve quando não é «incluída»: a lista é das zonas do
+                      pedido, e dizer «incluída» em todas as linhas é escrever o óbvio. */}
+                  {paraZona(s).participacao !== 'incluida' && (
+                    <span className={paraZona(s).participacao === 'por_decidir' ? 'text-amber-800' : ''}>
+                      {' '}
+                      · {PARTICIPACAO_LABELS[paraZona(s).participacao]}
+                    </span>
+                  )}
                   {s.descricao && <span className="text-slate-500"> · {s.descricao}</span>}
                   <span className="block text-slate-500">
                     {s.area_direta_cm2 !== null
@@ -292,7 +329,13 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                       : `${(s.largura_cm! / 100).toLocaleString('pt-PT')} m × ${(s.altura_cm! / 100).toLocaleString('pt-PT')} m${
                           s.vaos_cm2 ? ` − ${formatArea(s.vaos_cm2)} de vãos` : ''
                         }`}
-                    {s.quantidade > 1 ? ` × ${s.quantidade}` : ''} · {AREA_SOURCE_LABELS[s.origem]}
+                    {s.quantidade > 1 ? ` × ${s.quantidade}` : ''}
+                    {paraZona(s).origemDaQuantidade && ` · ${ORIGEM_DA_QUANTIDADE_LABELS[paraZona(s).origemDaQuantidade!]}`}
+                    {/* A confirmação só se diz quando falta: dizer «confirmada» em cada linha enchia
+                        a lista de uma palavra que não muda nada. */}
+                    {paraZona(s).confirmacao === 'por_confirmar' && (
+                      <span className="text-amber-800"> · {CONFIRMACAO_LABELS.por_confirmar}</span>
+                    )}
                   </span>
                   {s.trabalhos && s.trabalhos.length > 0 && (
                     <span className="block text-slate-600">
@@ -301,13 +344,31 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                   )}
                 </span>
                 <span className="flex items-center gap-3">
-                  <span className="font-semibold">{formatArea(s.area_cm2)}</span>
+                  {/* A área de uma zona excluída mostra-se na mesma, apagada: foi considerada, e o
+                      que já se sabia dela não se perde por ficar de fora. Simplesmente não conta. */}
+                  <span className={paraZona(s).participacao === 'excluida' ? 'text-slate-400' : 'font-semibold'}>
+                    {formatArea(s.area_cm2)}
+                  </span>
                   {manager && draft && (
-                    <form action={deleteSurface.bind(null, req.id, s.id)}>
-                      <button type="submit" className="text-red-700 hover:underline">
-                        Remover
-                      </button>
-                    </form>
+                    <>
+                      <form
+                        action={setParticipacaoDaZona.bind(
+                          null,
+                          req.id,
+                          s.id,
+                          paraZona(s).participacao === 'excluida' ? 'incluida' : 'excluida',
+                        )}
+                      >
+                        <button type="submit" className="text-tinta-700 hover:underline">
+                          {paraZona(s).participacao === 'excluida' ? 'Voltar a incluir' : 'Deixar de fora'}
+                        </button>
+                      </form>
+                      <form action={deleteSurface.bind(null, req.id, s.id)}>
+                        <button type="submit" className="text-red-700 hover:underline">
+                          Remover
+                        </button>
+                      </form>
+                    </>
                   )}
                 </span>
               </li>

@@ -2,13 +2,18 @@
 // regeneração completa traz ~4000 linhas de diferença e revela 45 erros de tipos em 19 ficheiros
 // (colunas de vistas que podem ser nulas, enums, inserções a que falta uma coluna obrigatória). É
 // dívida a saldar de propósito, com tempo — ver docs/ESTADO.md. `forma_implantacao` foi acrescentada
-// aqui à mão, nas duas tabelas onde existe.
+// aqui à mão, nas duas tabelas onde existe, e o mesmo se fez a 30/10/2026 com as três dimensões da
+// zona em `request_surfaces` (participacao, origem_quantidade, confirmacao, registado_por,
+// registado_em, observacoes): a regeneração completa dá hoje 87 erros em 19 ficheiros.
 // Tipos da base de dados, a partir dos gerados pelo Supabase para o projeto
 // "Paint it" (generate_typescript_types), compactados. Atualizar depois de cada
 // migração que mude tabelas ou enums.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+type Participacao = 'incluida' | 'por_decidir' | 'excluida';
+type OrigemDaQuantidade = 'medicao' | 'estimativa' | 'documento';
+type Confirmacao = 'por_confirmar' | 'confirmada';
 type BuildingKind = 'edificio_habitacao' | 'edificio_misto' | 'moradia' | 'apartamento' | 'comercial';
 type DocKind =
   | 'certidao_permanente'
@@ -1812,6 +1817,14 @@ export type Database = {
           request_id: string;
           vaos_cm2: number | null;
           trabalhos: string[] | null;
+          // As três dimensões da zona (migração 20261030090000). Acrescentadas à mão, como a nota
+          // do topo manda: a regeneração completa traz 87 erros de tipos e é dívida à parte.
+          participacao: Participacao;
+          origem_quantidade: OrigemDaQuantidade | null;
+          confirmacao: Confirmacao;
+          registado_por: string | null;
+          registado_em: string | null;
+          observacoes: string | null;
         };
         Insert: {
           altura_cm?: number | null;
@@ -1826,6 +1839,12 @@ export type Database = {
           request_id: string;
           vaos_cm2?: number | null;
           trabalhos?: string[] | null;
+          participacao?: Participacao;
+          origem_quantidade?: OrigemDaQuantidade | null;
+          confirmacao?: Confirmacao;
+          registado_por?: string | null;
+          registado_em?: string | null;
+          observacoes?: string | null;
         };
         Update: Partial<Database['public']['Tables']['request_surfaces']['Insert']>;
         Relationships: [

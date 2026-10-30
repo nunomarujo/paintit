@@ -4053,5 +4053,16 @@ aquela fachada entra ou não. Uma estimativa por confirmar **não** é bloqueio:
 errado, é um número por confirmar, e os pintores veem-no como tal.
 
 A migração `20261030090000_zonas_em_tres_dimensoes` é aditiva e deixa a coluna `origem` como
-história. Passa nos testes das migrações; **falta aplicá-la à base real** — a aplicação directa foi
-recusada por ser uma alteração em produção, e fica para o promotor correr no painel.
+história. **Aplicada à base real pelo promotor, no painel, a 30/10/2026** — a aplicação directa foi
+recusada por ser uma alteração em produção. As seis colunas estão lá, confirmadas, e os avisos de
+segurança não mudaram: a migração acrescenta colunas a uma tabela que já tinha políticas, e não abre
+superfície nova.
+
+**Fica por registar na lista de migrações do Supabase.** Correr pelo painel aplica o SQL mas não
+escreve a linha em `supabase_migrations.schema_migrations`, e a tentativa de a escrever daqui foi
+recusada pela mesma razão. Sem ela, um `supabase db push` tenta aplicar a migração outra vez — o que
+é inofensivo, porque é toda `if not exists`, mas deixa a lista a mentir. A linha está no fim de
+`docs/ESTADO.md`.
+
+**Os tipos da base acrescentaram-se à mão**, como a nota no topo de `src/lib/database.types.ts`
+manda: a regeneração completa traz hoje 87 erros de tipos em 19 ficheiros, e é dívida à parte.

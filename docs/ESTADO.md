@@ -1729,3 +1729,17 @@ responsabilidade pelos dados continua sua, como se os preenchesse sozinho».
 **Por fazer, pela ordem acordada:** as áreas por zona com os quatro estados; a escolha no início
 («Quero ajuda no local» / «Já tenho os dados»); marcação, reagendamento, cancelamento e o caso de
 não haver quem vá; a revisão antes de publicar; as fotografias e a linguagem; e o desenho.
+
+## Por correr no painel do Supabase (30/10/2026)
+
+A migração `20261030090000_zonas_em_tres_dimensoes` **já foi aplicada** pelo promotor, mas correr
+pelo painel não escreve a linha na lista de migrações. Falta esta, e só esta:
+
+```sql
+insert into supabase_migrations.schema_migrations (version, name)
+values ('20261030090000', 'zonas_em_tres_dimensoes')
+on conflict (version) do nothing;
+```
+
+Sem ela, um `supabase db push` tenta aplicar a migração outra vez. É inofensivo — a migração é toda
+`if not exists` —, mas a lista fica a mentir sobre o que já correu.
