@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
 import { referralDiscountBp } from '../../src/domain/referralEligibility';
 import { CURRENT_RULES, RULES_BY_VERSION } from '../../src/domain/rules';
+import { CURRENT_SURVEY_TERMS_VERSION } from '../../src/domain/surveyTerms';
 import { baseComMigracoes } from './baseEmMemoria';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
@@ -2645,6 +2646,99 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
       await expect(as(A, () => db.query('select public.answer_survey_schedule($1, $2)', [a.id, 'agendado_48h']))).rejects.toThrow(
         /Ainda não há agendamento registado/,
       );
+    });
+  });
+
+  // O contacto do cliente: duas chaves, e a porta fecha outra vez quando a reserva se liberta.
+  describe('o contacto do cliente ao avaliador', () => {
+    it('a versão dos termos é a mesma no domínio e na base de dados', async () => {
+      const naBase = (await one<{ v: string }>('select private.versao_dos_termos_com_contactos() as v')).v;
+      expect(naBase).toBe(CURRENT_SURVEY_TERMS_VERSION);
+    });
+
+    async function vagaComContacto(titulo: string) {
+      const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+      const reqId = (
+        await as(A, () =>
+          one<{ id: string }>(
+            `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao) values ($1, $2, $3, 'fachadas', 'Obra de teste.') returning id`,
+            [condo, buildingId, titulo],
+          ),
+        )
+      ).id;
+      const sid = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
+      await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [sid, vendorOrg]));
+      const aid = (await one<{ id: string }>('select id from public.survey_attempts where survey_id = $1', [sid])).id;
+      return { reqId, sid, aid };
+    }
+
+    const aceitarTermos = (user: string, versao = CURRENT_SURVEY_TERMS_VERSION) =>
+      as(user, () =>
+        db.query('insert into public.survey_terms_acceptances (user_id, version) values ($1, $2) on conflict do nothing', [user, versao]),
+      );
+
+    it('sem confidencialidade aceite, não há contactos — mesmo com a reserva válida', async () => {
+      const { aid } = await vagaComContacto('contactos: sem termos');
+      await expect(as(VEND, () => db.query('select * from public.survey_client_contact($1)', [aid]))).rejects.toThrow(
+        /Aceite o compromisso de confidencialidade/,
+      );
+    });
+
+    it('a versão antiga dos termos não serve: contactos são informação de outra natureza', async () => {
+      const { aid } = await vagaComContacto('contactos: versão antiga');
+      await aceitarTermos(VEND, '2026-10-23');
+      await expect(as(VEND, () => db.query('select * from public.survey_client_contact($1)', [aid]))).rejects.toThrow(
+        /Aceite o compromisso de confidencialidade/,
+      );
+    });
+
+    it('com reserva válida e termos aceites, vê nome, telefone e morada', async () => {
+      const { aid } = await vagaComContacto('contactos: as duas chaves');
+      await aceitarTermos(VEND);
+      const c = await as(VEND, () =>
+        one<{ nome: string | null; telefone: string | null; email: string | null; morada: string }>(
+          'select * from public.survey_client_contact($1)',
+          [aid],
+        ),
+      );
+      expect(c.morada).toBe('Rua A, 1');
+      // O email sai do contacto da entidade ou, à falta dele, da conta de quem pediu a obra.
+      expect(c.email).toBeTruthy();
+    });
+
+    it('quem não reservou não vê contactos, nem com os termos aceites', async () => {
+      const { aid } = await vagaComContacto('contactos: outro fornecedor');
+      await aceitarTermos(B);
+      await expect(as(B, () => db.query('select * from public.survey_client_contact($1)', [aid]))).rejects.toThrow(
+        /Só quem reservou/,
+      );
+    });
+
+    it('libertada a reserva, a porta fecha outra vez', async () => {
+      const { aid } = await vagaComContacto('contactos: reserva perdida');
+      await aceitarTermos(VEND);
+      await as(VEND, () => db.query('select * from public.survey_client_contact($1)', [aid]));
+      await db.query(
+        `update public.survey_attempts set prazo_contacto = now() - interval '2 hours', prazo_conclusao = now() - interval '1 hour' where id = $1`,
+        [aid],
+      );
+      await db.query('select private.vencimentos_de_levantamentos()');
+      await expect(as(VEND, () => db.query('select * from public.survey_client_contact($1)', [aid]))).rejects.toThrow(
+        /deixaram de estar disponíveis/,
+      );
+    });
+
+    it('em revisão, continua a ver: é com esses contactos que a revisão se esclarece', async () => {
+      const { aid } = await vagaComContacto('contactos: em revisão');
+      await aceitarTermos(VEND);
+      await db.query(
+        `update public.survey_attempts set contacto_registado_em = now(), agendado_para = now() + interval '1 day' where id = $1`,
+        [aid],
+      );
+      await as(A, () => db.query('select public.answer_survey_schedule($1, $2)', [aid, 'nao_contactado']));
+      expect((await one<{ estado: string }>('select estado from public.survey_attempts where id = $1', [aid])).estado).toBe('em_revisao');
+      const c = await as(VEND, () => one<{ morada: string }>('select * from public.survey_client_contact($1)', [aid]));
+      expect(c.morada).toBe('Rua A, 1');
     });
   });
 

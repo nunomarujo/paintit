@@ -4,23 +4,26 @@ import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
 import { acceptSurveyTerms } from '../actions';
 
-/** Antes de ver a morada e os dados de uma obra reservada, o avaliador aceita estes termos — uma vez,
- * válidos para todas as visitas (decisão de 23/10/2026, docs/DECISOES.md). O texto fica aqui, não no
- * domínio: só a versão (src/domain/surveyTerms.ts) tem de ficar certa nos dois sítios. */
+/** Antes de ver a morada, o nome e o contacto de quem pede uma obra reservada, o avaliador aceita estes
+ * termos — uma vez, válidos para todas as visitas (decisão de 23/10/2026, docs/DECISOES.md). O texto fica
+ * aqui, não no domínio: só a versão (src/domain/surveyTerms.ts) tem de ficar certa nos dois sítios.
+ * 31/10/2026: passou a cobrir contactos de pessoas, por decisão do promotor de que o avaliador telefona ao
+ * cliente na primeira hora útil. Mudar o texto de forma substancial obriga a subir a versão. */
 export function AcceptTerms({ surveyId }: { surveyId: string }) {
   const { state, pending, formProps } = useFormAction<FormState>(acceptSurveyTerms.bind(null, surveyId), { errors: {} });
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 className="font-semibold">Antes de ver a morada e os dados desta obra</h2>
+      <h2 className="font-semibold">Antes de ver a morada e o contacto do cliente</h2>
       <p className="mt-2 text-[17px] text-slate-600">
-        A morada exata e os dados desta e de qualquer outra obra reservada só se veem depois de aceitar estes termos, uma vez, válidos para todas as
+        A morada exata, o nome e o contacto telefónico de quem pede a obra só se veem depois de aceitar estes termos, uma vez, válidos para todas as
         visitas na Quem Pinta:
       </p>
       <ol className="mt-4 list-decimal space-y-2 pl-5 text-[17px] text-slate-700">
         <li>
-          <strong>Confidencialidade.</strong> A morada, os contactos e os dados desta obra não se partilham, copiam nem usam fora desta plataforma, com
-          ninguém.
+          <strong>Confidencialidade.</strong> A morada, o nome, os contactos e os dados desta obra não se partilham, copiam nem usam fora desta
+          plataforma, com ninguém. O contacto do cliente serve para combinar esta visita e mais nada: não se guarda, não se reutiliza noutro negócio e
+          não se passa a terceiros.
         </li>
         <li>
           <strong>Sem responsabilidade pelos dados.</strong> O levantamento é uma ajuda a quem pede: a responsabilidade pelas medidas e pelas informações
