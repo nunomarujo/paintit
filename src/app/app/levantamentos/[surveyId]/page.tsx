@@ -8,6 +8,7 @@ import { surveyPendings } from '@/domain/surveyPendings';
 import { surveyorEarningView } from '@/lib/surveys';
 import { getUser } from '@/lib/supabase/server';
 import { EarningCard } from './EarningCard';
+import { horaExata } from '@/domain/contagem';
 import { AcceptTerms } from './AcceptTerms';
 import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { SurveyWorkspace } from './SurveyWorkspace';
@@ -31,9 +32,28 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
     .eq('version', CURRENT_SURVEY_TERMS_VERSION)
     .maybeSingle();
   if (!accepted) {
+    // O prazo de contacto corre mesmo com os termos por aceitar. Esconder-lhe o prazo atrás desta barreira
+    // era deixar perder a vaga a olhar para um texto que não diz que há um relógio a andar — e esta barreira
+    // aparece a toda a gente de cada vez que os termos mudam de versão.
+    const { data: aDecorrer } = await supabase
+      .from('survey_attempts')
+      .select('prazo_contacto, contacto_registado_em')
+      .eq('survey_id', survey.id)
+      .eq('estado', 'ativa')
+      .maybeSingle();
     return (
       <div className="space-y-8">
         <Voltar href="/app/levantamentos">Levantamentos</Voltar>
+        {aDecorrer && !aDecorrer.contacto_registado_em && (
+          <section className="rounded-2xl border border-tinta-200 bg-tinta-50 p-4">
+            <h2 className="font-semibold text-slate-900">
+              Contactar a cliente até {horaExata(new Date(aDecorrer.prazo_contacto))}
+            </h2>
+            <p className="mt-1 text-[17px] text-slate-700">
+              O prazo já está a correr. Aceite os termos abaixo para ver o contacto e registar a chamada.
+            </p>
+          </section>
+        )}
         <AcceptTerms surveyId={survey.id} />
       </div>
     );
