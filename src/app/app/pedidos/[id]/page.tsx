@@ -20,6 +20,8 @@ import { percursoDoPedido } from '@/domain/percurso';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
 import { CaixaDaSeccao, PedidoEmSeccoes } from './PedidoEmSeccoes';
+import { ConfirmarVisita } from './ConfirmarVisita';
+import { horaExata } from '@/domain/contagem';
 import { RevisaoEPublicacao } from './RevisaoEPublicacao';
 import { estadosDasSeccoes, primeiraPendencia } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -121,6 +123,11 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       rated: !!ratedRow,
     };
   }
+  // O agendamento à espera da confirmação da cliente (migração 20261101000000). A função devolve só o que
+  // lhe diz respeito: nada identifica o avaliador, e as notas internas do contacto não vêm (regra 6).
+  const { data: agendamentos } = manager ? await supabase.rpc('survey_schedule_for_client', { p_request: id }) : { data: null };
+  const agendamento = agendamentos?.[0] ?? null;
+
   // Adendas ao levantamento (migração 20261024034129): perguntas dos pintores e respostas dadas na obra.
   // Lido independentemente de o pedido estar em rascunho — ao contrário do cartão de ajuda acima, isto
   // interessa sobretudo depois de publicado, que é quando os pintores perguntam. Vem vazio enquanto essa
@@ -271,6 +278,18 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         </section>
       )}
 
+      {/* O aviso obrigatório: enquanto a cliente não responder, o prazo do avaliador continua a correr. Não
+          se fecha sozinho, e «Não fui contactada» é a última das três opções, de propósito. */}
+      {agendamento?.por_responder && (
+        <ConfirmarVisita
+          agendamento={{
+            attemptId: agendamento.attempt_id,
+            agendadoPara: agendamento.agendado_para,
+            limiteAdiamento: agendamento.limite_adiamento,
+          }}
+        />
+      )}
+
       <Percurso
         estado={percurso}
         requestId={req.id}
@@ -405,6 +424,23 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               <div id="pedido-de-visita" className="scroll-mt-6">
                 <RequestSurveyCard requestId={req.id} survey={survey} />
               </div>
+            )}
+
+            {/* Respondida a confirmação, o agendamento fica à mão — o email não é prova de nada, a resposta é. */}
+            {agendamento && !agendamento.por_responder && agendamento.agendado_para && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                <h2 className="font-semibold">Visita ao prédio</h2>
+                <p className="mt-1 text-[17px] text-slate-700">
+                  {agendamento.resposta_cliente === 'nao_contactado'
+                    ? 'Indicou não ter sido contactada. A plataforma está a analisar o caso.'
+                    : `Marcada para ${horaExata(new Date(agendamento.agendado_para))}.`}
+                </p>
+                {agendamento.resposta_cliente_em && (
+                  <p className="mt-1 text-[15px] text-slate-600">
+                    Respondeu a {horaExata(new Date(agendamento.resposta_cliente_em))}.
+                  </p>
+                )}
+              </section>
             )}
 
             {(adendas ?? []).length > 0 && (

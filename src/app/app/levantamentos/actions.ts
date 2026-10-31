@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { sniffPdf } from '@/domain/fileSignature';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
+import { notifyVisitaAgendada } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
@@ -55,6 +56,13 @@ export async function registerContact(attemptId: string, _prev: FormState, form:
     // A mensagem da base diz qual é o campo quando fala de datas; nos outros casos é geral.
     const campo = /data|48 horas|futuro/i.test(error.message) ? 'agendado' : '';
     return campo ? { errors: { [campo]: error.message } } : { errors: {}, message: error.message };
+  }
+  // O email à cliente nunca faz falhar o registo: se o correio estiver em baixo, o aviso dentro da
+  // aplicação continua lá, e é esse que obriga à resposta.
+  const { data: dono } = await supabase.from('survey_attempts').select('survey_id').eq('id', attemptId).maybeSingle();
+  if (dono) {
+    const { data: s } = await supabase.from('request_surveys').select('request_id').eq('id', dono.survey_id).maybeSingle();
+    if (s) await notifyVisitaAgendada(s.request_id, quando).catch(() => {});
   }
   revalidatePath(path);
   return { errors: {}, ok: true, message: 'Registado. A cliente foi avisada para confirmar.' };

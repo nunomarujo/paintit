@@ -321,6 +321,43 @@ export async function notifyProposalSubmitted(requestId: string): Promise<void> 
 }
 
 /**
+ * A visita ao prédio foi agendada e espera confirmação da cliente (31/10/2026).
+ *
+ * O email leva-a à plataforma; a confirmação faz-se lá, no aviso que não se fecha sozinho. **O email não é
+ * prova de nada** — não se pode tratar o envio como concordância, e é por isso que o texto não oferece
+ * nenhuma maneira de responder por correio.
+ *
+ * Diz-lhe também o que custa não responder, porque é verdade e porque é a única maneira de a resposta
+ * aparecer a tempo: o prazo do profissional continua a correr enquanto ela não disser nada.
+ */
+export async function notifyVisitaAgendada(requestId: string, quando: Date): Promise<void> {
+  const db = adminClient();
+  if (!db) return;
+  const { data: req } = await db.from('work_requests').select('org_id, titulo').eq('id', requestId).maybeSingle();
+  if (!req) return;
+  const data = new Intl.DateTimeFormat('pt-PT', {
+    timeZone: CURRENT_RULES.timeZone,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(quando);
+  await sendEmail(
+    await recipients(req.org_id),
+    'Confirme a visita ao prédio',
+    [
+      `Um profissional registou o contacto consigo sobre "${req.titulo}" e indicou a visita para ${data}.`,
+      'Confirme na plataforma se corresponde ao que combinaram. Se não falou com ninguém, diga-o também ali.',
+      'Enquanto não responder, o prazo do profissional continua a correr.',
+    ],
+    `/app/pedidos/${requestId}`,
+    { cta: 'Confirmar na plataforma' },
+  );
+}
+
+/**
  * Convida os pintores quando um pedido é publicado: um email por entidade, para o contacto indicado (email_contacto)
  * ou, se não houver, para quem a gere. Só com o que o anúncio anónimo já mostra. Um de cada vez (limite do Resend).
  */
