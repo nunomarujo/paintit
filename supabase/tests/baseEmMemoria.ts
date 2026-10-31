@@ -9,6 +9,8 @@ import { PGlite } from '@electric-sql/pglite';
 export const SUPABASE_STUB = `
   create role anon nologin;
   create role authenticated nologin;
+  -- A chave de serviço do Supabase corre como este papel. Existe aqui porque há portas abertas só a ele.
+  create role service_role nologin bypassrls;
   create schema auth;
   create table auth.users (id uuid primary key, email text);
   create function auth.uid() returns uuid language sql stable as

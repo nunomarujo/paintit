@@ -964,6 +964,34 @@ export type Database = {
         Update: { contact_notes?: string; scheduled_at?: string | null };
         Relationships: [];
       };
+      // Uma tentativa de levantamento (migração 20261031200000): quem aceitou, com que prazos, o que
+      // registou e o que o cliente respondeu. Nunca se reescreve — libertar a reserva fecha a tentativa e
+      // abre outra. Só se escreve pelas funções, por isso não há Insert nem Update.
+      survey_attempts: {
+        Row: {
+          id: string;
+          survey_id: string;
+          numero: number;
+          vendedor_org_id: string;
+          vendedor_user_id: string | null;
+          aceita_em: string;
+          prazo_contacto: string;
+          prazo_conclusao: string;
+          limite_adiamento: string;
+          contacto_registado_em: string | null;
+          contacto_notas: string;
+          agendado_para: string | null;
+          resposta_cliente: 'agendado_48h' | 'adiado' | 'nao_contactado' | null;
+          resposta_cliente_em: string | null;
+          adiado_para: string | null;
+          estado: 'ativa' | 'concluida' | 'libertada' | 'em_revisao';
+          fecho_em: string | null;
+          fecho_motivo: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       supplier_survey_coverage: {
         Row: { concelhos: string[]; org_id: string; updated_at: string };
         Insert: { concelhos?: string[]; org_id: string };
@@ -2063,6 +2091,39 @@ export type Database = {
       survey_addenda: {
         Args: { p_request_survey_id: string };
         Returns: { ronda: number; aberta_em: string; estado: string; duvidas: string[]; resposta: string | null; respondido_em: string | null }[];
+      };
+      // A fila dos avisos por email (migração 20261101020000). Estas duas portas estão abertas só à chave de
+      // serviço: quem tem sessão de utilizador não as vê, e por isso só a aplicação as chama.
+      reclamar_avisos: {
+        Args: { p_limite?: number };
+        Returns: { id: string; destinatario: string; assunto: string; texto: string; link: string }[];
+      };
+      resultado_do_aviso: { Args: { p_id: string; p_ok: boolean; p_erro?: string }; Returns: undefined };
+      // Prazos e tentativas do levantamento (migrações 20261031200000 a 20261101000000).
+      register_survey_contact: {
+        Args: { p_attempt: string; p_notas: string; p_agendado_para: string };
+        Returns: Database['public']['Tables']['survey_attempts']['Row'];
+      };
+      answer_survey_schedule: {
+        Args: { p_attempt: string; p_resposta: string; p_data?: string };
+        Returns: Database['public']['Tables']['survey_attempts']['Row'];
+      };
+      survey_schedule_for_client: {
+        Args: { p_request: string };
+        Returns: {
+          attempt_id: string;
+          agendado_para: string | null;
+          prazo_conclusao: string;
+          limite_adiamento: string;
+          resposta_cliente: string | null;
+          resposta_cliente_em: string | null;
+          adiado_para: string | null;
+          por_responder: boolean;
+        }[];
+      };
+      survey_client_contact: {
+        Args: { p_attempt: string };
+        Returns: { nome: string | null; telefone: string | null; email: string | null; morada: string; codigo_postal: string | null; localidade: string | null }[];
       };
     };
     Enums: {
