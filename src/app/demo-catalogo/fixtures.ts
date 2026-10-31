@@ -1,0 +1,110 @@
+// Dados fictícios para a captura de ecrã do catálogo e das condições comerciais do fornecedor,
+// usada no popup "Para quem → fornecedores de tintas". Forma exatamente igual à das tabelas reais
+// (src/lib/database.types.ts: products, supplier_discounts) — só os valores são inventados.
+import type { Database } from '@/lib/database.types';
+
+type Product = Database['public']['Tables']['products']['Row'];
+type Discount = Database['public']['Tables']['supplier_discounts']['Row'];
+
+const base = (p: Partial<Product> & Pick<Product, 'id' | 'marca' | 'nome' | 'tipo'>): Product => ({
+  reference_product_id: null,
+  ativo: true,
+  created_at: '2026-10-01T09:00:00Z',
+  created_by: 'demo',
+  embalagem_ml: null,
+  ficha_path: null,
+  org_id: 'demo-fornecedor',
+  preco_data: '2026-10-01',
+  preco_referencia_cents: null,
+  referencia: null,
+  rendimento: null,
+  updated_at: '2026-10-01T09:00:00Z',
+  unidade: 'L',
+  descricao: null,
+  modos_aplicacao: [],
+  acabamento: null,
+  uso: null,
+  base: null,
+  secagem_horas: null,
+  diluicao: null,
+  demaos_recomendadas: null,
+  preco_fornecedor_cents: null,
+  ...p,
+});
+
+export const PRODUCTS: Product[] = [
+  base({
+    id: 'demo-vinylmatt',
+    marca: 'CIN',
+    nome: 'Vinylmatt',
+    tipo: 'tinta_exterior',
+    referencia: 'VM-5L',
+    descricao: 'Tinta plástica mate para fachadas, alta resistência a algas e fungos.',
+    acabamento: 'Mate',
+    uso: 'exterior',
+    embalagem_ml: 5000,
+    rendimento: 800,
+    demaos_recomendadas: 2,
+    secagem_horas: 4,
+    preco_referencia_cents: 2450,
+    preco_fornecedor_cents: 2150,
+    ficha_path: 'demo/vinylmatt.pdf',
+    modos_aplicacao: ['rolo', 'pistola_airless'],
+  }),
+  base({
+    id: 'demo-primario-fixador',
+    marca: 'CIN',
+    nome: 'Primário Fixador',
+    tipo: 'primario',
+    referencia: 'PF-5L',
+    descricao: 'Primário fixador para paredes exteriores e interiores.',
+    uso: 'ambos',
+    embalagem_ml: 5000,
+    rendimento: 1000,
+    demaos_recomendadas: 1,
+    secagem_horas: 2,
+    preco_referencia_cents: 1890,
+    preco_fornecedor_cents: 1620,
+    ficha_path: 'demo/primario-fixador.pdf',
+    modos_aplicacao: ['rolo', 'trincha'],
+  }),
+  base({
+    id: 'demo-sika-membrane',
+    marca: 'Sika',
+    nome: 'Membrane',
+    tipo: 'impermeabilizante',
+    referencia: 'SM-5L',
+    descricao: 'Membrana líquida impermeabilizante para beirais e platibandas.',
+    uso: 'exterior',
+    embalagem_ml: 5000,
+    rendimento: 200,
+    demaos_recomendadas: 2,
+    secagem_horas: 24,
+    preco_referencia_cents: 3900,
+    preco_fornecedor_cents: 3420,
+    ficha_path: 'demo/sika-membrane.pdf',
+    modos_aplicacao: ['trincha', 'talocha'],
+  }),
+];
+
+const discount = (d: Partial<Discount> & Pick<Discount, 'id' | 'desconto_bps'>): Discount => ({
+  created_at: '2026-10-01T09:00:00Z',
+  created_by: 'demo',
+  max_area_cm2: null,
+  min_area_cm2: null,
+  org_id: 'demo-fornecedor',
+  painter_org_id: null,
+  pagamento: null,
+  min_quantidade: null,
+  perfil: null,
+  product_id: null,
+  tipo: null,
+  valido_ate: null,
+  ...d,
+});
+
+export const DISCOUNTS: Discount[] = [
+  discount({ id: 'demo-desconto-catalogo', desconto_bps: 500 }),
+  discount({ id: 'demo-desconto-area', desconto_bps: 1000, min_area_cm2: 100000, perfil: 'cliente_frequente' }),
+  discount({ id: 'demo-desconto-pronto', desconto_bps: 300, pagamento: 'pronto' }),
+];

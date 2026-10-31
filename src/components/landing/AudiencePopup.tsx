@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 
 const toOrg = (tipo: string) => `/entrar?seguinte=${encodeURIComponent(`/app/organizacoes/nova?tipo=${tipo}`)}`;
 
@@ -9,13 +10,39 @@ type Tipo = 'pintor' | 'fornecedor';
 
 /**
  * Conteúdo dos dois popups "Para quem", pela ordem decidida na v4: introdução → 3 vantagens
- * resumidas → "Tudo o que inclui" (lista completa) → nota de condições comerciais (sem
- * percentagens — regra 15 do CLAUDE.md) → CTA de adesão.
+ * resumidas → demonstração visual → "Tudo o que inclui" (lista completa) → nota de condições
+ * comerciais (sem percentagens — regra 15 do CLAUDE.md) → CTA de adesão.
  *
- * Sem demonstração visual do produto: o protótipo isolado tinha capturas de ecrã próprias
- * (`assets/geral/...`) que não existem neste repositório, e inventar imagens que pareçam capturas
- * reais do produto seria apresentar como existente algo que não foi confirmado.
+ * Demonstração visual (reintroduzida a 31/10/2026, pedido do promotor): capturas reais, com dados
+ * fictícios, dos mesmos componentes do produto — nunca uma interface inventada. Cada imagem vem de
+ * uma rota de demonstração isolada, fora do fluxo normal da aplicação, sem autenticação e sem
+ * qualquer leitura da base real (mesmo padrão de `src/app/demo-comparador`):
+ * - pintor: `src/app/demo-orcamento` — o `WorksEditor` real do orçamento guiado
+ *   (`src/app/app/oportunidades/[id]/orcamento/WorksEditor.tsx`), com a caixa de sugestões do
+ *   catálogo aberta.
+ * - fornecedor: `src/app/demo-catalogo` — o `ProductCard` real do catálogo
+ *   (`src/components/ProductCard.tsx`) e a lista de descontos do ecrã real do fornecedor
+ *   (`src/app/app/organizacoes/[id]/produtos/page.tsx`).
+ * As capturas foram tiradas com Playwright a partir dessas rotas e guardadas em
+ * `public/img/popup-demo-*.webp`; não existe ligação ao vivo entre o popup e essas rotas.
  */
+const DEMO: Record<Tipo, { src: string; width: number; height: number; alt: string; legenda: string }> = {
+  pintor: {
+    src: '/img/popup-demo-pintor.webp',
+    width: 1696,
+    height: 1240,
+    alt: 'Orçamento guiado: trabalho "Pintura final" selecionado, com sugestões de produto do catálogo (CIN Vinylmatt) e a descrição gerada automaticamente para o cliente.',
+    legenda: 'O orçamento guiado, a sério — com sugestões de produtos do catálogo.',
+  },
+  fornecedor: {
+    src: '/img/popup-demo-fornecedor.webp',
+    width: 1792,
+    height: 1520,
+    alt: 'Catálogo de produtos de um fornecedor, com fichas técnicas e preços, e a lista de descontos que já tem definidos para os pintores.',
+    legenda: 'O catálogo e os descontos, exatamente como o pintor os vê.',
+  },
+};
+
 const CONTEUDO: Record<Tipo, {
   tag: string;
   titulo: string;
@@ -78,7 +105,18 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
   const dialogRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<Element | null>(null);
   const titleId = useId();
+  const demoTitleId = useId();
   const c = CONTEUDO[tipo];
+  const demo = DEMO[tipo];
+
+  // Ampliar a demonstração abre um segundo "diálogo", por cima deste. Um Escape fecha primeiro a
+  // ampliação (ref, não estado, para o efeito abaixo não ter de voltar a subscrever o 'keydown' a
+  // cada abrir/fechar) — só um segundo Escape fecha o popup inteiro.
+  const [lightbox, setLightbox] = useState(false);
+  const lightboxRef = useRef(false);
+  lightboxRef.current = lightbox;
+  const thumbRef = useRef<HTMLButtonElement>(null);
+  const closeLightboxRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -94,10 +132,16 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (lightboxRef.current) {
+          e.stopPropagation();
+          setLightbox(false);
+          return;
+        }
         e.stopPropagation();
         onClose();
         return;
       }
+      if (lightboxRef.current) return; // o Tab, enquanto a ampliação está aberta, fica só nela (ver o efeito dela).
       if (e.key === 'Tab') {
         const f = focusable();
         if (f.length === 0) return;
@@ -165,6 +209,34 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
             ))}
           </ul>
 
+          <div className="mt-7">
+            <button
+              ref={thumbRef}
+              type="button"
+              onClick={() => setLightbox(true)}
+              aria-describedby={demoTitleId}
+              className="group block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#458b81]"
+            >
+              <Image
+                src={demo.src}
+                alt={demo.alt}
+                width={demo.width}
+                height={demo.height}
+                className="max-h-[260px] w-full object-cover object-top transition group-hover:opacity-90"
+                sizes="(min-width: 640px) 792px, 100vw"
+              />
+              <span
+                id={demoTitleId}
+                className="flex min-h-[44px] items-center justify-center gap-1.5 border-t border-slate-200 bg-white px-3 text-[13px] font-semibold text-tinta-700"
+              >
+                {demo.legenda} — ver maior
+                <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
           <p className="mt-7 text-[13px] font-bold uppercase tracking-[.04em] text-slate-500">Tudo o que inclui</p>
           <ul className="mt-3.5 grid gap-3.5 sm:grid-cols-2">
             {c.beneficios.map((b) => (
@@ -184,6 +256,71 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
             </Link>
           </div>
         </div>
+      </div>
+
+      {lightbox && (
+        <LightboxAmpliado onClose={() => setLightbox(false)} closeRef={closeLightboxRef} thumbRef={thumbRef} src={demo.src} alt={demo.alt} width={demo.width} height={demo.height} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Ampliação da captura (dentro de AudiencePopup, nunca sozinha): um "diálogo" simples por cima do
+ * popup — uma imagem e um botão de fechar, sem mais nada focável, por isso o Tab só precisa de
+ * devolver sempre o foco a esse botão (não um "trap" entre vários elementos, como o popup à volta
+ * precisa). O Escape já é tratado no `onKey` do AudiencePopup (ver ali): fecha primeiro isto.
+ */
+function LightboxAmpliado({
+  onClose,
+  closeRef,
+  thumbRef,
+  src,
+  alt,
+  width,
+  height,
+}: {
+  onClose: () => void;
+  closeRef: RefObject<HTMLButtonElement | null>;
+  thumbRef: RefObject<HTMLButtonElement | null>;
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}) {
+  useEffect(() => {
+    closeRef.current?.focus();
+    const voltarAoFechar = thumbRef.current;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        closeRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      voltarAoFechar?.focus();
+    };
+  }, [closeRef, thumbRef]);
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={alt}>
+      <div className="absolute inset-0 bg-[rgba(10,26,23,.82)]" onClick={onClose} />
+      <div className="relative flex max-h-full max-w-full flex-col items-center gap-4">
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar imagem ampliada"
+          className="inline-flex h-11 w-11 flex-none items-center justify-center self-end rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#458b81]"
+        >
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element -- ampliação ao tamanho real da captura; next/image otimizada já serviu a miniatura acima. */}
+        <img src={src} alt={alt} width={width} height={height} className="max-h-[80vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl" />
       </div>
     </div>
   );
