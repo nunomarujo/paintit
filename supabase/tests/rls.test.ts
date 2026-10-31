@@ -2728,6 +2728,26 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
       );
     });
 
+    it('o avaliador vê os avisos que são dele, e não os da entidade', async () => {
+      const { aid } = await vagaComContacto('avisos: dirigidos à pessoa');
+      // Perder a reserva escreve um aviso dirigido à pessoa que reservou.
+      await db.query(
+        `update public.survey_attempts set prazo_contacto = now() - interval '2 hours', prazo_conclusao = now() - interval '1 hour' where id = $1`,
+        [aid],
+      );
+      await db.query('select private.vencimentos_de_levantamentos()');
+      const meus = await as(VEND, async () =>
+        (await db.query<{ texto: string }>('select texto from public.notifications where user_id = $1', [VEND])).rows.map((r) => r.texto),
+      );
+      expect(meus.some((x) => /Perdeu a reserva/.test(x))).toBe(true);
+      // E continua sem ver os avisos da entidade, que são de dinheiro, documentos e subscrição.
+      await db.query(`insert into public.notifications (org_id, texto, link) values ($1, 'Aviso da entidade.', '/app')`, [vendorOrg]);
+      const daEntidade = await as(VEND, async () =>
+        (await db.query<{ texto: string }>(`select texto from public.notifications where user_id is null`)).rows.map((r) => r.texto),
+      );
+      expect(daEntidade).not.toContain('Aviso da entidade.');
+    });
+
     it('em revisão, continua a ver: é com esses contactos que a revisão se esclarece', async () => {
       const { aid } = await vagaComContacto('contactos: em revisão');
       await aceitarTermos(VEND);
