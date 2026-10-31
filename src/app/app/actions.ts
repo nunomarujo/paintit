@@ -2,7 +2,7 @@
 
 import { isCompanyNif, nameMatchesOfficial } from '@/domain/nif';
 import { sniffPdf } from '@/domain/fileSignature';
-import { cleanPhoto, sniffImage } from '@/domain/photo';
+import { MAX_LOGOTIPO_BYTES, cleanPhoto, sniffImage } from '@/domain/photo';
 import { lookupNif } from '@/lib/nifpt';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
@@ -584,8 +584,18 @@ export async function deleteOrganization(orgId: string, ...[]: [FormState]): Pro
 export async function guardarLogotipo(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const file = form.get('ficheiro');
   if (!(file instanceof File) || file.size === 0) return { errors: { ficheiro: 'Escolha um ficheiro.' } };
+  // O cofre recusa acima de 2 MB. Dizê-lo aqui, com o limite por extenso, em vez de deixar o cofre recusar
+  // e devolver «não foi possível carregar» — que é verdade e não ajuda nada.
+  if (file.size > MAX_LOGOTIPO_BYTES) {
+    return { errors: { ficheiro: 'O logótipo tem mais de 2 MB. Exporte-o num tamanho menor.' } };
+  }
   const clean = cleanPhoto(new Uint8Array(await file.arrayBuffer()));
   if ('error' in clean) return { errors: { ficheiro: clean.error } };
+  // A limpeza só tira metadados, por isso o resultado nunca cresce; a verificação fica na mesma, porque é
+  // sobre estes bytes que o cofre decide.
+  if (clean.bytes.length > MAX_LOGOTIPO_BYTES) {
+    return { errors: { ficheiro: 'O logótipo tem mais de 2 MB. Exporte-o num tamanho menor.' } };
+  }
 
   const { supabase, user } = await getUser();
   if (!user) return { errors: {}, message: 'A sessão expirou. Entre de novo.' };

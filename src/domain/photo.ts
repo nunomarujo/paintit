@@ -96,6 +96,15 @@ export function stripPngMetadata(bytes: Uint8Array): Uint8Array | null {
   return null;
 }
 
+/**
+ * O que o cofre dos logótipos aceita (migração `logotipo_da_empresa`): 2 MB.
+ *
+ * O número vive aqui e não só na migração porque o ecrã tem de o dizer **antes** de tentar carregar. Sem
+ * isto, quem escolhia um ficheiro grande limpava-o, subia-o, via o cofre recusar e ficava com «não foi
+ * possível carregar o ficheiro» — uma razão conhecida, dita como se fosse um azar.
+ */
+export const MAX_LOGOTIPO_BYTES = 2 * 1024 * 1024;
+
 /** Valida e limpa uma imagem enviada. */
 export function cleanPhoto(bytes: Uint8Array): { type: ImageType; bytes: Uint8Array } | { error: string } {
   if (bytes.length === 0) return { error: 'Escolha uma fotografia.' };

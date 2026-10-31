@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cleanPhoto, sniffImage, stripJpegMetadata, stripPngMetadata } from './photo';
+import { MAX_LOGOTIPO_BYTES, cleanPhoto, sniffImage, stripJpegMetadata, stripPngMetadata } from './photo';
 
 const seg = (marker: number, payload: number[]) => [0xff, marker, (payload.length + 2) >> 8, (payload.length + 2) & 0xff, ...payload];
 const text = (s: string) => [...s].map((c) => c.charCodeAt(0));
@@ -60,5 +62,26 @@ describe('fotografias', () => {
     expect(stripPngMetadata(png.slice(0, 30))).toBeNull();
     expect(cleanPhoto(new TextEncoder().encode('%PDF-1.7'))).toEqual({ error: 'Só fotografias JPG ou PNG.' });
     expect(cleanPhoto(new Uint8Array())).toEqual({ error: 'Escolha uma fotografia.' });
+  });
+});
+
+describe('o limite do logótipo vive em três sítios e tem de coincidir', () => {
+  // O número aparece na migração (o cofre recusa acima dele), no domínio (a acção recusa antes de tentar) e
+  // no texto do formulário (a pessoa lê-o antes de escolher o ficheiro). Três cópias do mesmo número são uma
+  // divergência à espera de acontecer — e a mais cara é a do meio a faltar, que foi o que aconteceu: o
+  // formulário prometia 2 MB, a acção não verificava nada, e o cofre recusava com «não foi possível
+  // carregar o ficheiro».
+  const raiz = join(__dirname, '..', '..');
+
+  it('a migração cria o cofre com o mesmo limite do domínio', () => {
+    const sql = readFileSync(join(raiz, 'supabase/migrations/20261030190000_logotipo_da_empresa.sql'), 'utf8');
+    const m = /allowed_mime_types\)\s*values\s*\('logotipos',\s*'logotipos',\s*true,\s*(\d+)/.exec(sql);
+    expect(m, 'a criação do cofre mudou de forma; confirmar o limite à mão').not.toBeNull();
+    expect(Number(m![1])).toBe(MAX_LOGOTIPO_BYTES);
+  });
+
+  it('o formulário diz o mesmo limite, por extenso', () => {
+    const tsx = readFileSync(join(raiz, 'src/app/app/organizacoes/[id]/LogotipoDaEmpresa.tsx'), 'utf8');
+    expect(tsx).toContain(`até ${MAX_LOGOTIPO_BYTES / (1024 * 1024)} MB`);
   });
 });
