@@ -41,11 +41,15 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
   // A tentativa em curso: é dela que vêm os prazos, o que foi registado e a resposta da cliente. As colunas
   // antigas de `request_surveys` continuam a existir mas já não mandam em nada disto (migração de 31/10/2026).
+  // A tentativa mais recente, **qualquer que seja o estado**. Carregar só as que estão a decorrer foi um
+  // erro meu: num levantamento já concluído a secção desaparecia por inteiro, e com ela o registo do
+  // contacto e o agendamento — informação que estava à vista antes e que o ecrã deixou de mostrar.
   const { data: tentativa } = await supabase
     .from('survey_attempts')
     .select('*')
     .eq('survey_id', survey.id)
-    .in('estado', ['ativa', 'em_revisao'])
+    .order('numero', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   // O contacto da cliente abre com duas chaves — reserva válida e confidencialidade aceite — e as duas são

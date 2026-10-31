@@ -68,11 +68,34 @@ function useAgora(doServidor: Date): Date {
 
 export function Agendamento({ prazos, contacto, agoraIso }: { prazos: Prazos; contacto: Contacto | null; agoraIso: string }) {
   const agora = useAgora(new Date(agoraIso));
+  const concluida = prazos.estado === 'concluida';
   const porContactar = prazos.contactoRegistadoEm === null;
   const prazoEfetivo = new Date(prazos.adiadoPara ?? prazos.prazoConclusao);
   const contagemContacto = contagemDoContacto(agora, new Date(prazos.prazoContacto));
   const contagemConclusao = contagemDoPrazo(agora, prazoEfetivo);
   const aguardaCliente = !porContactar && prazos.respostaCliente === null && prazos.estado === 'ativa';
+
+  if (concluida) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <h3 className="font-semibold text-slate-900">Como se chegou à visita</h3>
+        <p className="mt-1 whitespace-pre-line text-[17px] text-slate-700">{prazos.contactoNotas || 'Sem registo de contacto.'}</p>
+        {prazos.agendadoPara && (
+          <p className="mt-2 text-[17px] text-slate-700">Visita combinada para {horaExata(new Date(prazos.agendadoPara))}.</p>
+        )}
+        {prazos.respostaCliente && (
+          <p className="mt-1 text-[15px] text-slate-600">
+            {prazos.respostaCliente === 'nao_contactado'
+              ? 'A cliente declarou não ter sido contactada.'
+              : 'A cliente confirmou a visita.'}
+          </p>
+        )}
+        <p className="mt-2 text-[15px] text-slate-600">
+          O levantamento está concluído: não há prazos a correr nem nada por registar.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-4">
