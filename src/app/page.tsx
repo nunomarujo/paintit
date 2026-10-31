@@ -1,11 +1,21 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 import { BrandMark } from '@/components/BrandMark';
 import { LegalLinks } from '@/components/LegalPage';
+import { AudiencePopup } from '@/components/landing/AudiencePopup';
+import { ComparadorDemo } from '@/components/landing/ComparadorDemo';
 import { PaintedHero } from '@/components/landing/PaintedHero';
+import { SiteHeader } from '@/components/landing/SiteHeader';
+import { SurveyDemo } from '@/components/landing/SurveyDemo';
 import { BRAND } from '@/config/brand';
+import { formatEuros } from '@/domain/money';
+import { CURRENT_RULES } from '@/domain/rules';
 
 const START = '/entrar?seguinte=%2Fapp%2Fcomecar';
 const toOrg = (tipo: string) => `/entrar?seguinte=${encodeURIComponent(`/app/organizacoes/nova?tipo=${tipo}`)}`;
+const pct = (bp: number) => `${(bp / 100).toLocaleString('pt-PT')}%`;
 
 const compare = [
   { t: 'Preparação da fachada', d: 'Reparações e tratamento das superfícies.' },
@@ -31,84 +41,32 @@ const steps = [
   { t: 'Escolher a empresa', d: 'Confirmar as condições e assinar o contrato.' },
 ];
 
-const faqs = [
-  {
-    q: 'Como receber propostas?',
-    a: 'Basta publicar o pedido: as empresas de pintura verificadas da zona enviam propostas com os trabalhos discriminados. Todas ficam lado a lado, sem identificar a empresa até haver escolha.',
-  },
-  {
-    q: 'Quando pagar?',
-    a: 'Só depois de escolher uma proposta, com o depósito da caução. O valor da obra é combinado e pago diretamente à empresa; a plataforma não o recebe.',
-  },
-  {
-    q: 'Como funciona a caução?',
-    a: 'É de 3% do valor da proposta sem IVA, com mínimo de 150 €, e fica guardada numa instituição de pagamento autorizada. Com as duas assinaturas do contrato, volta ao cliente.',
-  },
-  {
-    q: 'O que acontece se não avançar?',
-    a: 'Desistir ou não assinar no prazo, depois de conhecer a empresa, implica perder a caução. Antes de escolher, comparar propostas não tem custo.',
-  },
-  {
-    q: 'A plataforma garante a obra?',
-    a: 'Não. A obra e o seu cumprimento são das partes que assinam o contrato. A plataforma guarda a prova do que foi acordado.',
-  },
-];
-
 export default function Home() {
+  const [popupAberto, setPopupAberto] = useState<'pintor' | 'fornecedor' | null>(null);
+  const r = CURRENT_RULES;
+
   return (
     <main className="bg-white">
-      {/*
-        O cabeçalho (27/10/2026). Era a marca a 26px ao lado de um "Entrar" em caixa, com o mesmo peso
-        visual: duas coisas a disputar a atenção logo à entrada, e nenhuma delas é o que se quer que a
-        pessoa faça. A marca desce para 20px e o "Entrar" passa a ligação — quem tem conta procura-o e
-        encontra-o; quem não tem fica com um caminho só à vista, o botão do primeiro ecrã.
-      */}
-      <header className="sticky top-0 z-20 h-[var(--altura-cabecalho)] border-b border-slate-200/80 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4">
-          <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center">
-            <BrandMark size="sm" />
-          </Link>
-          <nav className="flex items-center gap-6 text-[17px] text-slate-700">
-            <a href="#como-funciona" className="hidden sm:inline">Como funciona</a>
-            <a href="#condominios" className="hidden sm:inline">Condomínios</a>
-            <a href="#profissionais" className="hidden sm:inline">Para profissionais</a>
-            <Link href="/entrar" className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 underline-offset-4 hover:underline">
-              Entrar
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/*
-        O primeiro ecrã leva o mínimo que decide: o que isto é, como funciona, e o que fazer a seguir.
+        Copy do hero revista (ronda v4, ponto 4.1): o anterior "Orçamentos fáceis" descrevia só o
+        primeiro passo — pedir — que qualquer plataforma de orçamentos oferece. A diferenciação
+        real, e o que a própria página mais investe a mostrar logo a seguir (o comparador), é a
+        comparação estruturada: ver o que cada proposta inclui, exclui e cobra, não só o total.
 
-        O âmbito da obra saiu daqui ao fim de três tentativas (27/10/2026): era uma linha de
-        maiúsculas espaçadas que partia ao meio no telemóvel, depois foi enfiado na frase de apoio, e
-        o promotor rejeitou as duas. Desceu para a secção "Que obras se orçamentam aqui", onde é
-        resposta e não anúncio.
-
-        O texto é do promotor, palavra por palavra (29/10/2026). O título passou a pergunta e
-        resposta em duas linhas, e a frase de apoio a três passos — pedir, comparar, acompanhar —,
-        um por linha. Não se juntam num parágrafo corrido: cada linha é um passo, e corridas perdem
-        o ritmo que as fez escrever assim.
+        A linha "Com a garantia de {BRAND.name}" saiu: nenhuma linguagem de garantia de execução ou
+        acompanhamento de obra — esse tema fica só na secção de Transparência, explicitamente.
       */}
       <PaintedHero>
         <h1 className="text-[34px] font-bold leading-[1.05] text-tinta-900 sm:text-5xl lg:text-6xl">
-          {/* Duas linhas, e a quebra é a mensagem: a pergunta em cima, a resposta por baixo. O
-              `block` em vez de um `<br>` para que o espaço entre as duas se possa afinar. */}
-          {/* «Pintura» com maiúscula é como o promotor o escreveu, e fica como ele o escreveu. */}
-          <span className="block">Obras de Pintura?</span>
-          <span className="block">Orçamentos fáceis.</span>
+          <span className="block">Peça orçamentos.</span>
+          <span className="block">Veja o que cada um cobre.</span>
         </h1>
-        {/* Três frases, uma por linha. Seguidas num parágrafo corrido perdiam o ritmo — cada uma é
-            um passo: pedir, comparar, acompanhar. */}
         <p className="mt-3 max-w-md text-[17px] leading-snug text-slate-600 sm:text-[20px]">
-          <span className="block">Um pedido, várias propostas.</span>
-          <span className="block">Compare trabalhos e materiais diferentes.</span>
-          <span className="block">É tão fácil escolher como acompanhar a obra.</span>
-        </p>
-        <p className="mt-3 max-w-md text-[17px] font-semibold text-tinta-700 sm:text-[20px]">
-          Com a garantia de {BRAND.name}
+          <span className="block">Um pedido, várias propostas comparáveis.</span>
+          <span className="block">Trabalhos, materiais e preço lado a lado — nunca só o total.</span>
+          <span className="block">Simples de pedir. Claro de comparar.</span>
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <Link
@@ -123,18 +81,13 @@ export default function Home() {
         </div>
       </PaintedHero>
 
-      {/* Resposta mais decisiva do "Antes de avançar" (abaixo), fora do acordeão (auditoria de UX,
-          23/10/2026: é a pergunta de maior risco percebido para quem vai propor despesa a uma
-          assembleia de condomínio — escondê-la só adia a desistência). Estava dentro do primeiro ecrã
-          e era o que o fazia transbordar no telemóvel; fica aqui, a primeira coisa que se lê a seguir. */}
+      {/* Frase de apoio, logo a seguir ao hero. */}
       <p className="mx-auto max-w-6xl px-4 pt-6 text-[17px] leading-relaxed text-slate-600 lg:max-w-3xl">
         Comparar propostas não tem custo. A obra e o contrato são sempre entre o cliente e a empresa escolhida — a
         plataforma guarda a prova do que foi acordado.
       </p>
 
-      {/* O âmbito da obra, que saiu do primeiro ecrã (ver nota acima). Aqui é a resposta a "fazem o
-          que eu preciso?" e não um anúncio por cima do título: prosa, frases curtas, e um h2 que
-          leva as palavras da pesquisa ("fachadas", "muros") a um lugar onde contam. */}
+      {/* O âmbito da obra: resposta a "fazem o que eu preciso?", não anúncio por cima do título. */}
       <section className="mx-auto max-w-6xl px-4 pt-10 lg:max-w-3xl">
         <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Que obras se orçamentam aqui</h2>
         <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
@@ -143,6 +96,41 @@ export default function Home() {
         </p>
       </section>
 
+      {/*
+        O COMPARADOR — demonstração principal, logo a seguir ao hero/apoio (ponto central da v4):
+        o essencial não é o preço, é o que esse preço cobre. Seis estados reais, gerados em
+        build-time pelos componentes e dados reais (ver scripts/gerar-demo-comparador.mjs).
+      */}
+      <section id="demo-comparador" className="mx-auto max-w-6xl px-4 py-16">
+        <p className="eyebrow">O comparador de propostas</p>
+        <h2 className="mt-3 text-[34px] leading-tight font-bold text-tinta-900">
+          O essencial não é o preço — é o que esse preço cobre.
+        </h2>
+        <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-600">
+          Seis momentos reais do comparador, com dados fictícios, gerados pelas mesmas funções e componentes que a
+          aplicação usa — não uma simulação visual.
+        </p>
+        <p className="mt-3 max-w-2xl rounded-lg bg-tinta-50 px-3.5 py-3 text-[15px] text-slate-700">
+          O comparador não atribui pontuação nem elege uma proposta &ldquo;vencedora&rdquo;. Mostra o que cada proposta inclui,
+          exclui ou deixa por esclarecer — e, quando possível, onde é que a diferença de preço tem causa identificada.
+        </p>
+        <ComparadorDemo />
+      </section>
+
+      {/* LEVANTAMENTO GRATUITO */}
+      <section id="levantamento" className="border-t border-slate-200 bg-slate-50 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <p className="eyebrow">Levantamento gratuito</p>
+          <h2 className="mt-3 text-[34px] leading-tight font-bold text-tinta-900">Não sabe medir a obra?</h2>
+          <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-600">
+            Não tem de medir nada sozinho: quando há um avaliador disponível na zona, pode ir ao local fazer o
+            levantamento consigo, sem acrescentar custo à obra.
+          </p>
+          <SurveyDemo />
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
       <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Orçamentos comparáveis.</h2>
         <p className="mt-1 text-slate-600">O mesmo trabalho, os detalhes à vista.</p>
@@ -172,11 +160,86 @@ export default function Home() {
         </ol>
       </section>
 
-      <section id="condominios" className="border-y border-slate-200 bg-slate-50 py-16">
+      {/*
+        PARA QUEM — três percursos. "Clientes e condomínios" vai direto ao pedido; as outras duas
+        abrem o popup correspondente (AudiencePopup), com a introdução, os destaques e a lista
+        completa do que cada lado tem disponível.
+      */}
+      <section id="para-quem" className="border-t border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4">
-          {/* Tinha por cima do título a mesma linha de maiúsculas espaçadas que foi rejeitada no
-              primeiro ecrã. O rótulo informativo sobe a título (e casa com a ligação do cabeçalho),
-              a frase que era título passa a abrir o parágrafo. */}
+          <p className="eyebrow">Para quem é a {BRAND.name}</p>
+          <h2 className="mt-3 text-[34px] leading-tight font-bold text-tinta-900">Três percursos, um mercado.</h2>
+          <div className="mt-9 grid gap-4 md:grid-cols-3">
+            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h3 className="text-[20px] font-bold leading-tight text-tinta-900">Clientes e condomínios</h3>
+              <p className="mt-2 text-[15px] text-slate-600">Quem descreve a obra e compara as propostas.</p>
+              <ul className="mt-4 space-y-2 text-[15px] text-slate-700">
+                {[
+                  'Pedido guiado, sem precisar de saber de construção',
+                  'Levantamento gratuito por um avaliador, quando há disponibilidade na zona',
+                  'Comparador com metodologia pública',
+                  'Anonimato até à confirmação da empresa escolhida',
+                ].map((li) => (
+                  <li key={li} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-[6px] w-[6px] flex-none rounded-full bg-tinta-700" />
+                    {li}
+                  </li>
+                ))}
+              </ul>
+              <Link href={START} className="btn-secondary mt-5">
+                Pedir orçamentos
+              </Link>
+            </article>
+
+            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h3 className="text-[20px] font-bold leading-tight text-tinta-900">Empresa de pintura?</h3>
+              <p className="mt-2 text-[15px] text-slate-600">Quem orçamenta e executa a obra.</p>
+              <ul className="mt-4 space-y-2 text-[15px] text-slate-700">
+                {[
+                  'Oportunidades de negócio filtradas por tipo de obra e zona',
+                  'Orçamento guiado, com sugestões do catálogo',
+                  'Documento A4 gerado automaticamente',
+                  'Gestão de obra incluída (fotos, horas, despesas)',
+                ].map((li) => (
+                  <li key={li} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-[6px] w-[6px] flex-none rounded-full bg-tinta-700" />
+                    {li}
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => setPopupAberto('pintor')} className="btn-secondary mt-5">
+                Ver tudo o que inclui
+              </button>
+            </article>
+
+            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h3 className="text-[20px] font-bold leading-tight text-tinta-900">Fornecedor de tintas?</h3>
+              <p className="mt-2 text-[15px] text-slate-600">Quem fornece os materiais usados nas obras.</p>
+              <ul className="mt-4 space-y-2 text-[15px] text-slate-700">
+                {[
+                  'Catálogo com fichas técnicas e preço de referência',
+                  'Produto sugerido diretamente na proposta do pintor',
+                  'Descontos automáticos por artigo e por perfil de cliente',
+                  'Programas de referência e oportunidades de levantamento no terreno',
+                ].map((li) => (
+                  <li key={li} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-[6px] w-[6px] flex-none rounded-full bg-tinta-700" />
+                    {li}
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => setPopupAberto('fornecedor')} className="btn-secondary mt-5">
+                Ver tudo o que inclui
+              </button>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ADMINISTRAÇÃO DE CONDOMÍNIOS — âncora de "Gerir vários edifícios" (hero). Conteúdo igual ao
+          que já existia; só a posição na página muda, para ficar junto de "Para quem". */}
+      <section id="condominios" className="border-t border-slate-200 py-16">
+        <div className="mx-auto max-w-6xl px-4">
           <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Administração de condomínios</h2>
           <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-slate-600">
             Cada edifício, a sua obra: pedidos, propostas e documentos organizados por condomínio, com a minuta do
@@ -188,36 +251,75 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="perguntas" className="mx-auto max-w-3xl px-4 py-16">
-        <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Antes de avançar</h2>
-        <div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">
-          {faqs.map((f) => (
-            <details key={f.q} className="group py-4">
-              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 font-semibold">
-                {f.q}
-                <span aria-hidden className="text-[20px] leading-snug group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-2 text-slate-700">{f.a}</p>
-            </details>
-          ))}
+      {/*
+        TRANSPARÊNCIA / CONFIANÇA — o que já existia na página (as respostas de "Antes de avançar"
+        sobre caução e garantia da obra) reorganizado em secção própria, com a âncora que o
+        cabeçalho usa. Os valores da caução vêm de CURRENT_RULES (src/domain/rules.ts), nunca
+        escritos à mão — e nunca a comissão do pintor (regra 15 do CLAUDE.md: o cliente não a vê).
+      */}
+      <section id="transparencia" className="border-t border-slate-200 bg-slate-50 py-16">
+        <div className="mx-auto max-w-3xl px-4">
+          <p className="eyebrow">Transparência</p>
+          <h2 className="mt-3 text-[34px] leading-tight font-bold text-tinta-900">O que a plataforma garante — e o que não garante.</h2>
+          <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+            A {BRAND.name} não garante a execução da obra: isso é entre o cliente e a empresa escolhida. O que a
+            plataforma garante é a clareza do que foi combinado.
+          </p>
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+            <li>
+              <h3 className="font-semibold text-tinta-900">Pedir e comparar não tem custo</h3>
+              <p className="mt-1 text-[15px] text-slate-600">
+                As empresas de pintura verificadas da zona enviam propostas com os trabalhos discriminados. Todas
+                ficam lado a lado, sem identificar a empresa até haver escolha.
+              </p>
+            </li>
+            <li>
+              <h3 className="font-semibold text-tinta-900">Pagamento só depois de escolher</h3>
+              <p className="mt-1 text-[15px] text-slate-600">
+                O valor da obra é combinado e pago diretamente à empresa; a plataforma não o recebe.
+              </p>
+            </li>
+            <li>
+              <h3 className="font-semibold text-tinta-900">Caução reembolsável</h3>
+              <p className="mt-1 text-[15px] text-slate-600">
+                {pct(r.guaranteeBp)} do valor da proposta sem IVA, com mínimo de {formatEuros(r.guaranteeMinCents)},
+                guardada numa instituição de pagamento autorizada. Com as duas assinaturas do contrato, volta ao
+                cliente; só se perde ao desistir depois de conhecer a empresa escolhida.
+              </p>
+            </li>
+            <li>
+              <h3 className="font-semibold text-tinta-900">Metodologia pública</h3>
+              <p className="mt-1 text-[15px] text-slate-600">
+                O critério usado para ordenar e comparar as propostas está publicado, não é uma caixa fechada.
+              </p>
+            </li>
+          </ul>
+          <p className="mt-8 text-[15px] text-slate-600">
+            <Link href="/transparencia" className="ligacao">
+              Ver a página completa de Transparência
+            </Link>{' '}
+            — como a plataforma é paga, por quem, e como ordenamos as propostas.
+          </p>
         </div>
       </section>
 
-      <section id="profissionais" className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 p-8">
-            <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Empresa de pintura?</h2>
-            <p className="mt-2 text-slate-600">
-              Receber pedidos na zona de trabalho. Só há pagamento depois de o cliente escolher a proposta e depositar a caução.
-            </p>
-            <Link href={toOrg('pintor')} className="btn-secondary mt-5">Área profissional</Link>
-          </div>
-          <div className="rounded-2xl border border-slate-200 p-8">
-            <h2 className="text-[26px] leading-tight font-bold text-tinta-900">Fornecedor de tintas?</h2>
-            <p className="mt-2 text-slate-600">
-              Presença na lista de fornecedores e, no plano de catálogo, descontos para as empresas da plataforma.
-            </p>
-            <Link href={toOrg('fornecedor')} className="btn-secondary mt-5">Entrada para fornecedores</Link>
+      {/* CTA FINAL */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <div className="rounded-2xl bg-tinta-900 px-7 py-12 text-center text-white">
+          <h2 className="text-[26px] font-extrabold sm:text-[34px]">Peça orçamentos de pintura, sem compromisso até escolher.</h2>
+          <p className="mt-2.5 text-[17px] text-tinta-50">Comparar propostas não tem custo.</p>
+          <div className="mt-7 flex flex-col items-center gap-4">
+            <Link href={START} className="btn-primary btn-lg !bg-terracota">
+              Pedir orçamentos
+            </Link>
+            <div className="flex gap-5 text-[13px]">
+              <button type="button" onClick={() => setPopupAberto('pintor')} className="min-h-[44px] text-tinta-50 underline underline-offset-[3px] hover:text-white">
+                Sou empresa de pintura
+              </button>
+              <button type="button" onClick={() => setPopupAberto('fornecedor')} className="min-h-[44px] text-tinta-50 underline underline-offset-[3px] hover:text-white">
+                Sou fornecedor
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -230,6 +332,9 @@ export default function Home() {
           <LegalLinks />
         </div>
       </footer>
+
+      <AudiencePopup tipo="pintor" open={popupAberto === 'pintor'} onClose={() => setPopupAberto(null)} />
+      <AudiencePopup tipo="fornecedor" open={popupAberto === 'fornecedor'} onClose={() => setPopupAberto(null)} />
     </main>
   );
 }

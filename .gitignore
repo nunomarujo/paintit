@@ -2,6 +2,9 @@ node_modules/
 .next/
 out/
 coverage/
+# Gerado por scripts/gerar-demo-comparador.mjs (postbuild), a partir dos componentes e dados reais —
+# nunca editado à mão; refazer com `npm run build`.
+public/demo-comparador/
 *.tsbuildinfo
 next-env.d.ts
 .env
