@@ -1,37 +1,15 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { PGlite } from '@electric-sql/pglite';
+import type { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
 import { referralDiscountBp } from '../../src/domain/referralEligibility';
 import { CURRENT_RULES, RULES_BY_VERSION } from '../../src/domain/rules';
+import { baseComMigracoes } from './baseEmMemoria';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
 // Supabase simulado (papéis, auth.uid(), storage), e verifica as regras de
 // acesso utilizador a utilizador. Não substitui os avisos de segurança do
 // projeto real, que se consultam depois de aplicar.
 
-const SUPABASE_STUB = `
-  create role anon nologin;
-  create role authenticated nologin;
-  create schema auth;
-  create table auth.users (id uuid primary key, email text);
-  create function auth.uid() returns uuid language sql stable as
-    $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  create function auth.jwt() returns jsonb language sql stable as
-    $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
-  grant usage on schema auth to anon, authenticated;
-  grant execute on function auth.uid(), auth.jwt() to anon, authenticated;
-  create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean,
-    file_size_limit bigint, allowed_mime_types text[]);
-  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
-  alter table storage.objects enable row level security;
-  grant usage on schema storage to authenticated;
-  grant select, insert, delete on storage.objects to authenticated;
-  grant usage on schema public to anon, authenticated;
-  alter default privileges in schema public grant all on tables to anon, authenticated;
-`;
 
 const A = '00000000-0000-4000-8000-00000000000a'; // administradora e condomínio
 const B = '00000000-0000-4000-8000-00000000000b'; // outro utilizador, sem relação
@@ -92,12 +70,7 @@ let adminOrg: string;
 let condo: string;
 
 beforeAll(async () => {
-  db = new PGlite();
-  await db.exec(SUPABASE_STUB);
-  const dir = join(__dirname, '..', 'migrations');
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
-    await db.exec(readFileSync(join(dir, file), 'utf8'));
-  }
+  db = await baseComMigracoes();
   for (const u of [A, B, C, D, ADMIN]) {
     await db.query('insert into auth.users (id, email) values ($1, $2)', [u, email(u)]);
   }
@@ -2287,6 +2260,58 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
     const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
     await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
+  });
+
+  it('reservar abre a tentativa 1, com os três prazos escritos de uma vez', async () => {
+    const a = await one<{
+      numero: number;
+      estado: string;
+      vendedor_org_id: string;
+      prazo_contacto: Date;
+      prazo_conclusao: Date;
+      limite_adiamento: Date;
+      contacto_notas: string;
+      agendado_para: Date | null;
+    }>('select * from public.survey_attempts where survey_id = $1', [surveyId]);
+    expect(a.numero).toBe(1);
+    expect(a.estado).toBe('ativa');
+    expect(a.vendedor_org_id).toBe(vendorOrg);
+    // A tentativa nasce em branco: nada de contacto nem de agendamento herdados.
+    expect(a.contacto_notas).toBe('');
+    expect(a.agendado_para).toBeNull();
+    // As 48 horas contam do fim da primeira hora útil, e o teto do adiamento são 7 dias úteis do mesmo ponto.
+    expect(new Date(a.prazo_conclusao).getTime() - new Date(a.prazo_contacto).getTime()).toBe(48 * 3_600_000);
+    expect(new Date(a.limite_adiamento).getTime()).toBeGreaterThan(new Date(a.prazo_conclusao).getTime());
+    // O prazo prometido na coluna antiga é o mesmo da tentativa: nada divergiu.
+    const s = await one<{ reserve_deadline: Date }>('select reserve_deadline from public.request_surveys where id = $1', [surveyId]);
+    expect(new Date(s.reserve_deadline).toISOString()).toBe(new Date(a.prazo_conclusao).toISOString());
+  });
+
+  it('a tentativa vê-se por quem a aceitou e pela plataforma, e por mais ninguém', async () => {
+    expect(await as(VEND, async () => (await db.query('select id from public.survey_attempts where survey_id = $1', [surveyId])).rows)).toHaveLength(1);
+    expect(await as(ADMIN, async () => (await db.query('select id from public.survey_attempts where survey_id = $1', [surveyId])).rows)).toHaveLength(1);
+    // Nem o cliente do pedido: o agendamento chega-lhe pelo ecrã de confirmação, com política própria.
+    expect(await as(A, async () => (await db.query('select id from public.survey_attempts where survey_id = $1', [surveyId])).rows)).toEqual([]);
+    expect(await as(B, async () => (await db.query('select id from public.survey_attempts where survey_id = $1', [surveyId])).rows)).toEqual([]);
+  });
+
+  it('ninguém escreve na tentativa por política: as regras de prazo vivem nas funções', async () => {
+    await expect(
+      as(VEND, () => db.query(`update public.survey_attempts set agendado_para = now() where survey_id = $1`, [surveyId])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(VEND, () => db.query(`delete from public.survey_attempts where survey_id = $1`, [surveyId])),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it('um adiamento além do teto é recusado pela própria tabela', async () => {
+    const a = await one<{ id: string; limite_adiamento: Date }>('select id, limite_adiamento from public.survey_attempts where survey_id = $1', [surveyId]);
+    const umMinutoDepois = new Date(new Date(a.limite_adiamento).getTime() + 60_000).toISOString();
+    await expect(
+      db.query(`update public.survey_attempts set resposta_cliente = 'adiado', adiado_para = $2 where id = $1`, [a.id, umMinutoDepois]),
+    ).rejects.toThrow(/survey_attempts_adiamento/);
+    // E dentro do teto passa, desde que seja o cliente a pedir.
+    await db.query(`update public.survey_attempts set resposta_cliente = 'adiado', adiado_para = $2 where id = $1`, [a.id, new Date(a.limite_adiamento).toISOString()]);
   });
 
   it('o vendedor que reservou vê a morada real e regista o levantamento (superfícies, contacto, conclusão)', async () => {
