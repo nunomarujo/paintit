@@ -64,12 +64,35 @@ Supabase → Project Settings → Vault:
   avisos_segredo  = (o mesmo valor de CRON_SECRET na Vercel)
 ```
 
+**Trocar o `CRON_SECRET` obriga a um deploy novo.** Isto custou um ensaio falhado a 31/10/2026: o segredo foi
+trocado na Vercel às 22h23 e o pedido correu às 22h26, meio minuto depois de a versão nova ter *começado* a
+construir — a função que respondeu era ainda a anterior, com o segredo antigo, e devolveu **401 Não
+autorizado**. As variáveis de ambiente entram nas funções no momento da construção, não quando se gravam no
+painel. Quem trocar o segredo tem de esperar que o deploy seguinte fique pronto; sem alteração de código,
+força-se com um *redeploy* do último.
+
+Um 401 neste caminho significa sempre uma destas duas coisas, e vale a pena saber distingui-las: ou os valores
+divergem, ou o deploy em serviço é anterior à troca.
+
 Depois de os guardar, confirma-se que o caminho está vivo pedindo o esvaziamento à mão:
 
 ```sql
 select private.pedir_envio_de_avisos();
-select count(*) from public.avisos_por_email where estado = 'pendente';
+-- esperar uns segundos: o pedido é assíncrono, corre num trabalhador do pg_net
+select status_code, left(content, 200) as resposta, timed_out, error_msg
+  from net._http_response order by created desc limit 1;
 ```
+
+Com a fila vazia não sai email a ninguém, e a resposta certa é esta — foi o que se obteve a 31/10/2026, às
+22h27, depois de o deploy com o segredo novo ficar pronto:
+
+```
+status_code: 200
+resposta:    {"reclamados":0,"enviados":0,"falhados":0,"semEndereco":0}
+```
+
+Quatro zeros e um 200 é o sinal de que a cadeia toda está viva: o Vault deu o endereço e o segredo, o `pg_net`
+entregou o pedido, a aplicação autenticou-o e esvaziou uma fila que estava vazia.
 
 ## Aviso de segurança esperado
 
