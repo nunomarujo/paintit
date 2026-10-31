@@ -4,6 +4,84 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 31/10/2026 — Do aceitar ao agendamento confirmado: os prazos, e o que acontece ao vencer
+
+Regras ratificadas pelo promotor neste dia, depois de duas rondas de correção. A primeira versão
+destas contas estava **errada em aritmética** — dizia que uma aceitação à sexta às 17h30 dava
+conclusão «quarta às 9h00», número que não sai de nenhuma contagem possível. O promotor conferiu e
+corrigiu. Fica escrito porque a lição não é de regra, é de método: prazos verificam-se com código,
+não de cabeça.
+
+**Contacto:** até ao fim da **primeira hora útil** após aceitar, no relógio 9h–18h, segunda a sexta,
+hora de Lisboa. Sem contacto registado nesse prazo, perde a reserva.
+
+**Conclusão: 48 horas de calendário contadas do fim dessa primeira hora útil.** Foram consideradas
+três contagens e esta é a escolhida; as outras duas ficam registadas para ninguém as repropor por
+distração. 48 horas de calendário **desde a aceitação** é insustentável — à sexta às 17h30 venceria
+domingo às 17h30, dezesseis horas **antes** do prazo do contacto, e a vaga morria no fim de semana
+sem ninguém ter falhado nada. 48 horas **úteis** dariam cinco dias úteis e três horas, o que tornaria
+a exceção dos sete dias quase inútil e faria «48 horas» significar dez dias de calendário. Contadas
+do fim da primeira hora útil, nenhum marco posterior pode vencer antes de um anterior, e isso é
+garantido pela fórmula, não por um remendo.
+
+**O início é fixo e não depende da confirmação do cliente.** Os três prazos escrevem-se uma vez, no
+momento da reserva, e não se movem com a resposta dele: é isto que faz o silêncio do cliente consumir
+o prazo do avaliador. No ecrã, «A aguardar confirmação» aparece **ao lado** do prazo a correr —
+nunca sugerir que a contagem parou.
+
+**Adiamento:** só a pedido e com confirmação do cliente, nunca pelo avaliador. A data acordada
+**substitui** o prazo normal, e não passa de **sete dias úteis depois do início das 48 horas,
+mantendo a mesma hora**. Sábados e domingos não contam.
+
+Exemplo de referência, verificado por teste: aceita sexta 6/11 às 17h30 → contacta até segunda 9/11
+às 9h30 → conclui até quarta 11/11 às 9h30 → com adiamento, no máximo quarta 18/11 às 9h30.
+
+**A verificação de vencimentos corre a cada minuto**, pela hora exata. De hora a hora deixaria uma
+vaga retida quase mais uma hora depois de vencer. O bloco dos levantamentos saiu da manutenção
+diária das 05:00.
+
+**A matriz do que acontece ao vencer**, que é coisa diferente do relógio continuar a correr:
+
+| Ao vencer | O que acontece |
+|---|---|
+| 1.ª hora útil vencida, nada registado | liberta e redistribui |
+| 48 h vencidas sem contacto registado | liberta |
+| 48 h vencidas **com** contacto e agendamento, cliente calado | **revisão da plataforma**, sem redistribuição nem penalização |
+| Cliente respondeu «não fui contactado» | **revisão**, com as duas declarações preservadas |
+| Visita confirmada e prazo incumprido pelo avaliador | liberta e redistribui |
+
+A distinção entre as duas últimas linhas é a substância: cliente calado é revisão, porque quem
+cumpriu não pode perder o trabalho pelo silêncio de outra pessoa; cliente que confirmou e avaliador
+que faltou é libertação, porque o incumprimento está provado pela confirmação do próprio cliente.
+**Nunca há perda de comissão nem descida no ranking automáticas** com base numa resposta
+contraditória — decide uma pessoa, com os dois registos à frente.
+
+**Libertar nunca apaga.** «Cada redistribuição cria uma nova tentativa; os registos anteriores
+permanecem intactos.» A manutenção diária apagava o contacto e o agendamento ao libertar, e isso
+passou a ser proibido: são a única prova numa revisão. Daí a tabela `survey_attempts` — o contacto, o
+agendamento, os prazos e a resposta do cliente deixam de viver em colunas de `request_surveys` que
+se reescrevem e passam a pendurar-se na tentativa, que se empilha e nunca se reescreve. A tentativa
+nova começa em branco e não herda nada. **Quem perdeu uma vaga não volta a concorrer a ela**; noutra
+concorre como qualquer outro.
+
+**A redistribuição** reabre a oportunidade aos restantes elegíveis, com alertas escalonados pelo
+ranking — não uma fila nominal. A parte do escalonamento espera pelo ranking existir; a exclusão de
+quem acabou de perder já está feita.
+
+**A ordem das três opções no aviso ao cliente:** primeiro «agendado dentro das 48 horas», depois
+«combinámos data posterior», e **«não fui contactado» em último**. Nenhuma pré-selecionada, e a
+última exige confirmação explícita antes de enviar: quem acusa alguém de não ter ligado tem de o
+fazer de propósito, não por ser o caminho mais curto para fechar o aviso.
+
+**Os dados do cliente** explicam-se a ele **antes** de lhe pedir a visita, e ficam visíveis apenas ao
+avaliador com reserva válida **e** confidencialidade aceite. As duas condições, não uma.
+
+*Nota de implementação:* o relógio das horas úteis existe em dois lugares — `src/domain/horasUteis.ts`
+e `private.somar_minutos_uteis` — porque a reserva é atómica na base de dados e a interface precisa de
+prever prazos antes de alguém aceitar. `supabase/tests/relogioUtil.test.ts` corre os dois sobre uma
+semana inteira e sobre as duas mudanças de hora de 2026, e compara ao milissegundo. Duas
+implementações da mesma regra só valem com essa prova.
+
 ## 30/10/2026 — A preparação do pedido, e o prédio como modelo
 
 **As secções estavam escritas mas nunca montadas.** A 30/10/2026 ficou exigido que «os separadores
