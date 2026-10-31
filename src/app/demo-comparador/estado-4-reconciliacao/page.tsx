@@ -8,6 +8,9 @@ import { construirComparacao } from '../dados';
 // sandboxed quando embebida (ver ComparadorDemo.tsx): o bloco "Perguntas que valem a pena fazer"
 // (PerguntasASeguir) tem controlos nativamente interativos que, sem JavaScript, não respondem — o
 // script de build marca-os `disabled` no HTML gerado (achado 2.2 do resumo v4).
+// Repetido por rota (já vem do layout.tsx): ver nota em estado-1-sintese/page.tsx.
+export const dynamic = 'force-static';
+
 export default function Page() {
   const { emLado } = construirComparacao();
   return (

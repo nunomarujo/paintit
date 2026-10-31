@@ -15,6 +15,9 @@ const comSinal = (c: number) => (c === 0 ? '—' : `${c > 0 ? '+' : '−'}${form
 // src/app/app/pedidos/[id]/propostas/relatorio/page.tsx: a matriz (MatrizDasPropostas sobre
 // matrizDasPropostas), a síntese em variante "papel" (SinteseDasPropostas sobre
 // sinteseDasPropostas) e o quadro económico (quadroEconomico, src/domain/reconciliacao.ts).
+// Repetido por rota (já vem do layout.tsx): ver nota em estado-1-sintese/page.tsx.
+export const dynamic = 'force-static';
+
 export default function Page() {
   const { rows, linhasDaSintese, leituraDaSintese, linhasDaMatriz, economico, referencia } = construirComparacao();
   const enderecoMetodologia = enderecoDaMetodologia();

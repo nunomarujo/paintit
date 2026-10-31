@@ -8,6 +8,9 @@ import { PEDIDO } from '../fixtures';
 // Estado 2 — Comparação detalhada. A mesma tabela de src/app/app/pedidos/[id]/propostas/page.tsx
 // ("Comparação detalhada"), com os valores que compareProposals, trabalhosDaProposta e classificar
 // calcularam para os dados fictícios de fixtures.ts.
+// Repetido por rota (já vem do layout.tsx): ver nota em estado-1-sintese/page.tsx.
+export const dynamic = 'force-static';
+
 export default function Page() {
   const { rows, byId, trabalhosPorProposta, pt } = construirComparacao();
 

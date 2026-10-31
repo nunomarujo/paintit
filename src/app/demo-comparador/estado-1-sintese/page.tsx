@@ -6,6 +6,10 @@ import { AREA_TOTAL_CM2 } from '../fixtures';
 // Estado 1 — Síntese inicial das propostas. Mesmo componente (SinteseDasPropostas) e os mesmos
 // dados (sinteseDasPropostas, src/domain/sintese.ts) que o ecrã real em
 // src/app/app/pedidos/[id]/propostas/page.tsx.
+// Repetido por rota (já vem do layout.tsx): se esta página sair um dia de debaixo desse layout,
+// o build falha em vez de a rota passar a dinâmica sem ninguém notar.
+export const dynamic = 'force-static';
+
 export default function Page() {
   const { rows, linhasDaSintese, leituraDaSintese } = construirComparacao();
   return (

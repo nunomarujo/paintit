@@ -6,6 +6,9 @@ import { construirComparacao } from '../dados';
 // (modoPreco: 'global'), o que faz reconciliar() devolver indecomponivel: true — a diferença
 // inteira cai no bloco "Sem repartição possível", exactamente como a função real decide. Mesma
 // nota sobre PerguntasASeguir que o estado 4 (ver aí).
+// Repetido por rota (já vem do layout.tsx): ver nota em estado-1-sintese/page.tsx.
+export const dynamic = 'force-static';
+
 export default function Page() {
   const { emLado } = construirComparacao();
   return (
