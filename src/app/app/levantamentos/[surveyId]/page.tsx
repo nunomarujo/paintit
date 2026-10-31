@@ -11,7 +11,8 @@ import { EarningCard } from './EarningCard';
 import { AcceptTerms } from './AcceptTerms';
 import { ClarificationCard, type ClarificationView } from './ClarificationCard';
 import { SurveyWorkspace } from './SurveyWorkspace';
-import { ConcludeButton, ContactForm } from './ContactForm';
+import { Agendamento } from './Agendamento';
+import { ConcludeButton } from './ConcludeButton';
 import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -37,6 +38,21 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       </div>
     );
   }
+
+  // A tentativa em curso: é dela que vêm os prazos, o que foi registado e a resposta da cliente. As colunas
+  // antigas de `request_surveys` continuam a existir mas já não mandam em nada disto (migração de 31/10/2026).
+  const { data: tentativa } = await supabase
+    .from('survey_attempts')
+    .select('*')
+    .eq('survey_id', survey.id)
+    .in('estado', ['ativa', 'em_revisao'])
+    .maybeSingle();
+
+  // O contacto da cliente abre com duas chaves — reserva válida e confidencialidade aceite — e as duas são
+  // verificadas na base. Se faltar alguma, a função recusa e aqui fica simplesmente sem contacto para mostrar.
+  const contactoDaCliente = tentativa
+    ? (await supabase.rpc('survey_client_contact', { p_attempt: tentativa.id })).data?.[0] ?? null
+    : null;
 
   const { data: request } = await supabase.from('work_requests').select('id, descricao, building_id').eq('id', survey.request_id).maybeSingle();
   if (!request) notFound();
@@ -237,16 +253,49 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
         </section>
       )}
 
-      <section className={card}>
-        <h2 className="font-semibold">Contacto e agendamento</h2>
-        <div className="mt-3">
-          <ContactForm surveyId={survey.id} initial={{ notas: survey.contact_notes, agendado: survey.scheduled_at?.slice(0, 16) ?? null }} />
-        </div>
-      </section>
+      {/* Contacto e agendamento: os prazos, os dados da cliente e o registo. Sem tentativa ativa não há nada
+          a mostrar aqui — é o caso de um levantamento concluído ou de uma reserva já libertada. */}
+      {tentativa && (
+        <section className={card}>
+          <h2 className="font-semibold">Contacto e agendamento</h2>
+          <div className="mt-3">
+            <Agendamento
+              prazos={{
+                attemptId: tentativa.id,
+                prazoContacto: tentativa.prazo_contacto,
+                prazoConclusao: tentativa.prazo_conclusao,
+                limiteAdiamento: tentativa.limite_adiamento,
+                contactoRegistadoEm: tentativa.contacto_registado_em,
+                contactoNotas: tentativa.contacto_notas,
+                agendadoPara: tentativa.agendado_para,
+                respostaCliente: tentativa.resposta_cliente,
+                adiadoPara: tentativa.adiado_para,
+                estado: tentativa.estado,
+              }}
+              contacto={
+                contactoDaCliente
+                  ? {
+                      nome: contactoDaCliente.nome,
+                      telefone: contactoDaCliente.telefone,
+                      email: contactoDaCliente.email,
+                      morada: contactoDaCliente.morada,
+                      codigoPostal: contactoDaCliente.codigo_postal,
+                      localidade: contactoDaCliente.localidade,
+                    }
+                  : null
+              }
+              agoraIso={new Date().toISOString()}
+            />
+          </div>
+        </section>
+      )}
 
       {earning && <EarningCard earning={earning} />}
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-[17px] text-amber-900">
+      {/* Lembrete permanente, e por isso sem fundo de cor (regra 13): a banda âmbar estava a gastar o único
+          destaque do ecrã num texto que está sempre ali e não exige nada agora. O destaque pertence ao prazo,
+          que é o que se perde se não se olhar. O lembrete fica, em texto. */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-[17px] text-slate-700">
         A morada e os dados desta obra são confidenciais: não os partilhe fora da aplicação, nem indique esta obra a
         nenhum pintor ou terceiro fora do fluxo normal da plataforma.
       </section>

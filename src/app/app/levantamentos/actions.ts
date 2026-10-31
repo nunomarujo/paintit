@@ -27,16 +27,64 @@ export async function reserveSurvey(surveyId: string, orgId: string): Promise<Fo
   return { errors: {}, ok: true, message: 'Reservado. Agende com o cliente dentro da app e registe o levantamento.' };
 }
 
-export async function logContact(surveyId: string, _prev: FormState, form: FormData): Promise<FormState> {
+/**
+ * Registar o contacto e a data acordada (31/10/2026).
+ *
+ * Passou a chamar `register_survey_contact` em vez de escrever direto nas colunas de `request_surveys`.
+ * Escrever direto contornava tudo o que a regra dos prazos tem de fazer valer: a tentativa, o estado dela, o
+ * limite das 48 horas e a verificação de quem reservou. A regra existia na base e o ecrã não a usava.
+ *
+ * Os erros vêm da base já em português e dirigidos ao campo certo, por isso passam tal e qual — foram
+ * escritos para serem lidos por quem está em obra, não por quem lê registos.
+ */
+export async function registerContact(attemptId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const notas = String(form.get('notas') ?? '').trim().slice(0, 2000);
   const agendado = String(form.get('agendado') ?? '').trim();
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
-  const scheduledAt = agendado ? new Date(agendado).toISOString() : null;
-  const { error } = await supabase.from('request_surveys').update({ contact_notes: notas, scheduled_at: scheduledAt }).eq('id', surveyId);
-  if (error) return { errors: {}, message: 'Não foi possível guardar.' };
+  if (!notas) return { errors: { notas: 'Descreva o contacto: é o registo que fica como prova.' } };
+  if (!agendado) return { errors: { agendado: 'Indique a data e a hora acordadas com o cliente.' } };
+  const quando = new Date(agendado);
+  if (Number.isNaN(quando.getTime())) return { errors: { agendado: 'Data ou hora que não se percebe.' } };
+  const { error } = await supabase.rpc('register_survey_contact', {
+    p_attempt: attemptId,
+    p_notas: notas,
+    p_agendado_para: quando.toISOString(),
+  });
+  if (error) {
+    // A mensagem da base diz qual é o campo quando fala de datas; nos outros casos é geral.
+    const campo = /data|48 horas|futuro/i.test(error.message) ? 'agendado' : '';
+    return campo ? { errors: { [campo]: error.message } } : { errors: {}, message: error.message };
+  }
   revalidatePath(path);
-  return { errors: {}, ok: true, message: 'Guardado.' };
+  return { errors: {}, ok: true, message: 'Registado. A cliente foi avisada para confirmar.' };
+}
+
+/** A resposta da cliente ao agendamento: uma de três, e é ela que move (ou não) o prazo. */
+export async function answerSchedule(attemptId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const resposta = String(form.get('resposta') ?? '').trim();
+  const data = String(form.get('data') ?? '').trim();
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  if (!['agendado_48h', 'adiado', 'nao_contactado'].includes(resposta)) {
+    return { errors: { resposta: 'Escolha uma das três respostas.' } };
+  }
+  if (resposta === 'adiado' && !data) {
+    return { errors: { data: 'Indique a data e a hora que combinou.' } };
+  }
+  const quando = resposta === 'adiado' ? new Date(data) : null;
+  if (quando && Number.isNaN(quando.getTime())) return { errors: { data: 'Data ou hora que não se percebe.' } };
+  const { error } = await supabase.rpc('answer_survey_schedule', {
+    p_attempt: attemptId,
+    p_resposta: resposta,
+    ...(quando ? { p_data: quando.toISOString() } : {}),
+  });
+  if (error) {
+    const campo = /data|sete dias|futuro/i.test(error.message) ? 'data' : '';
+    return campo ? { errors: { [campo]: error.message } } : { errors: {}, message: error.message };
+  }
+  revalidatePath('/app/pedidos');
+  return { errors: {}, ok: true, message: 'Resposta registada. Obrigado.' };
 }
 
 export async function concludeSurvey(surveyId: string): Promise<FormState> {
