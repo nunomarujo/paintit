@@ -6,6 +6,7 @@ import { BrandMark } from '@/components/BrandMark';
 import { LegalLinks } from '@/components/LegalPage';
 import { AudiencePopup } from '@/components/landing/AudiencePopup';
 import { ComparadorDemo } from '@/components/landing/ComparadorDemo';
+import { Faq } from '@/components/landing/Faq';
 import { PaintedHero } from '@/components/landing/PaintedHero';
 import { SiteHeader } from '@/components/landing/SiteHeader';
 import { SurveyDemo } from '@/components/landing/SurveyDemo';
@@ -39,6 +40,36 @@ const steps = [
   },
   { t: 'Comparar propostas', d: 'O que está incluído em cada orçamento, lado a lado.' },
   { t: 'Escolher a empresa', d: 'Confirmar as condições e assinar o contrato.' },
+];
+
+/**
+ * FAQ, reintroduzida a par de Transparência (pedido do promotor, 31/10/2026) — a par, nunca a
+ * repetir. A versão anterior ("Antes de avançar", até ao commit d1a1593) tinha cinco perguntas:
+ * "Como receber propostas?" e "Quando pagar?" (as duas que o promotor citou como exemplo a manter)
+ * mais três sobre a caução e a garantia da obra — essas três ficaram de fora porque a secção
+ * Transparência, construída depois a partir das mesmas respostas (ver o comentário antes de
+ * `id="transparencia"`), já as cobre por completo e com mais detalhe (percentagem, mínimo, quando
+ * se perde): repeti-las aqui seria a mesma frase duas vezes na página.
+ *
+ * As duas que ficam têm resposta nova, não a antiga copiada: a antiga de "Como receber propostas?"
+ * ("as empresas enviam propostas... sem identificar a empresa até haver escolha") é quase a mesma
+ * frase da Transparência actual — por isso a resposta aqui passa a contar o que a Transparência não
+ * conta, a mecânica da entrega (simultânea, com janela de esclarecimentos), confirmada contra
+ * `src/domain/entrega.ts` (`DIAS_DE_ESCLARECIMENTO`). A de "Quando pagar?" passa a explicar o que é
+ * a plataforma a intervir (só a caução, sem prazo) e o que é só entre as partes (o calendário da
+ * obra, no contrato), confirmado contra `docs/MODELO.md` (percurso v2) e o plano de pagamentos do
+ * próprio orçamento (`PaymentPlan`, `src/app/app/oportunidades/[id]/ProposalForms.tsx`) — nunca a
+ * plataforma a fixar quando a obra se paga.
+ */
+const faqs = [
+  {
+    q: 'Como receber propostas?',
+    a: 'Basta publicar o pedido, com um prazo para receber propostas. Para que ninguém perca por responder primeiro, as propostas só chegam todas em simultâneo, no fim desse prazo — nunca uma a uma, à medida que são submetidas. Seguem-se 3 dias em que ainda se pode esclarecer dúvidas pelo canal anónimo da plataforma; a escolha pode ser feita durante essa janela ou depois, sem pressa.',
+  },
+  {
+    q: 'Quando pagar?',
+    a: 'A plataforma só intervém no depósito da caução, feito quando o cliente quiser, sem prazo — é esse depósito que torna a escolha efetiva. O calendário de pagamento da obra (adiantamento e fases seguintes, se houver) fica definido no contrato, combinado diretamente entre o cliente e a empresa escolhida; a plataforma nunca o recebe.',
+  },
 ];
 
 export default function Home() {
@@ -300,6 +331,14 @@ export default function Home() {
             </Link>{' '}
             — como a plataforma é paga, por quem, e como ordenamos as propostas.
           </p>
+        </div>
+      </section>
+
+      {/* FAQ, a par de Transparência (ver nota junto a `const faqs`) — antes do CTA final, como pedido. */}
+      <section id="faq" className="mx-auto max-w-3xl px-4 py-16">
+        <h2 className="text-[34px] leading-tight font-bold text-tinta-900">Perguntas frequentes</h2>
+        <div className="mt-6">
+          <Faq items={faqs} />
         </div>
       </section>
 
