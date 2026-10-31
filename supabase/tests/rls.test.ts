@@ -2507,6 +2507,147 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     });
   });
 
+  // Registar o contacto e responder à confirmação. A assimetria é o que se testa: o avaliador marca dentro
+  // das 48 horas, e só o cliente pode levar a visita para além disso.
+  describe('o registo do contacto e a resposta do cliente', () => {
+    async function vagaReservada(titulo: string) {
+      const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+      const reqId = (
+        await as(A, () =>
+          one<{ id: string }>(
+            `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao) values ($1, $2, $3, 'fachadas', 'Obra de teste.') returning id`,
+            [condo, buildingId, titulo],
+          ),
+        )
+      ).id;
+      const sid = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
+      await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [sid, vendorOrg]));
+      const a = await one<{ id: string; prazo_conclusao: Date; limite_adiamento: Date }>(
+        'select id, prazo_conclusao, limite_adiamento from public.survey_attempts where survey_id = $1',
+        [sid],
+      );
+      return { reqId, sid, a };
+    }
+
+    const estadoDe = (id: string) =>
+      one<{ estado: string; resposta_cliente: string | null; adiado_para: Date | null; contacto_notas: string }>(
+        'select estado, resposta_cliente, adiado_para, contacto_notas from public.survey_attempts where id = $1',
+        [id],
+      );
+
+    it('o avaliador registra o contacto com data dentro das 48 horas, e o cliente é avisado', async () => {
+      const { reqId, a } = await vagaReservada('contacto: dentro do prazo');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () =>
+        db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Falei com a D. Ana às 9h40.', dentro]),
+      );
+      const guardado = await estadoDe(a.id);
+      expect(guardado.contacto_notas).toBe('Falei com a D. Ana às 9h40.');
+      const avisos = await as(A, async () =>
+        (await db.query<{ texto: string }>('select texto from public.notifications where link like $1', [`%${reqId}%`])).rows.map((r) => r.texto),
+      );
+      expect(avisos).toContain('A visita para o levantamento está marcada: confirme se corresponde ao que combinou.');
+    });
+
+    it('o avaliador NÃO pode marcar para além das 48 horas: a extensão é só do cliente', async () => {
+      const { a } = await vagaReservada('contacto: extensão própria');
+      const depois = new Date(new Date(a.prazo_conclusao).getTime() + 3_600_000).toISOString();
+      await expect(
+        as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Combinei para a semana.', depois])),
+      ).rejects.toThrow(/Só o cliente pode pedir data posterior/);
+    });
+
+    it('quem não reservou não registra contacto, e o cliente também não', async () => {
+      const { a } = await vagaReservada('contacto: quem pode');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await expect(as(B, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'x', dentro]))).rejects.toThrow(
+        /Só quem reservou/,
+      );
+      await expect(as(A, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'x', dentro]))).rejects.toThrow(
+        /Só quem reservou/,
+      );
+    });
+
+    it('o cliente vê o agendamento sem saber quem é o avaliador', async () => {
+      const { reqId, a } = await vagaReservada('cliente: o que vê');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Contactada.', dentro]));
+      const visto = await as(A, async () => (await db.query('select * from public.survey_schedule_for_client($1)', [reqId])).rows);
+      expect(visto).toHaveLength(1);
+      const campos = Object.keys(visto[0] as object);
+      // Regra 6: nada que identifique o fornecedor, e nada das notas internas do contacto.
+      expect(campos).not.toContain('vendedor_org_id');
+      expect(campos).not.toContain('vendedor_user_id');
+      expect(campos).not.toContain('contacto_notas');
+      expect((visto[0] as { por_responder: boolean }).por_responder).toBe(true);
+      // E quem não gere o pedido não vê nada.
+      expect(await as(B, async () => (await db.query('select * from public.survey_schedule_for_client($1)', [reqId])).rows)).toEqual([]);
+    });
+
+    it('o cliente confirma o agendamento das 48 horas', async () => {
+      const { a } = await vagaReservada('cliente: confirma');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Contactada.', dentro]));
+      await as(A, () => db.query('select public.answer_survey_schedule($1, $2)', [a.id, 'agendado_48h']));
+      const r = await estadoDe(a.id);
+      expect(r).toMatchObject({ estado: 'ativa', resposta_cliente: 'agendado_48h', adiado_para: null });
+    });
+
+    it('o cliente pede data posterior dentro dos sete dias úteis, e o prazo passa a ser essa data', async () => {
+      const { a } = await vagaReservada('cliente: adia');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Contactada.', dentro]));
+      const limite = new Date(a.limite_adiamento).toISOString();
+      await as(A, () => db.query('select public.answer_survey_schedule($1, $2, $3)', [a.id, 'adiado', limite]));
+      const r = await estadoDe(a.id);
+      expect(r.resposta_cliente).toBe('adiado');
+      expect(new Date(r.adiado_para!).toISOString()).toBe(limite);
+      // Vencer as 48 horas não liberta: o prazo que conta é a data acordada.
+      await db.query(`update public.survey_attempts set prazo_conclusao = now() - interval '1 hour' where id = $1`, [a.id]);
+      await db.query('select private.vencimentos_de_levantamentos()');
+      expect((await estadoDe(a.id)).estado).toBe('ativa');
+    });
+
+    it('além dos sete dias úteis, recusa com a data limite escrita por palavras', async () => {
+      const { a } = await vagaReservada('cliente: adia demais');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Contactada.', dentro]));
+      const demasiado = new Date(new Date(a.limite_adiamento).getTime() + 60_000).toISOString();
+      await expect(as(A, () => db.query('select public.answer_survey_schedule($1, $2, $3)', [a.id, 'adiado', demasiado]))).rejects.toThrow(
+        /sete dias úteis \(até \d{2}\/\d{2}\/\d{4} às \d{2}h\d{2}\)/,
+      );
+    });
+
+    it('«não fui contactado» abre revisão, não liberta a vaga, e guarda as duas declarações', async () => {
+      const { sid, a } = await vagaReservada('cliente: contesta');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Falei com ela às 9h40.', dentro]));
+      await as(A, () => db.query('select public.answer_survey_schedule($1, $2)', [a.id, 'nao_contactado']));
+      const r = await estadoDe(a.id);
+      expect(r.estado).toBe('em_revisao');
+      expect(r.resposta_cliente).toBe('nao_contactado');
+      // As duas versões ficam: é delas que depende a revisão.
+      expect(r.contacto_notas).toBe('Falei com ela às 9h40.');
+      expect((await one<{ status: string }>('select status from public.request_surveys where id = $1', [sid])).status).toBe('reservado');
+    });
+
+    it('o avaliador não responde em nome do cliente', async () => {
+      const { a } = await vagaReservada('cliente: só ele responde');
+      const dentro = new Date(new Date(a.prazo_conclusao).getTime() - 3_600_000).toISOString();
+      await as(VEND, () => db.query('select public.register_survey_contact($1, $2, $3)', [a.id, 'Contactada.', dentro]));
+      await expect(as(VEND, () => db.query('select public.answer_survey_schedule($1, $2)', [a.id, 'agendado_48h']))).rejects.toThrow(
+        /Só quem gere este pedido/,
+      );
+    });
+
+    it('não há nada para confirmar antes de o contacto estar registado', async () => {
+      const { a } = await vagaReservada('cliente: confirma no vazio');
+      await expect(as(A, () => db.query('select public.answer_survey_schedule($1, $2)', [a.id, 'agendado_48h']))).rejects.toThrow(
+        /Ainda não há agendamento registado/,
+      );
+    });
+  });
+
   it('o cliente preenche sozinho e publica antes de qualquer vendedor reservar: o levantamento aberto cancela-se', async () => {
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
     const reqId = (
