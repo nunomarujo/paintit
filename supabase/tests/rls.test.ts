@@ -2352,12 +2352,24 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     ).id;
     const survey2 = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
     await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [survey2, vendorOrg]));
-    await db.query(`update public.request_surveys set reserve_deadline = now() - interval '1 hour' where id = $1`, [survey2]);
-    await db.query('select private.daily_maintenance()');
+    // Vencer os prazos da tentativa, não a coluna antiga: é a tentativa que a verificação ao minuto lê.
+    await db.query(
+      `update public.survey_attempts set prazo_contacto = now() - interval '2 hours', prazo_conclusao = now() - interval '1 hour' where survey_id = $1`,
+      [survey2],
+    );
+    await db.query('select private.vencimentos_de_levantamentos()');
     const row = await one<{ status: string; vendedor_org_id: string | null }>('select status, vendedor_org_id from public.request_surveys where id = $1', [
       survey2,
     ]);
     expect(row).toEqual({ status: 'aberto', vendedor_org_id: null });
+    // Libertar não apaga: a tentativa fica fechada, com motivo e hora.
+    const fechada = await one<{ estado: string; fecho_motivo: string; fecho_em: Date }>(
+      'select estado, fecho_motivo, fecho_em from public.survey_attempts where survey_id = $1',
+      [survey2],
+    );
+    expect(fechada.estado).toBe('libertada');
+    expect(fechada.fecho_motivo).toMatch(/primeira hora útil/);
+    expect(fechada.fecho_em).not.toBeNull();
     const stillSeesAddress = await as(VEND, async () =>
       (await db.query('select b.morada from public.buildings b join public.work_requests wr on wr.building_id = b.id where wr.id = $1', [reqId])).rows,
     );
@@ -2366,6 +2378,133 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     expect(notes).toContain(
       'O profissional que tinha reservado a visita não concluiu o levantamento a tempo: o pedido voltou a ficar disponível para outro profissional.',
     );
+  });
+
+  // A matriz de libertação do promotor (31/10/2026), linha a linha. As duas que NÃO libertam são as que
+  // protegem quem cumpriu: se um dia passarem a libertar, é aqui que se vê.
+  describe('a matriz de libertação', () => {
+    // Cada caso parte de um pedido novo, reservado pelo vendedor, com os prazos já vencidos.
+    async function vagaVencida(titulo: string) {
+      const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+      const reqId = (
+        await as(A, () =>
+          one<{ id: string }>(
+            `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao) values ($1, $2, $3, 'fachadas', 'Obra de teste.') returning id`,
+            [condo, buildingId, titulo],
+          ),
+        )
+      ).id;
+      const sid = (await one<{ id: string }>('select id from public.request_surveys where request_id = $1', [reqId])).id;
+      await as(VEND, () => db.query('select public.reserve_survey($1, $2)', [sid, vendorOrg]));
+      const aid = (await one<{ id: string }>('select id from public.survey_attempts where survey_id = $1', [sid])).id;
+      return { sid, aid };
+    }
+
+    async function vencer(aid: string) {
+      await db.query(
+        `update public.survey_attempts set prazo_contacto = now() - interval '3 hours', prazo_conclusao = now() - interval '1 hour' where id = $1`,
+        [aid],
+      );
+      await db.query('select private.vencimentos_de_levantamentos()');
+    }
+
+    const estadoDe = (aid: string) => one<{ estado: string }>('select estado from public.survey_attempts where id = $1', [aid]);
+    const estadoDaVaga = (sid: string) => one<{ status: string }>('select status from public.request_surveys where id = $1', [sid]);
+
+    it('contactou, agendou, e o cliente nunca respondeu → revisão, e a vaga NÃO se liberta', async () => {
+      const { sid, aid } = await vagaVencida('matriz: cliente calado');
+      await db.query(
+        `update public.survey_attempts set contacto_registado_em = now() - interval '2 hours', agendado_para = now() + interval '1 day' where id = $1`,
+        [aid],
+      );
+      await vencer(aid);
+      expect((await estadoDe(aid)).estado).toBe('em_revisao');
+      expect((await estadoDaVaga(sid)).status).toBe('reservado');
+    });
+
+    it('o cliente declarou não ter sido contactado → revisão, com as duas declarações preservadas', async () => {
+      const { sid, aid } = await vagaVencida('matriz: contacto contestado');
+      await db.query(
+        `update public.survey_attempts set contacto_registado_em = now() - interval '2 hours', agendado_para = now() + interval '1 day',
+           resposta_cliente = 'nao_contactado', resposta_cliente_em = now() - interval '1 hour', contacto_notas = 'Falei com a D. Ana às 9h40.' where id = $1`,
+        [aid],
+      );
+      await vencer(aid);
+      expect((await estadoDe(aid)).estado).toBe('em_revisao');
+      expect((await estadoDaVaga(sid)).status).toBe('reservado');
+      // As duas versões continuam lá: é delas que depende a revisão.
+      const guardado = await one<{ contacto_notas: string; resposta_cliente: string }>(
+        'select contacto_notas, resposta_cliente from public.survey_attempts where id = $1',
+        [aid],
+      );
+      expect(guardado).toEqual({ contacto_notas: 'Falei com a D. Ana às 9h40.', resposta_cliente: 'nao_contactado' });
+    });
+
+    it('visita confirmada e prazo incumprido pelo avaliador → liberta e redistribui', async () => {
+      const { sid, aid } = await vagaVencida('matriz: confirmou e faltou');
+      await db.query(
+        `update public.survey_attempts set contacto_registado_em = now() - interval '2 hours', agendado_para = now() - interval '1 day',
+           resposta_cliente = 'agendado_48h', resposta_cliente_em = now() - interval '2 hours' where id = $1`,
+        [aid],
+      );
+      await vencer(aid);
+      expect((await estadoDe(aid)).estado).toBe('libertada');
+      expect((await estadoDaVaga(sid)).status).toBe('aberto');
+    });
+
+    it('um adiamento confirmado move o prazo: não vence na hora das 48 horas', async () => {
+      const { sid, aid } = await vagaVencida('matriz: adiado');
+      const limite = (await one<{ limite_adiamento: Date }>('select limite_adiamento from public.survey_attempts where id = $1', [aid])).limite_adiamento;
+      await db.query(
+        `update public.survey_attempts set contacto_registado_em = now() - interval '2 hours', agendado_para = $2,
+           resposta_cliente = 'adiado', resposta_cliente_em = now(), adiado_para = $2 where id = $1`,
+        [aid, new Date(limite).toISOString()],
+      );
+      await db.query(
+        `update public.survey_attempts set prazo_contacto = now() - interval '3 hours', prazo_conclusao = now() - interval '1 hour' where id = $1`,
+        [aid],
+      );
+      await db.query('select private.vencimentos_de_levantamentos()');
+      // O prazo que conta é a data acordada, que ainda está no futuro.
+      expect((await estadoDe(aid)).estado).toBe('ativa');
+      expect((await estadoDaVaga(sid)).status).toBe('reservado');
+    });
+
+    it('quem perdeu a vaga não volta a concorrer a ELA, mas concorre à seguinte', async () => {
+      const { sid, aid } = await vagaVencida('matriz: exclusão');
+      await vencer(aid);
+      expect((await estadoDaVaga(sid)).status).toBe('aberto');
+      await expect(as(VEND, () => db.query('select public.reserve_survey($1, $2)', [sid, vendorOrg]))).rejects.toThrow(
+        /perdeu o prazo/,
+      );
+      // Numa vaga nova, o mesmo fornecedor reserva sem problema.
+      const outra = await vagaVencida('matriz: vaga nova');
+      expect((await estadoDe(outra.aid)).estado).toBe('ativa');
+    });
+
+    it('a segunda tentativa é a número 2, e a primeira continua lá', async () => {
+      const { sid, aid } = await vagaVencida('matriz: duas tentativas');
+      await vencer(aid);
+      const OUTRO = '00000000-0000-4000-8000-00000000c0a1';
+      await db.query('insert into auth.users (id, email) values ($1, $2)', [OUTRO, email(OUTRO)]);
+      const orgOutro = (await createOrg(OUTRO, 'fornecedor', 'Terceira Tinta Lda', '610000020')).id;
+      await db.query(
+        `insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, array['Lisboa'])
+           on conflict (org_id) do update set concelhos = array['Lisboa']`,
+        [orgOutro],
+      );
+      await as(OUTRO, () => db.query('select public.reserve_survey($1, $2)', [sid, orgOutro]));
+      const tentativas = (
+        await db.query<{ numero: number; estado: string }>(
+          'select numero, estado from public.survey_attempts where survey_id = $1 order by numero',
+          [sid],
+        )
+      ).rows;
+      expect(tentativas).toEqual([
+        { numero: 1, estado: 'libertada' },
+        { numero: 2, estado: 'ativa' },
+      ]);
+    });
   });
 
   it('o cliente preenche sozinho e publica antes de qualquer vendedor reservar: o levantamento aberto cancela-se', async () => {
