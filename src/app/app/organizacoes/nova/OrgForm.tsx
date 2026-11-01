@@ -55,14 +55,10 @@ export function OrgForm({
   // Três quadros por função (promotor, 01/11/2026): identidade, morada fiscal, contactos. Os campos
   // e a acção são os mesmos de antes; só a disposição mudou.
   const quadro = 'rounded-2xl border border-slate-200 bg-white p-5 space-y-4';
-  const cabeca = (n: string, titulo: string, sub: string) => (
+  const cabeca = (titulo: string, sub: string) => (
     <div className="!mt-0">
-      <header className="flex items-baseline gap-2">
-        <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
-        <span className="text-slate-400">·</span>
-        <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
-      </header>
-      <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
+      <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+      <p className="mt-0.5 text-[15px] text-slate-600">{sub}</p>
     </div>
   );
 
@@ -70,7 +66,7 @@ export function OrgForm({
     <form {...formProps} className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-12">
       <section className={`${quadro} lg:col-span-4`}>
-      {cabeca('01', 'Identidade', 'Quem é a entidade: tipo, nome e NIF.')}
+      {cabeca('Identidade', 'Quem é a entidade: tipo, nome e NIF.')}
       {initial ? (
         <>
           <input type="hidden" name="kind" value={initial.kind} />
@@ -173,7 +169,7 @@ export function OrgForm({
       </section>
 
       <section className={`${quadro} lg:col-span-4`}>
-      {cabeca('02', 'Morada fiscal', 'A do contrato e da fatura. Só é revelada depois da apresentação.')}
+      {cabeca('Morada fiscal', 'A do contrato e da fatura. Só é revelada depois da apresentação.')}
       <AddressFields
         moradaName="moradaFiscal"
         moradaLabel="Morada fiscal"
@@ -183,7 +179,7 @@ export function OrgForm({
       </section>
 
       <section className={`${quadro} lg:col-span-4`}>
-      {cabeca('03', 'Contactos', 'Só são mostrados à outra parte depois da apresentação.')}
+      {cabeca('Contactos', 'Só são mostrados à outra parte depois da apresentação.')}
         <Field
           name="emailContacto"
           label="Email de contacto"

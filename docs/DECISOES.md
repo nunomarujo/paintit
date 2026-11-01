@@ -4,6 +4,27 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 01/11/2026 — Guia de desenho de ecrãs de aplicação (taste-skill) adoptado, com uma excepção de marca
+
+O promotor pediu o «taste-skill» (Leonxlnx/taste-skill, capítulo `app-screens`) por os ecrãs parecerem
+todos iguais. Regras adoptadas a partir de hoje, aplicadas ao que se fez neste dia: **sem numeração de
+índice** (01/02/03) fora de sequências reais (os passos 1·2·3 ficam); **sem ícones em quadrados
+tintados** — ícone de traço, cinzento, ao lado do título; **sem sombras em cartões parados** — a borda
+ou um degrau de tom separa; **o acento fora do chrome** — o item ativo da barra marca-se por fundo e
+brilho, sem risca; títulos de grupo cinzentos; **texto corrido no tom cheio**, cinzento só para notas;
+título de ecrã a 24px. Frases longas de estado ficam atrás de um (i) (`src/components/Dica.tsx`).
+
+**Excepção declarada:** o guia proíbe barras laterais escuras em ecrãs claros; a barra marinho é
+decisão do promotor sobre maquete e identidade da marca, e mantém-se. A lima fica num único sítio da
+barra: o rótulo do perfil.
+
+Página do rascunho do pedido, corrigida no mesmo dia: cabeçalho numa linha («Orçamentos · nome» com (i);
+estado, referência e dossiê à direita); o percurso passou de cartão com régua a **faixa de uma linha**
+com a ação à direita (a régua duplicava os passos); áreas dos passos sem número e com moldura própria;
+com visita pedida, os campos de medição ficam recolhidos em «Acrescentar informação que já sei»;
+fotografias com uma linha e (i). Fica em aberto (EM_ABERTO): o resumo de três colunas no fim do passo 2
+e a verificação de datas contraditórias (execução antes do fecho das propostas).
+
 ## 01/11/2026 — Barra lateral marinho e painel de cantos arredondados; formulário do pedido em grelha com ícones
 
 **Aprovado pelo promotor sobre maquete no canvas** («Barra lateral e disposição do pedido — três

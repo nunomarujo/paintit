@@ -75,7 +75,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
 
   const renderGroup = (g: NavGroup) => (
     <div key={g.title}>
-      <p className="eyebrow px-3 pb-2 text-barra-eyebrow">{g.title}</p>
+      <p className="eyebrow px-3 pb-2 text-barra-text">{g.title}</p>
       <div className="space-y-0.5">
         {g.items.map((i) => {
           const aberto = active(i) && !!i.children?.length;
@@ -104,10 +104,9 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                 }`}
               >
                 <span className="flex items-center gap-2.5">
-                  {/* Barra cobalto à esquerda do item ativo (v5): a casca e o item ativo são agora da
-                      mesma família de cor, e o fundo branco sozinho não chegava para o distinguir. */}
-                  {active(i) && <span aria-hidden="true" className="-ml-1 h-5 w-[3px] shrink-0 rounded-full bg-barra-accent" />}
-                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-barra-accent' : 'text-barra-icon'}`} />}
+                  {/* O item ativo marca-se pelo fundo e pelo brilho do texto, sem risca de cor: o acento
+                      fica para os dados e para a ação, não para a navegação (guia de desenho, 01/11/2026). */}
+                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-barra-strong' : 'text-barra-icon'}`} />}
                   {i.label}
                   {i.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-marca-attention" />}
                 </span>

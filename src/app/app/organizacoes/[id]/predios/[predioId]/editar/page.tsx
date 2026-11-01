@@ -37,11 +37,7 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
           direita; a identificação e morada em baixo, recolhida, porque muda raramente. */}
       <div className="mt-5 grid gap-5 lg:grid-cols-12">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-7">
-          <header className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold text-tinta-600">01</span>
-            <span className="text-slate-400">·</span>
-            <h2 className="text-[17px] font-semibold text-tinta-900">Características</h2>
-          </header>
+          <h2 className="text-[17px] font-semibold text-tinta-900">Características</h2>
           <div className="mt-4">
             <Characteristics
               orgId={org.id}
@@ -54,11 +50,7 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-5">
-          <header className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold text-tinta-600">02</span>
-            <span className="text-slate-400">·</span>
-            <h2 className="text-[17px] font-semibold text-tinta-900">Que obras quer fazer</h2>
-          </header>
+          <h2 className="text-[17px] font-semibold text-tinta-900">Que obras quer fazer</h2>
           <div className="mt-4">
             {colunasPorAplicar ? (
               <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[17px] text-amber-900">
@@ -76,8 +68,6 @@ export default async function EditBuildingPage({ params }: { params: Promise<{ i
             não se pode gravar a meio de ser escrita (ver saveBuildingCharacteristic). */}
         <details className="rounded-2xl border border-slate-200 bg-white px-5 lg:col-span-12">
           <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 py-3">
-            <span className="text-[15px] font-semibold text-tinta-600">03</span>
-            <span className="text-slate-400">·</span>
             <span className="text-[17px] font-semibold text-tinta-900">Identificação e morada</span>
             <span className="ml-auto text-[13px] text-slate-500">Abrir para editar</span>
           </summary>

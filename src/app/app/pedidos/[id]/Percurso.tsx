@@ -1,8 +1,9 @@
 'use client';
 
-import { VEZ_LABELS, etapaAtingida, etapasDoPedido, type AlvoDaAccao, type EstadoDoPercurso } from '@/domain/percurso';
+import { VEZ_LABELS, type AlvoDaAccao, type EstadoDoPercurso } from '@/domain/percurso';
 import type { SeccaoId } from '@/domain/seccoes';
 import { useIrParaSeccao } from './PedidoEmSeccoes';
+import { Dica } from '@/components/Dica';
 import Link from 'next/link';
 
 /**
@@ -33,8 +34,8 @@ export function Percurso({
   /** Houve pedido de visita? Sem ele, a régua não mostra as etapas que nunca vão acontecer. */
   houveLevantamento?: boolean;
 }) {
-  const etapas = etapasDoPedido(houveLevantamento);
-  const actual = etapaAtingida(estado.fase, etapas);
+  // `houveLevantamento` já não desenha nada aqui (a régua saiu); fica na assinatura para não mexer em quem chama.
+  void houveLevantamento;
   const vez = VEZ_LABELS[estado.vez];
   const irPara = useIrParaSeccao();
   /*
@@ -52,71 +53,36 @@ export function Percurso({
     pendencia: pendencia ?? 'pretende',
   };
 
+  // Uma faixa de uma linha (promotor, 01/11/2026): o título, a frase curta, a data quando há, e a
+  // acção à direita. A explicação longa fica atrás do (i). A régua de etapas que aqui estava saiu:
+  // duplicava os passos do pedido e lia-se como um segundo percurso.
+  const longa = estado.explicacao.length > 90;
+  const quando = marcadoPara
+    ? new Date(marcadoPara).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
+    : null;
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="text-[20px] font-semibold">{estado.titulo}</h2>
-        {vez && <p className="text-[15px] text-slate-500">{vez}</p>}
+    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl bg-tinta-50 px-5 py-3" aria-live="polite">
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-x-2 text-[17px]">
+          <span className="font-semibold text-tinta-900">{estado.titulo}</span>
+          {quando && <span className="text-slate-700">· {quando}</span>}
+          {vez && <span className="text-[13px] text-slate-600">· {vez}</span>}
+        </p>
+        <p className="mt-0.5 flex items-center gap-2 text-[15px] text-slate-700">
+          <span className={longa ? 'truncate' : ''}>{longa ? `${estado.explicacao.slice(0, 88).trimEnd()}…` : estado.explicacao}</span>
+          {longa && <Dica rotulo="Ler a explicação completa">{estado.explicacao}</Dica>}
+        </p>
       </div>
-      <p className="mt-1 max-w-[54ch] text-[17px] text-slate-700">{estado.explicacao}</p>
-      {marcadoPara && (
-        <p className="mt-1 text-[17px] font-medium">
-          {new Date(marcadoPara).toLocaleString('pt-PT', {
-            timeZone: 'Europe/Lisbon',
-            weekday: 'long',
-            day: '2-digit',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </p>
-      )}
-
-      <ol className="mt-4 flex flex-wrap gap-x-2 gap-y-2 text-[15px]">
-        {etapas.map((e, i) => {
-          const feita = i < actual;
-          const agora = i === actual;
-          return (
-            <li key={e.fase} className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[13px] ${
-                  feita ? 'bg-tinta-600 text-white' : agora ? 'border-2 border-tinta-600 bg-white' : 'border border-slate-300 bg-white'
-                }`}
-              >
-                {feita ? '✓' : ''}
-              </span>
-              <span className={agora ? 'font-semibold text-tinta-900' : feita ? 'text-slate-700' : 'text-slate-500'}>
-                {e.nome}
-                {agora && <span className="sr-only"> — etapa actual</span>}
-              </span>
-              {i < etapas.length - 1 && (
-                <span aria-hidden="true" className="ml-1 hidden text-slate-300 sm:inline">
-                  →
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-
-      {estado.accao && (
-        <p className="mt-4">
-          {estado.accao.alvo === 'propostas' ? (
-            <Link href={`/app/pedidos/${requestId}/propostas`} className="btn-primary">
-              {estado.accao.texto}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => irPara(seccaoDoAlvo[estado.accao!.alvo] ?? 'resumo')}
-              className="btn-primary"
-            >
-              {estado.accao.texto}
-            </button>
-          )}
-        </p>
-      )}
+      {estado.accao &&
+        (estado.accao.alvo === 'propostas' ? (
+          <Link href={`/app/pedidos/${requestId}/propostas`} className="btn-secondary shrink-0">
+            {estado.accao.texto}
+          </Link>
+        ) : (
+          <button type="button" onClick={() => irPara(seccaoDoAlvo[estado.accao!.alvo] ?? 'resumo')} className="btn-secondary shrink-0">
+            {estado.accao.texto}
+          </button>
+        ))}
     </section>
   );
 }

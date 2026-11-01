@@ -28,14 +28,10 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
   // Grelha de quadros por função (promotor, 01/11/2026): identificação, localização,
   // características — e não uma coluna. Os campos e a acção são os mesmos.
   const quadro = 'rounded-2xl border border-slate-200 bg-white p-5';
-  const cabeca = (n: string, titulo: string, sub: string) => (
+  const cabeca = (titulo: string, sub: string) => (
     <>
-      <header className="flex items-baseline gap-2">
-        <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
-        <span className="text-slate-400">·</span>
-        <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
-      </header>
-      <p className="mt-0.5 mb-4 text-[15px] text-slate-500">{sub}</p>
+      <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+      <p className="mt-0.5 mb-4 text-[15px] text-slate-600">{sub}</p>
     </>
   );
 
@@ -43,7 +39,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
     <form {...formProps} className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-12">
         <section className={`${quadro} lg:col-span-4`}>
-          {cabeca('01', 'Identificação', 'Como aparece na sua lista. Não é mostrado aos pintores.')}
+          {cabeca('Identificação', 'Como aparece na sua lista. Não é mostrado aos pintores.')}
           <div className="space-y-4">
             <Field name="nomeInterno" label="Nome interno" required defaultValue={initial?.nome_interno} error={e.nomeInterno} />
             <Field name="tipo" label="Tipo de imóvel" required error={e.tipo}>
@@ -59,7 +55,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
         </section>
 
         <section className={`${quadro} lg:col-span-8`}>
-          {cabeca('02', 'Localização', 'A morada fica privada até à apresentação. Os pintores só veem o concelho.')}
+          {cabeca('Localização', 'A morada fica privada até à apresentação. Os pintores só veem o concelho.')}
           <div className="space-y-4">
             <AddressFields
               moradaName="morada"
@@ -74,7 +70,7 @@ export function BuildingForm({ action: submit, defaultKind, initial, semCaracter
         </section>
 
         <section className={`${quadro} lg:col-span-12 ${semCaracteristicas ? 'hidden' : ''}`}>
-          {cabeca('03', 'Características', 'Opcional. Ajudam os pintores a perceber a dimensão da obra; pode responder mais tarde.')}
+          {cabeca('Características', 'Opcional. Ajudam os pintores a perceber a dimensão da obra; pode responder mais tarde.')}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Field name="pisos" label="Pisos" inputMode="numeric" defaultValue={str(initial?.pisos)} error={e.pisos} />
             <Field name="fracoes" label="Frações" inputMode="numeric" defaultValue={str(initial?.fracoes)} error={e.fracoes} />

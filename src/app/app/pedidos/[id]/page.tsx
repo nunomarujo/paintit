@@ -38,6 +38,8 @@ import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { ZonasComVolume } from './ZonasComVolume';
 import { Voltar } from '@/components/Voltar';
+import { Dica } from '@/components/Dica';
+import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -307,23 +309,17 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       </div>
     ),
     zonas: (
-      <section id="levantamento-da-obra" className={`${card} scroll-mt-6`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          {/* O nome da secção já está escrito por cima pelo `PedidoEmSeccoes`; aqui só quando
-            diz outra coisa — que é quando a medição não é do cliente. */}
-        {tecnicoDoCliente ? <span /> : <h3 className="text-[17px] font-semibold">Levantamento da obra</h3>}
-          {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
-              errada (promotor, 29/10/2026). */}
-          <span className="text-[17px] text-slate-600">
-            {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
-          </span>
-        </div>
-        {!tecnicoDoCliente && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            Será preenchido pelo profissional que fizer a visita. Pode acrescentar o que souber, mas não precisa de
-            indicar medidas nenhumas.
-          </p>
-        )}
+      <div id="levantamento-da-obra" className="scroll-mt-6">
+        {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
+            errada (promotor, 29/10/2026). */}
+        <p className="text-[15px] text-slate-600">
+          {!tecnicoDoCliente
+            ? 'O avaliador regista as zonas e as medidas durante a visita.'
+            : list.length === 0
+              ? 'Área por levantar.'
+              : `Total: ${formatArea(total)}`}
+          {!tecnicoDoCliente && list.length > 0 && ` Até agora: ${formatArea(total)}.`}
+        </p>
         {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
           <p className="mt-1 text-[17px] text-slate-600">
             {[
@@ -342,7 +338,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             .
           </p>
         )}
-        <div className="mt-4">
+        {/* Com visita pedida, os campos de medição ficam recolhidos: a página acompanha a escolha
+            do cliente em vez de o pôr a medir (promotor, 01/11/2026). */}
+        <ZonasRecolhiveis recolhido={!tecnicoDoCliente}>
           <ZonasComVolume
             requestId={req.id}
             predio={{
@@ -385,21 +383,19 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             podeEditar={!!manager && draft}
             doCliente={tecnicoDoCliente}
           />
-        </div>
-      </section>
+        </ZonasRecolhiveis>
+      </div>
     ),
     fotografias: (
-      <section className={card}>
-        {/*
-          A explicação encurtou e deixou de misturar dois regimes. O promotor apanhou a
-          contradição a 30/10/2026: o aviso dizia que **nenhuma** fotografia podia identificar
-          o prédio, quando as gerais são privadas e nunca saem daqui. O aviso restritivo
-          passou para onde pertence — a escolha de «pormenor», que é a que pode ir para o
-          anúncio.
-        */}
-        <p className="text-[17px] text-slate-600">
-          As fotografias ajudam a preparar o levantamento. Só as imagens aprovadas para divulgação serão
-          mostradas aos pintores. A localização e os dados do aparelho são retirados de todas.
+      <div>
+        {/* Uma linha; o resto (quais vão ao anúncio, a remoção dos dados do aparelho) vai na
+            dica, para não gastar altura (promotor, 01/11/2026). */}
+        <p className="flex items-center gap-2 text-[15px] text-slate-600">
+          Opcionais. Ajudam o avaliador a perceber o estado atual.
+          <Dica rotulo="Quem vê as fotografias">
+            Só as imagens que aprovar para divulgação são mostradas aos pintores; as gerais ficam privadas. A localização e os
+            dados do aparelho são retirados de todas.
+          </Dica>
         </p>
         <div className="mt-4">
           <Fotografias
@@ -420,7 +416,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             porZona={fotosPorZona}
           />
         </div>
-      </section>
+      </div>
     ),
     publicar:
       manager && draft ? (
@@ -659,23 +655,28 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           dossiê são acções de serviço: descem para o fim da linha, em letra pequena, e deixam de
           disputar a atenção com a preparação do pedido (promotor, 30/10/2026).
         */}
-        <h1 className="mt-3 text-[26px] leading-tight font-semibold">{req.titulo}</h1>
-        <p className="mt-1 text-[17px] text-slate-600">
-          {status.label}
-          {req.version > 1 && ` · versão ${req.version}`}
-          {' · '}
-          <span className="text-slate-500">Ref. {req.ref}</span>
-          {' · '}
-          <Link href={`/app/pedidos/${req.id}/dossie`} className="text-tinta-700 hover:underline">
-            Dossiê para imprimir
-          </Link>
-        </p>
-        {draft && (
-          <p className="mt-2 max-w-[54ch] text-[17px] text-slate-700">
-            Pode começar pelo que sabe. Se precisar, peça um levantamento profissional — não acrescenta nenhum custo à
-            obra.
+        {/* Uma linha (promotor, 01/11/2026): o título à esquerda com o (i) da ajuda; o estado, a
+            referência e o dossiê à direita, em letra pequena, sem gastar altura. */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <h1 className="flex items-center gap-2 text-[24px] leading-tight font-semibold">
+            <span>Orçamentos · {req.titulo}</span>
+            {draft && (
+              <Dica rotulo="Como começar">
+                Pode começar pelo que sabe. Se precisar, peça um levantamento profissional — não acrescenta nenhum custo à obra.
+              </Dica>
+            )}
+          </h1>
+          <p className="text-[15px] text-slate-600">
+            {status.label}
+            {req.version > 1 && ` · versão ${req.version}`}
+            {' · '}
+            Ref. {req.ref}
+            {' · '}
+            <Link href={`/app/pedidos/${req.id}/dossie`} className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 hover:underline">
+              Dossiê para imprimir
+            </Link>
           </p>
-        )}
+        </div>
       </div>
 
       {draft && (suspensions ?? []).length > 0 && (

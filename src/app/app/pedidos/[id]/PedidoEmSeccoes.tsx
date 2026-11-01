@@ -133,21 +133,21 @@ export function PedidoEmSeccoes({
           <div hidden={passo !== 'essencial'}>{formulario}</div>
 
           {/* Passo 2: zonas e medidas à esquerda, fotografias à direita. `hidden` e não desmontar. */}
-          <div hidden={passo !== 'medidas'} className="grid gap-5 lg:grid-cols-12">
-            <Area n="01" nome="Zonas e medidas" estado={estados.zonas} className="lg:col-span-7">
+          <div hidden={passo !== 'medidas'} className="grid gap-6 lg:grid-cols-12">
+            <Area nome="Zonas e medidas" estado={estados.zonas} className="lg:col-span-7" moldura>
               {slots.zonas}
             </Area>
-            <Area n="02" nome="Fotografias" estado={estados.fotografias} className="lg:col-span-5">
+            <Area nome="Fotografias" estado={estados.fotografias} className="lg:col-span-5" moldura>
               {slots.fotografias}
             </Area>
           </div>
 
           {/* Passo 3: o resumo do que os pintores vão ler e, ao lado, o que falta e o botão. */}
-          <div hidden={passo !== 'rever'} className="grid gap-5 lg:grid-cols-12">
-            <Area n="01" nome="Resumo do pedido" estado={estados.resumo} className="lg:col-span-7" semEstado>
+          <div hidden={passo !== 'rever'} className="grid gap-6 lg:grid-cols-12">
+            <Area nome="Resumo do pedido" estado={estados.resumo} className="lg:col-span-7" semEstado>
               {slots.resumo}
             </Area>
-            <Area n="02" nome="Publicar" estado={estados.publicar} className="lg:col-span-5">
+            <Area nome="Publicar" estado={estados.publicar} className="lg:col-span-5" moldura>
               {slots.publicar}
             </Area>
           </div>
@@ -169,32 +169,29 @@ export function PedidoEmSeccoes({
   );
 }
 
-/** Uma área de um passo: título numerado com o estado, e o conteúdo da secção por baixo. */
+/** Uma área de um passo: título e estado no topo, o conteúdo por baixo. Com `moldura`, é um
+ * cartão (o conteúdo que recebe não traz o seu). Sem número de índice: a ordem é a posição. */
 function Area({
-  n,
   nome,
   estado,
   className,
   semEstado = false,
+  moldura = false,
   children,
 }: {
-  n: string;
   nome: string;
   estado: EstadoDaSeccao;
   className?: string;
   semEstado?: boolean;
+  moldura?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className={`min-w-0 ${className ?? ''}`}>
+    <section className={`min-w-0 ${moldura ? 'rounded-2xl border border-slate-200 bg-white p-5' : ''} ${className ?? ''}`}>
       <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-tinta-900">
-          <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
-          <span className="text-slate-400">·</span>
-          {nome}
-        </h2>
+        <h2 className="text-[17px] font-semibold text-tinta-900">{nome}</h2>
         {!semEstado && (
-          <span className="flex items-center gap-2 text-[13px] text-slate-500">
+          <span className="flex items-center gap-2 text-[13px] text-slate-600">
             <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${PONTO[estado]}`} />
             {ESTADO_DA_SECCAO_LABELS[estado]}
           </span>

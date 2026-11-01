@@ -85,7 +85,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
     <form {...formProps} className="space-y-5">
       <fieldset disabled={disabled} className="grid gap-5 lg:grid-cols-12">
         {/* 01 · Local e identificação */}
-        <Quadro n="01" icone="local" titulo="Local e identificação" sub="O prédio e um nome para este pedido." className="lg:col-span-4">
+        <Quadro icone="local" titulo="Local e identificação" sub="O prédio e um nome para este pedido." className="lg:col-span-4">
           <div className="space-y-4">
             <Field name="buildingId" label="Prédio" required error={e.buildingId}>
               <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
@@ -108,7 +108,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 02 · O que pretende fazer */}
-        <Quadro n="02" icone="pincel" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." className="lg:col-span-8">
+        <Quadro icone="pincel" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." className="lg:col-span-8">
           <fieldset>
             <legend className="text-[15px] font-semibold text-slate-700">
               Tipos de obra <span className="font-normal text-slate-500">(pode escolher vários)</span>
@@ -133,7 +133,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 03 · Prazos */}
-        <Quadro n="03" icone="calendario" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." className="lg:col-span-3">
+        <Quadro icone="calendario" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." className="lg:col-span-3">
           <div className="space-y-4">
             <div>
               <Field name="prazoPropostas" label="Receber propostas até" type="date" defaultValue={initial?.prazo_propostas ?? undefined} error={e.prazoPropostas} hint="Pelo menos 7 dias. Abrem todas no dia seguinte." />
@@ -169,7 +169,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 04 · Descrição */}
-        <Quadro n="04" icone="texto" titulo="Descrição da obra" sub="O que os pintores vão ler. Sem morada, nomes nem contactos — são revelados só depois da escolha." className="lg:col-span-6">
+        <Quadro icone="texto" titulo="Descrição da obra" sub="O que os pintores vão ler. Sem morada, nomes nem contactos — são revelados só depois da escolha." className="lg:col-span-6">
           <div className="relative">
             <textarea
               name="descricao"
@@ -237,7 +237,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 05 · Preferências: linhas recolhíveis com o valor actual à vista. */}
-        <Quadro n="05" icone="ajustes" titulo="Preferências" sub="Opcional. Pode deixar tudo em aberto." className="lg:col-span-3">
+        <Quadro icone="ajustes" titulo="Preferências" sub="Opcional. Pode deixar tudo em aberto." className="lg:col-span-3">
           <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200">
             <Linha icone="cor" titulo="Cor e acabamento" valor={cor.trim() || 'Por definir'} definido={!!cor.trim()}>
               <label className="block text-[17px] font-medium text-slate-700">
@@ -313,20 +313,16 @@ const ICONE_DO_TIPO: Record<(typeof WORK_TYPES)[number], NomeDoIcone> = {
 };
 
 /** Um quadro numerado da grelha: ícone, número, título, subtítulo e o conteúdo a esticar. */
-function Quadro({ n, icone, titulo, sub, className, children }: { n: string; icone: NomeDoIcone; titulo: string; sub: string; className?: string; children: ReactNode }) {
+function Quadro({ icone, titulo, sub, className, children }: { icone: NomeDoIcone; titulo: string; sub: string; className?: string; children: ReactNode }) {
   return (
-    <section className={`flex flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(20,33,61,0.05),0_12px_32px_-16px_rgba(20,33,61,0.16)] ${className ?? ''}`}>
+    // Sem número de índice, sem ícone em quadrado tintado, sem sombra em repouso: o ícone é um
+    // traço cinzento ao lado do título, e a separação é a borda (guia de desenho, 01/11/2026).
+    <section className={`flex flex-col rounded-2xl border border-slate-200 bg-white p-5 ${className ?? ''}`}>
       <header className="flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-tinta-50 text-tinta-600">
-          <Icone nome={icone} className="h-5 w-5" />
-        </span>
+        <Icone nome={icone} className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
         <div className="min-w-0">
-          <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-tinta-900">
-            <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
-            <span className="text-slate-400">·</span>
-            {titulo}
-          </h2>
-          <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
+          <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+          <p className="mt-0.5 text-[15px] text-slate-600">{sub}</p>
         </div>
       </header>
       <div className="mt-4 flex flex-1 flex-col">{children}</div>
