@@ -46,7 +46,7 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 - **Versões da proposta** não aparecem no ecrã de comparação (já aparecem no relatório).
 - **Aviso 2 h antes aos outros avaliadores** (alternativa ao bónus de adesão, não escolhida).
 
-- **Design v5 (01/11/2026), o que ficou para depois:** o fornecedor confirmar a venda de um produto a um pintor para uma obra (prometido em versão fraca no cartão 3 das «Três proteções»); ilustração do prédio do hero (`predio-cor.webp`) ainda nas cores antigas; medir os tempos do orçamento guiado (45/20/5 min são estimativa do promotor); a aplicação não explica fichas técnicas em linguagem corrente — a página do fornecedor só promete os dados aplicados.
+- **Design v5 (01/11/2026), o que ficou para depois:** o fornecedor confirmar a venda de um produto a um pintor para uma obra (prometido em versão fraca no cartão 3 das «Três proteções»; construir agora que o workspace do fornecedor está publicado); medir toques e campos do orçamento guiado com e sem modelos, para substituir a estimativa 45/20/5 min por um número verificável. *Fechados:* a recomposição do ecrã «Hoje» do avaliador (feita na sessão do workspace, 01/11/2026); a ilustração do prédio mantém-se nas cores da ilustração, por decisão do promotor.
 
 ## 4. Dívida técnica
 
