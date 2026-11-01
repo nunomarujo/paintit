@@ -281,7 +281,7 @@ export default function Home() {
                 href: '/empresas',
                 titulo: 'Empresa de pintura?',
                 frase: 'Há mais obras do que empresas para as fazer.',
-                texto: 'Oportunidades na sua zona, orçamento guiado em 4 passos, documento A4 automático e gestão de obra. Só paga quando ganha.',
+                texto: 'Orçamentos detalhados em minutos, sem custo: a aplicação aprende de orçamento para orçamento. Oportunidades na sua zona, gestão de obra incluída. Só paga quando ganha.',
                 cta: 'Ver como funciona para empresas',
                 img: '/img/popup-demo-pintor.webp',
                 alt: 'Orçamento guiado: trabalho selecionado com sugestões de produto do catálogo',

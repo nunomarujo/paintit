@@ -26,7 +26,10 @@ export function PaginaDePerfil({
   ctaHref,
   ctaTexto,
   ctaNota,
+  children,
 }: {
+  /** Secções próprias do perfil, entre a demonstração e «Tudo o que inclui». */
+  children?: React.ReactNode;
   eyebrow: string;
   titulo: string;
   intro: string;
@@ -77,6 +80,8 @@ export function PaginaDePerfil({
           <figcaption className="mt-3 text-[15px] text-slate-600">{demo.legenda}</figcaption>
         </figure>
       </section>
+
+      {children}
 
       <section className="border-t border-slate-200 bg-paper py-20">
         <div className="mx-auto max-w-6xl px-4">
