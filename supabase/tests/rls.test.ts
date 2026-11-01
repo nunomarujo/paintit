@@ -3675,3 +3675,62 @@ describe('mudar o papel de um colega em "Equipa online" (org_members_update)', (
     expect(r.role).not.toBe('leitor');
   });
 });
+
+/**
+ * Disponibilidade e alertas: a linha é da pessoa, e de mais ninguém.
+ *
+ * A privacidade entre pessoa e empresa é regra (01/11/2026): as férias de um avaliador não são assunto
+ * do responsável da empresa. Estes testes existem para que uma política futura não abra essa porta sem
+ * que alguém dê por isso.
+ */
+describe('disponibilidade do avaliador', () => {
+  const EU = '00000000-0000-4000-8000-0000000000e1';
+  const OUTRA = '00000000-0000-4000-8000-0000000000e2';
+
+  beforeAll(async () => {
+    for (const u of [EU, OUTRA]) {
+      await db.query('insert into auth.users (id, email) values ($1, $2) on conflict do nothing', [u, email(u)]);
+    }
+    await as(EU, () =>
+      db.query(`insert into public.survey_availability (user_id, suspenso_ate) values ($1, current_date + 3)`, [EU]),
+    );
+  });
+
+  it('a dona lê e altera a sua linha', async () => {
+    const r = await as(EU, () =>
+      db.query<{ alerta_email: boolean }>('select alerta_email from public.survey_availability where user_id = $1', [EU]),
+    );
+    expect(r.rows).toHaveLength(1);
+    await as(EU, () => db.query('update public.survey_availability set alerta_email = false where user_id = $1', [EU]));
+    const depois = await as(EU, () =>
+      db.query<{ alerta_email: boolean }>('select alerta_email from public.survey_availability where user_id = $1', [EU]),
+    );
+    expect(depois.rows[0]!.alerta_email).toBe(false);
+  });
+
+  it('outra pessoa não lê a disponibilidade de ninguém', async () => {
+    const r = await as(OUTRA, () => db.query('select * from public.survey_availability where user_id = $1', [EU]));
+    expect(r.rows).toHaveLength(0);
+  });
+
+  it('outra pessoa não altera a disponibilidade alheia', async () => {
+    await as(OUTRA, () => db.query('update public.survey_availability set suspenso_ate = null where user_id = $1', [EU]));
+    const r = await as(EU, () =>
+      db.query<{ suspenso_ate: string | null }>('select suspenso_ate from public.survey_availability where user_id = $1', [EU]),
+    );
+    expect(r.rows[0]!.suspenso_ate).not.toBeNull();
+  });
+
+  it('ninguém cria uma linha em nome de outra pessoa', async () => {
+    await expect(
+      as(OUTRA, () => db.query('insert into public.survey_availability (user_id) values ($1)', [EU])),
+    ).rejects.toThrow(/row-level security|duplicate key/);
+  });
+
+  it('quem não tem linha está disponível, e quem está suspenso não está', async () => {
+    const semLinha = await one<{ d: boolean }>('select private.avaliador_disponivel($1) as d', [OUTRA]);
+    expect(semLinha.d).toBe(true);
+    const suspensa = await one<{ d: boolean }>('select private.avaliador_disponivel($1) as d', [EU]);
+    expect(suspensa.d).toBe(false);
+  });
+});

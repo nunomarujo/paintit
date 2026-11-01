@@ -995,6 +995,14 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      // Escrito à mão enquanto a migração 20261101050000_disponibilidade_e_alertas não corre no painel;
+      // regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
+      survey_availability: {
+        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; updated_at: string };
+        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean };
+        Update: { suspenso_ate?: string | null; alerta_email?: boolean };
+        Relationships: [];
+      };
       supplier_survey_coverage: {
         Row: { concelhos: string[]; org_id: string; updated_at: string };
         Insert: { concelhos?: string[]; org_id: string };
