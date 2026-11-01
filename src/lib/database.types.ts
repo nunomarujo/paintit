@@ -948,8 +948,9 @@ export type Database = {
         Row: {
           clarification_excluded_orgs: string[];
           concluded_at: string | null;
-          // Escrito à mão enquanto a migração 20261101040000_referencia_do_levantamento não corre no
-          // painel; regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
+          // Acrescentado à mão, como a nota no topo deste ficheiro manda: a regeneração completa traz
+          // hoje dezenas de erros de tipos e é dívida à parte. A migração
+          // 20261101040000_referencia_do_levantamento está aplicada à base real (01/11/2026).
           numero: number;
           contact_notes: string;
           created_at: string;

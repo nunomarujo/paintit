@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
 import { payoutStatus, supplierBalance } from '@/domain/referral';
@@ -7,8 +8,8 @@ import { getUser } from '@/lib/supabase/server';
 
 const COMPANY_NAME = COMPANY.name;
 const COMPANY_NIF = COMPANY.nif;
-import { cancelRedemption, setReferralActive } from './actions';
-import { InvoiceForm, NewCodeForm, PayoutDetailsForm, RedeemButton } from './Forms';
+import { cancelRedemption } from './actions';
+import { InvoiceForm, PayoutDetailsForm, RedeemButton } from './Forms';
 import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -20,8 +21,7 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const [{ data: codes }, { data: details }, { data: activity }, { data: payouts }, { data: redemptions }] = await Promise.all([
-    supabase.from('referral_codes').select('id, code, nota, active, painter_org_id, created_at').eq('supplier_org_id', id).order('created_at', { ascending: false }),
+  const [{ data: details }, { data: activity }, { data: payouts }, { data: redemptions }] = await Promise.all([
     supabase.from('supplier_payout_details').select('iban, titular, cobra_iva, isencao_iva, declaracao_retencao, regime_validado, retencao_bps').eq('org_id', id).maybeSingle(),
     supabase.rpc('referral_activity', { p_org: id }),
     supabase.from('referral_payouts').select('id, amount_cents, estado, fee_recebido_em, redemption_id').eq('supplier_org_id', id),
@@ -149,47 +149,17 @@ export default async function ReferralPage({ params }: { params: Promise<{ id: s
         </div>
       </section>
 
+      {/* Os códigos saíram daqui para «Clientes e convites» (01/11/2026): criar um código é angariar um
+          cliente, não receber dinheiro. Ficava a um ecrã de distância do convite por email, que faz
+          exatamente o mesmo, e ninguém encontrava os dois. */}
       <section className={card}>
-        <h2 className="font-semibold">Códigos</h2>
-        {manager && (
-          <div className="mt-4">
-            <NewCodeForm orgId={id} />
-          </div>
-        )}
-        {(codes ?? []).length === 0 ? (
-          <p className="mt-4 text-[17px] text-slate-600">Ainda não criou nenhum código.</p>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-left text-[17px]">
-              <thead className="text-slate-500">
-                <tr>
-                  <th className="py-2 font-normal">Código</th>
-                  <th className="py-2 font-normal">Nota</th>
-                  <th className="py-2 font-normal">Estado</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(codes ?? []).map((c) => (
-                  <tr key={c.id}>
-                    <td className="py-2 font-mono text-[17px] font-semibold tracking-wider">{c.code}</td>
-                    <td className="py-2 text-slate-600">{c.nota ?? ''}</td>
-                    <td className="py-2">{!c.active ? 'Desativado' : c.painter_org_id ? 'Ligado a um pintor' : 'Disponível'}</td>
-                    <td className="py-2 text-right">
-                      {manager && (
-                        <form action={setReferralActive.bind(null, id, c.id, !c.active)}>
-                          <button type="submit" className="text-[17px] text-tinta-700 hover:underline">
-                            {c.active ? 'Desativar' : 'Reativar'}
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <h2 className="font-semibold">Códigos de adesão</h2>
+        <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+          Criar e desativar códigos passou para «Clientes e convites», ao lado do convite por email.
+        </p>
+        <Link href={`/app/organizacoes/${id}/clientes?ver=codigos`} className="btn-secondary mt-4 inline-flex">
+          Ver os códigos
+        </Link>
       </section>
 
       <section className={card}>
