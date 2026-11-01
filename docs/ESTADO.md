@@ -9,8 +9,11 @@ dentro da sua organização. A privacidade entre pessoa e empresa está no códi
 levantamentos nem as comissões pessoais dos vendedores. Duas migrações aditivas **por aplicar**
 (`20261101040000_referencia_do_levantamento`, `20261101050000_disponibilidade_e_alertas`), com os
 ficheiros do painel entregues. Cobertura ecrã a ecrã no documento do projeto
-«Reformulação do workspace do fornecedor — cobertura ecrã a ecrã». `npm test` 1370, typecheck, lint e
-build a zero.). Estado anterior, 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
+«Reformulação do workspace do fornecedor — cobertura ecrã a ecrã». Encomendas, Clientes e convites e a associação pendente também
+reformulados; o endereço antigo `/app/levantamentos` passa a encaminhar para o novo — era o que fazia a
+aplicação parecer inalterada. A regra dos 44px passou a falhar nos testes
+(`src/domain/alvosDeToque.ts`): a dívida só pode descer, e o percurso do fornecedor está a zero.
+`npm test` 1374, typecheck, lint e build a zero.). Estado anterior, 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
 as seis secções passaram a estar montadas a sério — tinham sido escritas no dia anterior e a página
 nunca chegou a usá-las, ficaram importadas e a desenhar tudo seguido; a galeria de fotografias com
 envio de várias imagens de uma vez, estado por ficheiro e «Tentar de novo» por ficheiro, sem barra de
