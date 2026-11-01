@@ -6,14 +6,21 @@ dizer em qual se está; os três ecrãs de referência construídos (Hoje–Aval
 Produtos e preços) e também Oportunidades, Comissões pessoais, Qualificação, Disponibilidade e alertas e
 Hoje–Vendas; os produtos passam a três separadores e a subscrição do fornecedor sai do catálogo para
 dentro da sua organização. A privacidade entre pessoa e empresa está no código: o responsável não vê os
-levantamentos nem as comissões pessoais dos vendedores. Duas migrações aditivas **por aplicar**
-(`20261101040000_referencia_do_levantamento`, `20261101050000_disponibilidade_e_alertas`), com os
-ficheiros do painel entregues. Cobertura ecrã a ecrã no documento do projeto
+levantamentos nem as comissões pessoais dos vendedores. As quatro migrações aditivas do trabalho
+(`referencia_do_levantamento`, `disponibilidade_e_alertas`, `indices_do_trabalho_da_pessoa`,
+`limites_de_desconto_do_vendedor`) **estão aplicadas** (confirmado na base a 01/11/2026). O vendedor
+passou a poder dar descontos até ao limite que o dono define (ecrã «Regras comerciais»), e «Hoje» já
+mostra a suspensão de presença que a pessoa marcou. **O que se vê em quempinta.pt continua a ser o
+código antigo**: este ramo só está publicado em pré-visualização
+(`paintit-git-claude-workspace-fornecedor-quempintapt-8835.vercel.app`); o ramo de produção é
+`claude/sweet-brahmagupta-xd1vp7` e o nosso está 14 commits à frente, sem divergência — a publicação é
+um avanço direto, e espera pela aprovação do promotor. Por fazer: compor Dados, Documentos e Equipa da
+Empresa (a página `organizacoes/[id]/page.tsx` é partilhada por quatro tipos de entidade). Cobertura ecrã a ecrã no documento do projeto
 «Reformulação do workspace do fornecedor — cobertura ecrã a ecrã». Encomendas, Clientes e convites e a associação pendente também
 reformulados; o endereço antigo `/app/levantamentos` passa a encaminhar para o novo — era o que fazia a
 aplicação parecer inalterada. A regra dos 44px passou a falhar nos testes
 (`src/domain/alvosDeToque.ts`): a dívida só pode descer, e o percurso do fornecedor está a zero.
-`npm test` 1374, typecheck, lint e build a zero.). Estado anterior, 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
+`npm test` 1468, typecheck, lint e build a zero.). Estado anterior, 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
 as seis secções passaram a estar montadas a sério — tinham sido escritas no dia anterior e a página
 nunca chegou a usá-las, ficaram importadas e a desenhar tudo seguido; a galeria de fotografias com
 envio de várias imagens de uma vez, estado por ficheiro e «Tentar de novo» por ficheiro, sem barra de

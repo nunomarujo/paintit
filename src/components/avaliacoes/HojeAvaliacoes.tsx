@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { contagemDoContacto, contagemDoPrazo, horaExata, quandoCurto } from '@/domain/contagem';
+import { contagemDoContacto, contagemDoPrazo, quandoCurto } from '@/domain/contagem';
+import { faltaParaVoltar, type Suspensao } from '@/domain/disponibilidade';
 import { formatEuros } from '@/domain/money';
 import { LinhaDeLevantamento, type LevantamentoNaLista } from './LinhaDeLevantamento';
 
@@ -23,7 +24,7 @@ export type EstadoDeHoje = {
   concluidos: LevantamentoNaLista[];
   oportunidades: number;
   comissoesDisponiveis: number;
-  suspenso?: { ate: string; diasRestantes: number } | null;
+  suspenso?: Suspensao | null;
 };
 
 const DIA = new Intl.DateTimeFormat('pt-PT', {
@@ -99,10 +100,10 @@ export function HojeAvaliacoes({
       {estado.suspenso ? (
         <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
           <p className="text-[17px] font-semibold text-amber-900">
-            Presença suspensa até {horaExata(new Date(estado.suspenso.ate)).split(',')[0]}
+            Presença suspensa até {estado.suspenso.ateEmPalavras}
           </p>
           <p className="mt-1 max-w-[54ch] text-[17px] text-amber-900">
-            Faltam {estado.suspenso.diasRestantes} dias. Durante este período não chegam oportunidades novas.
+            {faltaParaVoltar(estado.suspenso)}. Durante este período não chegam oportunidades novas.
           </p>
           <Link href="/app/avaliacoes/disponibilidade" className="btn-secondary mt-4 inline-flex">
             Rever a disponibilidade

@@ -2,6 +2,7 @@ import { SemEmpresa } from '@/components/vendas/SemEmpresa';
 import { pertencaDoFornecedor } from '@/lib/fornecedor';
 import { HojeAvaliacoes } from '@/components/avaliacoes/HojeAvaliacoes';
 import { getUser } from '@/lib/supabase/server';
+import { suspensaoEmCurso } from '@/domain/disponibilidade';
 import { osMeusLevantamentos } from './dados';
 
 /**
@@ -23,10 +24,12 @@ export default async function HojeAvaliacoesPage({
   // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
   if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
 
-  const [{ emCurso, concluidos }, { data: abertos }, { data: payouts }] = await Promise.all([
+  const [{ emCurso, concluidos }, { data: abertos }, { data: payouts }, { data: presenca }] = await Promise.all([
     osMeusLevantamentos(supabase, user!.id),
     supabase.from('request_surveys').select('id').eq('status', 'aberto'),
     supabase.from('survey_payouts').select('amount_cents, estado, redemption_id').eq('supplier_org_id', pertenca.orgId),
+    // A linha é da pessoa: só ela a lê (RLS), por isso não é preciso filtrar mais.
+    supabase.from('survey_availability').select('suspenso_ate').eq('user_id', user!.id).maybeSingle(),
   ]);
 
   // Oportunidades: só contam as que a pré-visualização deixa ver, que são as da zona coberta (regra 6).
@@ -41,9 +44,9 @@ export default async function HojeAvaliacoesPage({
     .reduce((n, p) => n + p.amount_cents, 0);
 
   const agora = new Date();
-  // A suspensão de presença («férias») vive em «Disponibilidade e alertas», ainda por construir: quando
-  // essa tabela existir, é aqui que a banda do topo passa a dizê-lo.
-  const suspenso = null;
+  // A suspensão de presença («férias») que a pessoa marcou em «Disponibilidade e alertas»: se está em
+  // curso, é ela que ocupa a banda do topo.
+  const suspenso = suspensaoEmCurso(agora, presenca?.suspenso_ate);
 
   return (
     <HojeAvaliacoes
