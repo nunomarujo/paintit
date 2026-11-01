@@ -17,6 +17,7 @@ vive neste repositório.
 - `docs/requisitos/` — Documento Mestre de Requisitos v0.3 (o `.txt` serve para pesquisar).
 - `docs/MODELO.md` — o modelo de contratação e dinheiro. Ler antes de mexer em `src/domain/engagement.ts`.
 - `docs/DECISOES.md` — decisões tomadas e em aberto, com data. Atualizar no mesmo commit que muda uma regra.
+- **`docs/EM_ABERTO.md` — a lista única do que está em aberto. Ler antes de responder a «o que falta?»; atualizar no fim de cada sessão.** O verificador é `scripts/ponto-de-situacao.sh`.
 - `docs/ROADMAP.md` — fases do produto e do negócio.
 - Documento de questões jurídicas (Claude Docs, fora do repositório): link em `docs/DECISOES.md`.
 
@@ -136,3 +137,10 @@ npm run build
     do que falta corrigir. Um ficheiro novo na lista, ou uma contagem que suba, reprova. O percurso do
     fornecedor está a zero e tem um teste próprio a mantê-lo assim.
 
+18. **«O que falta?» responde-se sobre o projeto, não sobre a sessão.** Em 01/11/2026 o promotor perguntou
+    duas vezes o que faltava e a resposta só falou do trabalho dessa sessão: um ramo com um commit por
+    publicar ficou de fora, e só apareceu quando ele perguntou por ele. Antes de responder a «o que falta»,
+    «o que está em aberto» ou «está tudo feito», corre-se `scripts/ponto-de-situacao.sh`, fazem-se as
+    verificações de `docs/EM_ABERTO.md` («Como se verifica») e lê-se a lista. Uma questão aberta que
+    ninguém identifique nunca chega à aplicação; este ficheiro existe para não depender de o promotor a
+    perguntar. Quem fecha ou abre uma questão atualiza-o no mesmo commit.
