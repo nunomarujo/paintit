@@ -1,7 +1,7 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 01/11/2026 (**reformulação do workspace do fornecedor, no ramo isolado
-`claude/workspace-fornecedor`, por publicar**: dois contextos — Vendas e Avaliações — com a navegação a
+Atualizado a 01/11/2026 (**reformulação do workspace do fornecedor, no ramo
+`claude/workspace-fornecedor`, já publicada**: dois contextos — Vendas e Avaliações — com a navegação a
 dizer em qual se está; os três ecrãs de referência construídos (Hoje–Avaliações, Os meus levantamentos,
 Produtos e preços) e também Oportunidades, Comissões pessoais, Qualificação, Disponibilidade e alertas e
 Hoje–Vendas; os produtos passam a três separadores e a subscrição do fornecedor sai do catálogo para
@@ -10,11 +10,7 @@ levantamentos nem as comissões pessoais dos vendedores. As quatro migrações a
 (`referencia_do_levantamento`, `disponibilidade_e_alertas`, `indices_do_trabalho_da_pessoa`,
 `limites_de_desconto_do_vendedor`) **estão aplicadas** (confirmado na base a 01/11/2026). O vendedor
 passou a poder dar descontos até ao limite que o dono define (ecrã «Regras comerciais»), e «Hoje» já
-mostra a suspensão de presença que a pessoa marcou. **O que se vê em quempinta.pt continua a ser o
-código antigo**: este ramo só está publicado em pré-visualização
-(`paintit-git-claude-workspace-fornecedor-quempintapt-8835.vercel.app`); o ramo de produção é
-`claude/sweet-brahmagupta-xd1vp7` e o nosso está 14 commits à frente, sem divergência — a publicação é
-um avanço direto, e espera pela aprovação do promotor. Por fazer: compor Dados, Documentos e Equipa da
+mostra a suspensão de presença que a pessoa marcou. **Publicado em quempinta.pt a 01/11/2026**, por avanço direto do ramo de produção (`claude/sweet-brahmagupta-xd1vp7`); "a partir de agora publica sempre" é decisão do promotor (`docs/DECISOES.md`). Por fazer: compor Dados, Documentos e Equipa da
 Empresa (a página `organizacoes/[id]/page.tsx` é partilhada por quatro tipos de entidade). Cobertura ecrã a ecrã no documento do projeto
 «Reformulação do workspace do fornecedor — cobertura ecrã a ecrã». Encomendas, Clientes e convites e a associação pendente também
 reformulados; o endereço antigo `/app/levantamentos` passa a encaminhar para o novo — era o que fazia a

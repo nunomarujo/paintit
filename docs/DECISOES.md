@@ -4276,4 +4276,19 @@ nada. Em Postgres, por omissão, dois valores vazios contam como diferentes — 
 tabela distinguem-se precisamente por terem colunas vazias. O dono podia gravar dois limites gerais
 contraditórios, e a função do teto falhava a meio de uma gravação. Resolvido com `nulls not distinct`.
 
-Migração `20261101070000_limites_de_desconto_do_vendedor`, **por aplicar**.
+Migração `20261101070000_limites_de_desconto_do_vendedor`, **aplicada** (01/11/2026).
+
+## 01/11/2026 — Publicar passa a ser a regra
+
+O promotor viu o domínio público igual a há dezenas de pedidos e a explicação era simples: o trabalho
+vivia num ramo à parte, em pré-visualização, porque a regra de processo dizia que só se publicava com
+aprovação separada. Decisão do promotor, em conversa: **«a partir de agora publica sempre»**. Fica
+revogada a regra anterior («nunca push nem publicação no domínio público sem aprovação separada»).
+
+Como se publica: depois de `tsc`, `lint`, `npm test` e `npm run build` a zero (regra 7), o ramo de
+trabalho avança o ramo de produção (`claude/sweet-brahmagupta-xd1vp7`) por avanço direto, sem forçar
+nada, e acompanha-se a publicação da Vercel até estar pronta. Um avanço que não seja direto (alguém
+mexeu no ramo de produção) pára e fala-se com o promotor. As migrações continuam a ir primeiro, pelo
+painel, e o código só sai depois de elas estarem aplicadas.
+
+Publicado a 01/11/2026: a reformulação do workspace do fornecedor (15 commits).
