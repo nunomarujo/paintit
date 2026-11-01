@@ -79,7 +79,7 @@ const passos = [
   {
     n: '2',
     t: 'Compare',
-    d: 'As propostas chegam todas ao mesmo tempo. Ver o que cada uma cobre e enviar as perguntas que faltam, sem se identificar.',
+    d: 'As propostas chegam todas ao mesmo tempo. Ver o que cada uma cobre e enviar as perguntas que faltam.',
     ecra: <PassoComparar />,
   },
   {
@@ -172,8 +172,7 @@ export default function Home() {
               className="block aspect-[4/3] w-full rounded-2xl object-cover"
             />
             <figcaption className="mt-3 text-[15px] text-slate-600">
-              A visita é feita por um profissional qualificado de um fornecedor da plataforma. Nunca sabe quem é o
-              cliente antes de aceitar.
+              A visita é feita por um profissional qualificado de um fornecedor da plataforma.
             </figcaption>
           </figure>
           <div className="lg:order-1">

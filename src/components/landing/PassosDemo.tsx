@@ -111,7 +111,7 @@ export function PassoComparar() {
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <BotaoFalso>Enviar as 2 perguntas</BotaoFalso>
-          <span className="text-[13px] text-slate-500">Vão a cada pintor, sem o identificar.</span>
+          <span className="text-[13px] text-slate-500">Vão a cada pintor pela plataforma.</span>
         </div>
       </div>
     </Janela>
