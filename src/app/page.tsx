@@ -122,8 +122,8 @@ export default function Home() {
           Empresas verificadas · contrato assinado com Chave Móvel Digital
         </p>
         <h1 className="mt-4 text-[34px] font-extrabold leading-[1.05] text-tinta-900 sm:text-5xl lg:text-6xl">
-          <span className="block">Peça orçamentos.</span>
-          <span className="block">Veja o que cada um cobre.</span>
+          <span className="block">Orçamentos de pintura, sem complicações.</span>
+          <span className="block">Compare as diferenças com clareza.</span>
         </h1>
         <p className="mt-4 max-w-md text-[17px] leading-snug text-slate-600 sm:text-[20px]">
           Propostas de empresas verificadas, lado a lado, sem custo até escolher. E um contrato que diz exatamente o que
