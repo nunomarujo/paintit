@@ -8,7 +8,6 @@ import { Faq } from '@/components/landing/Faq';
 import { PaintedHero } from '@/components/landing/PaintedHero';
 import { PassoAssinar, PassoComparar, PassoDescrever } from '@/components/landing/PassosDemo';
 import { SiteHeader } from '@/components/landing/SiteHeader';
-import { SurveyDemo } from '@/components/landing/SurveyDemo';
 import { BRAND } from '@/config/brand';
 import { formatEuros } from '@/domain/money';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -32,7 +31,7 @@ const pct = (bp: number) => `${(bp / 100).toLocaleString('pt-PT')}%`;
  *    (`PassosDemo`), não caixas de texto — é o que a referência (usenorte.com) faz bem.
  *
  * O que se mantém da v4: o hero com o prédio a pintar-se, o `ComparadorDemo` com os seus seis
- * estados gerados em build, o `SurveyDemo`, a FAQ e os valores da caução lidos de `CURRENT_RULES`
+ * estados gerados em build, a FAQ e os valores da caução lidos de `CURRENT_RULES`
  * (nunca escritos à mão; nunca a comissão do pintor — regra 15 do CLAUDE.md).
  */
 
@@ -158,8 +157,61 @@ export default function Home() {
         </ol>
       </section>
 
+      {/* LEVANTAMENTO GRATUITO — responde ao pedido vago, que é o que torna as propostas incomparáveis.
+          A foto é o único sítio da página com uma imagem real (decisão do promotor, 01/11/2026): o
+          contexto bate a 100% — um avaliador a tomar notas em frente ao prédio, com o cliente a apontar. */}
+      <section id="levantamento" className="border-t border-slate-200 bg-paper py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2 lg:gap-16">
+          <figure className="m-0 lg:order-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/img/levantamento.webp"
+              width={1600}
+              height={873}
+              alt="Avaliador a tomar notas em frente a um prédio, com o cliente a apontar para a fachada"
+              className="block aspect-[4/3] w-full rounded-2xl object-cover"
+            />
+            <figcaption className="mt-3 text-[15px] text-slate-600">
+              A visita é feita por um profissional qualificado de um fornecedor da plataforma. Nunca sabe quem é o
+              cliente antes de aceitar.
+            </figcaption>
+          </figure>
+          <div className="lg:order-1">
+            <p className="eyebrow">Levantamento gratuito</p>
+            <h2 className="mt-3 text-[34px] leading-tight font-extrabold text-tinta-900">
+              Não sabe medir? Um avaliador vai ao local sem custo.
+            </h2>
+            <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+              Um profissional mede as zonas e fotografa o estado da fachada. As medidas ficam no pedido; os pintores
+              orçamentam sem terem de ir lá. Pode pedir, desistir e retomar quando quiser.
+            </p>
+            <ol className="mt-7 flex flex-col gap-4">
+              {[
+                ['Pedir a visita ao criar o pedido', 'A opção está ativa por omissão. Não é preciso preencher medidas enquanto se aguarda.'],
+                ['Um avaliador reserva e combina dia e hora', 'Por ordem de chegada, quando há um avaliador qualificado disponível na zona.'],
+                ['O levantamento entra no pedido', 'Medidas e fotografias do estado ficam anexadas; os orçamentos chegam sobre elas.'],
+              ].map(([t, d], i) => (
+                <li key={t} className="flex gap-4">
+                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-tinta-100 text-[15px] font-extrabold text-tinta-600">
+                    {i + 1}
+                  </span>
+                  <span>
+                    <span className="block text-[17px] font-bold text-tinta-900">{t}</span>
+                    <span className="block text-[15px] text-slate-600">{d}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 text-[15px] text-slate-600">
+              A visita depende de haver um avaliador ativo na zona. Continua sempre a poder medir a obra sozinho, a
+              qualquer momento.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* TRÊS PROTEÇÕES — em positivo (pedido do promotor, 01/11/2026). */}
-      <section id="transparencia" className="border-t border-slate-200 bg-paper py-20">
+      <section id="transparencia" className="py-20">
         <div className="mx-auto max-w-6xl px-4">
           <p className="eyebrow">Porquê pedir aqui</p>
           <h2 className="mt-3 max-w-3xl text-[34px] leading-tight font-extrabold text-tinta-900">
@@ -192,20 +244,6 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </section>
-
-      {/* LEVANTAMENTO GRATUITO — responde ao pedido vago, que é o que torna as propostas incomparáveis. */}
-      <section id="levantamento" className="mx-auto max-w-6xl px-4 py-20">
-        <p className="eyebrow">Levantamento gratuito</p>
-        <h2 className="mt-3 max-w-2xl text-[34px] leading-tight font-extrabold text-tinta-900">
-          Não sabe medir? Um avaliador vai ao local sem custo.
-        </h2>
-        <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-600">
-          Quando há um avaliador disponível na zona, um profissional qualificado mede as zonas e fotografa o estado da
-          fachada. As medidas ficam no pedido; os pintores orçamentam sem terem de ir lá. Pode pedir, desistir e
-          retomar quando quiser.
-        </p>
-        <SurveyDemo />
       </section>
 
       {/* COMPARADOR — seis estados reais, gerados em build (scripts/gerar-demo-comparador.mjs). */}
