@@ -26,7 +26,7 @@ export function MiniForm({
   hidden?: Record<string, string>;
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(action, { errors: {} }, { resetOnSuccess: true });
-  const input = 'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2';
+  const input = 'campo mt-1';
   const msg = Object.values(state.errors)[0] ?? state.message;
   return (
     <form {...formProps} className="space-y-3 text-[17px]">
@@ -58,7 +58,7 @@ export function MiniForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50 disabled:opacity-60"
+        className="btn-secondary disabled:opacity-60"
       >
         {submit}
       </button>

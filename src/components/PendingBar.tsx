@@ -35,6 +35,9 @@ export function PendingBar<P extends Pendencia>({
   const atual = pendings[n]!;
   const andar = (d: number) => setI((x) => (x + d + total) % total);
 
+  // A banda é o alarme; o botão é a ação, e a ação é verde-petróleo. Era âmbar escuro sobre âmbar
+  // claro: a cor de aviso a servir também de cor de ação apaga a diferença entre as duas (regra 13,
+  // 01/11/2026).
   return (
     <div className="border-b border-amber-200 bg-amber-50 text-[17px] text-amber-800">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
@@ -66,7 +69,7 @@ export function PendingBar<P extends Pendencia>({
           >
             ›
           </button>
-          <button type="button" onClick={() => void onIr(atual)} className="ml-1 inline-flex min-h-[44px] items-center rounded-lg bg-amber-800 px-3.5 font-semibold text-amber-50">
+          <button type="button" onClick={() => void onIr(atual)} className="btn-primary btn-sm ml-1">
             Ir para
           </button>
           <button

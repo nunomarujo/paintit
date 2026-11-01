@@ -189,7 +189,7 @@ export default async function OrganizationPage({
                 href={`/app/organizacoes/${org.id}/editar`}
                 aria-label={`Configurar os dados de ${org.nome}`}
                 title="Configurar os dados desta entidade"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50"
+                className="btn-secondary"
               >
                 <GearIcon />
                 <span className={org.kind === 'administradora' ? 'sr-only sm:not-sr-only' : ''}>Configurar</span>
@@ -236,7 +236,7 @@ export default async function OrganizationPage({
                 {manager && (
                   <Link
                     href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/editar`}
-                    className="inline-flex items-center gap-2 rounded-lg border border-tinta-600 px-3 py-1.5 text-[17px] font-semibold text-tinta-700 hover:bg-tinta-50"
+                    className="btn-secondary"
                   >
                     <GearIcon />
                     Configurar prédio
@@ -596,7 +596,7 @@ export default async function OrganizationPage({
                               href={`/app/organizacoes/${org.id}?predio=${b.id}`}
                               scroll={false}
                               aria-current={marcado ? 'true' : undefined}
-                              className={`rounded-lg border px-3 py-1.5 text-[15px] font-semibold ${
+                              className={`inline-flex min-h-[44px] items-center rounded-lg border px-3 py-1.5 text-[15px] font-semibold ${
                                 marcado ? 'border-tinta-600 bg-tinta-600 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
                               }`}
                             >

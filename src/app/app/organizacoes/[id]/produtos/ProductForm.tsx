@@ -109,7 +109,7 @@ export function ProductForm({ orgId, references = [] }: { orgId: string; referen
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
+        className="btn-primary disabled:opacity-60"
       >
         {pending ? 'A guardar…' : 'Acrescentar'}
       </button>

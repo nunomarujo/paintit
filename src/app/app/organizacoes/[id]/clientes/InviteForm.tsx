@@ -36,7 +36,7 @@ export function InviteForm({ orgId }: { orgId: string }) {
           maxLength={14}
           autoComplete="off"
           placeholder="Deixe em branco para gerar um ao acaso"
-          className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-wider"
+          className="campo mt-1 w-48 font-mono uppercase tracking-wider"
         />
         <span className="mt-1 block text-slate-500">Um código seu, memorável (ex.: nome da empresa), em vez de um gerado ao acaso.</span>
         {e.codigo && <span className="mt-1 block text-red-700">{e.codigo}</span>}
@@ -44,7 +44,7 @@ export function InviteForm({ orgId }: { orgId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60 sm:col-span-2 sm:w-fit"
+        className="btn-primary disabled:opacity-60 sm:col-span-2 sm:w-fit"
       >
         {pending ? 'A enviar…' : 'Enviar convite'}
       </button>

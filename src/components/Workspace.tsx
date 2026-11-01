@@ -82,7 +82,7 @@ export function Workspace({
         {documentoHref && (
           <Link
             href={documentoHref}
-            className="inline-flex items-center gap-2 rounded-lg border border-tinta-200 bg-tinta-50 px-3 py-2 text-[17px] font-semibold text-tinta-700 hover:bg-tinta-100"
+            className="btn-secondary"
           >
             <ICONES.folha className="h-[18px] w-[18px] shrink-0" /> Ver PDF
           </Link>
