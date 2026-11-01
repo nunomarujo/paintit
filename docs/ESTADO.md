@@ -1,6 +1,16 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
+Atualizado a 01/11/2026 (**reformulação do workspace do fornecedor, no ramo isolado
+`claude/workspace-fornecedor`, por publicar**: dois contextos — Vendas e Avaliações — com a navegação a
+dizer em qual se está; os três ecrãs de referência construídos (Hoje–Avaliações, Os meus levantamentos,
+Produtos e preços) e também Oportunidades, Comissões pessoais, Qualificação, Disponibilidade e alertas e
+Hoje–Vendas; os produtos passam a três separadores e a subscrição do fornecedor sai do catálogo para
+dentro da sua organização. A privacidade entre pessoa e empresa está no código: o responsável não vê os
+levantamentos nem as comissões pessoais dos vendedores. Duas migrações aditivas **por aplicar**
+(`20261101040000_referencia_do_levantamento`, `20261101050000_disponibilidade_e_alertas`), com os
+ficheiros do painel entregues. Cobertura ecrã a ecrã no documento do projeto
+«Reformulação do workspace do fornecedor — cobertura ecrã a ecrã». `npm test` 1370, typecheck, lint e
+build a zero.). Estado anterior, 30/10/2026, de madrugada (**a preparação do pedido ficou feita, nos cinco passos pedidos**:
 as seis secções passaram a estar montadas a sério — tinham sido escritas no dia anterior e a página
 nunca chegou a usá-las, ficaram importadas e a desenhar tudo seguido; a galeria de fotografias com
 envio de várias imagens de uma vez, estado por ficheiro e «Tentar de novo» por ficheiro, sem barra de

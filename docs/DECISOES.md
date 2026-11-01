@@ -4199,3 +4199,46 @@ recusada pela mesma razão. Sem ela, um `supabase db push` tenta aplicar a migra
 
 **Os tipos da base acrescentaram-se à mão**, como a nota no topo de `src/lib/database.types.ts`
 manda: a regeneração completa traz hoje 87 erros de tipos em 19 ficheiros, e é dívida à parte.
+
+---
+
+## 01/11/2026 — Reformulação do workspace do fornecedor
+
+O promotor fixou a direção, e dispensa alternativas: verde-petróleo para ação e estado ativo,
+superfícies brancas, creme discreto só na navegação, laranja como acento pontual. Os valores estão
+centralizados em `src/app/globals.css`, com a direção escrita por cima dos tokens.
+
+**Dois contextos, Vendas e Avaliações**, com a navegação a dizer sempre em qual se está
+(`src/domain/workspaceFornecedor.ts`, função pura e testada).
+
+**Privacidade entre pessoa e empresa.** O responsável não vê os levantamentos nem as comissões
+pessoais dos vendedores. Não é uma intenção: as consultas filtram por `vendedor_user_id` e nunca por
+`vendedor_org_id`, e a tabela `survey_availability` tem políticas que só deixam cada pessoa ler e
+alterar a sua linha — com cinco testes de acesso a prová-lo.
+
+**O prazo que a lista mostra é o da obrigação em curso**, decidido num sítio só
+(`src/domain/levantamentoNaLista.ts`). Antes mostrava sempre as 48 horas da conclusão, mesmo a quem
+ainda não tinha telefonado e tinha uma hora útil a correr — era o prazo errado no ecrã onde mais se
+olha.
+
+**A referência do levantamento é um número de sequência** (`QP-1042`,
+`src/domain/referencias.ts`, migração `20261101040000`), porque um uuid não se diz ao telefone.
+
+**A subscrição do fornecedor saiu do catálogo para dentro da sua organização.** A navegação apontava
+para `/app/subscricao`, que é o plano de uma empresa *de pintura*: era o ecrã errado para um
+fornecedor.
+
+**Quem aceita um levantamento é a pessoa, não a empresa.** O botão de aceitar passa a aparecer a
+qualquer vendedor. A base sempre o permitiu (`reserve_survey` aceita `vendedor`), mas o ecrã antigo
+só o mostrava a proprietários e gestores — um avaliador entrava e não via maneira nenhuma de aceitar
+trabalho.
+
+**Conflito com a regra 17 do CLAUDE.md, resolvido sem alterar a regra.** Numa linha de lista, um
+botão dentro de um link é HTML inválido e são dois alvos a disputar o mesmo toque. A linha inteira
+passou a ser um só destino, com a etiqueta da ação à direita desenhada com aspeto de botão sem o
+ser: a área de toque é a linha toda.
+
+Migrações `20261101040000_referencia_do_levantamento` e `20261101050000_disponibilidade_e_alertas`
+**por aplicar** — são aditivas e só fazem falta quando o ramo `claude/workspace-fornecedor` for
+publicado. Os ficheiros para o painel foram entregues ao promotor, verificados do modo habitual:
+constroem a base igual ao repositório e podem correr duas vezes.
