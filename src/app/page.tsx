@@ -290,8 +290,8 @@ export default function Home() {
               {
                 href: '/fornecedores',
                 titulo: 'Fornecedor de tintas?',
-                frase: 'O seu produto, onde a decisão é tomada.',
-                texto: 'Catálogo sugerido nas propostas dos pintores, descontos automáticos por perfil de cliente, e levantamentos no terreno para a sua equipa comercial.',
+                frase: 'Venda mais. E venda acertado.',
+                texto: 'Chegue ao pintor antes de a obra estar decidida, recomende o produto certo para aquela fachada, e seja reconhecido por isso. Sem custo para o vendedor.',
                 cta: 'Ver como funciona para fornecedores',
                 img: '/img/popup-demo-fornecedor.webp',
                 alt: 'Catálogo de produtos de um fornecedor, com fichas técnicas e descontos',
