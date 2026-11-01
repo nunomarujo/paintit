@@ -5,6 +5,10 @@ import { useEffect, useRef, type ReactNode } from 'react';
 // Prédio em desenho de linha que é colorido por uma "queda de tinta" ao descer a página.
 // Duas imagens do mesmo enquadramento (a de linha foi extraída da colorida, por isso coincidem ao pixel):
 // a cor é revelada por uma máscara que desce com o scroll, com gotas à frente.
+//
+// Desde 01/11/2026 deixou de ser o primeiro ecrã (esse é o `HeroFotografico`) e passou a secção
+// própria, logo a seguir ao comparador. As imagens são a versão nova do prédio, com fundo
+// transparente (`predio2-*.webp`), para poder viver sobre qualquer cor.
 
 const W = 928;
 const H = 1152;
@@ -64,7 +68,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <section ref={wrap} className="relative h-[125vh] lg:h-[150vh]">
+    <section ref={wrap} id="predio" className="relative h-[125vh] lg:h-[160vh]">
       {/*
         No telemóvel o prédio vai ao cimo e o que há para ler fica por baixo dele (pedido do promotor,
         27/10/2026). Antes, o bloco colado ao ecrã centrava texto e imagem num espaço de um ecrã só: o
@@ -74,7 +78,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
         `svh` e não `vh`: no telemóvel, `vh` conta com a barra de endereço retraída, e o último terço
         do primeiro ecrã ficava escondido por baixo dela.
       */}
-      <div className="sticky top-[var(--altura-cabecalho)] mx-auto grid h-[calc(100svh-var(--altura-cabecalho))] max-w-6xl grid-rows-[auto_auto] content-start gap-5 px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:grid-rows-none lg:content-center lg:items-center lg:gap-6">
+      <div className="sticky top-0 mx-auto grid h-[100svh] max-w-6xl grid-rows-[auto_auto] content-start gap-5 px-4 pt-[var(--altura-cabecalho)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-none lg:content-center lg:items-center lg:gap-10">
         {/* `self-start` e não `self-center`: o texto está na linha flexível da grelha, e centrado
             deixava uma faixa vazia de ~100px entre o prédio e o título — espaço que o promotor queria
             a ler, não em branco (medido a 390×844, 27/10/2026). Agora o texto encosta ao prédio e a
@@ -82,7 +86,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
         <div className="order-last flex min-w-0 flex-col items-start self-start pb-2 lg:order-none lg:self-auto lg:pb-0">{children}</div>
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="order-first mx-auto min-w-0 max-h-[30svh] w-full lg:order-none lg:max-h-[80vh]"
+          className="order-first mx-auto min-w-0 max-h-[36svh] w-full lg:order-none lg:max-h-[84vh]"
           role="img"
           aria-label="Prédio que se colore com a descida da página"
         >
@@ -105,8 +109,8 @@ export function PaintedHero({ children }: { children: ReactNode }) {
               ))}
             </mask>
           </defs>
-          <image href="/img/predio-linha.webp" width={W} height={H} />
-          <image href="/img/predio-cor.webp" width={W} height={H} mask="url(#queda-de-tinta)" />
+          <image href="/img/predio2-linha.webp" width={W} height={H} />
+          <image href="/img/predio2-cor.webp" width={W} height={H} mask="url(#queda-de-tinta)" />
         </svg>
       </div>
     </section>

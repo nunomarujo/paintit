@@ -290,7 +290,8 @@ input[type='radio'] {
    * lembrado 99 vezes.
    */
   .btn-base {
-    @apply inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-[17px] font-semibold transition-colors disabled:opacity-45;
+    /* Pílula desde 01/11/2026 (estilo aprovado pelo promotor); o padding lateral sobe com o raio. */
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-full px-5 text-[17px] font-semibold transition-colors disabled:opacity-45;
   }
   .btn-primary {
     @apply btn-base bg-tinta-600 text-white hover:bg-tinta-700;
@@ -304,11 +305,11 @@ input[type='radio'] {
   }
   /** Compacto: dentro de linhas de lista e barras de ferramentas. Mantém os 44px de altura. */
   .btn-sm {
-    @apply px-3 text-[15px];
+    @apply px-4 text-[15px];
   }
   /** Acção principal de um ecrã ou de um primeiro passo. */
   .btn-lg {
-    @apply min-h-[52px] px-6;
+    @apply min-h-[52px] px-7;
   }
   /*
    * Campo de formulário. A mesma combinação — contorno cinzento, canto, `px-3 py-2` — estava

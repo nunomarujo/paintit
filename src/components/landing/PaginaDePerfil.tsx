@@ -67,29 +67,29 @@ export function PaginaDePerfil({
 
       {/* Primeiro ecrã: o título à esquerda e uma fotografia que ocupa a metade direita até à margem da janela — uma coisa a dominar, não duas. */}
       <section className="bg-paper pt-[72px]">
-        <div className="grid items-stretch gap-10 lg:grid-cols-2 lg:gap-0">
-          <div className="mx-auto w-full max-w-6xl px-4 pt-10 lg:mx-0 lg:max-w-none lg:py-20 lg:pl-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:pr-12">
-            <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.03em] text-tinta-900 sm:text-[44px] xl:text-[52px]">{titulo}</h1>
-            <p className="mt-4 max-w-[54ch] text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
+        <div className="grid items-stretch gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-0">
+          <div className="mx-auto w-full max-w-6xl px-4 pt-10 lg:mx-0 lg:max-w-none lg:py-20 lg:pl-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:pr-8">
+            <h1 className="text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[44px] xl:text-[48px]">{titulo}</h1>
+            <p className="mt-5 max-w-[48ch] text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <Link href={ctaHref} className="btn-primary btn-lg">
+              <Link href={ctaHref} className="btn-primary btn-lg whitespace-nowrap">
                 {ctaTexto}
               </Link>
               <span className="text-[15px] text-slate-600">{ctaNota}</span>
             </div>
           </div>
           <div className="px-4 pb-10 lg:p-0">
-            <Fotografia f={foto} className="aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[600px] lg:rounded-none" />
+            <Fotografia f={foto} className="aspect-[4/3] !rounded-[28px] lg:aspect-auto lg:h-full lg:min-h-[600px] lg:!rounded-none" />
           </div>
         </div>
       </section>
 
       <Revelar as="section" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
         <div>
-          <h2 className="text-[26px] font-extrabold leading-tight text-tinta-900 sm:text-[34px]">{destaquesTitulo}</h2>
+          <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">{destaquesTitulo}</h2>
           <ul className="mt-6 flex flex-col gap-5">
           {destaques.map((d) => (
-            <li key={d} className="flex items-start gap-4 text-[20px] font-semibold leading-snug text-tinta-900">
+            <li key={d} className="flex items-start gap-4 text-[20px] font-medium leading-snug text-tinta-900">
               <svg className="mt-1.5 flex-none text-tinta-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
@@ -99,7 +99,7 @@ export function PaginaDePerfil({
           </ul>
         </div>
         <figure className="m-0">
-          <div className="overflow-hidden rounded-2xl bg-paper p-3">
+          <div className="overflow-hidden rounded-[28px] bg-paper p-3 sm:p-5">
             {/* Captura gerada dos componentes reais; ficheiro estático, sem optimizador (mesma razão do Logotipo). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={demo.src} width={demo.width} height={demo.height} alt={demo.alt} className="block h-auto w-full rounded-lg" />
@@ -113,7 +113,7 @@ export function PaginaDePerfil({
       <Revelar as="section" className="bg-paper py-20">
         <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-16">
           <div>
-            <h2 className="text-[26px] font-extrabold leading-tight text-tinta-900 sm:text-[34px]">Tudo o que inclui</h2>
+            <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">Tudo o que inclui</h2>
             <ul className="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
               {beneficios.map((b) => (
                 <li key={b} className="flex items-start gap-3 text-[17px] text-slate-700">
@@ -122,21 +122,21 @@ export function PaginaDePerfil({
                 </li>
               ))}
             </ul>
-            <p className="mt-10 max-w-[54ch] border-l-4 border-tinta-600 pl-5 text-[17px] leading-relaxed text-slate-700">{nota}</p>
+            <p className="mt-10 max-w-[54ch] rounded-2xl bg-white p-5 text-[17px] leading-relaxed text-slate-700">{nota}</p>
           </div>
-          <Fotografia f={fotoInclui} className="aspect-[4/5] lg:sticky lg:top-24" />
+          <Fotografia f={fotoInclui} className="aspect-[4/5] !rounded-[28px] lg:sticky lg:top-24" />
         </div>
       </Revelar>
 
       <Revelar as="section" className="mx-auto max-w-6xl px-4 py-16">
-        <div className="rounded-2xl bg-tinta-900 px-7 py-14 text-center text-white">
-          <h2 className="mx-auto max-w-2xl text-[26px] font-extrabold leading-tight sm:text-[34px]">{ctaTexto}.</h2>
+        <div className="rounded-[28px] bg-tinta-900 px-7 py-14 text-center text-white">
+          <h2 className="mx-auto max-w-2xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">{ctaTexto}.</h2>
           <p className="mt-3 text-[17px] text-tinta-200">{ctaNota}</p>
           <div className="mt-7 flex flex-col items-center gap-5">
-            <Link href={ctaHref} className="btn-primary btn-lg">
+            <Link href={ctaHref} className="btn-primary btn-lg whitespace-nowrap">
               {ctaTexto}
             </Link>
-            <Link href="/" className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-lima underline-offset-4 hover:underline">
+            <Link href="/" className="btn-secondary border-white/40 bg-transparent text-white hover:bg-white/10">
               Sou cliente — pedir orçamentos
             </Link>
           </div>

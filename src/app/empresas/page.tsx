@@ -50,27 +50,15 @@ export default function Page() {
       ctaHref={toOrg('pintor')}
       ctaTexto={c.ctaTexto}
       ctaNota={c.ctaNota}
-      foto={{ src: '/img/rolo-na-parede.webp', width: 1400, height: 939, alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar' }}
+      foto={{ src: '/img/carrinha-equipa.webp', width: 1376, height: 768, alt: 'Equipa de pintura a carregar a carrinha com escadas e baldes ao amanhecer, em frente a um prédio' }}
       destaquesTitulo="O que muda para a empresa de pintura"
-      fotoInclui={{ src: '/img/levantamento.webp', width: 1600, height: 873, alt: 'Avaliador a tomar notas em frente a um prédio, com o cliente a apontar para a fachada' }}
-      credito={
-        <>
-          Fotografias: rolo na parede, Michael Cory,{' '}
-          <a href="https://commons.wikimedia.org/wiki/File:Paint_roller_4.jpg" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
-            CC BY 2.0
-          </a>
-          ; fachadas do Porto, Dale Cruse,{' '}
-          <a href="https://creativecommons.org/licenses/by/4.0/" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
-            CC BY 4.0
-          </a>
-          ; via Wikimedia Commons.
-        </>
-      }
+      fotoInclui={{ src: '/img/obra-andaime.webp', width: 1376, height: 768, alt: 'Pintor num andaime a passar o rolo numa fachada, ao fim da tarde' }}
     >
       {/* O MOTOR DE ORÇAMENTOS — a razão número um para o pintor entrar (promotor, 01/11/2026). */}
-      <Revelar as="section" className="bg-tinta-900 py-20 text-white">
-        <div className="mx-auto max-w-6xl px-4">
-          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold sm:text-[34px]">
+      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-10">
+        <div className="rounded-[28px] bg-tinta-900 px-6 py-14 text-white sm:px-12 sm:py-20">
+        <div>
+          <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
             Horas por orçamento passam a minutos.
           </h2>
           <p className="mt-3 max-w-[54ch] text-[17px] leading-relaxed text-tinta-200">
@@ -80,9 +68,9 @@ export default function Page() {
           <ol className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-3">
             {tempos.map((x) => (
               <li key={x.n} className="flex flex-col gap-2 border-l-4 border-lima pl-5">
-                <span className="text-[34px] font-extrabold leading-none text-lima tabular-nums">{x.t}</span>
+                <span className="text-[34px] font-medium leading-none tracking-[-0.03em] text-lima tabular-nums">{x.t}</span>
                 <span className="text-[17px] font-semibold">{x.n}</span>
-                <span className="text-[15px] leading-relaxed text-tinta-200">{x.d}</span>
+                <span className="text-[17px] leading-relaxed text-tinta-200">{x.d}</span>
               </li>
             ))}
           </ol>
@@ -90,12 +78,13 @@ export default function Page() {
             Tempos habituais numa obra de fachada com cerca de dez trabalhos. Sem custo: orçamentar nunca se paga.
           </p>
         </div>
+        </div>
       </Revelar>
 
       {/* AS FERRAMENTAS DA OBRA */}
       <Revelar as="section" className="mx-auto grid max-w-6xl items-start gap-10 px-4 py-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
         <div className="lg:sticky lg:top-24">
-          <h2 className="text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+          <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             As ferramentas da obra, incluídas.
           </h2>
           <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
@@ -104,10 +93,10 @@ export default function Page() {
           {/* Fotografia: fachadas da Ribeira, Porto (crédito no rodapé). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/img/fachadas-porto.webp"
-            width={1600}
-            height={699}
-            alt="Fachadas coloridas de prédios antigos no Porto"
+            src="/img/orcamento-noite.webp"
+            width={1376}
+            height={768}
+            alt="Pintor à mesa da cozinha, à noite, a preencher um orçamento no portátil"
             loading="lazy"
             decoding="async"
             className="mt-8 hidden h-auto w-full rounded-2xl object-cover lg:block"
@@ -115,7 +104,7 @@ export default function Page() {
         </div>
         <ul className="grid gap-4 sm:grid-cols-2">
           {ferramentas.map((f) => (
-            <li key={f.t} className="flex flex-col gap-1.5 rounded-2xl bg-paper p-5">
+            <li key={f.t} className="flex flex-col gap-1.5 rounded-[24px] bg-paper p-6">
               <span className="text-[17px] font-bold text-tinta-900">{f.t}</span>
               <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
             </li>

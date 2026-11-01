@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from '@/components/BrandMark';
+import { Logotipo } from '@/components/Logotipo';
 
 const START = '/entrar?seguinte=%2Fapp%2Fcomecar';
 
@@ -21,8 +22,15 @@ const NAV_LINKS: { href: string; label: string }[] = [
  * em tablet o menu já está escondido mas "Entrar" continua à vista, fora do hambúrguer — só
  * desaparece do cabeçalho abaixo dos 640px, onde já está um toque dentro do menu móvel.
  */
-export function SiteHeader() {
+/**
+ * `sobreFoto`: a página abre com uma fotografia a toda a largura por baixo do cabeçalho (estilo
+ * aprovado a 01/11/2026). Enquanto não há scroll o cabeçalho é transparente com texto branco e o
+ * logótipo em versão escura; ao descer passa à barra branca de sempre. Sem o espaçador de altura,
+ * porque a fotografia começa no topo da janela.
+ */
+export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) {
   const [scrolled, setScrolled] = useState(false);
+  const claro = sobreFoto && !scrolled;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -89,7 +97,7 @@ export function SiteHeader() {
       <header
         className={
           'fixed inset-x-0 top-0 z-50 flex h-[var(--altura-cabecalho)] items-center transition-[top] duration-250 ' +
-          (scrolled ? 'top-3' : 'top-0')
+          (scrolled ? 'sm:top-3' : 'top-0')
         }
       >
         <div
@@ -101,17 +109,17 @@ export function SiteHeader() {
           }
         >
           <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center pl-2">
-            <BrandMark size="sm" />
+            {claro ? <Logotipo tamanho="sm" escuro /> : <BrandMark size="sm" />}
           </Link>
 
-          <nav aria-label="Principal" className="hidden items-center gap-7 text-[15px] font-semibold text-slate-700 min-[900px]:flex">
+          <nav aria-label="Principal" className={`hidden items-center gap-7 text-[15px] font-semibold min-[900px]:flex ${claro ? 'text-white/85' : 'text-slate-700'}`}>
             {NAV_LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
                 className={
                   'inline-flex min-h-[44px] items-center border-b-2 border-transparent ' +
-                  (active === l.href.slice(1) ? 'border-tinta-600 text-tinta-900' : 'hover:text-tinta-700')
+                  (claro ? 'hover:text-white' : active === l.href.slice(1) ? 'border-tinta-600 text-tinta-900' : 'hover:text-tinta-700')
                 }
               >
                 {l.label}
@@ -122,7 +130,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-4">
             <Link
               href="/entrar"
-              className="hidden min-h-[44px] items-center font-semibold text-tinta-700 underline-offset-4 hover:underline sm:inline-flex"
+              className={`btn-secondary hidden sm:inline-flex ${claro ? 'border-white/60 bg-transparent text-white hover:bg-white/10' : ''}`}
             >
               Entrar
             </Link>
@@ -136,7 +144,7 @@ export function SiteHeader() {
               aria-controls="menu-movel"
               aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
               onClick={() => setMobileOpen((o) => !o)}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-tinta-900 hover:bg-slate-100 min-[900px]:hidden"
+              className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg min-[900px]:hidden ${claro ? 'text-white hover:bg-white/10' : 'text-tinta-900 hover:bg-slate-100'}`}
             >
               <svg aria-hidden viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
                 {mobileOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
@@ -145,7 +153,7 @@ export function SiteHeader() {
           </div>
         </div>
       </header>
-      <div className="h-[var(--altura-cabecalho)]" aria-hidden />
+      {!sobreFoto && <div className="h-[var(--altura-cabecalho)]" aria-hidden />}
 
       {mobileOpen && (
         <div

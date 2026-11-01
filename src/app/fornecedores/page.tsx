@@ -72,35 +72,22 @@ export default function Page() {
       ctaHref={toOrg('fornecedor')}
       ctaTexto={c.ctaTexto}
       ctaNota={c.ctaNota}
-      foto={{ src: '/img/balde-e-trincha.webp', width: 1400, height: 1050, alt: 'Trincha pousada sobre um balde de tinta branca aberto, em obra' }}
+      foto={{ src: '/img/balcao-loja.webp', width: 1376, height: 768, alt: 'Vendedor ao balcão de uma loja de tintas a mostrar uma ficha técnica a um pintor' }}
       destaquesTitulo="O que muda para o fornecedor de tintas"
-      fotoInclui={{ src: '/img/fachadas-porto.webp', width: 1600, height: 699, alt: 'Fachadas coloridas de prédios antigos no Porto' }}
-      credito={
-        <>
-          Fotografias: balde e trincha, Ionenlaser,{' '}
-          <a href="https://commons.wikimedia.org/wiki/File:Paint_bucket_and_brush.jpg" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
-            CC0
-          </a>
-          ; fachadas do Porto, Dale Cruse,{' '}
-          <a href="https://creativecommons.org/licenses/by/4.0/" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
-            CC BY 4.0
-          </a>
-          ; via Wikimedia Commons.
-        </>
-      }
+      fotoInclui={{ src: '/img/maquina-de-tinta.webp', width: 1376, height: 768, alt: 'Máquina de afinação a deitar corante azul num balde de tinta branca' }}
     >
       {/* OS TRÊS MOMENTOS — antes, durante e depois da obra. Sequência real: a numeração fica. */}
-      <Revelar as="section" className="bg-tinta-900 py-20 text-white">
-        <div className="mx-auto max-w-6xl px-4">
-          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold sm:text-[34px]">
+      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-10">
+        <div className="rounded-[28px] bg-tinta-900 px-6 py-14 text-white sm:px-12 sm:py-20">
+          <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
             O vendedor chega antes da lista de compras.
           </h2>
           <ol className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-3">
             {momentos.map((m) => (
               <li key={m.n} className="flex flex-col gap-2 border-l-4 border-lima pl-5">
-                <span className="text-[34px] font-extrabold leading-none text-lima tabular-nums">{m.n}</span>
+                <span className="text-[34px] font-medium leading-none text-lima tabular-nums">{m.n}</span>
                 <span className="text-[20px] font-bold leading-tight">{m.t}</span>
-                <span className="text-[15px] leading-relaxed text-tinta-200">{m.d}</span>
+                <span className="text-[17px] leading-relaxed text-tinta-200">{m.d}</span>
               </li>
             ))}
           </ol>
@@ -110,7 +97,7 @@ export default function Page() {
       {/* A FICHA TÉCNICA, APLICADA */}
       <Revelar as="section" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
         <div>
-          <h2 className="text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+          <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             A ficha técnica passa a fazer contas.
           </h2>
           <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
@@ -142,12 +129,12 @@ export default function Page() {
       {/* AS FERRAMENTAS DO FORNECEDOR */}
       <Revelar as="section" className="bg-paper py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+          <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             Condições automáticas, receita nova.
           </h2>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {ferramentas.map((f) => (
-              <li key={f.t} className="flex flex-col gap-1.5 rounded-2xl bg-white p-5">
+              <li key={f.t} className="flex flex-col gap-1.5 rounded-[24px] bg-white p-6">
                 <span className="text-[17px] font-bold text-tinta-900">{f.t}</span>
                 <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
               </li>
