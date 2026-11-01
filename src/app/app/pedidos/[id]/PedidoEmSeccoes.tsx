@@ -36,7 +36,11 @@ import {
  * Seguinte: uma fila de separadores obrigaria a arrastar de lado para descobrir que há mais.
  */
 
-const SeccaoActiva = createContext<SeccaoId>('resumo');
+/** Fora da página em secções (a criação do pedido, por exemplo) não há secção nenhuma: `null`, e o
+ * formulário mostra tudo. Até 01/11/2026 o valor por omissão era «resumo», uma secção sem campos —
+ * a página «Novo pedido» ficou um botão sozinho, e carregar nele não fazia nada visível porque o erro
+ * caía num campo escondido (relatado pelo promotor). */
+const SeccaoActiva = createContext<SeccaoId | null>(null);
 const IrParaSeccao = createContext<(s: SeccaoId) => void>(() => {});
 
 /** Para que o formulário dos dados saiba que grupo de campos há-de mostrar. */
@@ -177,7 +181,7 @@ export function CaixaDaSeccao({
 }) {
   const activa = useSeccaoActiva();
   return (
-    <div hidden={!seccoes.includes(activa)} className={className}>
+    <div hidden={activa !== null && !seccoes.includes(activa)} className={className}>
       {children}
     </div>
   );
