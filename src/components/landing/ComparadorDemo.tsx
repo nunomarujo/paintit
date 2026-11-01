@@ -255,7 +255,7 @@ export function ComparadorDemo() {
 
           <div className="mx-auto mt-5 max-w-[620px] text-center">
             <p className="text-[13px] font-bold uppercase tracking-[.04em] text-tinta-700">
-              Estado {atual + 1} de {ESTADOS.length}
+              {atual + 1} de {ESTADOS.length}
             </p>
             <p className="mt-1.5 text-[20px] font-bold leading-snug text-tinta-900">{estado.frase}</p>
           </div>

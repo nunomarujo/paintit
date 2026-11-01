@@ -74,19 +74,19 @@ const passos = [
   {
     n: '1',
     t: 'Descreva a obra',
-    d: 'Escolhe as fachadas, mete as medidas que sabe. Não sabe? Pede um avaliador e não mede nada.',
+    d: 'Escolher as fachadas e indicar as medidas conhecidas. Sem medidas? Um avaliador vai ao local, sem custo.',
     ecra: <PassoDescrever />,
   },
   {
     n: '2',
     t: 'Compare',
-    d: 'As propostas chegam todas ao mesmo tempo. Vê o que cada uma cobre e manda as perguntas que faltam, sem se identificar.',
+    d: 'As propostas chegam todas ao mesmo tempo. Ver o que cada uma cobre e enviar as perguntas que faltam, sem se identificar.',
     ecra: <PassoComparar />,
   },
   {
     n: '3',
     t: 'Assine',
-    d: 'Com Chave Móvel Digital, na plataforma. A caução volta-lhe com as duas assinaturas.',
+    d: 'Com Chave Móvel Digital, na plataforma. A caução é devolvida com as duas assinaturas.',
     ecra: <PassoAssinar />,
   },
 ];
@@ -144,9 +144,6 @@ export default function Home() {
       <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-20">
         <p className="eyebrow">Como funciona</p>
         <h2 className="mt-3 text-[34px] leading-tight font-extrabold text-tinta-900">Três passos. É só isto.</h2>
-        <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-600">
-          Os ecrãs abaixo são a aplicação por dentro, tal como vai ficar.
-        </p>
         <ol className="mt-14 flex flex-col gap-20">
           {passos.map((p, i) => (
             <li key={p.n} className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -220,8 +217,7 @@ export default function Home() {
           </h2>
           <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-tinta-200">
             Cada proposta é lida pelo que inclui, exclui ou deixa por esclarecer — antes de olhar ao total. O comparador
-            não elege vencedora: mostra onde está a diferença. Seis momentos reais, com dados fictícios, gerados pelas
-            mesmas funções que a aplicação usa.
+            não elege vencedora: mostra onde está a diferença. Exemplo com um pedido de 240 m² e três propostas.
           </p>
           <div className="mt-8 rounded-2xl bg-white p-2 text-slate-900 sm:p-4">
             <ComparadorDemo />

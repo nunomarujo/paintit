@@ -11,14 +11,14 @@ import { useState } from 'react';
 const ESTADOS = [
   {
     rotulo: '1. Pedir o levantamento',
-    tag: 'Estado 1 · do lado do cliente',
+    tag: 'Do lado do cliente',
     msg: 'O pedido de ajuda fica registado — não é preciso preencher medidas enquanto se aguarda.',
     cond:
       'Quando há um avaliador qualificado de um fornecedor disponível na zona, pode reservar o pedido e ir medir ao local, sem custo acrescentado à obra. Continua sempre a poder medir a obra sozinho, a qualquer momento.',
   },
   {
     rotulo: '2. Um avaliador reserva a visita',
-    tag: 'Estado 2 · do lado do avaliador',
+    tag: 'Do lado do avaliador',
     msg: 'Um avaliador da zona vê os pedidos de levantamento disponíveis para reservar.',
     cond: 'A reserva é por ordem de chegada, com uma janela de 48 horas — por isso a disponibilidade depende de haver alguém ativo nessa zona.',
   },
