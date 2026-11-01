@@ -73,6 +73,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   const [indicarDatas, setIndicarDatas] = useState(!!(initial?.execucao_desde || initial?.execucao_ate));
   const [cor, setCor] = useState(initial?.cor_acabamento ?? '');
   const [via, setVia] = useState(initial?.ocupacao_via_publica ?? 'a_avaliar');
+  const [nProdutos, setNProdutos] = useState(initial?.produtos_preferidos?.length ?? 0);
 
   const flexivel = (d: DataFlexivel) => (
     <label className="flex min-h-[44px] items-start gap-2 text-[15px] text-slate-600">
@@ -247,8 +248,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
               </label>
             </Linha>
             {references.length > 0 && (
-              <Linha icone="lata" titulo="Produtos preferidos" valor={(initial?.produtos_preferidos?.length ?? 0) > 0 ? `${initial!.produtos_preferidos!.length} escolhidos` : 'Sem preferência'} definido={(initial?.produtos_preferidos?.length ?? 0) > 0}>
-                <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />
+              <Linha icone="lata" titulo="Produtos preferidos" valor={nProdutos > 0 ? `${nProdutos} ${nProdutos === 1 ? 'escolhido' : 'escolhidos'}` : 'Sem preferência'} definido={nProdutos > 0}>
+                <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} compacto onChange={(e) => setNProdutos(e.length)} />
               </Linha>
             )}
             <Linha icone="estrada" titulo="Acesso e via pública" valor={via === 'sim' ? 'Prevista' : via === 'nao' ? 'Não prevista' : 'A avaliar'} definido={via !== 'a_avaliar'}>

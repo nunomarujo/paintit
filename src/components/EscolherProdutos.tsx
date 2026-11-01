@@ -31,11 +31,23 @@ export type { ProdutoEscolhivel };
 export function EscolherProdutos({
   produtos,
   inicial = [],
+  compacto = false,
+  onChange,
 }: {
   produtos: ProdutoEscolhivel[];
   inicial?: Preference[];
+  /** Dentro de uma linha recolhível do formulário: sem moldura nem título próprios, lista curta. */
+  compacto?: boolean;
+  /** Avisa quem está à volta de quantos produtos estão escolhidos (para o resumo da linha). */
+  onChange?: (escolhidos: Preference[]) => void;
 }) {
-  const [escolhidos, setEscolhidos] = useState<Preference[]>(inicial);
+  const [escolhidos, setEscolhidosEstado] = useState<Preference[]>(inicial);
+  const setEscolhidos = (f: (atual: Preference[]) => Preference[]) =>
+    setEscolhidosEstado((atual) => {
+      const proximo = f(atual);
+      onChange?.(proximo);
+      return proximo;
+    });
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState('');
   const [tipo, setTipo] = useState<'' | ProductType>('');
@@ -77,36 +89,43 @@ export function EscolherProdutos({
   const cheio = escolhidos.length >= MAXIMO;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-      <h3 className="text-[17px] font-medium text-slate-700">Produtos preferidos (opcional)</h3>
-      <p className="mt-1 text-[15px] text-slate-600">
-        Indique os produtos que gostaria que fossem usados. Marque “fixo” se o pintor não os pode trocar; sem “fixo”,
-        pode propor outro e a comparação mostra se é mais caro ou mais barato.
+    <div className={compacto ? '' : 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5'}>
+      {!compacto && <h3 className="text-[17px] font-medium text-slate-700">Produtos preferidos (opcional)</h3>}
+      <p className={`text-[15px] text-slate-600 ${compacto ? '' : 'mt-1'}`}>
+        {compacto
+          ? '«Fixo» quer dizer que o pintor não o pode trocar; sem fixo, pode propor outro e a comparação mostra a diferença.'
+          : 'Indique os produtos que gostaria que fossem usados. Marque “fixo” se o pintor não os pode trocar; sem “fixo”, pode propor outro e a comparação mostra se é mais caro ou mais barato.'}
       </p>
 
       {escolhidos.length === 0 ? (
-        <p className="mt-3 text-[15px] text-slate-500">Nenhum produto indicado. O pintor escolhe o que considerar adequado ao suporte.</p>
+        <p className="mt-3 text-[15px] text-slate-600">Nenhum produto indicado. O pintor escolhe o que considerar adequado ao suporte.</p>
       ) : (
+        /* Uma linha por produto, o nome cortado a uma linha: numa coluna estreita a lista antiga
+           partia cada nome em seis linhas e deixava de se ler (promotor, 01/11/2026). */
         <ul className="mt-3 divide-y divide-slate-100">
           {escolhidos.map((pref) => {
             const p = porId.get(pref.id);
+            const nome = p ? `${p.marca} ${p.nome}` : 'Produto já não disponível';
             return (
-              <li key={pref.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
-                <span className="flex-1 text-[17px]">
-                  {p ? `${p.marca} ${p.nome}` : 'Produto já não disponível'}
-                  {p && <span className="block text-[15px] text-slate-500">{PRODUCT_TYPE_LABELS[p.tipo]}</span>}
+              <li key={pref.id} className="flex items-center gap-2 py-1.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-medium" title={nome}>
+                    {nome}
+                  </span>
+                  {p && <span className="block truncate text-[13px] text-slate-600">{PRODUCT_TYPE_LABELS[p.tipo]}</span>}
                 </span>
-                <label className="flex min-h-[44px] items-center gap-2 text-[15px] text-slate-600">
+                <label className="flex min-h-[44px] shrink-0 items-center gap-1.5 text-[13px] text-slate-600">
                   <input type="checkbox" checked={pref.fixo} onChange={(ev) => fixar(pref.id, ev.target.checked)} />
                   fixo
                 </label>
                 <button
                   type="button"
                   onClick={() => alternar(pref.id)}
-                  aria-label={`Retirar ${p ? `${p.marca} ${p.nome}` : 'o produto'}`}
-                  className="btn-quiet btn-sm"
+                  aria-label={`Retirar ${nome}`}
+                  title="Retirar"
+                  className="btn-quiet btn-sm shrink-0 px-2"
                 >
-                  Retirar
+                  <ICONES.fechar />
                 </button>
                 <input type="hidden" name="preferido" value={pref.id} />
                 {pref.fixo && <input type="hidden" name="fixo" value={pref.id} />}
@@ -116,7 +135,7 @@ export function EscolherProdutos({
         </ul>
       )}
 
-      <button type="button" onClick={() => setAberto(true)} className="btn-secondary mt-3">
+      <button type="button" onClick={() => setAberto(true)} className={`${compacto ? 'btn-quiet' : 'btn-secondary'} mt-3`}>
         {escolhidos.length === 0 ? 'Escolher produtos' : 'Escolher outros produtos'}
       </button>
 
@@ -209,6 +228,16 @@ export function EscolherProdutos({
                           )}
                         </span>
                       </label>
+                      {/* A ficha completa (ficha técnica, rendimento, vendedores) abre noutro separador, para
+                          não perder a escolha a meio (promotor, 01/11/2026). */}
+                      <a
+                        href={`/app/catalogo/referencia/${p.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="-mt-1 mb-1 inline-flex min-h-[44px] items-center pl-7 text-[15px] font-semibold text-tinta-600 hover:underline"
+                      >
+                        Ver ficha do produto
+                      </a>
                     </li>
                   );
                 })}

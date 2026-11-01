@@ -278,11 +278,6 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             {req.descricao?.trim() || 'Ainda sem descrição do trabalho.'}
           </p>
         </div>
-      {manager && draft && (
-        <div id="pedido-de-visita" className="scroll-mt-6">
-          <RequestSurveyCard requestId={req.id} survey={survey} />
-        </div>
-      )}
 
       {/* Respondida a confirmação, o agendamento fica à mão — o email não é prova de nada, a resposta é. */}
       {agendamento && !agendamento.por_responder && agendamento.agendado_para && (
@@ -707,6 +702,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         marcadoPara={surveyRow?.scheduled_at ?? null}
         houveLevantamento={!!surveyRow}
         pendencia={primeiraPendencia(estadosSeccoes)}
+        detalheDaVisita={manager && draft ? <RequestSurveyCard requestId={req.id} survey={survey} /> : undefined}
       />
 
       {/* Daqui para baixo só rascunhos: o pedido publicado tem a sua página de acompanhamento acima. */}

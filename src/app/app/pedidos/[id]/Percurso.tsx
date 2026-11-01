@@ -2,6 +2,7 @@
 
 import { VEZ_LABELS, type AlvoDaAccao, type EstadoDoPercurso } from '@/domain/percurso';
 import type { SeccaoId } from '@/domain/seccoes';
+import { useState, type ReactNode } from 'react';
 import { useIrParaSeccao } from './PedidoEmSeccoes';
 import { Dica } from '@/components/Dica';
 import Link from 'next/link';
@@ -25,6 +26,7 @@ export function Percurso({
   marcadoPara,
   pendencia,
   houveLevantamento = true,
+  detalheDaVisita,
 }: {
   estado: EstadoDoPercurso;
   requestId: string;
@@ -33,11 +35,20 @@ export function Percurso({
   pendencia?: SeccaoId | null;
   /** Houve pedido de visita? Sem ele, a régua não mostra as etapas que nunca vão acontecer. */
   houveLevantamento?: boolean;
+  /** O cartão do pedido de visita (pedir, ver, desistir). Abre por baixo da faixa quando a ação é
+   * «Ver pedido de visita» — a faixa vive fora dos passos, e um salto para uma secção escondida
+   * não fazia nada (promotor, 01/11/2026: «o botão não faz nada»). */
+  detalheDaVisita?: ReactNode;
 }) {
   // `houveLevantamento` já não desenha nada aqui (a régua saiu); fica na assinatura para não mexer em quem chama.
   void houveLevantamento;
   const vez = VEZ_LABELS[estado.vez];
   const irPara = useIrParaSeccao();
+  const [visitaAberta, setVisitaAberta] = useState(false);
+  // A ação principal da faixa é a da visita quando o percurso a pede; senão, a visita fica num
+  // segundo botão discreto (quem nunca pediu, ou desistiu, tem de a poder pedir daqui).
+  const accaoEhVisita = estado.accao?.alvo === 'pedido_de_visita';
+  const abreVisita = !!detalheDaVisita;
   /*
    * O domínio escolhe o destino; aqui sabe-se o que ele é no ecrã.
    *
@@ -61,7 +72,8 @@ export function Percurso({
     ? new Date(marcadoPara).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
     : null;
   return (
-    <section className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl bg-tinta-50 px-5 py-3" aria-live="polite">
+    <section className="rounded-2xl bg-tinta-50 px-5 py-3" aria-live="polite">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 text-[17px]">
           <span className="font-semibold text-tinta-900">{estado.titulo}</span>
@@ -78,11 +90,22 @@ export function Percurso({
           <Link href={`/app/pedidos/${requestId}/propostas`} className="btn-secondary shrink-0">
             {estado.accao.texto}
           </Link>
+        ) : accaoEhVisita && abreVisita ? (
+          <button type="button" aria-expanded={visitaAberta} onClick={() => setVisitaAberta((v) => !v)} className="btn-secondary shrink-0">
+            {visitaAberta ? 'Fechar' : estado.accao.texto}
+          </button>
         ) : (
           <button type="button" onClick={() => irPara(seccaoDoAlvo[estado.accao!.alvo] ?? 'resumo')} className="btn-secondary shrink-0">
             {estado.accao.texto}
           </button>
         ))}
+      {abreVisita && !accaoEhVisita && (
+        <button type="button" aria-expanded={visitaAberta} onClick={() => setVisitaAberta((v) => !v)} className="btn-quiet shrink-0">
+          {visitaAberta ? 'Fechar' : 'Ajuda de um avaliador'}
+        </button>
+      )}
+    </div>
+    {abreVisita && visitaAberta && <div className="mt-3 border-t border-tinta-100 pt-3">{detalheDaVisita}</div>}
     </section>
   );
 }
