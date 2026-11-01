@@ -66,7 +66,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
       <fieldset disabled={disabled} className="space-y-5">
         {/* Grupo «O que pretende». Escondido, e não desmontado: é o que faz com que mudar de
             secção não perca nada do que está escrito. */}
-        <div hidden={seccao !== 'pretende'} className="space-y-5">
+        <div hidden={seccao !== null && seccao !== 'pretende'} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field name="buildingId" label="Prédio" required error={e.buildingId}>
             <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
@@ -172,7 +172,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </div>
 
         {/* Grupo «Preferências e prazos». */}
-        <div hidden={seccao !== 'preferencias'} className="space-y-5">
+        <div hidden={seccao !== null && seccao !== 'preferencias'} className="space-y-5">
         <Field
           name="corAcabamento"
           label="Cor e acabamento"

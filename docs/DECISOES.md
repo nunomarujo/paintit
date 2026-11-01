@@ -4303,3 +4303,14 @@ cada 256 assinaturas com Chave Móvel Digital seria recusada.
 
 Passa a decidir o comprimento escrito no próprio DER (`semEnchimento`, `src/domain/signature.ts`), com
 testes, incluindo um que reproduz o caso. Verificado contra o código antigo: perdia o byte; o novo não.
+
+## 01/11/2026 — «Novo pedido» era um botão sozinho
+
+Relatado pelo promotor: na página de criar um pedido, «Criar pedido» não respondia nem dava
+informação. Causa: a 30/10 o formulário do pedido passou a mostrar os campos por secções, e fora da
+página em secções a secção por omissão era «resumo» — uma secção sem campos. A página de criação
+ficou só com o botão, e carregar nele enviava um formulário vazio cujo erro caía num campo escondido.
+Desde 30/10 ninguém conseguia criar um pedido de orçamento novo pela aplicação.
+
+Correção: fora da página em secções não há secção (`null`), e o formulário mostra tudo. Verificado no
+banco de ensaio: 27 campos visíveis na página de criação.
