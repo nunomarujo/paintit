@@ -131,4 +131,8 @@ npm run build
       `rounded-[Npx]`.
     **Tudo o que se clica tem 44px de altura mínima**, venha de uma classe `btn-*` ou não: é o
     mínimo para um dedo, e metade dos ecrãs da app são usados em obra, de telemóvel.
+    *Desde 01/11/2026 a regra falha nos testes*, e não só num comentário: `src/domain/alvosDeToque.ts`
+    varre os `.tsx` à procura de geometria escrita à mão e `alvosDeToque.test.ts` guarda o inventário
+    do que falta corrigir. Um ficheiro novo na lista, ou uma contagem que suba, reprova. O percurso do
+    fornecedor está a zero e tem um teste próprio a mantê-lo assim.
 
