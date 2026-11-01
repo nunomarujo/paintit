@@ -128,6 +128,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         }
       : null;
 
+  const rotuloDoPerfil = (() => {
+    const partes: string[] = [];
+    if (kinds.has('pintor')) partes.push('Empresa de pintura');
+    if (kinds.has('fornecedor')) partes.push('Fornecedor de tintas');
+    if (kinds.has('administradora')) partes.push('Administração de condomínios');
+    else if (kinds.has('condominio')) partes.push('Condomínio');
+    else if (kinds.has('particular')) partes.push('Cliente particular');
+    if (partes.length === 0) return admin ? 'Equipa da plataforma' : 'Sem entidade';
+    return partes.join(' · ');
+  })();
+
   const groups = [
     ...(admin && kinds.size === 0 ? [] : [{ title: soCliente ? 'Acompanhar a obra' : 'Dia a dia', items: dia }]),
     ...(ganharObra.length ? [{ title: 'Ganhar obra', items: ganharObra }] : []),
@@ -175,7 +186,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             leave={leave}
           />
         </div>
-        <p className="eyebrow mb-5 mt-2 hidden px-3 text-marca-muted md:block">Empreitadas de pintura</p>
+        {/*
+          O rótulo por baixo da marca diz a que perfil pertence este espaço (promotor, 01/11/2026:
+          «Empreitadas de pintura» não dava pista nenhuma). Um perfil só → o seu nome; vários → os
+          nomes juntos; equipa da plataforma sem entidades → «Equipa da plataforma».
+        */}
+        <p className="eyebrow mb-5 mt-2 hidden px-3 text-tinta-600 md:block">{rotuloDoPerfil}</p>
         <div className="mt-3 md:mt-0">
           {doFornecedor ? <NavDoFornecedor vendas={doFornecedor.vendas} avaliacoes={doFornecedor.avaliacoes} /> : <AppNav groups={groups} />}
         </div>
