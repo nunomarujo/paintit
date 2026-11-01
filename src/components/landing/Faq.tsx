@@ -30,13 +30,13 @@ export function Faq({ items }: { items: FaqItem[] }) {
     });
 
   return (
-    <div className="divide-y divide-slate-200 border-y border-slate-200">
+    <div className="space-y-2">
       {items.map((item, i) => {
         const isOpen = open.has(i);
         const panelId = `${idBase}-painel-${i}`;
         const buttonId = `${idBase}-pergunta-${i}`;
         return (
-          <div key={item.q} className="py-1">
+          <div key={item.q} className="rounded-lg bg-paper px-4 py-1">
             <button
               type="button"
               id={buttonId}

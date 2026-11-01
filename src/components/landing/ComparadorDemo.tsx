@@ -169,14 +169,14 @@ export function ComparadorDemo() {
         >
           <div
             ref={janelaRef}
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_56px_-22px_rgba(23,63,66,.38),0_2px_10px_rgba(23,63,66,.08)]"
+            className="overflow-hidden rounded-2xl bg-white"
           >
             {/* Janela de app: barra de chrome com três pontos e URL simulada */}
-            <div className="flex h-10 flex-none items-center gap-[7px] border-b border-slate-200 bg-slate-100 px-3.5" aria-hidden>
+            <div className="flex h-10 flex-none items-center gap-[7px] bg-slate-100 px-3.5" aria-hidden>
               <span className="h-[9px] w-[9px] rounded-full bg-slate-300" />
               <span className="h-[9px] w-[9px] rounded-full bg-slate-300" />
               <span className="h-[9px] w-[9px] rounded-full bg-slate-300" />
-              <span className="ml-2 max-w-[72%] truncate rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] text-slate-500">
+              <span className="ml-2 max-w-[72%] truncate rounded-full bg-white px-3 py-1 text-[13px] text-slate-600">
                 {estado.url}
               </span>
             </div>
@@ -207,7 +207,7 @@ export function ComparadorDemo() {
                     }}
                   />
                   <div
-                    className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-tinta-700 shadow-[0_6px_16px_-8px_rgba(23,63,66,.3)] transition-opacity duration-200"
+                    className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-paper px-3 py-1.5 text-[13px] font-bold text-tinta-700 transition-opacity duration-200"
                     style={{ opacity: temMais ? 1 : 0 }}
                   >
                     <span>Role para ver mais</span>
@@ -220,7 +220,7 @@ export function ComparadorDemo() {
 
               {emDocumento && (
                 <div className="flex h-full flex-col items-center justify-center gap-3.5 px-4 py-6">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[13px] font-bold text-tinta-700 shadow-[0_4px_14px_-8px_rgba(23,63,66,.3)]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-paper px-3.5 py-1.5 text-[13px] font-bold text-tinta-700">
                     <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                       <path d="M14 2v6h6" />
@@ -228,7 +228,7 @@ export function ComparadorDemo() {
                     Documento A4
                   </span>
                   <div ref={docPageRef} className="w-full max-w-[230px]">
-                    <div className="relative aspect-[210/297] w-full overflow-hidden rounded-md bg-white shadow-[0_20px_44px_-18px_rgba(23,63,66,.42),0_0_0_1px_rgba(23,63,66,.07)]">
+                    <div className="relative aspect-[210/297] w-full overflow-hidden rounded-md bg-white">
                       <iframe
                         ref={docFrameRef}
                         src={`/demo-comparador/${estado.ficheiro}`}

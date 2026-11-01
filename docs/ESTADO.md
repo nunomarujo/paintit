@@ -1846,6 +1846,8 @@ numerados (`RequestForm`), e o rascunho tem três passos no topo em vez da colun
 Perfil, ficha da entidade, nova entidade e ficha/novo prédio em quadros lado a lado. Os campos e as
 ações do servidor não mudaram.
 
+**Página inicial com o inspetor taste-skill a zero falhas (01/11/2026):** título do hero numa frase (a segunda abre o parágrafo), sem eyebrows, sem sombras nem linhas finas, «Três proteções» sem caixas nem ícones, fotografia real das fachadas do Porto (CC BY 4.0, crédito no rodapé), entrada das secções com `Revelar.tsx`. Verificar com `scripts/inspecionar-desenho.sh https://quempinta.pt`.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

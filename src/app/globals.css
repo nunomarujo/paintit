@@ -498,3 +498,22 @@ details[open] > summary .dossier-fechar {
   --barra-count: #b0411f;
   --barra-sair: #b0411f;
 }
+
+/* Entrada das secções da página pública (Revelar.tsx). Só depois de o script marcar `data-pronto`:
+   sem script, nada fica escondido. */
+.revelar[data-pronto] > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.revelar[data-visivel] > * {
+  opacity: 1;
+  transform: none;
+}
+.revelar[data-visivel] > :nth-child(2) { transition-delay: 70ms; }
+.revelar[data-visivel] > :nth-child(3) { transition-delay: 140ms; }
+.revelar[data-visivel] > :nth-child(4) { transition-delay: 210ms; }
+.revelar[data-visivel] > :nth-child(5) { transition-delay: 280ms; }
+@media (prefers-reduced-motion: reduce) {
+  .revelar[data-pronto] > * { opacity: 1; transform: none; transition: none; }
+}

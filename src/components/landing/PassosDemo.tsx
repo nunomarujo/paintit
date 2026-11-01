@@ -11,7 +11,7 @@
 
 function Janela({ url, children }: { url: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-tinta-100 p-3 shadow-[0_20px_50px_rgba(20,33,61,0.14)]">
+    <div className="rounded-2xl bg-tinta-100 p-3">
       <div className="flex items-center gap-2 px-1 pb-2.5">
         <span className="h-2 w-2 rounded-full bg-slate-300" />
         <span className="h-2 w-2 rounded-full bg-slate-300" />
@@ -45,7 +45,7 @@ export function PassoDescrever() {
     <Janela url="app.quempinta.pt/pedidos/novo">
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-bold text-slate-500">Passo 2 de 4 · Zonas</span>
-        <span className="text-[13px] font-bold text-tinta-600">Guardado</span>
+        <span className="text-[13px] font-bold text-tinta-700">Guardado</span>
       </div>
       <p className="text-[20px] font-extrabold text-tinta-900">Que fachadas quer pintar?</p>
       <div className="flex flex-wrap gap-2">
@@ -67,7 +67,7 @@ export function PassoDescrever() {
         </div>
       </div>
       <p className="rounded-lg bg-tinta-100 px-3.5 py-3 text-[15px] text-tinta-900">
-        Não sabe as medidas? <span className="font-bold text-tinta-600">Peça um avaliador</span> — vai ao local sem custo.
+        Não sabe as medidas? <span className="font-bold text-tinta-700">Peça um avaliador</span> — vai ao local sem custo.
       </p>
       <div className="flex justify-end">
         <BotaoFalso primario>Continuar</BotaoFalso>
@@ -93,11 +93,11 @@ export function PassoComparar() {
         {propostas.map((p) => (
           <div
             key={p.n}
-            className={`flex flex-col gap-1 rounded-lg p-3 ${p.destaque ? 'border-2 border-tinta-600 bg-tinta-100' : 'border border-slate-200'}`}
+            className={`flex flex-col gap-1 rounded-lg p-3 ${p.destaque ? 'bg-selected' : 'bg-paper'}`}
           >
             <span className="text-[13px] font-bold">Pintor {p.n}</span>
             <span className="text-[20px] font-extrabold">{p.v}</span>
-            <span className={`text-[13px] font-semibold ${p.atencao ? 'text-amber-800' : 'text-tinta-600'}`}>{p.tag}</span>
+            <span className={`text-[13px] font-semibold ${p.atencao ? 'text-amber-800' : 'text-tinta-700'}`}>{p.tag}</span>
           </div>
         ))}
       </div>
@@ -123,9 +123,9 @@ export function PassoAssinar() {
     <Janela url="app.quempinta.pt/contratacoes/…/assinar">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[20px] font-extrabold text-tinta-900">Assinar o contrato</p>
-        <span className="rounded-full bg-tinta-100 px-2.5 py-1 text-[13px] font-bold text-tinta-600">Cliente assina primeiro</span>
+        <span className="rounded-full bg-tinta-100 px-2.5 py-1 text-[13px] font-bold text-tinta-700">Cliente assina primeiro</span>
       </div>
-      <dl className="flex flex-col gap-2.5 rounded-lg border border-slate-200 p-3.5 text-[15px]">
+      <dl className="flex flex-col gap-2.5 rounded-lg bg-paper p-3.5 text-[15px]">
         {[
           ['Empreitada', 'Pintura de fachadas · 240 m²'],
           ['Empresa', 'Pintor A · alvará verificado'],
@@ -134,7 +134,7 @@ export function PassoAssinar() {
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4">
             <dt className="text-slate-600">{k}</dt>
-            <dd className={`text-right font-bold ${k === 'Caução depositada' ? 'text-tinta-600' : ''}`}>{v}</dd>
+            <dd className={`text-right font-bold ${k === 'Caução depositada' ? 'text-tinta-700' : ''}`}>{v}</dd>
           </div>
         ))}
       </dl>

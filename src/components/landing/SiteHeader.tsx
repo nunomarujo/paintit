@@ -96,7 +96,7 @@ export function SiteHeader() {
           className={
             'mx-auto flex h-full w-full items-center justify-between transition-all duration-250 ' +
             (scrolled
-              ? 'max-w-[940px] rounded-full bg-white px-3 py-0 shadow-[0_8px_28px_-10px_rgba(23,63,66,0.2),0_1px_2px_rgba(23,63,66,0.07)] sm:h-[58px]'
+              ? 'max-w-6xl bg-white/95 px-4 py-0 sm:h-[58px]'
               : 'max-w-6xl bg-transparent px-4')
           }
         >
