@@ -66,6 +66,23 @@
    * acompanha sempre outro sinal (barra lateral, aria-current). `attention` é o que ainda se
    * resolve (âmbar); `error` é o que já fechou, caducou ou foi recusado — regra 13 do CLAUDE.md.
    */
+  /*
+   * Barra lateral (aprovada pelo promotor a 01/11/2026 sobre maquete): marinho, com o conteúdo num
+   * painel claro de cantos arredondados. Os tokens `barra-*` têm aqui os valores do contexto claro
+   * (o menu de telemóvel, branco) e são redefinidos dentro de `.barra-escura`. Assim a mesma lista
+   * de navegação serve os dois fundos sem duplicar classes.
+   */
+  --barra-text: #475467;
+  --barra-text-strong: #14213d;
+  --barra-eyebrow: #475467;
+  --barra-icon: #6b7684;
+  --barra-border: #dde3ea;
+  --barra-active-bg: #ffffff;
+  --barra-hover: rgba(255, 255, 255, 0.7);
+  --barra-accent: #2d5bff;
+  --barra-count: #b0411f;
+  --barra-sair: #b0411f;
+
   --surface: #ffffff;
   --field: #6b7684;
   --selected: #e8edff;
@@ -452,4 +469,32 @@ details[open] > summary .dossier-abrir {
 }
 details[open] > summary .dossier-fechar {
   display: inline;
+}
+
+/* A barra marinho: os tokens da navegação passam a claros sobre escuro. */
+.barra-escura {
+  --barra-text: #c9d3e6;
+  --barra-text-strong: #ffffff;
+  --barra-eyebrow: #c6f432;
+  --barra-icon: #9fb0d0;
+  --barra-border: rgba(255, 255, 255, 0.12);
+  --barra-active-bg: rgba(255, 255, 255, 0.1);
+  --barra-hover: rgba(255, 255, 255, 0.06);
+  --barra-accent: #c6f432;
+  --barra-count: #ff6b4a;
+  --barra-sair: #ff8a6b;
+}
+
+/* O menu de telemóvel abre um painel branco dentro da barra: volta aos valores claros. */
+.barra-clara {
+  --barra-text: #475467;
+  --barra-text-strong: #14213d;
+  --barra-eyebrow: #475467;
+  --barra-icon: #6b7684;
+  --barra-border: #dde3ea;
+  --barra-active-bg: #e8edff;
+  --barra-hover: #f1f4f7;
+  --barra-accent: #2d5bff;
+  --barra-count: #b0411f;
+  --barra-sair: #b0411f;
 }

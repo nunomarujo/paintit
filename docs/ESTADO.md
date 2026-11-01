@@ -1846,6 +1846,8 @@ numerados (`RequestForm`), e o rascunho tem três passos no topo em vez da colun
 Perfil, ficha da entidade, nova entidade e ficha/novo prédio em quadros lado a lado. Os campos e as
 ações do servidor não mudaram.
 
+**Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
+
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`
 presa ao prédio, código/QR por prédio, voto indicativo com permilagem; ecrãs do gestor, públicos e do
 condómino. **A migração ainda não correu na base real** — está na lista 1 de `EM_ABERTO.md`.

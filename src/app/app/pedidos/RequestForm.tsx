@@ -62,14 +62,17 @@ const DESCRICAO_MAX = 1500;
  */
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const seccao = useSeccaoActiva();
-  // Desde 01/11/2026 o formulário é sempre a grelha: na criação e no passo «O essencial» do rascunho.
-  const grelha = true;
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
   const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
   const flexiveisIniciais = initial?.datas_flexiveis ?? [];
   const [descricao, setDescricao] = useState(initial?.descricao ?? '');
+  // Execução: «datas flexíveis» (o caso comum) ou datas indicadas. Com datas flexíveis não se pedem
+  // datas nenhumas; marcam-se as duas como indicativas, que é o que o servidor já entende.
+  const [indicarDatas, setIndicarDatas] = useState(!!(initial?.execucao_desde || initial?.execucao_ate));
+  const [cor, setCor] = useState(initial?.cor_acabamento ?? '');
+  const [via, setVia] = useState(initial?.ocupacao_via_publica ?? 'a_avaliar');
 
   const flexivel = (d: DataFlexivel) => (
     <label className="flex min-h-[44px] items-start gap-2 text-[15px] text-slate-600">
@@ -80,9 +83,9 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
 
   return (
     <form {...formProps} className="space-y-5">
-      <fieldset disabled={disabled} className={grelha ? 'grid gap-5 lg:grid-cols-12' : 'space-y-6'}>
+      <fieldset disabled={disabled} className="grid gap-5 lg:grid-cols-12">
         {/* 01 · Local e identificação */}
-        <Quadro n="01" titulo="Local e identificação" sub="O prédio e um nome para este pedido." moldura={grelha} className="lg:col-span-3">
+        <Quadro n="01" icone="local" titulo="Local e identificação" sub="O prédio e um nome para este pedido." className="lg:col-span-4">
           <div className="space-y-4">
             <Field name="buildingId" label="Prédio" required error={e.buildingId}>
               <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
@@ -95,10 +98,17 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
             </Field>
             <Field name="titulo" label="Nome interno do pedido" required defaultValue={initial?.titulo} error={e.titulo} hint="Só a sua equipa o vê. Por exemplo: Fachadas 2027." />
           </div>
+          <div className="mt-auto flex items-start gap-3 rounded-lg bg-paper p-3 pt-4">
+            <Icone nome="regua" className="mt-0.5 h-5 w-5 shrink-0 text-tinta-600" />
+            <p className="text-[13px] text-slate-600">
+              <span className="font-semibold text-tinta-900">Não precisa de saber medir.</span> No passo seguinte pode pedir a visita de um
+              avaliador, sem custo.
+            </p>
+          </div>
         </Quadro>
 
         {/* 02 · O que pretende fazer */}
-        <Quadro n="02" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." moldura={grelha} className="lg:col-span-6">
+        <Quadro n="02" icone="pincel" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." className="lg:col-span-8">
           <fieldset>
             <legend className="text-[15px] font-semibold text-slate-700">
               Tipos de obra <span className="font-normal text-slate-500">(pode escolher vários)</span>
@@ -107,8 +117,9 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
               {WORK_TYPES.map((t) => (
                 <Pastilha key={t}>
                   <input type="checkbox" name="tipoObra" value={t} defaultChecked={tiposIniciais.includes(t)} className="sr-only" />
+                  <Icone nome={ICONE_DO_TIPO[t]} className="h-5 w-5 shrink-0 text-slate-500 [label:has(:checked)_&]:text-tinta-600" />
+                  <span className="flex-1">{WORK_TYPE_LABELS[t]}</span>
                   <Visto />
-                  {WORK_TYPE_LABELS[t]}
                 </Pastilha>
               ))}
             </div>
@@ -122,55 +133,78 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 03 · Prazos */}
-        <Quadro n="03" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." moldura={grelha} className="lg:col-span-3">
-          <div className={grelha ? 'space-y-4' : 'grid gap-5 sm:grid-cols-3'}>
+        <Quadro n="03" icone="calendario" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." className="lg:col-span-3">
+          <div className="space-y-4">
             <div>
-              <Field name="prazoPropostas" label="Receber propostas até" type="date" defaultValue={initial?.prazo_propostas ?? undefined} error={e.prazoPropostas} hint="Pelo menos 7 dias." />
+              <Field name="prazoPropostas" label="Receber propostas até" type="date" defaultValue={initial?.prazo_propostas ?? undefined} error={e.prazoPropostas} hint="Pelo menos 7 dias. Abrem todas no dia seguinte." />
               {flexivel('propostas')}
             </div>
-            <div>
-              <Field name="execucaoDesde" label="Obra a partir de" type="date" defaultValue={initial?.execucao_desde ?? undefined} error={e.execucaoDesde} />
-              {flexivel('execucao_desde')}
-            </div>
-            <div>
-              <Field name="execucaoAte" label="Obra até" type="date" defaultValue={initial?.execucao_ate ?? undefined} error={e.execucaoAte} />
-              {flexivel('execucao_ate')}
-            </div>
+            <fieldset>
+              <legend className="text-[17px] font-medium text-slate-700">Execução da obra</legend>
+              <div className="mt-1 grid gap-2">
+                <Opcao activa={!indicarDatas} onClick={() => setIndicarDatas(false)} titulo="Datas flexíveis" sub="Sem datas definidas" />
+                <Opcao activa={indicarDatas} onClick={() => setIndicarDatas(true)} titulo="Indicar datas" sub="Um período específico" />
+              </div>
+              {indicarDatas ? (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <Field name="execucaoDesde" label="A partir de" type="date" defaultValue={initial?.execucao_desde ?? undefined} error={e.execucaoDesde} />
+                    {flexivel('execucao_desde')}
+                  </div>
+                  <div>
+                    <Field name="execucaoAte" label="Até" type="date" defaultValue={initial?.execucao_ate ?? undefined} error={e.execucaoAte} />
+                    {flexivel('execucao_ate')}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Sem datas: fica registado que são flexíveis, que é o que o servidor já entende. */}
+                  <input type="hidden" name="dataFlexivel" value="execucao_desde" />
+                  <input type="hidden" name="dataFlexivel" value="execucao_ate" />
+                  <p className="mt-2 text-[13px] text-slate-500">Os pintores propõem a data; decide-se ao comparar.</p>
+                </>
+              )}
+            </fieldset>
           </div>
         </Quadro>
 
         {/* 04 · Descrição */}
-        <Quadro n="04" titulo="Descrição da obra" sub="O que os pintores vão ler." moldura={grelha} className="lg:col-span-8">
-          <Field
-            name="descricao"
-            label="Descrição para os pintores"
-            error={e.descricao}
-            hint="Estado atual, problemas observados, o que pretende. Sem morada, nomes nem contactos: são revelados só depois da escolha."
-          >
+        <Quadro n="04" icone="texto" titulo="Descrição da obra" sub="O que os pintores vão ler. Sem morada, nomes nem contactos — são revelados só depois da escolha." className="lg:col-span-6">
+          <div className="relative">
             <textarea
               name="descricao"
-              rows={grelha ? 6 : 5}
+              aria-label="Descrição para os pintores"
+              aria-invalid={e.descricao ? true : undefined}
+              rows={4}
               value={descricao}
               onChange={(ev) => setDescricao(ev.target.value)}
               maxLength={DESCRICAO_MAX}
-              className="mt-1 campo"
+              placeholder="Estado atual, problemas observados, o que pretende. Por exemplo: a tinta das fachadas está a descascar do lado norte e há fissuras junto às varandas."
+              className="campo pb-8"
             />
-          </Field>
-          <p className="mt-1 text-right text-[13px] text-slate-500">
-            {descricao.length}/{DESCRICAO_MAX}
-          </p>
+            <span className="pointer-events-none absolute bottom-2 right-3 text-[13px] text-slate-500">
+              {descricao.length}/{DESCRICAO_MAX}
+            </span>
+          </div>
+          {e.descricao && (
+            <p className="mt-1 text-[15px] text-red-700" role="alert">
+              {e.descricao}
+            </p>
+          )}
 
           {/*
             As opções técnicas recolhem-se até serem precisas (promotor, 30/10/2026): primário,
             impermeabilização e regras entre zonas não são perguntas para quem só sabe que a tinta
             está a descascar. Quem as conhece abre isto; quem não as conhece não tropeça nelas.
           */}
-          <details className="mt-3 rounded-lg border border-slate-200 px-4">
-            <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-tinta-800">
-              Especificar trabalhos
-              <span className="text-[13px] font-normal text-slate-500">Opcional</span>
+          <details className="mt-4 rounded-lg border border-slate-200">
+            <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-3 px-4 text-[15px]">
+              <Icone nome="ferramenta" className="h-5 w-5 text-slate-500" />
+              <span className="flex-1 font-semibold text-tinta-900">Especificar trabalhos</span>
+              <span className="text-[13px] text-slate-500">Opcional</span>
+              <Seta />
             </summary>
-            <div className="space-y-5 pb-4 pt-2">
+            <div className="space-y-5 border-t border-slate-200 px-4 pb-4 pt-4">
               <fieldset>
                 <legend className="text-[15px] font-semibold text-slate-700">Trabalhos pretendidos</legend>
                 <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
@@ -202,25 +236,37 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
           </details>
         </Quadro>
 
-        {/* 05 · Preferências opcionais */}
-        <Quadro n="05" titulo="Preferências" sub="Opcional. Cor, produtos e via pública." moldura={grelha} className="lg:col-span-4">
-          <div className="space-y-4">
-            <Field name="corAcabamento" label="Cor e acabamento" defaultValue={initial?.cor_acabamento ?? undefined} error={e.corAcabamento} hint="Por exemplo: manter as cores atuais, acabamento mate." />
-            {references.length > 0 && <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />}
-            <Field
-              name="ocupacaoViaPublica"
-              label="Ocupação da via pública"
-              error={e.ocupacaoViaPublica}
-              info="As licenças camarárias dos trabalhos (incluindo a via pública) são obtidas pelo pintor. Licenciamento especial, como alterar janelas ou a fachada, é da responsabilidade do cliente."
-            >
-              <select name="ocupacaoViaPublica" defaultValue={initial?.ocupacao_via_publica ?? 'a_avaliar'} className={selectClass}>
-                {VIA_PUBLICA.map((v) => (
-                  <option key={v} value={v}>
-                    {VIA_PUBLICA_LABELS[v]}
-                  </option>
-                ))}
-              </select>
-            </Field>
+        {/* 05 · Preferências: linhas recolhíveis com o valor actual à vista. */}
+        <Quadro n="05" icone="ajustes" titulo="Preferências" sub="Opcional. Pode deixar tudo em aberto." className="lg:col-span-3">
+          <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200">
+            <Linha icone="cor" titulo="Cor e acabamento" valor={cor.trim() || 'Por definir'} definido={!!cor.trim()}>
+              <label className="block text-[17px] font-medium text-slate-700">
+                Cor e acabamento
+                <input name="corAcabamento" value={cor} onChange={(ev) => setCor(ev.target.value)} aria-invalid={e.corAcabamento ? true : undefined} className="campo mt-1" />
+                <span className="mt-1 block text-[15px] font-normal text-slate-500">{e.corAcabamento ?? 'Por exemplo: manter as cores atuais, acabamento mate.'}</span>
+              </label>
+            </Linha>
+            {references.length > 0 && (
+              <Linha icone="lata" titulo="Produtos preferidos" valor={(initial?.produtos_preferidos?.length ?? 0) > 0 ? `${initial!.produtos_preferidos!.length} escolhidos` : 'Sem preferência'} definido={(initial?.produtos_preferidos?.length ?? 0) > 0}>
+                <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />
+              </Linha>
+            )}
+            <Linha icone="estrada" titulo="Acesso e via pública" valor={via === 'sim' ? 'Prevista' : via === 'nao' ? 'Não prevista' : 'A avaliar'} definido={via !== 'a_avaliar'}>
+              <Field
+                name="ocupacaoViaPublica"
+                label="Ocupação da via pública"
+                error={e.ocupacaoViaPublica}
+                info="As licenças camarárias dos trabalhos (incluindo a via pública) são obtidas pelo pintor. Licenciamento especial, como alterar janelas ou a fachada, é da responsabilidade do cliente."
+              >
+                <select name="ocupacaoViaPublica" value={via} onChange={(ev) => setVia(ev.target.value)} className={selectClass}>
+                  {VIA_PUBLICA.map((v) => (
+                    <option key={v} value={v}>
+                      {VIA_PUBLICA_LABELS[v]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </Linha>
           </div>
         </Quadro>
       </fieldset>
@@ -236,7 +282,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         <div className="flex flex-wrap items-center justify-end gap-3">
           {seccao !== 'publicar' && (
             <button type="submit" disabled={pending} className="btn-primary btn-lg">
-              {pending ? 'A guardar…' : initial ? 'Guardar e continuar' : 'Criar pedido e continuar para as medidas'}
+              {pending ? 'A guardar…' : initial ? 'Guardar e continuar' : 'Continuar para medidas e fotografias'}
+              {!pending && <span aria-hidden>→</span>}
             </button>
           )}
           {/*
@@ -257,31 +304,32 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   );
 }
 
-/** Um quadro numerado da grelha. Sem moldura dentro de uma secção, que já tem a sua. */
-function Quadro({
-  n,
-  titulo,
-  sub,
-  moldura,
-  className,
-  children,
-}: {
-  n: string;
-  titulo: string;
-  sub: string;
-  moldura: boolean;
-  className?: string;
-  children: ReactNode;
-}) {
+const ICONE_DO_TIPO: Record<(typeof WORK_TYPES)[number], NomeDoIcone> = {
+  fachadas: 'predio',
+  zonas_comuns: 'escadas',
+  muros: 'muro',
+  moradia: 'casa',
+  interior: 'porta',
+};
+
+/** Um quadro numerado da grelha: ícone, número, título, subtítulo e o conteúdo a esticar. */
+function Quadro({ n, icone, titulo, sub, className, children }: { n: string; icone: NomeDoIcone; titulo: string; sub: string; className?: string; children: ReactNode }) {
   return (
-    <section className={moldura ? `rounded-2xl border border-slate-200 bg-white p-5 ${className ?? ''}` : ''}>
-      <header className="flex items-baseline gap-2">
-        <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
-        <span className="text-[15px] text-slate-400">·</span>
-        <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+    <section className={`flex flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(20,33,61,0.05),0_12px_32px_-16px_rgba(20,33,61,0.16)] ${className ?? ''}`}>
+      <header className="flex items-start gap-3">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-tinta-50 text-tinta-600">
+          <Icone nome={icone} className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-tinta-900">
+            <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
+            <span className="text-slate-400">·</span>
+            {titulo}
+          </h2>
+          <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
+        </div>
       </header>
-      <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 flex flex-1 flex-col">{children}</div>
     </section>
   );
 }
@@ -301,6 +349,154 @@ function Visto() {
     <span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-[13px] text-white [label:has(:checked)_&]:border-tinta-600 [label:has(:checked)_&]:bg-tinta-600">
       ✓
     </span>
+  );
+}
+
+/** Uma de duas opções, em cartão (rádio visual; o valor que conta vai nos campos que ela revela). */
+function Opcao({ activa, onClick, titulo, sub }: { activa: boolean; onClick: () => void; titulo: string; sub: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={activa}
+      onClick={onClick}
+      className={`flex min-h-[44px] flex-col items-start rounded-lg border px-3 py-2 text-left ${
+        activa ? 'border-tinta-600 bg-selected' : 'border-slate-300 bg-white hover:border-tinta-600'
+      }`}
+    >
+      <span className="flex items-center gap-2 text-[15px] font-semibold text-tinta-900">
+        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${activa ? 'border-tinta-600' : 'border-slate-400'}`}>
+          {activa && <span className="h-2 w-2 rounded-full bg-tinta-600" />}
+        </span>
+        {titulo}
+      </span>
+      <span className="pl-6 text-[13px] text-slate-500">{sub}</span>
+    </button>
+  );
+}
+
+/** Linha recolhível das preferências: ícone, título, valor actual e seta; abre para editar. */
+function Linha({ icone, titulo, valor, definido, children }: { icone: NomeDoIcone; titulo: string; valor: string; definido: boolean; children: ReactNode }) {
+  return (
+    <details className="group bg-white">
+      <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-3 px-4 py-2 hover:bg-paper">
+        <Icone nome={icone} className="h-5 w-5 shrink-0 text-slate-500" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-tinta-900">{titulo}</span>
+          <span className={`block truncate text-[13px] ${definido ? 'text-tinta-700' : 'text-slate-500'}`}>{valor}</span>
+        </span>
+        <Seta />
+      </summary>
+      <div className="border-t border-slate-100 bg-paper/60 px-4 pb-4 pt-3">{children}</div>
+    </details>
+  );
+}
+
+function Seta() {
+  return (
+    <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-90 [details[open]>summary_&]:rotate-90" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M7 4l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+type NomeDoIcone = 'local' | 'pincel' | 'calendario' | 'texto' | 'ajustes' | 'regua' | 'ferramenta' | 'cor' | 'lata' | 'estrada' | 'predio' | 'escadas' | 'muro' | 'casa' | 'porta';
+
+/** Ícones de traço, 24×24, só os deste ecrã. */
+function Icone({ nome, className }: { nome: NomeDoIcone; className?: string }) {
+  const d: Record<NomeDoIcone, ReactNode> = {
+    local: (
+      <>
+        <path d="M12 21s-6-5.3-6-11a6 6 0 1 1 12 0c0 5.7-6 11-6 11z" />
+        <circle cx="12" cy="10" r="2.2" />
+      </>
+    ),
+    pincel: (
+      <>
+        <path d="M14 3l7 7-8.5 8.5a3 3 0 0 1-4.2 0L7 17.2a3 3 0 0 1 0-4.2L14 3z" />
+        <path d="M5 21l3.5-3.5" />
+      </>
+    ),
+    calendario: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M3 10h18M8 3v4M16 3v4" />
+      </>
+    ),
+    texto: (
+      <>
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v4h4M9 12h6M9 16h6" />
+      </>
+    ),
+    ajustes: (
+      <>
+        <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+        <circle cx="16" cy="7" r="2" />
+        <circle cx="10" cy="17" r="2" />
+      </>
+    ),
+    regua: (
+      <>
+        <rect x="3" y="8" width="18" height="8" rx="1.5" transform="rotate(-45 12 12)" />
+        <path d="M8.5 10.5l1.5 1.5M11 8l1.5 1.5M13.5 5.5L15 7" />
+      </>
+    ),
+    ferramenta: (
+      <>
+        <path d="M14.7 6.3a4 4 0 0 0 4.9 5.2L21 10l-2-2-1.5 1.5L15 7l1.5-1.5-2-2-1.5 1.5a4 4 0 0 0 1.7 1.3z" />
+        <path d="M3 21l8-8" />
+      </>
+    ),
+    cor: (
+      <>
+        <path d="M12 3C7 3 3 6.6 3 11c0 2.2 1.8 4 4 4h1.5a1.5 1.5 0 0 1 1 2.6A2 2 0 0 0 11 21c5.5 0 10-3.6 10-8s-4-10-9-10z" />
+        <circle cx="8" cy="10" r="1" />
+        <circle cx="12" cy="7" r="1" />
+        <circle cx="16" cy="10" r="1" />
+      </>
+    ),
+    lata: (
+      <>
+        <rect x="5" y="7" width="14" height="14" rx="1.5" />
+        <path d="M5 11h14M8 7V5a4 4 0 0 1 8 0v2" />
+      </>
+    ),
+    estrada: (
+      <>
+        <path d="M5 21L9 3h6l4 18" />
+        <path d="M12 7v2M12 12v2M12 17v2" />
+      </>
+    ),
+    predio: (
+      <>
+        <rect x="4" y="3" width="16" height="18" rx="1" />
+        <path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-3h4v3" />
+      </>
+    ),
+    escadas: <path d="M3 21h4v-4h4v-4h4V9h4V5h2" />,
+    muro: (
+      <>
+        <rect x="3" y="8" width="18" height="12" rx="1" />
+        <path d="M3 12h18M3 16h18M9 8v4M15 8v4M6 12v4M12 12v4M18 12v4M9 16v4M15 16v4" />
+      </>
+    ),
+    casa: (
+      <>
+        <path d="M3 11l9-7 9 7" />
+        <path d="M5 10v10h14V10M10 20v-5h4v5" />
+      </>
+    ),
+    porta: (
+      <>
+        <rect x="6" y="3" width="12" height="18" rx="1" />
+        <circle cx="15" cy="12" r="1" />
+      </>
+    ),
+  };
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      {d[nome]}
+    </svg>
   );
 }
 

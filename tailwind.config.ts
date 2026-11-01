@@ -47,6 +47,19 @@ const config: Config = {
           800: '#775b2c',
         },
         // Paleta da marca (ver :root em globals.css). Usada na página de planos e na barra lateral.
+        // Barra lateral: tokens que mudam com o fundo (claro no menu de telemóvel, marinho na barra).
+        barra: {
+          text: 'var(--barra-text)',
+          strong: 'var(--barra-text-strong)',
+          eyebrow: 'var(--barra-eyebrow)',
+          icon: 'var(--barra-icon)',
+          border: 'var(--barra-border)',
+          active: 'var(--barra-active-bg)',
+          hover: 'var(--barra-hover)',
+          accent: 'var(--barra-accent)',
+          count: 'var(--barra-count)',
+          sair: 'var(--barra-sair)',
+        },
         marca: {
           ink: 'var(--ink)',
           'ink-soft': 'var(--ink-soft)',

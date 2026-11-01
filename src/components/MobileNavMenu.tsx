@@ -43,7 +43,7 @@ export function MobileNavMenu({
     <details ref={ref} className="relative md:hidden">
       <summary
         aria-label="Abrir navegação"
-        className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-lg text-marca-ink hover:bg-marca-cream/60 [&::-webkit-details-marker]:hidden"
+        className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-lg text-barra-strong hover:bg-barra-hover [&::-webkit-details-marker]:hidden"
       >
         <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M4 6h16M4 12h16M4 18h16" />
@@ -51,7 +51,7 @@ export function MobileNavMenu({
       </summary>
       {/* Fundo semitransparente a fechar ao toque fora do menu, sob o próprio painel (z menor). */}
       <div className="fixed inset-0 z-20" onClick={fecha} aria-hidden />
-      <div className="absolute right-0 z-30 mt-2 max-h-[75vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-marca-border bg-white p-3 shadow-lg">
+      <div className="barra-clara absolute right-0 z-30 mt-2 max-h-[75vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-marca-border bg-white p-3 shadow-lg">
         <div className="space-y-4">{groups.map(renderGroup)}</div>
         <div className="mt-4 space-y-0.5 border-t border-marca-border pt-3 text-[15px]">
           {meuPerfil ? (

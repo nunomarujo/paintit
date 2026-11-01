@@ -9,7 +9,7 @@ import { MobileNavMenu } from '@/components/MobileNavMenu';
 import { SidebarResizer } from '@/components/SidebarResizer';
 import { contarOrcamentosPorEnviar } from '@/lib/queries';
 import { StrikeDialog } from '@/components/StrikeDialog';
-import { BrandMark } from '@/components/BrandMark';
+import { Logotipo } from '@/components/Logotipo';
 import { isPlatformAdmin } from '@/lib/access';
 import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
@@ -178,12 +178,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // disso há sempre um nome a partir em duas linhas, e uma barra com rótulos partidos lê-se como
   // descuido. Continua a arrastar-se, e o valor arrastado continua a mandar.
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[var(--sidebar-w,300px)_minmax(0,1fr)] print:block">
+    // Barra marinho e painel claro de cantos arredondados (promotor, 01/11/2026, sobre maquete no
+    // canvas): três planos — moldura escura, tela névoa, cartões brancos. A moldura é o fundo deste
+    // contentor; o conteúdo é um painel com margem em cima e em baixo e os cantos esquerdos redondos.
+    <div className="min-h-screen bg-tinta-900 md:grid md:grid-cols-[var(--sidebar-w,300px)_minmax(0,1fr)] print:block print:bg-white">
       {/* `overflow-hidden`: rede de segurança contra qualquer transbordo de texto (ex.: um nome de
           item da navegação que a quebra de linha, por si só, não consiga conter a tempo) — nunca
           mais pode sair da barra para cima do conteúdo, aconteça o que acontecer lá dentro
           (27/10/2026, "estas sobreposições não podem acontecer"). */}
-      <aside className="print:hidden relative overflow-hidden border-b border-marca-border bg-marca-cream px-4 py-2.5 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:border-b-0 md:border-r md:px-[18px] md:py-6">
+      <aside className="barra-escura print:hidden relative overflow-hidden bg-tinta-900 px-4 py-2.5 text-barra-text md:sticky md:top-0 md:flex md:h-screen md:flex-col md:px-[18px] md:py-6">
         {/* Largura ajustável (pedido do promotor, 26/10/2026): arrastar esta borda muda
             `--sidebar-w`, que o grid acima lê. `SidebarResizer.tsx` tem o porquê. */}
         <SidebarResizer />
@@ -193,7 +196,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             largo (`md:hidden`); esta linha só existe para o alinhar à direita da marca em telemóvel. */}
         <div className="flex items-center justify-between md:block">
           <Link href={kinds.size === 0 && condomino ? '/app/condominio' : '/app'} className="block px-1 md:px-3">
-            <BrandMark tone="marca" />
+            <Logotipo tamanho="md" escuro />
           </Link>
           <MobileNavMenu
             groups={doFornecedor ? [...doFornecedor.vendas, ...doFornecedor.avaliacoes] : groups}
@@ -209,7 +212,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           «Empreitadas de pintura» não dava pista nenhuma). Um perfil só → o seu nome; vários → os
           nomes juntos; equipa da plataforma sem entidades → «Equipa da plataforma».
         */}
-        <p className="eyebrow mb-5 mt-2 hidden px-3 text-tinta-600 md:block">{rotuloDoPerfil}</p>
+        <p className="eyebrow mb-5 mt-2 hidden px-3 text-barra-eyebrow md:block">{rotuloDoPerfil}</p>
         <div className="mt-3 md:mt-0">
           {doFornecedor ? <NavDoFornecedor vendas={doFornecedor.vendas} avaliacoes={doFornecedor.avaliacoes} /> : <AppNav groups={groups} />}
         </div>
@@ -220,44 +223,44 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             email e o link "Perfil" de sempre. Só em ecrã largo (26/10/2026): em telemóvel o mesmo
             conteúdo já está no `MobileNavMenu` acima — ter os dois seria dois sítios diferentes para a
             mesma coisa. */}
-        <div className="mt-auto hidden border-t border-marca-border px-3 pt-4 text-[15px] md:block">
+        <div className="mt-auto hidden border-t border-barra-border px-3 pt-4 text-[15px] md:block">
           {meuPerfil ? (
             <Link
               href={`/app/organizacoes/${meuPerfil.id}`}
-              className="-mx-1 flex min-h-[44px] flex-col justify-center rounded-lg px-1 py-1.5 hover:bg-marca-cream/60"
+              className="-mx-1 flex min-h-[44px] flex-col justify-center rounded-lg px-1 py-1.5 hover:bg-barra-hover"
             >
-              <span className="block text-marca-muted">O meu Perfil</span>
-              <span className="block truncate font-semibold text-marca-ink">{meuPerfil.nome}</span>
+              <span className="block text-barra-text">O meu Perfil</span>
+              <span className="block truncate font-semibold text-barra-strong">{meuPerfil.nome}</span>
             </Link>
           ) : (
-            <p className="truncate px-1 font-semibold text-marca-ink">{user.email}</p>
+            <p className="truncate px-1 font-semibold text-barra-strong">{user.email}</p>
           )}
           <nav aria-label="Empresa e conta" className="mt-2 space-y-0.5">
             {kinds.has('pintor') && (
-              <Link href="/app/subscricao" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href="/app/subscricao" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-barra-text hover:text-barra-strong">
                 Plano e subscrição
               </Link>
             )}
             {pintorId && (
-              <Link href={`/app/organizacoes/${pintorId}/referencias`} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href={`/app/organizacoes/${pintorId}/referencias`} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-barra-text hover:text-barra-strong">
                 Referências de fornecedores
               </Link>
             )}
             {!meuPerfil && (
-              <Link href="/app/perfil" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
+              <Link href="/app/perfil" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-barra-text hover:text-barra-strong">
                 Perfil
               </Link>
             )}
           </nav>
-          <form action={leave} className="mt-2 border-t border-marca-border pt-2">
-            <button type="submit" className="px-1 text-[17px] font-semibold text-marca-orange-deep hover:underline">
+          <form action={leave} className="mt-2 border-t border-barra-border pt-2">
+            <button type="submit" className="px-1 text-[17px] font-semibold text-barra-sair hover:underline">
               Sair
             </button>
           </form>
         </div>
       </aside>
-      <div className="min-w-0">
-        <header className="print:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
+      <div className="min-w-0 bg-paper md:my-2.5 md:min-h-[calc(100vh-20px)] md:rounded-l-2xl print:my-0 print:rounded-none">
+        <header className="print:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:rounded-tl-2xl md:px-8">
           {/* "Perfil"/"Sair" já vivem só no botão de navegação da marca em telemóvel
               (`MobileNavMenu.tsx`, 26/10/2026) — não há mais nada a competir por espaço aqui. */}
           <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-tinta-600" />

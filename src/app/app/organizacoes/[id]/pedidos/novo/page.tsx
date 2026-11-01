@@ -104,17 +104,7 @@ export default async function NewRequestPage({
         <Passos actual={1} />
       </div>
 
-      {/* A ajuda gratuita cabe numa linha. O pedido de ajuda abre-se sozinho ao criar o pedido
-          (gatilho `work_requests_create_survey`); o detalhe fica no próprio pedido. */}
-      <p className="mt-5 flex items-start gap-3 rounded-lg bg-tinta-50 px-4 py-3 text-[15px] text-slate-700">
-        <span aria-hidden className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tinta-600 text-[13px] font-bold text-white">
-          ✓
-        </span>
-        <span>
-          <span className="font-semibold text-tinta-900">Não precisa de saber medir.</span> Um avaliador pode visitar a
-          obra e preencher as medidas e as fotografias, sem custo e sem compromisso. Decide-se no passo seguinte.
-        </span>
-      </p>
+      {/* A ajuda do avaliador diz-se dentro do quadro «Local e identificação» (RequestForm). */}
 
       <div className="mt-5">
         {ordered.length === 0 ? (

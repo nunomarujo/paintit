@@ -18,7 +18,7 @@ import { contextoDoCaminho, inicioDoContexto } from '@/domain/workspaceFornecedo
 export function SeletorDeContexto() {
   const contexto = contextoDoCaminho(usePathname());
   return (
-    <div role="group" aria-label="Contexto de trabalho" className="mb-4 flex gap-0.5 rounded-xl border border-marca-border bg-marca-tag p-0.5">
+    <div role="group" aria-label="Contexto de trabalho" className="mb-4 flex gap-0.5 rounded-xl border border-barra-border bg-barra-active p-0.5">
       {(['vendas', 'avaliacoes'] as const).map((c) => {
         const ativo = c === contexto;
         return (
@@ -27,7 +27,7 @@ export function SeletorDeContexto() {
             href={inicioDoContexto(c)}
             aria-current={ativo ? 'page' : undefined}
             className={`flex min-h-[40px] flex-1 items-center justify-center rounded-[10px] px-3 text-[15px] ${
-              ativo ? 'bg-tinta-600 font-semibold text-white' : 'font-medium text-slate-700 hover:bg-white/60'
+              ativo ? 'bg-white font-semibold text-tinta-900' : 'font-medium text-barra-text hover:bg-barra-hover'
             }`}
           >
             {c === 'vendas' ? 'Vendas' : 'Avaliações'}

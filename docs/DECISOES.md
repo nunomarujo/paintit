@@ -4,6 +4,24 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 01/11/2026 — Barra lateral marinho e painel de cantos arredondados; formulário do pedido em grelha com ícones
+
+**Aprovado pelo promotor sobre maquete no canvas** («Barra lateral e disposição do pedido — três
+hipóteses»): barra lateral em marinho `#14213d` com o logótipo na versão escura, rótulos em lima,
+item ativo com fundo translúcido e risca lima; o conteúdo num **painel névoa com os cantos esquerdos
+arredondados** (16px) e margem em cima e em baixo, de modo que o marinho o envolve. Três planos:
+moldura, tela, cartões. Aplica-se a toda a aplicação pelo layout comum.
+
+Implementação: tokens `barra-*` (`globals.css`, `tailwind.config.ts`) com valores claros por omissão e
+redefinidos em `.barra-escura` (a barra) e `.barra-clara` (o menu de telemóvel, que abre um painel
+branco dentro da barra). A mesma lista de navegação (`AppNav`) serve os dois fundos.
+
+Formulário do pedido (grelha A, reequilibrada a pedido do promotor): Local (1/3) + O que pretende (2/3)
+em cima; Prazos · Descrição · Preferências (3·6·3) em baixo. Ícone em cada quadro e em cada pastilha;
+um só campo de data mais a escolha «Datas flexíveis / Indicar datas»; preferências como linhas
+recolhíveis com o valor à vista; contador dentro da caixa; sombra leve. O que o fez «deixar de parecer
+básico» não foi profundidade, foi ícones, ausência de espaço morto e menos campos crus.
+
 ## 01/11/2026 — Condóminos com acesso ao prédio: acompanhar, ler as propostas, votar
 
 **Pedido do promotor.** A administradora trata de tudo, mas quer abrir aos condóminos de um prédio o

@@ -75,7 +75,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
 
   const renderGroup = (g: NavGroup) => (
     <div key={g.title}>
-      <p className="eyebrow px-3 pb-2 text-marca-muted">{g.title}</p>
+      <p className="eyebrow px-3 pb-2 text-barra-eyebrow">{g.title}</p>
       <div className="space-y-0.5">
         {g.items.map((i) => {
           const aberto = active(i) && !!i.children?.length;
@@ -99,23 +99,23 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                 aria-current={active(i) ? 'page' : undefined}
                 className={`flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-[15px] ${
                   active(i)
-                    ? 'border border-marca-border bg-white font-semibold text-marca-ink'
-                    : 'border border-transparent text-marca-muted hover:bg-white/70 hover:text-marca-ink'
+                    ? 'bg-barra-active font-semibold text-barra-strong'
+                    : 'text-barra-text hover:bg-barra-hover hover:text-barra-strong'
                 }`}
               >
                 <span className="flex items-center gap-2.5">
                   {/* Barra cobalto à esquerda do item ativo (v5): a casca e o item ativo são agora da
                       mesma família de cor, e o fundo branco sozinho não chegava para o distinguir. */}
-                  {active(i) && <span aria-hidden="true" className="-ml-1 h-5 w-[3px] shrink-0 rounded-full bg-tinta-600" />}
-                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-tinta-600' : 'text-marca-muted/80'}`} />}
+                  {active(i) && <span aria-hidden="true" className="-ml-1 h-5 w-[3px] shrink-0 rounded-full bg-barra-accent" />}
+                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-barra-accent' : 'text-barra-icon'}`} />}
                   {i.label}
                   {i.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-marca-attention" />}
                 </span>
-                {i.count ? <span className="rounded-full bg-marca-orange-deep px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
+                {i.count ? <span className="rounded-full bg-barra-count px-1.5 py-0.5 text-[15px] font-semibold text-white">{i.count}</span> : null}
               </Link>
               {aberto && (
                 // A régua acompanha só os filhos deste item.
-                <div className="ml-3 space-y-0.5 border-l border-marca-border">
+                <div className="ml-3 space-y-0.5 border-l border-barra-border">
                   {i.children!.map((c) => (
                     <Link
                       key={c.href}
@@ -123,7 +123,7 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                       onClick={onNavigate}
                       aria-current={activo(c) ? 'page' : undefined}
                       className={`flex min-h-[44px] items-center gap-1.5 rounded-lg py-1.5 pl-4 text-[15px] ${
-                        activo(c) ? 'font-semibold text-marca-ink' : 'text-marca-muted hover:text-marca-ink'
+                        activo(c) ? 'font-semibold text-barra-strong' : 'text-barra-text hover:text-barra-strong'
                       }`}
                     >
                       {c.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-amber-700" />}
