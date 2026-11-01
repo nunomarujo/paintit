@@ -9,8 +9,9 @@ export function ReserveButton({ surveyId, orgId }: { surveyId: string; orgId: st
   const msg = Object.values(state.errors)[0] ?? state.message;
   return (
     <form {...formProps} className="flex items-center gap-2">
-      <button type="submit" disabled={pending} className="rounded-lg bg-tinta-600 px-4 py-1.5 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60">
-        {pending ? 'A reservar…' : 'Reservar'}
+      {/* Geometria do sistema, não escrita à mão: `btn-primary` já traz os 44px de altura (regra 17). */}
+      <button type="submit" disabled={pending} className="btn-primary disabled:opacity-60">
+        {pending ? 'A aceitar…' : 'Aceitar'}
       </button>
       {msg && <span className={`text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{msg}</span>}
     </form>
