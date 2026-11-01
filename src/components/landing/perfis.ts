@@ -17,8 +17,8 @@ export const DEMO_DE_PERFIL: Record<Tipo, { src: string; width: number; height: 
   },
   fornecedor: {
     src: '/img/popup-demo-fornecedor.webp',
-    width: 1792,
-    height: 1520,
+    width: 1696,
+    height: 1240,
     alt: 'Catálogo de produtos de um fornecedor, com fichas técnicas e preços, e a lista de descontos que já tem definidos para os pintores.',
     legenda: 'O catálogo e os descontos, exatamente como o pintor os vê.',
   },

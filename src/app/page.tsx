@@ -268,30 +268,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PARA QUEM — dois cartões para as páginas próprias do pintor e do fornecedor. */}
+      {/* PARA QUEM — dois cartões com identidade própria, cada um com o ecrã real do seu perfil
+          (as capturas geradas dos componentes reais em `src/app/demo-*`). O nome do perfil é o
+          título: era um rótulo de 13px e passava invisível (promotor, 01/11/2026). */}
       <section id="para-quem" className="bg-paper py-20">
         <div className="mx-auto max-w-6xl px-4">
           <p className="eyebrow">É do outro lado da obra?</p>
           <h2 className="mt-3 text-[34px] leading-tight font-extrabold text-tinta-900">A plataforma também é sua.</h2>
           <div className="mt-9 grid gap-6 md:grid-cols-2">
-            <Link href="/empresas" className="group flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-8 hover:border-tinta-300">
-              <span className="eyebrow !text-tinta-600">Empresa de pintura</span>
-              <span className="text-[26px] font-extrabold leading-tight text-tinta-900">Há mais obras do que empresas para as fazer.</span>
-              <span className="text-[15px] leading-relaxed text-slate-600">
-                Oportunidades na sua zona, orçamento guiado em 4 passos, documento A4 automático e gestão de obra. Só
-                paga quando ganha.
-              </span>
-              <span className="mt-auto pt-3 text-[17px] font-bold text-tinta-600 group-hover:underline">Ver como funciona para empresas →</span>
-            </Link>
-            <Link href="/fornecedores" className="group flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-8 hover:border-tinta-300">
-              <span className="eyebrow !text-tinta-600">Fornecedor de tintas</span>
-              <span className="text-[26px] font-extrabold leading-tight text-tinta-900">O seu produto, onde a decisão é tomada.</span>
-              <span className="text-[15px] leading-relaxed text-slate-600">
-                Catálogo sugerido nas propostas dos pintores, descontos automáticos por perfil de cliente, e
-                levantamentos no terreno para a sua equipa comercial.
-              </span>
-              <span className="mt-auto pt-3 text-[17px] font-bold text-tinta-600 group-hover:underline">Ver como funciona para fornecedores →</span>
-            </Link>
+            {[
+              {
+                href: '/empresas',
+                titulo: 'Empresa de pintura?',
+                frase: 'Há mais obras do que empresas para as fazer.',
+                texto: 'Oportunidades na sua zona, orçamento guiado em 4 passos, documento A4 automático e gestão de obra. Só paga quando ganha.',
+                cta: 'Ver como funciona para empresas',
+                img: '/img/popup-demo-pintor.webp',
+                alt: 'Orçamento guiado: trabalho selecionado com sugestões de produto do catálogo',
+                escuro: true,
+              },
+              {
+                href: '/fornecedores',
+                titulo: 'Fornecedor de tintas?',
+                frase: 'O seu produto, onde a decisão é tomada.',
+                texto: 'Catálogo sugerido nas propostas dos pintores, descontos automáticos por perfil de cliente, e levantamentos no terreno para a sua equipa comercial.',
+                cta: 'Ver como funciona para fornecedores',
+                img: '/img/popup-demo-fornecedor.webp',
+                alt: 'Catálogo de produtos de um fornecedor, com fichas técnicas e descontos',
+                escuro: false,
+              },
+            ].map((c) => (
+              <Link
+                key={c.href}
+                href={c.href}
+                className={`group flex flex-col overflow-hidden rounded-2xl ${c.escuro ? 'bg-tinta-900 text-white' : 'border border-tinta-200 bg-tinta-100 text-tinta-900'}`}
+              >
+                <div className="flex flex-col gap-3 p-8 pb-6">
+                  <span className="text-[26px] font-extrabold leading-tight">{c.titulo}</span>
+                  <span className={`text-[20px] font-bold leading-snug ${c.escuro ? 'text-lima' : 'text-tinta-600'}`}>{c.frase}</span>
+                  <span className={`text-[15px] leading-relaxed ${c.escuro ? 'text-tinta-200' : 'text-slate-600'}`}>{c.texto}</span>
+                  <span className={`mt-2 inline-flex min-h-[44px] w-fit items-center rounded-lg px-4 text-[15px] font-bold ${c.escuro ? 'bg-white text-tinta-900' : 'bg-tinta-600 text-white'}`}>
+                    {c.cta} →
+                  </span>
+                </div>
+                <div className="mx-8 -mb-2 h-56 overflow-hidden rounded-t-2xl bg-white shadow-[0_-8px_30px_rgba(20,33,61,0.18)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.img} alt={c.alt} className="block w-full object-cover object-top transition-transform duration-500 group-hover:-translate-y-3" />
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
