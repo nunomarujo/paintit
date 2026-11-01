@@ -16,6 +16,7 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 | O quê | Onde | O que fecha |
 |---|---|---|
+| **Aplicar a migração `20261101090000_condominos_do_predio.sql` na base real** (a sessão de 01/11/2026 não tinha permissão para alterações em produção; o código que depende dela já está publicado — os ecrãs de condóminos dão erro até ela correr) | Supabase › SQL, ou MCP `apply_migration` com o conteúdo do ficheiro | correr; depois avisos de segurança/desempenho a zero |
 | Rever em produção os ecrãs novos do workspace (Hoje, Levantamentos, Produtos e preços, Regras comerciais, Empresa) | quempinta.pt | dizer o que não está como se queria |
 | Correr a limpeza dos resíduos de ensaio | `painel-limpeza-dos-ensaios.sql`, primeiro em ensaio (`a_serio := false`), depois a sério | antes de a Stripe passar a modo real |
 | Apagar 2 fotografias SIMULACAO | conta `info@quempinta.pt`, pedido «SIMULACAO Pintura das fachadas e caixa de escadas» | apagar na aplicação |
@@ -46,6 +47,7 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 - **Versões da proposta** não aparecem no ecrã de comparação (já aparecem no relatório).
 - **Aviso 2 h antes aos outros avaliadores** (alternativa ao bónus de adesão, não escolhida).
 
+- **Condóminos (01/11/2026), o que ficou para depois:** aviso por email aos condóminos quando as propostas abrem (hoje só veem ao entrar); exportar a contagem de votos no relatório para a assembleia (`dossier`); o condómino poder actualizar o próprio telemóvel/nome; limitar registos por código (hoje não há limite de frações por prédio).
 - **Design v5 (01/11/2026), o que ficou para depois:** o fornecedor confirmar a venda de um produto a um pintor para uma obra (prometido em versão fraca no cartão 3 das «Três proteções»; construir agora que o workspace do fornecedor está publicado); medir toques e campos do orçamento guiado com e sem modelos, para substituir a estimativa 45/20/5 min por um número verificável. *Fechados:* a recomposição do ecrã «Hoje» do avaliador (feita na sessão do workspace, 01/11/2026); a ilustração do prédio mantém-se nas cores da ilustração, por decisão do promotor.
 
 ## 4. Dívida técnica

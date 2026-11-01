@@ -14,6 +14,7 @@ import { isPlatformAdmin } from '@/lib/access';
 import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
+import { residenciasDe } from '@/lib/condomino';
 // Os ícones já não entram aqui como componente: o layout é de servidor e o AppNav é de cliente, e
 // uma função não atravessa essa fronteira (produção em baixo a 26/10/2026, 12:49 — ver NavIcons.tsx,
 // `ICONES`). Pede-se o ícone pelo nome (string); o cliente resolve-o.
@@ -38,6 +39,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     supabase.from('notifications').select('id', { count: 'exact', head: true }).is('lida_em', null),
   ]);
   const kinds = new Set((memberships ?? []).map((m) => m.organizations.kind));
+  // Condómino com acesso a um prédio (01/11/2026): não é membro de entidade nenhuma, mas tem um
+  // espaço — o do prédio. Uma conta pode ser as duas coisas (um gestor que também é condómino).
+  const residencias = await residenciasDe(supabase);
+  const condomino = residencias.length > 0;
   const client = kinds.has('condominio') || kinds.has('administradora') || kinds.has('particular');
   // Uma conta de fornecedor é sempre uma só entidade (allowedOrgKinds em organization.ts).
   const fornecedorOrg = (memberships ?? []).find((m) => m.organizations.kind === 'fornecedor')?.organizations;
@@ -140,12 +145,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     if (kinds.has('administradora')) partes.push('Administração de condomínios');
     else if (kinds.has('condominio')) partes.push('Condomínio');
     else if (kinds.has('particular')) partes.push('Cliente particular');
+    if (condomino) partes.push('Condómino');
     if (partes.length === 0) return admin ? 'Equipa da plataforma' : 'Sem entidade';
     return partes.join(' · ');
   })();
 
+  const doCondomino: NavItem[] = condomino
+    ? [
+        { href: '/app/condominio', label: residencias.length === 1 ? 'O meu prédio' : 'Os meus prédios', icon: 'predio', exact: true },
+        { href: '/app/condominio/catalogo', label: 'Catálogo de referência', icon: 'caixa' },
+      ]
+    : [];
   const groups = [
-    ...(admin && kinds.size === 0 ? [] : [{ title: soCliente ? 'Acompanhar a obra' : 'Dia a dia', items: dia }]),
+    ...((admin && kinds.size === 0) || (kinds.size === 0 && condomino) ? [] : [{ title: soCliente ? 'Acompanhar a obra' : 'Dia a dia', items: dia }]),
+    ...(doCondomino.length ? [{ title: 'Condómino', items: doCondomino }] : []),
     ...(ganharObra.length ? [{ title: 'Ganhar obra', items: ganharObra }] : []),
     ...(materiais.length ? [{ title: 'Materiais', items: materiais }] : []),
     ...(vender.length ? [{ title: 'Vender', items: vender }] : []),
@@ -179,7 +192,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             inteira a abrir por baixo do conteúdo. `MobileNavMenu.tsx` já se esconde sozinho em ecrã
             largo (`md:hidden`); esta linha só existe para o alinhar à direita da marca em telemóvel. */}
         <div className="flex items-center justify-between md:block">
-          <Link href="/app" className="block px-1 md:px-3">
+          <Link href={kinds.size === 0 && condomino ? '/app/condominio' : '/app'} className="block px-1 md:px-3">
             <BrandMark tone="marca" />
           </Link>
           <MobileNavMenu

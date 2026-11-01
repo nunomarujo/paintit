@@ -15,10 +15,10 @@ export default async function ReferencePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ concelho?: string }>;
+  searchParams: Promise<{ concelho?: string; de?: string }>;
 }) {
   const { id } = await params;
-  const { concelho } = await searchParams;
+  const { concelho, de } = await searchParams;
   const { supabase } = await getUser();
   const { data: r } = await supabase.from('reference_products').select('*').eq('id', id).eq('visivel', true).maybeSingle();
   if (!r) notFound();
@@ -50,7 +50,8 @@ export default async function ReferencePage({
 
   return (
     <div className="space-y-6">
-      <Voltar href="/app/catalogo">Catálogo</Voltar>
+      {/* `de=condominio`: o condómino chega pelo catálogo de referência dele e volta para lá (01/11/2026). */}
+      <Voltar href={de === 'condominio' ? '/app/condominio/catalogo' : '/app/catalogo'}>Catálogo</Voltar>
       <div className={`${card} flex gap-5`}>
         <ProductPhotoZoom
           fotoPath={r.foto_path}

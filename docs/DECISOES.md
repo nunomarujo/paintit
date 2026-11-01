@@ -4,6 +4,36 @@ Questões jurídicas, fiscais e regulamentares, com propostas de resposta:
 [Paint it — Questões jurídicas para validação](https://claude.ai/code/artifact/6ac31246-9446-4e07-a622-2022b58cdcb3)
 (Claude Docs). Requisitos de base: Documento Mestre de Requisitos v0.3 (17/10/2026).
 
+## 01/11/2026 — Condóminos com acesso ao prédio: acompanhar, ler as propostas, votar
+
+**Pedido do promotor.** A administradora trata de tudo, mas quer abrir aos condóminos de um prédio o
+acompanhamento do processo, a leitura das propostas e o voto — sem lhes dar acesso aos outros prédios
+que gere. E todos podem consultar o catálogo com preços de referência, nunca com descontos.
+
+**Decisões (respostas do promotor):**
+- **Voto indicativo, com permilagem opcional.** O voto não adjudica; a escolha é do administrador, com a
+  ata da assembleia. O gestor pode registar a permilagem de cada fração, e a contagem passa a valer em
+  frações e em permilagem (`src/domain/votacao.ts`). A contagem só a vê o gestor; o condómino vê o seu voto.
+- **Entrada por link ou por QR do prédio.** O gestor cria um código por prédio (`building_access_codes`),
+  imprime o cartaz ou envia o link. Quem o abre escreve fração, andar, email e telemóvel — os quatro
+  obrigatórios — e recebe no email o link de entrada (o link mágico de sempre, apontado a `/app/condominio`).
+  O gestor também regista condóminos à mão, com a permilagem; quem entra com esse email fica ligado.
+- **As propostas abrem ao mesmo tempo para todos**, administração e condóminos, e isso é dito explicitamente
+  nos ecrãs — para não haver espaço a vícios na adjudicação. É a mesma regra `propostas_entregues` do cliente;
+  o condómino nunca vê antes dele.
+
+**Modelo:** o condómino **não é membro da entidade**. `org_members` dá acesso à entidade inteira (e, numa
+gestora, a todos os condomínios). Há uma tabela própria, `building_residents`, presa ao prédio, e as
+políticas de leitura de prédios, pedidos (nunca rascunhos), superfícies e propostas ganham um ramo para
+ela — cada uma a partir da sua versão em vigor. `supplier_discounts` deixou de ser legível a qualquer
+conta autenticada: exige pertencer a alguma entidade. Votos só se escrevem pela função `votar`
+(um por fração e pedido, alterável até haver proposta escolhida ou o pedido sair de publicado).
+
+Migração `20261101090000_condominos_do_predio.sql`; testes em `supabase/tests/condominos.test.ts`.
+Ecrãs: `/app/organizacoes/[id]/predios/[predioId]/condominos` (gestor), `/predio/[codigo]` e `/cartaz`
+(público), `/app/condominio`, `/app/condominio/pedidos/[id]`, `/app/condominio/catalogo` (condómino);
+linha «Voto dos condóminos» na comparação do cliente.
+
 ## 31/10/2026 — Do aceitar ao agendamento confirmado: os prazos, e o que acontece ao vencer
 
 Regras ratificadas pelo promotor neste dia, depois de duas rondas de correção. A primeira versão

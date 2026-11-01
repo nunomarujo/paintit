@@ -13,6 +13,10 @@ proposta o previr, o adiantamento de adjudicação.
 
 ## Percurso
 
+Antes do passo 1, e sem mexer nele: os condóminos de um prédio podem acompanhar o pedido, ler as propostas
+(ao mesmo tempo que o administrador) e dar um **voto indicativo**, contado em frações e em permilagem
+(`docs/DECISOES.md`, 01/11/2026). A escolha continua a ser a da assembleia, pela ata.
+
 1. **Escolha.** A assembleia aprova a proposta (ata). O administrador deposita a garantia de 3% do valor sem IVA
    e, se houver, o adiantamento de adjudicação.
 2. **Minuta e assinatura do cliente.** A plataforma gera a minuta a partir da proposta e da ficha da obra. O

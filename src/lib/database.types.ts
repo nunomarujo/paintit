@@ -616,6 +616,63 @@ export type Database = {
       };
       // Acrescentado à mão, como a nota no topo deste ficheiro manda (migração
       // 20261101070000_limites_de_desconto_do_vendedor).
+      // Condóminos com acesso a um prédio (migração 20261101090000_condominos_do_predio).
+      building_residents: {
+        Row: {
+          id: string;
+          building_id: string;
+          org_id: string;
+          user_id: string | null;
+          email: string;
+          nome: string;
+          telemovel: string;
+          fracao: string;
+          andar: string;
+          permilagem: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          revoked_at: string | null;
+        };
+        Insert: {
+          building_id: string;
+          org_id: string;
+          email: string;
+          nome?: string;
+          telemovel?: string;
+          fracao: string;
+          andar?: string;
+          permilagem?: number | null;
+          created_by: string;
+        };
+        Update: {
+          nome?: string;
+          telemovel?: string;
+          fracao?: string;
+          andar?: string;
+          permilagem?: number | null;
+          revoked_at?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: 'building_residents_building_id_fkey'; columns: ['building_id']; isOneToOne: false; referencedRelation: 'buildings'; referencedColumns: ['id'] },
+          { foreignKeyName: 'building_residents_org_id_fkey'; columns: ['org_id']; isOneToOne: false; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+        ];
+      };
+      building_access_codes: {
+        Row: { building_id: string; org_id: string; codigo: string; created_by: string; created_at: string; revoked_at: string | null };
+        Insert: { building_id: string; org_id: string; codigo: string; created_by: string };
+        Update: { codigo?: string; revoked_at?: string | null };
+        Relationships: [];
+      };
+      proposal_votes: {
+        Row: { request_id: string; resident_id: string; proposal_id: string; updated_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'proposal_votes_resident_id_fkey'; columns: ['resident_id']; isOneToOne: false; referencedRelation: 'building_residents'; referencedColumns: ['id'] },
+          { foreignKeyName: 'proposal_votes_proposal_id_fkey'; columns: ['proposal_id']; isOneToOne: false; referencedRelation: 'proposals'; referencedColumns: ['id'] },
+        ];
+      };
       supplier_discount_limits: {
         Row: {
           id: string;
@@ -2129,6 +2186,14 @@ export type Database = {
       };
       // A fila dos avisos por email (migração 20261101020000). Estas duas portas estão abertas só à chave de
       // serviço: quem tem sessão de utilizador não as vê, e por isso só a aplicação as chama.
+      // Condóminos (migração 20261101090000_condominos_do_predio).
+      predio_por_codigo: { Args: { p_codigo: string }; Returns: { nome_interno: string; concelho: string; condominio: string }[] };
+      registar_condomino: {
+        Args: { p_codigo: string; p_fracao: string; p_andar: string; p_email: string; p_telemovel: string; p_nome: string };
+        Returns: undefined;
+      };
+      reclamar_acesso_de_condomino: { Args: Record<string, never>; Returns: number };
+      votar: { Args: { p_request: string; p_proposal: string }; Returns: undefined };
       reclamar_avisos: {
         Args: { p_limite?: number };
         Returns: { id: string; destinatario: string; assunto: string; texto: string; link: string }[];

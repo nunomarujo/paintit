@@ -42,6 +42,10 @@ const VERIFICACOES = [
 /** Funções que podem não verificar nada, com a razão escrita. */
 const DISPENSADAS: Record<string, string> = {
   'public.acc_post': 'Revogada a authenticated e a anon: só corre pelo serviço (livro_de_movimentos).',
+  'public.registar_condomino':
+    'Corre como anon de propósito: é o registo pelo código do prédio, antes de haver conta. O que a autoriza é o '
+    + 'código activo (building_access_codes), e só escreve na linha do próprio email — nunca toca em permilagem nem '
+    + 'em user_id (condominos_do_predio, 01/11/2026).',
 };
 
 interface Funcao {

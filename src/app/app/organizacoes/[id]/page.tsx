@@ -234,13 +234,18 @@ export default async function OrganizationPage({
                   </p>
                 </div>
                 {manager && (
-                  <Link
-                    href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/editar`}
-                    className="btn-secondary"
-                  >
-                    <GearIcon />
-                    Configurar prédio
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/condominos`} className="btn-secondary">
+                      Condóminos
+                    </Link>
+                    <Link
+                      href={`/app/organizacoes/${condominioEmFoco.id}/predios/${predioEmFoco.id}/editar`}
+                      className="btn-secondary"
+                    >
+                      <GearIcon />
+                      Configurar prédio
+                    </Link>
+                  </div>
                 )}
               </div>
               <dl className="mt-4 grid gap-3 text-[17px] sm:grid-cols-4">
@@ -681,9 +686,14 @@ export default async function OrganizationPage({
                     </span>
                   </span>
                   {manager && (
-                    <Link href={`/app/organizacoes/${org.id}/predios/${b.id}/editar`} className="text-tinta-700 hover:underline">
-                      Editar
-                    </Link>
+                    <span className="flex gap-4">
+                      <Link href={`/app/organizacoes/${org.id}/predios/${b.id}/condominos`} className="inline-flex min-h-[44px] items-center text-tinta-700 hover:underline">
+                        Condóminos
+                      </Link>
+                      <Link href={`/app/organizacoes/${org.id}/predios/${b.id}/editar`} className="inline-flex min-h-[44px] items-center text-tinta-700 hover:underline">
+                        Editar
+                      </Link>
+                    </span>
                   )}
                 </li>
               ))}

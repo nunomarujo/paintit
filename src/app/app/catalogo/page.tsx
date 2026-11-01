@@ -6,6 +6,8 @@ import { parseHundredths } from '@/domain/request';
 import { matchesSearch } from '@/domain/search';
 import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { residenciasDe } from '@/lib/condomino';
 import Link from 'next/link';
 import { ProductThumb } from '@/components/ProductThumb';
 
@@ -31,7 +33,10 @@ export default async function CatalogPage({
     const s = p.toString();
     return s ? `?${s}` : '';
   };
-  const { supabase } = await getUser();
+  const { supabase, user } = await getUser();
+  // Condómino sem entidade: o catálogo dele é o de referência, sem o separador dos descontos (01/11/2026).
+  const { count: entidades } = await supabase.from('org_members').select('org_id', { count: 'exact', head: true }).eq('user_id', user!.id);
+  if (!entidades && (await residenciasDe(supabase)).length > 0) redirect('/app/condominio/catalogo');
   // A pesquisa (gíria do setor e tolerância a erros de escrita, src/domain/search.ts) corre em
   // memória, não no SQL: "capoto" tem de encontrar isolamento mesmo que a palavra não esteja em
   // nenhuma ficha (decisão de 24/10/2026, docs/DECISOES.md). Por isso o filtro de tipo aplica-se na

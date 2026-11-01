@@ -1837,3 +1837,7 @@ vez do bloco de texto; o pedido **publicado** deixou de mostrar a interface de p
 cabeçalho operacional, separadores (`Acompanhamento.tsx`) e as duas ações com consequência
 confirmada antes («Editar pedido» volta a rascunho e tira o anúncio do ar; «Encerrar» é um link
 discreto). O rascunho mantém `PedidoEmSeccoes` como estava.
+
+**Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`
+presa ao prédio, código/QR por prédio, voto indicativo com permilagem; ecrãs do gestor, públicos e do
+condómino. **A migração ainda não correu na base real** — está na lista 1 de `EM_ABERTO.md`.

@@ -9,6 +9,7 @@ import { loadReplay } from '@/lib/engagements';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { InicioDoCliente } from './InicioDoCliente';
+import { residenciasDe } from '@/lib/condomino';
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ convite?: string }> }) {
   const { convite } = await searchParams;
@@ -29,7 +30,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   // Conta nova, sem entidades nem convites: primeiro escolhe o perfil.
   const { count: memberCount } = await supabase.from('org_members').select('org_id', { count: 'exact', head: true }).eq('user_id', user!.id);
   // A equipa da plataforma não tem entidades: vai ao backoffice, não ao arranque de conta.
-  if (!memberCount && !(invites ?? []).length) redirect((await isPlatformAdmin(supabase, user!.id)) ? '/app/backoffice' : '/app/comecar');
+  if (!memberCount && !(invites ?? []).length) {
+    if (await isPlatformAdmin(supabase, user!.id)) redirect('/app/backoffice');
+    // Condómino sem entidade: o espaço dele é o do prédio (01/11/2026).
+    if ((await residenciasDe(supabase)).length > 0) redirect('/app/condominio');
+    redirect('/app/comecar');
+  }
 
   // Painel: o que espera por esta conta (CLI-01, PIN-01).
   // Só as entidades de que é membro (ou geridas por elas): a equipa da plataforma vê todas, mas não são suas.

@@ -32,6 +32,7 @@ import { adherence, parsePreferences } from '@/domain/reference';
 import { leituraImediata, sinteseDasPropostas } from '@/domain/sintese';
 import { loadReferences, refPerLitre, usedProducts } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
+import { contarVotos, resumoDaContagem } from '@/domain/votacao';
 import { ChooseButton } from './ChooseButton';
 import { Voltar } from '@/components/Voltar';
 import { ComparacaoEmBlocos, type PropostaEmBloco } from '@/components/ComparacaoEmBlocos';
@@ -82,6 +83,16 @@ export default async function ProposalsPage({
     : { data: [] };
   const committedProductIds = [...new Set((lines ?? []).map((l) => l.product_id).filter((x): x is string => !!x))];
   const materialProducts = Object.fromEntries(await productsFor(supabase, committedProductIds));
+  // Votos dos condóminos (01/11/2026): só o gestor os lê (política de `proposal_votes`); para o
+  // condómino a consulta devolve o dele. Indicativos — a contagem vai para a assembleia, não adjudica.
+  const { data: votosRaw } = ids.length
+    ? await supabase.from('proposal_votes').select('proposal_id, building_residents!inner(fracao, permilagem)').eq('request_id', id)
+    : { data: [] };
+  const votos = contarVotos(
+    (votosRaw ?? []).map((v) => ({ fracao: v.building_residents.fracao, proposalId: v.proposal_id, permilagem: v.building_residents.permilagem })),
+    ids,
+  );
+  const temPermilagens = votos.permilagemVotante > 0;
   const [ratings, { data: versions }] = await Promise.all([
     Promise.all(ids.map(async (pid) => [pid, (await supabase.rpc('painter_rating', { p_proposal: pid })).data?.[0] ?? null] as const)),
     ids.length ? supabase.from('proposal_versions').select('proposal_id, version').in('proposal_id', ids) : Promise.resolve({ data: [] }),
@@ -556,6 +567,20 @@ export default async function ProposalsPage({
                   })}
                 />
                 <Row label="Revisões da proposta" cells={sorted.map((r) => (versionsOf(r.id) > 1 ? `${versionsOf(r.id)} versões` : 'Nenhuma'))} />
+                {votos.totalVotos > 0 && (
+                  <Row
+                    label={`Voto dos condóminos (${votos.totalVotos} ${votos.totalVotos === 1 ? 'fração' : 'frações'}${temPermilagens ? `, ${votos.permilagemVotante}‰` : ''})`}
+                    cells={sorted.map((r) => {
+                      const linha = votos.porProposta.find((l) => l.proposalId === r.id)!;
+                      const destaque = (temPermilagens ? votos.maisPermilagem : votos.maisVotada) === r.id;
+                      return (
+                        <span key={r.id} className={destaque ? 'font-semibold text-tinta-900' : undefined}>
+                          {resumoDaContagem(linha, temPermilagens)}
+                        </span>
+                      );
+                    })}
+                  />
+                )}
               </tbody>
             </table>
           </div>
