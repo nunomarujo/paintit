@@ -1848,6 +1848,15 @@ ações do servidor não mudaram.
 
 **Página inicial com o inspetor taste-skill a zero falhas (01/11/2026):** título do hero numa frase (a segunda abre o parágrafo), sem eyebrows, sem sombras nem linhas finas, «Três proteções» sem caixas nem ícones, fotografia real das fachadas do Porto (CC BY 4.0, crédito no rodapé), entrada das secções com `Revelar.tsx`. Verificar com `scripts/inspecionar-desenho.sh https://quempinta.pt`.
 
+**`/empresas` e `/fornecedores` a zero falhas (01/11/2026):** `PaginaDePerfil.tsx` perdeu o eyebrow e o
+«Página inicial» acima do título (o logótipo do cabeçalho leva à página inicial), ganhou fotografia de hero
+a sangrar até à margem direita, título da secção dos destaques, fotografia ao lado de «Tudo o que inclui»
+e créditos no rodapé; os blocos deixaram de ter borda (degrau de tom papel/branco), os tempos e os três
+momentos têm barra à esquerda em vez de caixa. Fotografias novas em `public/img/rolo-na-parede.webp`
+(Michael Cory, CC BY 2.0) e `balde-e-trincha.webp` (Ionenlaser, CC0), ambas da Wikimedia Commons.
+`Revelar` aceita `as="section"`. Ficam por rever os espaços autenticados (cliente, pintor, fornecedor,
+backoffice) — lista 2 de `EM_ABERTO.md`.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { BrandMark } from '@/components/BrandMark';
 import { LegalLinks } from '@/components/LegalPage';
+import { Revelar } from '@/components/landing/Revelar';
 import { SiteHeader } from '@/components/landing/SiteHeader';
-import { VoltarAtras } from '@/components/VoltarAtras';
 import { BRAND } from '@/config/brand';
 
 /**
@@ -14,9 +14,12 @@ import { BRAND } from '@/config/brand';
  * `AudiencePopup` usava, gerada dos componentes reais em `src/app/demo-*`), os destaques, a lista
  * completa do que inclui, a nota comercial **sem percentagens** (regra 15 do CLAUDE.md) e o CTA de
  * adesão. O conteúdo vem de `CONTEUDO_DE_PERFIL`, partilhado com o popup para não haver duas verdades.
+ *
+ * Desenho (regra 19, 01/11/2026): sem eyebrows — o título diz a quem se dirige; sem caixas com
+ * borda — os blocos separam-se por degrau de tom (papel sobre branco); as secções entram com
+ * `Revelar`; uma fotografia real por página, com crédito no rodapé.
  */
 export function PaginaDePerfil({
-  eyebrow,
   titulo,
   intro,
   demo,
@@ -26,11 +29,14 @@ export function PaginaDePerfil({
   ctaHref,
   ctaTexto,
   ctaNota,
+  credito,
+  foto,
+  destaquesTitulo,
+  fotoInclui,
   children,
 }: {
   /** Secções próprias do perfil, entre a demonstração e «Tudo o que inclui». */
   children?: React.ReactNode;
-  eyebrow: string;
   titulo: string;
   intro: string;
   demo: { src: string; width: number; height: number; alt: string; legenda: string };
@@ -40,65 +46,89 @@ export function PaginaDePerfil({
   ctaHref: string;
   ctaTexto: string;
   ctaNota: string;
+  /** Créditos das fotografias usadas na página (licenças Creative Commons), no rodapé. */
+  credito?: React.ReactNode;
+  /** Fotografia do hero — a coisa que domina o primeiro ecrã ao lado do título. */
+  foto: { src: string; width: number; height: number; alt: string };
+  /** Título da secção dos destaques (uma secção com texto leva sempre título). */
+  destaquesTitulo: string;
+  /** Fotografia ao lado de «Tudo o que inclui». */
+  fotoInclui: { src: string; width: number; height: number; alt: string };
 }) {
+  type Foto = typeof foto;
+  const Fotografia = ({ f, className }: { f: Foto; className?: string }) => (
+    // Fotografias reais do mundo da obra, ficheiros estáticos (crédito no rodapé quando a licença o pede).
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={f.src} width={f.width} height={f.height} alt={f.alt} decoding="async" className={`block h-auto w-full rounded-2xl object-cover ${className ?? ''}`} />
+  );
   return (
     <main className="bg-white">
       <SiteHeader />
 
-      <section className="bg-paper pb-16 pt-24">
-        <div className="mx-auto max-w-6xl px-4">
-          <VoltarAtras className="mb-4" />
-          <p className="eyebrow !text-tinta-600">{eyebrow}</p>
-          <h1 className="mt-3 max-w-3xl text-[34px] font-extrabold leading-[1.08] text-tinta-900 sm:text-5xl">{titulo}</h1>
-          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Link href={ctaHref} className="btn-primary btn-lg">
-              {ctaTexto}
-            </Link>
-            <span className="text-[15px] text-slate-600">{ctaNota}</span>
+      {/* Primeiro ecrã: o título à esquerda e uma fotografia que ocupa a metade direita até à margem da janela — uma coisa a dominar, não duas. */}
+      <section className="bg-paper pt-[72px]">
+        <div className="grid items-stretch gap-10 lg:grid-cols-2 lg:gap-0">
+          <div className="mx-auto w-full max-w-6xl px-4 pt-10 lg:mx-0 lg:max-w-none lg:py-20 lg:pl-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:pr-12">
+            <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.03em] text-tinta-900 sm:text-[44px] xl:text-[52px]">{titulo}</h1>
+            <p className="mt-4 max-w-[54ch] text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Link href={ctaHref} className="btn-primary btn-lg">
+                {ctaTexto}
+              </Link>
+              <span className="text-[15px] text-slate-600">{ctaNota}</span>
+            </div>
+          </div>
+          <div className="px-4 pb-10 lg:p-0">
+            <Fotografia f={foto} className="aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[600px] lg:rounded-none" />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
-        <ul className="flex flex-col gap-4">
+      <Revelar as="section" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
+        <div>
+          <h2 className="text-[26px] font-extrabold leading-tight text-tinta-900 sm:text-[34px]">{destaquesTitulo}</h2>
+          <ul className="mt-6 flex flex-col gap-5">
           {destaques.map((d) => (
-            <li key={d} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-[17px] font-semibold text-tinta-900">
-              <svg className="mt-1 flex-none text-tinta-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <li key={d} className="flex items-start gap-4 text-[20px] font-semibold leading-snug text-tinta-900">
+              <svg className="mt-1.5 flex-none text-tinta-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               {d}
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
         <figure className="m-0">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          <div className="overflow-hidden rounded-2xl bg-paper p-3">
             {/* Captura gerada dos componentes reais; ficheiro estático, sem optimizador (mesma razão do Logotipo). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={demo.src} width={demo.width} height={demo.height} alt={demo.alt} className="block h-auto w-full" />
+            <img src={demo.src} width={demo.width} height={demo.height} alt={demo.alt} className="block h-auto w-full rounded-lg" />
           </div>
           <figcaption className="mt-3 text-[15px] text-slate-600">{demo.legenda}</figcaption>
         </figure>
-      </section>
+      </Revelar>
 
       {children}
 
-      <section className="border-t border-slate-200 bg-paper py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-[26px] font-extrabold leading-tight text-tinta-900 sm:text-[34px]">Tudo o que inclui</h2>
-          <ul className="mt-8 grid gap-x-10 gap-y-4 sm:grid-cols-2">
-            {beneficios.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-[17px] text-slate-700">
-                <span className="mt-2.5 h-2 w-2 flex-none rounded-full bg-tinta-600" />
-                {b}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 text-[15px] leading-relaxed text-slate-600">{nota}</p>
+      <Revelar as="section" className="bg-paper py-20">
+        <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-16">
+          <div>
+            <h2 className="text-[26px] font-extrabold leading-tight text-tinta-900 sm:text-[34px]">Tudo o que inclui</h2>
+            <ul className="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              {beneficios.map((b) => (
+                <li key={b} className="flex items-start gap-3 text-[17px] text-slate-700">
+                  <span className="mt-2.5 h-2 w-2 flex-none rounded-full bg-tinta-600" />
+                  {b}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-10 max-w-[54ch] border-l-4 border-tinta-600 pl-5 text-[17px] leading-relaxed text-slate-700">{nota}</p>
+          </div>
+          <Fotografia f={fotoInclui} className="aspect-[4/5] lg:sticky lg:top-24" />
         </div>
-      </section>
+      </Revelar>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-16">
         <div className="rounded-2xl bg-tinta-900 px-7 py-14 text-center text-white">
           <h2 className="mx-auto max-w-2xl text-[26px] font-extrabold leading-tight sm:text-[34px]">{ctaTexto}.</h2>
           <p className="mt-3 text-[17px] text-tinta-200">{ctaNota}</p>
@@ -111,14 +141,15 @@ export function PaginaDePerfil({
             </Link>
           </div>
         </div>
-      </section>
+      </Revelar>
 
-      <footer className="border-t border-slate-200">
+      <footer className="bg-paper">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-[15px] text-slate-500">
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>
           <LegalLinks />
+          {credito ? <span className="basis-full text-[13px] text-slate-500">{credito}</span> : null}
         </div>
       </footer>
     </main>

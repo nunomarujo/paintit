@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { CONTEUDO_DE_PERFIL, DEMO_DE_PERFIL, toOrg } from '@/components/landing/perfis';
 import { PaginaDePerfil } from '@/components/landing/PaginaDePerfil';
+import { Revelar } from '@/components/landing/Revelar';
 import { BRAND } from '@/config/brand';
 
 const intro =
-  'Orçamentos detalhados em minutos, sem custo. Oportunidades reais na sua zona, contrato assinado na plataforma, e as ferramentas da obra incluídas. Só paga quando ganha.';
+  'Oportunidades reais na sua zona, contrato assinado na plataforma e as ferramentas da obra incluídas. Orçamentar nunca se paga: só paga quando ganha.';
 
 export const metadata: Metadata = {
   title: `Empresas de pintura — ${BRAND.name}`,
@@ -18,9 +19,9 @@ export const metadata: Metadata = {
  * revêem-se quando houver medição na plataforma.
  */
 const tempos = [
-  { n: '1.º orçamento', t: '≈ 45 min', d: 'Os trabalhos que faz, os produtos que usa, as condições que põe sempre. Fica tudo guardado como modelo.' },
-  { n: '2.º orçamento', t: '≈ 20 min', d: 'Os modelos já lá estão. Ajusta-se o que muda nesta obra: zonas, quantidades, preços.' },
-  { n: 'A partir do 3.º', t: '≈ 5 min', d: 'Escolhe-se a obra, aplicam-se os modelos, confirma-se. Sai um documento A4 detalhado, com rigor.' },
+  { n: 'No primeiro orçamento', t: '≈ 45 min', d: 'Os trabalhos que faz, os produtos que usa, as condições que põe sempre. Fica tudo guardado como modelo.' },
+  { n: 'No segundo', t: '≈ 20 min', d: 'Os modelos já lá estão. Ajusta-se o que muda nesta obra: zonas, quantidades, preços.' },
+  { n: 'Do terceiro em diante', t: '≈ 5 min', d: 'Escolhe-se a obra, aplicam-se os modelos, confirma-se. Sai um documento A4 detalhado, com rigor.' },
 ];
 
 const ferramentas = [
@@ -40,8 +41,7 @@ export default function Page() {
   const c = CONTEUDO_DE_PERFIL.pintor;
   return (
     <PaginaDePerfil
-      eyebrow="Empresas de pintura"
-      titulo="Orçamentos detalhados em minutos. Sem custo."
+      titulo="Orçamentos em minutos. Sem custo."
       intro={intro}
       demo={DEMO_DE_PERFIL.pintor}
       destaques={c.destaques}
@@ -50,51 +50,78 @@ export default function Page() {
       ctaHref={toOrg('pintor')}
       ctaTexto={c.ctaTexto}
       ctaNota={c.ctaNota}
+      foto={{ src: '/img/rolo-na-parede.webp', width: 1400, height: 939, alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar' }}
+      destaquesTitulo="O que muda para a empresa de pintura"
+      fotoInclui={{ src: '/img/levantamento.webp', width: 1600, height: 873, alt: 'Avaliador a tomar notas em frente a um prédio, com o cliente a apontar para a fachada' }}
+      credito={
+        <>
+          Fotografias: rolo na parede, Michael Cory,{' '}
+          <a href="https://commons.wikimedia.org/wiki/File:Paint_roller_4.jpg" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
+            CC BY 2.0
+          </a>
+          ; fachadas do Porto, Dale Cruse,{' '}
+          <a href="https://creativecommons.org/licenses/by/4.0/" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
+            CC BY 4.0
+          </a>
+          ; via Wikimedia Commons.
+        </>
+      }
     >
       {/* O MOTOR DE ORÇAMENTOS — a razão número um para o pintor entrar (promotor, 01/11/2026). */}
-      <section className="bg-tinta-900 py-20 text-white">
+      <Revelar as="section" className="bg-tinta-900 py-20 text-white">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="text-[13px] font-semibold text-lima">O motor de orçamentos</p>
-          <h2 className="mt-3 max-w-3xl text-[34px] leading-tight font-extrabold">
-            Quem perde horas a fazer um orçamento, e ainda assim sai mal, passa a fazê-lo em minutos.
+          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold sm:text-[34px]">
+            Horas por orçamento passam a minutos.
           </h2>
-          <p className="mt-3 max-w-3xl text-[17px] leading-relaxed text-tinta-200">
+          <p className="mt-3 max-w-[54ch] text-[17px] leading-relaxed text-tinta-200">
             A aplicação aprende de orçamento para orçamento: os métodos de trabalho, os materiais típicos, as
             condições que se repetem. Cada orçamento novo começa onde o anterior acabou.
           </p>
-          <ol className="mt-10 grid gap-5 md:grid-cols-3">
+          <ol className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-3">
             {tempos.map((x) => (
-              <li key={x.n} className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/5 p-7">
-                <span className="text-[13px] font-semibold text-tinta-200">{x.n}</span>
-                <span className="text-[34px] font-extrabold leading-none text-lima">{x.t}</span>
-                <span className="mt-2 text-[15px] leading-relaxed text-tinta-200">{x.d}</span>
+              <li key={x.n} className="flex flex-col gap-2 border-l-4 border-lima pl-5">
+                <span className="text-[34px] font-extrabold leading-none text-lima tabular-nums">{x.t}</span>
+                <span className="text-[17px] font-semibold">{x.n}</span>
+                <span className="text-[15px] leading-relaxed text-tinta-200">{x.d}</span>
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-[15px] text-tinta-200">
+          <p className="mt-8 text-[15px] text-tinta-200">
             Tempos habituais numa obra de fachada com cerca de dez trabalhos. Sem custo: orçamentar nunca se paga.
           </p>
         </div>
-      </section>
+      </Revelar>
 
       {/* AS FERRAMENTAS DA OBRA */}
-      <section className="mx-auto max-w-6xl px-4 py-20">
-        <p className="eyebrow">Muito mais do que orçamentos</p>
-        <h2 className="mt-3 max-w-3xl text-[34px] leading-tight font-extrabold text-tinta-900">
-          As ferramentas da obra, incluídas e sem custo.
-        </h2>
-        <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-slate-600">
-          Substituem o caderno e o grupo de mensagens — e funcionam mesmo em obras que não vieram da plataforma.
-        </p>
-        <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <Revelar as="section" className="mx-auto grid max-w-6xl items-start gap-10 px-4 py-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+        <div className="lg:sticky lg:top-24">
+          <h2 className="text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+            As ferramentas da obra, incluídas.
+          </h2>
+          <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+            Substituem o caderno e o grupo de mensagens — e funcionam mesmo em obras que não vieram da plataforma.
+          </p>
+          {/* Fotografia: fachadas da Ribeira, Porto (crédito no rodapé). */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/img/fachadas-porto.webp"
+            width={1600}
+            height={699}
+            alt="Fachadas coloridas de prédios antigos no Porto"
+            loading="lazy"
+            decoding="async"
+            className="mt-8 hidden h-auto w-full rounded-2xl object-cover lg:block"
+          />
+        </div>
+        <ul className="grid gap-4 sm:grid-cols-2">
           {ferramentas.map((f) => (
-            <li key={f.t} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-6">
+            <li key={f.t} className="flex flex-col gap-1.5 rounded-2xl bg-paper p-5">
               <span className="text-[17px] font-bold text-tinta-900">{f.t}</span>
-              <span className="text-[15px] leading-relaxed text-slate-600">{f.d}</span>
+              <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
             </li>
           ))}
         </ul>
-      </section>
+      </Revelar>
     </PaginaDePerfil>
   );
 }

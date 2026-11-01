@@ -51,6 +51,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 - **Condóminos (01/11/2026), o que ficou para depois:** aviso por email aos condóminos quando as propostas abrem (hoje só veem ao entrar); exportar a contagem de votos no relatório para a assembleia (`dossier`); o condómino poder actualizar o próprio telemóvel/nome; limitar registos por código (hoje não há limite de frações por prédio).
 - **Design v5 (01/11/2026), o que ficou para depois:** o fornecedor confirmar a venda de um produto a um pintor para uma obra (prometido em versão fraca no cartão 3 das «Três proteções»; construir agora que o workspace do fornecedor está publicado); medir toques e campos do orçamento guiado com e sem modelos, para substituir a estimativa 45/20/5 min por um número verificável. *Fechados:* a recomposição do ecrã «Hoje» do avaliador (feita na sessão do workspace, 01/11/2026); a ilustração do prédio mantém-se nas cores da ilustração, por decisão do promotor.
 
+- **Revisão de desenho de ponta a ponta (01/11/2026, pedida pelo promotor):** página inicial, `/empresas` e `/fornecedores` já a zero falhas no inspetor (`scripts/inspecionar-desenho.sh`). Faltam os espaços autenticados, por esta ordem: cliente, pintor, fornecedor/avaliador, backoffice — varrimento pelas regras de `docs/design/taste-skill/app-screens.md` (eyebrows, numeração, ícones tintados, sombras, botões à mão, números não tabulares, títulos acima de 26px, estados vazios) e `inspect.mjs --app` sobre ecrãs reais.
+
 ## 4. Dívida técnica
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.

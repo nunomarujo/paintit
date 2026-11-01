@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CONTEUDO_DE_PERFIL, DEMO_DE_PERFIL, toOrg } from '@/components/landing/perfis';
 import { PaginaDePerfil } from '@/components/landing/PaginaDePerfil';
+import { Revelar } from '@/components/landing/Revelar';
 import { BRAND } from '@/config/brand';
 
 const intro =
@@ -58,7 +59,6 @@ export default function Page() {
   const c = CONTEUDO_DE_PERFIL.fornecedor;
   return (
     <PaginaDePerfil
-      eyebrow="Fornecedores de tintas"
       titulo="Venda mais. E venda acertado."
       intro={intro}
       demo={DEMO_DE_PERFIL.fornecedor}
@@ -72,65 +72,89 @@ export default function Page() {
       ctaHref={toOrg('fornecedor')}
       ctaTexto={c.ctaTexto}
       ctaNota={c.ctaNota}
+      foto={{ src: '/img/balde-e-trincha.webp', width: 1400, height: 1050, alt: 'Trincha pousada sobre um balde de tinta branca aberto, em obra' }}
+      destaquesTitulo="O que muda para o fornecedor de tintas"
+      fotoInclui={{ src: '/img/fachadas-porto.webp', width: 1600, height: 699, alt: 'Fachadas coloridas de prédios antigos no Porto' }}
+      credito={
+        <>
+          Fotografias: balde e trincha, Ionenlaser,{' '}
+          <a href="https://commons.wikimedia.org/wiki/File:Paint_bucket_and_brush.jpg" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
+            CC0
+          </a>
+          ; fachadas do Porto, Dale Cruse,{' '}
+          <a href="https://creativecommons.org/licenses/by/4.0/" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
+            CC BY 4.0
+          </a>
+          ; via Wikimedia Commons.
+        </>
+      }
     >
-      {/* OS TRÊS MOMENTOS — antes, durante e depois da obra. */}
-      <section className="bg-tinta-900 py-20 text-white">
+      {/* OS TRÊS MOMENTOS — antes, durante e depois da obra. Sequência real: a numeração fica. */}
+      <Revelar as="section" className="bg-tinta-900 py-20 text-white">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="text-[13px] font-semibold text-lima">Onde o vendedor hoje não chega</p>
-          <h2 className="mt-3 max-w-3xl text-[34px] leading-tight font-extrabold">
-            O pintor entra na loja com a lista feita. Aqui, o vendedor chega antes.
+          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold sm:text-[34px]">
+            O vendedor chega antes da lista de compras.
           </h2>
-          <ol className="mt-10 grid gap-5 md:grid-cols-3">
+          <ol className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-3">
             {momentos.map((m) => (
-              <li key={m.n} className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/5 p-7">
-                <span className="text-[34px] font-extrabold leading-none text-lima">{m.n}</span>
+              <li key={m.n} className="flex flex-col gap-2 border-l-4 border-lima pl-5">
+                <span className="text-[34px] font-extrabold leading-none text-lima tabular-nums">{m.n}</span>
                 <span className="text-[20px] font-bold leading-tight">{m.t}</span>
                 <span className="text-[15px] leading-relaxed text-tinta-200">{m.d}</span>
               </li>
             ))}
           </ol>
         </div>
-      </section>
+      </Revelar>
 
       {/* A FICHA TÉCNICA, APLICADA */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
+      <Revelar as="section" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
         <div>
-          <p className="eyebrow">A ficha técnica, aplicada</p>
-          <h2 className="mt-3 text-[34px] leading-tight font-extrabold text-tinta-900">
-            Ninguém lê a ficha técnica no balcão. Aqui ela faz contas.
+          <h2 className="text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+            A ficha técnica passa a fazer contas.
           </h2>
           <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
             Os dados que interessam de cada produto ficam no catálogo uma vez — e aplicam-se sozinhos a cada obra,
             no orçamento do pintor. Vender acertado deixa de depender de quem está ao balcão.
           </p>
+          <dl className="mt-8 flex flex-col gap-3">
+            {ficha.map(([k, v]) => (
+              <div key={k} className="flex flex-col gap-1 rounded-2xl bg-paper px-5 py-4 sm:flex-row sm:gap-6">
+                <dt className="w-44 flex-none text-[17px] font-bold text-tinta-900">{k}</dt>
+                <dd className="text-[17px] leading-relaxed text-slate-600">{v}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-        <dl className="flex flex-col gap-3">
-          {ficha.map(([k, v]) => (
-            <div key={k} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5">
-              <dt className="w-40 flex-none text-[17px] font-bold text-tinta-900">{k}</dt>
-              <dd className="text-[15px] leading-relaxed text-slate-600">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+        {/* Imagem: o volume 3D do prédio que o pintor vê no pedido — a fachada a que a ficha técnica se aplica. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/img/predio-cor.webp"
+          width={928}
+          height={1152}
+          alt="Volume tridimensional de um prédio, com as fachadas a cores, tal como aparece no pedido de orçamento"
+          loading="lazy"
+          decoding="async"
+          className="aspect-[4/5] h-auto w-full rounded-2xl object-cover"
+        />
+      </Revelar>
 
       {/* AS FERRAMENTAS DO FORNECEDOR */}
-      <section className="border-t border-slate-200 bg-paper py-20">
+      <Revelar as="section" className="bg-paper py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="eyebrow">Para a empresa e para a equipa comercial</p>
-          <h2 className="mt-3 max-w-3xl text-[34px] leading-tight font-extrabold text-tinta-900">
-            Condições que se aplicam sozinhas, e um canal de receita que não existia.
+          <h2 className="max-w-3xl text-[26px] leading-tight font-extrabold text-tinta-900 sm:text-[34px]">
+            Condições automáticas, receita nova.
           </h2>
-          <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {ferramentas.map((f) => (
-              <li key={f.t} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-6">
+              <li key={f.t} className="flex flex-col gap-1.5 rounded-2xl bg-white p-5">
                 <span className="text-[17px] font-bold text-tinta-900">{f.t}</span>
-                <span className="text-[15px] leading-relaxed text-slate-600">{f.d}</span>
+                <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
               </li>
             ))}
           </ul>
         </div>
-      </section>
+      </Revelar>
     </PaginaDePerfil>
   );
 }
