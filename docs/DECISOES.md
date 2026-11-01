@@ -4242,3 +4242,38 @@ Migrações `20261101040000_referencia_do_levantamento` e `20261101050000_dispon
 **por aplicar** — são aditivas e só fazem falta quando o ramo `claude/workspace-fornecedor` for
 publicado. Os ficheiros para o painel foram entregues ao promotor, verificados do modo habitual:
 constroem a base igual ao repositório e podem correr duas vezes.
+
+### 01/11/2026 — O vendedor passa a poder descontar, dentro de um limite
+
+Até aqui um vendedor não podia criar desconto nenhum: a base recusava tudo o que não viesse do dono ou
+de um gestor, e não havia onde escrever um limite. Não era o ecrã a esconder um botão — a permissão
+nunca existiu.
+
+**Três níveis de limite, que coexistem** (decisão do promotor, com as três opções escolhidas):
+
+- **da empresa** — vale para todos os vendedores;
+- **do vendedor** — *substitui* o da empresa para essa pessoa, para cima ou para baixo. Substitui, e não
+  limita, porque o objetivo é premiar quem tem mais traquejo;
+- **do produto ou da categoria** — é um *teto que se aplica sempre por cima* dos outros dois, porque
+  existe para proteger margens apertadas, e um vendedor de confiança não é razão para as furar.
+
+Um desconto a todo o catálogo respeita o teto mais apertado que exista: senão bastava não escolher
+produto nenhum para contornar o teto dos esmaltes.
+
+**Sem regra nenhuma escrita, o limite é zero.** É o comportamento de hoje, e é o que fica a valer para
+quem nunca mexer nisto.
+
+**Vale de imediato, sem aprovação** (decisão do promotor): o limite já é a autorização. O responsável vê
+quem criou cada desconto e pode retirá-lo. Quem criou também pode retirar o seu, para não depender de
+alguém que pode nem estar.
+
+A regra vive em `src/domain/limitesDeDesconto.ts` e tem cópia em plpgsql, porque a porta tem de estar
+fechada na base — um argumento que vem do navegador pode ser trocado (regra 10). `supabase/tests/
+limitesDeDesconto.test.ts` percorre 64 combinações e compara as duas, uma a uma.
+
+**Defeito encontrado pelos testes de acesso:** a restrição de unicidade da tabela nova não protegia
+nada. Em Postgres, por omissão, dois valores vazios contam como diferentes — e os três níveis desta
+tabela distinguem-se precisamente por terem colunas vazias. O dono podia gravar dois limites gerais
+contraditórios, e a função do teto falhava a meio de uma gravação. Resolvido com `nulls not distinct`.
+
+Migração `20261101070000_limites_de_desconto_do_vendedor`, **por aplicar**.

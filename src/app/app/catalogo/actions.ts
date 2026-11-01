@@ -14,6 +14,7 @@ import {
   type ProductType,
 } from '@/domain/catalog';
 import { sniffPdf } from '@/domain/fileSignature';
+import { limiteAplicavel, limiteEmPalavras } from '@/domain/limitesDeDesconto';
 import { parseHundredths } from '@/domain/request';
 import { getUser } from '@/lib/supabase/server';
 
@@ -115,6 +116,41 @@ export async function addDiscount(orgId: string, _prev: FormState, form: FormDat
     produtos.length > 0
       ? produtos.map((productId) => ({ ...base, product_id: productId, tipo: null }))
       : [{ ...base, product_id: null, tipo: tipo as ProductType | null }];
+  // O teto do vendedor verifica-se aqui para a mensagem poder dizer qual é — a base recusa na mesma
+  // (política `supplier_discounts_insert`), mas o que ela devolve é um erro de acesso, que não ajuda
+  // ninguém a perceber que deu meio ponto a mais. Quem manda na empresa não tem teto.
+  const { data: papel } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (papel?.role === 'vendedor') {
+    const { data: limites } = await supabase
+      .from('supplier_discount_limits')
+      .select('vendedor_user_id, tipo, product_id, limite_bps')
+      .eq('org_id', orgId);
+    const regras = (limites ?? []).map((l) => ({
+      vendedorUserId: l.vendedor_user_id,
+      tipo: l.tipo,
+      productId: l.product_id,
+      limiteBps: l.limite_bps,
+    }));
+    for (const r of rows) {
+      const teto = limiteAplicavel(regras, user.id, { tipo: r.tipo, productId: r.product_id });
+      if (bps > teto) {
+        return {
+          errors: {
+            desconto:
+              teto <= 0
+                ? 'Sem autorização para descontar. O responsável da empresa define os limites em Regras comerciais.'
+                : `Acima do seu limite: ${limiteEmPalavras(teto).toLowerCase()} neste artigo.`,
+          },
+        };
+      }
+    }
+  }
+
   const { error } = await supabase.from('supplier_discounts').insert(rows);
   if (error) return { errors: {}, message: 'Não foi possível guardar o desconto. Os descontos precisam do plano de catálogo ativo.' };
   revalidatePath(`/app/organizacoes/${orgId}/produtos`);

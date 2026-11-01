@@ -614,6 +614,29 @@ export type Database = {
         Update: { lida_em?: string | null };
         Relationships: [];
       };
+      // Acrescentado à mão, como a nota no topo deste ficheiro manda (migração
+      // 20261101070000_limites_de_desconto_do_vendedor).
+      supplier_discount_limits: {
+        Row: {
+          id: string;
+          org_id: string;
+          vendedor_user_id: string | null;
+          tipo: ProductType | null;
+          product_id: string | null;
+          limite_bps: number;
+          created_at: string;
+          updated_by: string;
+        };
+        Insert: {
+          org_id: string;
+          vendedor_user_id?: string | null;
+          tipo?: ProductType | null;
+          product_id?: string | null;
+          limite_bps: number;
+        };
+        Update: { limite_bps?: number };
+        Relationships: [];
+      };
       supplier_discounts: {
         Row: {
           created_at: string;

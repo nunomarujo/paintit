@@ -3734,3 +3734,148 @@ describe('disponibilidade do avaliador', () => {
     expect(suspensa.d).toBe(false);
   });
 });
+
+/**
+ * Descontos do vendedor, dentro do limite que o dono define (01/11/2026).
+ *
+ * Até aqui a base recusava qualquer desconto que não viesse do dono ou de um gestor. A porta abriu-se,
+ * mas com teto — e o teto tem de estar aqui, não só no ecrã: um argumento que vem do navegador pode ser
+ * trocado (regra 10 do CLAUDE.md). Estes testes existem para que a porta não se abra mais do que isto.
+ */
+describe('limites de desconto do vendedor', () => {
+  const DONO = '00000000-0000-4000-8000-00000000bd01';
+  const VEND = '00000000-0000-4000-8000-00000000bd02';
+  const ALHEIO = '00000000-0000-4000-8000-00000000bd03';
+  let org: string;
+  let produto: string;
+
+  beforeAll(async () => {
+    for (const u of [DONO, VEND, ALHEIO]) {
+      await db.query('insert into auth.users (id, email) values ($1, $2) on conflict do nothing', [u, email(u)]);
+    }
+    org = (await createOrg(DONO, 'fornecedor', 'Tintas com Limites, Lda', '599999985')).id;
+    await as(DONO, () =>
+      db.query(`insert into public.org_members (org_id, user_id, role) values ($1, $2, 'vendedor')`, [org, VEND]),
+    );
+    await db.exec('set role postgres');
+    await db.query(
+      `insert into public.supplier_subscriptions (org_id, plan, price_cents, status) values ($1, 'catalogo', 4900, 'ativa')
+       on conflict (org_id) do update set plan = 'catalogo', status = 'ativa'`,
+      [org],
+    );
+    produto = (
+      await as(DONO, () =>
+        one<{ id: string }>(
+          `insert into public.products (org_id, marca, nome, tipo, unidade) values ($1, 'Marca', 'Esmalte', 'esmalte', 'L') returning id`,
+          [org],
+        ),
+      )
+    ).id;
+  });
+
+  const limite = (bps: number, extra: { user?: string; tipo?: string } = {}) =>
+    as(DONO, () =>
+      db.query(
+        `insert into public.supplier_discount_limits (org_id, vendedor_user_id, tipo, limite_bps)
+         values ($1, $2, $3, $4)
+         on conflict (org_id, vendedor_user_id, tipo, product_id) do update set limite_bps = excluded.limite_bps`,
+        [org, extra.user ?? null, extra.tipo ?? null, bps],
+      ),
+    );
+
+  const descontar = (quem: string, bps: number, tipo: string | null = null) =>
+    as(quem, () =>
+      db.query(`insert into public.supplier_discounts (org_id, tipo, desconto_bps) values ($1, $2, $3)`, [org, tipo, bps]),
+    );
+
+  it('sem limite escrito, o vendedor não desconta nada', async () => {
+    await expect(descontar(VEND, 100)).rejects.toThrow(/row-level security/);
+  });
+
+  it('com limite da empresa, desconta até lá e nem um ponto acima', async () => {
+    await limite(1000);
+    await expect(descontar(VEND, 1000)).resolves.toBeDefined();
+    await expect(descontar(VEND, 1001)).rejects.toThrow(/row-level security/);
+  });
+
+  it('o limite do vendedor substitui o da empresa', async () => {
+    await limite(1000);
+    await limite(1500, { user: VEND });
+    await expect(descontar(VEND, 1500)).resolves.toBeDefined();
+    await expect(descontar(VEND, 1501)).rejects.toThrow(/row-level security/);
+  });
+
+  it('o teto da categoria corta por cima, mesmo a quem tem mais autorização', async () => {
+    await limite(1000);
+    await limite(1500, { user: VEND });
+    await limite(500, { tipo: 'esmalte' });
+    await expect(descontar(VEND, 600, 'esmalte')).rejects.toThrow(/row-level security/);
+    await expect(descontar(VEND, 500, 'esmalte')).resolves.toBeDefined();
+  });
+
+  it('o dono continua sem limite', async () => {
+    await limite(500);
+    await expect(descontar(DONO, 5000)).resolves.toBeDefined();
+  });
+
+  it('o vendedor não mexe no seu próprio teto', async () => {
+    await expect(
+      as(VEND, () =>
+        db.query(`insert into public.supplier_discount_limits (org_id, vendedor_user_id, limite_bps) values ($1, $2, 9000)`, [
+          org,
+          VEND,
+        ]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await limite(1000);
+    await as(VEND, () => db.query('update public.supplier_discount_limits set limite_bps = 9000 where org_id = $1', [org]));
+    const r = await one<{ limite_bps: number }>(
+      'select limite_bps from public.supplier_discount_limits where org_id = $1 and vendedor_user_id is null and tipo is null',
+      [org],
+    );
+    expect(r.limite_bps).toBe(1000);
+  });
+
+  it('quem não é da empresa não desconta nem vê os limites', async () => {
+    await limite(1000);
+    await expect(descontar(ALHEIO, 100)).rejects.toThrow(/row-level security/);
+    const r = await as(ALHEIO, () => db.query('select * from public.supplier_discount_limits where org_id = $1', [org]));
+    expect(r.rows).toHaveLength(0);
+  });
+
+  it('o vendedor vê os limites da sua empresa — tem de saber quanto pode dar', async () => {
+    await limite(1000);
+    const r = await as(VEND, () => db.query('select * from public.supplier_discount_limits where org_id = $1', [org]));
+    expect(r.rows.length).toBeGreaterThan(0);
+  });
+
+  it('um limite não é de uma pessoa e de um artigo ao mesmo tempo', async () => {
+    await expect(
+      as(DONO, () =>
+        db.query(
+          `insert into public.supplier_discount_limits (org_id, vendedor_user_id, tipo, limite_bps) values ($1, $2, 'esmalte', 500)`,
+          [org, VEND],
+        ),
+      ),
+    ).rejects.toThrow(/supplier_discount_limits_pessoa_ou_artigo/);
+  });
+
+  it('o produto referido no teto é o que o vendedor desconta', async () => {
+    await limite(1000);
+    await as(DONO, () =>
+      db.query(
+        `insert into public.supplier_discount_limits (org_id, product_id, limite_bps) values ($1, $2, 200)
+         on conflict (org_id, vendedor_user_id, tipo, product_id) do update set limite_bps = 200`,
+        [org, produto],
+      ),
+    );
+    await expect(
+      as(VEND, () =>
+        db.query(`insert into public.supplier_discounts (org_id, product_id, tipo, desconto_bps) values ($1, $2, 'esmalte', 300)`, [
+          org,
+          produto,
+        ]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+});

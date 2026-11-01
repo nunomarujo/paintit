@@ -48,8 +48,15 @@ describe('o que cada papel vê na empresa', () => {
   it('nenhum destino da empresa aponta para um endereço inventado', () => {
     const empresa = destinos('vendas', 'proprietario').find((d) => d.label === 'Empresa');
     for (const c of empresa?.children ?? []) {
-      expect(c.href).not.toMatch(/\/(equipa|regras)$/);
+      // `/equipa` nunca existiu: a equipa é um separador da própria página. `/regras` passou a existir
+      // a 01/11/2026, com os limites de desconto do vendedor.
+      expect(c.href).not.toMatch(/\/equipa$/);
     }
+  });
+
+  it('as regras comerciais são de quem manda', () => {
+    expect(filhosDaEmpresa('proprietario')).toContain('Regras comerciais');
+    expect(filhosDaEmpresa('vendedor')).not.toContain('Regras comerciais');
   });
 
   it('os dados e a equipa veem-se sempre', () => {

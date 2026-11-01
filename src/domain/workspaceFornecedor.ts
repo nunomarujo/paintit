@@ -98,14 +98,14 @@ export function destinosDoFornecedor(
       icon: 'predio',
       exact: true,
       count: contagens.associacoesPendentes,
-      // Os separadores da empresa já existem como parâmetro (`?ver=`) na própria página: apontar para
-      // `/equipa` e `/regras`, que nunca foram criados, dava 404 a quem clicasse (corrigido a
-      // 01/11/2026). «Regras comerciais» saiu da lista — hoje quem define descontos é o responsável,
-      // em «Preços e descontos», e não há regra de limites por vendedor para gerir.
+      // Os separadores de dados, documentos e equipa existem como parâmetro (`?ver=`) na própria
+      // página: apontar para `/equipa`, que nunca foi criado, dava 404 a quem clicasse. «Regras
+      // comerciais» tem agora ecrã próprio — os limites de desconto do vendedor (01/11/2026).
       children: [
         { href: `/app/organizacoes/${orgId}`, label: 'Dados', padrao: true },
         { href: `/app/organizacoes/${orgId}?ver=documentos`, label: 'Documentos' },
         { href: `/app/organizacoes/${orgId}?ver=equipa`, label: 'Equipa e associações' },
+        ...(mandaNaEmpresa(papel) ? [{ href: `/app/organizacoes/${orgId}/regras`, label: 'Regras comerciais' }] : []),
         ...(mandaNaEmpresa(papel) ? [{ href: `/app/organizacoes/${orgId}/subscricao`, label: 'Subscrição' }] : []),
       ],
     },
