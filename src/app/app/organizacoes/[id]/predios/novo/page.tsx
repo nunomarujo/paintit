@@ -11,14 +11,12 @@ export default async function NewBuildingPage({ params }: { params: Promise<{ id
   if (!org || (org.kind !== 'condominio' && org.kind !== 'particular')) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">{org.kind === 'particular' ? 'Novo imóvel' : 'Novo prédio'}</h1>
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-        <BuildingForm
-          action={createBuilding.bind(null, org.id)}
-          defaultKind={org.kind === 'particular' ? 'moradia' : 'edificio_habitacao'}
-        />
+      <p className="mt-1 text-[17px] text-slate-600">Regista-se uma vez e serve para todos os pedidos de orçamento.</p>
+      <div className="mt-5">
+        <BuildingForm action={createBuilding.bind(null, org.id)} defaultKind={org.kind === 'particular' ? 'moradia' : 'edificio_habitacao'} />
       </div>
     </div>
   );

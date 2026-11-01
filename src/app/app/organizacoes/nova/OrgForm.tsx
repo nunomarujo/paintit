@@ -52,8 +52,25 @@ export function OrgForm({
   const hasShop = kind === 'pintor' || kind === 'fornecedor';
   const v = (field: keyof Omit<OrgInitial, 'alertas_autorizados'>) => initial?.[field] ?? undefined;
 
+  // Três quadros por função (promotor, 01/11/2026): identidade, morada fiscal, contactos. Os campos
+  // e a acção são os mesmos de antes; só a disposição mudou.
+  const quadro = 'rounded-2xl border border-slate-200 bg-white p-5 space-y-4';
+  const cabeca = (n: string, titulo: string, sub: string) => (
+    <div className="!mt-0">
+      <header className="flex items-baseline gap-2">
+        <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
+        <span className="text-slate-400">·</span>
+        <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+      </header>
+      <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
+    </div>
+  );
+
   return (
     <form {...formProps} className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-12">
+      <section className={`${quadro} lg:col-span-4`}>
+      {cabeca('01', 'Identidade', 'Quem é a entidade: tipo, nome e NIF.')}
       {initial ? (
         <>
           <input type="hidden" name="kind" value={initial.kind} />
@@ -132,32 +149,49 @@ export function OrgForm({
         }
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <AddressFields
-            moradaName="moradaFiscal"
-            moradaLabel="Morada fiscal"
-            initial={{ morada: v('morada_fiscal'), codigoPostal: v('codigo_postal'), localidade: v('localidade') }}
-            errors={e}
-          />
-        </div>
+      {kind === 'condominio' && administradoras.length > 0 && (
+        <Field
+          name="geridaPor"
+          label="Gerido pela administradora"
+          error={e.geridaPor}
+          hint="A equipa da administradora passa a gerir este condomínio e os seus prédios."
+        >
+          <select name="geridaPor" defaultValue={initial?.gerida_por ?? initialGeridaPor ?? ''} className={selectClass}>
+            <option value="">Nenhuma (gestão própria)</option>
+            {administradoras.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nome}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {/* Ao editar sem administradoras disponíveis, mantém-se a ligação atual. */}
+      {kind === 'condominio' && administradoras.length === 0 && initial?.gerida_por && (
+        <input type="hidden" name="geridaPor" value={initial.gerida_por} />
+      )}
+      </section>
+
+      <section className={`${quadro} lg:col-span-4`}>
+      {cabeca('02', 'Morada fiscal', 'A do contrato e da fatura. Só é revelada depois da apresentação.')}
+      <AddressFields
+        moradaName="moradaFiscal"
+        moradaLabel="Morada fiscal"
+        initial={{ morada: v('morada_fiscal'), codigoPostal: v('codigo_postal'), localidade: v('localidade') }}
+        errors={e}
+      />
+      </section>
+
+      <section className={`${quadro} lg:col-span-4`}>
+      {cabeca('03', 'Contactos', 'Só são mostrados à outra parte depois da apresentação.')}
         <Field
           name="emailContacto"
           label="Email de contacto"
           type="email"
           defaultValue={v('email_contacto') ?? defaultEmail}
           error={e.emailContacto}
-          hint="Só é mostrado à outra parte depois da apresentação."
         />
-        <Field
-          name="telefone"
-          label="Telefone"
-          type="tel"
-          defaultValue={v('telefone')}
-          error={e.telefone}
-          hint="Só é mostrado à outra parte depois da apresentação."
-        />
-      </div>
+        <Field name="telefone" label="Telefone" type="tel" defaultValue={v('telefone')} error={e.telefone} />
 
       {hasShop && (
         <Field
@@ -192,7 +226,7 @@ export function OrgForm({
             name="codigoReferencia"
             maxLength={14}
             autoComplete="off"
-            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-[17px] uppercase tracking-wider"
+            className="campo mt-1 w-48 font-mono uppercase tracking-wider"
           />
         </Field>
       )}
@@ -208,32 +242,13 @@ export function OrgForm({
             defaultValue={defaultCodigoConvite}
             maxLength={14}
             autoComplete="off"
-            className="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 font-mono text-[17px] uppercase tracking-wider"
+            className="campo mt-1 w-48 font-mono uppercase tracking-wider"
           />
         </Field>
       )}
 
-      {kind === 'condominio' && administradoras.length > 0 && (
-        <Field
-          name="geridaPor"
-          label="Gerido pela administradora"
-          error={e.geridaPor}
-          hint="A equipa da administradora passa a gerir este condomínio e os seus prédios."
-        >
-          <select name="geridaPor" defaultValue={initial?.gerida_por ?? initialGeridaPor ?? ''} className={selectClass}>
-            <option value="">Nenhuma (gestão própria)</option>
-            {administradoras.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nome}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
-      {/* Ao editar sem administradoras disponíveis, mantém-se a ligação atual. */}
-      {kind === 'condominio' && administradoras.length === 0 && initial?.gerida_por && (
-        <input type="hidden" name="geridaPor" value={initial.gerida_por} />
-      )}
+      </section>
+      </div>
 
       {state.message && (
         <p className="text-[17px] text-red-700" role="alert">
@@ -251,13 +266,11 @@ export function OrgForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="btn-primary"
-      >
-        {pending ? 'A guardar…' : initial ? 'Guardar alterações' : 'Guardar entidade'}
-      </button>
+      <div className="flex justify-end">
+        <button type="submit" disabled={pending} className="btn-primary btn-lg">
+          {pending ? 'A guardar…' : initial ? 'Guardar alterações' : 'Guardar entidade'}
+        </button>
+      </div>
     </form>
   );
 }

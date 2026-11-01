@@ -62,7 +62,8 @@ const DESCRICAO_MAX = 1500;
  */
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const seccao = useSeccaoActiva();
-  const grelha = seccao === null;
+  // Desde 01/11/2026 o formulário é sempre a grelha: na criação e no passo «O essencial» do rascunho.
+  const grelha = true;
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
@@ -70,7 +71,6 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   const flexiveisIniciais = initial?.datas_flexiveis ?? [];
   const [descricao, setDescricao] = useState(initial?.descricao ?? '');
 
-  const mostra = (grupo: 'pretende' | 'preferencias') => seccao === null || seccao === grupo;
   const flexivel = (d: DataFlexivel) => (
     <label className="flex min-h-[44px] items-start gap-2 text-[15px] text-slate-600">
       <input type="checkbox" name="dataFlexivel" value={d} defaultChecked={flexiveisIniciais.includes(d)} className="mt-1" />
@@ -82,7 +82,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
     <form {...formProps} className="space-y-5">
       <fieldset disabled={disabled} className={grelha ? 'grid gap-5 lg:grid-cols-12' : 'space-y-6'}>
         {/* 01 · Local e identificação */}
-        <Quadro n="01" titulo="Local e identificação" sub="O prédio e um nome para este pedido." moldura={grelha} className="lg:col-span-3" oculto={!mostra('pretende')}>
+        <Quadro n="01" titulo="Local e identificação" sub="O prédio e um nome para este pedido." moldura={grelha} className="lg:col-span-3">
           <div className="space-y-4">
             <Field name="buildingId" label="Prédio" required error={e.buildingId}>
               <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
@@ -98,7 +98,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 02 · O que pretende fazer */}
-        <Quadro n="02" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." moldura={grelha} className="lg:col-span-6" oculto={!mostra('pretende')}>
+        <Quadro n="02" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." moldura={grelha} className="lg:col-span-6">
           <fieldset>
             <legend className="text-[15px] font-semibold text-slate-700">
               Tipos de obra <span className="font-normal text-slate-500">(pode escolher vários)</span>
@@ -122,7 +122,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 03 · Prazos */}
-        <Quadro n="03" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." moldura={grelha} className="lg:col-span-3" oculto={!mostra('preferencias')}>
+        <Quadro n="03" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." moldura={grelha} className="lg:col-span-3">
           <div className={grelha ? 'space-y-4' : 'grid gap-5 sm:grid-cols-3'}>
             <div>
               <Field name="prazoPropostas" label="Receber propostas até" type="date" defaultValue={initial?.prazo_propostas ?? undefined} error={e.prazoPropostas} hint="Pelo menos 7 dias." />
@@ -140,7 +140,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 04 · Descrição */}
-        <Quadro n="04" titulo="Descrição da obra" sub="O que os pintores vão ler." moldura={grelha} className="lg:col-span-8" oculto={!mostra('pretende')}>
+        <Quadro n="04" titulo="Descrição da obra" sub="O que os pintores vão ler." moldura={grelha} className="lg:col-span-8">
           <Field
             name="descricao"
             label="Descrição para os pintores"
@@ -203,7 +203,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         </Quadro>
 
         {/* 05 · Preferências opcionais */}
-        <Quadro n="05" titulo="Preferências" sub="Opcional. Cor, produtos e via pública." moldura={grelha} className="lg:col-span-4" oculto={!mostra('preferencias')}>
+        <Quadro n="05" titulo="Preferências" sub="Opcional. Cor, produtos e via pública." moldura={grelha} className="lg:col-span-4">
           <div className="space-y-4">
             <Field name="corAcabamento" label="Cor e acabamento" defaultValue={initial?.cor_acabamento ?? undefined} error={e.corAcabamento} hint="Por exemplo: manter as cores atuais, acabamento mate." />
             {references.length > 0 && <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />}
@@ -264,7 +264,6 @@ function Quadro({
   sub,
   moldura,
   className,
-  oculto,
   children,
 }: {
   n: string;
@@ -272,11 +271,10 @@ function Quadro({
   sub: string;
   moldura: boolean;
   className?: string;
-  oculto: boolean;
   children: ReactNode;
 }) {
   return (
-    <section hidden={oculto} className={`${moldura ? `rounded-2xl border border-slate-200 bg-white p-5 ${className ?? ''}` : ''}`}>
+    <section className={moldura ? `rounded-2xl border border-slate-200 bg-white p-5 ${className ?? ''}` : ''}>
       <header className="flex items-baseline gap-2">
         <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
         <span className="text-[15px] text-slate-400">·</span>

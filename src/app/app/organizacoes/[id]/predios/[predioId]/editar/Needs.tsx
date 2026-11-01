@@ -50,8 +50,8 @@ export function Needs({
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">Que obras quer fazer neste prédio</h2>
+        <div className="flex flex-wrap items-baseline justify-end gap-2">
+          {/* O título vive no quadro da página (01/11/2026); aqui fica só o estado da gravação. */}
           {estado === 'a_guardar' && <span className="text-[15px] text-slate-500">a guardar…</span>}
           {estado === 'guardado' && !erro && <span className="text-[15px] text-tinta-700">guardado</span>}
         </div>

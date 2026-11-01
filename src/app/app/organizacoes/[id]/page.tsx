@@ -168,9 +168,13 @@ export default async function OrganizationPage({
   const predioEmFoco = predios.find((b) => b.id === predioSelecionado) ?? predios[0] ?? null;
   const condominioEmFoco = predioEmFoco ? (managed ?? []).find((c) => c.id === predioEmFoco.org_id) ?? null : null;
 
+  // Ficha do cliente em grelha (promotor, 01/11/2026): dados da entidade ao lado dos prédios, pedidos
+  // ao lado da equipa, documentos no fim — áreas separadas por função, sem uma coluna única.
+  // A ficha de pintor e fornecedor («O meu Perfil», separadores) mantém-se como está.
+  const grelha = !isEmpresa;
   return (
-    <div className="space-y-8">
-      <div>
+    <div className={grelha ? 'grid gap-5 lg:grid-cols-12' : 'space-y-8'}>
+      <div className={grelha ? 'lg:col-span-12' : ''}>
         <Voltar href="/app">As suas entidades</Voltar>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -205,7 +209,7 @@ export default async function OrganizationPage({
           (grupos "Vender"/"Ganhar obra" e o rodapé "O meu Perfil"), repetir aqui era redundante
           (26/10/2026, docs/DECISOES.md). */}
       {org.kind === 'administradora' && (
-        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700`}>
+        <div className={`${card} flex flex-wrap gap-4 font-semibold text-tinta-700 lg:col-span-12`}>
           <Link href={`/app/organizacoes/${org.id}/pedidos/novo`} className="hover:underline">
             Novo pedido de orçamento
           </Link>
@@ -218,7 +222,7 @@ export default async function OrganizationPage({
           ela trabalha o dia todo, e os dados dela prória editam-se no ícone junto ao nome (promotor,
           24/10/2026). Nas outras entidades, continua a mostrar os dados da própria entidade. */}
       {org.kind === 'administradora' ? (
-        <section className={card}>
+        <section className={`${card} lg:col-span-8`}>
           {predioEmFoco && condominioEmFoco ? (
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -271,7 +275,7 @@ export default async function OrganizationPage({
           )}
         </section>
       ) : isEmpresa ? null : (
-      <section className={card}>
+      <section className={`${card} lg:col-span-4`}>
         <h2 className="font-semibold">Dados da entidade</h2>
         <dl className="mt-4 grid gap-3 text-[17px] sm:grid-cols-2">
           <div>
@@ -556,7 +560,7 @@ export default async function OrganizationPage({
           ver o que quer que fosse. Cada condomínio continua a ser entidade própria, com o seu NIPC — é
           ele que assina e é faturado, nunca a gestora. */}
       {org.kind === 'administradora' && (
-        <section className={card} id="predios">
+        <section className={`${card} lg:col-span-12`} id="predios">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">Prédios sob administração</h2>
@@ -665,7 +669,7 @@ export default async function OrganizationPage({
       )}
 
       {ownsBuildings && (
-        <section className={card}>
+        <section className={`${card} lg:col-span-8`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">{org.kind === 'particular' ? 'Imóveis' : 'Prédios'}</h2>
             {manager && (
@@ -708,7 +712,7 @@ export default async function OrganizationPage({
       )}
 
       {ownsBuildings && (
-        <section className={card}>
+        <section className={`${card} lg:col-span-8`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">Pedidos de orçamento</h2>
             {manager && buildings && buildings.length > 0 && (
@@ -745,7 +749,7 @@ export default async function OrganizationPage({
           sempre, sem separadores — a reorganização em "O meu Perfil" (acima) é só para pintor e
           fornecedor. */}
       {!isEmpresa && (
-      <section className={card}>
+      <section className={`${card} ${ownsBuildings ? 'lg:col-span-4' : 'lg:col-span-6'}`}>
         <h2 className="font-semibold">Equipa</h2>
         <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
           {(members ?? []).map((m) => {
@@ -810,7 +814,7 @@ export default async function OrganizationPage({
           cair exatamente aqui, sem ter de procurar a secção. Para pintor/fornecedor esse atalho passou
           a apontar para `?ver=documentos`, que já cai no separador "Documentos" acima. */}
       {!isEmpresa && (
-      <section id="documentos" className={`${card} scroll-mt-6`}>
+      <section id="documentos" className={`${card} scroll-mt-6 ${ownsBuildings ? 'lg:col-span-12' : 'lg:col-span-6'}`}>
         <h2 className="font-semibold">Documentos de verificação</h2>
         {missing.length > 0 ? (
           <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-[17px]">

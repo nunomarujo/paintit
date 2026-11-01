@@ -14,10 +14,10 @@ export default async function EditOrganizationPage({ params }: { params: Promise
   const administradoras = org.kind === 'condominio' ? await managedAdministradoras(supabase, user!.id) : [];
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Editar dados</h1>
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mt-5">
         <OrgForm action={updateOrganization.bind(null, org.id)} administradoras={administradoras} initial={org} />
       </div>
     </div>

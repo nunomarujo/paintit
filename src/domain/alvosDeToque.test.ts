@@ -28,7 +28,6 @@ const DIVIDA: Record<string, number> = {
   'app/app/page.tsx': 2,
   'app/app/pedidos/[id]/page.tsx': 1,
   'app/app/pedidos/[id]/propostas/page.tsx': 1,
-  'app/app/perfil/PasswordForm.tsx': 1,
   'app/app/subscricao/PlanForms.tsx': 1,
   'app/page.tsx': 1,
   'components/MessageThread.tsx': 1,

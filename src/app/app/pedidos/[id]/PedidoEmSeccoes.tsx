@@ -1,12 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import {
-  ESTADO_DA_SECCAO_LABELS,
-  SECCOES,
-  type EstadoDaSeccao,
-  type SeccaoId,
-} from '@/domain/seccoes';
+import { ESTADO_DA_SECCAO_LABELS, type EstadoDaSeccao, type SeccaoId } from '@/domain/seccoes';
 
 /**
  * A página do pedido, em secções que **trocam o conteúdo visível**.
@@ -55,6 +50,28 @@ const PONTO: Record<EstadoDaSeccao, string> = {
   revisto: 'bg-tinta-600',
 };
 
+/**
+ * Três passos em vez de seis secções numa coluna (promotor, 01/11/2026: «não quero colunas únicas
+ * encostadas à esquerda; tudo num só ecrã, áreas separadas visualmente por função»). Cada passo
+ * mostra os seus quadros lado a lado; as secções continuam a existir por baixo (os estados, os
+ * bloqueios e o «Rever em…» da revisão apontam para elas), só mudou o que se vê de cada vez.
+ */
+export const PASSOS = [
+  { id: 'essencial', nome: 'O essencial', seccoes: ['pretende', 'preferencias'] as const },
+  { id: 'medidas', nome: 'Medidas e fotografias', seccoes: ['zonas', 'fotografias'] as const },
+  { id: 'rever', nome: 'Rever e publicar', seccoes: ['resumo', 'publicar'] as const },
+] as const;
+type PassoId = (typeof PASSOS)[number]['id'];
+
+const passoDe = (s: SeccaoId): PassoId => PASSOS.find((p) => (p.seccoes as readonly SeccaoId[]).includes(s))!.id;
+
+function estadoDoPasso(p: (typeof PASSOS)[number], estados: Record<SeccaoId, EstadoDaSeccao>): EstadoDaSeccao {
+  const es = p.seccoes.map((s) => estados[s]);
+  if (es.every((e) => e === 'revisto')) return 'revisto';
+  if (es.every((e) => e === 'por_preencher')) return 'por_preencher';
+  return 'em_preparacao';
+}
+
 export function PedidoEmSeccoes({
   estados,
   inicial = 'resumo',
@@ -68,98 +85,123 @@ export function PedidoEmSeccoes({
   /** O formulário dos dados do pedido, que vive em duas secções e por isso se renderiza à parte. */
   formulario: ReactNode;
 }) {
-  const [activa, setActiva] = useState<SeccaoId>(inicial);
-  const i = SECCOES.findIndex((s) => s.id === activa);
-  const anterior = SECCOES[i - 1];
-  const seguinte = SECCOES[i + 1];
+  const [passo, setPasso] = useState<PassoId>(passoDe(inicial));
+  const i = PASSOS.findIndex((p) => p.id === passo);
+  const anterior = PASSOS[i - 1];
+  const seguinte = PASSOS[i + 1];
+  // O formulário lê a secção activa para saber se se mostra: no passo 1 é «pretende» (e mostra tudo).
+  const seccaoActiva: SeccaoId = PASSOS[i]!.seccoes[0];
 
   return (
-    <SeccaoActiva.Provider value={activa}>
-    <IrParaSeccao.Provider value={setActiva}>
-      <div className="lg:flex lg:items-start lg:gap-8">
-        {/* Computador: a coluna da esquerda, estreita. */}
-        <nav aria-label="Secções do pedido" className="hidden lg:block lg:w-56 lg:shrink-0">
-          <ul className="space-y-1">
-            {SECCOES.map((s) => (
-              <li key={s.id}>
+    <SeccaoActiva.Provider value={seccaoActiva}>
+    <IrParaSeccao.Provider value={(s) => setPasso(passoDe(s))}>
+      <div>
+        {/* Os passos, no topo: número, nome e o ponto de estado. Em telemóvel só os números. */}
+        <ol className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4" aria-label="Passos do pedido">
+          {PASSOS.map((p, n) => {
+            const aqui = p.id === passo;
+            const estado = estadoDoPasso(p, estados);
+            return (
+              <li key={p.id} className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setActiva(s.id)}
-                  aria-current={activa === s.id ? 'true' : undefined}
-                  className={`flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[17px] ${
-                    activa === s.id ? 'bg-tinta-50 font-semibold text-tinta-900' : 'text-slate-700 hover:bg-slate-50'
+                  onClick={() => setPasso(p.id)}
+                  aria-current={aqui ? 'step' : undefined}
+                  className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-[15px] ${
+                    aqui ? 'bg-white font-semibold text-tinta-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60'
                   }`}
                 >
-                  <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${PONTO[estados[s.id]]}`} />
-                  <span className="flex-1">{s.nome}</span>
-                  <span className="sr-only">— {ESTADO_DA_SECCAO_LABELS[estados[s.id]]}</span>
+                  <span
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold ${
+                      aqui ? 'bg-tinta-900 text-white' : 'border border-slate-300 text-slate-500'
+                    }`}
+                  >
+                    {n + 1}
+                  </span>
+                  <span className="hidden sm:inline">{p.nome}</span>
+                  <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${PONTO[estado]}`} />
+                  <span className="sr-only">— {ESTADO_DA_SECCAO_LABELS[estado]}</span>
                 </button>
+                {n < PASSOS.length - 1 && <span aria-hidden className="hidden h-px w-6 bg-slate-300 sm:block" />}
               </li>
-            ))}
-          </ul>
-        </nav>
+            );
+          })}
+        </ol>
 
-        {/* Telemóvel: um seletor, e não uma fila de separadores a arrastar de lado. */}
-        <div className="lg:hidden">
-          <label htmlFor="seccao" className="text-[15px] font-medium text-slate-600">
-            Secção
-          </label>
-          <select
-            id="seccao"
-            value={activa}
-            onChange={(ev) => setActiva(ev.target.value as SeccaoId)}
-            className="campo mt-1"
-          >
-            {SECCOES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nome} — {ESTADO_DA_SECCAO_LABELS[estados[s.id]]}
-              </option>
-            ))}
-          </select>
+        <div className="mt-5">
+          {/* Passo 1: o formulário em grelha de quadros (RequestForm trata da disposição). */}
+          <div hidden={passo !== 'essencial'}>{formulario}</div>
+
+          {/* Passo 2: zonas e medidas à esquerda, fotografias à direita. `hidden` e não desmontar. */}
+          <div hidden={passo !== 'medidas'} className="grid gap-5 lg:grid-cols-12">
+            <Area n="01" nome="Zonas e medidas" estado={estados.zonas} className="lg:col-span-7">
+              {slots.zonas}
+            </Area>
+            <Area n="02" nome="Fotografias" estado={estados.fotografias} className="lg:col-span-5">
+              {slots.fotografias}
+            </Area>
+          </div>
+
+          {/* Passo 3: o resumo do que os pintores vão ler e, ao lado, o que falta e o botão. */}
+          <div hidden={passo !== 'rever'} className="grid gap-5 lg:grid-cols-12">
+            <Area n="01" nome="Resumo do pedido" estado={estados.resumo} className="lg:col-span-7" semEstado>
+              {slots.resumo}
+            </Area>
+            <Area n="02" nome="Publicar" estado={estados.publicar} className="lg:col-span-5">
+              {slots.publicar}
+            </Area>
+          </div>
         </div>
 
-        <div className="mt-5 min-w-0 flex-1 lg:mt-0">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="text-[26px] leading-tight font-semibold">{SECCOES[i]!.nome}</h2>
-            {activa !== 'resumo' && (
-              <p className="text-[15px] text-slate-500">{ESTADO_DA_SECCAO_LABELS[estados[activa]]}</p>
-            )}
-          </div>
-
-          <div className="mt-4 space-y-5">
-            {SECCOES.map((s) => (
-              // `hidden` e não desmontar: é isto que faz com que mudar de secção não perca nada.
-              <div key={s.id} hidden={activa !== s.id}>
-                {slots[s.id]}
-              </div>
-            ))}
-            {formulario}
-          </div>
-
-          {/* A barra de passagem fica no fim do conteúdo, e não colada ao fundo do ecrã: colada,
-              tapa campos e disputa espaço com o teclado do telemóvel. */}
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-            <button
-              type="button"
-              onClick={() => anterior && setActiva(anterior.id)}
-              disabled={!anterior}
-              className="btn-quiet disabled:invisible"
-            >
-              ← {anterior?.nome ?? ''}
-            </button>
-            <button
-              type="button"
-              onClick={() => seguinte && setActiva(seguinte.id)}
-              disabled={!seguinte}
-              className="btn-quiet disabled:invisible"
-            >
-              {seguinte?.nome ?? ''} →
-            </button>
-          </div>
+        {/* A barra de passagem fica no fim do conteúdo, e não colada ao fundo do ecrã: colada,
+            tapa campos e disputa espaço com o teclado do telemóvel. */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+          <button type="button" onClick={() => anterior && setPasso(anterior.id)} disabled={!anterior} className="btn-quiet disabled:invisible">
+            ← {anterior?.nome ?? ''}
+          </button>
+          <button type="button" onClick={() => seguinte && setPasso(seguinte.id)} disabled={!seguinte} className="btn-quiet disabled:invisible">
+            {seguinte?.nome ?? ''} →
+          </button>
         </div>
       </div>
     </IrParaSeccao.Provider>
     </SeccaoActiva.Provider>
+  );
+}
+
+/** Uma área de um passo: título numerado com o estado, e o conteúdo da secção por baixo. */
+function Area({
+  n,
+  nome,
+  estado,
+  className,
+  semEstado = false,
+  children,
+}: {
+  n: string;
+  nome: string;
+  estado: EstadoDaSeccao;
+  className?: string;
+  semEstado?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`min-w-0 ${className ?? ''}`}>
+      <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="flex items-baseline gap-2 text-[17px] font-semibold text-tinta-900">
+          <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
+          <span className="text-slate-400">·</span>
+          {nome}
+        </h2>
+        {!semEstado && (
+          <span className="flex items-center gap-2 text-[13px] text-slate-500">
+            <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${PONTO[estado]}`} />
+            {ESTADO_DA_SECCAO_LABELS[estado]}
+          </span>
+        )}
+      </header>
+      {children}
+    </section>
   );
 }
 

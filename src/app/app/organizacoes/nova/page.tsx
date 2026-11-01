@@ -34,7 +34,7 @@ export default async function NewOrganizationPage({
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <Voltar href="/app">As suas entidades</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Nova entidade</h1>
       <p className="mt-2 text-[17px] text-slate-600">
@@ -48,7 +48,7 @@ export default async function NewOrganizationPage({
           outra conta com outro email.
         </p>
       )}
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mt-5">
         <OrgForm
           kinds={kinds}
           action={createOrganization}

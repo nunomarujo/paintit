@@ -1838,6 +1838,14 @@ cabeçalho operacional, separadores (`Acompanhamento.tsx`) e as duas ações com
 confirmada antes («Editar pedido» volta a rascunho e tira o anúncio do ar; «Encerrar» é um link
 discreto). O rascunho mantém `PedidoEmSeccoes` como estava.
 
+**Espaço do cliente em grelha (01/11/2026, pedido do promotor: «não quero colunas únicas encostadas à
+esquerda; tudo num só ecrã, áreas separadas por função»):** o pedido novo e o rascunho são quadros
+numerados (`RequestForm`), e o rascunho tem três passos no topo em vez da coluna de secções
+(`PedidoEmSeccoes`: O essencial · Medidas e fotografias · Rever e publicar); «As minhas obras» e
+«Contratações» têm painel à esquerda (o que precisa de si, números) e cartões por fase à direita;
+Perfil, ficha da entidade, nova entidade e ficha/novo prédio em quadros lado a lado. Os campos e as
+ações do servidor não mudaram.
+
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`
 presa ao prédio, código/QR por prédio, voto indicativo com permilagem; ecrãs do gestor, públicos e do
 condómino. **A migração ainda não correu na base real** — está na lista 1 de `EM_ABERTO.md`.

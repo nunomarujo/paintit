@@ -54,12 +54,10 @@ export function Characteristics({
   const campo = (nome: string) => saveBuildingCharacteristic.bind(null, orgId, buildingId, nome);
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-semibold">Características</h2>
-        <p className="mt-1 text-[17px] text-slate-600">
-          Quanto mais completo, menos perguntas o pintor tem de fazer depois. Grava-se sozinho: não há botão.
-        </p>
-      </div>
+      {/* O título vive no quadro da página (01/11/2026). */}
+      <p className="text-[15px] text-slate-500">
+        Quanto mais completo, menos perguntas o pintor tem de fazer depois. Grava-se sozinho: não há botão.
+      </p>
       <div className="grid gap-4 sm:grid-cols-4">
         <AutoSaveField label="Pisos" inputMode="numeric" valorInicial={str(initial.pisos)} guardar={campo('pisos')} />
         <AutoSaveField

@@ -48,7 +48,6 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
-const smallButton = 'rounded-lg border border-slate-300 px-3 py-1.5 text-[17px] hover:bg-slate-50';
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -709,69 +708,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         pendencia={primeiraPendencia(estadosSeccoes)}
       />
 
-      {req.status !== 'rascunho' && (
-        <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-          {entrega.entregues ? (
-            <p className="text-[17px]">
-              <span className="font-semibold">{proposalCount ?? 0}</span>{' '}
-              {proposalCount === 1 ? 'proposta recebida' : 'propostas recebidas'}
-              {entrega.emEsclarecimentos && entrega.esclarecimentosAte && (
-                <span className="text-slate-600"> · pode perguntar o que quiser até {pt(entrega.esclarecimentosAte)}</span>
-              )}
-            </p>
-          ) : (
-            /* Antes do prazo não se diz "0 propostas": não é verdade, é que ainda não abriram. */
-            <p className="text-[17px]">
-              <span className="font-semibold">As propostas abrem a {pt(entrega.abremEm)}</span>
-              <span className="text-slate-600">
-                {' '}
-                · {aCaminho ?? 0} a caminho · chegam todas ao mesmo tempo, para ninguém ficar com o preço à vista antes
-                dos outros
-              </span>
-            </p>
-          )}
-          {entrega.entregues && (
-            <Link
-              href={`/app/pedidos/${req.id}/propostas`}
-              className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
-            >
-              Comparar propostas e mensagens
-            </Link>
-          )}
-        </section>
-      )}
-
-      {manager && req.status === 'publicado' && (
-        <section className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-          <p className="text-[17px] text-slate-600">
-            Publicado. Para alterar o pedido, volte a rascunho: o anúncio sai do ar e uma nova versão é publicada depois.
-          </p>
-          <div className="flex gap-2">
-            <form action={changeRequestStatus.bind(null, req.id, 'rascunho')}>
-              <button type="submit" className={smallButton}>
-                Voltar a rascunho
-              </button>
-            </form>
-            <form action={changeRequestStatus.bind(null, req.id, 'encerrado')}>
-              <button type="submit" className={smallButton}>
-                Encerrar propostas
-              </button>
-            </form>
-          </div>
-        </section>
-      )}
-
-      {manager &&
-        req.status === 'publicado' &&
-        !entrega.entregues &&
-        entrega.faltamDias !== null &&
-        entrega.faltamDias <= 3 &&
-        (aCaminho ?? 0) <= 1 &&
-        req.prazo_propostas && (
-          <ProlongarPrazo requestId={req.id} prazo={req.prazo_propostas} quantas={aCaminho ?? 0} />
-        )}
-
-      {manager && req.status === 'publicado' && <RequestInvites requestId={req.id} invites={invites} />}
+      {/* Daqui para baixo só rascunhos: o pedido publicado tem a sua página de acompanhamento acima. */}
 
       {/*
         As seis secções, finalmente montadas. A 30/10/2026 o promotor exigiu que «os separadores
@@ -784,7 +721,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         estados={estadosSeccoes}
         inicial={draft ? (primeiraPendencia(estadosSeccoes) ?? 'resumo') : 'resumo'}
         formulario={
-          <CaixaDaSeccao seccoes={['pretende', 'preferencias']} className={card}>
+          <CaixaDaSeccao seccoes={['pretende', 'preferencias']}>
               <RequestForm
                 action={updateRequest.bind(null, req.id)}
                 podePublicar={!!manager && draft}
