@@ -60,7 +60,7 @@ export default async function SupplierOrdersPage({ searchParams }: { searchParam
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Encomendas</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Encomendas</h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           Encomendas de pintores para obras contratadas na plataforma. Confirmar a venda e a entrega certifica
           ao cliente que o material do contrato foi comprado e entregue.

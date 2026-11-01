@@ -297,7 +297,7 @@ export default async function ProposalsPage({
                       <h3 className="mt-4 font-semibold">{r.alias}</h3>
                       {/* O número grande é o que sai da conta bancária: total com IVA. Era o preço
                           sem IVA, que nenhum condomínio paga (DECISOES.md, 28/10/2026). */}
-                      <p className="text-[34px] font-semibold leading-tight tracking-tight">{formatEuros(r.totals.totalComIva)}</p>
+                      <p className="text-[34px] font-semibold leading-tight tracking-tight tabular-nums">{formatEuros(r.totals.totalComIva)}</p>
                       <p className="text-[15px] text-slate-500">
                         total a pagar, com IVA · {formatEuros(r.totals.base)} sem IVA
                         {r.totals.opcionais > 0 && ` · opções à parte: ${formatEuros(r.totals.opcionais)}`}

@@ -32,7 +32,7 @@ export default async function DisponibilidadePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">
+        <h1 className="text-[26px] leading-tight font-semibold">
           Disponibilidade e alertas
         </h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">

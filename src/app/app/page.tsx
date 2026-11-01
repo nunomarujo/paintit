@@ -208,7 +208,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           )}
           {painters.length > 0 && (
             <Link href="/app/oportunidades" className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px] hover:bg-slate-50">
-              <span className="text-[34px] font-semibold text-tinta-700">{openListings ?? 0}</span>
+              <span className="text-[34px] font-semibold tabular-nums text-tinta-700">{openListings ?? 0}</span>
               <span className="mt-1 block text-slate-600">{openListings === 1 ? 'pedido aberto a propostas' : 'pedidos abertos a propostas'}</span>
             </Link>
           )}

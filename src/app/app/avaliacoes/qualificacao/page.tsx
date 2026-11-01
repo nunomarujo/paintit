@@ -38,7 +38,7 @@ export default async function QualificacaoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Qualificação</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Qualificação</h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           Como correram os levantamentos que fez, nas palavras de quem os recebeu. Só a própria pessoa vê isto.
         </p>
@@ -46,7 +46,7 @@ export default async function QualificacaoPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <p className="text-[17px] text-slate-600">Média das avaliações</p>
-        <p className="mt-1 text-[34px] font-semibold leading-tight text-slate-900">
+        <p className="mt-1 text-[34px] font-semibold leading-tight tabular-nums text-slate-900">
           {media === null ? '—' : `${media.toLocaleString('pt-PT', { maximumFractionDigits: 1 })} / 5`}
         </p>
         <p className="mt-1 text-[15px] text-slate-600">

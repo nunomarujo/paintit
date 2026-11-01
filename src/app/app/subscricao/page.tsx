@@ -85,7 +85,7 @@ export default async function SubscriptionPage() {
           Y €" numa obra de valor conhecido revela as duas taxas por divisão. Fica só o que se poupa. */}
       <section className="rounded-2xl border border-marca-border bg-marca-cream px-6 py-5">
         <p className="eyebrow text-marca-ink-soft">Numa obra de {formatEuros(exemplo)}</p>
-        <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight text-marca-orange-deep">
+        <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight tabular-nums text-marca-orange-deep">
           Poupa {formatEuros(poupa)}
         </p>
         <p className="mt-2 max-w-[60ch] text-[15px] text-marca-muted">

@@ -28,7 +28,7 @@ export default async function SubscricaoDoFornecedorPage({ params }: { params: P
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Subscrição</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Subscrição</h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           O plano da empresa na plataforma. A plataforma não recebe nada pelas vendas: só esta mensalidade.
         </p>

@@ -62,7 +62,7 @@ export default async function HojeVendasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Hoje</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Hoje</h1>
         <p className="mt-1 text-[17px] text-slate-600">
           {new Intl.DateTimeFormat('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Lisbon' })
             .format(agora)

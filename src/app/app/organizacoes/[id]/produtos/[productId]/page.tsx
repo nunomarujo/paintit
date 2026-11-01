@@ -16,7 +16,7 @@ export default async function ProdutoPage({ params }: { params: Promise<{ id: st
     <div className="space-y-6">
       <div>
         <Voltar href={`/app/organizacoes/${id}/produtos`}>Produtos e preços</Voltar>
-        <h1 className="mt-3 text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">
           {p.marca} {p.nome}
         </h1>
         {/* Estado em texto, nunca fundo de cor fora de uma banda (regra 13). */}

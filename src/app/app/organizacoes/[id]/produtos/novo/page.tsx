@@ -21,7 +21,7 @@ export default async function NovoProdutoPage({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <div>
         <Voltar href={`/app/organizacoes/${id}/produtos`}>Produtos e preços</Voltar>
-        <h1 className="mt-3 text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">
+        <h1 className="mt-3 text-[26px] leading-tight font-semibold">
           Acrescentar produto
         </h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">

@@ -73,7 +73,7 @@ export default async function BackofficeDashboard() {
             {g.items.map((t) => (
               <li key={t.label}>
                 <Link href={t.href} className={`${card} block hover:bg-slate-50 ${t.n === 0 ? 'opacity-60' : ''}`}>
-                  <span className={`text-[34px] font-semibold ${t.n > 0 ? 'text-tinta-700' : 'text-slate-600'}`}>{t.n}</span>
+                  <span className={`text-[34px] font-semibold tabular-nums ${t.n > 0 ? 'text-tinta-700' : 'text-slate-600'}`}>{t.n}</span>
                   <span className="mt-1 block text-[17px] text-slate-600">{t.label}</span>
                 </Link>
               </li>

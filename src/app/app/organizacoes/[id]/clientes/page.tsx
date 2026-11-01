@@ -75,7 +75,7 @@ export default async function SupplierCustomersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Clientes e convites</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Clientes e convites</h1>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           Os pintores que compram a esta empresa, e as duas maneiras de trazer mais: convidar alguém que já
           conhece, ou dar um código de adesão.
