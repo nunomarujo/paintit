@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, type ReactNode } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import {
@@ -47,193 +48,181 @@ interface Props {
   references?: ProdutoEscolhivel[];
 }
 
+const DESCRICAO_MAX = 1500;
+
+/**
+ * O formulário do pedido em grelha de quadros (promotor, 01/11/2026: «tudo no mesmo ecrã, ocupando a
+ * largura disponível, quadros bonitos, ambiente clean»). Cinco quadros numerados — local, o que
+ * pretende, prazos, descrição, preferências — na mesma página, em vez de uma coluna de campos.
+ *
+ * Os mesmos campos, com os mesmos nomes, vão para a mesma acção: o servidor não mudou. Em modo de
+ * secções (`PedidoEmSeccoes`, no rascunho já criado) cada quadro só aparece na sua secção, e perde
+ * a moldura porque a secção já tem a sua. Esconde-se, não se desmonta: mudar de secção não perde
+ * o que está escrito.
+ */
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const seccao = useSeccaoActiva();
+  const grelha = seccao === null;
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
   const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
   const flexiveisIniciais = initial?.datas_flexiveis ?? [];
+  const [descricao, setDescricao] = useState(initial?.descricao ?? '');
+
+  const mostra = (grupo: 'pretende' | 'preferencias') => seccao === null || seccao === grupo;
   const flexivel = (d: DataFlexivel) => (
-    <label className="mt-2 flex min-h-[44px] items-start gap-2 text-[15px] font-normal text-slate-600">
-      <input type="checkbox" name="dataFlexivel" value={d} defaultChecked={flexiveisIniciais.includes(d)} className="mt-0.5" />
+    <label className="flex min-h-[44px] items-start gap-2 text-[15px] text-slate-600">
+      <input type="checkbox" name="dataFlexivel" value={d} defaultChecked={flexiveisIniciais.includes(d)} className="mt-1" />
       {DATA_FLEXIVEL_LABELS[d]}
     </label>
   );
 
   return (
     <form {...formProps} className="space-y-5">
-      <fieldset disabled={disabled} className="space-y-5">
-        {/* Grupo «O que pretende». Escondido, e não desmontado: é o que faz com que mudar de
-            secção não perca nada do que está escrito. */}
-        <div hidden={seccao !== null && seccao !== 'pretende'} className="space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field name="buildingId" label="Prédio" required error={e.buildingId}>
-            <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nome_interno}
-                </option>
+      <fieldset disabled={disabled} className={grelha ? 'grid gap-5 lg:grid-cols-12' : 'space-y-6'}>
+        {/* 01 · Local e identificação */}
+        <Quadro n="01" titulo="Local e identificação" sub="O prédio e um nome para este pedido." moldura={grelha} className="lg:col-span-3" oculto={!mostra('pretende')}>
+          <div className="space-y-4">
+            <Field name="buildingId" label="Prédio" required error={e.buildingId}>
+              <select name="buildingId" required defaultValue={initial?.building_id ?? buildings[0]?.id} className={selectClass}>
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.nome_interno}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field name="titulo" label="Nome interno do pedido" required defaultValue={initial?.titulo} error={e.titulo} hint="Só a sua equipa o vê. Por exemplo: Fachadas 2027." />
+          </div>
+        </Quadro>
+
+        {/* 02 · O que pretende fazer */}
+        <Quadro n="02" titulo="O que pretende fazer?" sub="Os tipos de obra e o principal objetivo." moldura={grelha} className="lg:col-span-6" oculto={!mostra('pretende')}>
+          <fieldset>
+            <legend className="text-[15px] font-semibold text-slate-700">
+              Tipos de obra <span className="font-normal text-slate-500">(pode escolher vários)</span>
+            </legend>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {WORK_TYPES.map((t) => (
+                <Pastilha key={t}>
+                  <input type="checkbox" name="tipoObra" value={t} defaultChecked={tiposIniciais.includes(t)} className="sr-only" />
+                  <Visto />
+                  {WORK_TYPE_LABELS[t]}
+                </Pastilha>
               ))}
-            </select>
-          </Field>
+            </div>
+            {e.tipoObra && (
+              <p className="mt-1 text-[15px] text-red-700" role="alert">
+                {e.tipoObra}
+              </p>
+            )}
+          </fieldset>
+          <Objectivos descricao={descricao} setDescricao={setDescricao} />
+        </Quadro>
+
+        {/* 03 · Prazos */}
+        <Quadro n="03" titulo="Prazos" sub="Até quando recebe propostas e quando quer a obra." moldura={grelha} className="lg:col-span-3" oculto={!mostra('preferencias')}>
+          <div className={grelha ? 'space-y-4' : 'grid gap-5 sm:grid-cols-3'}>
+            <div>
+              <Field name="prazoPropostas" label="Receber propostas até" type="date" defaultValue={initial?.prazo_propostas ?? undefined} error={e.prazoPropostas} hint="Pelo menos 7 dias." />
+              {flexivel('propostas')}
+            </div>
+            <div>
+              <Field name="execucaoDesde" label="Obra a partir de" type="date" defaultValue={initial?.execucao_desde ?? undefined} error={e.execucaoDesde} />
+              {flexivel('execucao_desde')}
+            </div>
+            <div>
+              <Field name="execucaoAte" label="Obra até" type="date" defaultValue={initial?.execucao_ate ?? undefined} error={e.execucaoAte} />
+              {flexivel('execucao_ate')}
+            </div>
+          </div>
+        </Quadro>
+
+        {/* 04 · Descrição */}
+        <Quadro n="04" titulo="Descrição da obra" sub="O que os pintores vão ler." moldura={grelha} className="lg:col-span-8" oculto={!mostra('pretende')}>
           <Field
-            name="titulo"
-            label="Nome interno do pedido"
-            required
-            defaultValue={initial?.titulo}
-            error={e.titulo}
-            hint="Só a sua equipa o vê. Por exemplo: Fachadas 2027."
-          />
-        </div>
-
-        <fieldset>
-          <legend className="text-[17px] font-medium text-slate-700">
-            Tipo de obra <span className="text-red-700">*</span>
-          </legend>
-          <p className="mt-1 text-[15px] text-slate-500">
-            Assinale todos os que se aplicam. Uma obra pode ser exterior e interior ao mesmo tempo.
-          </p>
-          <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-2">
-            {WORK_TYPES.map((t) => (
-              <label key={t} className="flex min-h-[44px] items-center gap-2">
-                <input type="checkbox" name="tipoObra" value={t} defaultChecked={tiposIniciais.includes(t)} />
-                {WORK_TYPE_LABELS[t]}
-              </label>
-            ))}
-          </div>
-          {e.tipoObra && (
-            <p className="mt-1 text-[15px] text-red-700" role="alert">
-              {e.tipoObra}
-            </p>
-          )}
-        </fieldset>
-
-        <Objectivos />
-
-        <Field
-          name="descricao"
-          label="Descrição para os pintores"
-          error={e.descricao}
-          hint="Estado atual, problemas observados, o que pretende. Não indique morada, nomes nem contactos: são revelados só depois da escolha."
-        >
-          <textarea
             name="descricao"
-            rows={5}
-            defaultValue={initial?.descricao}
-            className="mt-1 campo"
-          />
-        </Field>
-
-        {/*
-          As opções técnicas recolhem-se até serem precisas (promotor, 30/10/2026): primário,
-          impermeabilização e regras entre zonas não são perguntas para quem só sabe que a tinta
-          está a descascar. Quem as conhece abre isto; quem não as conhece não tropeça nelas.
-        */}
-        <details className="rounded-2xl border border-slate-200 p-4">
-        <summary className="min-h-[44px] cursor-pointer text-[17px] font-medium text-tinta-800">
-          Especificar trabalhos
-          <span className="block text-[15px] font-normal text-slate-500">
-            Opcional. Se souber que trabalhos quer — lavagem, primário, impermeabilização —, indique-os aqui.
-          </span>
-        </summary>
-        <div className="mt-4 space-y-5">
-        <fieldset>
-          <legend className="text-[17px] font-medium text-slate-700">Trabalhos pretendidos</legend>
-          <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
-            {DESIRED_WORKS.map((w) => (
-              <label key={w} className="flex min-h-[44px] items-center gap-2">
-                <input type="checkbox" name="trabalhos" value={w} defaultChecked={initial?.trabalhos.includes(w)} />
-                {DESIRED_WORK_LABELS[w]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend className="text-[17px] font-medium text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
-          <div className="mt-2 space-y-2 text-[17px]">
-            {WORKS_MODES.map((m) => (
-              // Regra 17: o alvo é a etiqueta inteira, e tem 44px — o círculo do rádio tem 20 e
-              // ninguém o acerta com o dedo numa obra.
-              <label key={m} className="flex min-h-[44px] items-center gap-2">
-                <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} />
-                {WORKS_MODE_LABELS[m]}
-              </label>
-            ))}
-          </div>
-          <p className="mt-2 text-[15px] text-slate-500">
-            Com diferenças, é possível indicar, em cada zona, os trabalhos que só nela se aplicam (depois de guardar, ao acrescentar zonas).
-            Fotografias e problemas observados ficam sempre associados à zona.
+            label="Descrição para os pintores"
+            error={e.descricao}
+            hint="Estado atual, problemas observados, o que pretende. Sem morada, nomes nem contactos: são revelados só depois da escolha."
+          >
+            <textarea
+              name="descricao"
+              rows={grelha ? 6 : 5}
+              value={descricao}
+              onChange={(ev) => setDescricao(ev.target.value)}
+              maxLength={DESCRICAO_MAX}
+              className="mt-1 campo"
+            />
+          </Field>
+          <p className="mt-1 text-right text-[13px] text-slate-500">
+            {descricao.length}/{DESCRICAO_MAX}
           </p>
-        </fieldset>
-        </div>
-        </details>
-        </div>
 
-        {/* Grupo «Preferências e prazos». */}
-        <div hidden={seccao !== null && seccao !== 'preferencias'} className="space-y-5">
-        <Field
-          name="corAcabamento"
-          label="Cor e acabamento"
-          defaultValue={initial?.cor_acabamento ?? undefined}
-          error={e.corAcabamento}
-          hint="Por exemplo: manter as cores atuais, acabamento mate. Pode deixar em aberto."
-        />
+          {/*
+            As opções técnicas recolhem-se até serem precisas (promotor, 30/10/2026): primário,
+            impermeabilização e regras entre zonas não são perguntas para quem só sabe que a tinta
+            está a descascar. Quem as conhece abre isto; quem não as conhece não tropeça nelas.
+          */}
+          <details className="mt-3 rounded-lg border border-slate-200 px-4">
+            <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-tinta-800">
+              Especificar trabalhos
+              <span className="text-[13px] font-normal text-slate-500">Opcional</span>
+            </summary>
+            <div className="space-y-5 pb-4 pt-2">
+              <fieldset>
+                <legend className="text-[15px] font-semibold text-slate-700">Trabalhos pretendidos</legend>
+                <div className="mt-2 grid gap-2 text-[17px] sm:grid-cols-3">
+                  {DESIRED_WORKS.map((w) => (
+                    <label key={w} className="flex min-h-[44px] items-center gap-2">
+                      <input type="checkbox" name="trabalhos" value={w} defaultChecked={initial?.trabalhos.includes(w)} />
+                      {DESIRED_WORK_LABELS[w]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-[15px] font-semibold text-slate-700">Os trabalhos são iguais em todas as fachadas ou zonas?</legend>
+                <div className="mt-2 space-y-1 text-[17px]">
+                  {WORKS_MODES.map((m) => (
+                    // Regra 17: o alvo é a etiqueta inteira, e tem 44px — o círculo do rádio tem 20 e
+                    // ninguém o acerta com o dedo numa obra.
+                    <label key={m} className="flex min-h-[44px] items-center gap-2">
+                      <input type="radio" name="trabalhosModo" value={m} defaultChecked={(initial?.trabalhos_modo ?? 'iguais') === m} />
+                      {WORKS_MODE_LABELS[m]}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-[15px] text-slate-500">
+                  Com diferenças, é possível indicar, em cada zona, os trabalhos que só nela se aplicam (depois de guardar, ao acrescentar zonas).
+                </p>
+              </fieldset>
+            </div>
+          </details>
+        </Quadro>
 
-        {references.length > 0 && (
-          <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />
-        )}
-
-        <Field
-          name="ocupacaoViaPublica"
-          label="A obra prevê ocupação da via pública?"
-          error={e.ocupacaoViaPublica}
-          hint="As licenças camarárias dos trabalhos (incluindo a via pública) são obtidas pelo pintor. Licenciamento especial, como alterar janelas ou a fachada, é da responsabilidade do cliente."
-        >
-          <select name="ocupacaoViaPublica" defaultValue={initial?.ocupacao_via_publica ?? 'a_avaliar'} className={selectClass}>
-            {VIA_PUBLICA.map((v) => (
-              <option key={v} value={v}>
-                {VIA_PUBLICA_LABELS[v]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <div className="grid gap-5 sm:grid-cols-3">
-          <div>
+        {/* 05 · Preferências opcionais */}
+        <Quadro n="05" titulo="Preferências" sub="Opcional. Cor, produtos e via pública." moldura={grelha} className="lg:col-span-4" oculto={!mostra('preferencias')}>
+          <div className="space-y-4">
+            <Field name="corAcabamento" label="Cor e acabamento" defaultValue={initial?.cor_acabamento ?? undefined} error={e.corAcabamento} hint="Por exemplo: manter as cores atuais, acabamento mate." />
+            {references.length > 0 && <EscolherProdutos produtos={references} inicial={initial?.produtos_preferidos ?? []} />}
             <Field
-              name="prazoPropostas"
-              label="Propostas até"
-              type="date"
-              defaultValue={initial?.prazo_propostas ?? undefined}
-              error={e.prazoPropostas}
-              hint="Pelo menos 7 dias."
-            />
-            {flexivel('propostas')}
+              name="ocupacaoViaPublica"
+              label="Ocupação da via pública"
+              error={e.ocupacaoViaPublica}
+              info="As licenças camarárias dos trabalhos (incluindo a via pública) são obtidas pelo pintor. Licenciamento especial, como alterar janelas ou a fachada, é da responsabilidade do cliente."
+            >
+              <select name="ocupacaoViaPublica" defaultValue={initial?.ocupacao_via_publica ?? 'a_avaliar'} className={selectClass}>
+                {VIA_PUBLICA.map((v) => (
+                  <option key={v} value={v}>
+                    {VIA_PUBLICA_LABELS[v]}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </div>
-          <div>
-            <Field
-              name="execucaoDesde"
-              label="Execução a partir de"
-              type="date"
-              defaultValue={initial?.execucao_desde ?? undefined}
-              error={e.execucaoDesde}
-            />
-            {flexivel('execucao_desde')}
-          </div>
-          <div>
-            <Field
-              name="execucaoAte"
-              label="Execução até"
-              type="date"
-              defaultValue={initial?.execucao_ate ?? undefined}
-              error={e.execucaoAte}
-            />
-            {flexivel('execucao_ate')}
-          </div>
-        </div>
-        </div>
+        </Quadro>
       </fieldset>
 
       <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
@@ -244,10 +233,10 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
         diferença.
       */}
       {!disabled && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           {seccao !== 'publicar' && (
-            <button type="submit" disabled={pending} className="btn-primary">
-              {pending ? 'A guardar…' : initial ? 'Guardar e continuar' : 'Criar pedido'}
+            <button type="submit" disabled={pending} className="btn-primary btn-lg">
+              {pending ? 'A guardar…' : initial ? 'Guardar e continuar' : 'Criar pedido e continuar para as medidas'}
             </button>
           )}
           {/*
@@ -268,6 +257,55 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   );
 }
 
+/** Um quadro numerado da grelha. Sem moldura dentro de uma secção, que já tem a sua. */
+function Quadro({
+  n,
+  titulo,
+  sub,
+  moldura,
+  className,
+  oculto,
+  children,
+}: {
+  n: string;
+  titulo: string;
+  sub: string;
+  moldura: boolean;
+  className?: string;
+  oculto: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section hidden={oculto} className={`${moldura ? `rounded-2xl border border-slate-200 bg-white p-5 ${className ?? ''}` : ''}`}>
+      <header className="flex items-baseline gap-2">
+        <span className="text-[15px] font-semibold text-tinta-600">{n}</span>
+        <span className="text-[15px] text-slate-400">·</span>
+        <h2 className="text-[17px] font-semibold text-tinta-900">{titulo}</h2>
+      </header>
+      <p className="mt-0.5 text-[15px] text-slate-500">{sub}</p>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+/** Pastilha seleccionável (checkbox escondido): a etiqueta inteira é o alvo, com 44px. */
+function Pastilha({ children }: { children: ReactNode }) {
+  return (
+    <label className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-[15px] font-medium text-slate-700 hover:border-tinta-600 has-[:checked]:border-tinta-600 has-[:checked]:bg-selected has-[:checked]:text-tinta-900 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tinta-600">
+      {children}
+    </label>
+  );
+}
+
+/** O visto da pastilha: só aparece quando o checkbox irmão está marcado. */
+function Visto() {
+  return (
+    <span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-[13px] text-white [label:has(:checked)_&]:border-tinta-600 [label:has(:checked)_&]:bg-tinta-600">
+      ✓
+    </span>
+  );
+}
+
 /**
  * Começar pelo que o cliente sabe responder.
  *
@@ -278,46 +316,53 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
  * **Isto não converte um sintoma numa solução técnica.** Era instrução expressa, e por isso estas
  * opções não marcam trabalhos nenhuns: escrevem uma frase na descrição, que o cliente revê e
  * corrige. A solução decide-se depois — por ele, em «Especificar trabalhos», ou pelo profissional
- * no levantamento.
- *
- * Por não serem guardadas, não ficam assinaladas quando se volta: o que fica é o texto que
- * produziram. Guardá-las exigiria uma coluna nova, e fica para quando o promotor quiser que o
- * pedido se lembre dos sintomas em separado da descrição.
+ * no levantamento. A pastilha fica assinalada enquanto a frase estiver na descrição.
  */
 const OBJECTIVOS = [
-  ['Renovar a pintura', 'Queremos renovar a pintura.'],
-  ['Resolver fissuras ou tinta a descascar', 'Há fissuras e tinta a descascar.'],
-  ['Resolver sinais de humidade', 'Há sinais de humidade.'],
-  ['Melhorar o isolamento', 'Gostaríamos de melhorar o isolamento.'],
-  ['Ainda não sei qual é a solução', 'Ainda não sabemos qual é a solução e precisamos de aconselhamento.'],
+  ['Renovar pintura', 'Queremos renovar a pintura.'],
+  ['Fissuras', 'Há fissuras e tinta a descascar.'],
+  ['Humidade', 'Há sinais de humidade.'],
+  ['Isolamento', 'Gostaríamos de melhorar o isolamento.'],
+  ['Não sei', 'Ainda não sabemos qual é a solução e precisamos de aconselhamento.'],
 ] as const;
 
-function Objectivos() {
-  const acrescenta = (frase: string) => {
-    const campo = document.querySelector<HTMLTextAreaElement>('textarea[name="descricao"]');
-    if (!campo || campo.value.includes(frase)) return;
-    campo.value = campo.value.trim() ? `${campo.value.trim()} ${frase}` : frase;
-    campo.focus();
-    campo.setSelectionRange(campo.value.length, campo.value.length);
+function Objectivos({ descricao, setDescricao }: { descricao: string; setDescricao: (v: string) => void }) {
+  const alterna = (frase: string) => {
+    if (descricao.includes(frase)) {
+      setDescricao(descricao.replace(frase, '').replace(/\s{2,}/g, ' ').trim());
+    } else {
+      setDescricao(descricao.trim() ? `${descricao.trim()} ${frase}` : frase);
+    }
   };
   return (
-    <fieldset>
-      <legend className="text-[17px] font-medium text-slate-700">O que pretende fazer?</legend>
-      <p className="mt-1 text-[15px] text-slate-500">
-        Opcional. Carregue no que se aplica e a frase entra na descrição abaixo, para a rever e completar.
-      </p>
+    <fieldset className="mt-4">
+      <legend className="text-[15px] font-semibold text-slate-700">
+        Qual é o principal objetivo? <span className="font-normal text-slate-500">(pode escolher vários)</span>
+      </legend>
       <div className="mt-2 flex flex-wrap gap-2">
-        {OBJECTIVOS.map(([rotulo, frase]) => (
-          <button
-            key={rotulo}
-            type="button"
-            onClick={() => acrescenta(frase)}
-            className="min-h-[44px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-[17px] hover:border-tinta-600 hover:bg-tinta-50"
-          >
-            {rotulo}
-          </button>
-        ))}
+        {OBJECTIVOS.map(([rotulo, frase]) => {
+          const activo = descricao.includes(frase);
+          return (
+            <button
+              key={rotulo}
+              type="button"
+              aria-pressed={activo}
+              onClick={() => alterna(frase)}
+              className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg border px-3 py-2 text-[15px] font-medium ${
+                activo ? 'border-tinta-600 bg-selected text-tinta-900' : 'border-slate-300 bg-white text-slate-700 hover:border-tinta-600'
+              }`}
+            >
+              {activo && (
+                <span aria-hidden className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-tinta-600 text-[13px] text-white">
+                  ✓
+                </span>
+              )}
+              {rotulo}
+            </button>
+          );
+        })}
       </div>
+      <p className="mt-2 text-[13px] text-slate-500">Cada escolha escreve uma frase na descrição, para a rever e completar.</p>
     </fieldset>
   );
 }

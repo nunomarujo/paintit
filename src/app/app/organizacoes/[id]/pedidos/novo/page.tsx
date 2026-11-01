@@ -92,31 +92,33 @@ export default async function NewRequestPage({
   const ordered = [...list.filter((b) => b.id === predio), ...list.filter((b) => b.id !== predio)];
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
-      <h1 className="mt-3 text-[26px] leading-tight font-semibold">Novo pedido de orçamento</h1>
-      <p className="mt-2 text-[17px] text-slate-600">
-        Passo 1 de 3 — o essencial da obra. As superfícies, as áreas e as fotografias vêm a seguir, e podem
-        ficar a cargo de um avaliador.
-      </p>
+      {/* Cabeçalho em grelha (promotor, 01/11/2026): título à esquerda, os três passos à direita, e o
+          formulário a ocupar a largura toda em quadros numerados (RequestForm). */}
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[26px] leading-tight font-semibold">Novo pedido de orçamento</h1>
+          <p className="mt-1 text-[17px] text-slate-600">O essencial da obra, num só ecrã.</p>
+        </div>
+        <Passos actual={1} />
+      </div>
 
-      {/* Canvas «Espaço do cliente» (01/11/2026): a ajuda gratuita cabe numa linha. O bloco de
-          texto que aqui estava desde 24/10/2026 explicava a visita antes de o pedido existir — cedo
-          de mais para quem ainda só quer dizer o que pretende. O pedido de ajuda abre-se sozinho ao
-          criar o pedido (gatilho `work_requests_create_survey`); o detalhe fica no próprio pedido. */}
-      <p className="mt-4 flex items-start gap-3 rounded-lg bg-tinta-50 px-4 py-3 text-[15px] text-slate-700">
+      {/* A ajuda gratuita cabe numa linha. O pedido de ajuda abre-se sozinho ao criar o pedido
+          (gatilho `work_requests_create_survey`); o detalhe fica no próprio pedido. */}
+      <p className="mt-5 flex items-start gap-3 rounded-lg bg-tinta-50 px-4 py-3 text-[15px] text-slate-700">
         <span aria-hidden className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tinta-600 text-[13px] font-bold text-white">
           ✓
         </span>
         <span>
           <span className="font-semibold text-tinta-900">Não precisa de saber medir.</span> Um avaliador pode visitar a
-          obra e preencher as medidas e as fotografias, sem custo e sem compromisso. Decide-se a seguir, no pedido.
+          obra e preencher as medidas e as fotografias, sem custo e sem compromisso. Decide-se no passo seguinte.
         </span>
       </p>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="mt-5">
         {ordered.length === 0 ? (
-          <p className="text-[17px]">
+          <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
             Registe primeiro o prédio.{' '}
             <Link href={`/app/organizacoes/${org.id}/predios/novo`} className="text-tinta-700 hover:underline">
               Adicionar prédio
@@ -127,5 +129,32 @@ export default async function NewRequestPage({
         )}
       </div>
     </div>
+  );
+}
+
+/** Os três passos do pedido, como no desenho: o actual a cheio, os seguintes em contorno. */
+function Passos({ actual }: { actual: 1 | 2 | 3 }) {
+  const passos = ['O essencial', 'Medidas e fotografias', 'Rever e publicar'];
+  return (
+    <ol className="flex items-center gap-2 text-[13px]">
+      {passos.map((nome, i) => {
+        const n = i + 1;
+        const feito = n < actual;
+        const aqui = n === actual;
+        return (
+          <li key={nome} className="flex items-center gap-2">
+            <span
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold ${
+                aqui ? 'bg-tinta-900 text-white' : feito ? 'bg-tinta-100 text-tinta-900' : 'border border-slate-300 text-slate-500'
+              }`}
+            >
+              {n}
+            </span>
+            <span className={`hidden sm:inline ${aqui ? 'font-semibold text-tinta-900' : 'text-slate-500'}`}>{nome}</span>
+            {n < 3 && <span aria-hidden className="mx-1 hidden h-px w-8 bg-slate-300 sm:block" />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
