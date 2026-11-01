@@ -14,8 +14,11 @@ import { LinhaDeLevantamento, type LevantamentoNaLista } from './LinhaDeLevantam
  * lado; a seguir «O seu trabalho», em curso ou concluídos, uma linha por levantamento; e no fim dois cartões
  * — oportunidades e comissões — que são o que se *pode* fazer, não o que se *tem* de fazer.
  *
- * Uma só banda com fundo de cor, no topo, e é a da próxima ação (regra 13). Dentro das listas o alarme é
- * texto.
+ * Recomposição v5 (01/11/2026, canvas «Quem Pinta — landing v5», artboard App-Hoje): o cartão da
+ * próxima ação está **sempre** presente, em marinho, com o rótulo em lima — é o único fundo de cor forte
+ * do ecrã (regra 13); «Nada por fazer agora» é um estado dele, não a sua ausência. A presença da pessoa
+ * (disponível / suspensa) vive numa pílula à direita do título, não numa segunda banda. Dentro das listas
+ * o alarme é texto.
  */
 
 export type EstadoDeHoje = {
@@ -25,6 +28,8 @@ export type EstadoDeHoje = {
   oportunidades: number;
   comissoesDisponiveis: number;
   suspenso?: Suspensao | null;
+  /** Concelhos cobertos pela empresa; 0 = todo o país. */
+  concelhosCobertos?: number;
 };
 
 const DIA = new Intl.DateTimeFormat('pt-PT', {
@@ -47,26 +52,47 @@ function Cartao({
   destaque,
   href,
   acao,
+  nevoa,
 }: {
   titulo: string;
   nota: string;
   destaque?: string;
   href: string;
   acao: string;
+  nevoa?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex min-h-[44px] flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:border-tinta-600 sm:p-5"
-    >
-      <div>
-        <p className="font-semibold text-slate-900">{titulo}</p>
-        {destaque && <p className="mt-1 text-[26px] font-semibold leading-tight text-slate-900">{destaque}</p>}
-        <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">{nota}</p>
-      </div>
-      <span aria-hidden="true" className="text-[15px] font-semibold text-tinta-700">
+    <section className={`flex flex-col gap-2 rounded-2xl border border-slate-200 p-4 sm:p-5 ${nevoa ? 'bg-tinta-50' : 'bg-white'}`}>
+      <h3 className="font-semibold text-slate-900">{titulo}</h3>
+      {destaque && <p className="text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-slate-900">{destaque}</p>}
+      <p className="max-w-[54ch] text-[15px] text-slate-600">{nota}</p>
+      <Link href={href} className="btn-secondary mt-2 self-start">
         {acao} →
-      </span>
+      </Link>
+    </section>
+  );
+}
+
+/** A presença da pessoa, numa pílula: disponível (com a cobertura) ou suspensa até uma data. */
+function Presenca({ suspenso, concelhos }: { suspenso: Suspensao | null | undefined; concelhos: number }) {
+  if (suspenso) {
+    return (
+      <Link
+        href="/app/avaliacoes/disponibilidade"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-amber-50 px-4 text-[15px] font-semibold text-amber-900"
+      >
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-500" />
+        Suspensa até {suspenso.ateEmPalavras}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href="/app/avaliacoes/disponibilidade"
+      className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-tinta-100 px-4 text-[15px] font-semibold text-tinta-700"
+    >
+      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-tinta-600" />
+      Disponível · {concelhos === 0 ? 'todo o país' : `${concelhos} ${concelhos === 1 ? 'concelho coberto' : 'concelhos cobertos'}`}
     </Link>
   );
 }
@@ -92,55 +118,71 @@ export function HojeAvaliacoes({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Hoje</h1>
-        <p className="mt-1 text-[17px] text-slate-600">{diaPorExtenso(agora)}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Hoje</h1>
+          <p className="mt-1 text-[17px] text-slate-600">{diaPorExtenso(agora)}</p>
+        </div>
+        <Presenca suspenso={estado.suspenso} concelhos={estado.concelhosCobertos ?? 0} />
       </div>
 
-      {estado.suspenso ? (
-        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
-          <p className="text-[17px] font-semibold text-amber-900">
-            Presença suspensa até {estado.suspenso.ateEmPalavras}
-          </p>
-          <p className="mt-1 max-w-[54ch] text-[17px] text-amber-900">
-            {faltaParaVoltar(estado.suspenso)}. Durante este período não chegam oportunidades novas.
-          </p>
-          <Link href="/app/avaliacoes/disponibilidade" className="btn-secondary mt-4 inline-flex">
-            Rever a disponibilidade
-          </Link>
-        </section>
-      ) : primeira && contagem ? (
-        <section
-          aria-labelledby="agora"
-          className="flex flex-col gap-4 rounded-2xl border border-tinta-200 bg-tinta-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
-        >
-          <div className="min-w-0">
-            <h2 id="agora" className="text-[20px] font-semibold text-slate-900">
-              Próxima ação: {primeira.estado === 'por_contactar' ? 'contactar o cliente' : 'fazer a visita'}
-            </h2>
-            <p className="mt-1 text-[17px] text-slate-700">
-              {primeira.ref} · {primeira.concelho}
-            </p>
-            <p className={`text-[17px] ${contagem.vencido ? 'font-semibold text-amber-800' : 'text-slate-700'}`}>
-              {(() => {
-                const q = quandoCurto(agora, new Date(primeira.prazo!));
-                return `Até ${q.dia === 'Hoje' ? 'hoje' : q.dia.toLowerCase()}, ${q.hora}`;
-              })()}{' '}
-              · {contagem.vencido ? 'o prazo passou' : contagem.texto}
-            </p>
-          </div>
-          <Link href={`/app/levantamentos/${primeira.id}`} className="btn-primary shrink-0">
-            {primeira.estado === 'por_contactar' ? 'Contactar e agendar' : 'Preparar a visita'}
-          </Link>
-        </section>
-      ) : (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <h2 className="text-[20px] font-semibold text-slate-900">Nada por fazer agora</h2>
-          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
-            Quando aceitar um levantamento, a primeira coisa a fazer aparece aqui, com o prazo a correr.
-          </p>
-        </section>
-      )}
+      {(() => {
+        const base = 'flex flex-col gap-4 rounded-2xl bg-tinta-900 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6';
+        const rotulo = <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-lima">Próxima ação</p>;
+        if (estado.suspenso) {
+          return (
+            <section aria-labelledby="agora" className={base}>
+              <div className="min-w-0">
+                {rotulo}
+                <h2 id="agora" className="mt-1 text-[20px] font-semibold">
+                  Presença suspensa até {estado.suspenso.ateEmPalavras}
+                </h2>
+                <p className="mt-1 max-w-[54ch] text-[15px] text-tinta-200">
+                  {faltaParaVoltar(estado.suspenso)}. Durante este período não chegam oportunidades novas.
+                </p>
+              </div>
+              <Link href="/app/avaliacoes/disponibilidade" className="btn-primary shrink-0">
+                Rever a disponibilidade
+              </Link>
+            </section>
+          );
+        }
+        if (primeira && contagem) {
+          const q = quandoCurto(agora, new Date(primeira.prazo!));
+          return (
+            <section aria-labelledby="agora" className={base}>
+              <div className="min-w-0">
+                {rotulo}
+                <h2 id="agora" className="mt-1 text-[20px] font-semibold">
+                  {primeira.estado === 'por_contactar' ? 'Contactar o cliente' : 'Fazer a visita'} · {primeira.ref} · {primeira.concelho}
+                </h2>
+                <p className={`mt-1 text-[15px] ${contagem.vencido ? 'font-semibold text-amber-300' : 'text-tinta-200'}`}>
+                  Até {q.dia === 'Hoje' ? 'hoje' : q.dia.toLowerCase()}, {q.hora} · {contagem.vencido ? 'o prazo passou' : contagem.texto}
+                </p>
+              </div>
+              <Link href={`/app/levantamentos/${primeira.id}`} className="btn-primary shrink-0">
+                {primeira.estado === 'por_contactar' ? 'Contactar e agendar' : 'Preparar a visita'}
+              </Link>
+            </section>
+          );
+        }
+        return (
+          <section aria-labelledby="agora" className={base}>
+            <div className="min-w-0">
+              {rotulo}
+              <h2 id="agora" className="mt-1 text-[20px] font-semibold">
+                Nada por fazer agora
+              </h2>
+              <p className="mt-1 max-w-[54ch] text-[15px] text-tinta-200">
+                Quando aceitar um levantamento, a primeira coisa a fazer aparece aqui, com o prazo a correr.
+              </p>
+            </div>
+            <Link href="/app/avaliacoes/oportunidades" className="btn-primary shrink-0">
+              Ver oportunidades
+            </Link>
+          </section>
+        );
+      })()}
 
       <section aria-labelledby="trabalho">
         <h2 id="trabalho" className="text-[20px] font-semibold text-slate-900">
@@ -207,6 +249,7 @@ export function HojeAvaliacoes({
           acao={estado.oportunidades === 0 ? 'Disponibilidade e alertas' : 'Ver oportunidades'}
         />
         <Cartao
+          nevoa
           titulo="Comissões disponíveis"
           destaque={formatEuros(estado.comissoesDisponiveis)}
           nota="Levantamentos já adjudicados, prontos a resgatar."
