@@ -36,6 +36,26 @@ export default async function SurveysPage() {
     supabase.from('survey_redemptions').select('*').eq('supplier_org_id', org.id).order('created_at', { ascending: false }),
     supabase.from('supplier_payout_details').select('iban, regime_validado').eq('org_id', org.id).maybeSingle(),
   ]);
+  // O prazo que vale, por levantamento. A lista mostrava sempre o das 48 horas — e quem ainda não contactou
+  // tem outro, muito mais curto, a correr: a primeira hora útil. Ver «Prazo: 02/11» numa reserva que se perde
+  // amanhã às 10h00 é pior do que não ver prazo nenhum.
+  const tentativas = await Promise.all(
+    (mine ?? [])
+      .filter((s) => s.status === 'reservado')
+      .map(async (s) => ({
+        surveyId: s.id,
+        a: (
+          await supabase
+            .from('survey_attempts')
+            .select('prazo_contacto, prazo_conclusao, adiado_para, contacto_registado_em')
+            .eq('survey_id', s.id)
+            .eq('estado', 'ativa')
+            .maybeSingle()
+        ).data,
+      })),
+  );
+  const prazoDe = new Map(tentativas.filter((x) => x.a).map((x) => [x.surveyId, x.a!]));
+
   const previews = await Promise.all(
     (open ?? []).map(async (s) => ({ ...s, preview: (await supabase.rpc('survey_preview', { p_survey_id: s.id })).data?.[0] ?? null })),
   );
@@ -94,7 +114,19 @@ export default async function SurveysPage() {
               <li key={s.id} className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium">{STATUS_LABEL[s.status] ?? s.status}</span>
-                  {s.reserve_deadline && s.status === 'reservado' && <span className="text-slate-500">Prazo: {dt(s.reserve_deadline)}</span>}
+                  {s.status === 'reservado' &&
+                    (() => {
+                      const a = prazoDe.get(s.id);
+                      if (!a) return s.reserve_deadline ? <span className="text-slate-500">Prazo: {dt(s.reserve_deadline)}</span> : null;
+                      if (!a.contacto_registado_em) {
+                        return (
+                          <span className="font-medium text-amber-800">
+                            Contactar o cliente até {dt(a.prazo_contacto)}
+                          </span>
+                        );
+                      }
+                      return <span className="text-slate-500">Concluir até {dt(a.adiado_para ?? a.prazo_conclusao)}</span>;
+                    })()}
                 </div>
                 {(s.status === 'reservado' || s.status === 'concluido') && (
                   <Link href={`/app/levantamentos/${s.id}`} className="mt-1 inline-block font-medium text-tinta-700 hover:underline">
