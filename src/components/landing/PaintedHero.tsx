@@ -79,7 +79,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
             deixava uma faixa vazia de ~100px entre o prédio e o título — espaço que o promotor queria
             a ler, não em branco (medido a 390×844, 27/10/2026). Agora o texto encosta ao prédio e a
             folga toda cai no fim, antes do scroll. */}
-        <div className="order-last self-start pb-2 lg:order-none lg:self-auto lg:pb-0">{children}</div>
+        <div className="order-last flex flex-col items-start self-start pb-2 lg:order-none lg:self-auto lg:pb-0">{children}</div>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="order-first mx-auto max-h-[30svh] w-full lg:order-none lg:max-h-[80vh]"

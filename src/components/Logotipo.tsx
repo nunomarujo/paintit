@@ -43,7 +43,7 @@ export const LOGOTIPO_ESCURO = { src: '/img/logotipo-escuro.svg', largura: 830, 
  * como um selo. A barra passou a 68px e o logótipo a 46px, as medidas que o promotor indicou, que
  * lhe deixam 11px de folga acima e abaixo.
  */
-const ALTURAS = { sm: 44, md: 56, lg: 76 } as const;
+const ALTURAS = { sm: 52, md: 64, lg: 84 } as const;
 
 export function Logotipo({
   tamanho = 'md',

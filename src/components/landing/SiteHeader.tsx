@@ -7,10 +7,10 @@ import { BrandMark } from '@/components/BrandMark';
 const START = '/entrar?seguinte=%2Fapp%2Fcomecar';
 
 const NAV_LINKS: { href: string; label: string }[] = [
-  { href: '#demo-comparador', label: 'Comparador' },
   { href: '#como-funciona', label: 'Como funciona' },
-  { href: '#para-quem', label: 'Para quem' },
-  { href: '#transparencia', label: 'Transparência' },
+  { href: '#demo-comparador', label: 'Comparador' },
+  { href: '/empresas', label: 'Empresas de pintura' },
+  { href: '/fornecedores', label: 'Fornecedores' },
 ];
 
 /**
@@ -111,7 +111,7 @@ export function SiteHeader() {
                 href={l.href}
                 className={
                   'inline-flex min-h-[44px] items-center border-b-2 border-transparent ' +
-                  (active === l.href.slice(1) ? 'border-terracota text-tinta-900' : 'hover:text-tinta-700')
+                  (active === l.href.slice(1) ? 'border-tinta-600 text-tinta-900' : 'hover:text-tinta-700')
                 }
               >
                 {l.label}

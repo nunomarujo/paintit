@@ -226,7 +226,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <header className="print:hidden sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200 bg-paper/95 px-4 py-3 backdrop-blur md:px-8">
           {/* "Perfil"/"Sair" já vivem só no botão de navegação da marca em telemóvel
               (`MobileNavMenu.tsx`, 26/10/2026) — não há mais nada a competir por espaço aqui. */}
-          <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[#648d75]" />
+          <i className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-tinta-600" />
           {/* Sem `truncate`: com a barra lateral arrastada para mais larga, é preferível esta
               frase quebrar para uma segunda linha do que desaparecer cortada (pedido do
               promotor, 27/10/2026 — "sobreposições não podem acontecer"). */}

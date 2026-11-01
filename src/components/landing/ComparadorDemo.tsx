@@ -181,7 +181,7 @@ export function ComparadorDemo() {
               </span>
             </div>
 
-            <div className="relative h-[72vh] max-h-[620px] min-h-[420px] overflow-hidden bg-[#eceae1] sm:h-[560px]">
+            <div className="relative h-[72vh] max-h-[620px] min-h-[420px] overflow-hidden bg-slate-100 sm:h-[560px]">
               {!emDocumento && (
                 <>
                   <div ref={scrollerRef} className="absolute inset-0 overflow-y-auto [scrollbar-width:thin]">
