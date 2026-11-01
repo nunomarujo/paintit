@@ -3,7 +3,7 @@ import { BRAND } from '@/config/brand';
 /**
  * O logótipo da marca, em ficheiro — o desenho entregue pelo promotor a 29/10/2026.
  *
- * **Uma só fonte.** O ficheiro vive em `public/img/logotipo.png` e é referido daqui, e só daqui:
+ * **Uma só fonte.** O ficheiro vive em `public/img/logotipo.svg` (o `.png` ao lado é só para emails, que não leem SVG) e é referido daqui, e só daqui:
  * quando a marca mudar, muda um ficheiro e uma linha, e não doze ecrãs. O mesmo vale para os ícones
  * do separador do navegador (`src/app/icon.png`) e do telemóvel (`src/app/apple-icon.png`), gerados
  * do mesmo desenho.
@@ -26,7 +26,14 @@ import { BRAND } from '@/config/brand';
  */
 
 /** As dimensões do ficheiro. Ficam aqui para o navegador reservar o espaço antes de o carregar. */
-export const LOGOTIPO = { src: '/img/logotipo.png', largura: 600, altura: 408 } as const;
+/**
+ * Desde 01/11/2026 o logótipo é um SVG (v5: "Quem" em marinho, faixa de rolo cobalto com "Pinta" a
+ * branco, ".pt" amarelo, cabo do rolo e gotas coral). As letras estão convertidas em contornos — o
+ * ficheiro não depende de nenhuma fonte. Há uma versão para fundo escuro (`logotipo-escuro.svg`) e um
+ * símbolo quadrado (`simbolo.svg`) de que saem `icon.png` e `apple-icon.png`.
+ */
+export const LOGOTIPO = { src: '/img/logotipo.svg', largura: 830, altura: 420 } as const;
+export const LOGOTIPO_ESCURO = { src: '/img/logotipo-escuro.svg', largura: 830, altura: 420 } as const;
 
 /**
  * Altura por tamanho, em píxeis de ecrã.
@@ -36,14 +43,17 @@ export const LOGOTIPO = { src: '/img/logotipo.png', largura: 600, altura: 408 } 
  * como um selo. A barra passou a 68px e o logótipo a 46px, as medidas que o promotor indicou, que
  * lhe deixam 11px de folga acima e abaixo.
  */
-const ALTURAS = { sm: 46, md: 58, lg: 78 } as const;
+const ALTURAS = { sm: 44, md: 56, lg: 76 } as const;
 
 export function Logotipo({
   tamanho = 'md',
   altura,
   decorativo = false,
+  escuro = false,
   className,
 }: {
+  /** Versão para fundo escuro: "Quem" e cabo do rolo a branco. */
+  escuro?: boolean;
   tamanho?: keyof typeof ALTURAS;
   /**
    * Uma altura explícita, em qualquer unidade de CSS. É assim que a folha A4 pede milímetros:
@@ -63,7 +73,7 @@ export function Logotipo({
     // declaradas, não precisa de optimização.
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={LOGOTIPO.src}
+      src={escuro ? LOGOTIPO_ESCURO.src : LOGOTIPO.src}
       width={LOGOTIPO.largura}
       height={LOGOTIPO.altura}
       alt={decorativo ? '' : BRAND.name}

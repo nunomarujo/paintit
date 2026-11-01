@@ -1,8 +1,10 @@
 import type { Config } from 'tailwindcss';
 
-// Linguagem visual do protótipo v05 (docs/referencia): fundo quente, petróleo,
-// sálvia e linhas suaves. "tinta" é a cor da marca; "slate" foi ajustado aos
-// cinzentos esverdeados do protótipo, para que os componentes existentes o sigam.
+// Paleta v5, decidida pelo promotor a 01/11/2026 (canvas "Quem Pinta — landing v5"):
+// marinho #14213d (texto, marca), cobalto #2d5bff (ação, estado ativo), lima #c6f432 (só
+// destaque sobre marinho), névoa #f1f4f7 (fundos), azul-pálido #e8edff (superfícies de
+// seleção). "tinta" guarda o nome para não reescrever 177 ficheiros: o que mudou foi o valor.
+// `terracota` ficou a apontar para o cobalto pela mesma razão — a página pública usava-a nos CTA.
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
@@ -12,30 +14,30 @@ const config: Config = {
       },
       colors: {
         tinta: {
-          50: '#eef3ed',
-          100: '#dce6d9',
-          200: '#c6d6c4',
+          50: '#f1f4f7',
+          100: '#e8edff',
+          200: '#d6deff',
           // 300, 400 e 800 faltavam, e 14 sítios do código usavam-nos: o Tailwind não gera a classe,
           // a cor não pinta nada e o estado de rato não acontece. Encontrado na auditoria visual de
           // 26/10/2026 — entre os afectados estava o ponto da fase em curso no ecrã do dia.
-          300: '#a9c2a6',
-          400: '#6ba398',
-          500: '#458b81',
-          600: '#173f42',
-          700: '#24565a',
-          800: '#1b4447',
-          900: '#12302a',
+          300: '#b8c4ff',
+          400: '#8aa3ff',
+          500: '#4f75ff',
+          600: '#2d5bff',
+          700: '#2449d1',
+          800: '#1b3bb0',
+          900: '#14213d',
         },
         slate: {
-          50: '#f6f5f0',
-          100: '#f0f2ee',
-          200: '#e1e5de',
-          300: '#d4dcd3',
-          400: '#6b7873', // era #9aa59f, que dava 2,33:1 sobre o fundo creme e reprovava AA
-          500: '#62716c',
-          600: '#55635e',
-          700: '#2c3d41',
-          900: '#172c35',
+          50: '#f1f4f7',
+          100: '#eef1f5',
+          200: '#dde3ea',
+          300: '#c9d2dc',
+          400: '#6b7684', // era #9aa59f, que dava 2,33:1 sobre o fundo creme e reprovava AA
+          500: '#5a6478',
+          600: '#475467',
+          700: '#1f2f4d',
+          900: '#14213d',
         },
         amber: {
           50: '#faf3e5',
@@ -66,9 +68,10 @@ const config: Config = {
           'error-bg': 'var(--error-bg)',
           'info-bg': 'var(--info-bg)',
         },
-        sage: '#e9eee8',
-        terracota: '#a8441f', // escurecido de #c4572f: branco por cima passa de 4,42:1 para 5,98:1 (WCAG AA)
-        paper: '#f6f5f0',
+        sage: '#e8edff',
+        lima: '#c6f432',
+        terracota: '#2d5bff', // escurecido de #c4572f: branco por cima passa de 4,42:1 para 5,98:1 (WCAG AA)
+        paper: '#f1f4f7',
       },
       /*
        * Escala de cantos fechada em dois raios (28/10/2026). Havia oito — 4, 6, 8, 9, 10, 11, 16px

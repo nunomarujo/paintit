@@ -37,19 +37,19 @@ interface MailOptions {
  * atributo porque o Outlook ignora o `style`.
  */
 function html(subject: string, lines: string[], link: string, o: MailOptions = {}) {
-  return `<!doctype html><html lang="pt-PT"><body style="margin:0;background:#f6f5f0;font-family:Inter,Arial,sans-serif;color:#172c35">
+  return `<!doctype html><html lang="pt-PT"><body style="margin:0;background:#f1f4f7;font-family:Inter,Arial,sans-serif;color:#14213d">
 <div style="max-width:520px;margin:0 auto;padding:28px 20px">
-<p style="margin:0 0 18px"><a href="${escapeHtml(BRAND.url)}" style="text-decoration:none"><img src="${escapeHtml(BRAND.url)}/img/logotipo.png" width="118" height="80" alt="${escapeHtml(BRAND.name)}" style="display:block;border:0;width:118px;height:auto"></a></p>
-<div style="background:#fff;border:1px solid #e1e5de;border-radius:14px;overflow:hidden">
+<p style="margin:0 0 18px"><a href="${escapeHtml(BRAND.url)}" style="text-decoration:none"><img src="${escapeHtml(BRAND.url)}/img/logotipo.png" width="130" height="66" alt="${escapeHtml(BRAND.name)}" style="display:block;border:0;width:130px;height:auto"></a></p>
+<div style="background:#fff;border:1px solid #dde3ea;border-radius:14px;overflow:hidden">
 ${o.image ? `<a href="${escapeHtml(link)}"><img src="${escapeHtml(BRAND.url + o.image)}" width="520" alt="${escapeHtml(BRAND.name)}: orçamentos de pintura" style="display:block;width:100%;height:auto;border:0"></a>` : ''}
 <div style="padding:24px">
 <h1 style="font-size:18px;margin:0 0 12px">${escapeHtml(subject)}</h1>
 ${lines.map((l) => `<p style="margin:0 0 10px;line-height:1.5">${escapeHtml(l)}</p>`).join('')}
-<p style="margin:20px 0 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#c4572f;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">${escapeHtml(o.cta ?? 'Abrir na plataforma')}</a></p>
-${o.links && o.links.length > 0 ? `<p style="margin:12px 0 0;font-size:13px">${o.links.map((l) => `<a href="${escapeHtml(l.href)}" style="color:#173f42;text-decoration:underline">${escapeHtml(l.label)}</a>`).join(' &nbsp;·&nbsp; ')}</p>` : ''}
-<p style="margin:14px 0 0;font-size:12px;color:#62716c">Se o botão não abrir: ${escapeHtml(link)}</p>
+<p style="margin:20px 0 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#2d5bff;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">${escapeHtml(o.cta ?? 'Abrir na plataforma')}</a></p>
+${o.links && o.links.length > 0 ? `<p style="margin:12px 0 0;font-size:13px">${o.links.map((l) => `<a href="${escapeHtml(l.href)}" style="color:#2d5bff;text-decoration:underline">${escapeHtml(l.label)}</a>`).join(' &nbsp;·&nbsp; ')}</p>` : ''}
+<p style="margin:14px 0 0;font-size:12px;color:#475467">Se o botão não abrir: ${escapeHtml(link)}</p>
 </div></div>
-<p style="font-size:12px;color:#62716c;margin:16px 0 0">${escapeHtml(o.footer ?? `Aviso automático de ${BRAND.name}.`)} Dúvidas: ${escapeHtml(BRAND.email)}.</p>
+<p style="font-size:12px;color:#475467;margin:16px 0 0">${escapeHtml(o.footer ?? `Aviso automático de ${BRAND.name}.`)} Dúvidas: ${escapeHtml(BRAND.email)}.</p>
 </div></body></html>`;
 }
 

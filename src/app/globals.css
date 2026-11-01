@@ -16,8 +16,12 @@
 
   /*
    * ───────────────────────────────────────────────────────────────────────────────────────────
-   * DIREÇÃO CROMÁTICA, decidida pelo promotor a 01/11/2026. Fonte única: não se escreve um
-   * valor de cor em ecrã nenhum, escolhe-se um destes.
+   * DIREÇÃO CROMÁTICA v5, decidida pelo promotor a 01/11/2026 (substitui a direção verde-petróleo
+   * da manhã do mesmo dia; ver o canvas "Quem Pinta — landing v5"). Fonte única: não se escreve
+   * um valor de cor em ecrã nenhum, escolhe-se um destes. Marinho #14213d para texto e marca;
+   * cobalto #2d5bff para ação e estado ativo; névoa #f1f4f7 nos fundos e na casca; azul-pálido
+   * #e8edff para seleção; coral #ff6b4a só como acento pontual (contadores). Lima #c6f432 só sobre
+   * marinho, nunca sobre branco.
    *
    *   · AÇÃO e ESTADO ATIVO → verde-petróleo (`tinta-600`). É a cor dos botões principais, do
    *     item ativo da navegação e das ligações. Decisão tomada sobre duas alternativas vistas
@@ -38,22 +42,22 @@
    */
 
   /* Marca: a página pública e o documento do orçamento. Não se usa no workspace. */
-  --ink: #1f3d2e;
-  --ink-soft: #2e5240;
+  --ink: #14213d;
+  --ink-soft: #1f2f4d;
 
   /* Casca do workspace: creme discreto, e o contorno que lhe pertence. */
-  --cream: #f6f2e9;
-  --border: #e1d9c6;
-  --tag-bg: #ece6d4;
+  --cream: #f1f4f7;
+  --border: #dde3ea;
+  --tag-bg: #e8edff;
 
   --white: #ffffff;
 
   /* Acento pontual. `orange` é o da marca; `orange-deep` é o que passa em contraste sobre creme
    * e sobre branco (4,6:1), e é por isso o único que se usa em contadores e em texto. */
-  --orange: #e07b39;
-  --orange-deep: #a04d19;
+  --orange: #ff6b4a;
+  --orange-deep: #b0411f;
 
-  --muted: #5b5444;
+  --muted: #475467;
 
   /*
    * Cores funcionais do caderno de desenho da interface (26/10/2026, protótipo do promotor:
@@ -63,13 +67,13 @@
    * resolve (âmbar); `error` é o que já fechou, caducou ou foi recusado — regra 13 do CLAUDE.md.
    */
   --surface: #ffffff;
-  --field: #827765;
-  --selected: #e7eee8;
+  --field: #6b7684;
+  --selected: #e8edff;
   --attention: #88520a;
   --attention-bg: #fff3d9;
   --error: #9b3332;
   --error-bg: #fcedec;
-  --info-bg: #eef3ef;
+  --info-bg: #e8edff;
 }
 
 body {
@@ -86,7 +90,7 @@ h2 {
 }
 
 :focus-visible {
-  outline: 3px solid #458b81;
+  outline: 3px solid #2d5bff;
   outline-offset: 3px;
 }
 
@@ -108,7 +112,7 @@ select {
 input[type='checkbox'],
 input[type='radio'] {
   @apply h-5 w-5 shrink-0;
-  accent-color: #173f42;
+  accent-color: #2d5bff;
 }
 
 @layer components {

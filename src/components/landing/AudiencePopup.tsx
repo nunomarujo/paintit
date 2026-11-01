@@ -176,7 +176,7 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 flex max-h-[94vh] w-full max-w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,.45)] [&_*:focus]:outline [&_*:focus]:outline-[3px] [&_*:focus]:outline-offset-2 [&_*:focus]:outline-[#458b81] sm:max-h-[88vh] sm:max-w-[840px] sm:rounded-2xl"
+        className="relative z-10 flex max-h-[94vh] w-full max-w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,.45)] [&_*:focus]:outline [&_*:focus]:outline-[3px] [&_*:focus]:outline-offset-2 [&_*:focus]:outline-[#2d5bff] sm:max-h-[88vh] sm:max-w-[840px] sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-[26px]">
           <div>
@@ -215,7 +215,7 @@ export function AudiencePopup({ tipo, open, onClose }: { tipo: Tipo; open: boole
               type="button"
               onClick={() => setLightbox(true)}
               aria-describedby={demoTitleId}
-              className="group block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#458b81]"
+              className="group block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#2d5bff]"
             >
               <Image
                 src={demo.src}
@@ -313,7 +313,7 @@ function LightboxAmpliado({
           type="button"
           onClick={onClose}
           aria-label="Fechar imagem ampliada"
-          className="inline-flex h-11 w-11 flex-none items-center justify-center self-end rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#458b81]"
+          className="inline-flex h-11 w-11 flex-none items-center justify-center self-end rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#2d5bff]"
         >
           <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 6l12 12M18 6L6 18" />
