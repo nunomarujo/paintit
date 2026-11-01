@@ -8,6 +8,7 @@ import { isPlatformAdmin } from '@/lib/access';
 import { loadReplay } from '@/lib/engagements';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { InicioDoCliente } from './InicioDoCliente';
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ convite?: string }> }) {
   const { convite } = await searchParams;
@@ -70,6 +71,29 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     : { count: 0 };
 
   const { data: notes } = await supabase.from('notifications').select('*').is('lida_em', null).order('created_at', { ascending: false }).limit(20);
+
+  // Conta só de cliente (particular, condomínio, administradora): o Início é o percurso, não a
+  // estrutura da base (canvas «Espaço do cliente», 01/11/2026). As contas com pintor ou fornecedor
+  // continuam na composição abaixo, que mistura os dois lados.
+  const soCliente =
+    mine.length > 0 &&
+    mine.every((o) => o.kind === 'particular' || o.kind === 'condominio' || o.kind === 'administradora') &&
+    painters.length === 0 &&
+    !(invites ?? []).length;
+  if (soCliente) {
+    const unica = mine.length === 1 ? mine[0]! : null;
+    const novoPedidoHref = unica ? `/app/organizacoes/${unica.id}/pedidos/novo` : '/app/pedidos';
+    return (
+      <>
+        {convite === 'invalido' && (
+          <p className="mb-6 rounded-xl bg-red-50 p-4 text-[17px] text-red-800" role="alert">
+            Esse convite já não é válido. Peça um novo a quem o enviou.
+          </p>
+        )}
+        <InicioDoCliente supabase={supabase} orgs={mine} novoPedidoHref={novoPedidoHref} contratacoes={todo} avisos={notes ?? []} />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">

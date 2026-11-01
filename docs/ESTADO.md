@@ -1828,6 +1828,12 @@ Página inicial v5: do cliente; pintor e fornecedor em `/empresas` e `/fornecedo
 (`PaginaDePerfil`, conteúdo partilhado em `landing/perfis.ts`); três passos com ecrãs reais
 redesenhados (`landing/PassosDemo.tsx`); "Três proteções" em positivo; FAQ dentro dessa secção.
 
-Workspaces: só a mudança de tokens e o item ativo do menu (`AppNav`). A recomposição do ecrã "Hoje"
-do avaliador aprovada no canvas vive no ramo `claude/workspace-fornecedor`, ainda por publicar —
-decisão pendente do promotor sobre a ordem (publicar esse ramo primeiro, depois recompor).
+Workspaces: mudança de tokens e item ativo do menu (`AppNav`); o «Hoje» do avaliador recomposto
+na sessão do workspace. **Espaço do cliente recomposto (01/11/2026, aprovado no canvas):** o menu
+diz o perfil (`rotuloDoPerfil`) e, para o cliente puro, «As minhas obras» sem catálogo; o início é
+`InicioDoCliente.tsx` (obras em curso com as datas nomeadas, contratações a aguardar, «Precisa de
+si» quando o avaliador espera resposta); o «Novo pedido» ficou com uma linha sobre o avaliador em
+vez do bloco de texto; o pedido **publicado** deixou de mostrar a interface de preparação — tem
+cabeçalho operacional, separadores (`Acompanhamento.tsx`) e as duas ações com consequência
+confirmada antes («Editar pedido» volta a rascunho e tira o anúncio do ar; «Encerrar» é um link
+discreto). O rascunho mantém `PedidoEmSeccoes` como estava.

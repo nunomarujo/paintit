@@ -28,13 +28,12 @@ export default async function RequestsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="eyebrow">Pedidos de orçamento</p>
-          <h1 className="mt-2 text-[34px] font-semibold leading-tight">Os seus pedidos</h1>
-          <p className="mt-1 text-slate-500">Cada pedido é publicado sem morada nem nomes. Pintores com documentos validados respondem com propostas discriminadas.</p>
+          <h1 className="text-[26px] font-semibold leading-tight">As minhas obras</h1>
+          <p className="mt-1 text-[15px] text-slate-500">Só empresas com documentos verificados respondem, com propostas discriminadas.</p>
         </div>
         {clientOrgs.length > 0 && (
           <Link href={`/app/organizacoes/${clientOrgs[0]!.id}/pedidos/novo`} className="btn-primary">
-            Novo pedido
+            Pedir orçamentos
           </Link>
         )}
       </div>

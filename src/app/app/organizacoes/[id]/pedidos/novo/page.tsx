@@ -96,32 +96,23 @@ export default async function NewRequestPage({
       <Voltar href={`/app/organizacoes/${org.id}`}>{org.nome}</Voltar>
       <h1 className="mt-3 text-[26px] leading-tight font-semibold">Novo pedido de orçamento</h1>
       <p className="mt-2 text-[17px] text-slate-600">
-        Fica em rascunho até o publicar. Depois de criar, acrescenta as superfícies e as áreas.
+        Passo 1 de 3 — o essencial da obra. As superfícies, as áreas e as fotografias vêm a seguir, e podem
+        ficar a cargo de um avaliador.
       </p>
 
-      {/* A ajuda gratuita bem à vista, antes do formulário (pedido do promotor, 24/10/2026): quem abre um
-          processo não tem de saber medir fachadas para começar. O pedido de ajuda abre-se sozinho ao criar
-          o pedido (gatilho `work_requests_create_survey`) — aqui só se diz que existe, e o que ajuda a
-          visita a correr bem. */}
-      <section className="mt-6 rounded-2xl border border-tinta-600 bg-tinta-50 p-5">
-        <h2 className="font-semibold text-tinta-900">Não tem de medir nada sozinho — a ajuda é gratuita</h2>
-        <p className="mt-2 text-[17px] text-slate-700">
-          Assim que criar este pedido, um avaliador qualificado de um fornecedor da plataforma pode visitar a obra e
-          preencher as superfícies, as áreas e as fotografias por si. <strong>Não acrescenta nenhum custo à obra</strong> e
-          não o obriga a escolher ninguém.
-        </p>
-        <p className="mt-2 text-[17px] text-slate-700">A visita corre melhor se, antes dela:</p>
-        <ul className="mt-1 list-disc space-y-1 pl-5 text-[17px] text-slate-700">
-          <li>deixar escrito aqui o que pretende e os problemas que já conhece;</li>
-          <li>combinar que alguém — o administrador, ou um condómino — abra e mostre a obra, sobretudo as zonas de que
-            se queixam.
-          </li>
-        </ul>
-        <p className="mt-2 text-[15px] text-slate-600">
-          Pode preencher tudo sozinho na mesma, a qualquer momento, ou dispensar a ajuda — fica à sua escolha, no
-          próprio pedido.
-        </p>
-      </section>
+      {/* Canvas «Espaço do cliente» (01/11/2026): a ajuda gratuita cabe numa linha. O bloco de
+          texto que aqui estava desde 24/10/2026 explicava a visita antes de o pedido existir — cedo
+          de mais para quem ainda só quer dizer o que pretende. O pedido de ajuda abre-se sozinho ao
+          criar o pedido (gatilho `work_requests_create_survey`); o detalhe fica no próprio pedido. */}
+      <p className="mt-4 flex items-start gap-3 rounded-lg bg-tinta-50 px-4 py-3 text-[15px] text-slate-700">
+        <span aria-hidden className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tinta-600 text-[13px] font-bold text-white">
+          ✓
+        </span>
+        <span>
+          <span className="font-semibold text-tinta-900">Não precisa de saber medir.</span> Um avaliador pode visitar a
+          obra e preencher as medidas e as fotografias, sem custo e sem compromisso. Decide-se a seguir, no pedido.
+        </span>
+      </p>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         {ordered.length === 0 ? (

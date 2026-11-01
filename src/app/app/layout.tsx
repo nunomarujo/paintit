@@ -56,7 +56,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Nota: isto repõe "Obra pública" como destino visível no menu, invertendo a descida a filho de
   // 23/10/2026 registada abaixo — por ser o que o caderno pede; a confirmar com o promotor.
   const dia: NavItem[] = [{ href: '/app', label: 'Início', icon: 'casa', count: unread ?? 0 }];
-  if (client) dia.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: 'recibo' });
+  // Cliente puro: «As minhas obras», não «Pedidos de orçamento» — o nome do percurso, não da tabela
+  // (canvas «Espaço do cliente», 01/11/2026).
+  const clientePuro = client && !kinds.has('pintor') && !kinds.has('fornecedor');
+  if (client) dia.push({ href: '/app/pedidos', label: clientePuro ? 'As minhas obras' : 'Pedidos de orçamento', icon: 'recibo' });
   if (kinds.has('pintor')) dia.push({ href: '/app/obras', label: 'Gestão de obra', icon: 'capacete' });
   if (kinds.has('fornecedor')) dia.push({ href: '/app/encomendas', label: 'Encomendas', icon: 'recibo' });
   // `/app/levantamentos` passou a encaminhar para «Os meus levantamentos» (01/11/2026): um fornecedor
@@ -85,7 +88,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const adesoes: NavItem[] = [];
   if (kinds.has('fornecedor')) {
     vender.push({ href: '/app/catalogo', label: 'Catálogo', icon: 'caixa' });
-  } else if (kinds.size > 0) {
+  } else if (kinds.size > 0 && !clientePuro) {
+    // Sem tarefa, o catálogo não serve o cliente puro; dentro de uma proposta, onde tem contexto,
+    // continua acessível (01/11/2026).
     materiais.push({ href: '/app/catalogo', label: 'Catálogo de materiais', icon: 'caixa' });
   }
   if (kinds.has('pintor')) materiais.push({ href: '/app/obras/consumiveis', label: 'Armazém e consumíveis', icon: 'caixa' });
