@@ -144,3 +144,14 @@ npm run build
     verificações de `docs/EM_ABERTO.md` («Como se verifica») e lê-se a lista. Uma questão aberta que
     ninguém identifique nunca chega à aplicação; este ficheiro existe para não depender de o promotor a
     perguntar. Quem fecha ou abre uma questão atualiza-o no mesmo commit.
+
+19. **Desenho de ecrãs: ler `docs/design/taste-skill/app-screens.md` antes de desenhar ou rever um
+    ecrã.** Adoptado a 01/11/2026 a pedido do promotor («os teus designs são templated e aparentam
+    todos o mesmo»). O que daí vale sempre: sem numeração de índice (01/02/03) fora de sequências
+    reais; sem ícones em quadrados ou círculos tintados; sem sombras em cartões parados (borda ou
+    degrau de tom); o acento fora do chrome (item ativo por fundo e brilho, sem risca); títulos de
+    grupo em cinzento, sentence case; texto corrido no tom cheio; título de ecrã a 24px; números à
+    direita em algarismos tabulares; estados vazios com a moldura e uma frase. Frases de estado
+    longas ficam atrás de um (i) (`src/components/Dica.tsx`). **Excepção declarada:** a barra
+    lateral marinho com o rótulo do perfil em lima — decisão de marca do promotor, não se discute
+    ecrã a ecrã. Ao tocar num ecrã antigo que viole estas regras, corrige-se no mesmo commit.
