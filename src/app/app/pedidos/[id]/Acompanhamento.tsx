@@ -32,7 +32,7 @@ export function Acompanhamento({
   const [ativo, setAtivo] = useState<SeparadorId>(inicial);
   return (
     <div>
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-slate-200">
+      <div role="tablist" className="flex gap-1 border-b border-slate-200 max-md:overflow-x-auto">
         {SEPARADORES.map((s) => (
           <button
             key={s.id}

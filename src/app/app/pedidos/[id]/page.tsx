@@ -522,13 +522,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 <div className="space-y-5">
                   <section className="rounded-2xl bg-tinta-900 p-5 text-white">
                     <p className="text-[13px] font-semibold text-lima">Onde está a obra</p>
-                    <div className="mt-2 [&_*]:text-white [&_a]:text-lima">
+                    <div className="mt-2">
                       <Percurso
                         estado={percurso}
                         requestId={req.id}
                         marcadoPara={surveyRow?.scheduled_at ?? null}
                         houveLevantamento={!!surveyRow}
                         pendencia={null}
+                        escuro
                       />
                     </div>
                     <p className="mt-3 text-[15px] text-tinta-200">

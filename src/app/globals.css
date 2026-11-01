@@ -517,3 +517,14 @@ details[open] > summary .dossier-fechar {
 @media (prefers-reduced-motion: reduce) {
   .revelar[data-pronto] > * { opacity: 1; transform: none; transition: none; }
 }
+
+/*
+ * Par Descrição · Preferências do pedido (01/11/2026): em ecrã largo, as duas colunas repartem a
+ * largura pela fração `--frac`, com um puxador de 20px no meio. Abaixo de `lg` empilham-se.
+ */
+@media (min-width: 1024px) {
+  [data-par-redimensionavel] {
+    grid-template-columns: minmax(0, calc(var(--frac, 0.6667) * (100% - 20px))) 20px minmax(0, calc((1 - var(--frac, 0.6667)) * (100% - 20px)));
+    grid-template-areas: 'a h b';
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field, selectClass } from '@/components/Field';
 import {
@@ -60,6 +60,9 @@ const DESCRICAO_MAX = 1500;
  * a moldura porque a secção já tem a sua. Esconde-se, não se desmonta: mudar de secção não perde
  * o que está escrito.
  */
+const FRAC_MIN = 0.35;
+const FRAC_MAX = 0.75;
+
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
   const seccao = useSeccaoActiva();
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
@@ -74,6 +77,36 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   const [cor, setCor] = useState(initial?.cor_acabamento ?? '');
   const [via, setVia] = useState(initial?.ocupacao_via_publica ?? 'a_avaliar');
   const [nProdutos, setNProdutos] = useState(initial?.produtos_preferidos?.length ?? 0);
+  // Largura da Descrição face às Preferências (fração do par), ajustável pelo puxador entre as duas
+  // (promotor, 01/11/2026). Lembrada neste navegador; sem armazenamento, fica a predefinição.
+  const [fracDescricao, setFracDescricao] = useState(2 / 3);
+  const parRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem('pedido.fracDescricao'));
+      if (v >= FRAC_MIN && v <= FRAC_MAX) setFracDescricao(v);
+    } catch {}
+  }, []);
+  const arrastar = (ev: React.PointerEvent<HTMLDivElement>) => {
+    const par = parRef.current;
+    if (!par) return;
+    ev.preventDefault();
+    const caixa = par.getBoundingClientRect();
+    const mover = (m: PointerEvent) => {
+      const f = Math.min(FRAC_MAX, Math.max(FRAC_MIN, (m.clientX - caixa.left) / caixa.width));
+      setFracDescricao(f);
+    };
+    const largar = () => {
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', largar);
+      setFracDescricao((f) => {
+        try { localStorage.setItem('pedido.fracDescricao', String(f)); } catch {}
+        return f;
+      });
+    };
+    window.addEventListener('pointermove', mover);
+    window.addEventListener('pointerup', largar);
+  };
 
   const flexivel = (d: DataFlexivel) => (
     <label className="flex min-h-[44px] items-start gap-2 text-[15px] text-slate-600">
@@ -169,8 +202,14 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
           </div>
         </Quadro>
 
-        {/* 04 · Descrição */}
-        <Quadro icone="texto" titulo="Descrição da obra" sub="O que os pintores vão ler. Sem morada, nomes nem contactos — são revelados só depois da escolha." className="lg:col-span-6">
+        {/* Descrição + Preferências: um par com puxador no meio para repartir a largura. */}
+        <div
+          ref={parRef}
+          className="grid gap-5 lg:col-span-9 lg:gap-0"
+          style={{ ['--frac' as string]: fracDescricao }}
+          data-par-redimensionavel
+        >
+        <Quadro icone="texto" titulo="Descrição da obra" sub="O que os pintores vão ler. Sem morada, nomes nem contactos — são revelados só depois da escolha." className="lg:[grid-area:a]">
           <div className="relative">
             <textarea
               name="descricao"
@@ -237,8 +276,20 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
           </details>
         </Quadro>
 
-        {/* 05 · Preferências: linhas recolhíveis com o valor actual à vista. */}
-        <Quadro icone="ajustes" titulo="Preferências" sub="Opcional. Pode deixar tudo em aberto." className="lg:col-span-3">
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Ajustar a largura entre Descrição e Preferências"
+          title="Arrastar para ajustar a largura"
+          onPointerDown={arrastar}
+          onDoubleClick={() => { setFracDescricao(2 / 3); try { localStorage.removeItem('pedido.fracDescricao'); } catch {} }}
+          className="group hidden cursor-col-resize touch-none items-center justify-center lg:flex lg:[grid-area:h]"
+        >
+          <span className="h-10 w-1 rounded-full bg-slate-300 group-hover:bg-tinta-600 group-active:bg-tinta-600" />
+        </div>
+
+        {/* Preferências: linhas recolhíveis com o valor actual à vista. */}
+        <Quadro icone="ajustes" titulo="Preferências" sub="Opcional. Pode deixar tudo em aberto." className="lg:[grid-area:b]">
           <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200">
             <Linha icone="cor" titulo="Cor e acabamento" valor={cor.trim() || 'Por definir'} definido={!!cor.trim()}>
               <label className="block text-[17px] font-medium text-slate-700">
@@ -270,6 +321,7 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
             </Linha>
           </div>
         </Quadro>
+        </div>
       </fieldset>
 
       <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />

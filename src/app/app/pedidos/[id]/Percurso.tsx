@@ -27,6 +27,7 @@ export function Percurso({
   pendencia,
   houveLevantamento = true,
   detalheDaVisita,
+  escuro = false,
 }: {
   estado: EstadoDoPercurso;
   requestId: string;
@@ -39,6 +40,8 @@ export function Percurso({
    * «Ver pedido de visita» — a faixa vive fora dos passos, e um salto para uma secção escondida
    * não fazia nada (promotor, 01/11/2026: «o botão não faz nada»). */
   detalheDaVisita?: ReactNode;
+  /** Dentro de um cartão marinho (obra publicada): faixa translúcida e texto claro. */
+  escuro?: boolean;
 }) {
   // `houveLevantamento` já não desenha nada aqui (a régua saiu); fica na assinatura para não mexer em quem chama.
   void houveLevantamento;
@@ -72,15 +75,15 @@ export function Percurso({
     ? new Date(marcadoPara).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
     : null;
   return (
-    <section className="rounded-2xl bg-tinta-50 px-5 py-3" aria-live="polite">
+    <section className={`rounded-2xl px-5 py-3 ${escuro ? 'bg-white/10' : 'bg-tinta-50'}`} aria-live="polite">
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 text-[17px]">
-          <span className="font-semibold text-tinta-900">{estado.titulo}</span>
-          {quando && <span className="text-slate-700">· {quando}</span>}
-          {vez && <span className="text-[13px] text-slate-600">· {vez}</span>}
+          <span className={`font-semibold ${escuro ? 'text-white' : 'text-tinta-900'}`}>{estado.titulo}</span>
+          {quando && <span className={escuro ? 'text-tinta-100' : 'text-slate-700'}>· {quando}</span>}
+          {vez && <span className={`text-[13px] ${escuro ? 'text-tinta-200' : 'text-slate-600'}`}>· {vez}</span>}
         </p>
-        <p className="mt-0.5 flex items-center gap-2 text-[15px] text-slate-700">
+        <p className={`mt-0.5 flex items-center gap-2 text-[15px] ${escuro ? 'text-tinta-100' : 'text-slate-700'}`}>
           <span className={longa ? 'truncate' : ''}>{longa ? `${estado.explicacao.slice(0, 88).trimEnd()}…` : estado.explicacao}</span>
           {longa && <Dica rotulo="Ler a explicação completa">{estado.explicacao}</Dica>}
         </p>

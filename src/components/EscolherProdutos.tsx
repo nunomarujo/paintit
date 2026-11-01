@@ -102,7 +102,7 @@ export function EscolherProdutos({
       ) : (
         /* Uma linha por produto, o nome cortado a uma linha: numa coluna estreita a lista antiga
            partia cada nome em seis linhas e deixava de se ler (promotor, 01/11/2026). */
-        <ul className="mt-3 divide-y divide-slate-100">
+        <ul className={`mt-3 divide-y divide-slate-100 ${compacto ? 'max-h-64 overflow-y-auto overscroll-contain pr-1' : ''}`}>
           {escolhidos.map((pref) => {
             const p = porId.get(pref.id);
             const nome = p ? `${p.marca} ${p.nome}` : 'Produto já não disponível';
