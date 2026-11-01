@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { BrandMark } from '@/components/BrandMark';
+import { VoltarAtras } from '@/components/VoltarAtras';
 import { BRAND } from '@/config/brand';
 
 export const LEGAL_VERSION = '21 de outubro de 2026';
@@ -37,10 +38,14 @@ export function LegalLinks({ className = '' }: { className?: string }) {
 export function PublicHeader() {
   return (
     <header className="sticky top-0 z-20 h-[var(--altura-cabecalho)] border-b border-slate-200/80 bg-white/95 backdrop-blur print:hidden">
-      <div className="mx-auto flex h-full max-w-3xl items-center justify-between px-4">
-        <Link href="/" aria-label={`Ir para a página inicial de ${BRAND.name}`} className="inline-flex min-h-[44px] items-center">
-          <BrandMark size="sm" />
-        </Link>
+      <div className="mx-auto flex h-full max-w-3xl items-center justify-between gap-4 px-4">
+        <div className="flex items-center gap-3 sm:gap-5">
+          {/* «Voltar» devolve ao sítio exato de onde se saiu (01/11/2026); a marca continua a ir ao início. */}
+          <VoltarAtras />
+          <Link href="/" aria-label={`Ir para a página inicial de ${BRAND.name}`} className="hidden min-h-[44px] items-center sm:inline-flex">
+            <BrandMark size="sm" />
+          </Link>
+        </div>
         <Link href="/entrar" className="inline-flex min-h-[44px] items-center font-semibold text-tinta-700 underline-offset-4 hover:underline">
           Entrar
         </Link>

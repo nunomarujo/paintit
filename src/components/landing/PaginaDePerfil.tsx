@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { BrandMark } from '@/components/BrandMark';
 import { LegalLinks } from '@/components/LegalPage';
 import { SiteHeader } from '@/components/landing/SiteHeader';
+import { VoltarAtras } from '@/components/VoltarAtras';
 import { BRAND } from '@/config/brand';
 
 /**
@@ -43,6 +44,7 @@ export function PaginaDePerfil({
 
       <section className="bg-paper pb-16 pt-24">
         <div className="mx-auto max-w-6xl px-4">
+          <VoltarAtras className="mb-4" />
           <p className="eyebrow !text-tinta-600">{eyebrow}</p>
           <h1 className="mt-3 max-w-3xl text-[34px] font-extrabold leading-[1.08] text-tinta-900 sm:text-5xl">{titulo}</h1>
           <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
