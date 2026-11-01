@@ -50,7 +50,6 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.
 - 31 botões e ligações com geometria feita à mão, fora do percurso do fornecedor (inventário congelado em `alvosDeToque.test.ts`; só pode descer).
-- **`pades.test.ts` falha de vez em quando** na segunda assinatura sobre um PDF já assinado. Causa não encontrada, aberto desde 29/10. É a assinatura de contratos: não se deixa ficar.
 - Avisos da base, a confirmar caso a caso: três tabelas com RLS ligado e sem políticas (`avisos_por_email`, `moloni_token`, `toques` — esperado se só o servidor lhes acede; confirmar `toques`); 43 funções que um utilizador autenticado pode executar (por desenho, cada uma verifica quem chama); 20 chaves estrangeiras sem índice; 46 índices por usar (base ainda quase vazia); 5 tabelas com políticas permissivas duplicadas (`DECISOES.md` «Notas técnicas em aberto»); `pg_net` no esquema público.
 
 ## 5. Linhas antigas que já não são verdade

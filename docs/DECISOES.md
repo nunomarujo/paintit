@@ -4292,3 +4292,14 @@ mexeu no ramo de produção) pára e fala-se com o promotor. As migrações cont
 painel, e o código só sai depois de elas estarem aplicadas.
 
 Publicado a 01/11/2026: a reformulação do workspace do fornecedor (15 commits).
+
+## 01/11/2026 — A assinatura que falhava uma vez em 256
+
+`pades.test.ts` falhava de vez em quando desde 29/10, «causa não encontrada». Encontrada: o valor da
+assinatura vive num espaço de tamanho fixo dentro do PDF, enchido com zeros, e ao lê-lo tirava-se
+«todos os pares 00 do fim». Quando o último byte da assinatura era ele próprio 0x00 — uma vez em
+256 — perdia-se, e a verificação falhava sem razão visível. Não era só o teste: em produção, uma em
+cada 256 assinaturas com Chave Móvel Digital seria recusada.
+
+Passa a decidir o comprimento escrito no próprio DER (`semEnchimento`, `src/domain/signature.ts`), com
+testes, incluindo um que reproduz o caso. Verificado contra o código antigo: perdia o byte; o novo não.

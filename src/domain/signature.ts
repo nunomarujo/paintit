@@ -39,9 +39,36 @@ export function findSignatures(pdf: Uint8Array): SignatureField[] {
     const gap = text.slice(gapStart, gapEnd);
     const hex = /^<([0-9A-Fa-f]*)>$/.exec(gap.trim());
     if (!hex) continue;
-    out.push({ byteRange: br, contentsHex: hex[1]!.replace(/(00)+$/, '') });
+    out.push({ byteRange: br, contentsHex: semEnchimento(hex[1]!) });
   }
   return out;
+}
+
+/**
+ * O /Contents é um espaço de tamanho fixo, enchido com zeros a seguir à assinatura. Tirar «todos os
+ * pares 00 do fim» tirava também o último byte da assinatura sempre que ele era 0x00 — uma vez em 256
+ * assinaturas — e a verificação falhava sem razão visível (`pades.test.ts` falhava de vez em quando,
+ * 29/10 a 01/11/2026). O que decide onde acaba a assinatura é o comprimento escrito no próprio DER
+ * (cabeçalho SEQUENCE), não os zeros.
+ */
+export function semEnchimento(hex: string): string {
+  const b = (i: number) => parseInt(hex.substr(i * 2, 2), 16);
+  if (hex.length < 4 || b(0) !== 0x30) return hex.replace(/(00)+$/, '');
+  const first = b(1);
+  let len: number;
+  let header: number;
+  if (first < 0x80) {
+    len = first;
+    header = 2;
+  } else {
+    const n = first & 0x7f;
+    if (n === 0 || n > 4 || hex.length < (2 + n) * 2) return hex.replace(/(00)+$/, '');
+    len = 0;
+    for (let i = 0; i < n; i++) len = len * 256 + b(2 + i);
+    header = 2 + n;
+  }
+  const total = (header + len) * 2;
+  return total <= hex.length ? hex.slice(0, total) : hex.replace(/(00)+$/, '');
 }
 
 /** A assinatura cobre todo o ficheiro (exceto o próprio valor da assinatura). */
