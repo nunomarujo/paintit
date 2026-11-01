@@ -22,11 +22,11 @@ export function ResolveReport({ reportId }: { reportId: string }) {
           name="decision"
           value="suspender"
           disabled={pending}
-          className="rounded-lg bg-red-700 px-3 py-1.5 font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+          className="btn-primary bg-red-700 hover:bg-red-800"
         >
           Suspender anúncio
         </button>
-        <button type="submit" name="decision" value="arquivar" disabled={pending} className="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50">
+        <button type="submit" name="decision" value="arquivar" disabled={pending} className="btn-secondary">
           Sem fundamento
         </button>
       </div>

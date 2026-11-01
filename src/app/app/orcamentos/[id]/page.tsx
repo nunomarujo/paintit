@@ -116,7 +116,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         ) : (
           <table className="mt-3 w-full text-[17px]">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-[15px] uppercase tracking-[0.08em] text-slate-500">
+              <tr className="border-b border-slate-200 text-left text-[15px] font-semibold text-slate-500">
                 <th className="pb-2 font-semibold">Trabalho</th>
                 <th className="pb-2 text-right font-semibold">Quantidade e preço</th>
                 <th className="pb-2 text-right font-semibold">Total</th>

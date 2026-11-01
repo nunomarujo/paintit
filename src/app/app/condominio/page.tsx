@@ -47,10 +47,9 @@ export default async function CondominioPage() {
         const meus = lista.filter((p) => p.building_id === r.buildingId);
         return (
           <section key={r.id}>
-            <p className="eyebrow text-tinta-600">{r.condominio}</p>
-            <h1 className="mt-1 text-[26px] leading-tight font-semibold">{r.predio}</h1>
+            <h1 className="text-[26px] leading-tight font-semibold">{r.predio}</h1>
             <p className="mt-1 text-[17px] text-slate-600">
-              Fração {r.fracao}
+              {r.condominio} · Fração {r.fracao}
               {r.andar && ` · ${r.andar}`}
               {r.permilagem !== null && ` · ${r.permilagem}‰`}
             </p>

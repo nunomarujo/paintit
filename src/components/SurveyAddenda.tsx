@@ -48,7 +48,7 @@ export function SurveyAddenda({ addenda, titulo = 'Adendas ao levantamento' }: {
 
             {a.resposta ? (
               <div className="mt-3 rounded-lg bg-tinta-50 p-3">
-                <p className="text-[15px] font-semibold uppercase tracking-wide text-tinta-800">Resposta</p>
+                <p className="text-[15px] font-semibold text-tinta-800">Resposta</p>
                 <p className="mt-1 whitespace-pre-line text-slate-800">{a.resposta}</p>
               </div>
             ) : a.estado === 'expirado' ? (

@@ -69,7 +69,7 @@ export function MessageThread({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg border border-slate-300 px-4 py-1.5 font-semibold hover:bg-slate-50 disabled:opacity-60"
+            className="btn-secondary"
           >
             {pending ? 'A enviar…' : 'Enviar'}
           </button>

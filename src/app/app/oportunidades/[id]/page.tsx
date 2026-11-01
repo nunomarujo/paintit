@@ -337,7 +337,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <p className="text-[17px] text-slate-600">
                 Em nome de <strong>{org.nome}</strong>. A proposta fica em rascunho até a submeter.
               </p>
-              <button type="submit" className="mt-3 rounded-lg bg-tinta-600 px-5 py-2 font-semibold text-white hover:bg-tinta-700">
+              <button type="submit" className="btn-primary mt-3">
                 Começar proposta
               </button>
             </form>
@@ -364,7 +364,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 </p>
                 <Link
                   href={`/app/organizacoes/${org.id}?ver=documentos`}
-                  className="mt-2 inline-block rounded-lg border-2 border-amber-500 bg-white px-3 py-1.5 font-semibold text-amber-800 hover:bg-amber-100"
+                  className="btn-secondary mt-2 border-amber-400 text-amber-900 hover:bg-amber-100"
                 >
                   Preencher documento em falta
                 </Link>

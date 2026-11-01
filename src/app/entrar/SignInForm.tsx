@@ -37,7 +37,7 @@ export function SignInForm({ next }: { next: string }) {
     <button
       type="button"
       onClick={() => setMode(m)}
-      className={`btn-quiet btn-sm flex-1 whitespace-nowrap ${mode === m ? 'bg-white font-semibold text-tinta-900 ring-1 ring-slate-200' : 'font-normal text-slate-600'}`}
+      className={`btn-quiet btn-sm flex-1 whitespace-nowrap border ${mode === m ? 'border-slate-200 bg-white font-semibold text-tinta-900' : 'border-transparent font-normal text-slate-600'}`}
     >
       {label}
     </button>

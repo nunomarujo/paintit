@@ -152,7 +152,7 @@ export default async function ReferencePage({
               Perto de mim (concelho)
               <input name="concelho" defaultValue={concelho ?? ''} className="mt-1 block rounded-lg border border-slate-300 px-3 py-1.5" />
             </label>
-            <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50">
+            <button type="submit" className="btn-secondary">
               Filtrar
             </button>
           </form>

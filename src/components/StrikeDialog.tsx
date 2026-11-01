@@ -27,7 +27,7 @@ export function StrikeDialog() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="alertdialog" aria-modal="true" aria-labelledby="strike-title" aria-describedby="strike-text">
       <div className={`w-full max-w-md rounded-2xl border-2 bg-white p-6 shadow-xl ${tone}`}>
-        <p className={`text-[15px] font-bold uppercase tracking-[0.18em] ${blocked || info.level === 'ultimo' ? 'text-red-700' : 'text-amber-700'}`}>
+        <p className={`text-[15px] font-semibold ${blocked || info.level === 'ultimo' ? 'text-red-700' : 'text-amber-700'}`}>
           Aviso {info.n} de {info.max}
         </p>
         <h2 id="strike-title" className="mt-1 text-[20px] leading-snug font-semibold">

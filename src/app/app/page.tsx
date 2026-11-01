@@ -121,7 +121,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   {i.expires_at.slice(0, 10).split('-').reverse().join('/')}
                 </span>
                 <form action={acceptInvitation.bind(null, i.id)}>
-                  <button type="submit" className="rounded-lg bg-tinta-600 px-4 py-1.5 font-semibold text-white hover:bg-tinta-700">
+                  <button type="submit" className="btn-primary">
                     Aceitar
                   </button>
                 </form>
@@ -227,7 +227,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             {!mine.some((o) => o.kind === 'pintor' || o.kind === 'fornecedor') && (
               <Link
                 href="/app/organizacoes/nova"
-                className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
+                className="btn-primary"
               >
                 {mine.some((o) => o.kind === 'administradora') ? 'Adicionar condomínio ou entidade' : 'Adicionar entidade'}
               </Link>

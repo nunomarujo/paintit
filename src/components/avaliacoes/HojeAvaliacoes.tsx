@@ -128,7 +128,7 @@ export function HojeAvaliacoes({
 
       {(() => {
         const base = 'flex flex-col gap-4 rounded-2xl bg-tinta-900 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6';
-        const rotulo = <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-lima">Próxima ação</p>;
+        const rotulo = <p className="text-[13px] font-semibold text-lima">Próxima ação</p>;
         if (estado.suspenso) {
           return (
             <section aria-labelledby="agora" className={base}>

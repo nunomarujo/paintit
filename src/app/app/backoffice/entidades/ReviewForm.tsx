@@ -25,7 +25,7 @@ export function ReviewForm({ documentId }: { documentId: string }) {
           name="decision"
           value="aprovado"
           disabled={pending}
-          className="rounded-lg bg-tinta-600 px-3 py-1.5 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Aprovar
         </button>
@@ -34,7 +34,7 @@ export function ReviewForm({ documentId }: { documentId: string }) {
           name="decision"
           value="rejeitado"
           disabled={pending}
-          className="rounded-lg border border-red-300 px-3 py-1.5 text-[17px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+          className="btn-secondary border-red-300 text-red-700 hover:bg-red-50"
         >
           Rejeitar
         </button>

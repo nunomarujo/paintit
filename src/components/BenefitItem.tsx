@@ -18,7 +18,7 @@ export function BenefitItem({ b }: { b: Beneficio }) {
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="font-semibold text-marca-ink">{b.titulo}</span>
         {b.aChegar && (
-          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold text-marca-ink-soft">
             Por lançar
           </span>
         )}

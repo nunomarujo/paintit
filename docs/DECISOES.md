@@ -4383,3 +4383,30 @@ Desde 30/10 ninguém conseguia criar um pedido de orçamento novo pela aplicaç�
 
 Correção: fora da página em secções não há secção (`null`), e o formulário mostra tudo. Verificado no
 banco de ensaio: 27 campos visíveis na página de criação.
+
+## 01/11/2026 — Estilo do site público a partir de usenorte.com; Manrope e pílulas em todo o produto
+
+O promotor recusou o aspeto «de site feito por IA» e perguntou se `/empresas` podia seguir o estilo
+de usenorte.com. Fez-se uma maquete (artefacto, só para avaliação), depois outra da página inicial
+com o prédio que se pinta, e ele aprovou com dois pedidos: o primeiro ecrã com fotografias que se
+sucedem (como o Norte) e o prédio a passar para uma secção própria, mantendo o scroll a pintá-lo.
+As fotografias foram geradas por ele a partir de mini-prompts; o prédio novo chegou com fundo
+transparente e a versão em linha foi extraída da colorida (`predio2-linha.webp`), como da primeira vez.
+
+O que fica decidido:
+
+- **Fonte Manrope** em todo o produto (`layout.tsx`), não só no site público: dois tipos de letra
+  fariam dois produtos. A variável CSS manteve o nome para não mexer em cem ecrãs.
+- **Botões em pílula** (`btn-*` com `rounded-full`), também em todo o produto. Os 31 botões que
+  ainda estavam escritos à mão passaram para as classes no mesmo dia, e o inventário de
+  `alvosDeToque.test.ts` ficou vazio: a lista não volta a crescer.
+- **Site público:** títulos grandes em peso médio com espaçamento apertado, centrados nas secções;
+  primeiro ecrã fotográfico com cabeçalho transparente; maquetes do produto em caixas cinzentas;
+  fotografias reais em cada secção que tem assunto. Os cantos dos blocos grandes são 28px
+  (`rounded-[28px]`), por serem molduras de fotografia e caixas de maquete — excepção declarada à
+  regra 17, só no site público.
+- **Tratamento impessoal mantém-se** (regra 12); o Norte trata por «tu» e isso não se copia.
+- As fotografias da Wikimedia Commons deixaram de ser usadas; os créditos saíram dos rodapés.
+
+Verificado com o inspetor taste-skill: página inicial, `/empresas`, `/fornecedores`, `/entrar`,
+`/transparencia` e `/metodologia` a zero falhas.

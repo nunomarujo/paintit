@@ -84,7 +84,7 @@ export default async function SubscriptionPage() {
           (decisão do promotor, 25/10/2026). Não basta tirar a percentagem do título: dizer "de X € para
           Y €" numa obra de valor conhecido revela as duas taxas por divisão. Fica só o que se poupa. */}
       <section className="rounded-2xl border border-marca-border bg-marca-cream px-6 py-5">
-        <p className="eyebrow text-marca-ink-soft">Numa obra de {formatEuros(exemplo)}</p>
+        <p className="text-[15px] font-semibold text-marca-ink-soft">Numa obra de {formatEuros(exemplo)}</p>
         <p className="mt-1 text-[34px] font-semibold leading-none tracking-tight tabular-nums text-marca-orange-deep">
           Poupa {formatEuros(poupa)}
         </p>
@@ -96,8 +96,8 @@ export default async function SubscriptionPage() {
 
       <div className="grid items-start gap-5 md:grid-cols-2">
         <section className="rounded-2xl border border-marca-border bg-white p-5">
-          <p className="eyebrow text-marca-ink-soft">Gratuito</p>
-          <p className="mt-1 text-[20px] font-semibold tracking-tight text-marca-ink">0 €</p>
+          <h2 className="text-[20px] font-semibold text-marca-ink">Gratuito</h2>
+          <p className="mt-1 text-[20px] font-semibold tracking-tight tabular-nums text-marca-ink">0 €</p>
           <p className="text-[15px] text-marca-muted">o que tem hoje</p>
           <ul className="mt-4 space-y-3 text-[17px]">
             {BENEFICIOS_GRATUITO.map((b) => (
@@ -108,8 +108,8 @@ export default async function SubscriptionPage() {
 
         <section className="rounded-2xl border-2 border-marca-ink bg-white p-5">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="eyebrow text-marca-ink-soft">Pro</p>
-            <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-marca-ink-soft">
+            <h2 className="text-[20px] font-semibold text-marca-ink">Pro</h2>
+            <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold text-marca-ink-soft">
               Oferta de lançamento
             </span>
           </div>

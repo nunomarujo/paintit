@@ -43,7 +43,7 @@ export function DeleteOrg({ orgId, nome }: { orgId: string; nome: string }) {
               <button
                 type="submit"
                 disabled={pending || typed.trim().toUpperCase() !== word}
-                className="rounded-lg bg-red-700 px-4 py-2 font-semibold text-white disabled:opacity-40"
+                className="btn-primary bg-red-700 hover:bg-red-800"
               >
                 Eliminar definitivamente
               </button>

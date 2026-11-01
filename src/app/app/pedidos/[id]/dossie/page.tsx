@@ -56,8 +56,7 @@ export default async function DossierPage({ params }: { params: Promise<{ id: st
         <p className="text-[17px] text-slate-500">Para guardar em PDF, use a impressão do navegador.</p>
       </div>
       <article className="rounded-2xl border border-slate-200 bg-white p-8 text-[17px] print:border-0 print:p-0">
-        <p className="eyebrow">Dossiê do pedido</p>
-        <h1 className="mt-2 text-[26px] leading-tight font-semibold">{req.titulo}</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Dossiê do pedido · {req.titulo}</h1>
         <p className="text-slate-500">
           Ref. {req.ref} · {org?.nome}
           {org?.nif ? ` · NIF ${org.nif}` : ''} · gerado a {dt(new Date().toISOString())}

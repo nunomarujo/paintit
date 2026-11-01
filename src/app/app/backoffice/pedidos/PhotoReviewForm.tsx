@@ -26,7 +26,7 @@ export function PhotoReviewForm({ photoId }: { photoId: string }) {
           name="decision"
           value="aprovada"
           disabled={pending}
-          className="rounded-lg bg-tinta-600 px-3 py-1.5 text-[17px] font-semibold text-white hover:bg-tinta-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Não identifica o prédio: aprovar
         </button>
@@ -35,7 +35,7 @@ export function PhotoReviewForm({ photoId }: { photoId: string }) {
           name="decision"
           value="rejeitada"
           disabled={pending}
-          className="rounded-lg border border-red-300 px-3 py-1.5 text-[17px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+          className="btn-secondary border-red-300 text-red-700 hover:bg-red-50"
         >
           Recusar
         </button>

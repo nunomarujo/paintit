@@ -32,7 +32,7 @@ export default async function WarningsPage() {
                   </span>
                   {blocked.has(uid) && (
                     <form action={unblockAccount.bind(null, uid)}>
-                      <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1 text-[17px] font-semibold hover:bg-slate-50">
+                      <button type="submit" className="btn-secondary">
                         Desbloquear
                       </button>
                     </form>

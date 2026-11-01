@@ -305,7 +305,7 @@ export function CapotoEditor({
       )}
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-xl bg-tinta-700 px-5 py-2.5 font-semibold text-white disabled:bg-slate-300">
+        <button type="submit" disabled={pending} className="btn-primary">
           {pending ? 'A guardar…' : 'Guardar'}
         </button>
         {state.message && <span className={state.ok ? 'text-[17px] text-tinta-700' : 'text-[17px] text-red-700'}>{state.message}</span>}

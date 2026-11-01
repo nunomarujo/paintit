@@ -158,7 +158,7 @@ export function Agendamento({ prazos, contacto, agoraIso }: { prazos: Prazos; co
       {/* Os dados da cliente: só aparecem a quem tem reserva válida e confidencialidade aceite. */}
       {contacto && (
         <section aria-labelledby="cliente" className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h3 id="cliente" className="text-[13px] font-semibold uppercase tracking-wide text-slate-600">Cliente</h3>
+          <h3 id="cliente" className="text-[15px] font-semibold text-slate-600">Cliente</h3>
           {contacto.nome && <p className="mt-1 text-[20px] font-semibold text-slate-900">{contacto.nome}</p>}
           {contacto.telefone && <p className="mt-1 text-[17px] text-slate-700">{contacto.telefone}</p>}
           {contacto.email && <p className="text-[17px] text-slate-700">{contacto.email}</p>}

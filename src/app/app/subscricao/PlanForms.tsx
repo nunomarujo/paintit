@@ -59,7 +59,7 @@ export function SubscribeForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-marca-ink px-4 py-2.5 text-[17px] font-semibold text-white transition-colors hover:bg-marca-orange disabled:opacity-60"
+        className="btn-primary w-full bg-marca-ink hover:bg-marca-orange"
       >
         {pending ? 'A registar…' : `Aderir ao plano Pro — ${formatEuros(precoEscolhido)} + IVA`}
       </button>

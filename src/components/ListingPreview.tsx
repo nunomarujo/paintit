@@ -66,7 +66,7 @@ export function ListingPreview({ l }: { l: ListingView }) {
     <article className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[15px] font-semibold uppercase tracking-wide text-slate-500">Pedido {l.ref}</p>
+          <p className="text-[15px] font-semibold text-slate-500">Pedido {l.ref}</p>
           <h3 className="mt-1 text-[20px] font-semibold">
             {etiquetaDosTipos(l.tiposObra?.length ? l.tiposObra : [l.tipoObra])} · {l.concelho}
           </h3>

@@ -174,7 +174,7 @@ export function ListaDeEntidades({ todas, nif }: { todas: EntidadeDoMapa[]; nif:
                     }`}
                   >
                     <span className="min-w-0 text-slate-900">{s.valor}</span>
-                    <span className="shrink-0 text-[13px] font-semibold uppercase tracking-wide text-slate-500">
+                    <span className="shrink-0 text-[13px] font-semibold text-slate-500">
                       {s.gentio === 'concelho' ? 'concelho' : 'entidade'}
                     </span>
                   </button>

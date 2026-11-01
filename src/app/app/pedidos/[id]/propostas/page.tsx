@@ -387,7 +387,7 @@ export default async function ProposalsPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-50">
+              <button type="submit" className="btn-secondary btn-sm">
                 Aplicar
               </button>
             </form>

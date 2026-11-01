@@ -96,7 +96,7 @@ export function Needs({
           </p>
           <Link
             href={`/app/organizacoes/${orgId}/pedidos/novo?predio=${buildingId}`}
-            className="mt-3 inline-block rounded-lg bg-tinta-600 px-5 py-2 text-[17px] font-semibold text-white hover:bg-tinta-700"
+            className="btn-primary mt-3"
           >
             Iniciar pedido de orçamento
           </Link>

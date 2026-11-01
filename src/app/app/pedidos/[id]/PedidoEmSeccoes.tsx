@@ -107,8 +107,8 @@ export function PedidoEmSeccoes({
                   type="button"
                   onClick={() => setPasso(p.id)}
                   aria-current={aqui ? 'step' : undefined}
-                  className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-[15px] ${
-                    aqui ? 'bg-white font-semibold text-tinta-900 ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60'
+                  className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border px-4 py-2 text-[15px] ${
+                    aqui ? 'border-slate-200 bg-white font-semibold text-tinta-900' : 'border-transparent text-slate-600 hover:bg-white/60'
                   }`}
                 >
                   <span

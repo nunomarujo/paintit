@@ -2,36 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { contarPorFicheiro, geometriaAMao } from './alvosDeToque';
 
 /**
- * Inventário do que ainda falta corrigir (01/11/2026), para a dívida só poder descer.
- *
- * O percurso do fornecedor — Vendas e Avaliações — está limpo: nenhum ficheiro dele aparece aqui. O que
- * resta é do percurso do pintor, do cliente e do backoffice, e fica para quando se mexer neles.
- *
- * Se este teste falhar por a contagem **descer**, é boa notícia: baixe o número, ou apague a linha.
+ * Inventário do que ainda falta corrigir — **vazio desde 01/11/2026**: os 31 botões que restavam
+ * passaram para `btn-*` quando os botões viraram pílulas (um botão à mão com `rounded-lg` ficaria a
+ * destoar em cada ecrã). Um ficheiro que volte a aparecer aqui reprova; a lista não cresce.
  */
-const DIVIDA: Record<string, number> = {
-  'app/app/backoffice/PromoForms.tsx': 3,
-  'app/app/backoffice/ReportForms.tsx': 2,
-  'app/app/backoffice/entidades/ReviewForm.tsx': 2,
-  'app/app/backoffice/moderacao/avisos/page.tsx': 1,
-  'app/app/backoffice/pedidos/PhotoReviewForm.tsx': 2,
-  'app/app/catalogo/page.tsx': 1,
-  'app/app/catalogo/referencia/[id]/page.tsx': 1,
-  'app/app/contratacoes/[id]/PayButton.tsx': 1,
-  'app/app/obras/Hoje.tsx': 3,
-  'app/app/obras/page.tsx': 1,
-  'app/app/oportunidades/[id]/orcamento/CapotoEditor.tsx': 1,
-  'app/app/oportunidades/[id]/page.tsx': 2,
-  'app/app/oportunidades/page.tsx': 1,
-  'app/app/organizacoes/[id]/DeleteOrg.tsx': 1,
-  'app/app/organizacoes/[id]/predios/[predioId]/editar/Needs.tsx': 1,
-  'app/app/page.tsx': 2,
-  'app/app/pedidos/[id]/page.tsx': 1,
-  'app/app/pedidos/[id]/propostas/page.tsx': 1,
-  'app/app/subscricao/PlanForms.tsx': 1,
-  'app/page.tsx': 1,
-  'components/MessageThread.tsx': 1,
-};
+const DIVIDA: Record<string, number> = {};
 
 describe('alvos de toque: a geometria vem do sistema (regra 17)', () => {
   it('reconhece um botão feito à mão e deixa passar o do sistema', () => {

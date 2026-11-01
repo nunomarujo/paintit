@@ -127,9 +127,11 @@ npm run build
     - **Campos:** `campo` (`globals.css`). Nunca abaixo de 16px — o Safari do iPhone dá zoom a cada
       toque, e quem preenche um levantamento está em obra (regra 14).
     - **Cantos:** dois raios, e o `tailwind.config.ts` colapsa os degraus intermédios para eles —
-      **8px** no que se toca (botões, campos, pastilhas, itens de lista), **16px** no que contém
-      (cartões, painéis, diálogos), e `rounded-full` em pílulas e pontos. Não se escreve
-      `rounded-[Npx]`.
+      **8px** no que se toca (campos, pastilhas, itens de lista), **16px** no que contém
+      (cartões, painéis, diálogos), e `rounded-full` em pílulas, pontos **e botões** (desde
+      01/11/2026 os `btn-*` são pílulas, decisão de estilo do promotor). Não se escreve
+      `rounded-[Npx]` — excepção declarada: o site público usa `rounded-[28px]` nas molduras de
+      fotografia e nas caixas de maquete (DECISOES.md, 01/11/2026).
     **Tudo o que se clica tem 44px de altura mínima**, venha de uma classe `btn-*` ou não: é o
     mínimo para um dedo, e metade dos ecrãs da app são usados em obra, de telemóvel.
     *Desde 01/11/2026 a regra falha nos testes*, e não só num comentário: `src/domain/alvosDeToque.ts`

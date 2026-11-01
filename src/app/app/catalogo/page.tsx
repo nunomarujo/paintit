@@ -134,7 +134,7 @@ export default async function CatalogPage({
             </select>
           </AutoSubmit>
         </label>
-        <button type="submit" className="rounded-lg border border-slate-300 px-4 py-2 font-semibold hover:bg-slate-50">
+        <button type="submit" className="btn-secondary">
           Aplicar
         </button>
       </form>

@@ -227,7 +227,7 @@ export default async function OrganizationPage({
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[15px] uppercase tracking-wide text-slate-500">Prédio selecionado</p>
+                  <p className="text-[15px] font-semibold text-slate-500">Prédio selecionado</p>
                   <h2 className="mt-1 font-semibold">{predioEmFoco.nome_interno}</h2>
                   <p className="mt-1 text-[17px] text-slate-600">
                     {[predioEmFoco.morada, predioEmFoco.codigo_postal, predioEmFoco.localidade].filter(Boolean).join(', ')}

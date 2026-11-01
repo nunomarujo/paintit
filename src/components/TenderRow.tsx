@@ -27,7 +27,7 @@ export function TenderRow({ c, e, faltam }: { c: Tender; e: Elegibilidade; falta
   return (
   <li className="flex gap-4 px-4 py-3">
                   <span
-                    className={`w-[92px] shrink-0 text-[13px] font-bold uppercase leading-tight tracking-[0.12em] ${
+                    className={`w-[92px] shrink-0 text-[13px] font-semibold leading-tight ${
                       e.veredicto === 'pode' ? 'text-tinta-700' : 'text-slate-600'
                     }`}
                   >

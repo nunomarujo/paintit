@@ -188,7 +188,7 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
                   // O registo do dia é a acção diária: fica a um toque da lista, sem abrir a obra.
                   <Link
                     href={`/app/obras/${o.id}?s=dia`}
-                    className="mx-4 mb-3 inline-flex items-center rounded-lg border border-tinta-300 bg-white px-3 py-1.5 text-[15px] font-semibold text-tinta-700 hover:bg-tinta-50"
+                    className="btn-secondary btn-sm mx-4 mb-3"
                   >
                     Registar o dia
                   </Link>

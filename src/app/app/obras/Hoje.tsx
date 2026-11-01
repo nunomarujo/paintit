@@ -30,11 +30,12 @@ export function Hoje({
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Hoje · {DIA.format(hoje)}</p>
-          <h1 className="mt-1 text-[26px] font-semibold leading-tight text-slate-900">{obra.nome}</h1>
+          <h1 className="text-[26px] font-semibold leading-tight text-slate-900">{obra.nome}</h1>
           <p className="mt-1 flex items-center gap-2 text-[15px] text-slate-600">
             <span className={`inline-block h-2 w-2 rounded-full ${obra.estado === 'ativa' ? 'bg-tinta-600' : 'bg-slate-400'}`} />
             {obra.estado === 'ativa' ? 'Em curso' : 'Parada'}
+            <span className="text-slate-600">·</span>
+            Hoje, {DIA.format(hoje)}
             {obra.local && <span className="text-slate-600">·</span>}
             {obra.local}
           </p>
@@ -56,7 +57,7 @@ export function Hoje({
               ))}
             </select>
             <input type="hidden" name="ver" value="hoje" />
-            <button type="submit" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] font-semibold text-slate-700 hover:bg-slate-50">
+            <button type="submit" className="btn-secondary btn-sm text-slate-700">
               Ver
             </button>
           </form>
@@ -143,7 +144,7 @@ export function Hoje({
                     <p className="mt-0.5 text-[15px] leading-snug text-amber-900">{a.detalhe}</p>
                     <Link
                       href={a.href}
-                      className="mt-1.5 inline-block rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[15px] font-semibold text-amber-900 hover:bg-amber-100"
+                      className="btn-secondary btn-sm mt-1.5 border-amber-300 text-amber-900 hover:bg-amber-100"
                     >
                       Rever
                     </Link>
@@ -193,7 +194,7 @@ function Accao({ href, titulo, detalhe, destaque }: { href: string; titulo: stri
   return (
     <Link
       href={href}
-      className={`flex items-center justify-between gap-3 rounded-2xl border px-5 py-4 transition ${
+      className={`flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border px-5 py-4 transition ${
         destaque
           ? 'border-tinta-700 bg-tinta-700 text-white hover:bg-tinta-800'
           : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50'

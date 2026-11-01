@@ -1857,6 +1857,15 @@ momentos têm barra à esquerda em vez de caixa. Fotografias novas em `public/im
 `Revelar` aceita `as="section"`. Ficam por rever os espaços autenticados (cliente, pintor, fornecedor,
 backoffice) — lista 2 de `EM_ABERTO.md`.
 
+**Site público v6 (01/11/2026, estilo aprovado em maquete):** primeiro ecrã com quatro fotografias que
+se sucedem (`HeroFotografico.tsx`), cabeçalho transparente sobre elas (`SiteHeader sobreFoto`), o
+comparador numa caixa cinzenta logo a seguir, o prédio que se pinta em secção própria com o novo
+desenho de fundo transparente (`predio2-*.webp`), três passos em três colunas, proteções em cartões,
+condomínios em faixa fotográfica. Fonte **Manrope** e botões em **pílula** em todo o produto. Nos
+espaços autenticados: os 31 botões à mão passaram para `btn-*` (inventário a zero), os rótulos em
+maiúsculas espaçadas saíram, os kickers acima dos títulos foram dobrados no título ou no subtítulo
+(condómino, obra «Hoje», dossiê, subscrição). Ver DECISOES.md do dia.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

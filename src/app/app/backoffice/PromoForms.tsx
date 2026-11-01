@@ -23,7 +23,7 @@ export function CreatePromoCode() {
       {field('usos', 'Utilizações máximas (opcional)', { inputMode: 'numeric' })}
       {field('notas', 'Notas internas')}
       <div className="sm:col-span-2 lg:col-span-5">
-        <button type="submit" disabled={pending} className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white">
+        <button type="submit" disabled={pending} className="btn-primary">
           Criar código
         </button>
         {state.message && <span className={`ml-3 text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{state.message}</span>}
@@ -36,7 +36,7 @@ export function TogglePromo({ id, active }: { id: string; active: boolean }) {
   const { pending, formProps } = useFormAction<FormState>(setPromoActive.bind(null, id, !active), { errors: {} });
   return (
     <form {...formProps}>
-      <button type="submit" disabled={pending} className="rounded-lg border border-slate-300 px-3 py-1 text-[15px] hover:bg-slate-50">
+      <button type="submit" disabled={pending} className="btn-secondary btn-sm">
         {active ? 'Desativar' : 'Reativar'}
       </button>
     </form>
@@ -75,7 +75,7 @@ export function SupplierPlanForm({ suppliers }: { suppliers: { id: string; nome:
         {err('codigo')}
       </label>
       <div className="flex items-end">
-        <button type="submit" disabled={pending} className="rounded-lg bg-tinta-600 px-4 py-2 text-[17px] font-semibold text-white">
+        <button type="submit" disabled={pending} className="btn-primary">
           Aplicar
         </button>
         {state.message && <span className={`ml-3 text-[17px] ${state.ok ? 'text-tinta-700' : 'text-red-700'}`}>{state.message}</span>}
