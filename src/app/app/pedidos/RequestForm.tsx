@@ -342,8 +342,8 @@ function Pastilha({ children }: { children: ReactNode }) {
 /** O visto da pastilha: só aparece quando o checkbox irmão está marcado. */
 function Visto() {
   return (
-    <span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-[13px] text-white [label:has(:checked)_&]:border-tinta-600 [label:has(:checked)_&]:bg-tinta-600">
-      ✓
+    <span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-white [label:has(:checked)_&]:border-tinta-600 [label:has(:checked)_&]:bg-tinta-600">
+      <svg aria-hidden viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3 3 7-7" /></svg>
     </span>
   );
 }
@@ -543,8 +543,8 @@ function Objectivos({ descricao, setDescricao }: { descricao: string; setDescric
               }`}
             >
               {activo && (
-                <span aria-hidden className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-tinta-600 text-[13px] text-white">
-                  ✓
+                <span aria-hidden className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-tinta-600 text-white">
+                  <svg aria-hidden viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3 3 7-7" /></svg>
                 </span>
               )}
               {rotulo}
