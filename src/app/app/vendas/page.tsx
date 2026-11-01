@@ -1,5 +1,6 @@
+import { SemEmpresa } from '@/components/vendas/SemEmpresa';
+import { pertencaDoFornecedor } from '@/lib/fornecedor';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { quandoCurto } from '@/domain/contagem';
 import { formatEuros } from '@/domain/money';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
@@ -33,24 +34,21 @@ function Cartao({ titulo, destaque, nota, href, acao }: { titulo: string; destaq
 export default async function HojeVendasPage() {
   const { supabase, user } = await getUser();
 
-  const { data: memberships } = await supabase
-    .from('org_members')
-    .select('org_id, role, organizations!inner(id, kind, nome)')
-    .eq('user_id', user!.id)
-    .eq('organizations.kind', 'fornecedor');
-  const meu = (memberships ?? []).find((m) => ['proprietario', 'gestor', 'vendedor', 'financeiro'].includes(m.role));
-  if (!meu) notFound();
-  const responsavel = mandaNaEmpresa(meu.role as 'proprietario' | 'gestor' | 'vendedor');
+  const pertenca = await pertencaDoFornecedor(supabase, user!);
+  // «Ainda não pertenço a nenhuma empresa» e «fui convidado e não aceitei» não são erros: são
+  // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
+  if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
+  const responsavel = mandaNaEmpresa(pertenca.papel as 'proprietario' | 'gestor' | 'vendedor');
 
   const [{ data: encomendas }, { data: produtos }, { data: adesao }] = await Promise.all([
     supabase
       .from('material_orders')
       .select('id, estado, embalagens, created_at, product_id')
-      .eq('supplier_org_id', meu.org_id)
+      .eq('supplier_org_id', pertenca.orgId)
       .order('created_at', { ascending: false })
       .limit(50),
-    supabase.from('products').select('id, marca, nome, ativo').eq('org_id', meu.org_id),
-    supabase.from('referral_payouts').select('amount_cents, estado, redemption_id').eq('supplier_org_id', meu.org_id),
+    supabase.from('products').select('id, marca, nome, ativo').eq('org_id', pertenca.orgId),
+    supabase.from('referral_payouts').select('amount_cents, estado, redemption_id').eq('supplier_org_id', pertenca.orgId),
   ]);
 
   const porConfirmar = (encomendas ?? []).filter((e) => e.estado === 'pedida');
@@ -145,7 +143,7 @@ export default async function HojeVendasPage() {
           titulo="Catálogo"
           destaque={`${ativos} ${ativos === 1 ? 'produto ativo' : 'produtos ativos'}`}
           nota="Os pintores só veem os produtos ativos ao orçamentar."
-          href={`/app/organizacoes/${meu.org_id}/produtos`}
+          href={`/app/organizacoes/${pertenca.orgId}/produtos`}
           acao="Produtos e preços"
         />
         {responsavel && (
@@ -153,7 +151,7 @@ export default async function HojeVendasPage() {
             titulo="Comissões de adesão"
             destaque={formatEuros(comissoes)}
             nota="Por receber, dos pintores que aderiram pelo seu código."
-            href={`/app/organizacoes/${meu.org_id}/adesoes`}
+            href={`/app/organizacoes/${pertenca.orgId}/adesoes`}
             acao="Consultar"
           />
         )}

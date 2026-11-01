@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation';
+import { SemEmpresa } from '@/components/vendas/SemEmpresa';
+import { pertencaDoFornecedor } from '@/lib/fornecedor';
 import { CoverageForm } from '@/app/app/levantamentos/Forms';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
 import { getUser } from '@/lib/supabase/server';
@@ -17,18 +18,15 @@ import { Disponibilidade } from './Formulario';
 export default async function DisponibilidadePage() {
   const { supabase, user } = await getUser();
 
-  const { data: memberships } = await supabase
-    .from('org_members')
-    .select('org_id, role, organizations!inner(kind)')
-    .eq('user_id', user!.id)
-    .eq('organizations.kind', 'fornecedor');
-  const meu = (memberships ?? []).find((m) => ['proprietario', 'gestor', 'vendedor'].includes(m.role));
-  if (!meu) notFound();
-  const responsavel = mandaNaEmpresa(meu.role as 'proprietario' | 'gestor' | 'vendedor');
+  const pertenca = await pertencaDoFornecedor(supabase, user!);
+  // «Ainda não pertenço a nenhuma empresa» e «fui convidado e não aceitei» não são erros: são
+  // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
+  if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
+  const responsavel = mandaNaEmpresa(pertenca.papel as 'proprietario' | 'gestor' | 'vendedor');
 
   const [{ data: minha }, { data: cobertura }] = await Promise.all([
     supabase.from('survey_availability').select('suspenso_ate, alerta_email').eq('user_id', user!.id).maybeSingle(),
-    supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', meu.org_id).maybeSingle(),
+    supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),
   ]);
 
   return (
@@ -64,7 +62,7 @@ export default async function DisponibilidadePage() {
         </p>
         {responsavel ? (
           <div className="mt-4">
-            <CoverageForm orgId={meu.org_id} initial={cobertura?.concelhos ?? []} />
+            <CoverageForm orgId={pertenca.orgId} initial={cobertura?.concelhos ?? []} />
           </div>
         ) : (
           <>

@@ -1,4 +1,5 @@
-import { notFound } from 'next/navigation';
+import { SemEmpresa } from '@/components/vendas/SemEmpresa';
+import { pertencaDoFornecedor } from '@/lib/fornecedor';
 import { ReserveButton } from '@/app/app/levantamentos/ReserveButton';
 import { referenciaDoLevantamento } from '@/domain/referencias';
 import { quandoCurto } from '@/domain/contagem';
@@ -17,13 +18,10 @@ import { getUser } from '@/lib/supabase/server';
 export default async function OportunidadesPage() {
   const { supabase, user } = await getUser();
 
-  const { data: memberships } = await supabase
-    .from('org_members')
-    .select('org_id, role, organizations!inner(kind)')
-    .eq('user_id', user!.id)
-    .eq('organizations.kind', 'fornecedor');
-  const meu = (memberships ?? []).find((m) => ['proprietario', 'gestor', 'vendedor'].includes(m.role));
-  if (!meu) notFound();
+  const pertenca = await pertencaDoFornecedor(supabase, user!);
+  // «Ainda não pertenço a nenhuma empresa» e «fui convidado e não aceitei» não são erros: são
+  // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
+  if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
 
   const { data: abertos } = await supabase
     .from('request_surveys')
@@ -78,7 +76,7 @@ export default async function OportunidadesPage() {
                     {s.zona!.tipo_obra} · aberta desde {q.dia.toLowerCase()}, {q.hora}
                   </span>
                 </span>
-                <ReserveButton surveyId={s.id} orgId={meu.org_id} />
+                <ReserveButton surveyId={s.id} orgId={pertenca.orgId} />
               </li>
             );
           })}
