@@ -46,6 +46,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 - **Versões da proposta** não aparecem no ecrã de comparação (já aparecem no relatório).
 - **Aviso 2 h antes aos outros avaliadores** (alternativa ao bónus de adesão, não escolhida).
 
+- **Design v5 (01/11/2026), o que ficou para depois:** recompor o ecrã «Hoje» do avaliador como no canvas (cartão «Próxima ação», estado de disponibilidade no topo) — só depois de publicar `claude/workspace-fornecedor`; o fornecedor confirmar a venda de um produto a um pintor para uma obra (prometido em versão fraca no cartão 3 das «Três proteções»); ilustração do prédio do hero (`predio-cor.webp`) ainda nas cores antigas; medir os tempos do orçamento guiado (45/20/5 min são estimativa do promotor); a aplicação não explica fichas técnicas em linguagem corrente — a página do fornecedor só promete os dados aplicados.
+
 ## 4. Dívida técnica
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.
