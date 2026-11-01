@@ -67,9 +67,12 @@ describe('a subscrição sai da gestão dos produtos', () => {
     expect(vender!.items.map((i) => i.label)).not.toContain('Subscrição');
   });
 
-  it('vive dentro da Empresa', () => {
+  it('vive dentro da Empresa, e é a da empresa fornecedora', () => {
     const empresa = destinos('vendas', 'proprietario').find((d) => d.label === 'Empresa');
-    expect((empresa?.children ?? []).map((c) => c.href)).toContain('/app/subscricao');
+    // `/app/subscricao` é o plano de uma empresa **de pintura**: mandar lá o fornecedor dava-lhe o
+    // ecrã errado. A subscrição do fornecedor vive debaixo da sua própria organização.
+    expect((empresa?.children ?? []).map((c) => c.href)).toContain(`/app/organizacoes/${ORG}/subscricao`);
+    expect((empresa?.children ?? []).map((c) => c.href)).not.toContain('/app/subscricao');
   });
 });
 

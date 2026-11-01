@@ -24,7 +24,8 @@ export type ProdutoNaLista = {
   referencia: string | null;
   tipo: ProductType;
   embalagem: string;
-  precoCents: number;
+  /** O preço ao pintor. Nulo quando a empresa ainda não o indicou. */
+  precoCents: number | null;
   descontoMaximoBps: number | null;
   ativo: boolean;
   fotoPath: string | null;
@@ -79,7 +80,9 @@ function LinhaDeProduto({ p, base }: { p: ProdutoNaLista; base: string }) {
         </span>
 
         <span className="hidden w-[7rem] shrink-0 text-right sm:block">
-          <span className="block text-[17px] font-medium text-slate-900">{formatEuros(p.precoCents)}</span>
+          <span className="block text-[17px] font-medium text-slate-900">
+            {p.precoCents === null ? <span className="text-slate-600">sem preço</span> : formatEuros(p.precoCents)}
+          </span>
           <span className="block text-[15px] text-slate-600">
             {p.descontoMaximoBps === null ? 'sem desconto' : `até ${(p.descontoMaximoBps / 100).toLocaleString('pt-PT')}%`}
           </span>
@@ -91,14 +94,16 @@ function LinhaDeProduto({ p, base }: { p: ProdutoNaLista; base: string }) {
             <span aria-hidden="true" className={`h-[9px] w-[9px] rounded-full ${p.ativo ? 'bg-tinta-600' : 'bg-slate-400'}`} />
             <span className={p.ativo ? 'text-slate-700' : 'text-slate-600'}>{p.ativo ? 'Ativo' : 'Inativo'}</span>
           </span>
-          <span className="block text-[15px] text-slate-600 sm:hidden">{formatEuros(p.precoCents)}</span>
+          <span className="block text-[15px] text-slate-600 sm:hidden">
+            {p.precoCents === null ? 'sem preço' : formatEuros(p.precoCents)}
+          </span>
         </span>
 
         <span
           aria-hidden="true"
-          className="hidden h-[38px] w-[5.5rem] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-[15px] font-medium text-tinta-700 group-hover:border-tinta-600 sm:inline-flex"
+          className="hidden h-[38px] w-[4.5rem] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-[15px] font-medium text-tinta-700 group-hover:border-tinta-600 sm:inline-flex"
         >
-          Editar
+          Ver
         </span>
       </Link>
     </li>

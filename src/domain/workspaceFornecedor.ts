@@ -102,7 +102,7 @@ export function destinosDoFornecedor(
         { href: `/app/organizacoes/${orgId}`, label: 'Dados', padrao: true },
         { href: `/app/organizacoes/${orgId}/equipa`, label: 'Equipa e associações' },
         ...(mandaNaEmpresa(papel) ? [{ href: `/app/organizacoes/${orgId}/regras`, label: 'Regras comerciais' }] : []),
-        ...(mandaNaEmpresa(papel) ? [{ href: '/app/subscricao', label: 'Subscrição' }] : []),
+        ...(mandaNaEmpresa(papel) ? [{ href: `/app/organizacoes/${orgId}/subscricao`, label: 'Subscrição' }] : []),
       ],
     },
   ];
