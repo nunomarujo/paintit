@@ -99,12 +99,15 @@ export function useAppNavGroups(groups: NavGroup[], onNavigate?: () => void) {
                 aria-current={active(i) ? 'page' : undefined}
                 className={`flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-3 py-2 text-[15px] ${
                   active(i)
-                    ? 'bg-marca-cream font-semibold text-marca-ink'
-                    : 'text-marca-muted hover:bg-marca-cream/60 hover:text-marca-ink'
+                    ? 'border border-marca-border bg-white font-semibold text-marca-ink'
+                    : 'border border-transparent text-marca-muted hover:bg-white/70 hover:text-marca-ink'
                 }`}
               >
                 <span className="flex items-center gap-2.5">
-                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-marca-orange-deep' : 'text-marca-muted/80'}`} />}
+                  {/* Barra cobalto à esquerda do item ativo (v5): a casca e o item ativo são agora da
+                      mesma família de cor, e o fundo branco sozinho não chegava para o distinguir. */}
+                  {active(i) && <span aria-hidden="true" className="-ml-1 h-5 w-[3px] shrink-0 rounded-full bg-tinta-600" />}
+                  {Icon && <Icon className={`h-[18px] w-[18px] shrink-0 ${active(i) ? 'text-tinta-600' : 'text-marca-muted/80'}`} />}
                   {i.label}
                   {i.aviso && <ICONES.aviso className="h-4 w-4 shrink-0 text-marca-attention" />}
                 </span>

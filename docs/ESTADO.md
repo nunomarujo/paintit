@@ -1814,3 +1814,20 @@ insert into supabase_migrations.schema_migrations (version, name)
 values ('20261030140000', 'pedir_ajuda_outra_vez')
 on conflict (version) do nothing;
 ```
+
+## Design v5 — 01/11/2026 (ramo `claude/design-v5`, por publicar)
+
+Paleta nova decidida no canvas "Quem Pinta — landing v5": marinho `#14213d` (texto, marca), cobalto
+`#2d5bff` (ação, estado ativo), névoa `#f1f4f7` (fundos e casca), azul-pálido `#e8edff` (seleção),
+lima `#c6f432` só sobre marinho, coral `#ff6b4a` só como acento. Aplicada **no ficheiro central**
+(`tailwind.config.ts` e `:root` de `globals.css`): os nomes `tinta-*`, `slate-*`, `marca-*` ficaram,
+mudaram os valores — nenhum ecrã foi reescrito por causa da cor. Logótipo novo em SVG
+(`public/img/logotipo.svg`, `-escuro.svg`, `simbolo.svg`; `icon.png`/`apple-icon.png` gerados dele).
+
+Página inicial v5: do cliente; pintor e fornecedor em `/empresas` e `/fornecedores`
+(`PaginaDePerfil`, conteúdo partilhado em `landing/perfis.ts`); três passos com ecrãs reais
+redesenhados (`landing/PassosDemo.tsx`); "Três proteções" em positivo; FAQ dentro dessa secção.
+
+Workspaces: só a mudança de tokens e o item ativo do menu (`AppNav`). A recomposição do ecrã "Hoje"
+do avaliador aprovada no canvas vive no ramo `claude/workspace-fornecedor`, ainda por publicar —
+decisão pendente do promotor sobre a ordem (publicar esse ramo primeiro, depois recompor).
