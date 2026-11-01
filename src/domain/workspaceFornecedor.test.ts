@@ -38,11 +38,18 @@ describe('o que cada papel vê na empresa', () => {
   const filhosDaEmpresa = (papel: 'proprietario' | 'vendedor') =>
     (destinos('vendas', papel).find((d) => d.label === 'Empresa')?.children ?? []).map((c) => c.label);
 
-  it('as regras comerciais e a subscrição são de quem manda', () => {
-    expect(filhosDaEmpresa('proprietario')).toContain('Regras comerciais');
+  it('a subscrição é de quem manda', () => {
     expect(filhosDaEmpresa('proprietario')).toContain('Subscrição');
-    expect(filhosDaEmpresa('vendedor')).not.toContain('Regras comerciais');
     expect(filhosDaEmpresa('vendedor')).not.toContain('Subscrição');
+  });
+
+  // Um destino que não existe é pior do que um destino que falta: quem clica leva com um 404 e fica
+  // sem saber se o problema é dele. Estes endereços têm de existir (01/11/2026).
+  it('nenhum destino da empresa aponta para um endereço inventado', () => {
+    const empresa = destinos('vendas', 'proprietario').find((d) => d.label === 'Empresa');
+    for (const c of empresa?.children ?? []) {
+      expect(c.href).not.toMatch(/\/(equipa|regras)$/);
+    }
   });
 
   it('os dados e a equipa veem-se sempre', () => {

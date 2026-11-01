@@ -148,7 +148,7 @@ export function ProdutosEPrecos({
           <p className="mt-1 max-w-[54ch] text-[17px] text-amber-900">
             Sem catálogo, os produtos não chegam aos pintores. O plano muda-se em Empresa.
           </p>
-          <Link href="/app/vendas/empresa?ver=subscricao" className="btn-secondary mt-4 inline-flex">
+          <Link href={`${base.replace(/\/produtos$/, '')}/subscricao`} className="btn-secondary mt-4 inline-flex">
             Ver a subscrição
           </Link>
         </section>

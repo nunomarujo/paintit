@@ -18,6 +18,7 @@ import type { SurveyPending } from '@/domain/surveyPendings';
  * - três separadores, não cinco, e uma coluna só: no telemóvel não há grelha que sobreviva.
  */
 export function SurveyWorkspace({
+  referencia,
   morada,
   concelho,
   caracteristicas,
@@ -28,6 +29,8 @@ export function SurveyWorkspace({
   esclarecimentos,
   obra,
 }: {
+  /** «QP-1042» — o que se diz ao telefone. */
+  referencia: string | null;
   morada: string | null;
   concelho: string | null;
   caracteristicas: string;
@@ -46,7 +49,7 @@ export function SurveyWorkspace({
 
   return (
     <Workspace
-      titulo={`Levantamento${concelho ? ` · ${concelho}` : ''}`}
+      titulo={`${referencia ?? 'Levantamento'}${concelho ? ` · ${concelho}` : ''}`}
       referencia={morada ?? 'Morada disponível depois de aceitar os termos'}
       resumo={[
         ...(caracteristicas ? [{ label: 'O prédio', valor: caracteristicas }] : []),

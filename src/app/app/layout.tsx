@@ -59,7 +59,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (client) dia.push({ href: '/app/pedidos', label: 'Pedidos de orçamento', icon: 'recibo' });
   if (kinds.has('pintor')) dia.push({ href: '/app/obras', label: 'Gestão de obra', icon: 'capacete' });
   if (kinds.has('fornecedor')) dia.push({ href: '/app/encomendas', label: 'Encomendas', icon: 'recibo' });
-  if (fornecedorId) dia.push({ href: '/app/levantamentos', label: 'Levantamentos', icon: 'caixa' });
+  // `/app/levantamentos` passou a encaminhar para «Os meus levantamentos» (01/11/2026): um fornecedor
+  // com workspace vê a navegação dos dois contextos e não esta lista. Isto fica para a conta que seja
+  // fornecedor sem papel na empresa — e aponta já para o endereço novo.
+  if (fornecedorId) dia.push({ href: '/app/avaliacoes/levantamentos', label: 'Levantamentos', icon: 'caixa' });
 
   // Ganhar obra agrupa o percurso comercial do pintor: Oportunidades → Obra pública → Orçamentos →
   // Contratações (ordem do caderno, "Agrupa o trabalho a conquistar e formalizar").

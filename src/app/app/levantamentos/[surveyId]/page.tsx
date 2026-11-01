@@ -6,6 +6,7 @@ import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { surveyPendings } from '@/domain/surveyPendings';
 import { surveyorEarningView } from '@/lib/surveys';
+import { referenciaDoLevantamento } from '@/domain/referencias';
 import { getUser } from '@/lib/supabase/server';
 import { EarningCard } from './EarningCard';
 import { horaExata } from '@/domain/contagem';
@@ -43,7 +44,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
       .maybeSingle();
     return (
       <div className="space-y-8">
-        <Voltar href="/app/levantamentos">Levantamentos</Voltar>
+        <Voltar href="/app/avaliacoes/levantamentos">Os meus levantamentos</Voltar>
         {aDecorrer && !aDecorrer.contacto_registado_em && (
           <section className="rounded-2xl border border-tinta-200 bg-tinta-50 p-4">
             <h2 className="font-semibold text-slate-900">
@@ -145,9 +146,10 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-4">
-      <Voltar href="/app/levantamentos">Levantamentos</Voltar>
+      <Voltar href="/app/avaliacoes/levantamentos">Os meus levantamentos</Voltar>
 
       <SurveyWorkspace
+        referencia={survey.numero ? referenciaDoLevantamento(survey.numero) : null}
         morada={building ? `${building.morada}, ${building.codigo_postal} ${building.localidade}` : null}
         concelho={building?.concelho ?? null}
         caracteristicas={[
