@@ -37,7 +37,7 @@ export function SignInForm({ next }: { next: string }) {
     <button
       type="button"
       onClick={() => setMode(m)}
-      className={`flex-1 rounded-lg px-3 py-1.5 text-[17px] ${mode === m ? 'bg-white font-semibold shadow-sm' : 'text-slate-600'}`}
+      className={`btn-quiet btn-sm flex-1 whitespace-nowrap ${mode === m ? 'bg-white font-semibold text-tinta-900 ring-1 ring-slate-200' : 'font-normal text-slate-600'}`}
     >
       {label}
     </button>
@@ -48,7 +48,7 @@ export function SignInForm({ next }: { next: string }) {
       <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
         {tab('entrar', 'Entrar')}
         {tab('criar', 'Criar conta')}
-        {tab('link', 'Link por email')}
+        {tab('link', 'Por email')}
       </div>
       {mode === 'link' ? (
         <form {...link.formProps} className="space-y-4">

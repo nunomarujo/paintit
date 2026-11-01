@@ -19,8 +19,7 @@ export default async function SignInPage({
         <BrandMark />
       </Link>
       <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-7">
-        <p className="eyebrow">Área de trabalho</p>
-        <h1 className="mt-2 text-[26px] leading-tight font-semibold">Entrar</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">Entrar na área de trabalho</h1>
         <p className="mt-2 text-[17px] text-slate-600">
           Entre com email e palavra-passe, crie uma conta nova ou, se preferir,
           receba um link de entrada por email.
