@@ -292,11 +292,21 @@ export default async function OrganizationPage({
           estado vive no endereço (`?ver=`), como o resto da aplicação (LocalTabs). */}
       {isEmpresa && (
         <section className="space-y-5">
+          {missing.length > 0 && separador !== 'documentos' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
+              <p className="text-[17px] font-semibold text-amber-900">
+                {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação da empresa.
+              </p>
+              <Link href={`/app/organizacoes/${org.id}?ver=documentos`} className="btn-secondary">
+                Ver os documentos
+              </Link>
+            </div>
+          )}
           <LocalTabs
             tabs={[
-              { href: `/app/organizacoes/${org.id}?ver=dados`, label: 'Dados da entidade', active: separador === 'dados' },
+              { href: `/app/organizacoes/${org.id}?ver=dados`, label: 'Dados', active: separador === 'dados' },
               { href: `/app/organizacoes/${org.id}?ver=documentos`, label: 'Documentos', active: separador === 'documentos' },
-              { href: `/app/organizacoes/${org.id}?ver=equipa`, label: 'Equipa online', active: separador === 'equipa' },
+              { href: `/app/organizacoes/${org.id}?ver=equipa`, label: org.kind === 'fornecedor' ? 'Equipa e associações' : 'Equipa online', active: separador === 'equipa' },
             ]}
           />
 
@@ -335,7 +345,7 @@ export default async function OrganizationPage({
               <h2 className="font-semibold">Documentos</h2>
               <p className="mt-1 text-[17px] text-slate-600">Documentos para candidaturas a obras.</p>
               {missing.length > 0 ? (
-                <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-[17px]">
+                <div className="mt-3 text-[17px]">
                   <p className="font-semibold text-amber-900">
                     {missing.length === 1 ? 'Falta um documento' : `Faltam ${missing.length} documentos`} para a verificação:
                   </p>
@@ -396,6 +406,20 @@ export default async function OrganizationPage({
               <p className="mt-1 text-[17px] text-slate-600">
                 Quem tem acesso à conta da empresa na plataforma — não a equipa que vai à obra.
               </p>
+              {org.kind === 'fornecedor' && (
+                <Link
+                  href={`/app/organizacoes/${org.id}/clientes`}
+                  className="mt-4 flex min-h-[44px] flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-4 text-[17px] hover:border-tinta-600"
+                >
+                  <span>
+                    <span className="font-semibold text-slate-900">Associações com pintores</span>
+                    <span className="block text-slate-600">Clientes, convites e códigos de adesão, num só sítio.</span>
+                  </span>
+                  <span aria-hidden="true" className="font-semibold text-tinta-700">
+                    Abrir →
+                  </span>
+                </Link>
+              )}
               <ul className="mt-4 divide-y divide-slate-100 text-[17px]">
                 {(members ?? []).map((m) => {
                   const p = profileOf.get(m.user_id);
@@ -404,7 +428,7 @@ export default async function OrganizationPage({
                     <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                       <span>
                         <span className="font-medium">{p?.nome || p?.email || 'Membro'}</span>
-                        {isMe && <span className="text-slate-500"> (você)</span>}
+                        {isMe && <span className="text-slate-500"> (a sua conta)</span>}
                         {p?.nome && p.email && <span className="block text-slate-500">{p.email}</span>}
                       </span>
                       <span className="flex items-center gap-3">
@@ -415,7 +439,7 @@ export default async function OrganizationPage({
                         )}
                         {owner && !isMe && (
                           <form action={removeMember.bind(null, org.id, m.user_id)}>
-                            <button type="submit" className="text-red-700 hover:underline">
+                            <button type="submit" className="inline-flex min-h-[44px] items-center text-red-700 hover:underline">
                               Remover
                             </button>
                           </form>
@@ -437,7 +461,7 @@ export default async function OrganizationPage({
                           <span className="block text-slate-500">válido até {ptDate(i.expires_at)}</span>
                         </span>
                         <form action={cancelInvitation.bind(null, org.id, i.id)}>
-                          <button type="submit" className="text-red-700 hover:underline">
+                          <button type="submit" className="inline-flex min-h-[44px] items-center text-red-700 hover:underline">
                             Cancelar
                           </button>
                         </form>
@@ -721,7 +745,7 @@ export default async function OrganizationPage({
               <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
                   <span className="font-medium">{p?.nome || p?.email || 'Membro'}</span>
-                  {isMe && <span className="text-slate-500"> (você)</span>}
+                  {isMe && <span className="text-slate-500"> (a sua conta)</span>}
                   {p?.nome && p.email && <span className="block text-slate-500">{p.email}</span>}
                 </span>
                 <span className="flex items-center gap-3">
