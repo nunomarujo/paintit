@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HORARIO_UTIL, contagemDoContacto, contagemDoPrazo, horaExata, minutosUteisAte } from './contagem';
+import { HORARIO_UTIL, contagemDoContacto, contagemDoPrazo, horaExata, minutosUteisAte, quandoCurto } from './contagem';
 
 // Novembro de 2026 está em UTC+0, por isso as horas UTC abaixo são as horas de Lisboa.
 const em = (dia: number, hora: number, minuto = 0) => new Date(Date.UTC(2026, 10, dia, hora, minuto));
@@ -78,5 +78,20 @@ describe('a hora exata, que acompanha sempre a contagem', () => {
 describe('o horário de atendimento em palavras', () => {
   it('diz as horas que a regra fixou', () => {
     expect(HORARIO_UTIL).toBe('das 9h às 18h, de segunda a sexta');
+  });
+});
+
+describe('quandoCurto', () => {
+  const em = (iso: string) => new Date(iso);
+  it('diz Hoje pela data civil, não por 24 horas', () => {
+    expect(quandoCurto(em('2026-11-02T22:00:00Z'), em('2026-11-02T23:30:00Z')).dia).toBe('Hoje');
+    expect(quandoCurto(em('2026-11-02T22:00:00Z'), em('2026-11-03T00:30:00Z')).dia).toBe('Amanhã');
+  });
+  it('usa o dia da semana dentro da semana e a data depois', () => {
+    expect(quandoCurto(em('2026-11-02T09:00:00Z'), em('2026-11-04T09:00:00Z')).dia).toBe('quarta-feira');
+    expect(quandoCurto(em('2026-11-02T09:00:00Z'), em('2026-11-20T09:00:00Z')).dia).toBe('20/11');
+  });
+  it('dá a hora no relógio de Lisboa', () => {
+    expect(quandoCurto(em('2026-11-02T09:00:00Z'), em('2026-11-02T10:25:00Z')).hora).toBe('10h25');
   });
 });

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { signOut } from '@/app/entrar/actions';
 import { AppNav, type NavItem } from '@/components/AppNav';
+import { NavDoFornecedor } from '@/components/NavDoFornecedor';
+import { destinosDoFornecedor, type PapelNaEmpresa } from '@/domain/workspaceFornecedor';
 import { MobileNavMenu } from '@/components/MobileNavMenu';
 import { SidebarResizer } from '@/components/SidebarResizer';
 import { contarOrcamentosPorEnviar } from '@/lib/queries';
@@ -32,7 +34,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     isPlatformAdmin(supabase, user.id),
     // `nome` entra aqui (26/10/2026) para o cartão "O meu Perfil" no rodapé mostrar o nome da empresa,
     // não o email — é o único sítio do layout que precisa dele.
-    supabase.from('org_members').select('organizations!inner(id, kind, nome)').eq('user_id', user.id),
+    supabase.from('org_members').select('role, organizations!inner(id, kind, nome)').eq('user_id', user.id),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).is('lida_em', null),
   ]);
   const kinds = new Set((memberships ?? []).map((m) => m.organizations.kind));
@@ -108,6 +110,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // (sem conta de pintor nem de fornecedor); as restantes contas ficam com "Dia a dia".
   const soCliente = client && !kinds.has('pintor') && !kinds.has('fornecedor');
   // Uma conta só de equipa (sem entidades) vê só o backoffice.
+  // Workspace do fornecedor (01/11/2026): dois contextos — Vendas e Avaliações — com a organização
+  // aprovada pelo promotor. Vive numa função pura e testada (src/domain/workspaceFornecedor.ts), partilhada
+  // pela barra lateral e pelo menu de telemóvel, com a regra de privacidade entre pessoa e empresa lá
+  // dentro. Os dois conjuntos vão para o cliente, que escolhe pelo endereço atual.
+  const papelNoFornecedor = fornecedorId
+    ? ((memberships ?? []).find((m) => m.organizations.id === fornecedorId)?.role as PapelNaEmpresa | undefined)
+    : undefined;
+  const doFornecedor =
+    fornecedorId && papelNoFornecedor
+      ? {
+          vendas: destinosDoFornecedor('vendas', { orgId: fornecedorId, papel: papelNoFornecedor }),
+          avaliacoes: destinosDoFornecedor('avaliacoes', { orgId: fornecedorId, papel: papelNoFornecedor }),
+        }
+      : null;
+
   const groups = [
     ...(admin && kinds.size === 0 ? [] : [{ title: soCliente ? 'Acompanhar a obra' : 'Dia a dia', items: dia }]),
     ...(ganharObra.length ? [{ title: 'Ganhar obra', items: ganharObra }] : []),
@@ -147,7 +164,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <BrandMark tone="marca" />
           </Link>
           <MobileNavMenu
-            groups={groups}
+            groups={doFornecedor ? [...doFornecedor.vendas, ...doFornecedor.avaliacoes] : groups}
             meuPerfil={meuPerfil}
             email={user.email ?? ''}
             mostrarSubscricao={kinds.has('pintor')}
@@ -157,7 +174,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <p className="eyebrow mb-5 mt-2 hidden px-3 text-marca-muted md:block">Empreitadas de pintura</p>
         <div className="mt-3 md:mt-0">
-          <AppNav groups={groups} />
+          {doFornecedor ? <NavDoFornecedor vendas={doFornecedor.vendas} avaliacoes={doFornecedor.avaliacoes} /> : <AppNav groups={groups} />}
         </div>
         {/* Empresa e conta: no rodapé, sem ocupar o centro do menu (caderno de desenho, 26/10/2026).
             Pintor ou fornecedor: um só cartão "O meu Perfil", com o nome da empresa (não o email) —

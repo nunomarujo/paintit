@@ -15,19 +15,45 @@
   --altura-cabecalho: 4.25rem; /* 68px — medida pedida pelo promotor a 29/10/2026 */
 
   /*
-   * Paleta da marca, tal como veio do desenho do site (25/10/2026). Valores exactos, não
-   * aproximações: a aplicação tinha um petróleo (#173f42) e a marca é um verde-escuro.
-   * Por agora vive na página de planos; o resto da aplicação ainda segue a paleta antiga.
+   * ───────────────────────────────────────────────────────────────────────────────────────────
+   * DIREÇÃO CROMÁTICA, decidida pelo promotor a 01/11/2026. Fonte única: não se escreve um
+   * valor de cor em ecrã nenhum, escolhe-se um destes.
+   *
+   *   · AÇÃO e ESTADO ATIVO → verde-petróleo (`tinta-600`). É a cor dos botões principais, do
+   *     item ativo da navegação e das ligações. Decisão tomada sobre duas alternativas vistas
+   *     lado a lado; a outra era o verde-floresta `#1f3d2e` da marca, que fica para a página
+   *     pública e para a folha do orçamento, onde a marca fala por si.
+   *   · SUPERFÍCIES → brancas. Cartões, tabelas, painéis, diálogos.
+   *   · FUNDO DA PÁGINA → `paper`, um branco quente que separa as superfícies sem as caixilhar.
+   *   · CREME → **só na navegação**, e discreto. É o que dá o ar de ferramenta à casca; dentro
+   *     do conteúdo não aparece.
+   *   · LARANJA → acento **pontual**: contadores do que exige ação, e nada mais. Uma cor de
+   *     acento que aparece em três sítios deixa de ser acento.
+   *
+   * O que estava aqui antes e porque mudou: a aplicação tinha dois sistemas a correr ao mesmo
+   * tempo — a casca em `marca-*` (verde-floresta e creme) e o conteúdo em `tinta-*`/`slate-*`,
+   * em 177 ficheiros. Não eram duas estéticas em conflito: era uma migração parada a meio, e
+   * enquanto não fosse decidida cada ecrã novo escolhia sozinho. Está decidida.
+   * ───────────────────────────────────────────────────────────────────────────────────────────
    */
+
+  /* Marca: a página pública e o documento do orçamento. Não se usa no workspace. */
   --ink: #1f3d2e;
   --ink-soft: #2e5240;
+
+  /* Casca do workspace: creme discreto, e o contorno que lhe pertence. */
   --cream: #f6f2e9;
+  --border: #e1d9c6;
+  --tag-bg: #ece6d4;
+
   --white: #ffffff;
+
+  /* Acento pontual. `orange` é o da marca; `orange-deep` é o que passa em contraste sobre creme
+   * e sobre branco (4,6:1), e é por isso o único que se usa em contadores e em texto. */
   --orange: #e07b39;
   --orange-deep: #a04d19;
-  --border: #e1d9c6;
+
   --muted: #5b5444;
-  --tag-bg: #ece6d4;
 
   /*
    * Cores funcionais do caderno de desenho da interface (26/10/2026, protótipo do promotor:

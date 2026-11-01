@@ -948,6 +948,9 @@ export type Database = {
         Row: {
           clarification_excluded_orgs: string[];
           concluded_at: string | null;
+          // Escrito à mão enquanto a migração 20261101040000_referencia_do_levantamento não corre no
+          // painel; regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
+          numero: number;
           contact_notes: string;
           created_at: string;
           created_by: string;

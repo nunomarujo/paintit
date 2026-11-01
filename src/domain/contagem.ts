@@ -89,3 +89,38 @@ export function horaExata(instante: Date): string {
 
 /** O horário de atendimento, em palavras, para acompanhar o prazo de contacto. */
 export const HORARIO_UTIL = `das ${ABERTURA_MIN / 60}h às ${FECHO_MIN / 60}h, de segunda a sexta`;
+
+/**
+ * O prazo como se diz em voz alta numa lista: «Hoje · 10h25», «Amanhã · 09h30», «terça-feira · 13h25»,
+ * e a data por extenso só quando já vai longe.
+ *
+ * Numa coluna estreita a data completa ocupava três linhas e empurrava a hora — que é a parte que decide —
+ * para o fim. O dia relativo lê-se de relance e cabe numa linha (01/11/2026).
+ */
+export function quandoCurto(agora: Date, instante: Date): { dia: string; hora: string; hoje: boolean } {
+  const parte = (d: Date) =>
+    Object.fromEntries(
+      new Intl.DateTimeFormat('pt-PT', {
+        timeZone: FUSO_LEGAL,
+        weekday: 'long',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(d)
+        .map((x) => [x.type, x.value]),
+    );
+  const a = parte(agora);
+  const i = parte(instante);
+  const hora = `${i.hour}h${i.minute}`;
+  // Dias civis em Lisboa, contados pela data e não por 24 horas: às 23h00 «amanhã» é daqui a uma hora.
+  const civil = (p: Record<string, string>) => Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day));
+  const dias = Math.round((civil(i) - civil(a)) / 86400000);
+  if (dias === 0) return { dia: 'Hoje', hora, hoje: true };
+  if (dias === 1) return { dia: 'Amanhã', hora, hoje: false };
+  if (dias > 1 && dias < 7) return { dia: i.weekday!, hora, hoje: false };
+  return { dia: `${i.day}/${i.month}`, hora, hoje: false };
+}
