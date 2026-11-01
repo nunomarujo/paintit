@@ -64,7 +64,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <section ref={wrap} className="relative h-[165vh] lg:h-[210vh]">
+    <section ref={wrap} className="relative h-[125vh] lg:h-[150vh]">
       {/*
         No telemóvel o prédio vai ao cimo e o que há para ler fica por baixo dele (pedido do promotor,
         27/10/2026). Antes, o bloco colado ao ecrã centrava texto e imagem num espaço de um ecrã só: o
