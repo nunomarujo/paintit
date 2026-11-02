@@ -1,0 +1,4 @@
+Manrope — Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope).
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).
+Os dois ficheiros .woff2 aqui ao lado são os subconjuntos latin e latin-ext tal como o next/font os
+descarregou para o build; servem só para gerar os flyers (scripts/gerar-flyers.ts) fora do navegador.

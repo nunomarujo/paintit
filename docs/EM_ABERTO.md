@@ -62,6 +62,8 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 
 - **Avaliador (02/11/2026):** fechar na base a reserva de levantamentos a quem não tem a autodeclaração (`reserve_survey` verificar `survey_terms_acceptances` com a versão `avaliador-2026-11-02`) — hoje a barreira é só do ecrã; decidir se a «experiência comprovada» passa a pedir documento; o simulador usa só a qualificação geral da pessoa (os outros três fatores são por obra).
 
+- **Campanhas e marketing (02/11/2026):** o promotor confirmar as condições da campanha de lançamento antes de os flyers saírem (plano Pro sem custo e catálogo sem subscrição até 31/01/2027 são compromissos comerciais); passar os flyers de «rascunho» a «aprovado». **Futuro, por autorizar:** automatismos de campanha e um motor de divulgação e promoção com métricas (os QR já levam `?c=` por flyer; falta lê-lo na adesão e guardar a origem). O promotor pediu para ser lembrado de dar autorização para se pensar o plano em detalhe.
+
 ## 4. Dívida técnica
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.

@@ -4497,3 +4497,34 @@ Pedido do promotor: ligar a aplicação ao envio de mensagens por WhatsApp. Deci
   biblioteca. Sem as quatro chaves no ambiente, o canal não existe e nada muda — não é um interruptor que
   abra uma porta (regra 16): só decide se um envio a mais acontece, e só a quem o pediu.
 - O guia dos passos que ficam do lado do promotor está em `docs/WHATSAPP.md`.
+
+## 02/11/2026 — Campanhas e Marketing: oito flyers e um separador no backoffice
+
+Pedido do promotor: dois flyers por perfil (clientes diretos, gestores de condomínios, empresas de
+pintura, fornecedores de tintas), «bem pensados», sobre o que a aplicação faz e com as vantagens e os
+ganhos de cada perfil em destaque; marketing inventado permitido (campanha de lançamento, adesão por
+QR com vantagem); disponíveis num separador do backoffice para descarregar ou enviar por email, com a
+data de criação.
+
+- **Catálogo em domínio** (`src/domain/campanhas.ts`): oito flyers, cada um com gancho (a dor),
+  título, três vantagens, números em destaque quando os há, chamada à ação, fotografia e esquema de
+  desenho. Dois ângulos por perfil: cliente — pedidos sem resposta / medo da obra a meio;
+  condomínio — «não consegue três propostas?» / o relatório para a assembleia e o voto dos
+  condóminos; pintor — o motor de orçamentos / oportunidades e contrato; fornecedor — o catálogo
+  dentro do orçamento / ser avaliador.
+- **Geração** (`scripts/gerar-flyers.ts`, Playwright, fora do build): A5 ao alto, PDF e JPG, em
+  `public/campanhas/`, com a tipografia e a paleta da marca e um QR por flyer que leva um código
+  (`?c=fl-…`) — ainda não lido por ninguém, mas é a base das métricas futuras.
+- **Campanha de lançamento (inventada, em rascunho):** adesões até 31/01/2027 pelo QR — cliente:
+  visita de avaliador sem custo e prioridade na marcação; condomínio: relatório e acesso dos
+  condóminos incluídos; pintor: plano Pro sem custo até essa data; fornecedor: presença no catálogo
+  sem subscrição até essa data. **As duas últimas são compromissos comerciais que o promotor tem de
+  confirmar antes de os flyers saírem**; até lá o backoffice marca cada flyer como «rascunho,
+  condições por confirmar». Tudo vive numa constante só (`CAMPANHA_DE_LANCAMENTO`).
+- **Backoffice «Campanhas e Marketing»** (`/app/backoffice/campanhas`): a campanha e as suas
+  condições, os flyers por perfil com pré-visualização, data de criação, estado, destino do QR,
+  «Descarregar PDF», «Imagem» e «Enviar por email» (pelo canal dos avisos, com a ligação ao PDF).
+
+**Para o futuro, a pedido do promotor:** automatismos para as campanhas e um motor de gestão de
+divulgação e promoção com métricas. Fica em EM_ABERTO.md; o promotor pediu para ser lembrado de
+autorizar um plano detalhado.

@@ -1875,6 +1875,10 @@ folhas de CSS) e tem um cenário coerente com três papéis. Ver DECISOES.md.
 contexto Avaliações com autodeclaração, simulador de ganho e os quatro fatores; Oportunidades exige a
 inscrição. Ver DECISOES.md.
 
+**Campanhas e Marketing (02/11/2026):** oito flyers A5 (dois por perfil) gerados por
+`scripts/gerar-flyers.ts` em `public/campanhas/`, e o separador do backoffice com download, envio por
+email e data de criação. Condições da campanha de lançamento em rascunho, por confirmar. Ver DECISOES.md.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

@@ -116,6 +116,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/backoffice/contratacoes', label: 'Contratações', icon: 'documento' },
         { href: '/app/backoffice/moderacao', label: 'Moderação', icon: 'balanca', count: q.revisoes },
         { href: '/app/backoffice/contabilidade', label: 'Contabilidade', icon: 'calculadora', count: q.resgates + q.banco },
+        { href: '/app/backoffice/campanhas', label: 'Campanhas e Marketing', icon: 'megafone' },
         { href: '/app/backoffice/sistema', label: 'Sistema', icon: 'servidor' },
       ]
     : [];

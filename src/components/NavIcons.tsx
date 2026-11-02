@@ -184,6 +184,14 @@ export const IconCalculator = (p: SVGProps<SVGSVGElement>) => (
   </Icon>
 );
 
+/** Megafone: campanhas e marketing. */
+export const IconMegaphone = (p: SVGProps<SVGSVGElement>) => (
+  <Icon {...p}>
+    <path d="M4 10v4a1 1 0 0 0 1 1h3l7 4V5L8 9H5a1 1 0 0 0-1 1Z" />
+    <path d="M18 9.5a3 3 0 0 1 0 5M8 15l1.2 4.5" />
+  </Icon>
+);
+
 export const IconServer = (p: SVGProps<SVGSVGElement>) => (
   <Icon {...p}>
     <rect x="4" y="4" width="16" height="6" rx="1.3" />
@@ -278,6 +286,7 @@ export const ICONES = {
   balanca: IconScale,
   calculadora: IconCalculator,
   servidor: IconServer,
+  megafone: IconMegaphone,
 } as const;
 
 export type NomeDeIcone = keyof typeof ICONES;
