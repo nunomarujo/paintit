@@ -46,7 +46,7 @@ export function HeroFotografico({ fotos, children }: { fotos: FotoDoHero[]; chil
         ))}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.4)_0%,rgba(0,0,0,0)_35%,rgba(0,0,0,.74)_100%)]" />
       </div>
-      <div className="relative z-[2] mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-16 pt-32">{children}</div>
+      <div className="relative z-[2] mx-auto w-full max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-16 pt-32">{children}</div>
       {fotos.length > 1 && (
         <div className="absolute bottom-7 right-4 z-[3] flex gap-1.5 sm:right-6" aria-hidden>
           {fotos.map((f, k) => (

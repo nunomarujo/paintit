@@ -81,7 +81,7 @@ export default function Page() {
       fotoInclui={{ src: '/img/maquina-de-tinta.webp', width: 1376, height: 768, alt: 'Máquina de afinação a deitar corante azul num balde de tinta branca' }}
     >
       {/* OS TRÊS MOMENTOS — antes, durante e depois da obra. Sequência real: a numeração fica. */}
-      <Revelar as="section" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-10">
+      <Revelar as="section" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 py-10">
         <div className="rounded-[28px] bg-tinta-900 px-6 py-14 text-white sm:px-12 sm:py-20">
           <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
             O vendedor chega antes da lista de compras.
@@ -100,7 +100,7 @@ export default function Page() {
 
       {/* GANHAR DUAS VEZES — a figura do avaliador (promotor, 02/11/2026). Os números saem da regra
           real (src/domain/avaliador.ts, survey.ts): banda de 1% a 2,7% do valor adjudicado. */}
-      <Revelar as="section" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-10" id="avaliador">
+      <Revelar as="section" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 py-10" id="avaliador">
         <div className="grid gap-8 rounded-[28px] bg-lima p-6 text-tinta-900 sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
           <div>
             <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
@@ -140,7 +140,7 @@ export default function Page() {
       </Revelar>
 
       {/* A FICHA TÉCNICA, APLICADA */}
-      <Revelar as="section" className="mx-auto grid max-w-[88rem] items-center gap-10 px-5 sm:px-8 lg:px-12 py-20 lg:grid-cols-2 lg:gap-16">
+      <Revelar as="section" className="mx-auto grid max-w-[120rem] items-center gap-10 px-5 sm:px-10 lg:px-14 py-20 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             A ficha técnica passa a fazer contas.
@@ -173,7 +173,7 @@ export default function Page() {
 
       {/* AS FERRAMENTAS DO FORNECEDOR */}
       <Revelar as="section" className="bg-paper py-20">
-        <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14">
           <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             Condições automáticas, receita nova.
           </h2>

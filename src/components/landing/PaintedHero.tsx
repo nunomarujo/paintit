@@ -78,7 +78,7 @@ export function PaintedHero({ children }: { children: ReactNode }) {
         `svh` e não `vh`: no telemóvel, `vh` conta com a barra de endereço retraída, e o último terço
         do primeiro ecrã ficava escondido por baixo dela.
       */}
-      <div className="sticky top-0 mx-auto grid h-[100svh] max-w-[88rem] grid-rows-[auto_auto] content-start gap-5 px-5 sm:px-8 lg:px-12 pt-[var(--altura-cabecalho)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-none lg:content-center lg:items-center lg:gap-10">
+      <div className="sticky top-0 mx-auto grid h-[100svh] max-w-[120rem] grid-rows-[auto_auto] content-start gap-5 px-5 sm:px-10 lg:px-14 pt-[var(--altura-cabecalho)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:grid-rows-none lg:content-center lg:items-center lg:gap-10">
         {/* `self-start` e não `self-center`: o texto está na linha flexível da grelha, e centrado
             deixava uma faixa vazia de ~100px entre o prédio e o título — espaço que o promotor queria
             a ler, não em branco (medido a 390×844, 27/10/2026). Agora o texto encosta ao prédio e a

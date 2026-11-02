@@ -53,9 +53,9 @@ const FOTOS_DO_HERO = [
 ];
 
 /** Títulos de secção do site público: grandes, em peso médio, centrados (estilo de 01/11/2026). */
-const H2 = 'text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[44px] lg:text-[56px]';
-const H2_LATERAL = 'text-[26px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[34px] lg:text-[44px]';
-const H2_CLARO = 'text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-[44px] lg:text-[56px]';
+const H2 = 'text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[44px] lg:text-[56px] 2xl:text-[64px]';
+const H2_LATERAL = 'text-[26px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[34px] lg:text-[44px] 2xl:text-[52px]';
+const H2_CLARO = 'text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-white sm:text-[44px] lg:text-[56px] 2xl:text-[64px]';
 
 
 const protecoes = [
@@ -122,10 +122,10 @@ export default function Home() {
       <SiteHeader sobreFoto />
 
       <HeroFotografico fotos={FOTOS_DO_HERO}>
-        <h1 className="max-w-[22ch] text-[32px] font-medium leading-[1.02] tracking-[-0.035em] min-[480px]:text-[40px] sm:text-[56px] xl:text-[76px]">
+        <h1 className="max-w-[22ch] text-[32px] font-medium leading-[1.02] tracking-[-0.035em] min-[480px]:text-[40px] sm:text-[56px] xl:text-[76px] 2xl:text-[92px]">
           Orçamentos de pintura, sem complicações.
         </h1>
-        <p className="mt-5 max-w-[48ch] text-[17px] leading-snug text-white/90 sm:text-[20px]">
+        <p className="mt-5 max-w-[48ch] text-[17px] lg:text-[20px] leading-snug text-white/90 sm:text-[20px]">
           Compare as diferenças com clareza: propostas de empresas verificadas, lado a lado, sem custo até escolher — e
           um contrato que diz exatamente o que a proposta disse.
         </p>
@@ -143,13 +143,13 @@ export default function Home() {
       {/* COMPARADOR — a maquete do produto logo a seguir ao primeiro ecrã, numa caixa cinzenta
           com a nota escura, como a referência faz com o painel de contas. Seis estados reais,
           gerados em build (scripts/gerar-demo-comparador.mjs). */}
-      <section id="demo-comparador" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pt-10">
+      <section id="demo-comparador" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pt-10">
         <div className="rounded-[28px] bg-paper p-4 sm:p-8 lg:p-12">
           <div className="mb-6 grid gap-4 lg:mb-8 lg:grid-cols-[1fr_auto] lg:items-end">
-            <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px]">
+            <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
               O essencial não é o preço. É o que esse preço cobre.
             </h2>
-            <p className="max-w-[46ch] text-[17px] leading-snug text-slate-600">
+            <p className="max-w-[46ch] text-[17px] lg:text-[20px] leading-snug text-slate-600">
               Cada proposta é lida pelo que inclui, exclui ou deixa por esclarecer, antes de olhar ao total. Três indicações
               com a razão escrita: a mais barata, a mais completa e a Escolha Quem Pinta. A decisão fica do seu lado.{' '}
               <Link href="/metodologia" className="ligacao">
@@ -166,7 +166,7 @@ export default function Home() {
       {/* O PRÉDIO QUE SE PINTA — segundo plano, secção própria; o scroll continua a pintá-lo. */}
       <PaintedHero>
         <h2 className={H2_LATERAL}>Cada fachada, descrita antes de ser pintada.</h2>
-        <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-slate-700 sm:text-[20px]">
+        <p className="mt-5 max-w-[46ch] text-[17px] lg:text-[20px] leading-relaxed text-slate-700 sm:text-[20px]">
           Zonas, medidas e estado do suporte ficam no pedido. As propostas chegam todas ao mesmo tempo, descrevem trabalhos,
           demãos e produtos, e o contrato transcreve a que escolher. A tinta só cai depois de tudo isto estar claro.
         </p>
@@ -176,9 +176,9 @@ export default function Home() {
       </PaintedHero>
 
       {/* COMO FUNCIONA — três passos em três colunas, cada um com o ecrã real redesenhado. */}
-      <section id="como-funciona" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
+      <section id="como-funciona" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 py-24 lg:py-32">
         <h2 className={H2 + ' text-center'}>Três passos. É só isto.</h2>
-        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
+        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] lg:text-[20px] leading-relaxed text-slate-600">
           Descreva a obra, compare as propostas quando chegarem todas ao mesmo tempo, e assine um contrato que diz o que a
           proposta disse.
         </p>
@@ -189,7 +189,7 @@ export default function Home() {
                 <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-paper text-[15px] font-semibold text-tinta-900 tabular-nums">{p.n}</span>
                 <div>
                   <h3 className="text-[20px] font-semibold leading-tight tracking-[-0.02em] text-tinta-900">{p.t}</h3>
-                  <p className="mt-2 text-[17px] leading-relaxed text-slate-600">{p.d}</p>
+                  <p className="mt-2 text-[17px] lg:text-[20px] leading-relaxed text-slate-600">{p.d}</p>
                 </div>
               </div>
               <div className="min-w-0 overflow-hidden">{p.ecra}</div>
@@ -199,9 +199,9 @@ export default function Home() {
       </section>
 
       {/* LEVANTAMENTO GRATUITO — responde ao pedido vago, que é o que torna as propostas incomparáveis. */}
-      <section id="levantamento" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
+      <section id="levantamento" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>Não sabe medir? Um avaliador vai lá.</h2>
-        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
+        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] lg:text-[20px] leading-relaxed text-slate-600">
           Sem custo. Um profissional mede as zonas e fotografa o estado da fachada. As medidas ficam no pedido; os pintores
           orçamentam sem terem de ir lá. Pode pedir, desistir e retomar quando quiser.
         </p>
@@ -226,12 +226,12 @@ export default function Home() {
                   <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-paper text-[15px] font-semibold text-tinta-900 tabular-nums">{i + 1}</span>
                   <div>
                     <span className="block text-[20px] font-semibold leading-tight text-tinta-900">{t}</span>
-                    <span className="mt-1 block text-[17px] text-slate-600">{d}</span>
+                    <span className="mt-1 block text-[17px] lg:text-[20px] text-slate-600">{d}</span>
                   </div>
                 </li>
               ))}
             </ol>
-            <p className="mt-8 text-[17px] text-slate-600">
+            <p className="mt-8 text-[17px] lg:text-[20px] text-slate-600">
               A visita depende de haver um avaliador ativo na zona. Continua sempre a poder medir a obra sozinho, a qualquer
               momento.
             </p>
@@ -240,9 +240,9 @@ export default function Home() {
       </section>
 
       {/* TRÊS PROTEÇÕES — em positivo (pedido do promotor, 01/11/2026), em três cartões cinzentos. */}
-      <section id="transparencia" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
+      <section id="transparencia" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>Três proteções quando orçamenta por aqui.</h2>
-        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
+        <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] lg:text-[20px] leading-relaxed text-slate-600">
           Em Portugal, a queixa mais comum contra empresas de pintura não é o preço: é a obra que fica a meio. E quase
           metade dos pedidos de orçamento nunca têm resposta. Foi para isto que a plataforma foi desenhada.
         </p>
@@ -250,13 +250,13 @@ export default function Home() {
           {protecoes.map((p) => (
             <div key={p.t} className="flex flex-col gap-3 rounded-[24px] bg-paper p-7">
               <h3 className="text-[20px] font-semibold leading-tight tracking-[-0.025em] text-tinta-900 lg:text-[26px]">{p.t}</h3>
-              <p className="text-[17px] leading-relaxed text-slate-600">{p.d}</p>
+              <p className="text-[17px] lg:text-[20px] leading-relaxed text-slate-600">{p.d}</p>
             </div>
           ))}
         </Revelar>
         <div className="mx-auto mt-12 max-w-3xl">
           <Faq items={faqs(r)} />
-          <p className="mt-5 text-center text-[17px] text-slate-600">
+          <p className="mt-5 text-center text-[17px] lg:text-[20px] text-slate-600">
             <Link href="/transparencia" className="ligacao">
               Ver a página completa de Transparência
             </Link>{' '}
@@ -266,7 +266,7 @@ export default function Home() {
       </section>
 
       {/* PARA QUEM — os dois cartões para as páginas próprias do pintor e do fornecedor. */}
-      <section id="para-quem" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
+      <section id="para-quem" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>A plataforma também é sua.</h2>
         <Revelar className="mt-14 grid gap-4 md:grid-cols-2">
           {[
@@ -297,7 +297,7 @@ export default function Home() {
               className={`group flex flex-col overflow-hidden rounded-[28px] ${c.escuro ? 'bg-tinta-900 text-white' : 'bg-paper text-tinta-900'}`}
             >
               <div className="flex flex-col gap-3 p-8 pb-6">
-                <span className="text-[34px] font-medium leading-tight tracking-[-0.03em]">{c.titulo}</span>
+                <span className="text-[34px] font-medium leading-tight tracking-[-0.03em] lg:text-[44px]">{c.titulo}</span>
                 <span className={`text-[20px] font-semibold leading-snug ${c.escuro ? 'text-lima' : 'text-tinta-600'}`}>{c.frase}</span>
                 <span className={`text-[17px] leading-relaxed ${c.escuro ? 'text-tinta-200' : 'text-slate-600'}`}>{c.texto}</span>
                 <span className={`mt-2 w-fit ${c.escuro ? 'btn-primary bg-white text-tinta-900 group-hover:bg-tinta-50' : 'btn-primary'}`}>{c.cta}</span>
@@ -312,7 +312,7 @@ export default function Home() {
       </section>
 
       {/* ADMINISTRAÇÃO DE CONDOMÍNIOS — faixa fotográfica; âncora de "Gerir vários edifícios". */}
-      <section id="condominios" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
+      <section id="condominios" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-24 lg:pb-32">
         <div className="relative flex min-h-[520px] items-end overflow-hidden rounded-[28px] text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -327,7 +327,7 @@ export default function Home() {
           <div className="relative z-[2] grid w-full gap-6 p-7 sm:p-10 lg:grid-cols-[1.2fr_auto] lg:items-end">
             <div>
               <h2 className={H2_CLARO}>Cada edifício, a sua obra.</h2>
-              <p className="mt-4 max-w-[48ch] text-[17px] leading-relaxed text-white/88">
+              <p className="mt-4 max-w-[48ch] text-[17px] lg:text-[20px] leading-relaxed text-white/88">
                 Pedidos, propostas e documentos organizados por condomínio. O relatório para a assembleia e a minuta pronta
                 a assinar com Chave Móvel Digital, no mesmo sítio. Os condóminos de cada prédio podem acompanhar o pedido,
                 ler as propostas e votar.
@@ -341,9 +341,9 @@ export default function Home() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 text-center">
+      <section className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-24 text-center">
         <h2 className={H2}>Peça orçamentos, sem compromisso.</h2>
-        <p className="mt-4 text-[17px] text-slate-600">Comparar propostas não tem custo.</p>
+        <p className="mt-4 text-[17px] lg:text-[20px] text-slate-600">Comparar propostas não tem custo.</p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link href={START} className="btn-primary btn-lg">
             Pedir orçamentos
@@ -358,7 +358,7 @@ export default function Home() {
       </section>
 
       <footer className="bg-paper">
-        <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-5 gap-y-2 px-5 sm:px-8 lg:px-12 py-6 text-[15px] text-slate-500">
+        <div className="mx-auto flex max-w-[120rem] flex-wrap items-center gap-x-5 gap-y-2 px-5 sm:px-10 lg:px-14 py-6 text-[15px] text-slate-500">
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>

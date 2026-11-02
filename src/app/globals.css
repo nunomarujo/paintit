@@ -12,7 +12,7 @@
    * Com o número escrito à mão em cada um, mudar a altura da barra partia o primeiro ecrã em
    * silêncio — e foi o que quase aconteceu ao aumentar o logótipo a 29/10/2026.
    */
-  --altura-cabecalho: 4.25rem; /* 68px — medida pedida pelo promotor a 29/10/2026 */
+  --altura-cabecalho: 4.25rem; /* 68px — medida pedida pelo promotor a 29/10/2026; 88px em ecrãs largos desde 02/11/2026 */
 
   /*
    * ───────────────────────────────────────────────────────────────────────────────────────────
@@ -91,6 +91,12 @@
   --error: #9b3332;
   --error-bg: #fcedec;
   --info-bg: #e8edff;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --altura-cabecalho: 5.5rem; /* 88px — logótipo e cabeçalho maiores em ecrãs largos (02/11/2026) */
+  }
 }
 
 body {
