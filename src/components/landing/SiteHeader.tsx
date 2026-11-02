@@ -96,30 +96,46 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
     <>
       <header
         className={
-          'fixed inset-x-0 top-0 z-50 flex h-[var(--altura-cabecalho)] items-center transition-[top] duration-250 ' +
+          'fixed inset-x-0 top-0 z-50 flex h-[var(--altura-cabecalho)] items-center transition-[top] duration-500 ease-[cubic-bezier(.22,1,.36,1)] ' +
           (scrolled ? 'sm:top-4' : 'top-0')
         }
       >
         <div
           className={
-            'mx-auto flex h-full items-center transition-all duration-250 ' +
+            // Tudo o que muda entre os dois estados é interpolável (largura máxima, altura, padding,
+            // raio, fundo, sombra), para a passagem a ilha acompanhar o scroll sem saltos (promotor, 02/11/2026).
+            'mx-auto flex h-full w-full items-center justify-between transition-all duration-500 ease-[cubic-bezier(.22,1,.36,1)] ' +
             (scrolled
               ? // Ilha: o cabeçalho junta-se numa pílula branca ao centro, como a referência (promotor, 02/11/2026).
-                'w-full max-w-[120rem] justify-between bg-white/95 px-5 sm:h-[58px] sm:w-auto sm:max-w-none sm:justify-start sm:gap-8 sm:rounded-full sm:px-4 sm:pr-3 sm:shadow-[0_12px_40px_-12px_rgba(20,33,61,.35)] lg:h-[72px] lg:gap-10 lg:px-6 lg:pr-4'
-              : 'w-full max-w-[120rem] justify-between bg-transparent px-5 sm:px-10 lg:px-14')
+                'max-w-[120rem] bg-white/95 px-5 sm:h-[58px] sm:max-w-[min(60rem,calc(100%-2.5rem))] sm:rounded-full sm:px-4 sm:pr-3 sm:shadow-[0_12px_40px_-12px_rgba(20,33,61,.35)] lg:h-[72px] lg:max-w-[min(80rem,calc(100%-4rem))] lg:px-6 lg:pr-4'
+              : 'max-w-[120rem] rounded-none bg-transparent px-5 shadow-none sm:px-10 lg:px-14')
           }
         >
-          <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center pl-2">
-            {scrolled ? <BrandMark size="sm" /> : <><span className="lg:hidden">{claro ? <Logotipo tamanho="sm" escuro /> : <BrandMark size="sm" />}</span><span className="hidden lg:inline-flex">{claro ? <Logotipo tamanho="md" escuro /> : <BrandMark size="md" />}</span></>}
+          <Link
+            href="/"
+            aria-label="Início"
+            className={`relative inline-flex min-h-[44px] origin-left items-center pl-2 transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)] ${scrolled ? 'lg:scale-[0.81]' : ''}`}
+          >
+            {/* As duas versões do logótipo sobrepostas e a cruzar por opacidade, em vez de trocarem de repente. */}
+            <span className={`transition-opacity duration-500 ${claro ? 'opacity-0' : 'opacity-100'}`}>
+              <span className="lg:hidden"><BrandMark size="sm" /></span>
+              <span className="hidden lg:inline-flex"><BrandMark size="md" /></span>
+            </span>
+            {sobreFoto && (
+              <span aria-hidden className={`absolute inset-y-0 left-2 inline-flex items-center transition-opacity duration-500 ${claro ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="lg:hidden"><Logotipo tamanho="sm" escuro /></span>
+                <span className="hidden lg:inline-flex"><Logotipo tamanho="md" escuro /></span>
+              </span>
+            )}
           </Link>
 
-          <nav aria-label="Principal" className={`hidden items-center gap-7 text-[15px] font-semibold min-[900px]:flex lg:gap-9 lg:text-[18px] ${claro ? 'text-white/85' : 'text-slate-700'}`}>
+          <nav aria-label="Principal" className={`hidden items-center gap-7 text-[15px] font-semibold transition-colors duration-500 min-[900px]:flex lg:gap-9 lg:text-[18px] ${claro ? 'text-white/85' : 'text-slate-700'}`}>
             {NAV_LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
                 className={
-                  'inline-flex min-h-[44px] items-center border-b-2 border-transparent ' +
+                  'inline-flex min-h-[44px] items-center whitespace-nowrap border-b-2 border-transparent ' +
                   (claro ? 'hover:text-white' : active === l.href.slice(1) ? 'border-tinta-600 text-tinta-900' : 'hover:text-tinta-700')
                 }
               >
@@ -131,11 +147,11 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
           <div className="flex items-center gap-4">
             <Link
               href="/entrar"
-              className={`btn-secondary lg:btn-lg hidden sm:inline-flex ${claro ? 'border-white/60 bg-transparent text-white hover:bg-white/10' : ''}`}
+              className={`btn-secondary lg:btn-lg hidden whitespace-nowrap sm:inline-flex ${claro ? 'border-white/60 bg-transparent text-white hover:bg-white/10' : ''} transition-colors duration-500`}
             >
               Entrar
             </Link>
-            <Link href={START} className="btn-primary lg:btn-lg hidden min-[900px]:inline-flex">
+            <Link href={START} className="btn-primary lg:btn-lg hidden whitespace-nowrap min-[900px]:inline-flex">
               Pedir orçamentos
             </Link>
             <button

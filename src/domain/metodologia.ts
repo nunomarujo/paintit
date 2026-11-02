@@ -158,7 +158,7 @@ export const SEM_INDICACAO: string[] = [
  * pintor, e o que a plataforma cobra nunca altera o que o cliente vê.
  */
 export const NAO_INFLUENCIAM: string[] = [
-  'A comissão que a plataforma cobra ao pintor, e qualquer desconto que ele tenha nela.',
+  'Custos que a plataforma imputa ao pintor, e qualquer desconto que ele tenha nela.',
   'Promoções, campanhas e relações comerciais entre a plataforma e qualquer pintor.',
   'Pagamento por posição, destaque ou ordenação: não existe, e não se vende.',
   'A antiguidade do pintor na plataforma e o número de propostas que já apresentou.',
