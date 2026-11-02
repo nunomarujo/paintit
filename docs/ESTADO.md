@@ -1,6 +1,6 @@
 # Ponto de situação — documento único e completo. Ler primeiro, do princípio ao fim, em cada sessão nova
 
-Atualizado a 01/11/2026 (**reformulação do workspace do fornecedor, no ramo
+Atualizado a 02/11/2026 (**condóminos do prédio aplicados na base real** — migração `20261101090000` corrida pelo promotor, verificação ao vivo com utilizadores `zz-test-*` em 15 de 15 pontos, sem rasto; **avisos por WhatsApp** construídos e dormentes até às chaves, migração `20261102090000` aplicada; falta o percurso real dos condóminos em produção, que precisa de sessão e caixa de correio do promotor). Estado anterior, 01/11/2026 (**reformulação do workspace do fornecedor, no ramo
 `claude/workspace-fornecedor`, já publicada**: dois contextos — Vendas e Avaliações — com a navegação a
 dizer em qual se está; os três ecrãs de referência construídos (Hoje–Avaliações, Os meus levantamentos,
 Produtos e preços) e também Oportunidades, Comissões pessoais, Qualificação, Disponibilidade e alertas e

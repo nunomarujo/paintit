@@ -16,19 +16,19 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 | O quê | Onde | O que fecha |
 |---|---|---|
-| **Aplicar a migração `20261101090000_condominos_do_predio.sql` na base real** (a sessão de 01/11/2026 não tinha permissão para alterações em produção; o código que depende dela já está publicado — os ecrãs de condóminos dão erro até ela correr) | Supabase › SQL, ou MCP `apply_migration` com o conteúdo do ficheiro | correr; depois avisos de segurança/desempenho a zero |
 | Rever em produção os ecrãs novos do workspace (Hoje, Levantamentos, Produtos e preços, Regras comerciais, Empresa) | quempinta.pt | dizer o que não está como se queria |
 | Correr a limpeza dos resíduos de ensaio | `painel-limpeza-dos-ensaios.sql`, primeiro em ensaio (`a_serio := false`), depois a sério | antes de a Stripe passar a modo real |
 | Apagar 2 fotografias SIMULACAO | conta `info@quempinta.pt`, pedido «SIMULACAO Pintura das fachadas e caixa de escadas» | apagar na aplicação |
 | Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords (aviso de segurança da Supabase) | ligar |
 | Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
 
+| Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
+
 ## 1b. WhatsApp — passos do promotor (02/11/2026)
 
 O código está feito; o canal abre quando isto estiver feito, pela ordem de `docs/WHATSAPP.md`: número
 dedicado → conta Twilio → WhatsApp sender → verificação da empresa na Meta → modelo `aviso_quem_pinta`
-aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` por aplicar
-(`painel-avisos-por-whatsapp.sql`).
+aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` aplicada a 02/11/2026.
 
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
