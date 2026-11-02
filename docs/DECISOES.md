@@ -4482,3 +4482,18 @@ proposta vencedora) e a proximidade aos pintores antes de haver orçamento.
 A «experiência comprovada» é, nesta fase, a declaração da própria pessoa; a verificação faz-se pelo
 trabalho, com as avaliações a subir ou a descer a percentagem. Uma verificação documental fica para
 decisão futura.
+
+## 02/11/2026 — Avisos por WhatsApp
+
+Pedido do promotor: ligar a aplicação ao envio de mensagens por WhatsApp. Decidido e construído:
+
+- **A fila é a mesma do email.** O WhatsApp é um segundo resultado por aviso, não uma segunda fila: um
+  aviso novo na aplicação sai pelos dois canais sem trabalho extra, e uma falha num não trava o outro.
+- **Consentimento explícito por pessoa**, com o número, em «Disponibilidade e alertas». Sem ele nem se
+  tenta. A base recusa ligar o WhatsApp sem número e recusa números que não sejam internacionais.
+- **Um só modelo aprovado na Meta**, com três variáveis (assunto, texto, ligação). Aprovar um texto por
+  tipo de aviso obrigaria a nova aprovação a cada aviso novo; assim não.
+- **Twilio como intermediário**, por ser o caminho mais curto para pôr a funcionar. Uma chamada HTTP, sem
+  biblioteca. Sem as quatro chaves no ambiente, o canal não existe e nada muda — não é um interruptor que
+  abra uma porta (regra 16): só decide se um envio a mais acontece, e só a quem o pediu.
+- O guia dos passos que ficam do lado do promotor está em `docs/WHATSAPP.md`.

@@ -3727,6 +3727,20 @@ describe('disponibilidade do avaliador', () => {
     ).rejects.toThrow(/row-level security|duplicate key/);
   });
 
+  it('o WhatsApp só se liga com número, e o número tem de ser internacional (02/11/2026)', async () => {
+    await expect(
+      as(EU, () => db.query('update public.survey_availability set alerta_whatsapp = true where user_id = $1', [EU])),
+    ).rejects.toThrow(/whatsapp_com_numero/);
+    await expect(
+      as(EU, () => db.query(`update public.survey_availability set telemovel_whatsapp = '912345678' where user_id = $1`, [EU])),
+    ).rejects.toThrow(/check/);
+    await as(EU, () =>
+      db.query(`update public.survey_availability set telemovel_whatsapp = '+351912345678', alerta_whatsapp = true where user_id = $1`, [EU]),
+    );
+    const r = await as(OUTRA, () => db.query('select telemovel_whatsapp from public.survey_availability'));
+    expect(r.rows).toHaveLength(0);
+  });
+
   it('quem não tem linha está disponível, e quem está suspenso não está', async () => {
     const semLinha = await one<{ d: boolean }>('select private.avaliador_disponivel($1) as d', [OUTRA]);
     expect(semLinha.d).toBe(true);

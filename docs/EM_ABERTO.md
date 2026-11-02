@@ -23,6 +23,13 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords (aviso de segurança da Supabase) | ligar |
 | Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
 
+## 1b. WhatsApp — passos do promotor (02/11/2026)
+
+O código está feito; o canal abre quando isto estiver feito, pela ordem de `docs/WHATSAPP.md`: número
+dedicado → conta Twilio → WhatsApp sender → verificação da empresa na Meta → modelo `aviso_quem_pinta`
+aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` por aplicar
+(`painel-avisos-por-whatsapp.sql`).
+
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
 | Tema | Pergunta | Origem |

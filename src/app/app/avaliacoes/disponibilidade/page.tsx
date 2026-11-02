@@ -4,6 +4,7 @@ import { CoverageForm } from '@/app/app/levantamentos/Forms';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
 import { getUser } from '@/lib/supabase/server';
 import { Disponibilidade } from './Formulario';
+import { configuracaoWhatsApp } from '@/domain/whatsapp';
 
 /**
  * Disponibilidade e alertas — onde se diz quando se está e por onde se quer ser avisado.
@@ -25,7 +26,7 @@ export default async function DisponibilidadePage() {
   const responsavel = mandaNaEmpresa(pertenca.papel as 'proprietario' | 'gestor' | 'vendedor');
 
   const [{ data: minha }, { data: cobertura }] = await Promise.all([
-    supabase.from('survey_availability').select('suspenso_ate, alerta_email').eq('user_id', user!.id).maybeSingle(),
+    supabase.from('survey_availability').select('suspenso_ate, alerta_email, alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle(),
     supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),
   ]);
 
@@ -48,7 +49,13 @@ export default async function DisponibilidadePage() {
           Só a própria pessoa vê e altera isto. Férias e ausências não são assunto da empresa.
         </p>
         <div className="mt-4">
-          <Disponibilidade suspensoAte={minha?.suspenso_ate ?? null} alertaEmail={minha?.alerta_email ?? true} />
+          <Disponibilidade
+            suspensoAte={minha?.suspenso_ate ?? null}
+            alertaEmail={minha?.alerta_email ?? true}
+            alertaWhatsApp={minha?.alerta_whatsapp ?? false}
+            telemovelWhatsApp={minha?.telemovel_whatsapp ?? null}
+            whatsappDisponivel={configuracaoWhatsApp(process.env) !== null}
+          />
         </div>
       </section>
 

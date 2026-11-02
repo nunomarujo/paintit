@@ -1079,9 +1079,17 @@ export type Database = {
       // Escrito à mão enquanto a migração 20261101050000_disponibilidade_e_alertas não corre no painel;
       // regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
       survey_availability: {
-        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; updated_at: string };
-        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean };
-        Update: { suspenso_ate?: string | null; alerta_email?: boolean };
+        // alerta_whatsapp e telemovel_whatsapp: migração 20261102090000_avisos_por_whatsapp.
+        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; alerta_whatsapp: boolean; telemovel_whatsapp: string | null; updated_at: string };
+        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
+        Update: { suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
+        Relationships: [];
+      };
+      avisos_por_email: {
+        // Só o esvaziamento (chave de serviço) a toca; sem políticas, de propósito. Colunas whatsapp_*: migração 20261102090000.
+        Row: { id: string; notification_id: string; attempt_id: string | null; destinatario: string; assunto: string; estado: string; tentativas: number; proxima_tentativa_em: string; ultima_tentativa_em: string | null; ultimo_erro: string | null; enviado_em: string | null; created_at: string; whatsapp_estado: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro: string | null; whatsapp_em: string | null };
+        Insert: never;
+        Update: { whatsapp_estado?: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro?: string | null; whatsapp_em?: string | null };
         Relationships: [];
       };
       supplier_survey_coverage: {
