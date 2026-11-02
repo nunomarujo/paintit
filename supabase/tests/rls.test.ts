@@ -4,6 +4,7 @@ import { INVALID_NIFS, VALID_NIFS } from '../../src/domain/nif.vectors';
 import { referralDiscountBp } from '../../src/domain/referralEligibility';
 import { CURRENT_RULES, RULES_BY_VERSION } from '../../src/domain/rules';
 import { CURRENT_SURVEY_TERMS_VERSION } from '../../src/domain/surveyTerms';
+import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '../../src/domain/avaliador';
 import { baseComMigracoes } from './baseEmMemoria';
 
 // Corre as migrações numa base Postgres em memória, com o mínimo do ambiente
@@ -69,6 +70,14 @@ const building = (orgId: string) =>
 
 let adminOrg: string;
 let condo: string;
+
+/** A autodeclaração de avaliador (02/11/2026): sem ela, reserve_survey recusa. Os testes de reserva inscrevem o vendedor. */
+async function inscreverComoAvaliador(userId: string) {
+  await db.query(
+    `insert into public.survey_terms_acceptances (user_id, version) values ($1, (select private.versao_da_autodeclaracao_do_avaliador())) on conflict do nothing`,
+    [userId],
+  );
+}
 
 beforeAll(async () => {
   db = await baseComMigracoes();
@@ -2347,6 +2356,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
 
   beforeAll(async () => {
     await db.query('insert into auth.users (id, email) values ($1, $2)', [VEND, email(VEND)]);
+    await inscreverComoAvaliador(VEND);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Levantamento Lda', '610000004')).id;
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
@@ -2382,8 +2392,18 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     expect(row).toEqual({ status: 'reservado', vendedor_org_id: vendorOrg });
     const OTHERVEND = '00000000-0000-4000-8000-0000000000e6';
     await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
+    await inscreverComoAvaliador(OTHERVEND);
     const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
     await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
+  });
+
+  it('sem a autodeclaração de avaliador, a base recusa a reserva — não é só o ecrã', async () => {
+    const NAOINSCRITO = '00000000-0000-4000-8000-00000000c0b9';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [NAOINSCRITO, email(NAOINSCRITO)]);
+    const org = (await createOrg(NAOINSCRITO, 'fornecedor', 'Sem Inscrição Lda', null)).id;
+    await expect(as(NAOINSCRITO, () => db.query('select public.reserve_survey($1, $2)', [surveyId, org]))).rejects.toThrow(
+      /inscrição como avaliador/,
+    );
   });
 
   it('reservar abre a tentativa 1, com os três prazos escritos de uma vez', async () => {
@@ -2611,6 +2631,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
       await vencer(aid);
       const OUTRO = '00000000-0000-4000-8000-00000000c0a1';
       await db.query('insert into auth.users (id, email) values ($1, $2)', [OUTRO, email(OUTRO)]);
+      await inscreverComoAvaliador(OUTRO);
       const orgOutro = (await createOrg(OUTRO, 'fornecedor', 'Terceira Tinta Lda', '610000020')).id;
       await db.query(
         `insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, array['Lisboa'])
@@ -2779,6 +2800,11 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
       expect(naBase).toBe(CURRENT_SURVEY_TERMS_VERSION);
     });
 
+    it('a versão da autodeclaração de avaliador é a mesma no domínio e na base de dados', async () => {
+      const naBase = (await one<{ v: string }>('select private.versao_da_autodeclaracao_do_avaliador() as v')).v;
+      expect(naBase).toBe(VERSAO_AUTODECLARACAO_DO_AVALIADOR);
+    });
+
     async function vagaComContacto(titulo: string) {
       const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
       const reqId = (
@@ -2934,6 +2960,8 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
 
   beforeAll(async () => {
     for (const u of [VEND, VEND2, CP, CP2]) await db.query('insert into auth.users (id, email) values ($1, $2)', [u, email(u)]);
+    await inscreverComoAvaliador(VEND);
+    await inscreverComoAvaliador(VEND2);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Esclarecimento Lda', '610000055')).id;
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     vendor2Org = (await createOrg(VEND2, 'fornecedor', 'Tintas do Esclarecimento Dois Lda', '610000063')).id;
