@@ -20,6 +20,11 @@ Ficheiros: `src/domain/whatsapp.ts` (regras, testadas), `src/lib/whatsapp.ts` (a
 
 ## O que fica do lado do promotor (por ordem)
 
+Os passos 1 a 5 são do promotor e só dele: criar contas em nome da empresa e submeter documentos oficiais
+não é coisa que uma sessão de Claude faça, mesmo que se lhe peça (confirmado a 02/11/2026). O que a
+sessão faz é dar o texto exato de cada ecrã e, no passo 6, gravar as chaves na Vercel com confirmação.
+São uns minutos de preenchimento; a espera é a verificação da Meta.
+
 1. **Um número de telemóvel dedicado** que não esteja ligado a nenhuma conta WhatsApp (nem normal nem
    Business). Pode ser um cartão novo. Serve só para receber o SMS de verificação uma vez.
 2. **Conta Twilio** (twilio.com), com os dados da Relevante Planeta, Lda. Guardar o *Account SID* e o
