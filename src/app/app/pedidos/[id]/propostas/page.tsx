@@ -403,6 +403,11 @@ export default async function ProposalsPage({
             <Link href={`${path}/relatorio`} className="btn-secondary btn-sm">
               Relatório para a assembleia
             </Link>
+            {/* A fotografia congelada (secção 8, "Quem Pinta — a oferta"): gera-se uma vez, só depois
+                da entrega, e fica fixa — diferente do relatório acima, recalculado a cada visita. */}
+            <Link href={`${path}/relatorio-fixo`} className="btn-secondary btn-sm">
+              Relatório fixo, com QR de verificação
+            </Link>
             <form className="flex items-center gap-2 text-[17px]">
               <label htmlFor="ordem">Ordenar por</label>
               <select id="ordem" name="ordem" defaultValue={criterio} className="campo w-auto">

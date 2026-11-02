@@ -2086,6 +2086,34 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Migração `relatorio_de_propostas` (02/11/2026), escritas à mão: tabelas novas, nunca
+      // aplicadas à base real (ver docs/ESTADO.md e o relatório final desta sessão).
+      relatorios_de_propostas: {
+        Row: {
+          id: string;
+          request_id: string;
+          codigo_obra: string;
+          token: string;
+          numero_de_propostas: number;
+          aviso_integridade: string;
+          gerado_por: string;
+          gerado_em: string;
+        };
+        Insert: { request_id: string; codigo_obra: string; numero_de_propostas: number; aviso_integridade: string };
+        // Sem política de update: esta tabela nunca se altera depois de criada.
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'relatorios_de_propostas_request_id_fkey'; columns: ['request_id']; isOneToOne: true; referencedRelation: 'work_requests'; referencedColumns: ['id'] },
+        ];
+      };
+      relatorios_de_propostas_fichas: {
+        Row: { id: string; relatorio_id: string; numero: number; codigo_pagina: string; dados: Json };
+        Insert: { relatorio_id: string; numero: number; codigo_pagina: string; dados: Json };
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'relatorios_de_propostas_fichas_relatorio_id_fkey'; columns: ['relatorio_id']; isOneToOne: false; referencedRelation: 'relatorios_de_propostas'; referencedColumns: ['id'] },
+        ];
+      };
     };
     Views: {
       acc_balancete: { Row: { conta: string; credito_cents: number; debito_cents: number; natureza: 'devedora' | 'credora'; nome: string }; Relationships: [] };
@@ -2099,6 +2127,11 @@ export type Database = {
       mapa_contratos: {
         Args: { p_desde?: number; p_distritos?: string[]; p_nif?: string };
         Returns: Json;
+      };
+      // Migração `relatorio_de_propostas` (02/11/2026): leitura pública, sem login, pelo token.
+      relatorio_publico: {
+        Args: { p_token: string };
+        Returns: { codigo_obra: string; numero_de_propostas: number; aviso_integridade: string; gerado_em: string; fichas: Json }[];
       };
       apply_referral_code: { Args: { p_proposal: string; p_code: string | null }; Returns: string | null };
       apply_supplier_referral_code: { Args: { p_org: string; p_code: string | null }; Returns: undefined };

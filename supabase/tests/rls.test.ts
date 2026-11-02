@@ -958,6 +958,129 @@ describe('propostas e escolha', () => {
   });
 });
 
+describe('relatório de propostas para a assembleia (fotografia congelada)', () => {
+  const P = '00000000-0000-4000-8000-0000000000e3';
+  let requestId: string;
+  let painterOrg: string;
+  let proposalId: string;
+  let relatorioId: string;
+
+  const inserirRelatorio = (user: string, req: string, numero = 2) =>
+    as(user, () =>
+      one<{ id: string }>(
+        `insert into public.relatorios_de_propostas (request_id, codigo_obra, numero_de_propostas, aviso_integridade)
+         values ($1, 'ABCDE', $2, 'Este relatório contém 2 propostas, numeradas de 1 a 2.') returning id`,
+        [req, numero],
+      ),
+    );
+  const inserirFicha = (user: string, relatorio: string, numero: number, codigo: string) =>
+    as(user, () =>
+      db.query(
+        `insert into public.relatorios_de_propostas_fichas (relatorio_id, numero, codigo_pagina, dados)
+         values ($1, $2, $3, '{"precoComIvaCents": 123456}'::jsonb)`,
+        [relatorio, numero, codigo],
+      ),
+    );
+
+  beforeAll(async () => {
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [P, email(P)]);
+    painterOrg = (await createOrg(P, 'pintor', 'Pinturas do Relatório Lda', '501964843')).id;
+    const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    requestId = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Rua A, 1 — relatório', 'fachadas', $3, current_date + 10) returning id`,
+          [condo, buildingId, 'Pintura completa da fachada principal, com reparação de fissuras.'],
+        ),
+      )
+    ).id;
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 10000)`, [requestId]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [requestId]));
+    proposalId = (
+      await as(P, () =>
+        one<{ id: string }>(
+          `insert into public.proposals (request_id, painter_org_id, validade, duracao_dias) values ($1, $2, current_date + 30, 15) returning id`,
+          [requestId, painterOrg],
+        ),
+      )
+    ).id;
+    await as(P, () =>
+      db.query(
+        `insert into public.proposal_lines (proposal_id, categoria, descricao, superficie, quantidade, preco_unitario_cents, inclusao)
+         values ($1, 'pintura', 'Pintura da fachada', 'fachada', 10000, 900, 'incluido')`,
+        [proposalId],
+      ),
+    );
+  });
+
+  it('não se gera antes de as propostas estarem entregues — a porta está na regra de acesso', async () => {
+    await expect(inserirRelatorio(A, requestId)).rejects.toThrow(/row-level security/);
+  });
+
+  it('um estranho ao pedido não gera, nem depois da entrega', async () => {
+    await entregar(requestId);
+    await expect(inserirRelatorio(B, requestId)).rejects.toThrow(/row-level security/);
+  });
+
+  it('quem gere o pedido gera a fotografia depois da entrega', async () => {
+    relatorioId = (await inserirRelatorio(A, requestId)).id;
+    expect(relatorioId).toBeTruthy();
+  });
+
+  it('só uma fotografia por pedido — a segunda geração falha pela restrição única', async () => {
+    await expect(inserirRelatorio(A, requestId)).rejects.toThrow();
+  });
+
+  it('as fichas seguem a mesma porta: só quem gere o pedido, e só deste relatório', async () => {
+    await expect(inserirFicha(B, relatorioId, 1, 'FGHJK')).rejects.toThrow(/row-level security/);
+    await inserirFicha(A, relatorioId, 1, 'FGHJK');
+    await inserirFicha(C, relatorioId, 2, 'LMNPQ'); // C gere a administradora que gere o condomínio
+  });
+
+  it('nunca se altera nem se apaga uma fotografia já gerada, nem por quem a gerou', async () => {
+    await expect(as(A, () => db.query(`update public.relatorios_de_propostas set numero_de_propostas = 9 where id = $1`, [relatorioId]))).rejects.toThrow(
+      /permission denied|row-level security/,
+    );
+    await expect(as(A, () => db.query(`delete from public.relatorios_de_propostas where id = $1`, [relatorioId]))).rejects.toThrow(
+      /permission denied|row-level security/,
+    );
+  });
+
+  it('a leitura interna é só de quem gere o pedido — um estranho ou o próprio pintor não veem nada', async () => {
+    const estranho = await as(B, async () => (await db.query('select id from public.relatorios_de_propostas where id = $1', [relatorioId])).rows);
+    expect(estranho).toEqual([]);
+    const pintor = await as(P, async () => (await db.query('select id from public.relatorios_de_propostas where id = $1', [relatorioId])).rows);
+    expect(pintor).toEqual([]);
+    const gestor = await as(A, async () => (await db.query('select id from public.relatorios_de_propostas where id = $1', [relatorioId])).rows);
+    expect(gestor).toHaveLength(1);
+  });
+
+  it('a tabela não tem porta nenhuma para quem não tem sessão (anon) — só a função pública', async () => {
+    const semSessao = await as(null, async () => (await db.query('select id from public.relatorios_de_propostas where id = $1', [relatorioId])).rows);
+    expect(semSessao).toEqual([]);
+  });
+
+  it('a função pública lê pelo token, sem login, e devolve exactamente o que a versão interna mostra', async () => {
+    const token = (await one<{ token: string }>('select token from public.relatorios_de_propostas where id = $1', [relatorioId])).token;
+    const publico = await as(null, () =>
+      one<{ codigo_obra: string; numero_de_propostas: number; fichas: { numero: number; codigoPagina: string }[] }>(
+        'select * from public.relatorio_publico($1)',
+        [token],
+      ),
+    );
+    expect(publico.codigo_obra).toBe('ABCDE');
+    expect(publico.numero_de_propostas).toBe(2);
+    expect(publico.fichas).toHaveLength(2);
+    expect(publico.fichas.map((f) => f.numero).sort()).toEqual([1, 2]);
+  });
+
+  it('um token ao acaso não devolve nada — não é sequencial nem adivinhável', async () => {
+    const vazio = await as(null, async () => (await db.query('select * from public.relatorio_publico($1)', ['00000000-0000-4000-8000-000000000000'])).rows);
+    expect(vazio).toEqual([]);
+  });
+});
+
 describe('contratação', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor escolhido
   const P2 = '00000000-0000-4000-8000-0000000000e2'; // pintor não escolhido
