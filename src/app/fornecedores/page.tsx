@@ -50,7 +50,7 @@ const ferramentas = [
   { t: 'Descontos por regra', d: 'Por artigo, por tipo ou por catálogo inteiro, cruzados com o perfil do cliente: 1.ª compra, frequente, premium. Sem negociar uma a uma.' },
   { t: 'Carteira de clientes', d: 'Os pintores que já compraram, classificados, com o histórico de condições.' },
   { t: 'Convites a pintores', d: 'Convidar por email um pintor que ainda não está na plataforma — e ficar como o fornecedor que o trouxe.' },
-  { t: 'Código de adesão', d: 'Cada pintor que ganhe uma obra com o seu código dá-lhe uma comissão, e desconta a comissão dele.' },
+  { t: 'Código de adesão', d: 'Crie e partilhe códigos de adesão com novos pintores e ganhe uma comissão quando lhes for adjudicada uma obra.' },
   { t: 'Zonas de cobertura', d: 'Os concelhos onde a equipa faz levantamentos; as vagas chegam só de lá.' },
   { t: 'Comissões de levantamento', d: 'Uma percentagem do valor adjudicado por cada obra que a sua visita ajudou a fechar, com resgate na plataforma.' },
 ];
