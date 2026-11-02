@@ -2,7 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 
-export type FotoDoHero = { src: string; alt: string };
+/** `clara`: fotografia de fundo claro (paredes brancas) — o texto e o cabeçalho, brancos, precisam de um
+ *  véu escuro extra enquanto ela está à vista (promotor, 02/11/2026). */
+export type FotoDoHero = { src: string; alt: string; clara?: boolean };
 
 /**
  * Primeiro ecrã do site público (estilo aprovado pelo promotor a 01/11/2026, a partir de
@@ -45,6 +47,7 @@ export function HeroFotografico({ fotos, children }: { fotos: FotoDoHero[]; chil
           />
         ))}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.4)_0%,rgba(0,0,0,0)_35%,rgba(0,0,0,.74)_100%)]" />
+        <div className="absolute inset-0 bg-tinta-900/55 transition-opacity duration-[1400ms]" style={{ opacity: fotos[i]?.clara ? 1 : 0 }} />
       </div>
       <div className="relative z-[2] mx-auto w-full max-w-[120rem] px-5 sm:px-10 lg:px-14 pb-16 pt-32">{children}</div>
       {fotos.length > 1 && (

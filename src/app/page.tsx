@@ -47,12 +47,13 @@ const FOTOS_DO_HERO = [
   { src: '/img/obra-andaime.webp', alt: 'Pintor num andaime a passar o rolo numa fachada de prédio, ao fim da tarde' },
   { src: '/img/fachada-meia.webp', alt: 'Prédio com metade da fachada já repintada de cinzento claro e a outra metade por fazer, com andaime' },
   { src: '/img/gestor-e-pintor.webp', alt: 'Gestor de condomínio com um tablet e pintor a olharem para uma fachada' },
-  // «trincha-janela» retirada a 02/11/2026: mostrava tinta a ir por cima de caixilharia podre — mau pintor. Volta quando houver a versão a lixar/raspar.
+  // Substitui «trincha-janela» (02/11/2026): aquela mostrava tinta por cima de caixilharia podre; esta mostra a preparação, que é o que distingue um bom pintor.
+  { src: '/img/lixadora-parede.webp', alt: 'Pintor com máscara e protetores auriculares a lixar uma parede interior com lixadora de braço', clara: true },
   // Pedida de volta pelo promotor (02/11/2026): rolo numa parede de tijolo, Michael Cory, CC BY 2.0 (crédito no rodapé).
   { src: '/img/rolo-na-parede.webp', alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar de laranja' },
   // Enviadas pelo promotor a 02/11/2026.
   { src: '/img/riscas-de-reboco.webp', alt: 'Parede de reboco pintada em riscas verticais de terracota, verde, azul-marinho, amarelo e branco' },
-  { src: '/img/sala-tres-cores.webp', alt: 'Sala com uma parede pintada em três cores — terracota, verde-água e azul-marinho — com um banco de madeira e uma planta' },
+  { src: '/img/sala-tres-cores.webp', alt: 'Sala com uma parede pintada em três cores — terracota, verde-água e azul-marinho — com um banco de madeira e uma planta', clara: true },
 ];
 
 /** Títulos de secção do site público: grandes, em peso médio, centrados (estilo de 01/11/2026). */
