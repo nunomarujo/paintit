@@ -1,0 +1,4 @@
+Manrope — Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope).
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).
+O ficheiro Manrope-variavel.woff2 é a fonte variável completa (pesos 200–800), convertida de
+Manrope[wght].ttf do repositório google/fonts; é a fonte do produto, servida pelo next/font/local.
