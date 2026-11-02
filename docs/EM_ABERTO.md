@@ -41,8 +41,8 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Advogado | Minuta do contrato; pareceres da ronda 2 | `ESTADO.md` §7 |
 | Certificado de assinatura «por confirmar» | Recusar logo, arriscando recusar assinaturas legítimas por falha de rede ao buscar o emissor, ou aceitar e marcar | `ESTADO.md` §7 |
 | Garantia de execução da obra | O maior risco apontado nas quatro rondas; nada construído (escrow por fases, reputação, mediação, seguro) | `ESTADO.md` §7 |
-| Relatório de propostas | Gerado ao fechar a janela, com QR para verificação; nada construído | `ESTADO.md` §7 |
 | Bloqueio por nome (strikes) | Decidir se também por nome de empresa ou pessoa (risco de falsos positivos) | `ESTADO.md` §7 |
+| «Anos de experiência» no relatório de propostas | Sem campo próprio em lugar nenhum (proposta nem perfil da empresa) — de onde vem o número? Novo campo na proposta? No perfil? Auto-declarado ou verificado? Até à decisão, a coluna mostra «Não disponível» em todas as propostas (desenho transparente, não erro) | Construído e aplicado 02/11/2026, `src/domain/relatorioCongelado.ts` |
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
