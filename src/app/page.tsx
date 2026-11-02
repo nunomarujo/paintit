@@ -48,6 +48,8 @@ const FOTOS_DO_HERO = [
   { src: '/img/fachada-meia.webp', alt: 'Prédio com metade da fachada já repintada de cinzento claro e a outra metade por fazer, com andaime' },
   { src: '/img/gestor-e-pintor.webp', alt: 'Gestor de condomínio com um tablet e pintor a olharem para uma fachada' },
   { src: '/img/trincha-janela.webp', alt: 'Mão a pintar de branco o aro de uma janela com uma trincha' },
+  // Pedida de volta pelo promotor (02/11/2026): rolo numa parede de tijolo, Michael Cory, CC BY 2.0 (crédito no rodapé).
+  { src: '/img/rolo-na-parede.webp', alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar de laranja' },
 ];
 
 /** Títulos de secção do site público: grandes, em peso médio, centrados (estilo de 01/11/2026). */
@@ -361,6 +363,13 @@ export default function Home() {
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>
           <LegalLinks />
+          <span className="basis-full text-[13px] text-slate-600">
+            Fotografia do rolo na parede: Michael Cory,{' '}
+            <a href="https://creativecommons.org/licenses/by/2.0/" className="underline underline-offset-2 hover:text-tinta-900" rel="noreferrer">
+              CC BY 2.0
+            </a>
+            , via Wikimedia Commons.
+          </span>
         </div>
       </footer>
     </main>
