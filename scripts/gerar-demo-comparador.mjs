@@ -41,7 +41,7 @@ const ESTADOS = [
   { rota: 'estado-2-detalhe', ficheiro: 'estado-2-detalhe.html' },
   { rota: 'estado-3-diferencas', ficheiro: 'estado-3-diferencas.html' },
   { rota: 'estado-4-reconciliacao', ficheiro: 'estado-4-reconciliacao.html', perguntas: true },
-  { rota: 'estado-5-nao-decomposta', ficheiro: 'estado-5-nao-decomposta.html', perguntas: true },
+  { rota: 'estado-5-nao-decomposta', ficheiro: 'estado-5-nao-decomposta.html' },
   { rota: 'estado-6-relatorio', ficheiro: 'estado-6-relatorio.html' },
 ];
 
@@ -56,13 +56,22 @@ function lerFicheiroDaRota(rota) {
   );
 }
 
-/** A folha de estilo real que o Next compilou para esta rota (Tailwind + globals.css), para embeber inline. */
+/**
+ * As folhas de estilo reais que o Next compilou para esta rota (Tailwind + globals.css), para
+ * embeber inline. Desde 01/11/2026 o build divide o CSS em mais do que um ficheiro (a fonte e a
+ * folha da aplicação); embeber só o primeiro deixava o comparador em Times New Roman sem estilo
+ * nenhum, que foi o que o promotor viu na página inicial a 02/11/2026. Agora vão todos, pela ordem.
+ */
 function lerFolhaDeEstilo(html) {
-  const m = html.match(/<link rel="stylesheet" href="(\/_next\/[^"]+\.css)"[^>]*>/);
-  if (!m) throw new Error('Não encontrei a folha de estilo (<link rel="stylesheet">) no HTML pré-renderizado.');
-  const caminhoCss = next(m[1].replace(/^\/_next\//, ''));
-  if (!existsSync(caminhoCss)) throw new Error(`A folha de estilo referida não existe em disco: ${caminhoCss}`);
-  return readFileSync(caminhoCss, 'utf8');
+  const ligacoes = [...html.matchAll(/<link rel="stylesheet" href="(\/_next\/[^"]+\.css)"[^>]*>/g)].map((m) => m[1]);
+  if (ligacoes.length === 0) throw new Error('Não encontrei a folha de estilo (<link rel="stylesheet">) no HTML pré-renderizado.');
+  return ligacoes
+    .map((href) => {
+      const caminhoCss = next(href.replace(/^\/_next\//, ''));
+      if (!existsSync(caminhoCss)) throw new Error(`A folha de estilo referida não existe em disco: ${caminhoCss}`);
+      return readFileSync(caminhoCss, 'utf8');
+    })
+    .join('\n');
 }
 
 function extrairAtributosHtml(html) {

@@ -23,14 +23,16 @@ describe('as indicações da fase 1', () => {
     );
     expect(dadas(r)).toEqual([
       ['menor_preco', 'Pintor A'],
+      ['mais_completa', 'Pintor B'],
       ['menor_preco_completo', 'Pintor B'],
     ]);
   });
 
-  it('a mesma proposta pode receber as duas', () => {
+  it('a mesma proposta pode receber as três', () => {
     const r = indicacoes([p('Pintor A', 1_400_000), p('Pintor B', 1_600_000)], formatEuros);
     expect(dadas(r)).toEqual([
       ['menor_preco', 'Pintor A'],
+      ['mais_completa', 'Pintor A'],
       ['menor_preco_completo', 'Pintor A'],
     ]);
   });
@@ -63,7 +65,7 @@ describe('as indicações da fase 1', () => {
   it('um empate não produz vencedor: diz-se que empataram', () => {
     const r = indicacoes([p('Pintor A', 1_600_000), p('Pintor B', 1_600_000)], formatEuros);
     expect(r.atribuidas).toEqual([]);
-    expect(r.naoAtribuidas.map((x) => x.indicacao)).toEqual(['menor_preco', 'menor_preco_completo']);
+    expect(r.naoAtribuidas.map((x) => x.indicacao)).toEqual(['menor_preco', 'mais_completa', 'menor_preco_completo']);
     expect(r.naoAtribuidas[0]!.motivo).toContain('Pintor A e Pintor B');
   });
 
@@ -72,15 +74,18 @@ describe('as indicações da fase 1', () => {
       [p('Pintor A', 1_400_000, { naoIndicados: 1 }), p('Pintor B', 1_600_000, { precoFirme: false })],
       formatEuros,
     );
-    expect(dadas(r)).toEqual([['menor_preco', 'Pintor A']]);
+    expect(dadas(r)).toEqual([
+      ['menor_preco', 'Pintor A'],
+      ['mais_completa', 'Pintor B'],
+    ]);
     expect(r.naoAtribuidas.find((x) => x.indicacao === 'menor_preco_completo')!.motivo)
-      .toBe('Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados.');
+      .toBe('Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados: não há Escolha Quem Pinta.');
   });
 
-  it('com uma proposta só não há indicações, e as duas dizem porquê', () => {
+  it('com uma proposta só não há indicações, e as três dizem porquê', () => {
     const r = indicacoes([p('Pintor A', 1_400_000)], formatEuros);
     expect(r.atribuidas).toEqual([]);
-    expect(r.naoAtribuidas).toHaveLength(2);
+    expect(r.naoAtribuidas).toHaveLength(3);
   });
 
   it('nenhuma justificação recomenda, aconselha ou elege', () => {
@@ -141,5 +146,53 @@ describe('sem pedido definido não há recomendação que dele dependa', () => {
   it('o menor preço continua a poder dizer-se: não depende de cobertura nenhuma', () => {
     const r = indicacoes([p('Pintor A', 1_400_000), p('Pintor B', 1_600_000)], formatEuros, 0);
     expect(r.atribuidas[0]!.alias).toBe('Pintor A');
+  });
+});
+
+describe('a mais completa e a Escolha Quem Pinta (metodologia 1.1)', () => {
+  const tres = () => [
+    p('Pintor A', 640_830),
+    p('Pintor B', 556_329, { excluidos: 1, naoIndicados: 1 }),
+    p('Pintor C', 937_506, { aMais: { n: 2, valorCents: 175_200 } }),
+  ];
+
+  it('as três indicações caem em propostas diferentes no cenário da demonstração', () => {
+    const r = indicacoes(tres(), formatEuros, 5);
+    expect(dadas(r)).toEqual([
+      ['menor_preco', 'Pintor B'],
+      ['mais_completa', 'Pintor C'],
+      ['menor_preco_completo', 'Pintor A'],
+    ]);
+  });
+
+  it('a mais completa diz quantos trabalhos a mais traz e quanto custam', () => {
+    const r = indicacoes(tres(), formatEuros, 5);
+    const c = r.atribuidas.find((x) => x.indicacao === 'mais_completa')!;
+    expect(c.nota).toContain('inclui todos os trabalhos pedidos');
+    expect(c.nota).toContain('2 trabalhos que não foram pedidos');
+    expect(c.nota).toContain(formatEuros(175_200));
+  });
+
+  it('a Escolha justifica-se contra a mais completa: a diferença excede o valor dos trabalhos a mais', () => {
+    const r = indicacoes(tres(), formatEuros, 5);
+    const e = r.atribuidas.find((x) => x.indicacao === 'menor_preco_completo')!;
+    expect(e.nota).toContain('A mais completa (Pintor C)');
+    expect(e.nota).toContain('é superior ao valor desses trabalhos');
+  });
+
+  it('quando a diferença corresponde aos trabalhos a mais, diz que vale a pena se os quiser', () => {
+    const r = indicacoes([p('Pintor A', 600_000), p('Pintor C', 700_000, { aMais: { n: 1, valorCents: 120_000 } })], formatEuros, 3);
+    const e = r.atribuidas.find((x) => x.indicacao === 'menor_preco_completo')!;
+    expect(e.nota).toContain('corresponde a esses trabalhos');
+  });
+
+  it('a mais completa pode ser também a Escolha, e então não se compara consigo própria', () => {
+    const r = indicacoes([p('Pintor A', 600_000, { aMais: { n: 1, valorCents: 50_000 } }), p('Pintor B', 650_000)], formatEuros, 3);
+    expect(dadas(r)).toEqual([
+      ['menor_preco', 'Pintor A'],
+      ['mais_completa', 'Pintor A'],
+      ['menor_preco_completo', 'Pintor A'],
+    ]);
+    expect(r.atribuidas.find((x) => x.indicacao === 'menor_preco_completo')!.nota).not.toContain('A mais completa');
   });
 });

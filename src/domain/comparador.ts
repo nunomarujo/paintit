@@ -190,6 +190,13 @@ export interface Leitura {
  */
 export const TRABALHOS_COM_DEMAOS: readonly DesiredWork[] = ['primario', 'pintura', 'impermeabilizacao', 'tratamento_metais'];
 
+/**
+ * Os trabalhos em que há um produto a nomear. Uma lavagem ou uma reparação de fissuras não leva
+ * «produto» no sentido da ficha técnica, e cobrar-lhes a falta dele dava um reparo falso à proposta
+ * mais completa (visto na demonstração a 02/11/2026).
+ */
+export const TRABALHOS_COM_PRODUTO: readonly DesiredWork[] = ['primario', 'pintura', 'impermeabilizacao', 'tratamento_metais', 'tratamento_humidade'];
+
 export interface Classificacao {
   cobertura: Leitura & { completa: boolean; porEsclarecer: number; semPrecoFirme: number };
   definicao: Leitura & { definido: boolean };
@@ -231,7 +238,7 @@ export function classificar(s: SinaisDaProposta): Classificacao {
   const definido = reparosDefinicao.length === 0;
 
   const incluidos = s.trabalhos.filter((t) => t.estado === 'incluido');
-  const semProduto = incluidos.filter((t) => t.produtos.length === 0).length;
+  const semProduto = incluidos.filter((t) => TRABALHOS_COM_PRODUTO.includes(t.work) && t.produtos.length === 0).length;
   const semDemaos = incluidos.filter((t) => TRABALHOS_COM_DEMAOS.includes(t.work) && t.demaos === null).length;
   const p = s.produtosPedidos;
   const reparosTecnica = [
@@ -439,3 +446,27 @@ export function equivalenciaDeTrabalhos(a: TrabalhoNaProposta, b: TrabalhoNaProp
 
   return { equivalentes: motivos.length === 0, motivos, execucaoEquivalente, quantidadeComparavel };
 }
+
+// --- Trabalhos a mais ----------------------------------------------------------------
+//
+// O que a proposta inclui **além** do pedido: linhas incluídas, com preço, cujo trabalho não é nenhum
+// dos pedidos e que não são acessos, licenças nem a linha de preço global — isso não são trabalhos,
+// são condições da empreitada. Alimenta a indicação «a mais completa» e a justificação da Escolha
+// Quem Pinta (metodologia 1.1, 02/11/2026).
+export interface TrabalhoAMais {
+  descricao: string;
+  precoCents: Cents;
+}
+
+export function trabalhosAMais(pedidos: readonly DesiredWork[], linhas: readonly ProposalLine[]): TrabalhoAMais[] {
+  const codigosPedidos = new Set(pedidos.map((w) => workForRequested(w)?.code).filter((c): c is string => !!c));
+  return linhas
+    .filter((l) => l.inclusao === 'incluido' && !['acessos', 'licencas', 'outro'].includes(l.categoria))
+    .filter((l) => !l.trabalho || !codigosPedidos.has(l.trabalho))
+    .map((l) => ({ descricao: l.descricao, precoCents: lineTotal(l) }));
+}
+
+export const resumoDosTrabalhosAMais = (ts: readonly TrabalhoAMais[]): { n: number; valorCents: Cents } => ({
+  n: ts.length,
+  valorCents: ts.reduce((s, t) => s + t.precoCents, 0),
+});

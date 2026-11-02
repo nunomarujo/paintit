@@ -2,7 +2,9 @@ import type { Cents } from './money';
 import type { Indicacao } from './metodologia';
 
 /**
- * As indicações da Fase 1: **factos verificáveis, não conselhos**.
+ * As indicações: **a mais barata**, **a mais completa** e **a Escolha Quem Pinta** (versão 1.1 da
+ * metodologia, 02/11/2026, a pedido do promotor). As duas primeiras são factos verificáveis; a terceira
+ * é a sugestão da plataforma, sempre com a justificação escrita em números da própria matriz.
  *
  * As duas que aqui estão lêem-se directamente do que as propostas declaram — qual tem o menor total
  * e, entre as que cobrem o pedido com preço firme, qual tem o menor total. Nenhuma precisa de
@@ -29,6 +31,11 @@ export interface PropostaParaIndicacao {
   naoIndicados: number;
   /** Trabalhos pedidos que a proposta declara expressamente não fazer. */
   excluidos: number;
+  /**
+   * Trabalhos que a proposta inclui **além** do que foi pedido (sem acessos, licenças nem a
+   * linha de preço global, que não são trabalhos): quantos e quanto somam. Zero quando não há.
+   */
+  aMais?: { n: number; valorCents: Cents };
 }
 
 export interface IndicacaoAtribuida {
@@ -77,6 +84,7 @@ export function indicacoes(
       atribuidas: [],
       naoAtribuidas: [
         { indicacao: 'menor_preco', motivo: 'Com uma proposta só não há comparação a fazer.' },
+        { indicacao: 'mais_completa', motivo: 'Com uma proposta só não há comparação a fazer.' },
         { indicacao: 'menor_preco_completo', motivo: 'Com uma proposta só não há comparação a fazer.' },
       ],
     };
@@ -115,6 +123,40 @@ export function indicacoes(
     });
   }
 
+  // 1b. A mais completa: mais trabalhos pedidos cobertos com preço fechado; depois mais trabalhos a
+  // mais; depois menor total. Diz quantos trabalhos a mais traz e quanto custam.
+  const cobertos = (p: PropostaParaIndicacao) => trabalhosPedidos - p.naoIndicados - p.excluidos;
+  const aMaisDe = (p: PropostaParaIndicacao) => p.aMais ?? { n: 0, valorCents: 0 };
+  let maisCompleta: PropostaParaIndicacao | null = null;
+  if (trabalhosPedidos > 0) {
+    const ordem = [...ps].sort(
+      (a, b) => cobertos(b) - cobertos(a) || aMaisDe(b).n - aMaisDe(a).n || a.totalComIva - b.totalComIva,
+    );
+    const primeira = ordem[0]!;
+    const empatadas = ordem.filter(
+      (p) => cobertos(p) === cobertos(primeira) && aMaisDe(p).n === aMaisDe(primeira).n && p.totalComIva === primeira.totalComIva,
+    );
+    if (empatadas.length > 1) {
+      naoAtribuidas.push({ indicacao: 'mais_completa', motivo: `${empatadas.map((p) => p.alias).join(' e ')} incluem o mesmo: não há uma mais completa.` });
+    } else {
+      maisCompleta = primeira;
+      const extra = aMaisDe(primeira);
+      const falta = trabalhosPedidos - cobertos(primeira);
+      const nota =
+        (falta === 0 ? 'inclui todos os trabalhos pedidos' : `inclui ${cobertos(primeira)} dos ${trabalhosPedidos} trabalhos pedidos`) +
+        (extra.n > 0 ? ` e acrescenta ${extra.n === 1 ? 'um trabalho que não foi pedido' : `${extra.n} trabalhos que não foram pedidos`} (${formata(extra.valorCents)}).` : ', sem trabalhos a mais.') +
+        (!primeira.precoFirme ? ' Parte do preço só fecha depois de observar.' : '');
+      atribuidas.push({
+        indicacao: 'mais_completa',
+        propostaId: primeira.id,
+        alias: primeira.alias,
+        valor: formata(primeira.totalComIva),
+        nota,
+        justificacao: `${formata(primeira.totalComIva)}, ${nota}`,
+      });
+    }
+  }
+
   // 2. Melhor preço para o pedido completo: só entre as comparáveis entre si.
   if (trabalhosPedidos === 0) {
     naoAtribuidas.push({
@@ -128,7 +170,7 @@ export function indicacoes(
   if (completas.length === 0) {
     naoAtribuidas.push({
       indicacao: 'menor_preco_completo',
-      motivo: 'Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados.',
+      motivo: 'Nenhuma proposta declara incluir todos os trabalhos pedidos sem custos condicionados: não há Escolha Quem Pinta.',
     });
     return { atribuidas, naoAtribuidas };
   }
@@ -151,7 +193,24 @@ export function indicacoes(
     diferenca > 0
       ? ` Custa mais ${formata(diferenca)} (${(((diferenca / menorDeTodas) * 100)).toLocaleString('pt-PT', { maximumFractionDigits: 1 })}%) do que o menor preço apresentado, que não cobre o pedido todo.`
       : '';
-  const notaCompleta = `declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.${contraOMenor}`;
+  // E contra a mais completa, quando é outra: o que ela acrescenta não foi pedido, e a diferença de
+  // preço ou corresponde a esses trabalhos ou excede-os — é isso que justifica a escolha.
+  let contraAMaisCompleta = '';
+  if (maisCompleta && maisCompleta.id !== vencedora.id) {
+    const dif = maisCompleta.totalComIva - vencedora.totalComIva;
+    const extra = aMaisDe(maisCompleta);
+    if (dif > 0) {
+      const oQueAcrescenta = extra.n > 0 ? `acrescenta ${extra.n === 1 ? 'um trabalho que não foi pedido' : `${extra.n} trabalhos que não foram pedidos`}` : 'não acrescenta trabalhos ao pedido';
+      const leitura =
+        extra.n > 0 && dif > extra.valorCents
+          ? ` — a diferença de preço (${formata(dif)}) é superior ao valor desses trabalhos (${formata(extra.valorCents)}); o resto é preço mais alto pelos mesmos trabalhos.`
+          : extra.n > 0
+            ? ` — a diferença de preço (${formata(dif)}) corresponde a esses trabalhos; vale a pena se os quiser.`
+            : ` — custa mais ${formata(dif)} pelo mesmo pedido.`;
+      contraAMaisCompleta = ` A mais completa (${maisCompleta.alias}) ${oQueAcrescenta}${leitura}`;
+    }
+  }
+  const notaCompleta = `declara incluir todos os trabalhos pedidos, sem custos condicionados declarados.${contraOMenor}${contraAMaisCompleta}`;
   atribuidas.push({
     indicacao: 'menor_preco_completo',
     propostaId: vencedora.id,

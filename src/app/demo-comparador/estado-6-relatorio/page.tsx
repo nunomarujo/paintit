@@ -5,7 +5,7 @@ import { BRAND } from '@/config/brand';
 import { formatEuros } from '@/domain/money';
 import { formatArea } from '@/domain/request';
 import { qrCodeSvg } from '@/lib/qrcode';
-import { VERSAO_METODOLOGIA, enderecoDaMetodologia, prioridadeEmPalavras } from '@/domain/metodologia';
+import { REGRAS_DAS_INDICACOES, VERSAO_METODOLOGIA, enderecoDaMetodologia, prioridadeEmPalavras } from '@/domain/metodologia';
 import { construirComparacao } from '../dados';
 import { AREA_TOTAL_CM2 } from '../fixtures';
 
@@ -19,7 +19,7 @@ const comSinal = (c: number) => (c === 0 ? '—' : `${c > 0 ? '+' : '−'}${form
 export const dynamic = 'force-static';
 
 export default function Page() {
-  const { rows, linhasDaSintese, leituraDaSintese, linhasDaMatriz, economico, referencia } = construirComparacao();
+  const { rows, linhasDaSintese, leituraDaSintese, linhasDaMatriz, economico, referencia, indicacoes } = construirComparacao();
   const enderecoMetodologia = enderecoDaMetodologia();
   const qrMetodologia = qrCodeSvg(enderecoMetodologia, 'Código QR da metodologia usada neste relatório');
 
@@ -44,8 +44,32 @@ export default function Page() {
 
           <section className="mt-6">
             <p className="doc-rotulo">1 · Síntese e apreciação {BRAND.name}</p>
+            <div className="mt-3 grid grid-cols-3 gap-x-6">
+              {REGRAS_DAS_INDICACOES.map((regra) => {
+                const atribuida = indicacoes.atribuidas.find((x) => x.indicacao === regra.id);
+                const sem = indicacoes.naoAtribuidas.find((x) => x.indicacao === regra.id);
+                return (
+                  <div key={regra.id} className="doc-conclusao break-inside-avoid">
+                    <p className="doc-rotulo">{regra.rotulo}</p>
+                    {atribuida ? (
+                      <>
+                        <p className="doc-destaque mt-1">{atribuida.valor}</p>
+                        <p className="mt-1">
+                          <strong>{atribuida.alias}</strong> — {atribuida.nota}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-1 text-slate-600">Não se atribui: {sem?.motivo}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="doc-rodape mt-2">
+              A mais barata e a mais completa são factos lidos das propostas; a Escolha {BRAND.name} é a sugestão da
+              plataforma, com a razão escrita ao lado. A decisão é do condomínio.
+            </p>
             <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />
-            <p className="doc-rodape mt-2">São factos lidos das propostas, e não uma escolha da plataforma.</p>
           </section>
 
           <section className="mt-8">

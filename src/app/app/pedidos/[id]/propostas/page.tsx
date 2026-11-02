@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MessageThread } from '@/components/MessageThread';
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
+import { SugestoesQuemPinta } from '@/components/SugestoesQuemPinta';
+import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
 import { ProposalView } from '@/components/ProposalView';
 import { parseCapoto } from '@/lib/capoto';
 import { clientGuarantee } from '@/domain/commission';
@@ -24,6 +26,8 @@ import {
   trabalhosDaProposta,
   type EstadoNoPedido,
   type TrabalhoNaProposta,
+  resumoDosTrabalhosAMais,
+  trabalhosAMais,
 } from '@/domain/comparador';
 import { canManage, myRole } from '@/lib/access';
 import { productsFor } from '@/lib/materials';
@@ -200,6 +204,7 @@ export default async function ProposalsPage({
     trabalhos: trabalhosPorProposta.get(r.id)!,
     categorias: r.categorias,
     precoGlobal: byId.get(r.id)!.modo_preco === 'global',
+    aMais: trabalhosAMais(desiredWorks, linesOf(r.id)),
   });
   const escolhe = (pedido: string | undefined, porOmissao: number) =>
     sorted.find((r) => r.id === pedido) ?? sorted[porOmissao] ?? sorted[0];
@@ -230,6 +235,25 @@ export default async function ProposalsPage({
       formataData: pt,
   });
   const leituraDaSintese = leituraImediata(propostasDaSintese, formatEuros);
+  // As três indicações — a mais barata, a mais completa, a Escolha Quem Pinta — pelas regras da
+  // metodologia 1.1 (src/domain/indicacoes.ts); as mesmas do relatório.
+  const indicacoes = calcularIndicacoes(
+    sorted.map((r) => {
+      const c = classificacaoDe.get(r.id)!;
+      const ts = trabalhosPorProposta.get(r.id)!;
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        precoFirme: c.cobertura.semPrecoFirme === 0 && c.definicao.definido,
+        naoIndicados: ts.filter((t) => t.estado === 'nao_indicado').length,
+        excluidos: ts.filter((t) => t.estado === 'excluido').length,
+        aMais: resumoDosTrabalhosAMais(trabalhosAMais(desiredWorks, linesOf(r.id))),
+      };
+    }),
+    formatEuros,
+    desiredWorks.length,
+  );
 
   const chosen = list.find((p) => p.status === 'selecionada');
   const threadsWithoutProposal = [...new Set((messages ?? []).map((m) => m.proposal_id))].filter((pid) => !byId.has(pid));
@@ -258,6 +282,7 @@ export default async function ProposalsPage({
         </Link>
       )}
 
+      {sorted.length > 1 && <SugestoesQuemPinta indicacoes={indicacoes} />}
       {sorted.length > 1 && <SinteseDasPropostas linhas={linhasDaSintese} aliases={sorted.map((r) => r.alias)} leitura={leituraDaSintese} />}
 
       {sorted.length > 0 && (
@@ -489,7 +514,7 @@ export default async function ProposalsPage({
                   <Row
                     key={c}
                     label={LINE_CATEGORY_LABELS[c]}
-                    cells={sorted.map((r) => (r.categorias[c] !== null ? formatEuros(r.categorias[c]!) : <Missing key={r.id} />))}
+                    cells={sorted.map((r) => (r.categorias[c] !== null ? formatEuros(r.categorias[c]!) : '—'))}
                   />
                 ))}
                 <Row

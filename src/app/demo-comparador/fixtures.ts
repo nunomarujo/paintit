@@ -41,7 +41,7 @@ export const PROPOSTA_A: {
     L({ categoria: 'reparacao', descricao: 'Reparação de fissuras · tratamento com massa elastómera e rede', quantidade: 4000, unidade: 'ml', precoUnitario: 800, inclusao: 'incluido', trabalho: 'fissuras' }),
     L({ categoria: 'preparacao', descricao: 'Primário fixador', quantidade: 24000, unidade: 'm2', precoUnitario: 250, produto: 'CIN Primário Fixador', demaos: 1, inclusao: 'incluido', trabalho: 'primario' }),
     L({ categoria: 'pintura', descricao: 'Pintura final, acabamento mate', quantidade: 24000, unidade: 'm2', precoUnitario: 900, produto: 'CIN Vinylmatt', demaos: 2, inclusao: 'incluido', trabalho: 'pintura_final' }),
-    L({ categoria: 'pintura', descricao: 'Impermeabilização da platibanda (fachada poente)', quantidade: 2000, unidade: 'm2', precoUnitario: 1800, produto: 'Sika Membrane', inclusao: 'incluido', trabalho: 'impermeabilizacao', zonas: ['poente'], superficie: 'beirais_cobertura' }),
+    L({ categoria: 'pintura', descricao: 'Impermeabilização da platibanda (fachada poente)', quantidade: 2000, unidade: 'm2', precoUnitario: 1800, produto: 'Sika Membrane', demaos: 2, inclusao: 'incluido', trabalho: 'impermeabilizacao', zonas: ['poente'], superficie: 'beirais_cobertura' }),
     L({ categoria: 'acessos', descricao: 'Andaimes, 15 dias', quantidade: 100, unidade: 'vg', precoUnitario: 90000, inclusao: 'incluido', trabalho: 'acessos', superficie: null }),
     L({ categoria: 'licencas', descricao: 'Ocupação da via pública', quantidade: 100, unidade: 'vg', precoUnitario: 15000, inclusao: 'incluido', trabalho: 'licencas', superficie: null }),
   ],
@@ -67,22 +67,31 @@ export const PROPOSTA_B: typeof PROPOSTA_A = {
   avaliacao: null,
 };
 
+/**
+ * O cenário da demonstração (promotor, 02/11/2026): três propostas com papéis claros.
+ *  - **Pintor B, a mais barata**, mas não faz tudo: exclui as fissuras e não fala da impermeabilização.
+ *  - **Pintor A, a intermédia**, cobre o pedido inteiro com preço firme e sem trabalhos a mais.
+ *  - **Pintor C, a mais completa**, cobre o pedido e acrescenta dois trabalhos que não foram pedidos
+ *    (guardas metálicas e tectos das varandas), por um total cuja diferença para A excede o valor
+ *    desses trabalhos — é isso que faz de A a Escolha Quem Pinta, com a justificação escrita.
+ */
 export const PROPOSTA_C: typeof PROPOSTA_A = {
   lines: [
-    L({ categoria: 'preparacao', descricao: 'Lavagem e limpeza', quantidade: 24000, unidade: 'm2', precoUnitario: 0, inclusao: 'incluido', trabalho: 'lavagem' }),
-    L({ categoria: 'reparacao', descricao: 'Reparação de fissuras: só se orçamenta depois de observar a extensão real.', quantidade: 4000, unidade: 'ml', precoUnitario: 0, inclusao: 'condicionado', trabalho: 'fissuras' }),
-    L({ categoria: 'preparacao', descricao: 'Primário', quantidade: 24000, unidade: 'm2', precoUnitario: 0, produto: 'Sherwin-Williams ProClassic', demaos: 1, inclusao: 'incluido', trabalho: 'primario' }),
-    L({ categoria: 'pintura', descricao: 'Pintura final, acabamento mate', quantidade: 24000, unidade: 'm2', precoUnitario: 0, produto: 'CIN Vinylmatt', demaos: 2, inclusao: 'incluido', trabalho: 'pintura_final' }),
-    L({ categoria: 'pintura', descricao: 'Impermeabilização da platibanda: zona de acesso condicionado; proposta em separado se necessário.', quantidade: 2000, unidade: 'm2', precoUnitario: 0, inclusao: 'nao_incluido', trabalho: 'impermeabilizacao', zonas: ['poente'], superficie: 'beirais_cobertura' }),
-    L({ categoria: 'acessos', descricao: 'Andaimes', quantidade: 100, unidade: 'vg', precoUnitario: 0, inclusao: 'incluido', trabalho: 'acessos', superficie: null }),
-    L({ categoria: 'licencas', descricao: 'Ocupação da via pública', quantidade: 100, unidade: 'vg', precoUnitario: 0, inclusao: 'incluido', trabalho: 'licencas', superficie: null }),
-    L({ categoria: 'outro', descricao: 'Preço global da empreitada', quantidade: 100, unidade: 'vg', precoUnitario: 540000, inclusao: 'incluido', trabalho: 'global', superficie: null }),
+    L({ categoria: 'preparacao', descricao: 'Lavagem e limpeza · lavagem a alta pressão com biocida', quantidade: 24000, unidade: 'm2', precoUnitario: 350, inclusao: 'incluido', trabalho: 'lavagem' }),
+    L({ categoria: 'reparacao', descricao: 'Reparação de fissuras · abertura, massa elastómera e rede', quantidade: 4000, unidade: 'ml', precoUnitario: 900, inclusao: 'incluido', trabalho: 'fissuras' }),
+    L({ categoria: 'preparacao', descricao: 'Primário fixador', quantidade: 24000, unidade: 'm2', precoUnitario: 300, produto: 'CIN Primário Fixador', demaos: 1, inclusao: 'incluido', trabalho: 'primario' }),
+    L({ categoria: 'pintura', descricao: 'Pintura final, acabamento mate', quantidade: 24000, unidade: 'm2', precoUnitario: 1000, produto: 'CIN Vinylmatt', demaos: 2, inclusao: 'incluido', trabalho: 'pintura_final' }),
+    L({ categoria: 'pintura', descricao: 'Impermeabilização da platibanda (fachada poente)', quantidade: 2000, unidade: 'm2', precoUnitario: 2000, produto: 'Sika Membrane', demaos: 2, inclusao: 'incluido', trabalho: 'impermeabilizacao', zonas: ['poente'], superficie: 'beirais_cobertura' }),
+    L({ categoria: 'reparacao', descricao: 'Tratamento anticorrosivo e pintura das guardas metálicas das varandas', quantidade: 6000, unidade: 'ml', precoUnitario: 2200, produto: 'CIN C-Thane S258', demaos: 2, inclusao: 'incluido', trabalho: 'metais_madeiras', superficie: 'elementos_metalicos' }),
+    L({ categoria: 'pintura', descricao: 'Pintura dos tectos das varandas', quantidade: 3600, unidade: 'm2', precoUnitario: 1200, produto: 'CIN Vinylmatt', demaos: 2, inclusao: 'incluido', trabalho: null, superficie: 'varandas' }),
+    L({ categoria: 'acessos', descricao: 'Andaimes, 18 dias', quantidade: 100, unidade: 'vg', precoUnitario: 100000, inclusao: 'incluido', trabalho: 'acessos', superficie: null }),
+    L({ categoria: 'licencas', descricao: 'Ocupação da via pública', quantidade: 100, unidade: 'vg', precoUnitario: 15000, inclusao: 'incluido', trabalho: 'licencas', superficie: null }),
   ],
-  terms: { ivaBps: 2300, duracaoDias: 20, inicioPossivel: null, adiantamentoBps: 1000, garantiaAnos: 3, modoPreco: 'global' },
-  seguroRc: null,
+  terms: { ivaBps: 2300, duracaoDias: 18, inicioPossivel: '2026-11-17', adiantamentoBps: 2000, garantiaAnos: 5, modoPreco: 'detalhado' },
+  seguroRc: 'sim',
   seguroAt: 'sim',
   verificado: true,
-  avaliacao: { media: 4.0, n: 2 },
+  avaliacao: { media: 4.8, n: 9 },
 };
 
 export const PROPOSTAS = [

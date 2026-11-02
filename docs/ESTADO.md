@@ -1866,6 +1866,11 @@ espaços autenticados: os 31 botões à mão passaram para `btn-*` (inventário 
 maiúsculas espaçadas saíram, os kickers acima dos títulos foram dobrados no título ou no subtítulo
 (condómino, obra «Hoje», dossiê, subscrição). Ver DECISOES.md do dia.
 
+**Três indicações e a Escolha Quem Pinta (02/11/2026, metodologia 1.1):** a mais barata, a mais
+completa e a Escolha Quem Pinta com justificação, no ecrã das propostas, no relatório e na
+demonstração da página inicial; a demonstração voltou a ter estilo (o script embebia só uma das duas
+folhas de CSS) e tem um cenário coerente com três papéis. Ver DECISOES.md.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

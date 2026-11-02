@@ -18,7 +18,7 @@ const ESTADOS = [
     ficheiro: 'estado-1-sintese.html',
     url: 'app.quempinta.pt/pedidos/.../propostas',
     largura: 900,
-    frase: 'O preço mais baixo não conta a história toda.',
+    frase: 'Três indicações com a razão escrita: a mais barata, a mais completa e a Escolha Quem Pinta.',
   },
   {
     ficheiro: 'estado-2-detalhe.html',
@@ -42,7 +42,7 @@ const ESTADOS = [
     ficheiro: 'estado-5-nao-decomposta.html',
     url: 'app.quempinta.pt/pedidos/.../propostas/reconciliacao',
     largura: 820,
-    frase: 'Quando não é possível explicar uma diferença com rigor, mostramos o que falta esclarecer.',
+    frase: 'Entre a Escolha e a mais completa: o que são trabalhos a mais, e o que é só preço.',
   },
   {
     ficheiro: 'estado-6-relatorio.html',

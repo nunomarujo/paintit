@@ -179,8 +179,7 @@ export function SinteseDasPropostas({
                     <th
                       colSpan={indices.length + 1}
                       scope="colgroup"
-                      className={`doc-rotulo text-left ${k === 0 ? 'pt-3' : 'pt-5'} pb-1`}
-                      style={papel ? undefined : { fontSize: '11px' }}
+                      className={`${papel ? 'doc-rotulo' : 'text-[13px] font-semibold text-slate-500'} text-left ${k === 0 ? 'pt-3' : 'pt-5'} pb-1`}
                     >
                       {BLOCOS[l.bloco]}
                     </th>
@@ -243,7 +242,7 @@ export function SinteseDasPropostas({
           )}
           {difs.length > 0 && (
             <div className={papel ? 'doc-tema break-inside-avoid' : 'mt-4 border-t border-slate-200 pt-3'}>
-              <p className="doc-rotulo">O que distingue estas {indices.length}</p>
+              <p className={papel ? 'doc-rotulo' : 'text-[13px] font-semibold text-slate-500'}>O que distingue estas {indices.length}</p>
               <dl className={`mt-1 space-y-0.5 ${papel ? '' : 'text-[15px]'}`}>
                 {difs.map((d) => (
                   <div key={d.criterio}>

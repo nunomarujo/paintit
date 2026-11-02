@@ -50,7 +50,7 @@ export default function Page() {
                   <Row
                     key={c}
                     label={LINE_CATEGORY_LABELS[c]}
-                    cells={rows.map((r) => (r.categorias[c] !== null ? formatEuros(r.categorias[c]!) : <Missing key={r.id} />))}
+                    cells={rows.map((r) => (r.categorias[c] !== null ? formatEuros(r.categorias[c]!) : '—'))}
                   />
                 ))}
                 <Row

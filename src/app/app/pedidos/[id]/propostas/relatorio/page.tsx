@@ -17,6 +17,8 @@ import {
   ordenar,
   quantidadeEmPalavras,
   trabalhosDaProposta,
+  resumoDosTrabalhosAMais,
+  trabalhosAMais,
 } from '@/domain/comparador';
 import { quadroEconomico, type LadoDaReconciliacao } from '@/domain/reconciliacao';
 import { alternativaProxima, leituraImediata, pendenciasQueImportam, sinteseDasPropostas } from '@/domain/sintese';
@@ -125,6 +127,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
   const lado = (r: (typeof rows)[number]): LadoDaReconciliacao => ({
     id: r.id, alias: r.alias, base: r.totals.base, trabalhos: porProposta.get(r.id)!,
     categorias: r.categorias, precoGlobal: byId.get(r.id)!.modo_preco === 'global',
+    aMais: trabalhosAMais(trabalhos, linesOf(r.id)),
   });
 
   // A referência das comparações é a primeira da ordenação por omissão — a mais barata entre as que
@@ -169,6 +172,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
         precoFirme: c.cobertura.semPrecoFirme === 0 && c.definicao.definido,
         naoIndicados: porProposta.get(r.id)!.filter((t) => t.estado === 'nao_indicado').length,
         excluidos: porProposta.get(r.id)!.filter((t) => t.estado === 'excluido').length,
+        aMais: resumoDosTrabalhosAMais(trabalhosAMais(trabalhos, linesOf(r.id))),
       };
     }),
     formatEuros,
@@ -288,7 +292,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   propostas. Quando não há indicação, o bloco fica e diz porquê — é informação, e o
                   silêncio lia-se como desinteresse.
                 */}
-                <div className="mt-3 grid grid-cols-2 gap-x-8">
+                <div className="mt-3 grid grid-cols-3 gap-x-6">
                   {REGRAS_DAS_INDICACOES.map((regra) => {
                     const atribuida = indicacoes.atribuidas.find((x) => x.indicacao === regra.id);
                     const sem = indicacoes.naoAtribuidas.find((x) => x.indicacao === regra.id);
@@ -310,8 +314,9 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   })}
                 </div>
                 <p className="doc-rodape mt-2">
-                  São factos lidos das propostas, e não uma escolha da plataforma. O que cada indicação não quer
-                  dizer, e a metodologia que a produziu, estão em 1.1.
+                  A mais barata e a mais completa são factos lidos das propostas; a Escolha {BRAND.name} é a sugestão da
+                  plataforma, com a razão escrita ao lado. A decisão é do condomínio. O que cada indicação não quer dizer,
+                  e a metodologia que a produziu, estão em 1.1.
                 </p>
 
                 <MatrizDasPropostas linhas={linhasDaMatriz} variante="papel" />

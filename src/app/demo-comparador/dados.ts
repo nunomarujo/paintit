@@ -4,7 +4,8 @@
 import { compareProposals, type ComparableProposal } from '@/domain/proposal';
 import { formatEuros } from '@/domain/money';
 import { formatArea } from '@/domain/request';
-import { classificar, trabalhosDaProposta } from '@/domain/comparador';
+import { classificar, resumoDosTrabalhosAMais, trabalhosAMais, trabalhosDaProposta } from '@/domain/comparador';
+import { indicacoes as calcularIndicacoes } from '@/domain/indicacoes';
 import { sinteseDasPropostas, leituraImediata } from '@/domain/sintese';
 import { matrizDasPropostas } from '@/domain/matriz';
 import { quadroEconomico, type LadoDaReconciliacao } from '@/domain/reconciliacao';
@@ -72,6 +73,26 @@ export function construirComparacao() {
   });
   const leituraDaSintese = leituraImediata(propostasDaSintese, formatEuros);
 
+  // As três indicações (a mais barata, a mais completa, a Escolha Quem Pinta), pelas mesmas regras
+  // do ecrã real e do relatório (src/domain/indicacoes.ts).
+  const indicacoes = calcularIndicacoes(
+    sorted.map((r) => {
+      const c = classificacaoDe.get(r.id)!;
+      const ts = trabalhosPorProposta.get(r.id)!;
+      return {
+        id: r.id,
+        alias: r.alias,
+        totalComIva: r.totals.totalComIva,
+        precoFirme: c.cobertura.semPrecoFirme === 0 && c.definicao.definido,
+        naoIndicados: ts.filter((t) => t.estado === 'nao_indicado').length,
+        excluidos: ts.filter((t) => t.estado === 'excluido').length,
+        aMais: resumoDosTrabalhosAMais(trabalhosAMais(PEDIDO, byId.get(r.id)!.lines)),
+      };
+    }),
+    formatEuros,
+    PEDIDO.length,
+  );
+
   const emBloco = (id: string): PropostaEmBloco => {
     const p = byId.get(id)!;
     const r = rowById.get(id)!;
@@ -104,6 +125,7 @@ export function construirComparacao() {
       trabalhos: trabalhosPorProposta.get(id)!,
       categorias: r.categorias,
       precoGlobal: p.terms.modoPreco === 'global',
+      aMais: trabalhosAMais(PEDIDO, p.lines),
     };
   };
 
@@ -137,6 +159,7 @@ export function construirComparacao() {
     classificacaoDe,
     linhasDaSintese,
     leituraDaSintese,
+    indicacoes,
     linhasDaMatriz,
     economico,
     referencia,

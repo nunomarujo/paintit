@@ -148,8 +148,8 @@ export default function Home() {
               O essencial não é o preço. É o que esse preço cobre.
             </h2>
             <p className="max-w-[46ch] text-[17px] leading-snug text-slate-600">
-              Cada proposta é lida pelo que inclui, exclui ou deixa por esclarecer, antes de olhar ao total. O comparador não
-              elege vencedora: mostra onde está a diferença.{' '}
+              Cada proposta é lida pelo que inclui, exclui ou deixa por esclarecer, antes de olhar ao total. Três indicações
+              com a razão escrita: a mais barata, a mais completa e a Escolha Quem Pinta. A decisão fica do seu lado.{' '}
               <Link href="/metodologia" className="ligacao">
                 Metodologia
               </Link>

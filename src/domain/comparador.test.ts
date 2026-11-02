@@ -207,13 +207,15 @@ describe('as três dimensões, sem pontuação nenhuma', () => {
     expect(ok.tecnica.frase).toBe('Segue os produtos pedidos e indica as demãos.');
   });
 
-  it('sem produtos pedidos, repara-se no trabalho incluído que não diz o que aplica', () => {
+  it('sem produtos pedidos, repara-se no trabalho incluído que não diz o que aplica — só nos que levam produto', () => {
     const c = classificar(sinais({
-      trabalhos: trabalhosDaProposta(['lavagem', 'pintura'], [
+      trabalhos: trabalhosDaProposta(['lavagem', 'primario', 'pintura'], [
         linha({ trabalho: 'lavagem' }),
+        linha({ trabalho: 'primario', demaos: 1 }),
         linha({ trabalho: 'pintura_final', produto: 'CIN Vinylmatt', demaos: 2 }),
       ]),
     }));
+    // A lavagem não leva produto no sentido da ficha técnica (02/11/2026); o primário leva.
     expect(c.tecnica.frase).toBe('Correspondência técnica por confirmar: 1 trabalho incluído sem produto nomeado.');
   });
 

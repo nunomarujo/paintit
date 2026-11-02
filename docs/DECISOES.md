@@ -4410,3 +4410,49 @@ O que fica decidido:
 
 Verificado com o inspetor taste-skill: página inicial, `/empresas`, `/fornecedores`, `/entrar`,
 `/transparencia` e `/metodologia` a zero falhas.
+
+## 02/11/2026 — Três indicações, e a Escolha Quem Pinta com justificação (metodologia 1.1)
+
+O promotor viu a demonstração do comparador na página inicial sem estilo nenhum (texto em Times, sem
+tabela) e com um cenário incoerente, e pediu duas coisas.
+
+**O defeito.** O build passou a dividir o CSS em dois ficheiros quando a fonte mudou; o script que gera
+os seis estados da demonstração embebia só o primeiro, e os ficheiros publicados ficaram sem Tailwind.
+Agora embebe todos (`scripts/gerar-demo-comparador.mjs`).
+
+**O cenário.** Três propostas com papéis claros: a mais barata que não faz tudo (Pintor B: exclui as
+fissuras, não fala da impermeabilização), a intermédia que cobre o pedido inteiro com preço firme
+(Pintor A) e a mais completa que acrescenta trabalhos não pedidos — guardas metálicas e tectos das
+varandas — por um total cuja diferença para A excede o valor desses trabalhos (Pintor C). O Pintor C
+deixou de ter preço global; o estado 5 da demonstração passou a comparar A com C.
+
+**A regra, que vale na aplicação e não só na demonstração.** As indicações passam a três, e a
+metodologia sobe para 1.1 (`src/domain/metodologia.ts`, `src/domain/indicacoes.ts`):
+
+- **A mais barata** — menor total apresentado, com o que lhe falta dito ao lado (já existia, com
+  outro nome).
+- **A mais completa** — a que cobre mais trabalhos pedidos com preço fechado; em igualdade, a que
+  acrescenta mais trabalhos não pedidos; depois a de menor total. Diz quantos trabalhos a mais traz
+  e quanto somam.
+- **Escolha Quem Pinta** — a de menor total entre as que incluem todo o pedido com preço fechado
+  (era a «menor total com o pedido completo»). É a única que a plataforma assume como sugestão, e
+  vem sempre com a justificação em números da própria matriz: quanto custa a mais do que a mais
+  barata e o que esta não cobre; e, contra a mais completa, se a diferença de preço corresponde aos
+  trabalhos a mais ou os excede («o resto é preço mais alto pelos mesmos trabalhos»). Sem nenhuma
+  elegível, não há Escolha e diz-se porquê.
+
+Isto revê a decisão de 29/10/2026 de não haver recomendação declarada: há uma, nomeada, com a regra
+publicada em `/metodologia/1.1` e com os limites escritos («compara o âmbito e o total; a decisão é
+do cliente»). A reputação continua sem ordenar nem destacar. O que não influencia nada (comissão,
+promoções, antiguidade) não mudou.
+
+**Onde aparece.** Três blocos por cima da síntese no ecrã das propostas do cliente
+(`SugestoesQuemPinta.tsx`), os mesmos três na primeira página do relatório para a assembleia (antes
+eram dois) e no estado 1 da demonstração. A reconciliação passou a tratar os trabalhos a mais como
+âmbito com o valor declarado, em vez de os deixar cair na «diferença não decomposta»
+(`reconciliacao.ts`, `aMais`). A correspondência técnica só cobra produto nos trabalhos que o levam
+(primário, pintura, impermeabilização, metais, humidade): uma lavagem sem «produto» não é um reparo.
+
+**Arrumações no mesmo commit:** rótulos de grupo da síntese e da matriz em caixa normal no ecrã
+(mantêm-se espaçados em maiúsculas no papel); categorias sem linhas mostram «—» em vez de «não
+indicado»; as notas técnicas da reconciliação começam em maiúscula.

@@ -5,6 +5,7 @@ import {
   porEsclarecer,
   type Equivalencia,
   type MotivoDeNaoEquivalencia,
+  type TrabalhoAMais,
   type TrabalhoNaProposta,
 } from './comparador';
 
@@ -99,6 +100,13 @@ export interface LadoDaReconciliacao {
   categorias: Record<LineCategory, Cents | null>;
   /** Preço fechado da obra toda: não há repartição para comparar. */
   precoGlobal: boolean;
+  /**
+   * Trabalhos incluídos **além** do pedido (`trabalhosAMais`, src/domain/comparador.ts). São âmbito
+   * a mais, com valor declarado; sem isto caíam na diferença não decomposta e a reconciliação dizia
+   * que não sabia explicar euros que a proposta escrevia linha a linha (cenário da demonstração,
+   * 02/11/2026). Opcional para não mexer em quem já chama.
+   */
+  aMais?: TrabalhoAMais[];
 }
 
 export interface Reconciliacao {
@@ -186,6 +194,14 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     }
   }
 
+  // 3: trabalhos a mais — só numa das propostas, por definição. Âmbito, com o valor que ela declara.
+  for (const t of a.aMais ?? []) {
+    parcelas.push({ causa: 'ambito', descricao: `${a.alias} inclui ${min(t.descricao)}, que não foi pedido; ${b.alias} não`, valorCents: -t.precoCents, proveniencia: 'declarado' });
+  }
+  for (const t of b.aMais ?? []) {
+    parcelas.push({ causa: 'ambito', descricao: `${b.alias} inclui ${min(t.descricao)}, que não foi pedido; ${a.alias} não`, valorCents: t.precoCents, proveniencia: 'declarado' });
+  }
+
   // 4: acessos e licenças. Só uma a incluir é âmbito; as duas a incluir com valores diferentes são
   // condições de obra — tipicamente o período de andaime ou o tipo de plataforma.
   for (const cat of ['acessos', 'licencas'] as const) {
@@ -216,7 +232,7 @@ export function reconciliar(a: LadoDaReconciliacao, b: LadoDaReconciliacao): Rec
     // Por construção, e não por sorte: o que as parcelas não explicam é exactamente isto.
     naoDecompostaCents: diferencaCents - somaDasParcelas,
     indecomponivel: false,
-    notasTecnicas,
+    notasTecnicas: notasTecnicas.map((n) => `${n[0]!.toLocaleUpperCase('pt-PT')}${n.slice(1)}`),
   };
 }
 

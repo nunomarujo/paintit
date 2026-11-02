@@ -29,7 +29,7 @@ import { ORDEM_LABELS, type Ordem } from './comparador';
  */
 
 /** Sobe quando mudarem os parâmetros, a sua ordem, ou as regras das indicações. */
-export const VERSAO_METODOLOGIA = '1.0';
+export const VERSAO_METODOLOGIA = '1.1';
 
 export interface ParametroDeClassificacao {
   id: string;
@@ -83,7 +83,7 @@ export const PARAMETROS: ParametroDeClassificacao[] = [
   },
 ];
 
-export const INDICACOES = ['menor_preco', 'menor_preco_completo'] as const;
+export const INDICACOES = ['menor_preco', 'mais_completa', 'menor_preco_completo'] as const;
 export type Indicacao = (typeof INDICACOES)[number];
 
 export interface RegraDaIndicacao {
@@ -104,31 +104,50 @@ export interface RegraDaIndicacao {
   limite: string;
 }
 
+/**
+ * As três indicações (versão 1.1, 02/11/2026, pedido do promotor): **a mais barata**, **a mais
+ * completa** e **a Escolha Quem Pinta**. As duas primeiras são factos lidos das propostas. A
+ * terceira é a única que a plataforma assume como sugestão — e por isso vem sempre com a
+ * justificação escrita, em números que estão na própria matriz: cobre o pedido todo com preço
+ * fechado e, entre as que o fazem, é a mais barata. Quando a mais completa acrescenta trabalhos
+ * que não foram pedidos, a justificação diz quanto custam a mais e se a diferença de preço os
+ * explica.
+ */
 export const REGRAS_DAS_INDICACOES: RegraDaIndicacao[] = [
   {
     id: 'menor_preco',
-    nome: 'Menor preço apresentado',
-    rotulo: 'Menor total apresentado',
+    nome: 'A mais barata: menor total apresentado',
+    rotulo: 'A mais barata',
     elegibilidade: 'Todas as propostas submetidas com um total conhecido.',
     criterio: 'O menor total com IVA, tal como cada proposta o apresenta.',
     limite:
       'Não quer dizer que seja a mais barata para a obra. Se lhe faltarem trabalhos que pediu, terá de os contratar à parte; se tiver preço por fechar, o total ainda pode subir. O que lhe falta aparece na linha ao lado.',
   },
   {
+    id: 'mais_completa',
+    nome: 'A mais completa: a que inclui mais trabalhos, pedidos e a mais',
+    rotulo: 'A mais completa',
+    elegibilidade: 'Todas as propostas submetidas.',
+    criterio:
+      'A que inclui mais trabalhos pedidos com preço fechado; em igualdade, a que acrescenta mais trabalhos não pedidos; em nova igualdade, a de menor total.',
+    limite:
+      'Incluir mais não é melhor negócio por si: os trabalhos a mais não foram pedidos e têm preço. A indicação diz quantos são e quanto custam, para se decidir se valem a diferença.',
+  },
+  {
     id: 'menor_preco_completo',
-    nome: 'Menor total entre as que declaram incluir tudo, sem custos condicionados',
-    rotulo: 'Menor total com o pedido todo e o preço fechado',
+    nome: 'Escolha Quem Pinta: menor total entre as que incluem todo o pedido com preço fechado',
+    rotulo: 'Escolha Quem Pinta',
     elegibilidade:
       'Propostas que declaram incluir todos os trabalhos pedidos e não declaram custos que só fechem depois de observar a obra.',
-    criterio: 'Entre essas, o menor total com IVA.',
+    criterio: 'Entre essas, o menor total com IVA. A justificação compara-a com a mais barata e com a mais completa.',
     limite:
-      'Compara apenas o total entre propostas que declaram o mesmo âmbito. Não diz nada sobre a qualidade da execução, sobre os produtos, sobre as demãos nem sobre o pintor — e uma proposta pouco mais cara pode oferecer mais. O relatório mostra a alternativa mais próxima em preço e o que ela traz de diferente.',
+      'Compara o âmbito e o total; não diz nada sobre a qualidade da execução nem sobre o pintor. A decisão é do cliente — a indicação existe para que a faça com os números à frente, e uma proposta pouco mais cara pode trazer mais.',
   },
 ];
 
 /** Diz-se antes de qualquer indicação, para que a sua ausência não se leia como desinteresse. */
 export const SEM_INDICACAO: string[] = [
-  'Nenhuma proposta inclui todos os trabalhos pedidos com o preço firme: nesse caso não se atribui «melhor preço para o pedido completo».',
+  'Nenhuma proposta inclui todos os trabalhos pedidos com o preço firme: nesse caso não há Escolha Quem Pinta, e diz-se porquê.',
   'Duas propostas empatam no critério: nenhuma recebe a indicação, e diz-se que empataram.',
   'Há uma divergência de medição por esclarecer que muda qual delas seria indicada.',
 ];

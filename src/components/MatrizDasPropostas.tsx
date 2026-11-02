@@ -72,7 +72,7 @@ export function MatrizDasPropostas({
                   <th
                     colSpan={5}
                     scope="colgroup"
-                    className={`doc-rotulo text-left ${i === 0 ? 'pt-3' : 'pt-5'} pb-1`}
+                    className={`${papel ? 'doc-rotulo' : 'text-[13px] font-semibold text-slate-500'} text-left ${i === 0 ? 'pt-3' : 'pt-5'} pb-1`}
                     style={papel ? undefined : { fontSize: '11px' }}
                   >
                     {l.grupo}

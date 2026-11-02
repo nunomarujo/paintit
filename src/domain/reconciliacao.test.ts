@@ -73,7 +73,7 @@ describe('a conta fecha sempre', () => {
     const r = fecha(a, b);
     expect(r.parcelas.filter((p) => p.causa === 'preco')).toEqual([]);
     expect(r.naoDecompostaCents).toBe(9600);
-    expect(r.notasTecnicas[0]).toBe('pintura final: A 2 demãos com CIN; B 1 demão com Barbot');
+    expect(r.notasTecnicas[0]).toBe('Pintura final: A 2 demãos com CIN; B 1 demão com Barbot');
   });
 
   it('a frase só nomeia o que difere: demãos iguais não se repetem', () => {
@@ -81,13 +81,13 @@ describe('a conta fecha sempre', () => {
     // procurar a diferença dentro da frase que devia apontá-la.
     const a = lado('A', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN' })]);
     const b = lado('B', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'Robbialac' })]);
-    expect(reconciliar(a, b).notasTecnicas[0]).toBe('pintura final: A CIN; B Robbialac');
+    expect(reconciliar(a, b).notasTecnicas[0]).toBe('Pintura final: A CIN; B Robbialac');
   });
 
   it('produto igual e demãos diferentes nomeia só as demãos', () => {
     const a = lado('A', [linha({ trabalho: 'pintura_final', demaos: 2, produto: 'CIN' })]);
     const b = lado('B', [linha({ trabalho: 'pintura_final', demaos: 1, produto: 'CIN' })]);
-    expect(reconciliar(a, b).notasTecnicas[0]).toBe('pintura final: A 2 demãos; B 1 demão');
+    expect(reconciliar(a, b).notasTecnicas[0]).toBe('Pintura final: A 2 demãos; B 1 demão');
   });
 
   it('execução diferente trava também a parcela de quantidade: não se valorizam metros que não são iguais', () => {
@@ -267,5 +267,25 @@ describe('o quadro económico: uma linha por proposta, em vez de um bloco por pa
     const b = lado('Pintor B', [linha({ trabalho: 'pintura_final', precoUnitario: 260 })]);
     const [l] = quadroEconomico(ref, [b], formatEuros);
     for (const d of l!.detalhe) expect(d).toMatch(/[+\u2212]\d/);
+  });
+});
+
+describe('trabalhos a mais na reconciliação (02/11/2026)', () => {
+  it('um trabalho que só uma proposta inclui, fora do pedido, é âmbito com o valor declarado — e não fica por decompor', async () => {
+    const { reconciliar } = await import('./reconciliacao');
+    const lado = (alias: string, base: number, aMais: { descricao: string; precoCents: number }[]) => ({
+      id: alias,
+      alias,
+      base,
+      trabalhos: [],
+      categorias: { preparacao: null, reparacao: null, pintura: null, acessos: null, licencas: null, outro: null },
+      precoGlobal: false,
+      aMais,
+    });
+    const r = reconciliar(lado('Pintor A', 500_000, []), lado('Pintor C', 620_000, [{ descricao: 'Pintura dos tectos das varandas', precoCents: 100_000 }]));
+    const ambito = r.parcelas.find((p) => p.causa === 'ambito')!;
+    expect(ambito.valorCents).toBe(100_000);
+    expect(ambito.descricao).toContain('que não foi pedido');
+    expect(r.naoDecompostaCents).toBe(20_000);
   });
 });

@@ -1,4 +1,5 @@
 import { SinteseDasPropostas } from '@/components/SinteseDasPropostas';
+import { SugestoesQuemPinta } from '@/components/SugestoesQuemPinta';
 import { formatArea } from '@/domain/request';
 import { construirComparacao } from '../dados';
 import { AREA_TOTAL_CM2 } from '../fixtures';
@@ -11,7 +12,7 @@ import { AREA_TOTAL_CM2 } from '../fixtures';
 export const dynamic = 'force-static';
 
 export default function Page() {
-  const { rows, linhasDaSintese, leituraDaSintese } = construirComparacao();
+  const { rows, linhasDaSintese, leituraDaSintese, indicacoes } = construirComparacao();
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl space-y-8 p-6">
@@ -21,6 +22,7 @@ export default function Page() {
             Os pintores aparecem como Pintor A, B, C… pela ordem de chegada. Área do pedido: {formatArea(AREA_TOTAL_CM2)}.
           </p>
         </div>
+        <SugestoesQuemPinta indicacoes={indicacoes} />
         <SinteseDasPropostas linhas={linhasDaSintese} aliases={rows.map((r) => r.alias)} leitura={leituraDaSintese} />
       </div>
     </div>
