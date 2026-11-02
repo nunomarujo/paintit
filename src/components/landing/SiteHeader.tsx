@@ -38,11 +38,22 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
 
   useEffect(() => {
     let raf = 0;
+    // Com fotografia por baixo, a ilha só aparece perto do fim do primeiro ecrã (`[data-hero]`) ao
+    // descer, e volta a barra perto do início ao subir — com folga entre os dois pontos para não
+    // tremer (promotor, 02/11/2026). Sem fotografia, basta sair do topo.
+    const limite = () => {
+      const hero = sobreFoto ? document.querySelector<HTMLElement>('[data-hero]') : null;
+      if (!hero) return { descer: 80, subir: 40 };
+      const fim = hero.offsetTop + hero.offsetHeight - hero.offsetHeight * 0.18;
+      return { descer: fim, subir: fim - window.innerHeight * 0.25 };
+    };
     const onScroll = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        setScrolled(window.scrollY > 80);
+        const y = window.scrollY;
+        const l = limite();
+        setScrolled((atual) => (atual ? y > l.subir : y > l.descer));
       });
     };
     onScroll();
@@ -51,7 +62,7 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
       window.removeEventListener('scroll', onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [sobreFoto]);
 
   useEffect(() => {
     const targets = NAV_LINKS.map((l) => document.getElementById(l.href.slice(1))).filter(

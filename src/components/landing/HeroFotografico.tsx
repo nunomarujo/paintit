@@ -22,7 +22,7 @@ export function HeroFotografico({ fotos, children }: { fotos: FotoDoHero[]; chil
   }, [fotos.length]);
 
   return (
-    <section className="relative flex hero-ecra items-end overflow-hidden bg-tinta-900 text-white">
+    <section data-hero className="relative flex hero-ecra items-end overflow-hidden bg-tinta-900 text-white">
       <div aria-hidden className="absolute inset-0">
         {fotos.map((f, k) => (
           // eslint-disable-next-line @next/next/no-img-element

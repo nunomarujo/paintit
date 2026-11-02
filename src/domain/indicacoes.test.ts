@@ -114,8 +114,9 @@ describe('a metodologia que se publica', () => {
     expect(f.toLowerCase()).toContain('não ordena');
   });
 
-  it('a comissão da plataforma está declarada como não influente', () => {
-    expect(NAO_INFLUENCIAM[0]!.toLowerCase()).toContain('comissão');
+  it('os custos imputados ao pintor estão declarados como não influentes', () => {
+    // «Custos que a plataforma imputa ao pintor», não «comissão»: redação do promotor (02/11/2026, regra 15 do CLAUDE.md).
+    expect(NAO_INFLUENCIAM[0]!.toLowerCase()).toContain('custos que a plataforma imputa ao pintor');
     expect(NAO_INFLUENCIAM.join(' ').toLowerCase()).toContain('pagamento por posição');
   });
 
