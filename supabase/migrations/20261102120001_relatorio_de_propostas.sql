@@ -1,5 +1,10 @@
 -- Relatório de propostas para a assembleia (secção 8 de "Quem Pinta — a oferta", 02/11/2026).
 --
+-- Nota de versão: construída em paralelo com outra sessão que gerou, na mesma altura, a migração
+-- `20261102120000_reserva_so_para_avaliadores_inscritos.sql` — mesmo timestamp, nenhuma relação entre
+-- as duas. Renomeada para `20261102120001` só para desfazer a colisão de versão (o Supabase usa o
+-- timestamp como chave); a ordem entre as duas não tem efeito nenhum, não dependem uma da outra.
+--
 -- Problema que resolve: o condomínio que decide e paga depende de quem imprime e distribui as
 -- propostas (normalmente o gestor de condomínio) para ver o quadro completo. Nada impedia, até
 -- agora, que esse gestor "esquecesse" de entregar uma proposta à assembleia.
