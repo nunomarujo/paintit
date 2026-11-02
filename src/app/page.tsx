@@ -47,7 +47,7 @@ const FOTOS_DO_HERO = [
   { src: '/img/obra-andaime.webp', alt: 'Pintor num andaime a passar o rolo numa fachada de prédio, ao fim da tarde' },
   { src: '/img/fachada-meia.webp', alt: 'Prédio com metade da fachada já repintada de cinzento claro e a outra metade por fazer, com andaime' },
   { src: '/img/gestor-e-pintor.webp', alt: 'Gestor de condomínio com um tablet e pintor a olharem para uma fachada' },
-  { src: '/img/trincha-janela.webp', alt: 'Mão a pintar de branco o aro de uma janela com uma trincha' },
+  // «trincha-janela» retirada a 02/11/2026: mostrava tinta a ir por cima de caixilharia podre — mau pintor. Volta quando houver a versão a lixar/raspar.
   // Pedida de volta pelo promotor (02/11/2026): rolo numa parede de tijolo, Michael Cory, CC BY 2.0 (crédito no rodapé).
   { src: '/img/rolo-na-parede.webp', alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar de laranja' },
   // Enviadas pelo promotor a 02/11/2026.
