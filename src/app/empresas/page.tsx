@@ -55,7 +55,7 @@ export default function Page() {
       fotoInclui={{ src: '/img/obra-andaime.webp', width: 1376, height: 768, alt: 'Pintor num andaime a passar o rolo numa fachada, ao fim da tarde' }}
     >
       {/* O MOTOR DE ORÇAMENTOS — a razão número um para o pintor entrar (promotor, 01/11/2026). */}
-      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-10">
+      <Revelar as="section" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-10">
         <div className="rounded-[28px] bg-tinta-900 px-6 py-14 text-white sm:px-12 sm:py-20">
         <div>
           <h2 className="max-w-3xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
@@ -82,7 +82,7 @@ export default function Page() {
       </Revelar>
 
       {/* AS FERRAMENTAS DA OBRA */}
-      <Revelar as="section" className="mx-auto grid max-w-6xl items-start gap-10 px-4 py-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+      <Revelar as="section" className="mx-auto grid max-w-[88rem] items-start gap-10 px-5 sm:px-8 lg:px-12 py-20 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
         <div className="lg:sticky lg:top-24">
           <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
             As ferramentas da obra, incluídas.

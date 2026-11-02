@@ -143,7 +143,7 @@ export default function Home() {
       {/* COMPARADOR — a maquete do produto logo a seguir ao primeiro ecrã, numa caixa cinzenta
           com a nota escura, como a referência faz com o painel de contas. Seis estados reais,
           gerados em build (scripts/gerar-demo-comparador.mjs). */}
-      <section id="demo-comparador" className="mx-auto max-w-6xl px-4 pt-10">
+      <section id="demo-comparador" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pt-10">
         <div className="rounded-[28px] bg-paper p-4 sm:p-8 lg:p-12">
           <div className="mb-6 grid gap-4 lg:mb-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px]">
@@ -176,7 +176,7 @@ export default function Home() {
       </PaintedHero>
 
       {/* COMO FUNCIONA — três passos em três colunas, cada um com o ecrã real redesenhado. */}
-      <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-24 lg:py-32">
+      <section id="como-funciona" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
         <h2 className={H2 + ' text-center'}>Três passos. É só isto.</h2>
         <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
           Descreva a obra, compare as propostas quando chegarem todas ao mesmo tempo, e assine um contrato que diz o que a
@@ -199,7 +199,7 @@ export default function Home() {
       </section>
 
       {/* LEVANTAMENTO GRATUITO — responde ao pedido vago, que é o que torna as propostas incomparáveis. */}
-      <section id="levantamento" className="mx-auto max-w-6xl px-4 pb-24 lg:pb-32">
+      <section id="levantamento" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>Não sabe medir? Um avaliador vai lá.</h2>
         <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
           Sem custo. Um profissional mede as zonas e fotografa o estado da fachada. As medidas ficam no pedido; os pintores
@@ -240,7 +240,7 @@ export default function Home() {
       </section>
 
       {/* TRÊS PROTEÇÕES — em positivo (pedido do promotor, 01/11/2026), em três cartões cinzentos. */}
-      <section id="transparencia" className="mx-auto max-w-6xl px-4 pb-24 lg:pb-32">
+      <section id="transparencia" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>Três proteções quando orçamenta por aqui.</h2>
         <p className="mx-auto mt-5 max-w-[60ch] text-center text-[17px] leading-relaxed text-slate-600">
           Em Portugal, a queixa mais comum contra empresas de pintura não é o preço: é a obra que fica a meio. E quase
@@ -266,7 +266,7 @@ export default function Home() {
       </section>
 
       {/* PARA QUEM — os dois cartões para as páginas próprias do pintor e do fornecedor. */}
-      <section id="para-quem" className="mx-auto max-w-6xl px-4 pb-24 lg:pb-32">
+      <section id="para-quem" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
         <h2 className={H2 + ' text-center'}>A plataforma também é sua.</h2>
         <Revelar className="mt-14 grid gap-4 md:grid-cols-2">
           {[
@@ -312,7 +312,7 @@ export default function Home() {
       </section>
 
       {/* ADMINISTRAÇÃO DE CONDOMÍNIOS — faixa fotográfica; âncora de "Gerir vários edifícios". */}
-      <section id="condominios" className="mx-auto max-w-6xl px-4 pb-24 lg:pb-32">
+      <section id="condominios" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 lg:pb-32">
         <div className="relative flex min-h-[520px] items-end overflow-hidden rounded-[28px] text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -341,7 +341,7 @@ export default function Home() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="mx-auto max-w-6xl px-4 pb-24 text-center">
+      <section className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 pb-24 text-center">
         <h2 className={H2}>Peça orçamentos, sem compromisso.</h2>
         <p className="mt-4 text-[17px] text-slate-600">Comparar propostas não tem custo.</p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -358,7 +358,7 @@ export default function Home() {
       </section>
 
       <footer className="bg-paper">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-[15px] text-slate-500">
+        <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-5 gap-y-2 px-5 sm:px-8 lg:px-12 py-6 text-[15px] text-slate-500">
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>

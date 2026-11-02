@@ -104,8 +104,8 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
           className={
             'mx-auto flex h-full w-full items-center justify-between transition-all duration-250 ' +
             (scrolled
-              ? 'max-w-6xl bg-white/95 px-4 py-0 sm:h-[58px]'
-              : 'max-w-6xl bg-transparent px-4')
+              ? 'max-w-[88rem] bg-white/95 px-5 sm:px-8 lg:px-12 py-0 sm:h-[58px]'
+              : 'max-w-[88rem] bg-transparent px-5 sm:px-8 lg:px-12')
           }
         >
           <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center pl-2">

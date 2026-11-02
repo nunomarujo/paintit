@@ -68,7 +68,7 @@ export function PaginaDePerfil({
       {/* Primeiro ecrã: o título à esquerda e uma fotografia que ocupa a metade direita até à margem da janela — uma coisa a dominar, não duas. */}
       <section className="bg-paper pt-[72px]">
         <div className="grid items-stretch gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-0">
-          <div className="mx-auto w-full max-w-6xl px-4 pt-10 lg:mx-0 lg:max-w-none lg:py-20 lg:pl-[max(1rem,calc((100vw-72rem)/2+1rem))] lg:pr-8">
+          <div className="mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-12 pt-10 lg:mx-0 lg:max-w-none lg:py-20 lg:pl-[max(1rem,calc((100vw-88rem)/2+3rem))] lg:pr-12">
             <h1 className="text-[34px] font-medium leading-[1.02] tracking-[-0.035em] text-tinta-900 sm:text-[44px] xl:text-[48px]">{titulo}</h1>
             <p className="mt-5 max-w-[48ch] text-[17px] leading-relaxed text-slate-600 sm:text-[20px]">{intro}</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -84,7 +84,7 @@ export function PaginaDePerfil({
         </div>
       </section>
 
-      <Revelar as="section" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 lg:grid-cols-2 lg:gap-16">
+      <Revelar as="section" className="mx-auto grid max-w-[88rem] items-center gap-10 px-5 sm:px-8 lg:px-12 py-20 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">{destaquesTitulo}</h2>
           <ul className="mt-6 flex flex-col gap-5">
@@ -111,7 +111,7 @@ export function PaginaDePerfil({
       {children}
 
       <Revelar as="section" className="bg-paper py-20">
-        <div className="mx-auto grid max-w-6xl items-start gap-10 px-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-16">
+        <div className="mx-auto grid max-w-[88rem] items-start gap-10 px-5 sm:px-8 lg:px-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-16">
           <div>
             <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">Tudo o que inclui</h2>
             <ul className="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
@@ -128,7 +128,7 @@ export function PaginaDePerfil({
         </div>
       </Revelar>
 
-      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-16">
+      <Revelar as="section" className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12 py-16">
         <div className="rounded-[28px] bg-tinta-900 px-7 py-14 text-center text-white">
           <h2 className="mx-auto max-w-2xl text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">{ctaTexto}.</h2>
           <p className="mt-3 text-[17px] text-tinta-200">{ctaNota}</p>
@@ -144,7 +144,7 @@ export function PaginaDePerfil({
       </Revelar>
 
       <footer className="bg-paper">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-[15px] text-slate-500">
+        <div className="mx-auto flex max-w-[88rem] flex-wrap items-center gap-x-5 gap-y-2 px-5 sm:px-8 lg:px-12 py-6 text-[15px] text-slate-500">
           <BrandMark />
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>
