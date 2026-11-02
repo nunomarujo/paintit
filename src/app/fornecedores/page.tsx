@@ -72,7 +72,7 @@ export default function Page() {
       ctaHref={toOrg('fornecedor')}
       ctaTexto={c.ctaTexto}
       ctaNota={c.ctaNota}
-      foto={{ src: '/img/balcao-loja.webp', width: 1376, height: 768, alt: 'Vendedor ao balcão de uma loja de tintas a mostrar uma ficha técnica a um pintor' }}
+      foto={{ src: '/img/balcao-loja.webp', width: 1230, height: 848, alt: 'Vendedor ao balcão de uma loja de tintas a mostrar uma ficha técnica a um pintor' }}
       destaquesTitulo="O que muda para o fornecedor de tintas"
       fotoInclui={{ src: '/img/maquina-de-tinta.webp', width: 1376, height: 768, alt: 'Máquina de afinação a deitar corante azul num balde de tinta branca' }}
     >
