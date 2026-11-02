@@ -7,7 +7,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
  * 70 ms, 16 px a subir com opacidade. Uma vez só. Com `prefers-reduced-motion` o conteúdo aparece
  * sem deslocação (CSS em `globals.css`, `.revelar`). Sem script, os filhos estão sempre visíveis.
  */
-export function Revelar({ children, className, as: Tag = 'div' }: { children: ReactNode; className?: string; as?: 'div' | 'section' }) {
+export function Revelar({ children, className, id, as: Tag = 'div' }: { children: ReactNode; className?: string; id?: string; as?: 'div' | 'section' }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -28,7 +28,7 @@ export function Revelar({ children, className, as: Tag = 'div' }: { children: Re
     return () => io.disconnect();
   }, []);
   return (
-    <Tag ref={ref as React.RefObject<HTMLDivElement>} className={`revelar ${className ?? ''}`}>
+    <Tag ref={ref as React.RefObject<HTMLDivElement>} id={id} className={`revelar ${className ?? ''}`}>
       {children}
     </Tag>
   );

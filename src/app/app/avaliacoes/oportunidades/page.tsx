@@ -4,6 +4,8 @@ import { ReserveButton } from '@/app/app/levantamentos/ReserveButton';
 import { referenciaDoLevantamento } from '@/domain/referencias';
 import { quandoCurto } from '@/domain/contagem';
 import { getUser } from '@/lib/supabase/server';
+import Link from 'next/link';
+import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 
 /**
  * Oportunidades — os pedidos abertos na zona coberta, à espera de quem os aceite.
@@ -22,6 +24,15 @@ export default async function OportunidadesPage() {
   // «Ainda não pertenço a nenhuma empresa» e «fui convidado e não aceitei» não são erros: são
   // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
   if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
+
+  // Sem a autodeclaração de avaliador não se aceitam oportunidades (02/11/2026). A barreira é do
+  // ecrã: a reserva na base continua aberta a quem pertence a um fornecedor — fechá-la também lá
+  // pede migração (EM_ABERTO.md).
+  const { data: inscrito } = await supabase
+    .from('survey_terms_acceptances')
+    .select('version')
+    .eq('version', VERSAO_AUTODECLARACAO_DO_AVALIADOR)
+    .maybeSingle();
 
   const { data: abertos } = await supabase
     .from('request_surveys')
@@ -52,6 +63,18 @@ export default async function OportunidadesPage() {
         </p>
       </div>
 
+      {!inscrito && (
+        <section className="rounded-2xl bg-amber-50 p-4 text-[17px] text-amber-900 sm:p-5">
+          <p className="font-semibold">Ainda não está inscrita como avaliador.</p>
+          <p className="mt-1">
+            Para aceitar um levantamento é preciso a autodeclaração de experiência e compromisso, que demora um minuto.
+          </p>
+          <Link href="/app/avaliacoes/inscricao" className="btn-primary mt-3">
+            Inscrever-me como avaliador
+          </Link>
+        </section>
+      )}
+
       {naZona.length === 0 ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <h2 className="text-[20px] font-semibold text-slate-900">Nenhuma oportunidade de momento</h2>
@@ -76,7 +99,13 @@ export default async function OportunidadesPage() {
                     {s.zona!.tipo_obra} · aberta desde {q.dia.toLowerCase()}, {q.hora}
                   </span>
                 </span>
-                <ReserveButton surveyId={s.id} orgId={pertenca.orgId} />
+                {inscrito ? (
+                  <ReserveButton surveyId={s.id} orgId={pertenca.orgId} />
+                ) : (
+                  <Link href="/app/avaliacoes/inscricao" className="btn-secondary shrink-0">
+                    Inscrever-me primeiro
+                  </Link>
+                )}
               </li>
             );
           })}

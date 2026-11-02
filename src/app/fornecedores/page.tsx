@@ -1,7 +1,11 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { CONTEUDO_DE_PERFIL, DEMO_DE_PERFIL, toOrg } from '@/components/landing/perfis';
 import { PaginaDePerfil } from '@/components/landing/PaginaDePerfil';
 import { Revelar } from '@/components/landing/Revelar';
+import { VALOR_DE_EXEMPLO_CENTS, percentagemEmPalavras, simularGanho } from '@/domain/avaliador';
+import { formatEuros } from '@/domain/money';
+import { SURVEYOR_SHARE_OF_VALUE_BP_MAX, SURVEYOR_SHARE_OF_VALUE_BP_MIN } from '@/domain/survey';
 import { BRAND } from '@/config/brand';
 
 const intro =
@@ -91,6 +95,47 @@ export default function Page() {
               </li>
             ))}
           </ol>
+        </div>
+      </Revelar>
+
+      {/* GANHAR DUAS VEZES — a figura do avaliador (promotor, 02/11/2026). Os números saem da regra
+          real (src/domain/avaliador.ts, survey.ts): banda de 1% a 2,7% do valor adjudicado. */}
+      <Revelar as="section" className="mx-auto max-w-6xl px-4 py-10" id="avaliador">
+        <div className="grid gap-8 rounded-[28px] bg-lima p-6 text-tinta-900 sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
+          <div>
+            <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[34px] lg:text-[44px]">
+              Ganhe dinheiro com o que sabe. Duas vezes.
+            </h2>
+            <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed sm:text-[20px]">
+              Quem vende tintas sabe olhar para uma fachada. Um vendedor de um fornecedor registado, com experiência
+              comprovada por declaração, pode inscrever-se como <strong>avaliador</strong>: vai ao local, mede as zonas,
+              regista o estado do imóvel e os objetivos do cliente, com a plataforma a guiar e a guardar tudo.
+            </p>
+            <ul className="mt-6 grid gap-3 text-[17px] sm:grid-cols-2">
+              <li className="rounded-2xl bg-white/60 p-4">
+                <span className="block font-semibold">1 · A comissão do levantamento</span>
+                Uma percentagem do valor adjudicado, que é sua seja qual for o pintor escolhido.
+              </li>
+              <li className="rounded-2xl bg-white/60 p-4">
+                <span className="block font-semibold">2 · A obra antes de todos</span>
+                Conhece a obra e os pintores que a vão orçamentar antes de haver proposta — e chega-lhes com condições.
+              </li>
+            </ul>
+          </div>
+          <div className="rounded-[24px] bg-tinta-900 p-6 text-white sm:p-8">
+            <p className="text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums">
+              {formatEuros(simularGanho(VALOR_DE_EXEMPLO_CENTS).minimoCents)} a {formatEuros(simularGanho(VALOR_DE_EXEMPLO_CENTS).maximoCents)}
+            </p>
+            <p className="mt-3 text-[17px] text-tinta-100">Numa obra adjudicada por {formatEuros(VALOR_DE_EXEMPLO_CENTS)}, sem IVA.</p>
+            <p className="mt-2 text-[17px] text-tinta-100">
+              De {percentagemEmPalavras(SURVEYOR_SHARE_OF_VALUE_BP_MIN)} a {percentagemEmPalavras(SURVEYOR_SHARE_OF_VALUE_BP_MAX)} do valor,
+              conforme a qualificação: a 2%, {formatEuros(90_000)}. Sobe com as avaliações dos clientes e dos pintores; o
+              simulador na área de fornecedor mostra a sua posição.
+            </p>
+            <Link href={toOrg('fornecedor')} className="btn-primary btn-lg mt-6 bg-lima text-tinta-900 hover:bg-white">
+              Inscrever-me como avaliador
+            </Link>
+          </div>
         </div>
       </Revelar>
 

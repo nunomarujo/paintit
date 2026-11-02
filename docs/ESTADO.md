@@ -1871,6 +1871,10 @@ completa e a Escolha Quem Pinta com justificação, no ecrã das propostas, no r
 demonstração da página inicial; a demonstração voltou a ter estilo (o script embebia só uma das duas
 folhas de CSS) e tem um cenário coerente com três papéis. Ver DECISOES.md.
 
+**Ser avaliador (02/11/2026):** secção pública em `/fornecedores`, separador «Ser avaliador» no
+contexto Avaliações com autodeclaração, simulador de ganho e os quatro fatores; Oportunidades exige a
+inscrição. Ver DECISOES.md.
+
 **Barra marinho + painel arredondado (01/11/2026, aprovado em maquete):** `src/app/app/layout.tsx`, tokens `barra-*`; formulário do pedido com ícones e preferências recolhíveis (`RequestForm`). Ver DECISOES.md.
 
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`

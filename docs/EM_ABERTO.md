@@ -53,6 +53,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 - **Revisão de desenho de ponta a ponta (01/11/2026, pedida pelo promotor):** site público a zero falhas no inspetor e no estilo aprovado (DECISOES.md). Nos espaços autenticados o varrimento ao código está feito (botões, maiúsculas, kickers, títulos, sombras); **falta a revisão com os olhos**, ecrã a ecrã e por perfil, que precisa de uma sessão iniciada em cada perfil (cliente, pintor, fornecedor/avaliador, condómino, backoffice) — o promotor entra no painel do browser ou cria contas `zz-test-*` e passa as credenciais. Até lá, `inspect.mjs --app` só corre sobre os ecrãs públicos.
 
+- **Avaliador (02/11/2026):** fechar na base a reserva de levantamentos a quem não tem a autodeclaração (`reserve_survey` verificar `survey_terms_acceptances` com a versão `avaliador-2026-11-02`) — hoje a barreira é só do ecrã; decidir se a «experiência comprovada» passa a pedir documento; o simulador usa só a qualificação geral da pessoa (os outros três fatores são por obra).
+
 ## 4. Dívida técnica
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.

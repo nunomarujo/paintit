@@ -83,6 +83,8 @@ export function destinosDoFornecedor(
       {
         title: 'A sua conta',
         items: [
+          // A inscrição como avaliador, por autodeclaração, e o simulador de ganho (02/11/2026).
+          { href: `${RAIZ_AVALIACOES}/inscricao`, label: 'Ser avaliador', icon: 'balanca' },
           { href: `${RAIZ_AVALIACOES}/comissoes`, label: 'Comissões pessoais', icon: 'percentagem' },
           { href: `${RAIZ_AVALIACOES}/qualificacao`, label: 'Qualificação', icon: 'balanca' },
           { href: `${RAIZ_AVALIACOES}/disponibilidade`, label: 'Disponibilidade e alertas', icon: 'mostrador' },

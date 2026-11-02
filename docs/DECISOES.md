@@ -4456,3 +4456,29 @@ eram dois) e no estado 1 da demonstração. A reconciliação passou a tratar os
 **Arrumações no mesmo commit:** rótulos de grupo da síntese e da matriz em caixa normal no ecrã
 (mantêm-se espaçados em maiúsculas no papel); categorias sem linhas mostram «—» em vez de «não
 indicado»; as notas técnicas da reconciliação começam em maiúscula.
+
+## 02/11/2026 — Ser avaliador: inscrição por autodeclaração, simulador de ganho, secção pública
+
+Pedido do promotor: a figura do avaliador — o vendedor de um fornecedor que ajuda o cliente a medir a
+obra (dimensões, estado do imóvel, objetivos), com a plataforma a registar tudo — tem de estar à vista
+e explicada: é uma oportunidade de ganhar duas vezes, a comissão do levantamento (seja qual for a
+proposta vencedora) e a proximidade aos pintores antes de haver orçamento.
+
+- **Página pública `/fornecedores`:** secção própria em lima, «Ganhe dinheiro com o que sabe. Duas
+  vezes.», com o exemplo de uma obra de 45 000 €: de 450 € a 1 215 € (1% a 2,7%), a 2% 900 €. Os
+  números saem da regra real de `survey.ts`; nada é escrito à mão.
+- **Área de fornecedor, contexto Avaliações:** separador «Ser avaliador» (`/app/avaliacoes/inscricao`,
+  `src/domain/avaliador.ts`). Em que consiste; inscrição por **autodeclaração** de experiência e de
+  quatro compromissos (medir e descrever com verdade, não orientar o cliente, cumprir prazos),
+  guardada como aceitação de termos com versão própria (`survey_terms_acceptances`,
+  `avaliador-2026-11-02`) — sem migração. Depois da inscrição: **simulador de ganho** (valor da obra
+  à mão; a % é a posição atual da pessoa na banda, pela regra `surveyorShareBp`, com as avaliações
+  que já tem; sem avaliações, começa a meio, 1,85%) e a explicação dos quatro fatores e dos seus
+  pesos (40/30/15/15).
+- **Oportunidades:** sem inscrição não se aceita um levantamento — o botão dá lugar a «Inscrever-me
+  primeiro». A barreira é do ecrã; a função `reserve_survey` na base continua aberta a quem pertence
+  a um fornecedor, e fechá-la também lá pede migração (EM_ABERTO.md).
+
+A «experiência comprovada» é, nesta fase, a declaração da própria pessoa; a verificação faz-se pelo
+trabalho, com as avaliações a subir ou a descer a percentagem. Uma verificação documental fica para
+decisão futura.
