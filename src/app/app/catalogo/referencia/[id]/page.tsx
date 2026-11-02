@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ProductGuide } from '@/components/ProductGuide';
 import { ProductPhotoZoom } from '@/components/ProductPhotoZoom';
 import { ISOLAMENTO_E_ACESSORIOS, PRODUCT_TYPE_LABELS } from '@/domain/catalog';
 import { formatEuros } from '@/domain/money';
+import { productGuide } from '@/domain/productGuide';
 import { loadReferences, refPerLitre, refPerM2 } from '@/lib/reference';
 import { getUser } from '@/lib/supabase/server';
 import { Voltar } from '@/components/Voltar';
@@ -47,6 +49,18 @@ export default async function ReferencePage({
     .filter((o) => !place || o.localidade?.toLowerCase() === place || o.entrega?.concelhos.some((c) => c.toLowerCase() === place));
   const isBoard = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
   const pl = isBoard ? refPerM2(r) : refPerLitre(r);
+  const guia = productGuide({
+    tipo: r.tipo,
+    acabamento: r.acabamento,
+    uso: r.uso,
+    demaos: r.demaos,
+    diluicao: r.diluicao,
+    secagemHoras: r.secagem_horas,
+    rendimentoM2L: r.rendimento_m2_l,
+    espessurasMm: r.espessuras_mm,
+    condutividadeTermicaWMk: r.condutividade_termica_w_mk,
+    reacaoFogo: r.reacao_fogo,
+  });
 
   return (
     <div className="space-y-6">
@@ -143,6 +157,8 @@ export default async function ReferencePage({
         </p>
         {r.nota && <p className="mt-3 text-[15px] text-slate-500">{r.nota}</p>}
       </section>
+
+      <ProductGuide {...guia} />
 
       <section className={card}>
         <div className="flex flex-wrap items-end justify-between gap-3">

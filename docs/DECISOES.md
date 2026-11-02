@@ -4550,3 +4550,22 @@ psicologia para encontrar o método com maior potencial de adesão. Duas equipas
 **Para o futuro, a pedido do promotor:** automatismos para as campanhas e um motor de gestão de
 divulgação e promoção com métricas. Fica em EM_ABERTO.md; o promotor pediu para ser lembrado de
 autorizar um plano detalhado.
+
+## 02/11/2026 — "Para que serve", "como se aplica" e "sugestões" na ficha do produto
+
+Pedido do promotor: resumos de cada produto do catálogo de referência — para que serve, como se
+aplica, sugestões — disponíveis em botões na ficha do produto.
+
+- **Por que não um campo escrito à mão por produto:** o catálogo tem mais de 90 fichas e nenhum
+  processo de validação desse texto, um por um — o mesmo risco que levou o preço e a durabilidade a
+  terem campos de fonte e data (`durabilidade_*`). Em vez disso, o texto é **gerado por tipo de
+  produto** (`src/domain/productGuide.ts`, puro e testado) e preenchido com os números que já estão
+  na própria ficha (demãos, secagem, diluição, rendimento, espessura, condutividade térmica, reação
+  ao fogo) — nunca inventa um número que a ficha não tenha; quando o campo está em branco, a frase
+  recua para "ver a ficha técnica do fabricante".
+- **Ecrã** (`src/components/ProductGuide.tsx`, em `catalogo/referencia/[id]/page.tsx`): três botões
+  (`btn-primary`/`btn-quiet`, pílula, 44px — regra 17) a mudar um único painel de texto, sem ícones
+  nem numeração — regra 19. Não duplica "Para usar na mesma obra" (produtos complementares do
+  fabricante): "sugestões" é indicação prática de aplicação, não lista de produtos.
+- Cobre os 15 tipos de produto (tintas e afins, as 5 placas de isolamento, fixador, rede, reboco de
+  capoto, e "outro" com texto neutro a apontar para a ficha técnica).
