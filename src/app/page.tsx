@@ -143,7 +143,7 @@ export default function Home() {
       {/* COMPARADOR — a maquete do produto logo a seguir ao primeiro ecrã, numa caixa cinzenta
           com a nota escura, como a referência faz com o painel de contas. Seis estados reais,
           gerados em build (scripts/gerar-demo-comparador.mjs). */}
-      <section id="demo-comparador" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pt-10">
+      <section id="demo-comparador" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 pt-6">
         <div className="rounded-[28px] bg-paper p-4 sm:p-8 lg:p-12">
           <div className="mb-6 grid gap-4 lg:mb-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <h2 className="text-[26px] font-medium leading-[1.05] tracking-[-0.03em] text-tinta-900 sm:text-[34px] lg:text-[44px]">
