@@ -1884,3 +1884,8 @@ email e data de criação. Condições da campanha de lançamento em rascunho, p
 **Condóminos do prédio (01/11/2026, decisão registada em DECISOES.md):** tabela `building_residents`
 presa ao prédio, código/QR por prédio, voto indicativo com permilagem; ecrãs do gestor, públicos e do
 condómino. **A migração ainda não correu na base real** — está na lista 1 de `EM_ABERTO.md`.
+
+**"Para que serve", "como se aplica" e "sugestões" na ficha do produto (02/11/2026):**
+`src/domain/productGuide.ts` gera o texto por tipo de produto a partir dos campos reais da ficha
+(nunca inventa números); `src/components/ProductGuide.tsx` mostra-o em três botões na página de
+referência do catálogo. Sem migração nem conteúdo a validar manualmente por produto. Ver DECISOES.md.
