@@ -97,19 +97,20 @@ export function SiteHeader({ sobreFoto = false }: { sobreFoto?: boolean } = {}) 
       <header
         className={
           'fixed inset-x-0 top-0 z-50 flex h-[var(--altura-cabecalho)] items-center transition-[top] duration-250 ' +
-          (scrolled ? 'sm:top-3' : 'top-0')
+          (scrolled ? 'sm:top-4' : 'top-0')
         }
       >
         <div
           className={
-            'mx-auto flex h-full w-full items-center justify-between transition-all duration-250 ' +
+            'mx-auto flex h-full items-center transition-all duration-250 ' +
             (scrolled
-              ? 'max-w-[120rem] bg-white/95 px-5 sm:px-10 lg:px-14 py-0 sm:h-[58px] lg:h-[72px]'
-              : 'max-w-[120rem] bg-transparent px-5 sm:px-10 lg:px-14')
+              ? // Ilha: o cabeçalho junta-se numa pílula branca ao centro, como a referência (promotor, 02/11/2026).
+                'w-full max-w-[120rem] justify-between bg-white/95 px-5 sm:h-[58px] sm:w-auto sm:max-w-none sm:justify-start sm:gap-8 sm:rounded-full sm:px-4 sm:pr-3 sm:shadow-[0_12px_40px_-12px_rgba(20,33,61,.35)] lg:h-[72px] lg:gap-10 lg:px-6 lg:pr-4'
+              : 'w-full max-w-[120rem] justify-between bg-transparent px-5 sm:px-10 lg:px-14')
           }
         >
           <Link href="/" aria-label="Início" className="inline-flex min-h-[44px] items-center pl-2">
-            <span className="lg:hidden">{claro ? <Logotipo tamanho="sm" escuro /> : <BrandMark size="sm" />}</span><span className="hidden lg:inline-flex">{claro ? <Logotipo tamanho="md" escuro /> : <BrandMark size="md" />}</span>
+            {scrolled ? <BrandMark size="sm" /> : <><span className="lg:hidden">{claro ? <Logotipo tamanho="sm" escuro /> : <BrandMark size="sm" />}</span><span className="hidden lg:inline-flex">{claro ? <Logotipo tamanho="md" escuro /> : <BrandMark size="md" />}</span></>}
           </Link>
 
           <nav aria-label="Principal" className={`hidden items-center gap-7 text-[15px] font-semibold min-[900px]:flex lg:gap-9 lg:text-[18px] ${claro ? 'text-white/85' : 'text-slate-700'}`}>
