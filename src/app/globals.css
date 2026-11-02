@@ -313,6 +313,11 @@ input[type='radio'] {
   .btn-sm {
     @apply px-4 text-[15px];
   }
+  /** O primeiro ecrã do site público ocupa a janela toda; `vh` é o recurso para navegadores sem `svh`. */
+  .hero-ecra {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
   /** Acção principal de um ecrã ou de um primeiro passo. */
   .btn-lg {
     @apply min-h-[52px] px-7;
