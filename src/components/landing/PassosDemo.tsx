@@ -77,9 +77,10 @@ export function PassoDescrever() {
 }
 
 const propostas = [
-  { n: 'A', v: '6 408 €', tag: 'Tudo incluído', atencao: false, destaque: true },
-  { n: 'B', v: '5 563 €', tag: '1 por esclarecer', atencao: true, destaque: false },
-  { n: 'C', v: '5 120 €', tag: '1 excluído', atencao: true, destaque: false },
+  // O mesmo cenário dos seis estados do comparador (src/app/demo-comparador/fixtures.ts, 02/11/2026).
+  { n: 'A', v: '6 408 €', tag: 'Escolha Quem Pinta', atencao: false, destaque: true },
+  { n: 'B', v: '5 563 €', tag: '1 excluído · 1 por esclarecer', atencao: true, destaque: false },
+  { n: 'C', v: '9 375 €', tag: 'Tudo + 2 trabalhos a mais', atencao: false, destaque: false },
 ];
 
 export function PassoComparar() {
@@ -96,7 +97,7 @@ export function PassoComparar() {
             className={`flex flex-col gap-1 rounded-lg p-3 ${p.destaque ? 'bg-selected' : 'bg-paper'}`}
           >
             <span className="text-[13px] font-bold">Pintor {p.n}</span>
-            <span className="text-[20px] font-extrabold">{p.v}</span>
+            <span className="whitespace-nowrap text-[17px] font-extrabold tabular-nums">{p.v}</span>
             <span className={`text-[13px] font-semibold ${p.atencao ? 'text-amber-800' : 'text-tinta-700'}`}>{p.tag}</span>
           </div>
         ))}
@@ -107,7 +108,7 @@ export function PassoComparar() {
           <strong>A Pintor B:</strong> a impermeabilização está incluída no preço? Se não, quanto custaria?
         </p>
         <p className="text-[15px]">
-          <strong>A Pintor C:</strong> em reparação de fissuras o preço fica sujeito a observação — até que valor?
+          <strong>A Pintor B:</strong> a reparação de fissuras está excluída — por que preço a faria?
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <BotaoFalso>Enviar as 2 perguntas</BotaoFalso>
@@ -125,7 +126,7 @@ export function PassoAssinar() {
         <p className="text-[20px] font-extrabold text-tinta-900">Assinar o contrato</p>
         <span className="rounded-full bg-tinta-100 px-2.5 py-1 text-[13px] font-bold text-tinta-700">Cliente assina primeiro</span>
       </div>
-      <dl className="flex flex-col gap-2.5 rounded-lg bg-paper p-3.5 text-[15px]">
+      <dl className="flex flex-col gap-2 rounded-lg bg-paper p-3.5 text-[15px]">
         {[
           ['Empreitada', 'Pintura de fachadas · 240 m²'],
           ['Empresa', 'Pintor A · alvará verificado'],
@@ -138,18 +139,40 @@ export function PassoAssinar() {
           </div>
         ))}
       </dl>
-      <div className="flex items-center gap-3.5 rounded-lg bg-tinta-900 p-3.5 text-white">
-        <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-white">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14213D" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-            <rect x="6" y="2" width="12" height="20" rx="2" />
-            <path d="M11 18h2" />
-          </svg>
+      {/* A minuta não é este cartão: transcreve a proposta inteira. Diz-se o que lá vai e aponta-se
+          para o documento (promotor, 02/11/2026). */}
+      <div className="rounded-lg border border-slate-200 p-3.5 text-[15px]">
+        <p className="font-bold text-tinta-900">A minuta transcreve a proposta escolhida</p>
+        <ul className="mt-2 grid gap-1 text-slate-700">
+          {[
+            '5 trabalhos, zona a zona, com quantidades',
+            'Produtos e demãos: CIN Primário Fixador · Vinylmatt, 2 demãos · Sika Membrane',
+            'Prazo: início a 10/11, 15 dias úteis',
+            'Pagamentos: 20% de adiantamento, o resto por fases',
+            'Garantia da obra: 5 anos · exclusões por escrito',
+            'Trabalhos a mais só com adenda assinada',
+          ].map((t) => (
+            <li key={t} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-tinta-600" />
+              {t}
+            </li>
+          ))}
+        </ul>
+        <span aria-hidden="true" className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 font-bold text-tinta-700 underline underline-offset-4">
+          Ver a minuta completa (PDF)
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
         </span>
+      </div>
+      <div className="flex items-center gap-3.5 rounded-lg bg-tinta-900 p-3.5 text-white">
+        <svg className="flex-none text-lima" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <rect x="6" y="2" width="12" height="20" rx="2" />
+          <path d="M11 18h2" />
+        </svg>
         <span className="flex flex-col">
           <span className="text-[15px] font-bold">Chave Móvel Digital</span>
           <span className="text-[13px] text-tinta-200">Recebe o código no telemóvel. 8 dias para cada parte assinar.</span>
         </span>
-        <span aria-hidden="true" className="ml-auto inline-flex min-h-[44px] flex-none items-center rounded-lg bg-lima px-4 text-[15px] font-extrabold text-tinta-900">
+        <span aria-hidden="true" className="ml-auto inline-flex min-h-[44px] flex-none items-center rounded-full bg-lima px-4 text-[15px] font-extrabold text-tinta-900">
           Assinar
         </span>
       </div>
