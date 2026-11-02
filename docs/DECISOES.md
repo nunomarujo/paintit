@@ -4525,6 +4525,28 @@ data de criação.
   condições, os flyers por perfil com pré-visualização, data de criação, estado, destino do QR,
   «Descarregar PDF», «Imagem» e «Enviar por email» (pelo canal dos avisos, com a ligação ao PDF).
 
+**Refeitos a 02/11/2026 (v2), depois de o promotor rejeitar a primeira versão:** «3 propostas????
+a plataforma está pronta para 20 se houver candidatos, além disso não garantimos 2 ou 3, são as que
+forem»; «são feios e não começam por explicar o que faz a plataforma»; «o flyer para fornecedores de
+tintas é ineficaz». Pediu que se usassem agentes de marketing, vendas, publicidade, design e
+psicologia para encontrar o método com maior potencial de adesão. Duas equipas de agentes
+(estratégia de texto; direção de arte) deram as regras que passaram a valer no catálogo:
+- **Nunca se promete um número de propostas**: a plataforma leva as que houver.
+- **Cada flyer abre pelo logótipo e por «o que é»** (`conteudo.oQueE`), antes do gancho e do título.
+- **Confiança por mecanismo, não por adjetivo**: abertura simultânea, caução devolvida, CMD,
+  adenda assinada — um «prova» por flyer (`conteudo.prova`), e «como funciona» em três passos.
+- **Alavancas por público**: cliente — autoridade por mecanismo e aversão à incerteza; condomínio —
+  defensabilidade perante a assembleia e prova social por mecanismo; pintor — justiça processual e
+  a ferramenta própria; fornecedor — efeito padrão (o catálogo é o menu de onde o pintor escolhe)
+  e, no segundo, ancoragem com dinheiro concreto (45 000 € → 900 € a 2%) e perda competitiva («quem
+  vê a obra primeiro vende a tinta»).
+- **Três esquemas de desenho** (`a` fotografia à esquerda; `b`/`b-escuro` prédio isométrico sobre
+  campo pálido ou marinho, régua numerada, uma palavra do título a lima; `c` captura real da
+  aplicação com anotações numeradas), nunca o mesmo nos dois flyers de um perfil. Lima uma vez por
+  flyer, nada abaixo de 8pt, sem caixas tintadas nem pontos, QR de 28mm numa caixa branca de 32mm
+  como único objeto da zona de ação. O gerador avisa se algum bloco sair da página ou entrar na
+  zona de ação.
+
 **Para o futuro, a pedido do promotor:** automatismos para as campanhas e um motor de gestão de
 divulgação e promoção com métricas. Fica em EM_ABERTO.md; o promotor pediu para ser lembrado de
 autorizar um plano detalhado.

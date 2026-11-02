@@ -41,6 +41,13 @@ export const CAMPANHA_DE_LANCAMENTO = {
 
 export type EstadoDoFlyer = 'rascunho' | 'aprovado';
 
+/**
+ * Os três esquemas de desenho (direção de arte de 02/11/2026): `a` fotografia à esquerda a sangrar
+ * e coluna de texto; `b` prédio isométrico sobre campo azul-pálido (`b-escuro`: sobre marinho);
+ * `c` captura real da aplicação com anotações numeradas. Nenhum par do mesmo perfil repete o esquema.
+ */
+export type Desenho = 'a' | 'b' | 'b-escuro' | 'c';
+
 export interface Flyer {
   id: string;
   perfil: Perfil;
@@ -55,223 +62,268 @@ export interface Flyer {
   estado: EstadoDoFlyer;
   /** O que vai impresso. */
   conteudo: {
-    /** A pergunta ou a dor, por cima do título. Curta. */
+    /** O que a plataforma é, para este público, numa frase. É a primeira coisa que se lê a seguir ao logótipo. */
+    oQueE: string;
+    /** A dor, em pergunta ou afirmação curta. */
     gancho: string;
     titulo: string;
     sub: string;
     vantagens: { t: string; d: string }[];
-    /** Números ou factos em destaque, até três. */
+    /** Três passos, pela ordem real para este público. */
+    comoFunciona: string[];
+    /** Um mecanismo verificável que dá confiança. */
+    prova: string;
+    /** Números ou factos em destaque, até três; só quando verdadeiros e úteis. */
     numeros?: { v: string; l: string }[];
     cta: string;
-    /** A fotografia (public/img). */
-    foto: string;
-    /** Variante de desenho: fotografia em cima ou bloco de cor em cima. */
-    desenho: 'foto' | 'cor';
+    /** A imagem (public/img, sem extensão): fotografia, `predio2-cor` ou `popup-demo-*`. */
+    imagem: string;
+    /** `object-position` da fotografia no esquema `a`. */
+    foco?: string;
+    /** A palavra do título que leva a marca lima, nos esquemas `b` e `b-escuro`. */
+    realce?: string;
+    desenho: Desenho;
   };
 }
 
 const CRIADO = '2026-11-02';
 const url = (caminho: string, codigo: string) => `https://quempinta.pt${caminho}${caminho.includes('?') ? '&' : '?'}c=${codigo}`;
 
+/**
+ * O texto (estratégia de 02/11/2026, com alavancas comportamentais por público): abre sempre por
+ * dizer o que a plataforma é; nunca promete um número de propostas — a plataforma leva as que
+ * houver; toda a confiança assenta em mecanismos verificáveis (abertura simultânea, caução devolvida,
+ * Chave Móvel Digital, adenda assinada), nunca em adjetivos.
+ */
 export const FLYERS: Flyer[] = [
   // ---------------------------------------------------------------- Clientes diretos
   {
     id: 'cliente-1',
     perfil: 'cliente',
-    titulo: 'Três orçamentos sem esforço',
-    angulo: 'A dor dos pedidos sem resposta e das propostas que não se comparam.',
+    titulo: 'Comparar propostas, linha a linha',
+    angulo: 'Orçamentos em papéis diferentes que não se comparam; autoridade por mecanismo e três indicações.',
     destino: url('/', 'fl-cli-1'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Pediu orçamentos e ninguém respondeu?',
-      titulo: 'Três propostas, lado a lado, sem andar atrás de ninguém.',
-      sub: 'Descreva a obra uma vez. As propostas chegam todas ao mesmo tempo, descrevem trabalhos, produtos e demãos, e comparam-se linha a linha.',
+      oQueE: 'Plataforma onde pintores verificados orçamentam a obra e as propostas se comparam.',
+      gancho: 'Orçamentos em papéis diferentes. Qual é mesmo o mais barato?',
+      titulo: 'Comparar propostas de pintura, linha a linha.',
+      sub: 'Descrever a obra uma vez. Empresas com alvará e seguros verificados respondem até uma data; as propostas abrem todas ao mesmo tempo e ficam lado a lado: trabalhos, produtos, demãos, prazos e garantia. Comparar não custa nada.',
       vantagens: [
-        { t: 'Sem custo até escolher', d: 'Comparar não se paga. Só há contrato quando quiser.' },
-        { t: 'Empresas verificadas', d: 'Alvará e seguros conferidos antes de poderem orçamentar.' },
-        { t: 'Não sabe medir?', d: 'Um avaliador vai ao local, mede e fotografa, sem custo.' },
+        { t: 'Três indicações, uma escolha', d: '«A mais barata», «A mais completa» e «Escolha Quem Pinta», esta com justificação escrita.' },
+        { t: 'Pintores verificados', d: 'Alvará e seguros confirmados antes de qualquer proposta chegar.' },
+        { t: 'Contrato assinado na plataforma', d: 'A proposta escolhida passa a contrato, assinado por ambos com Chave Móvel Digital.' },
       ],
-      numeros: [
-        { v: '0 €', l: 'até escolher' },
-        { v: '3', l: 'indicações com a razão escrita' },
-        { v: '1', l: 'contrato que transcreve a proposta' },
-      ],
-      cta: 'Peça orçamentos pelo QR',
-      foto: 'trincha-janela',
-      desenho: 'foto',
+      comoFunciona: ['Descrever a obra ou pedir visita gratuita', 'Ler as propostas quando abrirem, lado a lado', 'Escolher e assinar com Chave Móvel Digital'],
+      prova: 'As propostas abrem todas ao mesmo tempo, na data marcada: ninguém perde por responder primeiro e ninguém vê o preço dos outros.',
+      cta: 'Peça propostas pelo QR',
+      imagem: 'trincha-janela',
+      foco: '35% 50%',
+      desenho: 'a',
     },
   },
   {
     id: 'cliente-2',
     perfil: 'cliente',
-    titulo: 'O contrato diz o que a proposta disse',
-    angulo: 'O medo da obra que fica a meio e do preço que muda.',
+    titulo: 'Medição gratuita, preço firme',
+    angulo: 'Quem não sabe os metros: avaliador gratuito, preço firme, extras só por escrito, contactos escondidos.',
     destino: url('/', 'fl-cli-2'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Medo de a obra ficar a meio?',
-      titulo: 'O preço mais baixo não conta a história toda. Aqui conta-se.',
-      sub: 'Cada proposta é lida pelo que inclui, exclui ou deixa por esclarecer. A Escolha Quem Pinta vem com a razão escrita — e o contrato transcreve exatamente a proposta que escolher.',
+      oQueE: 'Onde quem quer pintar a casa recebe propostas comparáveis de empresas verificadas.',
+      gancho: 'Sem saber os metros da fachada, como pedir orçamento?',
+      titulo: 'Medição gratuita, preço firme, extras só por escrito.',
+      sub: 'Um avaliador vai ao local, mede e fotografa sem custo. Com as medidas certas, as empresas orçamentam a mesma coisa e o preço é firme. Trabalhos a mais só existem com adenda assinada pelas duas partes.',
       vantagens: [
-        { t: 'Trabalhos a mais, só por escrito', d: 'O que aparecer depois de assinar leva adenda, com preço aceite.' },
-        { t: 'Assinatura com Chave Móvel Digital', d: 'As duas partes assinam na plataforma; a prova fica guardada.' },
-        { t: 'Morada e contactos protegidos', d: 'Só a empresa escolhida os conhece, e só depois da escolha.' },
+        { t: 'Visita de avaliador gratuita', d: 'Mede e fotografa a obra; o pedido sai completo e todas as propostas respondem ao mesmo.' },
+        { t: 'Preço firme sobre medidas reais', d: 'A «Escolha Quem Pinta» só considera propostas que cobrem todo o pedido com preço firme.' },
+        { t: 'Dados privados até escolher', d: 'Morada e contactos não chegam a nenhum pintor antes da escolha. Zero chamadas de insistência.' },
       ],
-      cta: 'Comece pelo QR',
-      foto: 'fachada-meia',
-      desenho: 'cor',
+      comoFunciona: ['Pedir a visita do avaliador pelo QR', 'Receber e comparar as propostas na data', 'Escolher, assinar, acompanhar a obra'],
+      prova: 'Antes de escolher, deposita-se uma pequena caução, devolvida na assinatura: só avançam obras a sério, e os pintores respondem a sério.',
+      numeros: [
+        { v: '0 €', l: 'visita do avaliador, até 31 jan 2027' },
+        { v: '100%', l: 'da caução devolvida na assinatura' },
+        { v: '0', l: 'trabalhos a mais sem adenda assinada' },
+      ],
+      cta: 'Marque a visita gratuita pelo QR',
+      imagem: 'predio2-cor',
+      realce: 'gratuita',
+      desenho: 'b',
     },
   },
   // ---------------------------------------------------------------- Gestores de condomínios
   {
     id: 'condominio-1',
     perfil: 'condominio',
-    titulo: 'O condomínio não consegue três propostas?',
-    angulo: 'Menos concorrência, piores resultados; propostas comparáveis sem esforço.',
+    titulo: 'A pintura do prédio pronta para a assembleia',
+    angulo: 'Defensabilidade: relatório, matriz e justificação escrita, tudo por edifício.',
     destino: url('/?perfil=condominio', 'fl-cond-1'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'O condomínio tem dificuldade em juntar três orçamentos?',
-      titulo: 'Menos concorrência, piores resultados. Mude isso num pedido.',
-      sub: 'Publique a obra uma vez e receba propostas de empresas verificadas, descritas de forma compreensível e comparável — sem telefonemas, sem compromisso.',
+      oQueE: 'Plataforma onde a pintura do prédio recebe propostas comparáveis e relatório para assembleia.',
+      gancho: 'A assembleia quer decidir. Os orçamentos não se comparam.',
+      titulo: 'A pintura do prédio, pronta para a assembleia.',
+      sub: 'Descrever a obra uma vez. As empresas verificadas respondem até à data; as propostas abrem em simultâneo e a plataforma gera a matriz de comparação, a síntese e a explicação das três indicações — tudo por edifício, pronto a apresentar.',
       vantagens: [
-        { t: 'Um pedido, várias propostas', d: 'Chegam todas ao mesmo tempo, para ninguém perder por responder primeiro.' },
-        { t: 'Cada edifício, a sua obra', d: 'Pedidos, propostas e documentos organizados por condomínio.' },
-        { t: 'Levantamento sem custo', d: 'Um avaliador mede e fotografa o estado da fachada; os pintores orçamentam sobre isso.' },
+        { t: 'Relatório para a assembleia', d: 'Matriz, síntese e justificação da escolha, gerados pela plataforma, prontos a distribuir aos condóminos.' },
+        { t: 'Tudo organizado por edifício', d: 'Cada prédio com a sua obra, propostas, contrato e histórico, sem pastas de emails.' },
+        { t: 'Contrato com Chave Móvel Digital', d: 'A proposta aprovada passa a contrato assinado pelas duas partes; trabalhos a mais só por adenda.' },
       ],
+      comoFunciona: ['Registar o edifício e descrever a obra', 'Receber as propostas e o relatório na data', 'Apresentar à assembleia, decidir, assinar'],
+      prova: '«Escolha Quem Pinta» é a mais barata entre as que cobrem todo o pedido com preço firme, com justificação escrita: defensável perante qualquer condómino.',
       numeros: [
-        { v: '1', l: 'pedido publicado' },
-        { v: '0 €', l: 'para comparar' },
-        { v: '100%', l: 'das propostas abrem ao mesmo tempo' },
+        { v: '1', l: 'relatório por obra: matriz, síntese, justificação' },
+        { v: '0 €', l: 'para publicar e comparar' },
+        { v: '31 jan', l: 'relatório e acesso dos condóminos incluídos, até 2027' },
       ],
-      cta: 'Registe o condomínio pelo QR',
-      foto: 'gestor-e-pintor',
-      desenho: 'foto',
+      cta: 'Registe o edifício pelo QR',
+      imagem: 'predio2-cor',
+      realce: 'assembleia',
+      desenho: 'b',
     },
   },
   {
     id: 'condominio-2',
     perfil: 'condominio',
-    titulo: 'A assembleia decide com o relatório na mão',
-    angulo: 'O relatório pronto e os condóminos a acompanhar e a votar.',
+    titulo: 'Todos os condóminos a ver as mesmas propostas',
+    angulo: 'Prova social por mecanismo: acesso por QR ao prédio, leitura simultânea, voto antes da assembleia.',
     destino: url('/?perfil=condominio', 'fl-cond-2'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Assembleia marcada e as propostas ainda em PDF soltos?',
-      titulo: 'O relatório para a assembleia sai pronto. E os condóminos votam.',
-      sub: 'A comparação organizada, a mais barata, a mais completa e a Escolha Quem Pinta com justificação, num documento para levar à reunião. Cada condómino acompanha o seu prédio, lê as propostas e vota.',
+      oQueE: 'Onde os condóminos acompanham as propostas de pintura do prédio e votam.',
+      gancho: 'Cada condómino com uma opinião e ninguém com os mesmos dados.',
+      titulo: 'Todos os condóminos a ver as mesmas propostas.',
+      sub: 'Cada condómino entra no seu prédio por ligação ou QR, acompanha o pedido, lê as propostas quando abrem e dá o seu voto indicativo, com permilagem se a administração quiser. A decisão chega à assembleia já discutida.',
       vantagens: [
-        { t: 'Relatório para a assembleia', d: 'Matriz, síntese e explicação económica, com a metodologia referenciada.' },
-        { t: 'Condóminos com acesso ao seu prédio', d: 'Por link ou QR; leem as propostas quando abrem e votam, com permilagem se quiser.' },
-        { t: 'Minuta pronta a assinar', d: 'Transcreve a proposta escolhida; assinatura com Chave Móvel Digital.' },
+        { t: 'Acesso por QR ao prédio', d: 'Cada condómino vê só o seu edifício, sem registos complicados nem papéis a circular.' },
+        { t: 'Voto indicativo antes da assembleia', d: 'Opcionalmente ponderado por permilagem; a administração vê o resultado antes da reunião.' },
+        { t: 'Menos reuniões a discutir papéis', d: 'As propostas abrem para todos no mesmo momento, na mesma grelha de comparação.' },
       ],
-      cta: 'Peça o primeiro relatório pelo QR',
-      foto: 'atrio-em-obra',
-      desenho: 'cor',
+      comoFunciona: ['A administração publica a obra do prédio', 'Os condóminos entram, leem e votam', 'A assembleia confirma; o contrato é assinado'],
+      prova: 'Morada e contactos ficam escondidos dos pintores até à escolha: nenhuma empresa tem como ligar a condóminos antes de ser escolhida.',
+      cta: 'Registe o prédio e partilhe o QR',
+      imagem: 'fachadas-porto',
+      foco: '50% 30%',
+      desenho: 'a',
     },
   },
   // ---------------------------------------------------------------- Empresas de pintura
   {
     id: 'pintor-1',
     perfil: 'pintor',
-    titulo: 'Orçamentos em cinco minutos',
-    angulo: 'O motor de orçamentos: horas passam a minutos, documento A4 pronto.',
+    titulo: 'Obras já medidas. Orçamentar é grátis.',
+    angulo: 'Justiça processual: abertura simultânea, pedidos medidos, comissão só com adjudicação.',
     destino: url('/empresas', 'fl-pin-1'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Ainda perde a noite a fazer orçamentos?',
-      titulo: 'Horas por orçamento passam a minutos. E sai um A4 a sério.',
-      sub: 'A aplicação aprende de orçamento para orçamento: modelos, produtos do catálogo com ficha técnica, descrição escrita por si. Orçamentar nunca se paga.',
+      oQueE: 'Plataforma onde empresas de pintura recebem obras medidas e orçamentam com um motor guiado.',
+      gancho: 'Visitas, medições, orçamentos à noite. E depois silêncio.',
+      titulo: 'Obras já medidas. Orçamentar é grátis. Paga-se ao ganhar.',
+      sub: 'Pedidos filtrados por concelho e tipo de obra chegam com medidas e fotografias. As propostas abrem todas na mesma data: ninguém ganha por responder primeiro nem perde por responder depois. Comissão apenas na obra adjudicada.',
       vantagens: [
-        { t: 'Obras na sua zona, já medidas', d: 'Pedidos com zonas, áreas e fotografias do estado; orçamenta sem ir lá.' },
-        { t: 'Só paga quando ganha', d: 'Sem custo para aderir nem para orçamentar.' },
-        { t: 'Ferramentas da obra incluídas', d: 'Diário com fotografias, horas, contas, trabalhos a mais com prova.' },
+        { t: 'Pedidos medidos, no concelho certo', d: 'Fachadas, capoto, interiores e condomínios filtrados por zona e tipo; menos visitas em vão.' },
+        { t: 'Prazo igual para todos', d: 'Abertura simultânea; comparação por trabalhos, produtos, demãos e garantia, não só pelo preço.' },
+        { t: 'Comissão só com adjudicação', d: 'Orçamentar não custa nada. A plataforma só ganha quando a empresa ganha a obra.' },
       ],
-      numeros: [
-        { v: '≈ 45 min', l: 'no primeiro orçamento' },
-        { v: '≈ 20 min', l: 'no segundo' },
-        { v: '≈ 5 min', l: 'do terceiro em diante' },
-      ],
-      cta: 'Adira pelo QR',
-      foto: 'orcamento-noite',
-      desenho: 'foto',
+      comoFunciona: ['Registar a empresa; alvará e seguros verificados', 'Escolher pedidos e orçamentar até à data', 'Ganhar, assinar com CMD, começar a obra'],
+      prova: 'A plataforma indica «A mais completa» e «Escolha Quem Pinta» ao lado de «A mais barata»: fazer bem tem onde se ver.',
+      cta: 'Registe a empresa pelo QR',
+      imagem: 'popup-demo-pintor',
+      desenho: 'c',
     },
   },
   {
     id: 'pintor-2',
     perfil: 'pintor',
-    titulo: 'Há mais obras do que empresas',
-    angulo: 'Oportunidades reais, contrato assinado na plataforma, cliente que paga a caução.',
+    titulo: 'Orçamentos em A4 que aprendem com a empresa',
+    angulo: 'A ferramenta: modelos que acumulam, clientes próprios sem comissão, diário com prova.',
     destino: url('/empresas', 'fl-pin-2'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Há mais obras do que empresas para as fazer.',
-      titulo: 'Oportunidades na sua zona, contrato assinado, cliente comprometido.',
-      sub: 'Pedidos filtrados por concelho e tipo de obra. O cliente deposita caução antes de escolher e assina com Chave Móvel Digital. A sua proposta é lida pelo que inclui, não só pelo preço.',
+      oQueE: 'Ferramenta de orçamentação e gestão de obra para empresas de pintura, com marketplace incluído.',
+      gancho: 'Quanto tempo leva um orçamento a sério? E os extras, quem prova?',
+      titulo: 'Orçamentos em A4 que aprendem com a empresa.',
+      sub: 'O motor guiado guarda modelos, produtos de catálogo com ficha técnica, rendimentos e demãos; cada orçamento sai mais rápido que o anterior, num documento formal. Serve também para os clientes próprios, sem comissão, com diário de obra incluído.',
       vantagens: [
-        { t: 'Propostas que se comparam', d: 'O cliente vê trabalhos, produtos e demãos — quem faz bem destaca-se.' },
-        { t: 'Os seus clientes também', d: 'Orçamentos fora do mercado, com seguimento automático, sem comissão.' },
-        { t: 'Descontos de fornecedores', d: 'Condições comerciais automáticas por fornecedor, no orçamento.' },
+        { t: 'Clientes próprios, sem comissão', d: 'Orçamentar fora do marketplace é livre: mesmo documento, mesmo catálogo, nenhuma comissão.' },
+        { t: 'Diário de obra com prova', d: 'Fotografias, horas, custos e trabalhos a mais documentados; adendas assinadas em vez de discussões.' },
+        { t: 'Descontos de fornecedor automáticos', d: 'Os acordos com as lojas de tintas entram no preço sem contas à parte.' },
       ],
-      cta: 'Veja as obras da sua zona pelo QR',
-      foto: 'carrinha-equipa',
-      desenho: 'cor',
+      comoFunciona: ['Criar modelos a partir do primeiro orçamento', 'Orçamentar obras do marketplace e clientes próprios', 'Registar a obra no diário até ao fim'],
+      prova: 'Um trabalho a mais só é cobrável com adenda assinada pelas duas partes e registo no diário: o que está escrito, paga-se.',
+      numeros: [
+        { v: '0 €', l: 'de comissão nas obras de clientes próprios' },
+        { v: '1', l: 'documento A4 formal, o mesmo para todos os clientes' },
+        { v: '31 jan', l: 'Plano Pro gratuito até 2027, pelo QR' },
+      ],
+      cta: 'Experimente o Plano Pro pelo QR',
+      imagem: 'predio2-cor',
+      realce: 'aprendem',
+      desenho: 'b-escuro',
     },
   },
   // ---------------------------------------------------------------- Fornecedores de tintas
   {
     id: 'fornecedor-1',
     perfil: 'fornecedor',
-    titulo: 'Chegue antes da lista de compras',
-    angulo: 'O catálogo dentro do orçamento do pintor, com a ficha técnica a fazer contas.',
+    titulo: 'A tinta da loja, escrita no orçamento do pintor',
+    angulo: 'Efeito padrão: o catálogo carregado é o menu de onde o pintor escolhe cada linha; descontos e código de adesão.',
     destino: url('/fornecedores', 'fl-for-1'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'O pintor entra na loja com a lista feita?',
-      titulo: 'Aqui, o seu produto está no orçamento antes de haver lista.',
-      sub: 'Os produtos do catálogo aparecem ao pintor dentro do orçamento, trabalho a trabalho, com rendimento, demãos e preço de referência. A ficha técnica passa a fazer contas.',
+      oQueE: 'Plataforma onde os pintores orçamentam e onde o catálogo da loja entra no orçamento.',
+      gancho: 'O pintor orçamenta em casa, à noite. Que marca escreve?',
+      titulo: 'A tinta da loja, escrita no orçamento do pintor.',
+      sub: 'Quando um pintor orçamenta uma fachada, escolhe os produtos no catálogo da plataforma, com rendimento, demãos e preço de referência. Um catálogo carregado é a marca que aparece em cada linha do orçamento; o cliente vê-a e o pintor compra-a.',
       vantagens: [
-        { t: 'Descontos por regra', d: 'Por artigo, tipo ou catálogo, cruzados com o perfil do cliente. Sem negociar um a um.' },
-        { t: 'Carteira de clientes', d: 'Quem comprou, a que condições, e os pintores que convidou.' },
-        { t: 'Código de adesão', d: 'Partilhe com novos pintores e ganhe comissão quando lhes for adjudicada uma obra.' },
+        { t: 'Descontos por pintor, automáticos', d: 'Regras por artigo, tipo ou catálogo, cruzadas com o perfil de cada pintor; aplicam-se sozinhas no orçamento.' },
+        { t: 'Carteira de pintores à vista', d: 'Que pintores usam o catálogo, em que obras e com que produtos, sem telefonemas a perguntar.' },
+        { t: 'Código de adesão que rende', d: 'Pintores trazidos pela loja geram comissão para a loja sempre que ganham obras.' },
       ],
-      cta: 'Ponha o catálogo à frente pelo QR',
-      foto: 'maquina-de-tinta',
-      desenho: 'foto',
+      comoFunciona: ['Carregar o catálogo com fichas técnicas', 'Definir descontos por pintor ou por artigo', 'Dar o código de adesão aos pintores clientes'],
+      prova: 'A ficha técnica fica ligada à linha do orçamento: rendimento e demãos vêm do fabricante, não da memória do pintor.',
+      cta: 'Carregue o catálogo pelo QR',
+      imagem: 'popup-demo-fornecedor',
+      desenho: 'c',
     },
   },
   {
     id: 'fornecedor-2',
     perfil: 'fornecedor',
-    titulo: 'Ganhe duas vezes: seja avaliador',
-    angulo: 'A comissão do levantamento e a obra antes de todos.',
+    titulo: 'Medir a fachada, ganhar 1% a 2,7% da obra',
+    angulo: 'Ancoragem com dinheiro concreto (45 000 € → 900 €) e aversão à perda competitiva: quem vê a obra primeiro vende a tinta.',
     destino: url('/fornecedores#avaliador', 'fl-for-2'),
     criadoEm: CRIADO,
     estado: 'rascunho',
     conteudo: {
-      gancho: 'Sabe olhar para uma fachada?',
-      titulo: 'Ganhe dinheiro com o que sabe. Duas vezes.',
-      sub: 'Inscreva-se como avaliador: mede a obra, regista o estado e os objetivos do cliente com a app a guiar, e recebe uma comissão seja qual for o pintor escolhido. E conhece a obra antes de todos.',
+      oQueE: 'Plataforma onde se contratam pinturas; quem mede a obra recebe parte do valor adjudicado.',
+      gancho: 'Quem vê a obra primeiro vende a tinta. Hoje é o pintor.',
+      titulo: 'Medir a fachada, ganhar 1% a 2,7% da obra.',
+      sub: 'O vendedor da loja declara-se avaliador. Quando um cliente perto pede uma visita, vai ao local, mede e fotografa. Na adjudicação recebe entre 1% e 2,7% do valor, ganhe quem ganhar — e conheceu a obra antes de existir orçamento.',
       vantagens: [
-        { t: '1% a 2,7% do valor adjudicado', d: 'Numa obra de 45 000 €, entre 450 € e 1 215 €. Sobe com as avaliações.' },
-        { t: 'A obra antes de haver proposta', d: 'Chegue aos pintores com condições, antes da lista de compras.' },
-        { t: 'Inscrição em um minuto', d: 'Por autodeclaração de experiência e compromisso, na área de fornecedor.' },
+        { t: 'Pago seja quem for o pintor', d: 'A comissão do avaliador não depende de quem vence: depende de a obra ser adjudicada.' },
+        { t: 'Primeiro a saber da obra', d: 'Medidas na mão e pintores por escolher: a loja conhece a obra e os concorrentes antes do orçamento.' },
+        { t: 'O catálogo já lá dentro', d: 'Os pintores que orçamentam escolhem produtos no catálogo da plataforma, o da loja incluído.' },
       ],
+      comoFunciona: ['Declarar-se avaliador na conta da loja', 'Aceitar visitas no concelho, medir e fotografar', 'Receber a comissão quando a obra for adjudicada'],
+      prova: 'Entre 1% e 2,7% do valor adjudicado no contrato assinado na plataforma: registado no sistema, não combinado à boca.',
       numeros: [
-        { v: '45 000 €', l: 'obra adjudicada' },
-        { v: '900 €', l: 'a 2%, para si' },
-        { v: '2,7%', l: 'no topo da banda' },
+        { v: '45 000 €', l: 'exemplo: pintura da fachada de um prédio' },
+        { v: '900 €', l: 'para o avaliador, a 2%' },
+        { v: '450–1 215 €', l: 'intervalo a 1%–2,7%, ganhe quem ganhar' },
       ],
-      cta: 'Inscreva-se pelo QR',
-      foto: 'balcao-loja',
-      desenho: 'cor',
+      cta: 'Declare-se avaliador pelo QR',
+      imagem: 'balcao-loja',
+      foco: '60% 50%',
+      desenho: 'a',
     },
   },
 ];
