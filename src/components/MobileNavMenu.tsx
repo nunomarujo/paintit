@@ -51,7 +51,9 @@ export function MobileNavMenu({
       </summary>
       {/* Fundo semitransparente a fechar ao toque fora do menu, sob o próprio painel (z menor). */}
       <div className="fixed inset-0 z-20" onClick={fecha} aria-hidden />
-      <div className="barra-clara absolute right-0 z-30 mt-2 max-h-[75vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-marca-border bg-white p-3 shadow-lg">
+      {/* `fixed`, não `absolute`: a barra lateral tem `overflow-hidden` como rede de segurança (layout.tsx)
+          e cortava o painel — em telemóvel abria escondido, só se via a primeira linha (promotor, 02/11/2026). */}
+      <div className="barra-clara fixed inset-x-4 top-[88px] z-30 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-marca-border bg-white p-3 shadow-lg">
         <div className="space-y-4">{groups.map(renderGroup)}</div>
         <div className="mt-4 space-y-0.5 border-t border-marca-border pt-3 text-[15px]">
           {meuPerfil ? (
