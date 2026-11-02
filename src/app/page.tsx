@@ -50,6 +50,9 @@ const FOTOS_DO_HERO = [
   { src: '/img/trincha-janela.webp', alt: 'Mão a pintar de branco o aro de uma janela com uma trincha' },
   // Pedida de volta pelo promotor (02/11/2026): rolo numa parede de tijolo, Michael Cory, CC BY 2.0 (crédito no rodapé).
   { src: '/img/rolo-na-parede.webp', alt: 'Rolo de pintura encostado a uma parede de tijolo acabada de pintar de laranja' },
+  // Enviadas pelo promotor a 02/11/2026.
+  { src: '/img/riscas-de-reboco.webp', alt: 'Parede de reboco pintada em riscas verticais de terracota, verde, azul-marinho, amarelo e branco' },
+  { src: '/img/sala-tres-cores.webp', alt: 'Sala com uma parede pintada em três cores — terracota, verde-água e azul-marinho — com um banco de madeira e uma planta' },
 ];
 
 /** Títulos de secção do site público: grandes, em peso médio, centrados (estilo de 01/11/2026). */
