@@ -4585,3 +4585,63 @@ medição (`origem_quantidade` anterior nulo — `primeiraMedicao`, `src/domain/
 testado): nesse caso a edição É a primeira medição e fica atribuída a quem a fez; quando já tinha
 origem, a autoria anterior fica como estava. `addSurface` continua a escrever sempre as duas colunas
 (zona nova).
+
+## 03/11/2026 — Medição de zonas por retângulo e dois pontos: passo 1 construído, com uma limitação real encontrada
+
+Handoff do promotor ("medição de zonas por retângulo e dois pontos"): um ecrã em que o avaliador toca
+nos quatro cantos de uma fachada retangular, mede a distância real entre dois pontos A e B, e a
+aplicação corrige a perspetiva e devolve a área líquida. Só se construiu o passo 1 da ordem pedida
+(secção 10 do handoff): `retificarZona` (`src/domain/retificacao.ts`, `retificacao.test.ts`), com os
+testes 1 e 2 (retificação sintética a 0º/15º/30º, e o assinalar de um canto a 85º). Os passos
+seguintes — confirmação/revisão, vãos, varandas, cores, o ecrã — ficam por fazer
+(`docs/EM_ABERTO.md`).
+
+**Decisões tomadas, repetindo as do handoff (secção 9), para ficarem registadas aqui também:**
+- Medição por retângulo com dois pontos (A e B) e distância real, com correção de perspetiva
+  assente em ângulos de 90º.
+- Confirmação com até duas medições extra; desvio acima de 1% manda a zona para revisão. (Ainda
+  não construído — só a retificação em si.)
+- Vãos acima de 1 m² descontam-se. (Não construído.)
+- Varanda: pintada por dentro; marquise: não pintada. Profundidade estimada e editável. (Não
+  construído.)
+- Cores escolhidas pelo cliente, registadas pelo avaliador, visíveis na revisão do levantamento.
+  (Não construído.)
+- Fotografias de medição nunca chegam a pintores nem a clientes. (Já é a regra geral das fotografias
+  de pedidos — secção 5.2 do `ESTADO.md` — e aplica-se também a estas; nenhuma excepção aberta.)
+
+**O método, e o que se descobriu ao testá-lo contra o caso real do handoff.** A retificação assenta em
+duas contas: a proporção largura/altura do retângulo real, derivada das larguras da linha de cima e
+de baixo do quadrilátero fotografado e da posição vertical de cada uma face ao centro da fotografia
+(fecho algébrico próprio, documentado no ficheiro); e uma homografia (fórmula de Heckbert) que leva
+qualquer ponto da fotografia — incluindo A e B — para coordenadas no retângulo já com a forma certa.
+Os testes 1 e 2 do handoff passam com erro abaixo de 1e-10% (não só abaixo do limiar de 0,5%
+proposto).
+
+**A limitação, encontrada ao tentar also passar o teste 9 (o vão real do handoff, fotografado do chão
+para cima):** resolveu-se algebricamente o sistema de equações para o caso geral — zona deslocada
+verticalmente do eixo ótico da câmara, que é exactamente o caso de uma fotografia tirada de baixo — e
+o sistema fica **indeterminado por um grau de liberdade**: há 4 incógnitas (a inclinação da câmara, a
+proporção largura/altura, e o deslocamento vertical da zona face ao eixo ótico, mais a distância) e só
+3 equações independentes nos quatro cantos fotografados, quando a zona não está centrada
+verticalmente com a câmara. Confirmado numericamente: com a zona centrada no eixo ótico, o método
+recupera a proporção com erro desprezável a qualquer inclinação testada (0º, 15º, 30º); deslocando a
+zona verticalmente (sem mudar mais nada), o erro sobe para mais de 6%, e cresce com o deslocamento —
+não é um efeito de arredondamento, é o sistema a ficar matematicamente subdeterminado. Isto bate
+certo com o caso real de teste do handoff (vão fotografado do chão para cima, claramente não centrado
+verticalmente na fotografia): o erro medido nesse caso foi de 9,3%, acima do limiar de 0,5%.
+
+**O que isto significa, e o que falta decidir:** com só os quatro cantos de uma fotografia frontal
+(sem rotação de lado), **não há informação suficiente para recuperar a proporção real quando a zona
+não está centrada verticalmente com a câmara** — é preciso mais um dado (por exemplo, a distância
+focal da câmara, muitas vezes disponível nos metadados EXIF da fotografia, ou assumir-se uma
+inclinação típica). Isto não estava identificado no handoff nem nas decisões pendentes da secção 8.
+Fica como uma 4.ª decisão pendente, a somar às três da secção 8 do handoff:
+- **8.4 (nova).** Como fechar a proporção largura/altura quando a zona não está centrada
+  verticalmente na fotografia (o caso comum de um avaliador a fotografar de baixo para cima): usar a
+  distância focal dos metadados EXIF da fotografia (se disponível), pedir mais um ponto de referência
+  ao avaliador, ou aceitar um erro maior nestes casos e avisar a pessoa. Sem decisão, por agora.
+
+Os testes obrigatórios 3 a 9 da secção 6 do handoff (confirmação, vãos, varandas, cores, acessos, sem
+base de dados nas funções de domínio — este último já cumprido por `retificarZona` — e o caso real)
+ficam para quando se retomar este trabalho; o teste 9 em concreto só é possível depois de decidida a
+8.4 acima.

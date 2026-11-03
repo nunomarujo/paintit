@@ -34,6 +34,10 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 
 | Tema | Pergunta | Origem |
 |---|---|---|
+| Medição de zonas: tolerância angular | Proposta 2º de desvio face a 90º — confirmar | Handoff 03/11/2026, secção 8.1 |
+| Medição de zonas: profundidade inicial das varandas | Sem valor decidido; enquanto não houver, o campo fica vazio | Handoff 03/11/2026, secção 8.2 |
+| Medição de zonas: zona comercial do rés-do-chão | Proposta: fica fora por defeito | Handoff 03/11/2026, secção 8.3 |
+| Medição de zonas: proporção largura/altura sem a zona centrada na fotografia | O sistema de equações fica indeterminado (encontrado nesta sessão, 03/11/2026) quando a zona não está centrada verticalmente com a câmara — falta decidir se se usa a focal do EXIF, se se pede mais um ponto, ou se se aceita erro maior e se avisa a pessoa | `docs/DECISOES.md`, 03/11/2026, "Medição de zonas por retângulo e dois pontos" |
 | Stripe em modo real | Só depois da limpeza e de testar a conta de faturação | `PAGAMENTOS_E_ASSINATURA.md` |
 | Percentagem do levantamento por avaliador | Validar pesos e banda (1%–2,7%) num caso real antes de ligar a dinheiro verdadeiro | `ESTADO.md` §7 |
 | Fee dinâmico (18–23%) | Pesos finais, ecrãs, indicador S, composição com os códigos de adesão. O motor está pronto e não ligado | `ESTADO.md` §7 |
@@ -46,6 +50,14 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
+
+## 2b. Medição de zonas por retângulo e dois pontos (handoff 03/11/2026) — por construir
+
+Só o passo 1 está feito: `retificarZona` (`src/domain/retificacao.ts`), com os testes 1 e 2 do
+handoff. Falta, pela ordem do handoff (secção 10): confirmação e revisão (teste 3); vãos e área
+líquida (teste 4); varandas e cores (testes 5 e 6); o ecrã de marcação, atrás de verificação de
+papel; acessos às fotografias (teste 7); o piloto (secção 7). O teste 9 (caso real) só é possível
+depois de decidida a pergunta "proporção largura/altura sem a zona centrada" na secção 2 acima.
 
 ## 3. Por construir (já decidido, ainda não feito)
 
