@@ -7,6 +7,9 @@ const FILL: Record<FaceKind, string> = {
   empena: 'fill-slate-300 stroke-slate-500',
   topo: 'fill-tinta-50 stroke-tinta-700',
   varanda: 'fill-slate-300 stroke-slate-600',
+  // Marquise: fechada, não pintada por dentro (handoff 03/11/2026) — tom próprio (azulado, como vidro),
+  // para não se confundir com a varanda aberta nem competir com as fachadas.
+  marquise: 'fill-sky-200 stroke-sky-600',
   vizinho: 'fill-slate-100 stroke-slate-300',
   // Pormenores caracterizados: cinzentos, para lerem como pormenor e não competirem com o volume.
   janela: 'fill-slate-500 stroke-slate-700',

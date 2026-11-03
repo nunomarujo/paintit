@@ -51,20 +51,24 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
-## 2b. Medição de zonas por retângulo e dois pontos (handoff 03/11/2026) — por construir
+## 2b. Medição de zonas: abandonada a via da fotografia, construído o modelo declarativo (03/11/2026)
 
-Só o passo 1 está feito: `retificarZona` (`src/domain/retificacao.ts`), com os testes 1 e 2 do
-handoff. Falta, pela ordem do handoff (secção 10): confirmação e revisão (teste 3); vãos e área
-líquida (teste 4); varandas e cores (testes 5 e 6); o ecrã de marcação, atrás de verificação de
-papel; acessos às fotografias (teste 7); o piloto (secção 7). O teste 9 (caso real) só é possível
-depois de decidida a pergunta "proporção largura/altura sem a zona centrada" na secção 2 acima.
+**Estado:** `retificarZona` (`src/domain/retificacao.ts`) ficou feito e testado (passo 1 da ordem do
+handoff original), mas **não se continua por essa via** — decisão do promotor, 03/11/2026, depois de
+comparar com uma app de outra sessão que entregava sub-áreas em 3D (fachadas, varandas, marquises)
+em muito menos tempo. Os passos 2-7 dessa ordem (confirmação, vãos por foto, ecrã de marcação sobre
+fotografia, acessos, piloto) **não se constroem**. Detalhe e o achado que levou à decisão (entrada
+real medida com fita, 1,65 m × 3,77 m, erro de -1,9% a +20,5% consoante os cantos — porque um vão
+recuado não é uma fachada plana): `docs/DECISOES.md`, entradas de 03/11/2026.
 
-**Achado do teste manual de 03/11/2026** (`docs/DECISOES.md`, mesma data): medida a entrada real do
-handoff (1,65 m × 3,77 m) contra quatro tentativas de cantos, erro entre -1,9% e +20,5%, sem
-convergir — porque uma entrada recuada não é uma fachada plana (o desvio angular dos cantos, 5,3º,
-já ultrapassa a tolerância proposta e mandaria a zona para revisão, corretamente). **Para o piloto:
-medir uma fachada lisa, sem recuos**, não um vão de entrada — só assim se testa o que a fórmula foi
-construída para medir.
+**Construído em vez disso, sobre o modelo 3D declarativo que já existia** (`src/domain/volume.ts`,
+de 30/10-01/11/2026): `src/domain/volumeAreas.ts` (área real por categoria — fachadas líquidas de
+vãos > 1 m², empenas, varandas, marquises, marquises fora do total pintável), `marquise` como
+`FaceKind` novo, e um ecrã de teste em `/demo-areas` (sem autenticação, fora do produto). Detalhe:
+`docs/DECISOES.md`, "Pivot: áreas pelo volume declarado", 03/11/2026.
+
+**Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada); cores por zona escolhidas
+pelo cliente (secção 3.5 do handoff original, ainda não construída).
 
 ## 3. Por construir (já decidido, ainda não feito)
 

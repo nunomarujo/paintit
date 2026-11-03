@@ -24,6 +24,12 @@ export interface VolumeInput {
   pisos: number | null;
   fachadas: number | null;
   temVarandas: boolean;
+  /**
+   * Marquises (varandas fechadas, não pintadas por dentro — handoff de 03/11/2026, secção 3.4):
+   * desenham-se em vez das varandas abertas, nunca ao mesmo tempo (um prédio não tem as duas ao
+   * mesmo nível por omissão; para isso, declararia zonas próprias, fora deste modelo genérico).
+   */
+  temMarquises?: boolean;
   moradia: boolean;
   /** Forma em planta escolhida de entre as canónicas. Omitida: barra, como antes. */
   forma?: Forma | null;
@@ -93,7 +99,20 @@ export const MAX_JANELAS_POR_PISO = 8;
 /** Quantas janelas se desenham por omissão, quando ninguém declarou nada. */
 export const JANELAS_POR_OMISSAO = 2;
 
-export type FaceKind = 'frente' | 'lado' | 'empena' | 'topo' | 'varanda' | 'vizinho' | 'janela' | 'porta' | 'grade' | 'muro' | 'beiral' | 'pala';
+export type FaceKind =
+  | 'frente'
+  | 'lado'
+  | 'empena'
+  | 'topo'
+  | 'varanda'
+  | 'marquise'
+  | 'vizinho'
+  | 'janela'
+  | 'porta'
+  | 'grade'
+  | 'muro'
+  | 'beiral'
+  | 'pala';
 export interface Face {
   kind: FaceKind;
   /** Pontos já rodados e projetados (axonometria), em unidades do desenho. */
@@ -186,11 +205,11 @@ export function footprintPlan(forma: Forma): [number, number, number, number][] 
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-interface Quad {
+export interface Quad {
   kind: FaceKind;
   /** Vizinhos: x da empena (contacto) e x do extremo oposto, por rodar. */
   fade?: { contacto: number; fim: number };
-  /** Pontos em 3D, por rodar. */
+  /** Pontos em 3D, em metros reais (ou nas proporções canónicas, sem `escala`) — por rodar. */
   pts: [number, number, number][];
   /** Normal exterior em 3D, por rodar. */
   n: [number, number, number];
@@ -218,7 +237,29 @@ function box(
   ];
 }
 
-export function buildingVolume(input: VolumeInput): Volume {
+/** O que `gerarQuads` devolve, além dos quads: as medidas da implantação, para quem projeta e para
+ *  quem só quer somar área sem desenhar nada. */
+export interface GeometriaGerada {
+  quads: Quad[];
+  pisos: number;
+  piso: number;
+  height: number;
+  px0: number;
+  py0: number;
+  px1: number;
+  py1: number;
+  width: number;
+  front: number;
+  livres: number;
+}
+
+/**
+ * Os quads do prédio, em metros reais (ou nas proporções canónicas, sem `escala`) — antes de rodar e
+ * projetar. Extraído de `buildingVolume` (31/10→03/11/2026) para `volumeAreas.ts` poder somar área
+ * real por categoria sem duplicar esta geometria: a mesma declaração tem de dar o mesmo desenho E a
+ * mesma área, sempre a partir desta única função.
+ */
+export function gerarQuads(input: VolumeInput): GeometriaGerada {
   const declared = input.pisos ?? (input.moradia ? 2 : 4);
   // "pisos" conta os pisos acima do solo; um rés-do-chão sozinho é 1.
   const pisos = Math.min(MAX_DRAWN_FLOORS, Math.max(1, declared));
@@ -330,10 +371,26 @@ export function buildingVolume(input: VolumeInput): Volume {
     }
   }
 
+  // Marquises: a mesma caixa das varandas, fechada — sem grade (o fecho substitui a guarda) e numa
+  // cor própria no desenho (handoff de 03/11/2026, secção 3.4: "marquise: fechada, não pintada").
+  // Nunca ao mesmo tempo que varandas abertas no mesmo volume genérico (ver VolumeInput.temMarquises).
+  if (input.temMarquises) {
+    for (let p = 1; p < pisos; p++) {
+      const z = p * piso;
+      quads.push(...box(px0 + width * 0.2, front, z, px0 + width * 0.8, front + 1.2, z + 1.25, 'marquise'));
+    }
+  }
+
   // Beirais: a pala de remate em todo o topo da fachada.
   if (el.beirais) quads.push(...box(px0 - 0.6, front - 0.6, height, px1 + 0.6, front + 0.8, height + 0.4, 'beiral'));
   // Muro à frente do prédio, à altura de um muro de vedação.
   if (el.muro) quads.push(...box(px0 - 1, front + 3, 0, px1 + 1, front + 3.8, 1.6, 'muro'));
+
+  return { quads, pisos, piso, height, px0, py0, px1, py1, width, front, livres };
+}
+
+export function buildingVolume(input: VolumeInput): Volume {
+  const { quads, pisos, px0, py0, px1, front, height, livres } = gerarQuads(input);
 
   // Rotação sobre o eixo vertical, em torno do centro da implantação, e projeção axonométrica.
   const angulo = ((input.angulo ?? 0) % 360 + 360) % 360;

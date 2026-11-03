@@ -4711,3 +4711,40 @@ convergir.
 só assim se testa o que `retificarZona` foi construído para medir. Este ponto de dados fica registado
 como primeira pista, não como validação ou invalidação da fórmula: o erro vem do objeto fotografado,
 não comprovadamente da matemática.
+
+## 03/11/2026 — Pivot: áreas pelo volume declarado, não por retificação de fotografia
+
+O promotor comparou com uma app feita por outra sessão em 1/20 do tempo, com um modelo 3D
+declarativo (fachadas, varandas, marquises, sub-áreas com cores, erro na ordem do cm²) e pediu para
+abandonar a via da foto-com-dois-pontos. Decisão: `retificarZona` fica construído e testado (passo 1
+da ordem do handoff de 03/11/2026), mas **não se continua por aqui** — os passos seguintes dessa
+ordem (confirmação, vãos por foto, ecrã de marcação) não se constroem. Em vez disso, aproveita-se o
+modelo 3D declarativo que já existia neste projeto (`src/domain/volume.ts`, construído a 30-31/10 e
+01/11/2026, antes desta sessão) e liga-se a cálculo de área real.
+
+**O que se construiu:**
+- `volume.ts`: `FaceKind` ganha `'marquise'`; `VolumeInput` ganha `temMarquises` (nunca ao mesmo
+  tempo que `temVarandas` no volume genérico — um prédio com os dois tipos teria de declarar zonas
+  próprias, fora deste modelo). A geometria dos quads (em metros reais, antes de rodar e projetar)
+  foi extraída para `gerarQuads`, exportada — para `volumeAreas.ts` somar área sobre a MESMA
+  geometria que desenha o volume, nunca uma conta à parte que possa divergir.
+- `src/domain/volumeAreas.ts` (novo, testado): `areasDoVolume(input)` soma área real (m²) por
+  categoria — fachadas (líquidas, com o desconto de vãos > 1 m² da secção 3.3 do handoff original,
+  agora finalmente implementado), empenas, varandas, marquises. Marquises mostram-se mas nunca
+  entram no total a pintar (secção 3.4 do handoff: fechadas, não pintadas).
+- `src/components/BuildingVolume.tsx`: cor própria para marquise (azulado, como vidro).
+- `src/app/demo-areas/` (novo): ecrã de teste, sem autenticação, fora do produto (mesmo padrão de
+  `demo-orcamento`/`demo-comparador`) — formulário com as dimensões reais declaradas (forma, pisos,
+  fachadas livres, frente/fundo/pé-direito em metros, janelas por piso, varandas/marquises/nenhuma),
+  o volume 3D ao lado (reaproveita `VolumeViewer`, já rodável por arrasto) e a área por categoria,
+  com cor a condizer. Verificado num browser real (Playwright): sem erros de consola, sem scroll
+  horizontal em 390px (telemóvel), as três combinações (nenhuma/varandas/marquises) desenham e somam
+  corretamente.
+
+**O que ficou por fazer, de propósito, por falta de tempo nesta sessão:** ligar este ecrã ao fluxo
+real (hoje é só uma rota de teste, sem gravar nada); cores por zona escolhidas pelo cliente (secção
+3.5 do handoff original); o resto do que a via da fotografia ainda prometia (vãos marcados na
+fotografia, confirmação por dois pontos extra) fica arquivado nas secções 8/8.4 — não decidido como
+abandonado, só não prosseguido.
+
+`npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
