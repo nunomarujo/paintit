@@ -122,6 +122,52 @@ describe('retificarZona', () => {
   // mais do que equações — quando a zona está deslocada verticalmente do eixo (o caso do vão real,
   // fotografado do chão para cima). Ver `docs/DECISOES.md`, 03/11/2026, para a derivação e o porquê.
 
+  it('correção aproximada: inclinação assumida certa dá resultado exato mesmo com a zona deslocada do eixo', () => {
+    // Mesma projeção do teste do vão real, mas sintética (para ter o valor verdadeiro): zona
+    // deslocada 400cm abaixo do eixo ótico, inclinação real 20º — o caso em que o cálculo normal
+    // fica indeterminado.
+    const dimensoesImagem = { largura: 1536, altura: 2048 };
+    const cx = dimensoesImagem.largura / 2;
+    const cy = dimensoesImagem.altura / 2;
+    const focal = 2200;
+    const D = 500;
+    const inclinacaoReal = 20;
+    const offsetY = 400;
+    const W = 165;
+    const H = 377;
+    const theta = (inclinacaoReal * Math.PI) / 180;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+    const projetar = (x: number, y: number): Ponto => {
+      const yr = y * cos - D * sin;
+      const zr = y * sin + D * cos;
+      return { x: cx + (focal * x) / zr, y: cy - (focal * yr) / zr };
+    };
+    const cantos: CantosZona = {
+      topoEsquerdo: projetar(-W / 2, offsetY + H / 2),
+      topoDireito: projetar(W / 2, offsetY + H / 2),
+      baseDireita: projetar(W / 2, offsetY - H / 2),
+      baseEsquerda: projetar(-W / 2, offsetY - H / 2),
+    };
+
+    const semAjuda = retificarZona(cantos, cantos.baseEsquerda, cantos.baseDireita, W, dimensoesImagem);
+    const erroSemAjuda = (Math.abs(semAjuda.alturaCm - H) / H) * 100;
+    expect(erroSemAjuda).toBeGreaterThan(1); // confirma que, sem ajuda, o caso é mesmo mau
+
+    const comInclinacaoCerta = retificarZona(
+      cantos,
+      cantos.baseEsquerda,
+      cantos.baseDireita,
+      W,
+      dimensoesImagem,
+      undefined,
+      inclinacaoReal
+    );
+    expect(comInclinacaoCerta.aproximado).toBe(true);
+    const erroComAjuda = (Math.abs(comInclinacaoCerta.alturaCm - H) / H) * 100;
+    expect(erroComAjuda).toBeLessThan(0.01);
+  });
+
   it('sem imports de cliente de base de dados', async () => {
     const fonte = await import('fs/promises').then((fs) => fs.readFile(new URL('./retificacao.ts', import.meta.url), 'utf8'));
     expect(fonte).not.toMatch(/supabase/i);

@@ -37,7 +37,7 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Medição de zonas: tolerância angular | Proposta 2º de desvio face a 90º — confirmar | Handoff 03/11/2026, secção 8.1 |
 | Medição de zonas: profundidade inicial das varandas | Sem valor decidido; enquanto não houver, o campo fica vazio | Handoff 03/11/2026, secção 8.2 |
 | Medição de zonas: zona comercial do rés-do-chão | Proposta: fica fora por defeito | Handoff 03/11/2026, secção 8.3 |
-| Medição de zonas: proporção largura/altura sem a zona centrada na fotografia | O sistema de equações fica indeterminado (encontrado nesta sessão, 03/11/2026) quando a zona não está centrada verticalmente com a câmara — falta decidir se se usa a focal do EXIF, se se pede mais um ponto, ou se se aceita erro maior e se avisa a pessoa | `docs/DECISOES.md`, 03/11/2026, "Medição de zonas por retângulo e dois pontos" |
+| Medição de zonas: valor de `INCLINACAO_TIPICA_GRAUS_PROPOSTA` (20º) | Decidido 03/11/2026 aceitar erro maior (correção aproximada com inclinação assumida) em vez de EXIF ou mais um ponto — falta só confirmar/corrigir o valor de 20º no piloto | `docs/DECISOES.md`, 03/11/2026, "correção aproximada com inclinação assumida" |
 | Stripe em modo real | Só depois da limpeza e de testar a conta de faturação | `PAGAMENTOS_E_ASSINATURA.md` |
 | Percentagem do levantamento por avaliador | Validar pesos e banda (1%–2,7%) num caso real antes de ligar a dinheiro verdadeiro | `ESTADO.md` §7 |
 | Fee dinâmico (18–23%) | Pesos finais, ecrãs, indicador S, composição com os códigos de adesão. O motor está pronto e não ligado | `ESTADO.md` §7 |

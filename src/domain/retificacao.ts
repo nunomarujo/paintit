@@ -26,10 +26,21 @@
  *    quadrado unitário. Combinada com a proporção do passo 1, esse ponto fica em coordenadas com a
  *    forma certa do retângulo, só por escalar.
  *
- * **Limite conhecido:** a fórmula do passo 1 assume uma fotografia tirada de frente, só com
- * inclinação para cima/baixo (o caso do handoff). Uma fotografia também rodada de lado, ou tirada
- * fora do eixo da zona, dá uma proporção menos exata — não há teste ainda para esse caso
- * (`docs/EM_ABERTO.md`).
+ * **Limite conhecido, e a correção aproximada (decisão do promotor, 03/11/2026).** A fórmula do
+ * passo 1 só resolve sozinha a inclinação da câmara quando a zona está centrada verticalmente com o
+ * eixo ótico; quando não está — o caso comum de uma fotografia tirada do chão para cima, sem o
+ * avaliador aos pés da zona — o sistema de equações fica indeterminado (ver `retificacao.test.ts`
+ * para a verificação numérica). Confirmado nesse caso real: erro de ~9% na altura.
+ *
+ * A saída, a pedido do promotor: quando se passa `inclinacaoAssumidaGraus`, a conta deixa de tentar
+ * resolver a inclinação a partir dos cantos e usa o valor dado diretamente — a equação que relaciona
+ * largura/altura com a inclinação (`H cosθ = W·R`, ver `razaoLarguraAltura`) **não depende do
+ * deslocamento vertical da zona**, por isso o resultado fica exato se a inclinação dada for a
+ * inclinação real, e erra proporcionalmente ao erro dessa suposição (confirmado numericamente: 5º de
+ * erro na suposição dão 3-4,5% de erro na proporção — um erro que cresce devagar, ao contrário do
+ * erro do sistema indeterminado, que pode ser grande e imprevisível). `INCLINACAO_TIPICA_GRAUS_PROPOSTA`
+ * é um valor de partida — **não confirmado pelo promotor** — para quando ninguém sabe a inclinação
+ * real; o piloto (secção 7 do handoff) é que deve confirmar ou corrigir este número.
  *
  * A distância real A–B fixa a escala: mede-se a distância entre A e B nessas coordenadas e o rácio
  * `distanciaRealCm / distância-em-coordenadas` dá os centímetros por unidade.
@@ -65,6 +76,15 @@ export interface DimensoesImagem {
  */
 export const TOLERANCIA_ANGULAR_GRAUS_PROPOSTA = 2;
 
+/**
+ * Inclinação típica da câmara, usada em `retificarZona` só quando se passa
+ * `usarInclinacaoAssumida: true` (correção aproximada, decisão do promotor de 03/11/2026, para o
+ * caso em que a zona não está centrada verticalmente com o eixo ótico — ver o aviso na descrição do
+ * ficheiro). **Valor de partida, não confirmado pelo promotor** — falta o piloto (secção 7 do
+ * handoff) para o corrigir.
+ */
+export const INCLINACAO_TIPICA_GRAUS_PROPOSTA = 20;
+
 export interface ResultadoRetificacao {
   /** Largura real da zona, em centímetros inteiros. */
   larguraCm: number;
@@ -76,6 +96,8 @@ export interface ResultadoRetificacao {
   desvioAngularGraus: number;
   estado: 'ok' | 'revisao';
   motivo: string | null;
+  /** true quando a proporção veio de uma inclinação assumida, não calculada a partir dos cantos. */
+  aproximado: boolean;
 }
 
 function vetor(p: Ponto, origem: Ponto): [number, number] {
@@ -118,8 +140,13 @@ function distancia(p: Ponto, q: Ponto): number {
  * entre a largura da linha de cima e a de baixo (dá a inclinação da câmara) e a posição vertical de
  * cada linha face ao centro (dá, com a inclinação, a proporção real) — ver `retificacao.test.ts`
  * para a derivação passo a passo e a verificação numérica.
+ *
+ * Quando `inclinacaoAssumidaGraus` é dado, salta o cálculo da inclinação (que fica indeterminado
+ * quando a zona não está centrada verticalmente — ver aviso na descrição do ficheiro) e usa esse
+ * valor diretamente: `H cosθ = W·R` não depende do deslocamento vertical da zona, por isso o
+ * resultado é exato se a inclinação dada for a real.
  */
-function razaoLarguraAltura(cantos: CantosZona, centro: Ponto): number {
+function razaoLarguraAltura(cantos: CantosZona, centro: Ponto, inclinacaoAssumidaGraus?: number): number {
   const { topoEsquerdo: te, topoDireito: td, baseEsquerda: be, baseDireita: bd } = cantos;
 
   const larguraTopo = distancia(te, td);
@@ -129,12 +156,17 @@ function razaoLarguraAltura(cantos: CantosZona, centro: Ponto): number {
 
   const a = yTopo / larguraTopo;
   const b = yBase / larguraBase;
-  const rho = larguraTopo / larguraBase;
-  const q = (1 - rho) / (1 + rho);
   const r = a - b;
 
   if (r === 0) return larguraTopo / larguraBase; // sem indício de inclinação: a proporção já é a da imagem
 
+  if (inclinacaoAssumidaGraus !== undefined) {
+    const thetaAssumida = (inclinacaoAssumidaGraus * Math.PI) / 180;
+    return Math.cos(thetaAssumida) / r;
+  }
+
+  const rho = larguraTopo / larguraBase;
+  const q = (1 - rho) / (1 + rho);
   const tan2Theta = Math.max(0, (-(a + b) * q) / r);
   const theta = Math.atan(Math.sqrt(tan2Theta));
   return Math.cos(theta) / r;
@@ -213,12 +245,14 @@ export function retificarZona(
   pontoB: Ponto,
   distanciaRealCm: number,
   dimensoesImagem: DimensoesImagem,
-  toleranciaAngularGraus: number = TOLERANCIA_ANGULAR_GRAUS_PROPOSTA
+  toleranciaAngularGraus: number = TOLERANCIA_ANGULAR_GRAUS_PROPOSTA,
+  inclinacaoAssumidaGraus?: number
 ): ResultadoRetificacao {
   const desvioAngularGraus = desvioAngularDosCantos(cantos);
 
   const centro: Ponto = { x: dimensoesImagem.largura / 2, y: dimensoesImagem.altura / 2 };
-  const whRatio = razaoLarguraAltura(cantos, centro);
+  const whRatio = razaoLarguraAltura(cantos, centro, inclinacaoAssumidaGraus);
+  const aproximado = inclinacaoAssumidaGraus !== undefined;
 
   const homografia = homografiaDoQuadradoUnitario(cantos);
   const inversa = inverter3x3(homografia);
@@ -242,8 +276,9 @@ export function retificarZona(
       desvioAngularGraus,
       estado: 'revisao',
       motivo: 'a zona não parece retangular',
+      aproximado,
     };
   }
 
-  return { larguraCm, alturaCm, areaCm2, desvioAngularGraus, estado: 'ok', motivo: null };
+  return { larguraCm, alturaCm, areaCm2, desvioAngularGraus, estado: 'ok', motivo: null, aproximado };
 }

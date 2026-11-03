@@ -4645,3 +4645,36 @@ Os testes obrigatórios 3 a 9 da secção 6 do handoff (confirmação, vãos, va
 base de dados nas funções de domínio — este último já cumprido por `retificarZona` — e o caso real)
 ficam para quando se retomar este trabalho; o teste 9 em concreto só é possível depois de decidida a
 8.4 acima.
+
+## 03/11/2026 — Medição de zonas: decisão parcial da 8.4, correção aproximada com inclinação assumida
+
+O promotor testou `retificarZona` ao vivo contra uma fotografia real (prédio em Viana do Castelo,
+alçado com R/C comercial e duas colunas de varandas abertas, fotografado de baixo) e pediu, perante a
+indeterminação encontrada (8.4 acima): **"avança com a correção aproximada, assumindo uma inclinação
+típica."** Isto fecha a 8.4 parcialmente — escolhe a opção "aceitar um erro maior nestes casos", não
+as outras duas (EXIF, pedir mais um ponto), que ficam por explorar se este modo se revelar
+insuficiente no piloto.
+
+**O que se construiu:** `retificarZona` ganha um parâmetro opcional, `inclinacaoAssumidaGraus`. Sem
+ele, o comportamento não muda (tenta resolver a inclinação a partir dos cantos, falha quando a zona
+não está centrada no eixo ótico). Com ele, salta essa tentativa e usa o valor dado diretamente na
+equação `H cosθ = W·R` — que, confirmado algebricamente e por teste numérico (novo teste em
+`retificacao.test.ts`), **não depende do deslocamento vertical da zona**: o resultado fica exato se a
+inclinação dada for a real, e erra proporcionalmente ao erro da suposição (verificado: 5º de erro na
+suposição dão 3-4,5% de erro na proporção largura/altura — um erro que cresce devagar, ao contrário do
+erro do sistema indeterminado, que pode ser grande e imprevisível, como nos ~9% medidos no caso real).
+`INCLINACAO_TIPICA_GRAUS_PROPOSTA = 20` é um valor de partida — **não confirmado, só uma primeira
+estimativa minha para avaliador a fotografar de pé um prédio de vários pisos** — a confirmar ou
+corrigir no piloto (secção 7 do handoff). O resultado de `retificarZona` ganha o campo `aproximado`
+(booleano), para o ecrã (quando existir) poder avisar o avaliador de que o número é uma aproximação,
+não uma medição exata.
+
+**Teste manual contra a fotografia real do promotor (entrada de prédio em Viana do Castelo, calibrada
+com a largura da entrada R/C, 1,65 m, dada pelo promotor):** cantos tocados à mão sobre a fotografia
+(sem ecrã, só visualmente) deram uma altura da entrada (padieira ao passeio, incluindo as escadas) de
+≈3,70 m, e uma largura/altura do corpo central do alçado de ≈2,5 m × ≈10,9 m (≈27 m²) — estes números
+não passaram por `inclinacaoAssumidaGraus` (foram calculados antes desta funcionalidade existir, só
+com o modo normal) e ficam só como registo de teste, não como medição fiável: cantos tocados à mão,
+sem precisão de ecrã tátil, e sem o alçado completo medido (só o corpo central; faltam as duas colunas
+de varandas e o R/C comercial, que precisariam cada um da sua própria zona). Não se repetiu o cálculo
+com o modo aproximado sobre esta fotografia nesta sessão.
