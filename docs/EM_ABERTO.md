@@ -59,6 +59,13 @@ líquida (teste 4); varandas e cores (testes 5 e 6); o ecrã de marcação, atr�
 papel; acessos às fotografias (teste 7); o piloto (secção 7). O teste 9 (caso real) só é possível
 depois de decidida a pergunta "proporção largura/altura sem a zona centrada" na secção 2 acima.
 
+**Achado do teste manual de 03/11/2026** (`docs/DECISOES.md`, mesma data): medida a entrada real do
+handoff (1,65 m × 3,77 m) contra quatro tentativas de cantos, erro entre -1,9% e +20,5%, sem
+convergir — porque uma entrada recuada não é uma fachada plana (o desvio angular dos cantos, 5,3º,
+já ultrapassa a tolerância proposta e mandaria a zona para revisão, corretamente). **Para o piloto:
+medir uma fachada lisa, sem recuos**, não um vão de entrada — só assim se testa o que a fórmula foi
+construída para medir.
+
 ## 3. Por construir (já decidido, ainda não feito)
 
 - **Sexto estado do trabalho, «alternativa proposta»** — precisa de coluna e migração. `ESTADO.md` «Em aberto».

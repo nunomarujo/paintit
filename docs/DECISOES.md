@@ -4678,3 +4678,36 @@ com o modo normal) e ficam só como registo de teste, não como medição fiáve
 sem precisão de ecrã tátil, e sem o alçado completo medido (só o corpo central; faltam as duas colunas
 de varandas e o R/C comercial, que precisariam cada um da sua própria zona). Não se repetiu o cálculo
 com o modo aproximado sobre esta fotografia nesta sessão.
+
+**Confirmação do promotor (mesma sessão, logo a seguir):** a entrada medida com fita tem 3,77 m de
+altura (e 1,65 m de largura, já conhecida) — os mesmos valores do caso real do handoff original
+(secção 6, teste 9), confirmando que é a mesma entrada física. Com isto há, pela primeira vez, uma
+comparação real contra uma medida com fita (o que a secção 7 do handoff pede para o piloto, embora
+este não seja ainda o piloto formal — é um só ponto, não um prédio de referência medido por inteiro).
+
+| Estimativa | Altura calculada | Erro |
+|---|---|---|
+| Cantos grosseiros, sem correção | 3,70 m | -1,9% |
+| Cantos grosseiros, com 20º assumidos | 3,95 m | +4,8% |
+| Cantos refinados (jambas medidas ao pixel), sem correção | 4,27 m | **+13,3%** |
+| Cantos refinados, com 20º assumidos | 4,54 m | **+20,5%** |
+
+**Achado, não ruído de medição.** Medindo as duas jambas da porta ao pixel (não a olho), a largura do
+vão sai **maior no topo (201 px) do que na base (180 px)** — o contrário do que a inclinação simples
+da câmara prevê — e o desvio angular dos quatro cantos chega a **5,3º**, acima da tolerância proposta
+(2º, secção 8.1). Ou seja: **o próprio `desvioAngularDosCantos` já assinalaria esta zona concreta como
+"a zona não parece retangular" e mandá-la-ia para revisão** — o mecanismo de alarme funciona
+corretamente aqui, mesmo que o número de área, isolado, pareça só "um bocado errado".
+
+A razão não é um erro de cálculo: esta entrada é um **vão recuado**, com escadas que se afastam para
+dentro do prédio — não é uma superfície plana, é a mesma classe de problema que varandas salientes
+(secção 2, "Limite conhecido" do handoff), só na direção contrária (para dentro, não para fora).
+`retificarZona` assume uma fachada plana; aplicá-la a um recuo dá um resultado sem significado, por
+mais que se afinem os cantos — confirmado aqui por quatro tentativas, todas com erro diferente e sem
+convergir.
+
+**Consequência para o piloto (secção 7 do handoff):** a validação com fita métrica deve medir uma
+**fachada lisa, sem recuos nem saliências** (ex. a parte plana de uma parede), não um vão de entrada —
+só assim se testa o que `retificarZona` foi construído para medir. Este ponto de dados fica registado
+como primeira pista, não como validação ou invalidação da fórmula: o erro vem do objeto fotografado,
+não comprovadamente da matemática.
