@@ -14,6 +14,7 @@ import {
   confirmacaoDaOrigem,
   parseRequest,
   parseSurface,
+  primeiraMedicao,
   publishBlockers,
   type Participacao,
   type SurfaceInput,
@@ -152,7 +153,10 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
   if (refused) return refused;
   const { error } = await supabase.from('request_surfaces').insert({
     request_id: requestId,
-    ...colunasDaZona(v, user.id),
+    ...colunasDaZona(v),
+    // Zona nova: a medição é sempre de quem a está a criar.
+    registado_por: user.id,
+    registado_em: new Date().toISOString(),
   });
   if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
   revalidarPedido(requestId);
@@ -163,11 +167,11 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
  * As colunas de uma zona, a partir do que o editor enviou. Uma só função para acrescentar e para
  * alterar: eram duas listas de campos a ter de andar a par, e andar a par é coisa que não acontece.
  *
- * `registado_por` e `registado_em` guardam-se sempre. O promotor pediu-o de propósito — «o registo
- * deve conservar quem fez cada medição e quando» —, para que a revisão pelo cliente não transforme
- * uma medida técnica em algo que se presume que ele verificou pessoalmente.
+ * Não inclui `registado_por`/`registado_em`: quem chama decide-os (ver `addSurface` e
+ * `updateSurface`), porque o critério depende de se a zona já tinha ou não uma medição — ver
+ * `primeiraMedicao` em `src/domain/request.ts`.
  */
-function colunasDaZona(v: SurfaceInput, userId: string) {
+function colunasDaZona(v: SurfaceInput) {
   return {
     kind: v.kind,
     descricao: v.descricao,
@@ -180,12 +184,19 @@ function colunasDaZona(v: SurfaceInput, userId: string) {
     origem_quantidade: v.origemQuantidade,
     confirmacao: confirmacaoDaOrigem(v.origemQuantidade),
     trabalhos: v.trabalhos,
-    registado_por: userId,
-    registado_em: new Date().toISOString(),
   };
 }
 
-/** Alterar uma zona que já existe. Era o que faltava para o botão «Editar» ter o que fazer. */
+/**
+ * Alterar uma zona que já existe. Era o que faltava para o botão «Editar» ter o que fazer.
+ *
+ * `registado_por`/`registado_em` só se escrevem quando a zona ainda não tinha nenhuma medição
+ * (`origem_quantidade` anterior nulo): nesse caso esta edição É a primeira medição, e fica
+ * legitimamente atribuída a quem a fez. Quando a zona já tinha origem, estas colunas ficam como
+ * estavam — o promotor pediu-o de propósito («o registo deve conservar quem fez cada medição e
+ * quando»), para que a correcção de uma zona pelo cliente não apague o registo de que foi um
+ * avaliador quem a mediu (CLAUDE.md; `docs/DECISOES.md`, 30/10/2026).
+ */
 export async function updateSurface(
   requestId: string,
   surfaceId: string,
@@ -200,9 +211,20 @@ export async function updateSurface(
   const v = parsed.value;
   const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao: v.descricao });
   if (refused) return refused;
+  const { data: zonaActual } = await supabase
+    .from('request_surfaces')
+    .select('origem_quantidade')
+    .eq('id', surfaceId)
+    .eq('request_id', requestId)
+    .maybeSingle();
   const { error } = await supabase
     .from('request_surfaces')
-    .update(colunasDaZona(v, user.id))
+    .update({
+      ...colunasDaZona(v),
+      ...(primeiraMedicao(zonaActual?.origem_quantidade ?? null)
+        ? { registado_por: user.id, registado_em: new Date().toISOString() }
+        : {}),
+    })
     .eq('id', surfaceId)
     .eq('request_id', requestId);
   if (error) return { errors: {}, message: 'Não foi possível guardar. O pedido tem de estar em rascunho.' };

@@ -4569,3 +4569,19 @@ aplica, sugestões — disponíveis em botões na ficha do produto.
   fabricante): "sugestões" é indicação prática de aplicação, não lista de produtos.
 - Cobre os 15 tipos de produto (tintas e afins, as 5 placas de isolamento, fixador, rede, reboco de
   capoto, e "outro" com texto neutro a apontar para a ficha técnica).
+
+## 03/11/2026 — Editar uma zona apagava o registo de quem a mediu
+
+`colunasDaZona` (`src/app/app/pedidos/actions.ts`) escrevia sempre `registado_por`/`registado_em` com
+o utilizador que está a chamar a função — certo em `addSurface` (zona nova), errado em `updateSurface`:
+um cliente a corrigir uma zona que um avaliador tinha medido (ex.: ajustar a área por haver um
+roupeiro embutido) passava a ficar registado como tendo medido ele próprio, apagando em silêncio o
+registo de que foi um profissional quem esteve no local. Exactamente o que a regra pedida pelo
+promotor («o registo deve conservar quem fez cada medição e quando») e `docs/DECISOES.md` de
+30/10/2026 («quem registou guarda-se à parte») diziam que não devia acontecer.
+
+Passa a só se escreverem estas duas colunas em `updateSurface` quando a zona ainda não tinha nenhuma
+medição (`origem_quantidade` anterior nulo — `primeiraMedicao`, `src/domain/request.ts`, puro e
+testado): nesse caso a edição É a primeira medição e fica atribuída a quem a fez; quando já tinha
+origem, a autoria anterior fica como estava. `addSurface` continua a escrever sempre as duas colunas
+(zona nova).

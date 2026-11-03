@@ -4,6 +4,7 @@ import {
   fraseDePrazo,
   parseRequest,
   parseSurface,
+  primeiraMedicao,
   publishBlockers,
   bloqueiosDaPublicacao,
   resumoDasZonas,
@@ -78,6 +79,18 @@ describe('área das superfícies', () => {
 
   it('formata em m² à portuguesa', () => {
     expect(formatArea(16150)).toBe('161,5 m²');
+  });
+});
+
+describe('autoria de uma medição (registado_por/registado_em)', () => {
+  it('uma zona nunca medida: a edição é a primeira medição, fica atribuída a quem edita', () => {
+    expect(primeiraMedicao(null)).toBe(true);
+  });
+
+  it('uma zona já medida: a edição não é a primeira, a autoria anterior fica como estava', () => {
+    expect(primeiraMedicao('medicao')).toBe(false);
+    expect(primeiraMedicao('estimativa')).toBe(false);
+    expect(primeiraMedicao('documento')).toBe(false);
   });
 });
 

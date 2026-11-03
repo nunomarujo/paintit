@@ -204,6 +204,21 @@ export const COMO_MEDIR_LABELS: Record<ComoMedir, string> = {
 export const confirmacaoDaOrigem = (o: OrigemDaQuantidade | null): Confirmacao =>
   o === 'medicao' ? 'confirmada' : 'por_confirmar';
 
+/**
+ * Ao editar uma zona que já existe, a autoria (`registado_por`/`registado_em`) passa a ser de quem
+ * edita?
+ *
+ * Só quando a zona nunca tinha sido medida por ninguém — `origemQuantidadeAnterior` nulo. Nesse
+ * caso a edição É a primeira medição, e fica legitimamente atribuída a quem a fez agora. Quando a
+ * zona já tinha uma origem, a resposta é não: a autoria de quem mediu fica como estava, para não se
+ * perder quando outra pessoa (tipicamente o cliente, a corrigir o levantamento de um avaliador) edita
+ * a zona depois — é a regra que `colunasDaZona` (em `src/app/app/pedidos/actions.ts`) e
+ * `docs/DECISOES.md` (30/10/2026, "quem registou guarda-se à parte") pedem.
+ */
+export function primeiraMedicao(origemQuantidadeAnterior: OrigemDaQuantidade | null): boolean {
+  return origemQuantidadeAnterior === null;
+}
+
 /** A origem antiga, traduzida para a nova. Serve a migração e o que ainda não tiver mudado. */
 export const ORIGEM_ANTIGA_PARA_NOVA: Record<AreaSource, OrigemDaQuantidade> = {
   estimativa: 'estimativa',
