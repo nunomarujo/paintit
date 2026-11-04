@@ -5267,15 +5267,29 @@ células por metro, a cor da parede estima-se localmente (segue o sombreado); o 
 limpo e cortado em peças do tamanho de uma janela, ajusta-se às arestas mais fortes (o aro de fora
 quando há dois); depois a **repetição** decide — colunas de janelas iguais confirmam-se umas às
 outras, uma janela sozinha só é proposta com nota alta, e uma em falta numa coluna regular só se
-acrescenta se a imagem a confirmar. Varandas e marquises (vãos acima de 3,5 × 3 m, ou assentes num
-parapeito) não se propõem: desenham-se como até aqui.
+acrescenta se a imagem a confirmar. Varandas abertas e blocos de marquise inteiros (acima de 3,5 ×
+3 m, ou assentes num parapeito) não se propõem: desenham-se como até aqui. Os **vidros** de uma
+marquise podem sair como janela — e são isso mesmo: vidros que se descontam (na fotografia real saem
+os de 2 das 5 marquises; os outros desenham-se à mão).
 
 **Números.** Fachada sintética branca 12 × 18 m: 100 % das janelas, nenhuma inventada, com gradiente
 e ruído, roupa estendida, meia fachada no contorno; parede lisa → 0 propostas. Fotografia real do
-promotor (avaliada fora do repositório, nunca em testes): as 10 janelas do corpo branco, nenhum
-falso positivo (sobreposição 0,73 a 0,89 com as marcadas à mão); marquises, varandas e R/C → 0
-propostas. 0,1 a 0,3 s por deteção. **Limites conhecidos:** varandas cuja guarda tem a cor da parede
-podem sair como janela (precisão 0,71–0,91 nas sintéticas); janelas das marquises não se propõem.
+promotor (avaliada fora do repositório, nunca em testes): as 10 janelas do corpo branco
+(sobreposição 0,76 a 0,87 com as marcadas à mão), os vidros de 2 marquises, e uma caixa pequena no
+R/C com confiança 0,31 (a tirar com um toque); varandas abertas, montras e porta → nada. Cerca de
+0,1 s por deteção, e nunca acima de 0,4 s nos prédios grandes.
 
-Primeira versão; a revisão de um cético (fachadas difíceis: estores da cor da parede, vidros a
-refletir o céu, azulejo, tijolo, sombras) está em curso e as correções entram a seguir.
+**Revisão do cético** (fachadas difíceis, a fotografia real refeita de forma independente). Nada
+rebentou; partiu em cinco sítios, todos corrigidos com um teste cada: (1) o contorno em triângulo
+contava como o retângulo à volta — propunha janelas fora dele e as claraboias do telhado vizinho;
+(2) prédios com mais de ~21 × 31 m, ou a fotografia inteira no ecrã, levavam até 1,4 s; (3) placas
+de revestimento encostadas ao fim do contorno saíam como janelas; (4) manchas de humidade e remendos
+de orla nítida saíam com confiança até 1,0; (5) uma janela por cima da junta de dois contornos saía
+cortada a meio. E no ecrã: com "Ver a fotografia inteira" a deteção corria nessa vista, três vezes
+mais pequena — corre agora sempre sobre a vista enquadrada no contorno.
+
+**Limites que ficam** (a deteção propõe; o avaliador confirma): manchas de outra tonalidade
+(esverdeadas, castanhas) e objetos retangulares nítidos (aparelhos de ar condicionado numa parede de
+cor, sombras retangulares) podem sair como janela; estores fechados da cor da parede não se veem;
+roupa estendida por cima pode deslocar a caixa; tijolo à vista é detetado ou não conforme a escala;
+varandas com a guarda da cor da parede podem sair como janela.

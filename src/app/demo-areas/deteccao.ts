@@ -1,3 +1,5 @@
+import { verticesDaZona, type CantoReto } from '@/domain/fachadaMedida';
+import type { Ponto } from '@/domain/homografia';
 import type { Extensao, Pixeis } from './endireitar';
 
 /**
@@ -8,14 +10,21 @@ import type { Extensao, Pixeis } from './endireitar';
  * browser.
  *
  * Coordenadas como as das zonas (`Zona`): metros no plano da fachada, Y para cima, (x, y) o canto
- * inferior esquerdo. A vista tem `ppm` píxeis por metro e a linha 0 é o Y mais alto (`ext.y1`).
+ * inferior esquerdo. A vista tem `ppm` píxeis por metro e a linha 0 é o Y mais alto (`ext.y1`). Os
+ * contornos são os da ferramenta, retângulos ou triângulos (`triangulo`, como em `Zona`).
  *
  * Na vista endireitada as janelas são retângulos direitos e repetem-se em colunas — é nisso que tudo
  * assenta. Como se decide:
- * 1. Grelha de trabalho: a vista reduzida a cerca de 20 células por metro (média de f × f píxeis), em
- *    luminância (Rec. 709) e dois canais de cor (R − G e B − (R + G)/2), alisada 3 × 3. Só contam as
- *    células dentro de um contorno e que não sejam o cinzento com que `endireitar` pinta o que fica
- *    fora da fotografia.
+ * 1. Grelha de trabalho: só a caixa dos contornos, com 0,3 m de margem (na vista da fotografia inteira
+ *    o contorno é uma parte pequena dela), reduzida pelo número inteiro de píxeis que a deixa com 15 a
+ *    30 células por metro; uma fachada tão grande que passaria de 200 000 células fica com menos, e
+ *    então cada célula é a média exata de f × f píxeis com f real. O tempo deixa de depender da
+ *    escala da vista: com a redução só por inteiros, abaixo de 40 píxeis por metro a grelha ficava do
+ *    tamanho da vista, e a deteção levava mais de um segundo. Em luminância (Rec. 709) e dois canais
+ *    de cor (R − G e B − (R + G)/2), alisada 3 × 3 só com as células válidas — a cor de fora do
+ *    contorno não se mistura na borda. Válidas: o centro dentro de um contorno (no triângulo, e não
+ *    no retângulo que o envolve) e não o cinzento com que `endireitar` pinta o que fica fora da
+ *    fotografia. Nada do que fica fora conta para a parede nem para as manchas.
  * 2. A parede. Primeira passagem: em blocos de 0,5 m, a mediana de cada canal; a parede de um bloco é
  *    a mediana dos blocos vizinhos num raio de 2,5 m, só da metade mais lisa (onde não há janelas).
  *    Segunda passagem: a média das células que a primeira deu como parede (com 0,1 m de folga) numa
@@ -24,8 +33,10 @@ import type { Extensao, Pixeis } from './endireitar';
  *    pilar, e só com a primeira essa faixa colava-se às janelas da coluna da direita.
  * 3. Diferença da parede, em limiares: 3,5 × o ruído (a dispersão mediana dentro dos blocos), e nunca
  *    menos de 12 níveis de luminância ou 9 de cor. Uma célula a 1 ou mais limiares está marcada.
- * 4. Limpeza: fecho de 0,1 m (junta caixilho e vidro), buracos até 1,5 m² cheios (o vidro que reflete
- *    o céu ou a parede), abertura de 0,24 m (corta tubos de queda, escorrências e pontes finas).
+ * 4. Limpeza: fecho de 0,1 m (junta caixilho e vidro), buracos até 1,5 m² cheios se se distinguirem
+ *    da parede (25 % das células a 0,6 limiares: o vidro que reflete o céu), abertura de 0,24 m (corta
+ *    tubos de queda, escorrências, juntas e pontes finas). Um buraco que é parede fica aberto: entre as
+ *    juntas de um revestimento de placas cada painel é um buraco, e cheio passava a janela.
  * 5. Manchas e corte recursivo em X e Y: uma mancha maior do que uma janela, ou com menos de 60 % de
  *    enchimento, parte-se pela coluna ou linha com menos marcas (até 30 %). Separa a janela do último
  *    piso do beiral, e uma coluna de janelas da sombra que a liga às outras.
@@ -45,6 +56,11 @@ import type { Extensao, Pixeis } from './endireitar';
  *    ou mais, cada janela é posta à prova contra a medida da coluna (`consenso`) e a que falta entre
  *    duas, ou a seguir à última, só entra se a imagem a confirmar (`preencher`). Confiança = nota ×
  *    (0,6 + 0,4 × repetição); a que não se repete nem em coluna nem em fila só fica com nota ≥ 0,8.
+ * 10. Manchas na parede: uma caixa cujo interior tem a tonalidade da parede e a luminância a menos de
+ *    30 % da dela (humidade, remendo de reboco, pintura mais nova) fica com 0,6 da nota e não abona
+ *    as outras na repetição — dez manchas ao acaso têm sempre duas à mesma altura.
+ * 11. Sai a caixa cujo centro está dentro de um contorno, recortada à união dos contornos (uma janela
+ *    por cima da junta de dois contornos encostados sai inteira).
  *
  * Fora do âmbito: varandas e marquises. Não se propõem quando se reconhecem como blocos grandes —
  * tudo o que, depois do corte e das arestas, passa de 3,5 m de largura ou de 3 m de altura (a laje, a
@@ -55,8 +71,16 @@ import type { Extensao, Pixeis } from './endireitar';
  * guarda da cor da parede também não se reconhece. A porta principal fica de fora pela altura (passa
  * dos 3 m, e é a referência).
  *
- * Corre em 55 a 180 ms numa vista de 1000 × 1500 em Node, depois de compilada; a primeira chamada,
- * com a compilação, fica abaixo de 300 ms. O pedido era menos de 400 ms no browser.
+ * Limites conhecidos (a imagem não os distingue de um vão): sombras e objetos retangulares nítidos e
+ * repetidos (aparelhos de ar condicionado, sombras de palas), manchas com outra tonalidade
+ * (esverdeadas, castanhas: a forma redonda não as separa sem perder janelas reais com estores),
+ * estores fechados da cor da parede (não se propõem), roupa estendida que desce abaixo do peitoril
+ * (a caixa sai deslocada), e texturas finas e regulares (tijolo à vista) a algumas escalas, onde as
+ * juntas se juntam numa mancha só.
+ *
+ * Corre em 60 a 220 ms numa vista de 1000 × 1500 em Node, depois de compilada, seja qual for a escala
+ * (uma fachada de 20 × 32 m a 39 píxeis por metro, uma de 30 × 25 m a 28, a fotografia inteira a 23);
+ * a primeira chamada, com a compilação, fica abaixo de 300 ms. O pedido era menos de 400 ms no browser.
  */
 
 export interface Retangulo {
@@ -64,6 +88,11 @@ export interface Retangulo {
   y: number;
   largura: number;
   altura: number;
+}
+
+/** Um contorno da fachada: o retângulo, ou a metade dele com o ângulo reto em `triangulo` (como `Zona`). */
+export interface Contorno extends Retangulo {
+  triangulo?: CantoReto;
 }
 
 export interface JanelaDetetada extends Retangulo {
@@ -84,8 +113,12 @@ export interface OpcoesDeteccao {
   confiancaMinima?: number;
 }
 
-/** Células por metro da grelha de trabalho, no mínimo (a redução é por um número inteiro de píxeis). */
-const PPM_TRABALHO = 20;
+/** Células por metro da grelha de trabalho, no máximo. */
+const PPM_TRABALHO_MAXIMO = 30;
+/** Teto de células da grelha: acima disto baixa a resolução (o tempo cresce com elas). */
+const CELULAS_MAXIMAS = 200_000;
+/** Margem da grelha à volta da caixa dos contornos (m). */
+const MARGEM_GRELHA_M = 0.3;
 /** Lado dos blocos da primeira passagem da parede, e raio da vizinhança (m). */
 const TAMANHO_BLOCO_M = 0.5;
 const RAIO_PAREDE_M = 2.5;
@@ -100,6 +133,8 @@ const LIMIAR_C_MINIMO = 9;
 const RAIO_FECHO_M = 0.1;
 const RAIO_ABERTURA_M = 0.12;
 const AREA_BURACO_MAXIMA_M2 = 1.5;
+/** … e com pelo menos esta fração das células a `DIFERENCA_ENCHIMENTO` da parede. */
+const BURACO_DIFERENTE = 0.25;
 /** Corte recursivo: uma peça do tamanho de uma janela com este enchimento já não se corta. */
 const ENCHIMENTO_ACEITE = 0.6;
 /** … e corta-se por uma coluna ou linha com no máximo esta fração marcada, a esta distância das pontas. */
@@ -141,6 +176,10 @@ const NOTA_PREENCHER = 0.35;
 const DECLIVE_ALTURA_MAXIMO = 0.06;
 /** Para o enchimento conta também o que está a esta fração do limiar. */
 const DIFERENCA_ENCHIMENTO = 0.6;
+/** Mancha (`eMancha`): diferença de cor mediana (em limiares) e de luminância (fração) até onde é parede, e o peso na nota. */
+const MANCHA_COR = 0.3;
+const MANCHA_LUZ = 0.3;
+const FATOR_MANCHA = 0.6;
 /** Parapeito de varanda: altura verificada por baixo do vão e fração diferente da parede. */
 const PARAPEITO_M = 0.8;
 const ENCHIMENTO_PARAPEITO = 0.75;
@@ -152,7 +191,7 @@ export function detetarJanelas(
   vista: Pixeis,
   ext: Extensao,
   ppm: number,
-  contornos: Retangulo[],
+  contornos: Contorno[],
   opcoes: OpcoesDeteccao = {},
 ): JanelaDetetada[] {
   const lim: Limites = {
@@ -163,13 +202,15 @@ export function detetarJanelas(
   };
   const confMin = opcoes.confiancaMinima ?? 0.3;
   if (contornos.length === 0 || !(ppm > 0) || vista.data.length < vista.width * vista.height * 4) return [];
-  const g = grelhaDeTrabalho(vista, ext, ppm, contornos);
+  const poligonos = contornos.filter((c) => c.largura > 0 && c.altura > 0).map(poligonoDe);
+  if (poligonos.length === 0) return [];
+  const g = grelhaDeTrabalho(vista, ext, ppm, poligonos);
   if (g.w < 8 || g.h < 8) return [];
   const par = diferencaDaParede(g);
   const d = diferencaNormalizada(g, par);
   const m = limpar(g, d);
   const { sx, sy } = degraus(g, par);
-  const ctx: Contexto = { g, sx, sy, enchido: integralDoEnchimento(g, m, d) };
+  const ctx: Contexto = { g, par, sx, sy, enchido: integralDoEnchimento(g, m, d) };
   const s = g.s;
   const tamanhoAceitavel = (c: Caixa, folga: number) => {
     const l = (c.i1 - c.i0) / s;
@@ -194,11 +235,14 @@ export function detetarJanelas(
   finais = finais.filter((c) => tamanhoAceitavel(c, 1) && !assenteEmParapeito(ctx, c));
 
   // Repetição: quantas outras na mesma coluna (das regulares) e na mesma fila (à mesma cota, com
-  // altura parecida, sem se sobreporem em X).
+  // altura parecida, sem se sobreporem em X). Uma mancha não abona as outras: dez manchas de humidade
+  // ao acaso acabam sempre por ter duas à mesma altura.
+  const manchas = new Set(finais.filter((c) => eMancha(ctx, c)));
   const naColuna = new Map<Candidata, number>();
   for (const col of colunas(finais)) {
     const r = regulares(col);
-    for (const c of r) naColuna.set(c, r.length - 1);
+    const abonam = r.filter((c) => !manchas.has(c)).length;
+    for (const c of r) naColuna.set(c, abonam - (manchas.has(c) ? 0 : 1));
   }
   const out: JanelaDetetada[] = [];
   for (const c of finais) {
@@ -206,30 +250,84 @@ export function detetarJanelas(
     const naFila = finais.filter(
       (o) =>
         o !== c &&
+        !manchas.has(o) &&
         Math.abs((o.j0 + o.j1) / 2 - (c.j0 + c.j1) / 2) <= 0.35 * a &&
         Math.abs(o.j1 - o.j0 - a) <= 0.3 * a &&
         Math.min(o.i1, c.i1) <= Math.max(o.i0, c.i0),
     ).length;
     const repete = (naColuna.get(c) ?? 0) + naFila;
-    if (repete === 0 && c.nota < NOTA_ISOLADA) continue;
-    const conf = c.nota * (0.6 + 0.4 * Math.min(1, repete / 2)) * (c.preenchida ? 0.85 : 1);
+    const nota = c.nota * (manchas.has(c) ? FATOR_MANCHA : 1);
+    if (repete === 0 && nota < NOTA_ISOLADA) continue;
+    const conf = nota * (0.6 + 0.4 * Math.min(1, repete / 2)) * (c.preenchida ? 0.85 : 1);
     if (conf < confMin) continue;
-    const janela = noContorno({ x: g.x0 + c.i0 / s, y: g.y1 - c.j1 / s, largura: (c.i1 - c.i0) / s, altura: (c.j1 - c.j0) / s }, contornos);
+    const janela = noContorno({ x: g.x0 + c.i0 / s, y: g.y1 - c.j1 / s, largura: (c.i1 - c.i0) / s, altura: (c.j1 - c.j0) / s }, poligonos);
     if (janela) out.push({ ...janela, confianca: Math.round(conf * 100) / 100 });
   }
   return out.sort((a, b) => b.y - a.y || a.x - b.x);
 }
 
-/** A caixa recortada ao contorno onde está o seu centro; `null` se o centro não estiver em nenhum. */
-function noContorno(r: Retangulo, contornos: Retangulo[]): Retangulo | null {
-  const cx = r.x + r.largura / 2;
-  const cy = r.y + r.altura / 2;
-  const c = contornos.find((k) => cx >= k.x && cx <= k.x + k.largura && cy >= k.y && cy <= k.y + k.altura);
-  if (!c) return null;
-  const x0 = Math.max(r.x, c.x);
-  const x1 = Math.min(r.x + r.largura, c.x + c.largura);
-  const y0 = Math.max(r.y, c.y);
-  const y1 = Math.min(r.y + r.altura, c.y + c.altura);
+/** Um contorno como polígono convexo (no sentido contrário aos ponteiros do relógio) e a caixa que o envolve. */
+interface Poligono {
+  v: Ponto[];
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
+
+function poligonoDe(c: Contorno): Poligono {
+  const v = verticesDaZona({ id: '', tipo: 'fachada', ...c });
+  return { v, x0: c.x, x1: c.x + c.largura, y0: c.y, y1: c.y + c.altura };
+}
+
+/** Se o ponto está no polígono convexo (com a borda). */
+function contem(pol: Poligono, x: number, y: number): boolean {
+  const v = pol.v;
+  for (let k = 0; k < v.length; k++) {
+    const a = v[k]!;
+    const b = v[(k + 1) % v.length]!;
+    if ((b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x) < -1e-9) return false;
+  }
+  return true;
+}
+
+/** O polígono cortado pelo semiplano `n·p ≥ c` (Sutherland–Hodgman, um lado). */
+function cortarPoligono(v: Ponto[], nx: number, ny: number, c: number): Ponto[] {
+  const out: Ponto[] = [];
+  for (let k = 0; k < v.length; k++) {
+    const a = v[k]!;
+    const b = v[(k + 1) % v.length]!;
+    const da = nx * a.x + ny * a.y - c;
+    const db = nx * b.x + ny * b.y - c;
+    if (da >= 0) out.push(a);
+    if (da >= 0 !== db >= 0) {
+      const t = da / (da - db);
+      out.push({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) });
+    }
+  }
+  return out;
+}
+
+/**
+ * A caixa só se o centro estiver dentro de um contorno (retângulo ou triângulo), recortada à união
+ * dos contornos: a caixa que envolve o que dela cai dentro de cada um. Uma janela por cima da junta
+ * de dois contornos encostados fica inteira.
+ */
+function noContorno(r: Retangulo, poligonos: Poligono[]): Retangulo | null {
+  if (!poligonos.some((p) => contem(p, r.x + r.largura / 2, r.y + r.altura / 2))) return null;
+  let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
+  for (const p of poligonos) {
+    let v = cortarPoligono(p.v, 1, 0, r.x);
+    v = cortarPoligono(v, -1, 0, -(r.x + r.largura));
+    v = cortarPoligono(v, 0, 1, r.y);
+    v = cortarPoligono(v, 0, -1, -(r.y + r.altura));
+    for (const q of v) {
+      x0 = Math.min(x0, q.x);
+      x1 = Math.max(x1, q.x);
+      y0 = Math.min(y0, q.y);
+      y1 = Math.max(y1, q.y);
+    }
+  }
   return { x: x0, y: y0, largura: x1 - x0, altura: y1 - y0 };
 }
 
@@ -248,77 +346,171 @@ interface Grelha {
   cb: Float32Array;
 }
 
-function grelhaDeTrabalho(vista: Pixeis, ext: Extensao, ppm: number, contornos: Retangulo[]): Grelha {
-  const f = Math.max(1, Math.floor(ppm / PPM_TRABALHO));
-  const s = ppm / f;
-  const w = Math.floor(vista.width / f);
-  const h = Math.floor(vista.height / f);
+function grelhaDeTrabalho(vista: Pixeis, ext: Extensao, ppm: number, poligonos: Poligono[]): Grelha {
+  const W = vista.width;
+  const H = vista.height;
+  // Só a caixa dos contornos, com uma margem: no modo «ver a fotografia inteira» o contorno é uma
+  // parte pequena da vista.
+  const bx0 = Math.min(...poligonos.map((p) => p.x0)) - MARGEM_GRELHA_M;
+  const bx1 = Math.max(...poligonos.map((p) => p.x1)) + MARGEM_GRELHA_M;
+  const by0 = Math.min(...poligonos.map((p) => p.y0)) - MARGEM_GRELHA_M;
+  const by1 = Math.max(...poligonos.map((p) => p.y1)) + MARGEM_GRELHA_M;
+  const px0 = Math.max(0, Math.min(W, Math.floor((bx0 - ext.x0) * ppm)));
+  const px1 = Math.max(px0, Math.min(W, Math.ceil((bx1 - ext.x0) * ppm)));
+  const py0 = Math.max(0, Math.min(H, Math.floor((ext.y1 - by1) * ppm)));
+  const py1 = Math.max(py0, Math.min(H, Math.ceil((ext.y1 - by0) * ppm)));
+  const Wc = px1 - px0;
+  const Hc = py1 - py0;
+  // Células por metro: a vista reduzida por um número inteiro de píxeis, até `PPM_TRABALHO_MAXIMO`
+  // (fica entre 15 e 30). Se a caixa for tão grande que passaria de `CELULAS_MAXIMAS`, menos — e
+  // então a redução é por um número real de píxeis: cada célula é a média exata de f × f píxeis.
+  const areaM2 = (Wc * Hc) / (ppm * ppm);
+  const s = Math.min(ppm / Math.ceil(ppm / PPM_TRABALHO_MAXIMO), Math.sqrt(CELULAS_MAXIMAS / Math.max(areaM2, 1e-9)));
+  const f = ppm / s;
+  const w = Math.floor(Wc / f);
+  const h = Math.floor(Hc / f);
   const n = w * h;
+  const x0 = ext.x0 + px0 / ppm;
+  const y1 = ext.y1 - py0 / ppm;
   const L = new Float32Array(n);
   const ca = new Float32Array(n);
   const cb = new Float32Array(n);
   const valido = new Uint8Array(n);
+  if (w < 1 || h < 1) return { w: Math.max(0, w), h: Math.max(0, h), s, x0, y1, valido, L, ca, cb };
+
+  // Cada píxel cai em uma ou duas células por eixo: a célula `a` com o peso `p`, a seguinte com 1 − p.
+  const repartir = (m: number) => {
+    const a = new Int32Array(m);
+    const p = new Float32Array(m);
+    for (let u = 0; u < m; u++) {
+      const k = Math.floor(u / f);
+      const fim = (k + 1) * f;
+      a[u] = k;
+      p[u] = u + 1 <= fim ? 1 : fim - u;
+    }
+    return { a, p };
+  };
+  const cx = repartir(Wc);
+  const cy = repartir(Hc);
+  const somaR = new Float32Array(n);
+  const somaG = new Float32Array(n);
+  const somaB = new Float32Array(n);
+  const somaF = new Float32Array(n);
+  const lr = new Float32Array(w + 1);
+  const lg = new Float32Array(w + 1);
+  const lb = new Float32Array(w + 1);
+  const lf = new Float32Array(w + 1);
   const d = vista.data;
-  const W = vista.width;
-  const f2 = f * f;
-  // Células cujo centro está dentro de um dos contornos.
-  const dentro = new Uint8Array(n);
-  for (const c of contornos) {
-    const ia = Math.max(0, Math.ceil((c.x - ext.x0) * s - 0.5));
-    const ib = Math.min(w - 1, Math.floor((c.x + c.largura - ext.x0) * s - 0.5));
-    const ja = Math.max(0, Math.ceil((ext.y1 - c.y - c.altura) * s - 0.5));
-    const jb = Math.min(h - 1, Math.floor((ext.y1 - c.y) * s - 0.5));
-    for (let j = ja; j <= jb; j++) if (ib >= ia) dentro.fill(1, j * w + ia, j * w + ib + 1);
-  }
-  // A cor de todas (as de fora também entram no alisamento das da borda).
-  for (let j = 0; j < h; j++) {
-    for (let i = 0; i < w; i++) {
-      const p = j * w + i;
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let fundo = 0;
-      for (let v = 0; v < f; v++) {
-        let o = ((j * f + v) * W + i * f) * 4;
-        for (let u = 0; u < f; u++, o += 4) {
-          const R = d[o]!;
-          const G = d[o + 1]!;
-          const B = d[o + 2]!;
-          if (R === FUNDO[0] && G === FUNDO[1] && B === FUNDO[2]) fundo++;
-          r += R;
-          g += G;
-          b += B;
-        }
+  for (let v = 0; v < Hc; v++) {
+    const j = cy.a[v]!;
+    if (j >= h) break;
+    lr.fill(0);
+    lg.fill(0);
+    lb.fill(0);
+    lf.fill(0);
+    let o = ((py0 + v) * W + px0) * 4;
+    for (let u = 0; u < Wc; u++, o += 4) {
+      const i = cx.a[u]!;
+      if (i >= w) break;
+      const R = d[o]!;
+      const G = d[o + 1]!;
+      const B = d[o + 2]!;
+      const F = R === FUNDO[0] && G === FUNDO[1] && B === FUNDO[2] ? 1 : 0;
+      const p = cx.p[u]!;
+      const q = 1 - p;
+      lr[i]! += p * R;
+      lg[i]! += p * G;
+      lb[i]! += p * B;
+      lf[i]! += p * F;
+      if (q > 0) {
+        lr[i + 1]! += q * R;
+        lg[i + 1]! += q * G;
+        lb[i + 1]! += q * B;
+        lf[i + 1]! += q * F;
       }
-      r /= f2;
-      g /= f2;
-      b /= f2;
-      L[p] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      ca[p] = r - g;
-      cb[p] = b - (r + g) / 2;
-      valido[p] = dentro[p] && fundo * 2 < f2 ? 1 : 0;
+    }
+    const pv = cy.p[v]!;
+    for (const [jj, peso] of [
+      [j, pv],
+      [j + 1, 1 - pv],
+    ] as const) {
+      if (peso <= 0 || jj >= h) continue;
+      const base = jj * w;
+      for (let i = 0; i < w; i++) {
+        somaR[base + i]! += peso * lr[i]!;
+        somaG[base + i]! += peso * lg[i]!;
+        somaB[base + i]! += peso * lb[i]!;
+        somaF[base + i]! += peso * lf[i]!;
+      }
     }
   }
-  return { w, h, s, x0: ext.x0, y1: ext.y1, valido, L: caixa3(L, w, h), ca: caixa3(ca, w, h), cb: caixa3(cb, w, h) };
+  const f2 = f * f;
+  for (let p = 0; p < n; p++) {
+    const r = somaR[p]! / f2;
+    const g = somaG[p]! / f2;
+    const b = somaB[p]! / f2;
+    L[p] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    ca[p] = r - g;
+    cb[p] = b - (r + g) / 2;
+  }
+  // Válidas: o centro dentro de um contorno (retângulo ou triângulo) e não o fundo de `endireitar`.
+  for (let j = 0; j < h; j++) {
+    const Y = y1 - (j + 0.5) / s;
+    for (const pol of poligonos) {
+      let xa = Infinity;
+      let xb = -Infinity;
+      const v = pol.v;
+      for (let k = 0; k < v.length; k++) {
+        const a = v[k]!;
+        const b = v[(k + 1) % v.length]!;
+        if (a.y <= Y === b.y <= Y) continue;
+        const X = a.x + ((Y - a.y) * (b.x - a.x)) / (b.y - a.y);
+        if (X < xa) xa = X;
+        if (X > xb) xb = X;
+      }
+      if (!(xb >= xa)) continue;
+      const ia = Math.max(0, Math.ceil((xa - x0) * s - 0.5));
+      const ib = Math.min(w - 1, Math.floor((xb - x0) * s - 0.5));
+      for (let i = ia; i <= ib; i++) if (somaF[j * w + i]! * 2 < f2) valido[j * w + i] = 1;
+    }
+  }
+  // Alisamento 3 × 3 só com as válidas: a cor de fora do contorno não entra nas células da borda.
+  const [Ls, cas, cbs] = caixa3([L, ca, cb], valido, w, h);
+  return { w, h, s, x0, y1, valido, L: Ls, ca: cas, cb: cbs };
 }
 
-/** Caixa 3×3 (repete a borda). */
-function caixa3(v: Float32Array, w: number, h: number): Float32Array {
-  const tmp = new Float32Array(v.length);
-  const out = new Float32Array(v.length);
-  for (let j = 0; j < h; j++) {
-    const b = j * w;
-    for (let i = 0; i < w; i++) {
-      tmp[b + i] = (v[b + (i > 0 ? i - 1 : 0)]! + v[b + i]! + v[b + (i < w - 1 ? i + 1 : w - 1)]!) / 3;
+type Canais = [Float32Array, Float32Array, Float32Array];
+
+/** Caixa 3 × 3 de cada canal, só sobre as células válidas (as outras ficam como estão). */
+function caixa3(canais: Canais, valido: Uint8Array, w: number, h: number): Canais {
+  const n = w * h;
+  const peso = new Float32Array(n);
+  const tmpP = new Float32Array(n);
+  for (let p = 0; p < n; p++) peso[p] = valido[p]!;
+  // Soma 3 × 3 separável (repete a borda).
+  const soma3 = (v: Float32Array, out: Float32Array) => {
+    for (let j = 0; j < h; j++) {
+      const b = j * w;
+      for (let i = 0; i < w; i++) tmpP[b + i] = v[b + (i > 0 ? i - 1 : 0)]! + v[b + i]! + v[b + (i < w - 1 ? i + 1 : w - 1)]!;
     }
-  }
-  for (let j = 0; j < h; j++) {
-    const m = (j > 0 ? j - 1 : 0) * w;
-    const c = j * w;
-    const p = (j < h - 1 ? j + 1 : h - 1) * w;
-    for (let i = 0; i < w; i++) out[c + i] = (tmp[m + i]! + tmp[c + i]! + tmp[p + i]!) / 3;
-  }
-  return out;
+    for (let j = 0; j < h; j++) {
+      const m = (j > 0 ? j - 1 : 0) * w;
+      const c = j * w;
+      const p = (j < h - 1 ? j + 1 : h - 1) * w;
+      for (let i = 0; i < w; i++) out[c + i] = tmpP[m + i]! + tmpP[c + i]! + tmpP[p + i]!;
+    }
+  };
+  const somaPeso = new Float32Array(n);
+  soma3(peso, somaPeso);
+  const alisar = (v: Float32Array) => {
+    const pv = new Float32Array(n);
+    for (let p = 0; p < n; p++) pv[p] = v[p]! * peso[p]!;
+    const out = new Float32Array(n);
+    soma3(pv, out);
+    for (let p = 0; p < n; p++) out[p] = valido[p] && somaPeso[p]! > 0 ? out[p]! / somaPeso[p]! : v[p]!;
+    return out;
+  };
+  return [alisar(canais[0]), alisar(canais[1]), alisar(canais[2])];
 }
 
 /** Mediana dos primeiros n valores (reordena-os): seleção rápida de Hoare. */
@@ -655,7 +847,17 @@ function limpar(g: Grelha, d: Float32Array): Uint8Array {
   comps.forEach((c, k) => {
     if (c.area > areaMaxima || c.i0 === 0 || c.j0 === 0 || c.i1 === w || c.j1 === h) aberto[k + 1] = 1;
   });
-  for (let p = 0; p < n; p++) if (inv[p] && !valido[p]) aberto[rotulo[p]!] = 1;
+  // Um buraco que é parede (um painel entre juntas, a parede entre a janela e o tubo de queda) fica
+  // aberto: só se enche o que se distingue da parede, ainda que pouco (o vidro que reflete o céu).
+  const diferentes = new Float32Array(comps.length + 1);
+  for (let p = 0; p < n; p++) {
+    if (!inv[p]) continue;
+    if (!valido[p]) aberto[rotulo[p]!] = 1;
+    else if (d[p]! >= DIFERENCA_ENCHIMENTO) diferentes[rotulo[p]!]!++;
+  }
+  comps.forEach((c, k) => {
+    if (diferentes[k + 1]! < BURACO_DIFERENTE * c.area) aberto[k + 1] = 1;
+  });
   for (let p = 0; p < n; p++) if (inv[p] && !aberto[rotulo[p]!]) r[p] = 1;
   return morfologia(morfologia(r, w, h, ra, false), w, h, ra, true);
 }
@@ -786,56 +988,42 @@ function degraus(g: Grelha, par: Parede): { sx: Float32Array; sy: Float32Array }
 }
 
 /**
- * Força de um lado vertical na fronteira b, ao longo das linhas [j0, j1): o degrau médio (cada um
- * limitado a `DEGRAU_MAXIMO`, para uma aresta muito forte num bocado não valer por um lado inteiro)
- * vezes a fração do comprimento onde há aresta (degrau ≥ `DEGRAU_COBERTURA`, com uma célula de folga).
- * Um lado que só é aresta em metade do comprimento — meia caixa no vidro, meia na parede — vale metade.
- * Fica a melhor das `INCLINACOES`.
+ * Força de um lado: ao longo das posições [t0, t1), o degrau médio na fronteira b (cada um limitado
+ * a `DEGRAU_MAXIMO`, para uma aresta muito forte num bocado não valer por um lado inteiro) vezes a
+ * fração do comprimento onde há aresta (degrau ≥ `DEGRAU_COBERTURA`, com uma célula de folga). Um lado
+ * que só é aresta em metade do comprimento — meia caixa no vidro, meia na parede — vale metade. Fica a
+ * melhor das `INCLINACOES`.
+ *
+ * A célula da posição t na fronteira b é `t · passoT + b · passoB` (lado vertical: passoT = w, passoB
+ * = 1; horizontal: o contrário) e `n` é o número de fronteiras (w ou h).
  */
-function forcaVertical(sx: Float32Array, w: number, b: number, j0: number, j1: number): number {
-  if (b < 2 || b > w - 3 || j1 <= j0) return 0;
+function forcaDoLado(deg: Float32Array, passoT: number, passoB: number, n: number, b: number, t0: number, t1: number): number {
+  if (b < 2 || b > n - 3 || t1 <= t0) return 0;
   let melhor = 0;
-  const jc = (j0 + j1 - 1) / 2;
+  const tc = (t0 + t1 - 1) / 2;
+  const comp = t1 - t0;
   for (const inc of INCLINACOES) {
-    let t = 0;
+    let soma = 0;
     let cob = 0;
-    for (let j = j0; j < j1; j++) {
-      const bb = b + Math.round(inc * (j - jc));
-      if (bb < 1 || bb > w - 2) continue;
-      const p = j * w + bb;
-      const v = sx[p]!;
-      t += v < DEGRAU_MAXIMO ? v : DEGRAU_MAXIMO;
-      if (v >= DEGRAU_COBERTURA || sx[p - 1]! >= DEGRAU_COBERTURA || sx[p + 1]! >= DEGRAU_COBERTURA) cob++;
+    for (let t = t0; t < t1; t++) {
+      const bb = b + Math.round(inc * (t - tc));
+      if (bb < 1 || bb > n - 2) continue;
+      const p = t * passoT + bb * passoB;
+      const v = deg[p]!;
+      soma += v < DEGRAU_MAXIMO ? v : DEGRAU_MAXIMO;
+      if (v >= DEGRAU_COBERTURA || deg[p - passoB]! >= DEGRAU_COBERTURA || deg[p + passoB]! >= DEGRAU_COBERTURA) cob++;
     }
-    const n = j1 - j0;
-    const f = (t / n) * (cob / n);
+    const f = (soma / comp) * (cob / comp);
     if (f > melhor) melhor = f;
   }
   return melhor;
 }
 
-/** Força de um lado horizontal na fronteira r, ao longo das colunas [i0, i1) (como `forcaVertical`). */
-function forcaHorizontal(sy: Float32Array, w: number, h: number, r: number, i0: number, i1: number): number {
-  if (r < 2 || r > h - 3 || i1 <= i0) return 0;
-  let melhor = 0;
-  const ic = (i0 + i1 - 1) / 2;
-  for (const inc of INCLINACOES) {
-    let t = 0;
-    let cob = 0;
-    for (let i = i0; i < i1; i++) {
-      const rr = r + Math.round(inc * (i - ic));
-      if (rr < 1 || rr > h - 2) continue;
-      const p = rr * w + i;
-      const v = sy[p]!;
-      t += v < DEGRAU_MAXIMO ? v : DEGRAU_MAXIMO;
-      if (v >= DEGRAU_COBERTURA || sy[p - w]! >= DEGRAU_COBERTURA || sy[p + w]! >= DEGRAU_COBERTURA) cob++;
-    }
-    const n = i1 - i0;
-    const f = (t / n) * (cob / n);
-    if (f > melhor) melhor = f;
-  }
-  return melhor;
-}
+/** Lado vertical na fronteira entre as colunas b − 1 e b, ao longo das linhas [j0, j1). */
+const forcaVertical = (sx: Float32Array, w: number, b: number, j0: number, j1: number) => forcaDoLado(sx, w, 1, w, b, j0, j1);
+
+/** Lado horizontal na fronteira entre as linhas r − 1 e r, ao longo das colunas [i0, i1). */
+const forcaHorizontal = (sy: Float32Array, w: number, h: number, r: number, i0: number, i1: number) => forcaDoLado(sy, 1, w, h, r, i0, i1);
 
 /**
  * Onde fica um lado: entre `lo` e `hi`, a fronteira mais forte; se para fora dela, a menos de
@@ -874,6 +1062,7 @@ interface Candidata extends Caixa {
 
 interface Contexto {
   g: Grelha;
+  par: Parede;
   sx: Float32Array;
   sy: Float32Array;
   /** Imagem integral das células diferentes da parede (máscara limpa, ou ≥ `DIFERENCA_ENCHIMENTO`). */
@@ -919,6 +1108,28 @@ function notaDe(lados: number[], enchimento: number): number {
   const aresta = Math.min(1, (2 * o[0]! + o[1]!) / 3 / FORCA_BOA_LADO);
   const ench = Math.max(0, Math.min(1, (enchimento - 0.2) / 0.5));
   return Math.sqrt(aresta * ench);
+}
+
+/**
+ * Uma mancha na parede, e não um vão: o interior (sem a orla de 15 %) tem a tonalidade da parede — a
+ * diferença de cor mediana abaixo de `MANCHA_COR` limiares — e a luminância mediana a menos de
+ * `MANCHA_LUZ` da dela. É a humidade, o remendo de reboco, a pintura mais nova: a parede, só mais
+ * escura ou mais clara. O vidro é muito mais escuro ou de outra cor (o céu, as cortinas).
+ */
+function eMancha(ctx: Contexto, c: Caixa): boolean {
+  const { g, par } = ctx;
+  const mi = Math.round(0.15 * (c.i1 - c.i0));
+  const mj = Math.round(0.15 * (c.j1 - c.j0));
+  const razoes: number[] = [];
+  const cores: number[] = [];
+  for (let j = c.j0 + mj; j < c.j1 - mj; j++)
+    for (let i = c.i0 + mi; i < c.i1 - mi; i++) {
+      const p = j * g.w + i;
+      if (!g.valido[p]) continue;
+      razoes.push(g.L[p]! / Math.max(1, g.L[p]! - par.dL[p]!));
+      cores.push(par.dC[p]! / par.limiarC);
+    }
+  return razoes.length > 0 && medianaDe(cores) < MANCHA_COR && Math.abs(medianaDe(razoes) - 1) <= MANCHA_LUZ;
 }
 
 /** Cada lado vai à aresta mais forte a menos de `raio` células de onde está. */

@@ -1723,11 +1723,16 @@ function FachadaEndireitada({
   const gesto = useRef<{ novo: true } | { id: string; arestas: Aresta[] } | null>(null);
   const [edicao, setEdicao] = useState<Zona | null>(null);
   const [linhaAcerto, setLinhaAcerto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
-  // A deteção corre sobre a vista que está no ecrã (endireitada e enquadrada), com os contornos.
+  // A deteção corre sempre sobre a vista enquadrada no contorno, com os contornos — também quando o
+  // ecrã mostra a fotografia inteira: aí a escala é três vezes menor, a deteção fica mais lenta e
+  // chegou a propor uma marquise (cético, 04/11/2026).
   useEffect(() => {
     if (pedidoDeteccao === 0) return;
     const contornos = zonas.filter((z) => z.tipo === 'fachada');
-    onDetetadas(detetarJanelas(vista, ext, ppm, contornos));
+    if (!verTudo) return onDetetadas(detetarJanelas(vista, ext, ppm, contornos));
+    const quadro = enquadrarNoContorno(zonas, ext);
+    const p = pixeisPorMetro(quadro, 1000, 1500);
+    onDetetadas(detetarJanelas(endireitar(foto.pixeis, calibracao.planoParaImagem, quadro, p), quadro, p, contornos));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoDeteccao]);
 
