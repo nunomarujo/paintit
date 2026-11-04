@@ -4855,3 +4855,50 @@ clique) — a correção assenta no raciocínio sobre a causa, não numa reprodu
 quem pode confirmar em definitivo num ecrã tátil real.
 
 `npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 03/11/2026 — Ajustar o volume a uma fotografia: câmara de perspetiva real, problema direto
+
+O promotor apontou o problema de fundo de medir zona a zona: "dariamos trabalho interminável ao
+avaliador". Pediu uma estratégia que conjugasse o volume 3D declarado com a geometria do prédio na
+fotografia — ajustar o modelo até bater 100% com a perspetiva da foto, com as referências reais a
+dar a escala. Isto é um pedido diferente, e melhor, do que o que se tinha construído até aqui:
+
+- `retificarZona` (manhã) resolve o **problema inverso**: dados pontos tocados numa foto, descobrir
+  a câmara e a geometria — confirmado mal-condicionado fora do caso centrado.
+- Isto pede o **problema direto**: dados os parâmetros da câmara e do prédio, calcular onde cada
+  ponto cai no ecrã. É geometria simples (uma câmara pinhole, projeção em perspetiva), sem
+  ambiguidade nenhuma — a pessoa, a ver a fotografia, é que resolve o ajuste por tentativa, com os
+  olhos; o código só faz a conta directa.
+
+**Construído:** `src/domain/perspectiveCamera.ts` (puro, testado): uma câmara pinhole parametrizada
+por `distanciaM` (a que distância se estava), `alturaOlhoM` (a que altura), `azimuteGraus` (o mesmo
+ângulo já usado em `VolumeInput.angulo`) e `fovVerticalGraus` (a lente) — a câmara olha sempre para
+o centro do prédio a meia altura, nunca um parâmetro de inclinação à parte que possa contradizer o
+alvo. `projetarVolume` reaproveita `gerarQuads` (a mesma geometria que já desenha o volume e calcula
+as áreas) e projeta cada quad para pixels da fotografia.
+
+**Um erro de sinal apanhado pelos testes antes de chegar a produção:** a primeira versão tinha o
+produto vetorial do vetor "direita" da câmara trocado (`cross(frente, cima)` em vez de
+`cross(cima, frente)`) — um ponto a X positivo do mundo projetava-se à **esquerda** da imagem,
+contrariando a própria convenção já estabelecida em `volume.ts` (a fachada "direita" está no X
+positivo — `FACHADA_LABELS`, `planos[]`). Um teste a verificar essa convenção apanhou-o logo (8
+testes, 2 a falhar na primeira versão); corrigido antes de qualquer teste manual.
+
+**Ecrã** (`src/app/demo-areas/AjustarFotografia.tsx`): importa-se uma fotografia, desenha-se o
+volume por cima (preenchimento semi-transparente, cor por categoria — as mesmas de
+`BuildingVolume.tsx`, mais lima para marquises), e quatro deslizadores (distância, altura do olho,
+ângulo de observação, campo de visão) ajustam a câmara em tempo real. **As dimensões reais
+continuam a vir do formulário principal** (frente, fundo, pé-direito, pisos, janelas, varandas) — já
+partilhado com o visualizador 3D abstrato e com `areasDoVolume`; esta ferramenta não duplica esses
+campos, só mostra como esse volume real fica naquela fotografia.
+
+**Verificado contra a fotografia real do promotor**, com o formulário a 14m de frente, 13m de fundo,
+6 pisos, 3m de pé-direito: com os valores por omissão da câmara (10m, 1,6m, 0º, 65º) o desenho já
+cai razoavelmente perto do prédio na foto (as linhas de janelas alinham-se aproximadamente); ajustar
+a distância para 7m e a altura do olho para 1,2m aumenta e desloca o desenho de forma consistente
+com o que se espera (mais perto = maior; olho mais baixo = muda a perspetiva verticalmente) —
+confirma que os deslizadores respondem como uma pessoa esperaria ao tentar encaixar visualmente.
+Não ficou perfeitamente alinhado nesta sessão (não era o objetivo — é a pessoa, com mais tempo e a
+fotografia à frente, que afina o encaixe); o mecanismo está verificado a funcionar.
+
+`npm test` (1577 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.

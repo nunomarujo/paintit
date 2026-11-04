@@ -5,6 +5,7 @@ import { VolumeViewer } from '@/components/VolumeViewer';
 import { areasDoVolume } from '@/domain/volumeAreas';
 import { FORMA_LABELS, FORMAS, type Forma, type VolumeInput } from '@/domain/volume';
 import { MedirZona } from './MedirZona';
+import { AjustarFotografia } from './AjustarFotografia';
 
 type Varandas = 'nenhuma' | 'aberta' | 'marquise';
 
@@ -211,6 +212,7 @@ export function DemoAreas() {
             </p>
           </div>
         )}
+        <AjustarFotografia input={input} />
       </div>
     </div>
   );

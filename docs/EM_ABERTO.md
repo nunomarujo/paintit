@@ -51,31 +51,42 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
-## 2b. Medição de zonas: declarativo (volume) + por fotografia (retificarZona), os dois juntos em `/demo-areas` (03/11/2026)
+## 2b. Medição e ajuste de volumes: três vias em `/demo-areas` (03/11/2026)
 
-**Estado, no fim do dia:** duas vias, complementares, não uma a substituir a outra.
+**Estado, no fim do dia:** três vias complementares, cada uma a fazer o que lhe compete — nenhuma
+substitui as outras.
 
 1. **Modelo 3D declarativo**, sobre `src/domain/volume.ts` (já existia, de 30/10-01/11/2026):
    `src/domain/volumeAreas.ts` calcula área real por categoria (fachadas líquidas de vãos > 1 m²,
    empenas, varandas, marquises — marquises fora do total pintável); `marquise` é `FaceKind` novo.
-2. **Medição por fotografia**, sobre `retificarZona` (`src/domain/retificacao.ts`, feito e testado
-   de manhã — passo 1 da ordem do handoff original): `src/app/demo-areas/MedirZona.tsx` deixa
-   importar uma ou mais fotografias da mesma fachada, marcar nelas um ou mais segmentos medidos com
-   fita métrica (com lupa de precisão) e, opcionalmente, os quatro cantos de uma zona, para calcular
-   área — o resultado pode aplicar-se aos campos do modelo declarativo.
+2. **Medição por fotografia, zona a zona**, sobre `retificarZona` (`src/domain/retificacao.ts`, feito
+   e testado de manhã — passo 1 da ordem do handoff original): `src/app/demo-areas/MedirZona.tsx`
+   deixa importar fotografias, marcar segmentos medidos com fita métrica (com lupa) e,
+   opcionalmente, os quatro cantos de uma zona, para calcular área — soma-se num resumo e total.
+   **Dá trabalho repetir por cada zona/fachada** — é exato, mas não escala bem para um prédio
+   inteiro (o promotor apontou isto).
+3. **Ajustar o volume a uma fotografia**, sobre `src/domain/perspectiveCamera.ts` (novo, testado):
+   em vez de medir zona a zona, projeta-se o volume 3D **declarado** (mesmos campos do formulário
+   principal) sobre a fotografia com uma câmara de perspetiva real, e ajustam-se 4 deslizadores
+   (distância, altura do olho, ângulo, campo de visão) até encaixar nas arestas do prédio na foto —
+   `src/app/demo-areas/AjustarFotografia.tsx`. É o problema direto (dados os parâmetros, onde cai
+   cada ponto), geometria simples sem ambiguidade — ao contrário de tentar resolver a câmara a
+   partir de pontos tocados. Verificado a reagir correctamente aos deslizadores contra a fotografia
+   real do promotor; não ficou perfeitamente afinado nesta sessão (é a pessoa que afina, com tempo).
 
-**O que ficou decidido pelo caminho:** o promotor pediu, a meio do dia, para abandonar uma primeira
-ideia — usar UMA fotografia do prédio inteiro para derivar sozinha todas as dimensões — depois de a
-testar contra uma entrada real (1,65 m × 3,77 m) e ver erros de -1,9% a +20,5% consoante os cantos
-(um vão recuado não é uma fachada plana — detalhe: `docs/DECISOES.md`). Isso levou primeiro a um
-ecrã só declarativo; mas ainda no mesmo dia, o promotor pediu de volta a via da fotografia, só que
-**por zona/segmento, não pelo prédio inteiro** — o que é exactamente o que `retificarZona` já fazia
-bem (erro <0,5% nos testes sintéticos). As duas vias ficaram, cada uma a fazer o que lhe compete.
+**O que ficou decidido pelo caminho, por ordem:** (a) abandonar usar UMA fotografia do prédio
+inteiro para derivar sozinha todas as dimensões (erro -1,9% a +20,5%, vão recuado não é fachada
+plana); (b) voltar à via da fotografia, mas zona a zona (via 2); (c) o promotor apontou que isto dá
+"trabalho interminável ao avaliador" e pediu a via 3 — conjugar o volume declarado com a geometria
+da foto, com referências reais a dar a escala. Detalhe completo em `docs/DECISOES.md`, entradas de
+03/11/2026.
 
 **Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada, tudo em estado local do
-browser); confirmação cruzada entre segmentos medidos na mesma fotografia (secção 3.2 do handoff
-original — hoje só o primeiro segmento entra no cálculo, os outros ficam registados); cores por zona
-escolhidas pelo cliente (secção 3.5, ainda não construída).
+browser); confirmação cruzada entre segmentos medidos na mesma fotografia (via 2, secção 3.2 do
+handoff original); cores por zona escolhidas pelo cliente (secção 3.5, ainda não construída); na via
+3, nenhum mecanismo ainda lê de volta as dimensões ajustadas — hoje é só visual, a pessoa afina os
+deslizadores e tira as suas próprias conclusões, não há "aplicar este ajuste" a escrever de volta
+largura/profundidade/pé-direito no formulário.
 
 ## 3. Por construir (já decidido, ainda não feito)
 
