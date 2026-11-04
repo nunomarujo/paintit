@@ -477,6 +477,13 @@ export function MedirZona({ onMedido, onConcluir }: { onMedido?: (m: Medidas) =>
         </label>
       )}
 
+      {fotos.length > 0 && zonasComResultado.length === 0 && (
+        <p className="text-[15px] text-slate-600">
+          Ainda não há nenhuma área calculada — o resumo e o botão «Concluir medição» só aparecem depois de, em pelo menos uma
+          fotografia, ter um segmento com distância preenchida <strong>e</strong> os quatro cantos da zona marcados.
+        </p>
+      )}
+
       {zonasComResultado.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h3 className="text-[15px] font-semibold text-slate-900">Resumo das zonas medidas</h3>
