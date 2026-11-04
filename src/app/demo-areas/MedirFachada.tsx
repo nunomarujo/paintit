@@ -676,6 +676,9 @@ function PassoDesenhar({
   // Acertar o endireitamento (promotor, 04/11/2026: "o erro levou a ligeira inclinação do prédio"):
   // arrasta-se ao longo de uma aresta que devia estar direita e o prédio endireita-se por ela.
   const [modoAcerto, setModoAcerto] = useState(false);
+  // Retirar o acerto pede confirmação (promotor, 04/11/2026: carregou em «Anular os acertos» a
+  // pensar que desfazia a última janela, e o prédio voltou a ficar inclinado).
+  const [confirmarRetirar, setConfirmarRetirar] = useState(false);
 
   // Sem contorno só se desenha contorno (o promotor desenhou 35 zonas sem ele e não conseguia
   // avançar, 04/11/2026): o contorno é a base de todas as contas e do enquadramento da vista.
@@ -750,10 +753,10 @@ function PassoDesenhar({
         Desenhar o prédio
         <Dica rotulo="Como desenhar">
           A fotografia já está endireitada e à escala — cada quadrado da grelha é 1 m. Confirmar que as arestas verticais do prédio ficaram
-          verticais; se não ficaram, voltar e acertar os cantos da referência. Varandas e marquises saem da parede e por isso aparecem
-          maiores e inclinadas: desenhá-las pela linha onde encostam à parede. Os vidros das marquises e as montras do R/C desenham-se como
-          vãos — é assim que se descontam. Janelas repetidas de piso para piso desenham-se depressa em série: o primeiro, o último, e
-          quantos são.
+          verticais; se não ficaram, «Acertar o endireitamento». Marquises e varandas desenham-se pela frente, tal como se veem: saem da
+          parede e por isso aparecem maiores, e com a saliência medida (no passo 4) a ferramenta corrige o tamanho das marquises. Os vidros
+          das marquises e as montras do R/C desenham-se como vãos — é assim que se descontam. Janelas repetidas de piso para piso
+          desenham-se depressa em série: o primeiro, o último, e quantos são.
         </Dica>
       </h2>
 
@@ -821,7 +824,9 @@ function PassoDesenhar({
         <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">{como}</p>
         {avisoAcertos && !modoAcerto && <p className="mt-1 text-[15px] font-medium text-amber-800">{avisoAcertos}</p>}
         {temContorno && !selecionada && !emSerie && (
-          <p className="mt-1 text-[13px] text-slate-500">Para acertar uma zona já desenhada, tocar nela.</p>
+          <p className="mt-1 text-[13px] text-slate-500">
+            Enganou-se? «Desfazer o último passo» volta um passo atrás; para acertar uma zona já desenhada, tocar nela.
+          </p>
         )}
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
@@ -830,7 +835,7 @@ function PassoDesenhar({
             disabled={!podeDesfazer && !serie}
             onClick={() => (serie ? setSerie(null) : desfazer())}
           >
-            Desfazer
+            Desfazer o último passo
           </button>
           <button
             type="button"
@@ -843,11 +848,6 @@ function PassoDesenhar({
           >
             {modoAcerto ? 'Cancelar o acerto' : 'Acertar o endireitamento'}
           </button>
-          {acertos > 0 && !modoAcerto && (
-            <button type="button" className="btn-quiet btn-sm" onClick={onAnularAcertos}>
-              Anular os acertos ({acertos})
-            </button>
-          )}
           {selecionada && (
             <button
               type="button"
@@ -884,6 +884,36 @@ function PassoDesenhar({
           <button type="button" className="btn-quiet btn-sm" onClick={() => setSerie(null)}>
             Cancelar
           </button>
+        </div>
+      )}
+
+      {acertos > 0 && !modoAcerto && (
+        <div className="flex flex-wrap items-center gap-3 text-[15px] text-slate-600">
+          {confirmarRetirar ? (
+            <>
+              <span>O prédio volta a ficar como antes do acerto, e as zonas acompanham.</span>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => {
+                  setConfirmarRetirar(false);
+                  onAnularAcertos();
+                }}
+              >
+                Retirar o acerto
+              </button>
+              <button type="button" className="btn-quiet btn-sm" onClick={() => setConfirmarRetirar(false)}>
+                Manter
+              </button>
+            </>
+          ) : (
+            <>
+              <span>{acertos === 1 ? 'Endireitamento acertado por 1 aresta.' : `Endireitamento acertado por ${acertos} arestas.`}</span>
+              <button type="button" className="btn-quiet btn-sm" onClick={() => setConfirmarRetirar(true)}>
+                Retirar o acerto…
+              </button>
+            </>
+          )}
         </div>
       )}
 

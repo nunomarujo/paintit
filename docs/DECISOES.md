@@ -5152,3 +5152,15 @@ cada uma atacada por um cético com testes adversariais e corrigida:
   corrigidos: um canto tem de ter dois braços retos à volta; o refinamento ignora arestas que não
   passam pelo canto; a preferência pela distância já não depende do raio. Na fotografia do promotor,
   um toque a 6 px do canto da porta continua a cair no canto.
+
+## 04/11/2026 (noite) — "Anular os acertos" desfazia o endireitamento a quem queria corrigir uma janela
+
+O promotor achou o acerto do endireitamento "muito bom" (com uma horizontal, endireitou o prédio).
+Depois, ao enganar-se nos limites de uma janela, carregou em "Anular os acertos" — estava ao lado de
+"Desfazer", com um nome que se lê como "desfazer o último" — e o prédio voltou a ficar inclinado. O
+trabalho não se perdeu ("Desfazer" devolve o acerto e as zonas, porque o acerto entra no histórico),
+mas o ecrã induziu o erro. Agora: o botão saiu da linha de ações e passou a uma linha de estado
+("Endireitamento acertado por 1 aresta. Retirar o acerto…") com confirmação; "Desfazer" passou a
+"Desfazer o último passo", com a dica "Enganou-se? … para acertar uma zona já desenhada, tocar nela".
+A ajuda (i) do passo 3 ainda mandava desenhar marquises "pela linha onde encostam à parede", ao
+contrário da regra nova (a frente tal como se vê, corrigida com a saliência): corrigida.
