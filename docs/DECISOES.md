@@ -4942,3 +4942,70 @@ a pintar recalcula sozinho para 314,16 m²** — sem precisar de nenhum botão "
 scroll horizontal em 390px, sem erros de consola.
 
 `npm test` (1577 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 04/11/2026 — Medir uma fachada por fotografia: homografia com uma referência medida, e o volume montado com o que se mediu
+
+O promotor testou a versão de 03/11 (câmara de perspetiva com deslizadores) e respondeu "não
+funciona": as linhas desenhadas sobre a fotografia não batiam com o prédio, e o volume 3D era uma
+laje fina — as medidas da porta (165 × 377 cm) iam parar à Frente e ao Pé-direito do prédio. Pediu,
+nas suas palavras, para "criar o volume com base nos dados extraídos da foto, com janelas, varandas,
+etc, e com base nas medições dadas, dimensionar o tamanho/escala calculando depois as áreas".
+
+**Porque o motor mudou.** Encaixar uma câmara à mão (4 deslizadores, 8 graus de liberdade) nunca
+fecha. Um retângulo medido no plano da fachada — os 4 cantos de uma porta, largura e altura reais —
+fixa os 8 graus de liberdade de uma **homografia** plano → imagem, exatamente e sem ajuste nenhum
+(`src/domain/homografia.ts`: DLT com normalização de Hartley, vetor próprio por Jacobi). Uma aresta
+vertical comprida do prédio (um canto, um tubo de queda) acrescenta o ponto de fuga vertical como
+restrição com peso, e corrige o que a referência curta mede mal: a inclinação de quem fotografa de
+baixo. Com a homografia, qualquer ponto da fotografia passa a metros no plano da fachada.
+
+**Precisão, medida (testes de `homografia.test.ts`, câmara sintética com ruído de ±2 px, 300
+ensaios):** larguras a ~1 %; alturas a 1–1,5 % com uma aresta comprida, contra 3–6 % só com a
+porta. **Contra a fotografia real do promotor:** com a porta (165 × 377 cm) e a aresta direita do
+corpo branco, uma segunda aresta, independente, sai vertical a 0,07 m em 14,5 m de altura.
+
+**O ecrã** (`/demo-areas`, `src/app/demo-areas/MedirFachada.tsx`), quatro passos, um de cada vez:
+
+1. **Fotografia** — importar (reduzida a 2000 px no browser; não sai do aparelho).
+2. **Referência** — tocar nos 4 cantos de algo medido (com lupa), escrever largura e altura em cm;
+   recomendado marcar uma aresta vertical comprida. `problemaDaReferencia` diz o que está mal
+   (ordem dos cantos, polígono não convexo) em vez de deixar avançar.
+3. **Desenhar** — a fotografia aparece **endireitada e à escala** (grelha de 1 m,
+   `src/app/demo-areas/endireitar.ts`); arrasta-se o contorno, o R/C, os vãos, as marquises e as
+   varandas. Depois do contorno, a vista enquadra-se nele (≈3× mais píxeis por metro — no telemóvel
+   é o que torna possível desenhar uma janela). Um interruptor leva o desenho de volta à
+   fotografia original pela homografia, para conferir que bate com o prédio.
+4. **Áreas e volume** — `areasDaFachada` (`src/domain/fachadaMedida.ts`): contorno − R/C (fora por
+   omissão, 8.3) − marquises − vãos > 1 m², por união e diferença exatas de retângulos; varandas
+   contam como pintadas (frente) e as faces interiores ficam por medir (8.2). O **volume** já não
+   é o genérico de `VolumeViewer`: `src/app/demo-areas/modelo3d.ts` monta-o com o que se mediu —
+   paredes à escala, cada zona no sítio exato e com as cores do desenho, marquises e varandas como
+   caixas salientes, paredes não medidas a tracejado. "Guardar e medir outra fachada" põe a lateral
+   na sua parede e dá o fundo; o total do prédio soma as fachadas.
+
+O volume é feito só de retângulos coloridos, nunca da fotografia (regra 6).
+
+**Exemplo na fotografia do promotor** (zonas desenhadas por mim num teste automático, lendo a vista
+endireitada — é um exemplo do mecanismo, não uma medição de avaliador): contorno 11,07 × 19,92 m =
+220,52 m²; R/C 44,28 m² (fora); marquises 20,07 m²; vãos 22,99 m²; varandas 40,77 m² (incluídas);
+**a pintar 133,18 m²**.
+
+**Dois erros apanhados no teste de ponta a ponta, antes de chegar ao promotor:** (1) a camada de
+toque tinha altura zero (um `div` relativo sem altura dentro de um absoluto) — nenhum toque na
+fotografia chegava ao código; (2) só 5 de 18 retângulos ficavam desenhados: arrastar selecionava
+texto da página e o arrasto seguinte, começado sobre a seleção, virava arrastar-e-largar do browser,
+que cancela o ponteiro sem aviso. Corrigido com `preventDefault` no `pointerdown` e `select-none`.
+
+**Limites conhecidos, ditos ao avaliador no ecrã:** só o plano da fachada é métrico — varandas e
+marquises saem da parede e aparecem maiores e inclinadas (desenhar pela linha onde encostam à
+parede); a referência tem de estar no plano da parede (a abertura de uma entrada recuada, não a
+porta lá dentro). Sem correção da distorção da lente.
+
+**O que saiu do ecrã:** `DemoAreas.tsx` (formulário + volume genérico) e `AjustarFotografia.tsx`
+(deslizadores da câmara). Ficam no domínio, testados e sem ecrã: `retificacao.ts`,
+`perspectiveCamera.ts` (usada como câmara sintética nos testes da homografia) e `volumeAreas.ts`.
+
+Verificado num browser (Chromium) com a fotografia real, em 1280 px e em 390 px: 18 de 18 zonas
+desenhadas, os mesmos 133,18 m² nos dois, sem scroll horizontal, sem erros de consola.
+`npm test` (1617 testes), `npm run typecheck`, `npm run lint` (28 avisos, os de antes, nenhum nos
+ficheiros novos) e `npm run build`, todos com código de saída 0.

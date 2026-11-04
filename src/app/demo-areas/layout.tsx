@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-// Rota de teste do modelo declarativo de áreas por volume (pedido do promotor, 03/11/2026, depois de
-// abandonar a via de retificação por fotografia — ver docs/DECISOES.md). Mesmo padrão já usado em
+// Rota de teste da medição de uma fachada por fotografia com uma referência medida (homografia,
+// 04/11/2026 — ver docs/DECISOES.md). Mesmo padrão já usado em
 // src/app/demo-orcamento e src/app/demo-comparador: nenhuma leitura da base real, sem autenticação,
 // force-static, noindex, fora de qualquer navegação do produto.
 export const dynamic = 'force-static';

@@ -51,40 +51,28 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
-## 2b. Medição e escala de volumes, em `/demo-areas` — um só fluxo (reformulado 03/11/2026)
+## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)
 
-**Estado, no fim do dia:** um ecrã, três passos em sequência — nunca ferramentas paralelas e
-desligadas entre si (foi isso que o promotor apontou como "problema estrutural" a meio do dia, numa
-versão anterior com três vias soltas que nunca escreviam de volta no formulário).
+**Estado:** um ecrã, quatro passos — fotografia → referência medida (4 cantos + largura/altura, e
+de preferência uma aresta vertical comprida) → desenhar zonas sobre a fachada endireitada e à escala
+→ áreas por categoria e volume 3D montado com o que se mediu. Motor: homografia
+(`src/domain/homografia.ts`), áreas em `src/domain/fachadaMedida.ts`, volume em
+`src/app/demo-areas/modelo3d.ts`. Detalhe, números de precisão e o exemplo da fotografia real em
+`docs/DECISOES.md`, 04/11/2026.
 
-1. **Passo 1, descrever o prédio** — formulário sobre `src/domain/volume.ts` (forma, pisos,
-   fachadas livres, janelas, varandas).
-2. **Passo 2, dar escala a partir de uma fotografia** — `src/app/demo-areas/AjustarFotografia.tsx`,
-   sobre `src/domain/perspectiveCamera.ts` (câmara de perspetiva real, testada) e `retificarZona`
-   (`src/domain/retificacao.ts`, feito de manhã): a fotografia mostra o volume do passo 1 projetado
-   por cima (para conferir visualmente), **e** deixa marcar distâncias medidas com fita métrica
-   (dois pontos, lupa), cada uma com um seletor "aplicar a: Frente/Fundo/Pé-direito" que escreve
-   diretamente esse campo.
-3. **Passo 3, área por categoria** — `src/domain/volumeAreas.ts` (fachadas líquidas de vãos > 1 m²,
-   empenas, varandas, marquises fora do total pintável), a jusante dos dois passos anteriores: muda
-   sozinho assim que o passo 2 escreve um campo.
+**Verificado:** fotografia real do promotor, porta 165 × 377 cm + uma aresta: fachada endireitada
+com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, mesmo resultado
+(133,18 m² a pintar no exemplo), desenho de volta sobre a fotografia original a bater com o prédio.
 
-**O que ficou pelo caminho, por ordem (detalhe completo em `docs/DECISOES.md`, entradas de
-03/11/2026):** (a) abandonar usar UMA fotografia do prédio inteiro para derivar tudo sozinha (erro
--1,9% a +20,5%, vão recuado não é fachada plana); (b) voltar à fotografia zona a zona
-(`MedirZona.tsx`, 4 cantos + segmento, "trabalho interminável" segundo o promotor); (c) ligar o
-volume declarado à fotografia por câmara de perspetiva, sem nenhuma escrita de volta ao formulário;
-(d) **versão atual** — a mesma câmara, mas com as distâncias marcadas a escrever directamente
-Frente/Fundo/Pé-direito. `MedirZona.tsx` foi apagado nesta última reformulação; `retificarZona`
-continua válido e testado no domínio, só sem ecrã próprio.
-
-**Verificado:** marcar uma distância real (165 cm) e aplicá-la como Frente muda esse campo **e** o
-"Total a pintar" recalcula sozinho, sem nenhum botão "concluir" à parte.
-
-**Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada, tudo em estado local do
-browser); confirmação cruzada entre várias distâncias marcadas na mesma fotografia (secção 3.2 do
-handoff original — hoje cada uma aplica-se independentemente, sem comparação entre si); cores por
-zona escolhidas pelo cliente (secção 3.5, ainda não construída).
+**Por fazer:**
+- O promotor testar com outras fotografias (pedido dele) — e comparar com uma medição real à fita.
+- Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
+- Ajustar um retângulo já desenhado (hoje apaga-se e desenha-se de novo).
+- Deteção automática de vãos e varandas na vista endireitada (com IA) — pede decisão do promotor
+  sobre privacidade (a fotografia sairia do aparelho) e custo; não construído.
+- Decidir se `retificacao.ts` e `volumeAreas.ts` (sem ecrã desde 04/11/2026) se apagam.
+- A linha "valor de `INCLINACAO_TIPICA_GRAUS_PROPOSTA`" da secção 2 deixou de travar o ecrã: era do
+  motor de `retificarZona`, que já não está em uso.
 
 ## 3. Por construir (já decidido, ainda não feito)
 
