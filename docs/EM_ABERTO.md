@@ -69,7 +69,9 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
   pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
-- Varandas: hoje desenha-se a frente; as faces interiores continuam por medir (decisão 8.2).
+- Varandas: desenha-se a frente e mede-se a profundidade (04/11/2026). **Falta o promotor decidir que
+  faces de dentro se pintam** (tetos das varandas, guardas por dentro, paredes do recuo) — com a
+  profundidade já se podem contar (decisão 8.2).
 - *Decidido pelo promotor a 04/11/2026:* o R/C pinta-se por omissão (fecha a 8.3, que propunha o
   contrário) e as marquises têm parede — a frente pinta-se, os vidros descontam-se como vãos, e as
   paredes laterais acrescentam altura × saliência (medida à fita), mais o tecto da mais baixa e a

@@ -21,6 +21,10 @@ export interface FaceMedida {
   zonas: Zona[];
   /** A saliência medida das marquises desta fachada; sem ela, a ilustrativa de `SALIENCIA_M`. */
   salienciaMarquiseM?: number;
+  /** A saliência medida das varandas desta fachada; sem ela, a ilustrativa de `SALIENCIA_M`. */
+  salienciaVarandaM?: number;
+  /** Altura entre pisos lida nas janelas (`leituraDeAlturas`) — para desenhar uma varanda por piso. */
+  entrePisosM?: number;
 }
 
 export type TipoPoligono = TipoZona | 'parede' | 'parede-por-medir' | 'topo';

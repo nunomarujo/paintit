@@ -670,24 +670,38 @@ export function leituraDeAlturas(zonas: Zona[]): LeituraDeAlturas | null {
 }
 
 /**
- * A frente de uma marquise está mais perto da câmara do que a parede: na vista endireitada (que põe
- * tudo no plano da parede) aparece maior e deslocada — à volta de 10 % numa fotografia tirada a 10 m
+ * A frente de uma marquise (ou de uma coluna de varandas) está mais perto da câmara do que a parede: na
+ * vista endireitada (que põe tudo no plano da parede) aparece maior e deslocada — à volta de 10 % numa fotografia tirada a 10 m
  * com 1,2 m de saliência. Desenha-se a frente tal como se vê (é o que está à vista), e aqui corrige-se:
  * as marquises e os vãos que estão nelas (os vidros) levam-se ao seu tamanho verdadeiro, com a posição
  * da câmara tirada da própria fotografia (`camaraDaHomografia`). Sem câmara ou sem saliência, fica tudo
  * como foi desenhado.
  */
-export function corrigirSaliencias(zonas: Zona[], centro: { x: number; y: number; z: number } | null, salienciaM: number | null): Zona[] {
-  if (!centro || !salienciaM || salienciaM <= 0 || salienciaM >= centro.z) return zonas;
+export function corrigirSaliencias(
+  zonas: Zona[],
+  centro: { x: number; y: number; z: number } | null,
+  saliencias: { marquise?: number | null; varanda?: number | null },
+): Zona[] {
+  if (!centro) return zonas;
+  const valida = (s: number | null | undefined) => (s && s > 0 && s < centro.z ? s : null);
+  const sm = valida(saliencias.marquise);
+  const sv = valida(saliencias.varanda);
+  if (!sm && !sv) return zonas;
   const marquises = zonas.filter((z) => z.tipo === 'marquise');
   const naMarquise = (z: Zona) => {
     const meio = { x: z.x + z.largura / 2, y: z.y + z.altura / 2 };
     return marquises.some((m) => zonaContem(m, meio));
   };
-  return zonas.map((z) => {
-    if (z.tipo !== 'marquise' && !(z.tipo === 'vao' && naMarquise(z))) return z;
-    const a = corrigirParalaxe({ x: z.x, y: z.y }, centro, salienciaM);
-    const b = corrigirParalaxe({ x: z.x + z.largura, y: z.y + z.altura }, centro, salienciaM);
+  const corrigir = (z: Zona, s: number) => {
+    const a = corrigirParalaxe({ x: z.x, y: z.y }, centro, s);
+    const b = corrigirParalaxe({ x: z.x + z.largura, y: z.y + z.altura }, centro, s);
     return { ...z, x: a.x, y: a.y, largura: b.x - a.x, altura: b.y - a.y };
+  };
+  return zonas.map((z) => {
+    if (sm && (z.tipo === 'marquise' || (z.tipo === 'vao' && naMarquise(z)))) return corrigir(z, sm);
+    // A frente de uma coluna de varandas (guardas e topos das lajes) também está à frente da parede.
+    // Os vãos das varandas não: as portas de varanda estão na parede, lá atrás.
+    if (sv && z.tipo === 'varanda') return corrigir(z, sv);
+    return z;
   });
 }

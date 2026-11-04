@@ -5164,3 +5164,27 @@ mas o ecrã induziu o erro. Agora: o botão saiu da linha de ações e passou a 
 "Desfazer o último passo", com a dica "Enganou-se? … para acertar uma zona já desenhada, tocar nela".
 A ajuda (i) do passo 3 ainda mandava desenhar marquises "pela linha onde encostam à parede", ao
 contrário da regra nova (a frente tal como se vê, corrigida com a saliência): corrigida.
+
+## 04/11/2026 (noite) — Conferir a área, profundidade das varandas, e o volume com varandas e vidros
+
+Três observações do promotor ao ver o passo 4:
+
+1. **"No fim, não sei se a área está bem coberta."** O passo 4 passou a ter **Conferir a área**: a
+   fotografia endireitada com o que se pinta a verde (o contorno), os vãos descontados em branco, os
+   vãos até 1 m² (que se pintam) só contornados, o R/C excluído a cinzento e o que ficou fora do
+   contorno contornado a âmbar. Se uma parte da fachada ficar sem verde, falta contorno; se o verde
+   passar para fora do prédio, o contorno está grande. Na fotografia de teste, mostrou de imediato o
+   que faltava desenhar (as montras do R/C e os vidros das marquises como vãos; o topo de uma coluna
+   fora do contorno) — é a conferência que a lista de números não dava.
+2. **"Quando adicionei a profundidade, o 3D ficou pior."** O campo era só das marquises: a correção
+   da perspetiva encolhia as marquises e deixava a coluna de varandas ao lado no tamanho do desenho
+   (maior), e as duas desencontravam-se. As varandas passaram a ter **profundidade própria** ("Quanto
+   as varandas saem da parede"), com a mesma correção da perspetiva (a frente da coluna — guardas e
+   lajes — está à frente da parede; as portas de varanda, na parede, não se corrigem). As faces de
+   dentro das varandas continuam por decidir (8.2): com a profundidade medida já se podem contar, mas
+   quais se pintam (tetos, guardas por dentro, paredes do recuo) é decisão do promotor.
+3. **"Podia ter de imediato o desenho de varandas, assim como as janelas das marquises."** Em curso
+   (um agente, atacado depois por um cético): o volume vai desenhar as varandas **piso a piso** (laje e
+   guarda, à altura entre pisos lida nas janelas) em vez de uma caixa sólida, e os **vidros das
+   marquises na frente delas** (hoje ficam na parede, escondidos atrás da caixa da marquise). Este
+   commit já passa ao volume a profundidade das varandas e a altura entre pisos.

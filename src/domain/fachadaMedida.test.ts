@@ -368,7 +368,7 @@ describe('corrigirSaliencias', () => {
     const marquise = z('marquise', 1, 5, 3, 2.5);
     const vidro = z('vao', 1.5, 5.5, 2, 1.2);
     const janela = z('vao', 6, 5, 1.4, 1.2); // na parede, fora da marquise
-    const [m, v, j] = corrigirSaliencias([marquise, vidro, janela], centro, 1);
+    const [m, v, j] = corrigirSaliencias([marquise, vidro, janela], centro, { marquise: 1 });
     expect(m!.largura).toBeCloseTo(3 * 0.9, 9);
     expect(m!.altura).toBeCloseTo(2.5 * 0.9, 9);
     expect(m!.x).toBeCloseTo(5 + (1 - 5) * 0.9, 9);
@@ -377,8 +377,17 @@ describe('corrigirSaliencias', () => {
   });
   it('sem câmara ou sem saliência, nada muda', () => {
     const zonas = [z('marquise', 1, 5, 3, 2.5)];
-    expect(corrigirSaliencias(zonas, null, 1)).toBe(zonas);
-    expect(corrigirSaliencias(zonas, centro, null)).toBe(zonas);
+    expect(corrigirSaliencias(zonas, null, { marquise: 1 })).toBe(zonas);
+    expect(corrigirSaliencias(zonas, centro, {})).toBe(zonas);
+  });
+  it('varandas com a sua própria saliência; as portas de varanda (na parede) não mudam', () => {
+    const varanda = z('varanda', 1, 4, 3, 9);
+    const porta = z('vao', 1.5, 4.2, 0.9, 2.1); // dentro da coluna de varandas, mas na parede
+    const marquise = z('marquise', 6, 4, 2, 9);
+    const [v, p, m] = corrigirSaliencias([varanda, porta, marquise], centro, { varanda: 2 });
+    expect(v!.largura).toBeCloseTo(3 * 0.8, 9);
+    expect(p).toBe(porta);
+    expect(m).toBe(marquise); // sem saliência das marquises, a marquise fica como desenhada
   });
 });
 

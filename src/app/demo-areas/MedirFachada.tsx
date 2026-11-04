@@ -12,6 +12,7 @@ import {
   type ReferenciaRetangular,
 } from '@/domain/homografia';
 import {
+  AREA_MINIMA_VAO_M2,
   areaDaZona,
   arestasPerto,
   deslocarArestas,
@@ -302,6 +303,8 @@ interface FachadaGuardada {
   zonas: Zona[];
   /** A saliência das marquises desta fachada (cada fachada tem as suas — revisão de 04/11/2026). */
   salienciaM: number | null;
+  /** A saliência das varandas desta fachada. */
+  salienciaVarandaM: number | null;
 }
 
 /** Como se trata a cobertura de um corpo saliente sem telha (promotor, 04/11/2026). */
@@ -343,6 +346,7 @@ export function MedirFachada() {
   const [incluirRC, setIncluirRC] = useState(true);
   const [saliencia, setSaliencia] = useState('');
   const [vidrosLaterais, setVidrosLaterais] = useState('');
+  const [salienciaVaranda, setSalienciaVaranda] = useState('');
   const [impermeabilizacao, setImpermeabilizacao] = useState<string | null>(null);
   const [nome, setNome] = useState<string>(NOMES_DE_FACHADA[0]);
   const [frente, setFrente] = useState('');
@@ -398,9 +402,13 @@ export function MedirFachada() {
   };
 
   const salienciaM = numero(saliencia);
+  const salienciaVarandaM = numero(salienciaVaranda);
   // As marquises e os vidros delas, no tamanho verdadeiro (desenhados à frente da parede, na vista
   // endireitada aparecem maiores): é isto que entra nas contas, no 3D e na leitura das alturas.
-  const zonasParaContas = useMemo(() => corrigirSaliencias(zonas, camara?.centro ?? null, salienciaM), [zonas, camara, salienciaM]);
+  const zonasParaContas = useMemo(
+    () => corrigirSaliencias(zonas, camara?.centro ?? null, { marquise: salienciaM, varanda: salienciaVarandaM }),
+    [zonas, camara, salienciaM, salienciaVarandaM],
+  );
   const vidrosLateraisM2 = numero(vidrosLaterais);
   const resultado = useMemo(
     () => areasDaFachada(zonasParaContas, { incluirRC, salienciaMarquisesM: salienciaM, vidrosLateraisMarquisesM2: vidrosLateraisM2 }),
@@ -422,6 +430,7 @@ export function MedirFachada() {
     // A saliência e os vidros laterais são desta fachada: a seguinte mede os seus.
     setSaliencia('');
     setVidrosLaterais('');
+    setSalienciaVaranda('');
   };
 
   return (
@@ -521,9 +530,17 @@ export function MedirFachada() {
           resultado={resultado}
           zonas={zonasParaContas}
           correcao={
-            salienciaM
+            salienciaM || salienciaVarandaM
               ? camara
-                ? { distanciaM: camara.centro.z, fator: (camara.centro.z - salienciaM) / camara.centro.z }
+                ? {
+                    distanciaM: camara.centro.z,
+                    oQue:
+                      salienciaM && salienciaVarandaM
+                        ? 'Marquises, os vidros delas e varandas'
+                        : salienciaM
+                          ? 'Marquises e os vidros delas'
+                          : 'Varandas',
+                  }
                 : null
               : undefined
           }
@@ -533,6 +550,9 @@ export function MedirFachada() {
           setSaliencia={setSaliencia}
           vidrosLaterais={vidrosLaterais}
           setVidrosLaterais={setVidrosLaterais}
+          salienciaVaranda={salienciaVaranda}
+          setSalienciaVaranda={setSalienciaVaranda}
+          conferir={foto && calibracao && referencia ? { foto, calibracao, referencia, zonas } : null}
           impermeabilizacao={impermeabilizacao}
           setImpermeabilizacao={setImpermeabilizacao}
           nome={nome}
@@ -545,7 +565,7 @@ export function MedirFachada() {
           onVoltar={() => setPasso(3)}
           onOutraFachada={() => {
             const usados = new Set([...guardadas.map((g) => g.nome), nome]);
-            setGuardadas((gs) => [...gs, { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM }]);
+            setGuardadas((gs) => [...gs, { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM, salienciaVarandaM }]);
             setNome(NOMES_DE_FACHADA.find((n) => !usados.has(n)) ?? 'Outra');
             recomecar();
           }}
@@ -1255,6 +1275,130 @@ function PassoReferencia(props: {
   );
 }
 
+/**
+ * A fotografia endireitada e à escala, enquadrada no contorno (ou inteira) — a do passo 3 e a da
+ * conferência do passo 4 são a mesma.
+ */
+function useVistaEndireitada(foto: Foto, calibracao: Calibracao, referencia: ReferenciaRetangular, zonas: Zona[], verTudo: boolean) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const total: Extensao = useMemo(() => extensaoDoPlano(calibracao, foto.largura, foto.altura, referencia), [foto, calibracao, referencia]);
+  const enquadrada = useMemo(() => enquadrarNoContorno(zonas, total), [zonas, total]);
+  const temContorno = enquadrada !== total;
+  const alvo = verTudo || !temContorno ? total : enquadrada;
+  // A vista só se refaz quando o enquadramento muda (um contorno novo), não a cada vão desenhado.
+  const chave = [alvo.x0, alvo.x1, alvo.y0, alvo.y1].map((n) => n.toFixed(3)).join(' ');
+  const { ext, ppm, vista } = useMemo(() => {
+    const p = pixeisPorMetro(alvo, 1000, 1500);
+    return { ext: alvo, ppm: p, vista: endireitar(foto.pixeis, calibracao.planoParaImagem, alvo, p) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foto, calibracao, chave]);
+  useEffect(() => {
+    const c = canvasRef.current;
+    const ctx = c?.getContext('2d');
+    if (!c || !ctx) return;
+    c.width = vista.width;
+    c.height = vista.height;
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(vista.data), vista.width, vista.height), 0, 0);
+  }, [vista]);
+  return { canvasRef, ext, ppm, vista, temContorno };
+}
+
+/**
+ * Conferir a área (promotor, 04/11/2026: "no fim, não sei se a área está bem coberta"): a fotografia
+ * endireitada com o que se pinta a verde, os vãos descontados em branco, o R/C excluído a cinzento e o
+ * que ficou fora do contorno contornado a âmbar. Se uma parte da fachada ficar sem verde, falta
+ * contorno; se o verde passar para fora do prédio, o contorno está grande.
+ */
+function ConferirArea({
+  foto,
+  calibracao,
+  referencia,
+  zonas,
+  incluirRC,
+}: {
+  foto: Foto;
+  calibracao: Calibracao;
+  referencia: ReferenciaRetangular;
+  zonas: Zona[];
+  incluirRC: boolean;
+}) {
+  const { canvasRef, ext, ppm, vista } = useVistaEndireitada(foto, calibracao, referencia, zonas, false);
+  const px = (X: number) => (X - ext.x0) * ppm;
+  const py = (Y: number) => (ext.y1 - Y) * ppm;
+  const pontos = (z: Zona) =>
+    verticesDaZona(z)
+      .map((p) => `${px(p.x)},${py(p.y)}`)
+      .join(' ');
+  const traco = Math.max(vista.width, vista.height) / 300;
+  const contornos = zonas.filter((z) => z.tipo === 'fachada');
+  const dentroDoContorno = (z: Zona) => {
+    const v = verticesDaZona(z);
+    const meio = { x: v.reduce((s, p) => s + p.x, 0) / v.length, y: v.reduce((s, p) => s + p.y, 0) / v.length };
+    return (
+      v.every((p) =>
+        contornos.some((c) => zonaContem({ ...c, x: c.x - 0.05, y: c.y - 0.05, largura: c.largura + 0.1, altura: c.altura + 0.1 }, p)),
+      ) || !contornos.some((c) => zonaContem(c, meio))
+    );
+  };
+  const LEGENDA: { cor: string; texto: string }[] = [
+    { cor: 'bg-emerald-500/50', texto: 'Pinta-se' },
+    { cor: 'bg-white ring-1 ring-violet-600', texto: 'Vão descontado' },
+    ...(incluirRC ? [] : [{ cor: 'bg-slate-500/60', texto: 'R/C excluído' }]),
+    { cor: 'ring-2 ring-amber-600', texto: 'Parte fora do contorno (não conta)' },
+  ];
+  return (
+    <div className="space-y-2">
+      <Moldura fundo={<canvas ref={canvasRef} className="block max-h-[60vh] w-auto max-w-full" aria-label="Conferir a área" />}>
+        <svg viewBox={`0 0 ${vista.width} ${vista.height}`} className="absolute inset-0 h-full w-full" style={{ pointerEvents: 'none' }}>
+          {contornos.map((z) => (
+            <polygon key={z.id} points={pontos(z)} className="fill-emerald-500/40 stroke-emerald-700" strokeWidth={traco} />
+          ))}
+          {!incluirRC &&
+            zonas
+              .filter((z) => z.tipo === 'rc')
+              .map((z) => <polygon key={z.id} points={pontos(z)} className="fill-slate-500/60 stroke-slate-700" strokeWidth={traco} />)}
+          {zonas
+            .filter((z) => z.tipo === 'vao')
+            .map((z) =>
+              areaDaZona(z) > AREA_MINIMA_VAO_M2 ? (
+                <polygon key={z.id} points={pontos(z)} className="fill-white/75 stroke-violet-600" strokeWidth={traco} />
+              ) : (
+                <polygon
+                  key={z.id}
+                  points={pontos(z)}
+                  fill="none"
+                  className="stroke-violet-600"
+                  strokeWidth={traco}
+                  strokeDasharray={`${traco * 3} ${traco * 2}`}
+                />
+              ),
+            )}
+          {zonas
+            .filter((z) => z.tipo !== 'fachada' && !dentroDoContorno(z))
+            .map((z) => (
+              <polygon
+                key={`fora-${z.id}`}
+                points={pontos(z)}
+                fill="none"
+                className="stroke-amber-600"
+                strokeWidth={traco * 1.5}
+                strokeDasharray={`${traco * 4} ${traco * 2}`}
+              />
+            ))}
+        </svg>
+      </Moldura>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
+        {LEGENDA.map((l) => (
+          <li key={l.texto} className="flex items-center gap-1.5">
+            <span className={`inline-block h-3 w-4 rounded ${l.cor}`} />
+            {l.texto}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function FachadaEndireitada({
   foto,
   calibracao,
@@ -1289,38 +1433,14 @@ function FachadaEndireitada({
   onDesenho: (a: Ponto, b: Ponto) => void;
   onAlterarZona: (z: Zona) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [verTudo, setVerTudo] = useState(false);
-  const total: Extensao = useMemo(() => extensaoDoPlano(calibracao, foto.largura, foto.altura, referencia), [foto, calibracao, referencia]);
-  const enquadrada = useMemo(() => enquadrarNoContorno(zonas, total), [zonas, total]);
-  const temContorno = enquadrada !== total;
-  const alvo = verTudo || !temContorno ? total : enquadrada;
-  // A vista só se refaz quando o enquadramento muda (um contorno novo), não a cada vão desenhado.
-  const chave = [alvo.x0, alvo.x1, alvo.y0, alvo.y1].map((n) => n.toFixed(3)).join(' ');
-  const { ext, ppm, vista } = useMemo(() => {
-    const p = pixeisPorMetro(alvo, 1000, 1500);
-    return {
-      ext: alvo,
-      ppm: p,
-      vista: endireitar(foto.pixeis, calibracao.planoParaImagem, alvo, p),
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foto, calibracao, chave]);
+  const { canvasRef, ext, ppm, vista, temContorno } = useVistaEndireitada(foto, calibracao, referencia, zonas, verTudo);
   const [arrasto, setArrasto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
   // O que o gesto em curso faz, decidido no primeiro movimento: desenhar uma zona nova, ou acertar
   // as arestas de uma zona do tipo escolhido que estejam a um dedo de onde se carregou.
   const gesto = useRef<{ novo: true } | { id: string; arestas: Aresta[] } | null>(null);
   const [edicao, setEdicao] = useState<Zona | null>(null);
   const [linhaAcerto, setLinhaAcerto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
-
-  useEffect(() => {
-    const c = canvasRef.current;
-    const ctx = c?.getContext('2d');
-    if (!c || !ctx) return;
-    c.width = vista.width;
-    c.height = vista.height;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(vista.data), vista.width, vista.height), 0, 0);
-  }, [vista]);
 
   const px = (X: number) => (X - ext.x0) * ppm;
   const py = (Y: number) => (ext.y1 - Y) * ppm;
@@ -1633,8 +1753,12 @@ function LeituraDasAlturas({ zonas, alturaM }: { zonas: Zona[]; alturaM: number 
 function PassoResultado(props: {
   resultado: ResultadoFachada;
   zonas: Zona[];
-  /** Correção da perspetiva das marquises: indefinida sem saliência; nula se a fotografia não a permite. */
-  correcao: { distanciaM: number; fator: number } | null | undefined;
+  /** Correção da perspetiva das frentes salientes: indefinida sem saliência; nula se a fotografia não a permite. */
+  correcao: { distanciaM: number; oQue: string } | null | undefined;
+  salienciaVaranda: string;
+  setSalienciaVaranda: (v: string) => void;
+  /** Para a vista «Conferir a área»: a fotografia endireitada com as zonas tal como foram desenhadas. */
+  conferir: { foto: Foto; calibracao: Calibracao; referencia: ReferenciaRetangular; zonas: Zona[] } | null;
   incluirRC: boolean;
   setIncluirRC: (v: boolean) => void;
   saliencia: string;
@@ -1660,8 +1784,14 @@ function PassoResultado(props: {
   const totalPredio = todas.reduce((s, f) => s + f.resultado.pintavelM2, 0);
 
   // O volume: cada fachada medida vai para a sua parede; a última medida de cada lado é a que conta.
-  const medidas = [...props.guardadas, { nome: props.nome, resultado: r, zonas, salienciaM: numero(props.saliencia) }];
-  const porLado = new Map<Lado, { resultado: ResultadoFachada; zonas: Zona[]; salienciaM: number | null }>();
+  const medidas = [
+    ...props.guardadas,
+    { nome: props.nome, resultado: r, zonas, salienciaM: numero(props.saliencia), salienciaVarandaM: numero(props.salienciaVaranda) },
+  ];
+  const porLado = new Map<
+    Lado,
+    { resultado: ResultadoFachada; zonas: Zona[]; salienciaM: number | null; salienciaVarandaM: number | null }
+  >();
   for (const f of medidas) {
     const lado = LADO_DO_NOME[f.nome];
     if (lado && f.resultado.temContorno) porLado.set(lado, f);
@@ -1670,6 +1800,11 @@ function PassoResultado(props: {
     lado,
     zonas: f.zonas,
     ...(f.salienciaM ? { salienciaMarquiseM: f.salienciaM } : {}),
+    ...(f.salienciaVarandaM ? { salienciaVarandaM: f.salienciaVarandaM } : {}),
+    ...(() => {
+      const l = leituraDeAlturas(f.zonas);
+      return l ? { entrePisosM: l.entrePisosM } : {};
+    })(),
   }));
   const frenteMedida = (porLado.get('frente') ?? porLado.get('tras'))?.resultado.frenteM;
   const fundoMedido = (porLado.get('esquerda') ?? porLado.get('direita'))?.resultado.frenteM;
@@ -1755,9 +1890,24 @@ function PassoResultado(props: {
         {props.correcao !== undefined && (
           <p className="mt-2 text-[13px] text-slate-500">
             {props.correcao
-              ? `Marquises e os vidros delas corrigidos da perspetiva: a frente está mais perto da câmara (a ${m(props.correcao.distanciaM)} m da fachada) e aparecia ${Math.round((1 / props.correcao.fator - 1) * 100)} % maior.`
-              : 'Sem correção da perspetiva das marquises: a fotografia está quase de frente. Contam como desenhadas.'}
+              ? `${props.correcao.oQue}: corrigidas da perspetiva — a frente está mais perto da câmara (a ${m(props.correcao.distanciaM)} m da fachada) e aparecia maior no desenho.`
+              : 'Sem correção da perspetiva das frentes salientes: a fotografia está quase de frente. Contam como desenhadas.'}
           </p>
+        )}
+        {zonas.some((z) => z.tipo === 'varanda') && (
+          <label className="mt-3 block max-w-xs">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">Quanto as varandas saem da parede (m)</span>
+            <input
+              className="campo"
+              inputMode="decimal"
+              placeholder="por medir"
+              value={props.salienciaVaranda}
+              onChange={(e) => props.setSalienciaVaranda(e.target.value)}
+            />
+            <span className="mt-1 block text-[13px] text-slate-500">
+              Medido à fita, de lado. Corrige o tamanho da coluna de varandas e desenha-as no volume, uma por piso.
+            </span>
+          </label>
         )}
         {r.coberturasSalientes.existem && (
           <div className="mt-4 space-y-2" role="radiogroup" aria-label="Cobertura das marquises">
@@ -1799,6 +1949,23 @@ function PassoResultado(props: {
           </p>
         ))}
       </div>
+
+      {props.conferir && (
+        <div className="space-y-2 border-t border-slate-200 pt-4">
+          <h3 className="text-[15px] font-semibold text-slate-900">Conferir a área</h3>
+          <p className="max-w-[60ch] text-[15px] text-slate-600">
+            O verde é o que se pinta. Se uma parte da fachada ficar sem verde, falta contorno; se o verde passar para fora do prédio, o
+            contorno está grande. Paredes laterais, tecto e cobertura das marquises não se veem de frente: somam-se acima.
+          </p>
+          <ConferirArea
+            foto={props.conferir.foto}
+            calibracao={props.conferir.calibracao}
+            referencia={props.conferir.referencia}
+            zonas={props.conferir.zonas}
+            incluirRC={props.incluirRC}
+          />
+        </div>
+      )}
 
       {props.guardadas.length > 0 && (
         <div className="rounded-lg border border-slate-200 p-4">
