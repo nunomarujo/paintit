@@ -299,7 +299,7 @@ export function problemaDaReferencia(ref: ReferenciaRetangular): string | null {
  * **Uma aresta horizontal não chega para a fachada toda.** Uma reta só diz que o ponto de fuga está
  * algures nela; onde, ao longo dela, continua a decidir a base e o topo da referência. Na prática,
  * uma cimalha endireita bem as alturas perto dela e pouco as de baixo (o ponto a 10 m para o lado
- * cai certo à altura da cimalha e quase tão errado como antes ao nível do passeio). Duas horizontais
+ * cai certo à altura da cimalha e tão errado como antes, ou mais, ao nível do passeio). Duas horizontais
  * compridas a alturas diferentes (a cimalha e um friso, a linha dos peitoris de um piso) fixam o
  * ponto de fuga sozinhas, e aí a correção vale para toda a fachada. Por isso as horizontais entram
  * pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a base e o topo da porta,
@@ -350,7 +350,7 @@ export interface CamaraDaFotografia {
  * focal não se tira dela (ver `camaraDaHomografia`). Porquê 8° e não perto de zero: o próprio erro de
  * toque inventa perspetiva. Com ±1 px nos cantos de uma porta a 12 m, uma fotografia exatamente de
  * frente parece inclinada 5° (mediana; 7° no percentil 95), e a 5° verdadeiros a focal ainda sai com
- * 50 % de erro. Acima de 8° deixa passar quase tudo o que é real (a 10°, 94 %). Afinado para
+ * um erro mediano de ~50 %. Acima de 8° deixa passar quase tudo o que é real (a 10°, 94 %). Afinado para
  * referências do tamanho de uma porta; uma referência maior na imagem aguentaria um limite mais baixo.
  */
 export const INCLINACAO_MINIMA_GRAUS = 8;
