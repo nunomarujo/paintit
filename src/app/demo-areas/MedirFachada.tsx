@@ -39,6 +39,7 @@ import {
 } from '@/domain/fachadaMedida';
 import { Dica } from '@/components/Dica';
 import { cantoMaisProximo } from './cantos';
+import { detetarJanelas, type JanelaDetetada } from './deteccao';
 import { Lupa } from './Lupa';
 import { Modelo3D } from './Modelo3D';
 import type { FaceMedida, Lado } from './modelo3d';
@@ -712,6 +713,16 @@ const FRASES: Record<TipoZona, { um: string; primeiro: string; ultimo: string; q
 /** Folga de um toque, em píxeis de ecrã: um dedo mexe-se uns px ao pousar (revisão de 04/11/2026). */
 const FOLGA_TOQUE_PX = 10;
 
+/** Quanto de `b` está dentro de `a` (0 a 1), pelas caixas — para não propor uma janela já desenhada. */
+function sobreposicaoRelativa(
+  a: { x: number; y: number; largura: number; altura: number },
+  b: { x: number; y: number; largura: number; altura: number },
+) {
+  const l = Math.min(a.x + a.largura, b.x + b.largura) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.altura, b.y + b.altura) - Math.max(a.y, b.y);
+  return l > 0 && h > 0 ? (l * h) / Math.max(1e-9, b.largura * b.altura) : 0;
+}
+
 /** Uma série nunca passa disto — um número escrito por engano (600 em vez de 6) não congela o ecrã. */
 const SERIE_MAXIMA = 60;
 
@@ -763,7 +774,13 @@ function PassoDesenhar({
   // A zona escolhida com um toque: só as arestas dela se arrastam. Sem isto, começar a desenhar
   // encostado a uma zona (um triângulo por cima do contorno, um recuo ao lado) agarrava a aresta dela.
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  // Janelas propostas pela deteção automática (no próprio aparelho), à espera de confirmação: o
+  // avaliador tira as que não são e aceita as outras de uma vez (promotor, 04/11/2026: "dispensar
+  // identificar onde estão cada janela… poupam-se minutos longos").
+  const [propostas, setPropostas] = useState<Zona[] | null>(null);
+  const [pedidoDeteccao, setPedidoDeteccao] = useState(0);
   const [serie, setSerie] = useState<SeriePendente | null>(null);
+  const pendente = !!serie || !!propostas;
   const [verOriginal, setVerOriginal] = useState(false);
   // Acertar o endireitamento (promotor, 04/11/2026: "o erro levou a ligeira inclinação do prédio"):
   // arrasta-se ao longo de uma aresta que devia estar direita e o prédio endireita-se por ela.
@@ -820,7 +837,18 @@ function PassoDesenhar({
 
   let instrucao: ReactNode;
   let como: ReactNode = frase.como;
-  if (modoAcerto) {
+  if (propostas) {
+    instrucao =
+      propostas.length === 0 ? (
+        <>Não se encontraram janelas claras</>
+      ) : (
+        <>Confirmar {propostas.length === 1 ? 'a janela proposta' : `as ${propostas.length} janelas propostas`}</>
+      );
+    como =
+      propostas.length === 0
+        ? 'Desenhar à mão, ou em série (a primeira e a última de uma coluna).'
+        : 'Tocar numa proposta para a tirar. As que ficarem passam a vãos; depois acertam-se como as outras, tocando nelas.';
+  } else if (modoAcerto) {
     instrucao = <>Arrastar ao longo de uma aresta que devia estar direita</>;
     como =
       'De preferência uma vertical comprida (canto do prédio, tubo de queda), de uma ponta à outra. Horizontais, só duas a alturas diferentes (a cimalha e a linha das janelas de um piso): uma sozinha pode piorar longe dela.';
@@ -921,10 +949,40 @@ function PassoDesenhar({
           </p>
         )}
         <div className="mt-3 flex flex-wrap items-center gap-3">
+          {propostas && propostas.length > 0 && (
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={() => {
+                const novas = propostas.map((z) => ({ ...z, id: novoId() }));
+                mudarZonas((zs) => [...zs, ...novas]);
+                setPropostas(null);
+              }}
+            >
+              {propostas.length === 1 ? 'Aceitar a janela' : `Aceitar as ${propostas.length}`}
+            </button>
+          )}
+          {propostas && (
+            <button type="button" className="btn-quiet btn-sm" onClick={() => setPropostas(null)}>
+              {propostas.length === 0 ? 'Fechar' : 'Descartar'}
+            </button>
+          )}
+          {temContorno && !propostas && !serie && !modoAcerto && (
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={() => {
+                setSelecionadaId(null);
+                setPedidoDeteccao((n) => n + 1);
+              }}
+            >
+              Detetar as janelas
+            </button>
+          )}
           <button
             type="button"
             className="btn-quiet btn-sm"
-            disabled={!podeDesfazer && !serie}
+            disabled={(!podeDesfazer && !serie) || !!propostas}
             onClick={() => (serie ? setSerie(null) : desfazer())}
           >
             Desfazer o último passo
@@ -932,7 +990,7 @@ function PassoDesenhar({
           <button
             type="button"
             className={modoAcerto ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
-            disabled={!!serie}
+            disabled={pendente}
             onClick={() => {
               setModoAcerto((v) => !v);
               setSelecionadaId(null);
@@ -1026,6 +1084,17 @@ function PassoDesenhar({
             setModoAcerto(false);
             onAcertar(a, b);
           }}
+          pedidoDeteccao={pedidoDeteccao}
+          onDetetadas={(ds) => {
+            // Uma proposta em cima de um vão já desenhado não se repete.
+            const existentes = zonas.filter((z) => z.tipo === 'vao');
+            const novas = ds
+              .filter((d) => !existentes.some((e) => sobreposicaoRelativa(e, d) > 0.3))
+              .map((d, i): Zona => ({ id: `proposta-${i}`, tipo: 'vao', x: d.x, y: d.y, largura: d.largura, altura: d.altura }));
+            setPropostas(novas);
+          }}
+          propostas={propostas ?? []}
+          onTirarProposta={(id) => setPropostas((ps) => (ps ? ps.filter((p) => p.id !== id) : ps))}
           previas={previas}
           onDesenho={aoDesenhar}
           onAlterarZona={(nova) => mudarZonas((zs) => zs.map((z) => (z.id === nova.id ? nova : z)))}
@@ -1040,13 +1109,14 @@ function PassoDesenhar({
       <ListaDeZonas zonas={zonas} onApagar={(id) => mudarZonas((zs) => zs.filter((x) => x.id !== id))} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="btn-quiet btn-sm" disabled={!!serie} onClick={onVoltar}>
+        <button type="button" className="btn-quiet btn-sm" disabled={pendente} onClick={onVoltar}>
           Voltar à referência
         </button>
-        <button type="button" className="btn-primary btn-sm" disabled={!temContorno || !!serie} onClick={onContinuar}>
+        <button type="button" className="btn-primary btn-sm" disabled={!temContorno || pendente} onClick={onContinuar}>
           Ver áreas e volume
         </button>
         {serie && <p className="text-[13px] text-slate-500">Criar ou cancelar a série primeiro.</p>}
+        {propostas && <p className="text-[13px] text-slate-500">Aceitar ou descartar as janelas propostas primeiro.</p>}
       </div>
     </section>
   );
@@ -1612,6 +1682,10 @@ function FachadaEndireitada({
   onSelecionar,
   modoAcerto,
   onAcerto,
+  pedidoDeteccao,
+  onDetetadas,
+  propostas,
+  onTirarProposta,
   previas,
   onDesenho,
   onAlterarZona,
@@ -1630,6 +1704,12 @@ function FachadaEndireitada({
   /** Em vez de desenhar, o arrasto marca uma aresta que devia estar direita. */
   modoAcerto: boolean;
   onAcerto: (a: Ponto, b: Ponto) => void;
+  /** Cada vez que sobe, corre a deteção de janelas sobre esta vista e devolve as propostas. */
+  pedidoDeteccao: number;
+  onDetetadas: (ds: JanelaDetetada[]) => void;
+  /** Janelas propostas à espera de confirmação: tocar numa tira-a. */
+  propostas: Zona[];
+  onTirarProposta: (id: string) => void;
   /** Pré-visualização de uma série por confirmar, a tracejado. */
   previas: Zona[];
   onDesenho: (a: Ponto, b: Ponto) => void;
@@ -1643,6 +1723,13 @@ function FachadaEndireitada({
   const gesto = useRef<{ novo: true } | { id: string; arestas: Aresta[] } | null>(null);
   const [edicao, setEdicao] = useState<Zona | null>(null);
   const [linhaAcerto, setLinhaAcerto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
+  // A deteção corre sobre a vista que está no ecrã (endireitada e enquadrada), com os contornos.
+  useEffect(() => {
+    if (pedidoDeteccao === 0) return;
+    const contornos = zonas.filter((z) => z.tipo === 'fachada');
+    onDetetadas(detetarJanelas(vista, ext, ppm, contornos));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoDeteccao]);
 
   const px = (X: number) => (X - ext.x0) * ppm;
   const py = (Y: number) => (ext.y1 - Y) * ppm;
@@ -1732,6 +1819,8 @@ function FachadaEndireitada({
 
   /** Um toque (sem arrastar) escolhe a zona do tipo em curso que está por baixo, ou larga a escolha. */
   const tocar = (p: Ponto) => {
+    const proposta = propostas.find((z) => zonaContem(z, p));
+    if (proposta) return onTirarProposta(proposta.id);
     for (let i = zonas.length - 1; i >= 0; i--) {
       const z = zonas[i]!;
       if (z.tipo === tipo && zonaContem(z, p)) return onSelecionar(z.id === selecionada?.id ? null : z.id);
@@ -1859,6 +1948,16 @@ function FachadaEndireitada({
             />
           ))}
           {temp && retangulo(temp, tipo, 'temp', true)}
+          {propostas.map((z) => (
+            <g key={z.id} style={{ pointerEvents: 'none' }}>
+              <polygon
+                points={pontos(z)}
+                className="fill-violet-500/20 stroke-violet-600"
+                strokeWidth={letra / 5}
+                strokeDasharray={`${letra / 2} ${letra / 3}`}
+              />
+            </g>
+          ))}
           {linhaAcerto && (
             <line
               x1={linhaAcerto.de.x}

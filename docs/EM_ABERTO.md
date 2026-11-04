@@ -69,8 +69,10 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - Da avaliação do "Levantamento v7" (DECISOES 04/11/2026, noite), por fazer: guardar no aparelho;
   caixas das marquises sobre a fotografia; saliência tirada da fotografia; zona "não se pinta";
   várias fotografias da mesma fachada; ligar fachadas vizinhas pela esquina comum.
-- Deteção automática de janelas: no aparelho em construção (04/11/2026); com IA, por decidir
-  (privacidade — a fotografia sairia do aparelho — e custo).
+- Deteção automática de janelas: *no aparelho, primeira versão a 04/11/2026* (propõe, o avaliador
+  confirma; DECISOES "Deteção das janelas no próprio aparelho"); revisão do cético em curso. Por
+  fazer: janelas das marquises e varandas. Com IA, por decidir (privacidade — a fotografia sairia do
+  aparelho — e custo).
 - Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre

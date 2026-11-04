@@ -5247,3 +5247,35 @@ acertar à mão. A deteção com IA fica por decidir (privacidade e custo).
 Verificado em Chromium (1280 e 390 px) com a fotografia real: controlo com desvio ~0 % e aviso a 10 %;
 largura 165 → 160 cm leva o contorno de 220,52 a 213,84 m² e volta; subtotal com o que falta; a
 "Fachada principal" medida duas vezes conta uma.
+
+## 04/11/2026 (noite) — Deteção das janelas no próprio aparelho: propor, o avaliador confirma
+
+Pedido do promotor depois da avaliação do "Levantamento v7": "dispensar identificar onde estão cada
+janela, porta, varanda, marquise… aqui poupam-se minutos longos (alguns casos poderão ser horas)",
+com reajuste à mão. Escolha (deixada à sessão): **deteção no aparelho**, sobre a fachada já
+endireitada — gratuita, e a fotografia não sai do telemóvel (regra 6). A deteção com IA fica por
+decidir (privacidade e custo).
+
+**Como se usa (passo 3).** Com o contorno desenhado aparece "Detetar as janelas". As propostas
+aparecem a tracejado violeta; tocar numa tira-a; "Aceitar as N" passa-as a vãos de uma vez (um só
+passo de "Desfazer"); "Descartar" larga-as. Uma proposta em cima de um vão já desenhado não se
+repete. Enquanto há propostas por confirmar não se sai do passo. **Nunca entra nada na área sem o
+avaliador aceitar.**
+
+**Como funciona** (`src/app/demo-areas/deteccao.ts`, cabeçalho do ficheiro): numa grelha de ~20
+células por metro, a cor da parede estima-se localmente (segue o sombreado); o que se afasta dela,
+limpo e cortado em peças do tamanho de uma janela, ajusta-se às arestas mais fortes (o aro de fora
+quando há dois); depois a **repetição** decide — colunas de janelas iguais confirmam-se umas às
+outras, uma janela sozinha só é proposta com nota alta, e uma em falta numa coluna regular só se
+acrescenta se a imagem a confirmar. Varandas e marquises (vãos acima de 3,5 × 3 m, ou assentes num
+parapeito) não se propõem: desenham-se como até aqui.
+
+**Números.** Fachada sintética branca 12 × 18 m: 100 % das janelas, nenhuma inventada, com gradiente
+e ruído, roupa estendida, meia fachada no contorno; parede lisa → 0 propostas. Fotografia real do
+promotor (avaliada fora do repositório, nunca em testes): as 10 janelas do corpo branco, nenhum
+falso positivo (sobreposição 0,73 a 0,89 com as marcadas à mão); marquises, varandas e R/C → 0
+propostas. 0,1 a 0,3 s por deteção. **Limites conhecidos:** varandas cuja guarda tem a cor da parede
+podem sair como janela (precisão 0,71–0,91 nas sintéticas); janelas das marquises não se propõem.
+
+Primeira versão; a revisão de um cético (fachadas difíceis: estores da cor da parede, vidros a
+refletir o céu, azulejo, tijolo, sombras) está em curso e as correções entram a seguir.
