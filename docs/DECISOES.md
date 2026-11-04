@@ -5054,3 +5054,31 @@ confirmação cruzada que a secção 3.2 do handoff pedia, feita com o que já s
 Verificado em Chromium (1280 px e 390 px) com a fotografia anterior: 19 verificações automáticas, das
 quais as do contorno bloqueado, da série, de acertar e desfazer, do triângulo (220,52 + 3,69 =
 224,21 m²) e da leitura (3,06 m entre pisos); sem scroll horizontal, sem erros de consola.
+
+## 04/11/2026 (fim da tarde) — Marquises e R/C: duas regras corrigidas pelo promotor
+
+Terceiro teste do promotor (a fotografia do prédio R/C + 5 andares, toda a fachada desenhada): as
+marquises descontavam **152,90 m²** e o R/C **54,91 m²**. As duas regras vinham do handoff de
+03/11/2026 e estavam erradas:
+
+1. **Marquises.** O handoff (secção 3.4) dava-as por "fechadas, não pintadas" e descontava-as
+   inteiras. O promotor corrigiu: uma marquise é uma caixa saliente **com parede própria** — a janela
+   original da fachada passa a porta (por dentro, não se vê), a marquise tem as suas janelas (à frente
+   e às vezes de lado) e **paredes laterais novas** — na fotografia, a da esquerda tem parede à
+   esquerda e outra à direita, virada para dentro da varanda vizinha. Regra nova
+   (`areasDaFachada`): a frente da marquise **pinta-se**, os vidros descontam-se **desenhados como
+   vãos** (com a regra do 1 m²), e as paredes laterais **acrescentam** altura × saliência. A saliência
+   é medida à fita (a fotografia de frente não a mostra) — campo no passo 4; sem ela, as laterais
+   aparecem "por medir", nunca estimadas. Um lado encostado a outra marquise (lado a lado) não é
+   exterior e não conta; empilhadas, contam todas. O volume 3D usa a saliência medida.
+2. **R/C.** A decisão 8.3 estava "proposta: fica fora por omissão". O promotor: "o R/C de um prédio é
+   para pintar em princípio". Passa a **contar por omissão**, com "Excluir o R/C" para quando as lojas
+   tratam da sua frente. As montras e portas do R/C descontam-se desenhadas como vãos (os −54,91 m²
+   eram o R/C inteiro, não as montras — o que confundiu o promotor).
+
+**Por confirmar com o promotor:** o tecto exterior da marquise mais baixa (a face de baixo, à vista
+da rua) — hoje não conta; e, nas varandas abertas, as faces interiores continuam por medir (8.2).
+
+Verificado em Chromium (1280 e 390 px) com a fotografia anterior: sem saliência, pintável = contorno −
+vãos (197,28 m²); com 1,2 m, sobe exatamente as laterais (22,37 m² = 5 marquises × 2 lados × 1,86 m
+de altura média × 1,2 m); excluir o R/C tira exatamente os 44,28 m².

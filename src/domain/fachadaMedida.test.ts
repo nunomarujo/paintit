@@ -55,27 +55,52 @@ describe('areasDaFachada', () => {
     expect(areasDaFachada([contorno, z('vao', 1, 1, 1, 1)]).pintavelM2).toBe(200);
   });
 
-  it('marquises descontam-se (fechadas, não pintadas)', () => {
-    expect(areasDaFachada([contorno, z('marquise', 2, 5, 3, 2)]).pintavelM2).toBe(194);
+  it('marquises (promotor, 04/11/2026): a frente pinta-se e só os vidros, desenhados como vãos, descontam', () => {
+    const marquise = z('marquise', 2, 5, 3, 2);
+    expect(areasDaFachada([contorno, marquise]).pintavelM2).toBe(200);
+    expect(areasDaFachada([contorno, marquise, z('vao', 2.3, 5.9, 2.4, 1)]).pintavelM2).toBeCloseTo(197.6, 9);
   });
 
-  it('R/C comercial fica fora por omissão e pode incluir-se', () => {
+  it('marquises: as paredes laterais acrescentam altura × saliência; sem saliência ficam por medir', () => {
+    const marquise = z('marquise', 2, 5, 3, 2);
+    const semMedida = areasDaFachada([contorno, marquise]);
+    const laterais = semMedida.linhas.find((l) => l.efeito === 'acrescenta')!;
+    expect(laterais.porMedir).toBe(true);
+    expect(laterais.areaM2).toBe(0);
+    const comMedida = areasDaFachada([contorno, marquise], { salienciaMarquisesM: 1.2 });
+    expect(comMedida.pintavelM2).toBeCloseTo(200 + 2 * 2 * 1.2, 9); // dois lados de 2 m × 1,2 m
+  });
+
+  it('marquises lado a lado partilham a parede do meio, que não é exterior; empilhadas, contam todas', () => {
+    const ladoALado = areasDaFachada([contorno, z('marquise', 1, 5, 2, 2), z('marquise', 3, 5, 2, 2)], { salienciaMarquisesM: 1 });
+    expect(ladoALado.pintavelM2).toBe(204); // só os dois lados de fora: 2 × 2 m × 1 m
+    const empilhadas = areasDaFachada([contorno, z('marquise', 1, 5, 2, 2), z('marquise', 1, 8, 2, 2)], { salienciaMarquisesM: 1 });
+    expect(empilhadas.pintavelM2).toBe(208);
+  });
+
+  it('R/C pinta-se por omissão (promotor, 04/11/2026) e pode excluir-se', () => {
     const rc = z('rc', 0, 0, 10, 4);
-    expect(areasDaFachada([contorno, rc]).pintavelM2).toBe(160);
-    expect(areasDaFachada([contorno, rc], { incluirRC: true }).pintavelM2).toBe(200);
+    expect(areasDaFachada([contorno, rc]).pintavelM2).toBe(200);
+    expect(areasDaFachada([contorno, rc], { incluirRC: false }).pintavelM2).toBe(160);
   });
 
-  it('um vão dentro de um R/C já excluído não se desconta duas vezes', () => {
-    const r = areasDaFachada([contorno, z('rc', 0, 0, 10, 4), z('vao', 3, 0, 2, 2)]);
+  it('as montras do R/C descontam-se como vãos quando o R/C se pinta', () => {
+    expect(areasDaFachada([contorno, z('rc', 0, 0, 10, 4), z('vao', 1, 0.5, 3, 2)]).pintavelM2).toBe(194);
+  });
+
+  it('um vão dentro de um R/C excluído não se desconta duas vezes', () => {
+    const r = areasDaFachada([contorno, z('rc', 0, 0, 10, 4), z('vao', 3, 0, 2, 2)], { incluirRC: false });
     expect(r.pintavelM2).toBe(160);
     expect(r.linhas.find((l) => l.tipo === 'vao')!.areaM2).toBe(0);
   });
 
-  it('as linhas somam exatamente o pintável (contorno − R/C − marquises − vãos)', () => {
+  it('as linhas somam exatamente o pintável (contorno − R/C excluído − vãos + laterais das marquises)', () => {
     const zonas = [contorno, z('rc', 0, 0, 10, 4), z('marquise', 1, 3, 3, 3), z('vao', 6, 2, 2, 4), z('vao', 6, 10, 1.5, 1.2)];
-    const r = areasDaFachada(zonas);
-    const descontos = r.linhas.filter((l) => l.efeito === 'desconta' || l.efeito === 'fora').reduce((s, l) => s + l.areaM2, 0);
-    expect(r.contornoM2 - descontos).toBeCloseTo(r.pintavelM2, 6);
+    for (const opcoes of [{}, { incluirRC: false }, { incluirRC: false, salienciaMarquisesM: 1.3 }]) {
+      const r = areasDaFachada(zonas, opcoes);
+      const soma = (e: string) => r.linhas.filter((l) => l.efeito === e).reduce((s, l) => s + l.areaM2, 0);
+      expect(r.contornoM2 - soma('desconta') - soma('fora') + soma('acrescenta')).toBeCloseTo(r.pintavelM2, 6);
+    }
   });
 
   it('varandas abertas não descontam — a frente faz parte da fachada pintada', () => {
@@ -91,7 +116,7 @@ describe('areasDaFachada', () => {
   });
 
   it('só conta o que está dentro do contorno, e avisa do resto', () => {
-    const r = areasDaFachada([contorno, z('marquise', 8, 5, 4, 2)]); // metade fora
+    const r = areasDaFachada([contorno, z('vao', 8, 5, 4, 2)]); // metade fora
     expect(r.pintavelM2).toBe(196);
     expect(r.avisos.join(' ')).toMatch(/fora do contorno/);
   });
@@ -197,7 +222,7 @@ describe('zonas triangulares', () => {
       z('vao', 2.5, 5.5, 2, 1.5),
       tri('marquise', 'inf-dir', 6, 8, 2.5, 5),
     ];
-    const r = areasDaFachada(zonas);
+    const r = areasDaFachada(zonas, { incluirRC: false });
     // Amostragem: o mesmo pintável, contado ponto a ponto numa grelha de 2 cm (ponto-em-polígono).
     const dentroDe = (q: Zona, x: number, y: number) => {
       const v = verticesDaZona(q);
@@ -214,7 +239,7 @@ describe('zonas triangulares', () => {
       for (let y = h / 2; y < 16; y += h) {
         const em = (t: TipoZona) => zonas.some((q) => q.tipo === t && dentroDe(q, x, y));
         const vaoGrande = zonas.some((q) => q.tipo === 'vao' && areaDaZona(q) > 1 && dentroDe(q, x, y));
-        if (em('fachada') && !em('rc') && !em('marquise') && !vaoGrande) amostrado += h * h;
+        if (em('fachada') && !em('rc') && !vaoGrande) amostrado += h * h;
       }
     }
     expect(Math.abs(r.pintavelM2 - amostrado) / amostrado).toBeLessThan(0.003);

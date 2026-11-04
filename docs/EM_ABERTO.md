@@ -36,7 +36,6 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 |---|---|---|
 | Medição de zonas: tolerância angular | Proposta 2º de desvio face a 90º — confirmar | Handoff 03/11/2026, secção 8.1 |
 | Medição de zonas: profundidade inicial das varandas | Sem valor decidido; enquanto não houver, o campo fica vazio | Handoff 03/11/2026, secção 8.2 |
-| Medição de zonas: zona comercial do rés-do-chão | Proposta: fica fora por defeito | Handoff 03/11/2026, secção 8.3 |
 | Medição de zonas: valor de `INCLINACAO_TIPICA_GRAUS_PROPOSTA` (20º) | Decidido 03/11/2026 aceitar erro maior (correção aproximada com inclinação assumida) em vez de EXIF ou mais um ponto — falta só confirmar/corrigir o valor de 20º no piloto | `docs/DECISOES.md`, 03/11/2026, "correção aproximada com inclinação assumida" |
 | Stripe em modo real | Só depois da limpeza e de testar a conta de faturação | `PAGAMENTOS_E_ASSINATURA.md` |
 | Percentagem do levantamento por avaliador | Validar pesos e banda (1%–2,7%) num caso real antes de ligar a dinheiro verdadeiro | `ESTADO.md` §7 |
@@ -71,6 +70,10 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
   pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
 - Varandas: hoje desenha-se a frente; as faces interiores continuam por medir (decisão 8.2).
+- *Decidido pelo promotor a 04/11/2026:* o R/C pinta-se por omissão (fecha a 8.3, que propunha o
+  contrário) e as marquises têm parede — a frente pinta-se, os vidros descontam-se como vãos, e as
+  paredes laterais acrescentam altura × saliência (medida à fita). Falta só o promotor confirmar se
+  o tecto exterior da marquise mais baixa (por baixo dela) também se pinta — hoje não conta.
 - Deteção automática de vãos e varandas na vista endireitada (com IA) — pede decisão do promotor
   sobre privacidade (a fotografia sairia do aparelho) e custo; não construído.
 - Decidir se `retificacao.ts` e `volumeAreas.ts` (sem ecrã desde 04/11/2026) se apagam.

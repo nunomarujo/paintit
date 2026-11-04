@@ -9,12 +9,17 @@ import type { Ponto } from './homografia';
  *   nunca a soma — dois contornos sobrepostos não contam duas vezes.
  * - **Vãos** (janelas, portas, montras): com mais de 1 m² descontam-se; com 1 m² ou menos, não
  *   (secção 3.3).
- * - **Marquises**: fechadas, não pintadas — descontam-se (secção 3.4).
+ * - **Marquises**: caixas salientes com parede própria (promotor, 04/11/2026, corrigindo a secção 3.4
+ *   do handoff, que as dava por "fechadas, não pintadas"): a frente pinta-se e só os vidros se
+ *   descontam — desenhados como vãos, como qualquer janela; e acrescentam as **paredes laterais**,
+ *   altura × saliência, que é medida à fita (a fotografia de frente não a mostra). Sem saliência, as
+ *   laterais ficam por medir, nunca estimadas. Um lado encostado a outra marquise não é exterior.
  * - **Varandas abertas**: a frente faz parte da fachada pintada (não desconta). As faces interiores
  *   (laje de baixo, paredes laterais) precisam da profundidade, que ainda não tem valor decidido
  *   (decisão 8.2): ficam **por medir**, nunca estimadas.
- * - **R/C comercial**: fica fora por omissão (decisão 8.3, proposta ainda por confirmar), e pode
- *   incluir-se.
+ * - **R/C**: pinta-se por omissão (promotor, 04/11/2026: "o R/C de um prédio é para pintar em
+ *   princípio" — fecha a decisão 8.3, que propunha o contrário); pode excluir-se, por exemplo quando
+ *   as lojas tratam da sua frente. As montras e portas do R/C descontam-se como vãos.
  * - Só conta o que está dentro do contorno; o resto avisa-se.
  *
  * Tudo por diferença e união de formas (retângulos e, desde 04/11/2026, triângulos retângulos —
@@ -263,8 +268,10 @@ export interface LinhaArea {
   /** Área dentro do contorno, em m², com duas casas. */
   areaM2: number;
   /** O que esta categoria faz ao total pintável. */
-  efeito: 'base' | 'pinta' | 'desconta' | 'fora';
+  efeito: 'base' | 'pinta' | 'desconta' | 'fora' | 'acrescenta';
   nota?: string;
+  /** A área não se pode calcular sem uma medida que falta (a saliência das marquises): mostra-se "por medir". */
+  porMedir?: boolean;
 }
 
 export interface ResultadoFachada {
@@ -276,14 +283,38 @@ export interface ResultadoFachada {
   linhas: LinhaArea[];
   vaosDescontados: number;
   vaosPequenos: number;
-  /** Área a pintar desta fachada: contorno menos vãos > 1 m², marquises e (por omissão) R/C. */
+  /** Área a pintar desta fachada: contorno − vãos > 1 m² (− R/C, se excluído) + paredes laterais das marquises. */
   pintavelM2: number;
   avisos: string[];
 }
 
 const arred = (n: number) => Math.round(n * 100) / 100;
 
-export function areasDaFachada(zonas: Zona[], opcoes: { incluirRC: boolean } = { incluirRC: false }): ResultadoFachada {
+export interface OpcoesFachada {
+  /** Por omissão, sim (promotor, 04/11/2026). */
+  incluirRC?: boolean;
+  /** Quanto as marquises saem da parede, em metros, medido à fita. Sem valor: laterais por medir. */
+  salienciaMarquisesM?: number | null;
+}
+
+/**
+ * Altura de cada lado de cada marquise que fica à vista — tirando o que encosta a outra marquise
+ * (duas marquises lado a lado partilham a parede, que fica por dentro).
+ */
+function ladosExpostosM(marquises: Zona[]): number {
+  const encostado = (m: Zona, x: number, lado: 'esq' | 'dir') =>
+    marquises
+      .filter((o) => o !== m && Math.abs((lado === 'esq' ? o.x + o.largura : o.x) - x) <= 0.05)
+      .reduce((s, o) => s + Math.max(0, Math.min(m.y + m.altura, o.y + o.altura) - Math.max(m.y, o.y)), 0);
+  return marquises.reduce(
+    (s, m) => s + Math.max(0, m.altura - encostado(m, m.x, 'esq')) + Math.max(0, m.altura - encostado(m, m.x + m.largura, 'dir')),
+    0,
+  );
+}
+
+export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): ResultadoFachada {
+  const incluirRC = opcoes.incluirRC ?? true;
+  const saliencia = opcoes.salienciaMarquisesM && opcoes.salienciaMarquisesM > 0 ? opcoes.salienciaMarquisesM : null;
   const contornoZonas = zonas.filter((z) => z.tipo === 'fachada');
   const contorno = contornoZonas.map(forma);
   const avisos: string[] = [];
@@ -314,21 +345,25 @@ export function areasDaFachada(zonas: Zona[], opcoes: { incluirRC: boolean } = {
   const varandas = porTipo('varanda');
 
   // Desconta-se por esta ordem, e cada linha só leva o que as anteriores não levaram: assim as linhas
-  // somam exatamente (contorno − R/C − marquises − vãos = pintável), sem nada descontado duas vezes.
-  const rcFora = opcoes.incluirRC ? [] : rc;
+  // somam exatamente (contorno − R/C excluído − vãos + laterais das marquises = pintável), sem nada
+  // descontado duas vezes. As marquises já não descontam: a frente delas é parede pintada.
+  const rcFora = incluirRC ? [] : rc;
   const rcForaM2 = noContorno(rcFora);
-  const marquisesM2 = noContorno(marquises, rcFora);
-  const vaosM2 = noContorno(vaosGrandes, [...rcFora, ...marquises]);
-  const excluidas = [...rcFora, ...marquises, ...vaosGrandes];
+  const vaosM2 = noContorno(vaosGrandes, rcFora);
+  const excluidas = [...rcFora, ...vaosGrandes];
+  const marquisesM2 = noContorno(marquises, excluidas);
+  const lateraisM2 = saliencia ? ladosExpostosM(zonas.filter((z) => z.tipo === 'marquise')) * saliencia : 0;
   const contornoM2 = areaOnde(todos, (x, y) => contem(contorno, x, y));
-  const pintavelM2 = contornoM2 - rcForaM2 - marquisesM2 - vaosM2;
+  const pintavelM2 = contornoM2 - rcForaM2 - vaosM2 + lateraisM2;
 
   for (const z of zonas) {
     if (z.tipo === 'fachada') continue;
     const f = forma(z);
     const fora = areaDaZona(z) - areaOnde([...contorno, f], (x, y) => contem([f], x, y) && contem(contorno, x, y));
     if (fora > 0.05 * areaDaZona(z) && fora > 0.01) {
-      avisos.push(`Parte de uma zona de ${TIPO_ZONA_LABELS[z.tipo].toLowerCase()} está fora do contorno e não conta (${arred(fora)} m²).`);
+      avisos.push(
+        `Parte de uma zona de ${TIPO_ZONA_LABELS[z.tipo].toLowerCase()} está fora do contorno e não conta (${String(arred(fora)).replace('.', ',')} m²).`,
+      );
     }
   }
 
@@ -341,17 +376,8 @@ export function areasDaFachada(zonas: Zona[], opcoes: { incluirRC: boolean } = {
       tipo: 'rc',
       rotulo: TIPO_ZONA_LABELS.rc,
       areaM2: arred(noContorno(rc)),
-      efeito: opcoes.incluirRC ? 'pinta' : 'fora',
-      nota: opcoes.incluirRC ? undefined : 'fora por omissão (decisão 8.3, por confirmar)',
-    });
-  }
-  if (marquises.length > 0) {
-    linhas.push({
-      tipo: 'marquise',
-      rotulo: TIPO_ZONA_LABELS.marquise,
-      areaM2: arred(marquisesM2),
-      efeito: 'desconta',
-      nota: 'fechadas, não pintadas',
+      efeito: incluirRC ? 'pinta' : 'fora',
+      nota: incluirRC ? 'incluído; as montras e portas descontam-se desenhadas como vãos' : 'excluído da área a pintar',
     });
   }
   if (vaos.length > 0) {
@@ -362,6 +388,25 @@ export function areasDaFachada(zonas: Zona[], opcoes: { incluirRC: boolean } = {
       areaM2: arred(vaosM2),
       efeito: 'desconta',
       nota: pequenos > 0 ? `${pequenos} com 1 m² ou menos não descontam` : undefined,
+    });
+  }
+  if (marquises.length > 0) {
+    linhas.push({
+      tipo: 'marquise',
+      rotulo: 'Marquises — frente',
+      areaM2: arred(marquisesM2),
+      efeito: 'pinta',
+      nota: 'incluída na fachada; os vidros descontam-se desenhados como vãos',
+    });
+    linhas.push({
+      tipo: 'marquise',
+      rotulo: 'Marquises — paredes laterais',
+      areaM2: arred(lateraisM2),
+      efeito: 'acrescenta',
+      porMedir: !saliencia,
+      nota: saliencia
+        ? `altura de cada lado à vista × ${String(saliencia).replace('.', ',')} m de saliência`
+        : 'por medir: indicar quanto as marquises saem da parede',
     });
   }
   if (varandas.length > 0) {

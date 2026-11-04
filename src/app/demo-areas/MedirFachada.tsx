@@ -304,7 +304,9 @@ export function MedirFachada() {
     setDesenho((d) => (d.anteriores.length ? { zonas: d.anteriores[d.anteriores.length - 1]!, anteriores: d.anteriores.slice(0, -1) } : d));
   const limparZonas = () => setDesenho({ zonas: [], anteriores: [] });
 
-  const [incluirRC, setIncluirRC] = useState(false);
+  // O R/C pinta-se por omissão (promotor, 04/11/2026); a saliência das marquises é medida à fita.
+  const [incluirRC, setIncluirRC] = useState(true);
+  const [saliencia, setSaliencia] = useState('');
   const [nome, setNome] = useState<string>(NOMES_DE_FACHADA[0]);
   const [frente, setFrente] = useState('');
   const [fundo, setFundo] = useState('');
@@ -331,7 +333,8 @@ export function MedirFachada() {
     }
   }, [referencia, arestas]);
 
-  const resultado = useMemo(() => areasDaFachada(zonas, { incluirRC }), [zonas, incluirRC]);
+  const salienciaM = numero(saliencia);
+  const resultado = useMemo(() => areasDaFachada(zonas, { incluirRC, salienciaMarquisesM: salienciaM }), [zonas, incluirRC, salienciaM]);
 
   const recomecar = () => {
     setPasso(1);
@@ -344,7 +347,7 @@ export function MedirFachada() {
     setArestaPendente(null);
     setAMarcarAresta(false);
     limparZonas();
-    setIncluirRC(false);
+    setIncluirRC(true);
   };
 
   return (
@@ -441,6 +444,8 @@ export function MedirFachada() {
           zonas={zonas}
           incluirRC={incluirRC}
           setIncluirRC={setIncluirRC}
+          saliencia={saliencia}
+          setSaliencia={setSaliencia}
           nome={nome}
           setNome={setNome}
           frente={frente}
@@ -616,8 +621,9 @@ function PassoDesenhar({
         <Dica rotulo="Como desenhar">
           A fotografia já está endireitada e à escala — cada quadrado da grelha é 1 m. Confirmar que as arestas verticais do prédio ficaram
           verticais; se não ficaram, voltar e acertar os cantos da referência. Varandas e marquises saem da parede e por isso aparecem
-          maiores e inclinadas: desenhá-las pela linha onde encostam à parede. Janelas repetidas de piso para piso desenham-se depressa em
-          série: o primeiro, o último, e quantos são.
+          maiores e inclinadas: desenhá-las pela linha onde encostam à parede. Os vidros das marquises e as montras do R/C desenham-se como
+          vãos — é assim que se descontam. Janelas repetidas de piso para piso desenham-se depressa em série: o primeiro, o último, e
+          quantos são.
         </Dica>
       </h2>
 
@@ -1335,6 +1341,8 @@ function PassoResultado(props: {
   zonas: Zona[];
   incluirRC: boolean;
   setIncluirRC: (v: boolean) => void;
+  saliencia: string;
+  setSaliencia: (v: string) => void;
   nome: string;
   setNome: (v: string) => void;
   frente: string;
@@ -1347,6 +1355,7 @@ function PassoResultado(props: {
 }) {
   const { resultado: r, zonas } = props;
   const temRC = zonas.some((z) => z.tipo === 'rc');
+  const temMarquises = zonas.some((z) => z.tipo === 'marquise');
   const todas = [...props.guardadas.map((g) => ({ nome: g.nome, resultado: g.resultado })), { nome: props.nome, resultado: r }];
   const totalPredio = todas.reduce((s, f) => s + f.resultado.pintavelM2, 0);
 
@@ -1390,7 +1399,7 @@ function PassoResultado(props: {
         <LeituraDasAlturas zonas={zonas} alturaM={r.alturaM} />
         <ul className="mt-3 space-y-2">
           {r.linhas.map((l) => (
-            <li key={l.tipo} className="flex items-start justify-between gap-3 text-[17px]">
+            <li key={l.rotulo} className="flex items-start justify-between gap-3 text-[17px]">
               <span className="flex items-start gap-2 text-slate-700">
                 <span className={`mt-2 inline-block h-3 w-3 shrink-0 rounded-full ${COR[l.tipo].bg}`} />
                 <span>
@@ -1399,16 +1408,35 @@ function PassoResultado(props: {
                 </span>
               </span>
               <span className="whitespace-nowrap font-mono tabular-nums text-slate-900">
-                {l.efeito === 'desconta' || l.efeito === 'fora' ? '− ' : ''}
-                {m(l.areaM2)} m²
+                {l.porMedir ? (
+                  <span className="font-sans text-[15px] text-slate-500">por medir</span>
+                ) : (
+                  <>
+                    {l.efeito === 'desconta' || l.efeito === 'fora' ? '− ' : l.efeito === 'acrescenta' ? '+ ' : ''}
+                    {m(l.areaM2)} m²
+                  </>
+                )}
               </span>
             </li>
           ))}
         </ul>
+        {temMarquises && (
+          <label className="mt-3 block max-w-xs">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">Quanto as marquises saem da parede (m)</span>
+            <input
+              className="campo"
+              inputMode="decimal"
+              placeholder="por medir"
+              value={props.saliencia}
+              onChange={(e) => props.setSaliencia(e.target.value)}
+            />
+            <span className="mt-1 block text-[13px] text-slate-500">Medido à fita, de lado. Dá as paredes laterais.</span>
+          </label>
+        )}
         {temRC && (
           <label className="mt-2 flex min-h-[44px] items-center gap-2 text-[15px] text-slate-700">
-            <input type="checkbox" className="h-5 w-5" checked={props.incluirRC} onChange={(e) => props.setIncluirRC(e.target.checked)} />
-            Incluir o R/C comercial na área a pintar
+            <input type="checkbox" className="h-5 w-5" checked={!props.incluirRC} onChange={(e) => props.setIncluirRC(!e.target.checked)} />
+            Excluir o R/C da área a pintar (por exemplo, se as lojas tratam da sua frente)
           </label>
         )}
         <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-[17px] font-semibold">
@@ -1471,7 +1499,7 @@ function PassoResultado(props: {
           </div>
         )}
         {faces.length > 0 ? (
-          <Modelo3D faces={faces} larguraM={W.valor} fundoM={D.valor} alturaM={H} />
+          <Modelo3D faces={faces} larguraM={W.valor} fundoM={D.valor} alturaM={H} salienciaMarquiseM={props.saliencia} />
         ) : (
           <p className="text-[15px] text-slate-500">Escolher acima que fachada é esta para a pôr no volume.</p>
         )}

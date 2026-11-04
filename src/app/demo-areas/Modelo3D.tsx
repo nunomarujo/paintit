@@ -18,12 +18,27 @@ const ESTILO: Record<TipoPoligono, { normal: string; sombra?: string; tracejado?
  * O prédio montado com o que se mediu, a rodar (arrastar ou setas). Cores das zonas iguais às do
  * desenho; nenhuma fotografia no volume — só retângulos medidos.
  */
-export function Modelo3D({ faces, larguraM, fundoM, alturaM }: { faces: FaceMedida[]; larguraM: number; fundoM: number; alturaM: number }) {
+export function Modelo3D({
+  faces,
+  larguraM,
+  fundoM,
+  alturaM,
+  salienciaMarquiseM,
+}: {
+  faces: FaceMedida[];
+  larguraM: number;
+  fundoM: number;
+  alturaM: number;
+  /** O que se escreveu no campo da saliência das marquises (vazio: a ilustrativa). */
+  salienciaMarquiseM?: string;
+}) {
   const [azimute, setAzimute] = useState(-30);
   const arrasto = useRef<{ x: number; de: number } | null>(null);
+  const saliencia = Number((salienciaMarquiseM ?? '').replace(',', '.'));
+  const marquise = Number.isFinite(saliencia) && saliencia > 0 ? saliencia : undefined;
   const pols = useMemo(
-    () => montarModelo(faces, { larguraM, fundoM, alturaM }, { azimute, elevacao: 18 }),
-    [faces, larguraM, fundoM, alturaM, azimute],
+    () => montarModelo(faces, { larguraM, fundoM, alturaM }, { azimute, elevacao: 18 }, marquise ? { marquise } : {}),
+    [faces, larguraM, fundoM, alturaM, azimute, marquise],
   );
   const caixa = enquadramento(pols, 1);
   const rodar = (d: number) => setAzimute((a) => ((((a + d + 180) % 360) + 360) % 360) - 180);
@@ -51,7 +66,11 @@ export function Modelo3D({ faces, larguraM, fundoM, alturaM }: { faces: FaceMedi
           if (e.key === 'ArrowRight') rodar(-15);
         }}
       >
-        <svg viewBox={`${caixa.x} ${caixa.y} ${caixa.largura} ${caixa.altura}`} className="mx-auto block h-80 w-full sm:h-[28rem]" aria-hidden>
+        <svg
+          viewBox={`${caixa.x} ${caixa.y} ${caixa.largura} ${caixa.altura}`}
+          className="mx-auto block h-80 w-full sm:h-[28rem]"
+          aria-hidden
+        >
           {pols.map((p, i) => {
             const e = ESTILO[p.tipo];
             return (

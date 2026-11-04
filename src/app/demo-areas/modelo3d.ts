@@ -106,7 +106,13 @@ function aoCanto(zonas: Zona[]): Zona[] {
   return zonas.map((z) => ({ ...z, x: z.x - x0, y: z.y - y0 }));
 }
 
-export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundoM: number; alturaM: number }, vista: Vista): Poligono[] {
+export function montarModelo(
+  faces: FaceMedida[],
+  dim: { larguraM: number; fundoM: number; alturaM: number },
+  vista: Vista,
+  /** Saliências medidas, por cima das ilustrativas de `SALIENCIA_M`. */
+  saliencias: Partial<Record<TipoZona, number>> = {},
+): Poligono[] {
   const { larguraM: W, fundoM: D, alturaM: H } = dim;
   const proj = projetor(vista);
   const medidas = new Map(faces.map((f) => [f.lado, aoCanto(f.zonas)]));
@@ -144,7 +150,7 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
     }
 
     for (const z of zonas ?? []) {
-      const p = SALIENCIA_M[z.tipo];
+      const p = saliencias[z.tipo] ?? SALIENCIA_M[z.tipo];
       if (!p) continue;
       const { s0, s1, y0, y1 } = dentro(z);
       if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;
