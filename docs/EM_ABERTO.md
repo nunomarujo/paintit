@@ -73,6 +73,16 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   confirma; DECISOES "Deteção das janelas no próprio aparelho"), revista por um cético e corrigida.
   Por fazer: os vidros de todas as marquises (hoje saem alguns) e as varandas. Com IA, por decidir
   (privacidade — a fotografia sairia do aparelho — e custo).
+- Margem de erro da área («± X %»): *feita a 04/11/2026* nos passos 3 e 4 e no subtotal do prédio
+  (DECISOES «Margem de erro da área»). Assenta num erro de toque de 1 px **ainda não medido em obra**.
+- **Validar no terreno:** uma fachada medida pela fotografia e 3 ou 4 distâncias medidas a laser longe
+  da referência. É isto que diz se o 1 px e a margem se aguentam (precisa do promotor).
+- Propor sozinho a vertical e as duas horizontais (linhas e pontos de fuga detetados no aparelho, o
+  avaliador confirma): o que mais reduz a margem. Próximo passo.
+- **Por decidir pelo promotor:** a ferramenta é só do avaliador, ou também uma estimativa feita pelo
+  cliente? (pergunta do documento «Medir fachadas a partir de uma fotografia: o que existe»).
+- O (i) dentro dos rótulos dos formulários (`Field.tsx`) tem 16 px, abaixo dos 44 px da regra 17:
+  um alvo maior tapava o campo. Dívida declarada.
 - Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre

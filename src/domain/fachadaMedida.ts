@@ -239,7 +239,22 @@ function forma(z: Zona): Forma {
   }
 }
 
-const contem = (fs: Forma[], x: number, y: number) => fs.some((f) => x > f.x0 && x < f.x1 && y > emX(f.baixo, x) && y < emX(f.cima, x));
+const dentroDe = (f: Forma, x: number, y: number) => x > f.x0 && x < f.x1 && y > emX(f.baixo, x) && y < emX(f.cima, x);
+/**
+ * As formas de cada lista longa que atravessam a última vertical por que se perguntou: dentro de uma
+ * faixa, `areaOnde` pergunta pelo mesmo x com muitos y, e numa fachada com cem janelas percorrer a
+ * lista toda a cada pergunta era o grosso do tempo (a margem de erro faz estas contas 49 vezes).
+ */
+const naVerticalGuardada = new WeakMap<Forma[], { x: number; fs: Forma[] }>();
+function contem(fs: Forma[], x: number, y: number): boolean {
+  if (fs.length <= 8) return fs.some((f) => dentroDe(f, x, y));
+  let guardada = naVerticalGuardada.get(fs);
+  if (!guardada || guardada.x !== x) {
+    guardada = { x, fs: fs.filter((f) => x > f.x0 && x < f.x1) };
+    naVerticalGuardada.set(fs, guardada);
+  }
+  return guardada.fs.some((f) => dentroDe(f, x, y));
+}
 
 /** Se o ponto está dentro da zona (retângulo ou triângulo) — para tocar numa zona e a escolher. */
 export const zonaContem = (z: Zona, p: Ponto) => contem([forma(z)], p.x, p.y);
@@ -463,14 +478,83 @@ function geometriaDasMarquises(marquises: Zona[], contorno: Forma[], rcFora: For
   return { lateraisM, tectoM, coberturaM };
 }
 
-export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): ResultadoFachada {
+/**
+ * As contas de onde sai a área a pintar, sem arredondar. `areasDaFachada` arredonda-as e acrescenta
+ * as linhas e os avisos; `areaPintavelExata` devolve só as duas áreas. Nulo sem contorno.
+ */
+function contasDaFachada(zonas: Zona[], opcoes: OpcoesFachada) {
   const incluirRC = opcoes.incluirRC ?? true;
   const saliencia = opcoes.salienciaMarquisesM && opcoes.salienciaMarquisesM > 0 ? opcoes.salienciaMarquisesM : null;
   const vidrosLaterais = opcoes.vidrosLateraisMarquisesM2 && opcoes.vidrosLateraisMarquisesM2 > 0 ? opcoes.vidrosLateraisMarquisesM2 : 0;
+  const contorno = zonas.filter((z) => z.tipo === 'fachada').map(forma);
+  if (contorno.length === 0) return null;
+
+  const todos = zonas.map(forma);
+  const porTipo = (t: TipoZona) => zonas.filter((z) => z.tipo === t).map(forma);
+  /** Área dentro do contorno, que esteja em `fs` e em nenhum de `ja` (já descontado antes). Sem `fs`, zero — sem varrer. */
+  const noContorno = (fs: Forma[], ja: Forma[] = []) =>
+    fs.length === 0 ? 0 : areaOnde(todos, (x, y) => contem(contorno, x, y) && contem(fs, x, y) && !contem(ja, x, y));
+
+  const vaos = zonas.filter((z) => z.tipo === 'vao');
+  const vaosGrandes = vaos.filter((z) => areaDaZona(z) > AREA_MINIMA_VAO_M2).map(forma);
+  const marquises = porTipo('marquise');
+  const rc = porTipo('rc');
+  const varandas = porTipo('varanda');
+
+  // Desconta-se por esta ordem, e cada linha só leva o que as anteriores não levaram: assim as linhas
+  // somam exatamente (contorno − R/C excluído − vãos + laterais das marquises = pintável), sem nada
+  // descontado duas vezes. As marquises já não descontam: a frente delas é parede pintada.
+  const rcFora = incluirRC ? [] : rc;
+  const rcForaM2 = noContorno(rcFora);
+  const vaosM2 = noContorno(vaosGrandes, rcFora);
+  const excluidas = [...rcFora, ...vaosGrandes];
+  const geo = geometriaDasMarquises(
+    zonas.filter((z) => z.tipo === 'marquise'),
+    contorno,
+    rcFora,
+  );
+  const lateraisM2 = saliencia ? Math.max(0, geo.lateraisM * saliencia - vidrosLaterais) : 0;
+  const tectoM2 = saliencia ? geo.tectoM * saliencia : 0;
+  const coberturaM2 = saliencia ? geo.coberturaM * saliencia : 0;
+  const contornoM2 = areaOnde(todos, (x, y) => contem(contorno, x, y));
+  const pintavelM2 = contornoM2 - rcForaM2 - vaosM2 + lateraisM2 + tectoM2 + coberturaM2;
+  return {
+    incluirRC,
+    saliencia,
+    vidrosLaterais,
+    contorno,
+    noContorno,
+    vaos,
+    vaosGrandes,
+    marquises,
+    rc,
+    varandas,
+    excluidas,
+    vaosM2,
+    lateraisM2,
+    tectoM2,
+    coberturaM2,
+    contornoM2,
+    pintavelM2,
+  };
+}
+
+/**
+ * A área a pintar e a do contorno, as mesmas de `areasDaFachada` mas **sem arredondar** ao centésimo.
+ * Para a margem de erro (`margemDaArea`), que tira derivadas mexendo um píxel: num contorno pequeno,
+ * o arredondamento comia a diferença e a margem saía zero (contorno de 0,6 × 0,6 m, 04/11/2026). Mais
+ * leve também: sem as linhas nem os avisos, que a margem não usa e que custam uma varredura cada.
+ */
+export function areaPintavelExata(zonas: Zona[], opcoes: OpcoesFachada = {}): { contornoM2: number; pintavelM2: number } {
+  const c = contasDaFachada(zonas, opcoes);
+  return c ? { contornoM2: c.contornoM2, pintavelM2: c.pintavelM2 } : { contornoM2: 0, pintavelM2: 0 };
+}
+
+export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): ResultadoFachada {
   const contornoZonas = zonas.filter((z) => z.tipo === 'fachada');
-  const contorno = contornoZonas.map(forma);
   const avisos: string[] = [];
-  if (contorno.length === 0) {
+  const contas = contasDaFachada(zonas, opcoes);
+  if (!contas) {
     return {
       temContorno: false,
       frenteM: 0,
@@ -486,36 +570,9 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
     };
   }
 
-  const todos = zonas.map(forma);
-  const porTipo = (t: TipoZona) => zonas.filter((z) => z.tipo === t).map(forma);
-  /** Área dentro do contorno, que esteja em `fs` e em nenhum de `ja` (já descontado antes). */
-  const noContorno = (fs: Forma[], ja: Forma[] = []) =>
-    areaOnde(todos, (x, y) => contem(contorno, x, y) && contem(fs, x, y) && !contem(ja, x, y));
-
-  const vaos = zonas.filter((z) => z.tipo === 'vao');
-  const vaosGrandes = vaos.filter((z) => areaDaZona(z) > AREA_MINIMA_VAO_M2).map(forma);
-  const marquises = porTipo('marquise');
-  const rc = porTipo('rc');
-  const varandas = porTipo('varanda');
-
-  // Desconta-se por esta ordem, e cada linha só leva o que as anteriores não levaram: assim as linhas
-  // somam exatamente (contorno − R/C excluído − vãos + laterais das marquises = pintável), sem nada
-  // descontado duas vezes. As marquises já não descontam: a frente delas é parede pintada.
-  const rcFora = incluirRC ? [] : rc;
-  const rcForaM2 = noContorno(rcFora);
-  const vaosM2 = noContorno(vaosGrandes, rcFora);
-  const excluidas = [...rcFora, ...vaosGrandes];
+  const { incluirRC, saliencia, vidrosLaterais, contorno, noContorno, vaos, vaosGrandes, marquises, rc, varandas, excluidas } = contas;
+  const { vaosM2, lateraisM2, tectoM2, coberturaM2, contornoM2, pintavelM2 } = contas;
   const marquisesM2 = noContorno(marquises, excluidas);
-  const geo = geometriaDasMarquises(
-    zonas.filter((z) => z.tipo === 'marquise'),
-    contorno,
-    rcFora,
-  );
-  const lateraisM2 = saliencia ? Math.max(0, geo.lateraisM * saliencia - vidrosLaterais) : 0;
-  const tectoM2 = saliencia ? geo.tectoM * saliencia : 0;
-  const coberturaM2 = saliencia ? geo.coberturaM * saliencia : 0;
-  const contornoM2 = areaOnde(todos, (x, y) => contem(contorno, x, y));
-  const pintavelM2 = contornoM2 - rcForaM2 - vaosM2 + lateraisM2 + tectoM2 + coberturaM2;
 
   for (const z of zonas) {
     if (z.tipo === 'fachada') continue;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   arestasPerto,
   areaDaZona,
+  areaPintavelExata,
   areasDaFachada,
   contagemSugerida,
   corrigirSaliencias,
@@ -161,6 +162,50 @@ describe('areasDaFachada', () => {
   it('zonaDeDoisCantos aceita os cantos por qualquer ordem', () => {
     const a = zonaDeDoisCantos('x', 'vao', { x: 5, y: 1 }, { x: 2, y: 4 });
     expect(a).toMatchObject({ x: 2, y: 1, largura: 3, altura: 3 });
+  });
+});
+
+describe('areaPintavelExata (a da margem de erro)', () => {
+  it('é a área do ecrã antes de arredondar, com todas as opções', () => {
+    const zonas = [
+      z('fachada', 0, 0, 9.123, 12.457),
+      z('rc', 0, 0, 9.123, 3.11),
+      z('vao', 1, 5, 1.234, 1.567),
+      z('vao', 4, 0.5, 2.2, 2.4),
+      z('marquise', 5, 4, 2.5, 3),
+      z('marquise', 5, 7, 2.5, 3),
+      z('varanda', 0.2, 8, 2, 3),
+    ];
+    for (const opcoes of [
+      {},
+      { incluirRC: false },
+      { salienciaMarquisesM: 1.2, vidrosLateraisMarquisesM2: 1.5 },
+      { incluirRC: false, salienciaMarquisesM: 0.9 },
+    ]) {
+      const r = areasDaFachada(zonas, opcoes);
+      const e = areaPintavelExata(zonas, opcoes);
+      expect(Math.round(e.pintavelM2 * 100) / 100).toBe(r.pintavelM2);
+      expect(Math.round(e.contornoM2 * 100) / 100).toBe(r.contornoM2);
+    }
+    // Num contorno pequeno, a diferença de um píxel não desaparece no arredondamento.
+    expect(areaPintavelExata([z('fachada', 0, 0, 0.3, 0.3)]).contornoM2).toBeCloseTo(0.09, 12);
+    expect(areaPintavelExata([z('fachada', 0, 0, 0.301, 0.3)]).contornoM2).toBeGreaterThan(0.09);
+    expect(areaPintavelExata([])).toEqual({ contornoM2: 0, pintavelM2: 0 });
+  });
+
+  it('com muitas zonas por tipo (o caminho mais rápido de `contem`), as contas continuam exatas', () => {
+    // Uma fachada de 30 × 20 m com 40 janelas de 1,2 × 1,5 (descontam), 12 de 0,8 × 1 (não descontam),
+    // um R/C de 3 m excluído com 6 montras lá dentro (não se descontam duas vezes) e 10 triângulos.
+    const zonas: Zona[] = [z('fachada', 0, 0, 30, 20), z('rc', 0, 0, 30, 3)];
+    for (let i = 0; i < 40; i++) zonas.push(z('vao', 0.5 + (i % 10) * 2.9, 4 + Math.floor(i / 10) * 3.5, 1.2, 1.5));
+    for (let i = 0; i < 12; i++) zonas.push(z('vao', 2 + (i % 12) * 2.3, 18.5, 0.8, 1));
+    for (let i = 0; i < 6; i++) zonas.push(z('vao', 1 + i * 4.5, 0.2, 2, 2.5));
+    for (let i = 0; i < 10; i++) zonas.push(tri('vao', 'sup-esq', 0.3 + i * 2.9, 6.2, 2, 1.2));
+    const r = areasDaFachada(zonas, { incluirRC: false });
+    // 600 − 90 (o R/C) − 40 × 1,8 (as janelas) − 10 × 1,2 (os triângulos, metade de 2 × 1,2 m, entre
+    // a primeira e a segunda fila de janelas, sem lhes tocar).
+    expect(r.pintavelM2).toBeCloseTo(600 - 90 - 72 - 12, 9);
+    expect(areaPintavelExata(zonas, { incluirRC: false }).pintavelM2).toBeCloseTo(600 - 90 - 72 - 12, 9);
   });
 });
 

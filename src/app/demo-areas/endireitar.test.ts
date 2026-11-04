@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calibrar, inverter, type Calibracao, type Matriz3 } from '@/domain/homografia';
+import { aplicar, calibrar, inverter, type Calibracao, type Matriz3 } from '@/domain/homografia';
 import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, remapearZona } from './endireitar';
 
 /** Imagem 200×200 com um gradiente: vermelho = coluna, verde = linha. Bilinear num gradiente é exato. */
@@ -99,5 +99,32 @@ describe('remapearZona', () => {
     const depois: Matriz3 = [20, 0, 50, 0, -20, 150, 0, 0, 1];
     const z = remapearZona({ id: 'a', tipo: 'vao', x: 2, y: 3, largura: 4, altura: 2, triangulo: 'sup-esq' }, antes, inverter(depois));
     expect(z).toMatchObject({ id: 'a', tipo: 'vao', x: 1, y: 1.5, largura: 2, altura: 1, triangulo: 'sup-esq' });
+  });
+
+  it('quando os cantos deixam de fazer um retângulo, fica o retângulo a meio deles — com a área do quadrilátero, e não a caixa', () => {
+    // Depois: a mesma fotografia vista com outra perspetiva (um ponto de fuga a ~60 m, inclinado) — os
+    // quatro cantos do contorno de 6 × 12 m caem num quadrilátero. A caixa que o envolve ficava 5 %
+    // maior do que ele, sem ninguém tocar na zona.
+    const antes: Matriz3 = [10, 0, 50, 0, -10, 150, 0, 0, 1];
+    const depois: Matriz3 = [10.6, 0.9, 50, 0.4, -9.6, 150, 0.004, 0.002, 1];
+    const z = { id: 'c', tipo: 'fachada' as const, x: 2, y: 1, largura: 6, altura: 12 };
+    const levada = remapearZona(z, antes, inverter(depois));
+    const q = [
+      { x: 2, y: 1 },
+      { x: 8, y: 1 },
+      { x: 8, y: 13 },
+      { x: 2, y: 13 },
+    ].map((p) => aplicar(inverter(depois), aplicar(antes, p)!)!);
+    const doQuadrilatero = Math.abs(q.reduce((s, p, i) => s + p.x * q[(i + 1) % 4]!.y - q[(i + 1) % 4]!.x * p.y, 0)) / 2;
+    const xs = q.map((p) => p.x);
+    const ys = q.map((p) => p.y);
+    const daCaixa = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
+    expect(daCaixa / doQuadrilatero).toBeGreaterThan(1.04);
+    expect(Math.abs((levada.largura * levada.altura) / doQuadrilatero - 1)).toBeLessThan(0.005);
+    // Cada lado a meio dos seus dois cantos.
+    expect(levada.x).toBeCloseTo((q[0]!.x + q[3]!.x) / 2, 12);
+    expect(levada.x + levada.largura).toBeCloseTo((q[1]!.x + q[2]!.x) / 2, 12);
+    expect(levada.y).toBeCloseTo((q[0]!.y + q[1]!.y) / 2, 12);
+    expect(levada.y + levada.altura).toBeCloseTo((q[2]!.y + q[3]!.y) / 2, 12);
   });
 });

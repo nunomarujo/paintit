@@ -5293,3 +5293,114 @@ mais pequena — corre agora sempre sobre a vista enquadrada no contorno.
 cor, sombras retangulares) podem sair como janela; estores fechados da cor da parede não se veem;
 roupa estendida por cima pode deslocar a caixa; tijolo à vista é detetado ou não conforme a escala;
 varandas com a guarda da cor da parede podem sair como janela.
+
+## 04/11/2026 (noite) — Margem de erro da área («± X %»), e o que veio da comparação de motores
+
+**De onde veio.** Uma outra sessão comparou motores de medição numa câmara virtual («Comparação de
+motores», 04/11/2026) e pediu ajuda. A comparação foi refeita de forma independente, a partir da
+descrição e sem correr o código deles. Os números confirmaram-se: com uma porta de 0,90 × 2,10 m e
+só a porta, o erro mediano da área de um contorno de 6 × 12 m vai de 18 % a 53 %, conforme a câmara.
+Com uma vertical e duas horizontais fica entre 1,4 % e 4,3 %. O que mais pesa é o tamanho da
+referência na fotografia: com a porta do R/C da fotografia real (1,65 × 3,77 m) o erro fica em
+7 % / 4,8 % / 1,1 % com ±2 px; com 1500 × 2000 px e ±1 px, em 1,9 % / 1,3 % / 0,3 %. O ±1 px é uma
+hipótese, ainda não medida em obra.
+Na comparação, os dois casos — o de ±27 % e o de ±2 % — tinham no ecrã o mesmo aspeto. Daí esta
+alteração.
+
+**O que é.** A confiança da **área**, separada da da câmara (`incertezaDaFocal`). Faz-se assim:
+- cada coordenada tocada mexe 1 px (`ERRO_DE_TOQUE_PX`) para cada lado: os 4 cantos da referência e
+  as pontas de cada aresta, acertos incluídos;
+- recalibra-se e recalcula-se a área pelo mesmo caminho do ecrã;
+- a derivada é a diferença centrada, as derivadas somam-se em quadratura e a margem é 2σ.
+
+O resultado é `src/domain/margemDaArea.ts`. O caminho do ecrã está em
+`src/app/demo-areas/margem.ts`, e um teste garante que a área é a mesma, ao centésimo.
+
+Onde aparece:
+- **Passo 3:** «Margem de erro da área do contorno: ± X % (± N m²)». Acima de 5 % surge, em âmbar,
+  o que a reduz.
+- **Passo 4:** por baixo do subtotal, com um (i) que diz o que cobre e o que não cobre. O aviso
+  dos 5 % decide-se aqui pela área a pintar.
+- **Fachadas guardadas:** levam a sua margem. O subtotal do prédio soma-as em quadratura
+  (√Σm², fotografias diferentes têm erros independentes). Se alguma fachada não tiver margem, fica
+  «indisponível».
+
+**O que não cobre** (está no (i)):
+- medidas da referência mal escritas;
+- uma porta recuada;
+- o íman preso no aro;
+- a distorção da lente;
+- as medidas à fita;
+- o desenho fora do sítio.
+
+Os erros de escala são o papel das medidas de controlo do passo 2.
+
+**Números.** Câmara virtual, ruído gaussiano de σ = 1 px em todos os toques, 1000 ensaios por
+cenário. O erro real ficou dentro da margem em 94–96 % dos casos, e a margem acompanha o erro: com a
+porta pequena, ±68 % só com a porta, ±39 % com a vertical e ±4,8 % com as três arestas; com a porta
+grande, ±20 %, ±12 % e ±2,9 %.
+
+Na fotografia real, tal como o e2e a desenha:
+- passo 3, só com a vertical do passo 2: ± 5,2 %;
+- passo 3, com as três arestas: ± 3,9 %;
+- passo 4, com as marquises a 1,2 m: ± 5,5 % (± 12,7 m²);
+- prédio com uma segunda fachada só com a porta: ± 8,2 %.
+
+**Revisão dos céticos** (dois: um à estatística, outro ao ecrã). Encontraram 1 defeito, 6 erros e
+6 limites. O defeito e os erros foram corrigidos, cada um com o seu teste:
+
+1. **As zonas cresciam a cada acerto, e a margem não o via.** Este defeito já existia antes.
+   - `remapearZona` punha cada zona na caixa que envolve os quatro cantos levados, que é sempre
+     maior: num caso da câmara virtual, o contorno ganhava 5,4 m² (+7,5 %) sem ninguém lhe tocar, e na
+     fotografia real cada ida e volta acrescentava 0,45 %.
+   - Agora cada lado fica **a meio** dos seus dois cantos.
+   - `levarZonas` leva sempre a partir de como a zona foi desenhada: «Retirar o acerto» devolve-a
+     exatamente como estava.
+   - Com o contorno desenhado antes dos acertos, a cobertura subiu de 7–77 % para 87–95 %.
+2. **Cada tecla no passo 4 recalculava a margem inteira.** Chegava a ~0,5 s por tecla num telemóvel
+   lento. Agora as calibrações mexidas guardam-se à parte, e a margem segue as opções com
+   `useDeferredValue`: aparece esbatida até se refazer. Ficou em ~50–90 ms.
+3. **Textos que prometiam o que não cumprem.** «Rever os cantos» não reduz a margem. Também não era
+   verdade que fossem as arestas o que mais a reduz: nesta fotografia, uma referência maior reduz
+   mais.
+4. **O (i) apresentava a premissa do 1 px como facto.** Passou a dizer que é uma estimativa, ainda
+   não medida em obra.
+5. **Num contorno pequeno, o arredondamento a 0,01 m² anulava a margem.** Há agora
+   `areaPintavelExata`, sem arredondar.
+6. **A área a pintar 0 mostrava «± 0,1 %».** Agora mostra «—».
+7. **O (i) (`Dica`) tinha 20 × 20 px, abaixo dos 44 px da regra 17.** Isto afetava todos os ecrãs.
+   - O que se toca tem agora 44 × 44 px; o círculo visível continua com 20 px, sem mexer a linha.
+   - O `alvosDeToque` reprova um `<summary>` mais pequeno.
+   - O (i) dentro dos rótulos de `Field.tsx` (16 px) fica como dívida declarada: um alvo de 44 px
+     tapava o campo.
+
+**Limites que ficam:**
+- σ = 1 px é suposto, não medido. Com toques melhores a margem sai ~1,8× larga. As pontas das arestas
+  traçadas no telemóvel podem errar 2 a 5 px, e aí a margem verdadeira é maior.
+- Muito longe do linear (porta pequena a 24–36 m, fotografia rasante) a cobertura desce para
+  85–92 %. Nesses casos a margem mostrada já passa de ±100 %.
+- Com a saliência medida e a câmara no limite, a margem dá saltos (no pior caso cobre 91 %).
+- O recálculo cresce com o número de zonas: ~100 ms com 123 zonas.
+- Problema anterior, não corrigido: num acerto, a vista endireitada pode refazer a imagem duas vezes.
+
+**O documento «Medir fachadas a partir de uma fotografia: o que existe»** (trazido por outra sessão)
+confirma o caminho clássico: homografia, pontos de fuga, referência medida.
+
+O próximo passo útil que dele se tira é a **deteção automática de linhas e pontos de fuga, no
+aparelho** (Canny, Hough probabilístico e RANSAC, como em Chaudhury et al., ICIP 2014), para
+**propor** a vertical e as duas horizontais que o avaliador confirma. É o que mais reduz a margem
+sem o avaliador fazer mais nada.
+
+A profundidade por IA ficaria, quando muito, para a saliência das marquises. Por decidir, e com as
+licenças lidas antes:
+- o Depth Anything V2 Small é Apache-2.0, mas o Base, o Large e o Giant são CC-BY-NC-4.0;
+- a licença do Depth Pro tem de ser lida antes de qualquer uso.
+
+Fica em aberto uma pergunta de produto: esta ferramenta serve o avaliador, ou também uma estimativa
+feita pelo próprio cliente?
+
+Verificado:
+- typecheck, lint (0 erros), prettier, 1812 testes e build, todos com código 0, num diretório limpo
+  só com os ficheiros deste commit;
+- e2e em Chromium a 1280 e a 390 px com a fotografia real: 0 falhas, sem scroll horizontal, sem
+  erros de consola.

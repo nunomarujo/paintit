@@ -380,7 +380,8 @@ export interface CamaraDaFotografia {
 /**
  * O erro de toque com que se conta, em píxeis da fotografia, em cada coordenada de cada canto da
  * referência (um desvio-padrão). Com a lupa e o íman nos cantos, 1 px é o que se consegue; é com ele
- * que `incertezaDaFocal` decide se a fotografia tem perspetiva que chegue.
+ * que `incertezaDaFocal` decide se a fotografia tem perspetiva que chegue, e que `margemDaArea` dá a
+ * margem de erro da área (aí também nas pontas das arestas). Ainda não medido no terreno.
  */
 export const ERRO_DE_TOQUE_PX = 1;
 

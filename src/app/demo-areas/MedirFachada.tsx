@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   aplicar,
   avisoDasHorizontais,
@@ -37,13 +37,33 @@ import {
   type TipoZona,
   type Zona,
 } from '@/domain/fachadaMedida';
+import { calibracoesMexidas, margemCombinada, margemNasCalibracoes, type MargemDaArea } from '@/domain/margemDaArea';
 import { Dica } from '@/components/Dica';
 import { cantoMaisProximo } from './cantos';
 import { detetarJanelas, type JanelaDetetada } from './deteccao';
 import { Lupa } from './Lupa';
 import { Modelo3D } from './Modelo3D';
 import type { FaceMedida, Lado } from './modelo3d';
-import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, remapearZona, type Extensao } from './endireitar';
+import {
+  endireitar,
+  enquadrarNoContorno,
+  extensaoDoPlano,
+  levarZonas,
+  mesmaMatriz,
+  pixeisPorMetro,
+  type Extensao,
+  type OrigensDasZonas,
+} from './endireitar';
+import {
+  centroNaCalibracao,
+  comoReduzirAMargem,
+  contornoNaCalibracao,
+  pintavelNaCalibracao,
+  textoDaMargem,
+  zonasNaCalibracao,
+  type ArestasMarcadas,
+  type MargemEArea,
+} from './margem';
 
 /**
  * Medir uma fachada a partir de uma fotografia (04/11/2026). Quatro passos, um de cada vez:
@@ -102,8 +122,8 @@ interface Controlo {
   cm: string;
 }
 
-/** Duas homografias iguais (a mesma calibração recalculada dá os mesmos números, a menos do arredondamento). */
-const mesmaMatriz = (a: Matriz3, b: Matriz3) => a.every((v, i) => Math.abs(v - b[i]!) <= 1e-12 * Math.max(1, Math.abs(v)));
+/** De onde veio cada zona levada a outra calibração (`levarZonas`): por objeto de zona, para todas as fachadas. */
+const ORIGENS_DAS_ZONAS: OrigensDasZonas = new WeakMap();
 
 /** Arestas marcadas na vista endireitada para a acertar (em píxeis da fotografia). */
 interface Acertos {
@@ -320,6 +340,8 @@ interface FachadaGuardada {
   salienciaM: number | null;
   /** A saliência das varandas desta fachada. */
   salienciaVarandaM: number | null;
+  /** A margem de erro da área a pintar (`margemDaArea`), ± em m²; nula se não se pôde calcular. */
+  margemM2: number | null;
 }
 
 /** Como se trata a cobertura de um corpo saliente sem telha (promotor, 04/11/2026). */
@@ -344,9 +366,9 @@ export function MedirFachada() {
   // As zonas, os acertos do endireitamento e a calibração em que as zonas estão escritas (`base`), com
   // as versões anteriores dos três juntas. As zonas guardam-se em metros; quando a calibração muda — um
   // acerto, um canto da referência movido, uma medida corrigida —, levam-se para a nova através da
-  // fotografia (`remapearZona`) e continuam em cima das mesmas janelas. Antes só os acertos o faziam:
-  // corrigir a referência depois de desenhar deixava as zonas com os metros antigos (avaliação do
-  // método "Levantamento v7", 04/11/2026: "a fotografia manda").
+  // fotografia (`levarZonas`, sempre a partir de como foram desenhadas) e continuam em cima das mesmas
+  // janelas. Antes só os acertos o faziam: corrigir a referência depois de desenhar deixava as zonas
+  // com os metros antigos (avaliação do método "Levantamento v7", 04/11/2026: "a fotografia manda").
   type Instantaneo = { zonas: Zona[]; acertos: Acertos; base: Matriz3 | null };
   const [desenho, setDesenho] = useState<Instantaneo & { anteriores: Instantaneo[] }>({
     zonas: [],
@@ -430,8 +452,7 @@ export function MedirFachada() {
       if (d.base === calibracao.planoParaImagem) return d;
       if (!d.base || d.zonas.length === 0 || mesmaMatriz(d.base, calibracao.planoParaImagem))
         return { ...d, base: calibracao.planoParaImagem };
-      const base = d.base;
-      return { ...d, zonas: d.zonas.map((z) => remapearZona(z, base, calibracao.imagemParaPlano)), base: calibracao.planoParaImagem };
+      return { ...d, zonas: levarZonas(d.zonas, d.base, calibracao, ORIGENS_DAS_ZONAS), base: calibracao.planoParaImagem };
     });
   }, [calibracao]);
 
@@ -458,9 +479,74 @@ export function MedirFachada() {
     [zonas, camara, salienciaM, salienciaVarandaM],
   );
   const vidrosLateraisM2 = numero(vidrosLaterais);
-  const resultado = useMemo(
-    () => areasDaFachada(zonasParaContas, { incluirRC, salienciaMarquisesM: salienciaM, vidrosLateraisMarquisesM2: vidrosLateraisM2 }),
-    [zonasParaContas, incluirRC, salienciaM, vidrosLateraisM2],
+  const opcoesDaFachada = useMemo(
+    () => ({ incluirRC, salienciaMarquisesM: salienciaM, vidrosLateraisMarquisesM2: vidrosLateraisM2 }),
+    [incluirRC, salienciaM, vidrosLateraisM2],
+  );
+  const resultado = useMemo(() => areasDaFachada(zonasParaContas, opcoesDaFachada), [zonasParaContas, opcoesDaFachada]);
+
+  // A margem de erro da área (`margemDaArea`): a do contorno no passo 3, a do que se pinta no passo 4,
+  // pelo mesmo caminho que dá a área do ecrã (`margem.ts`). Três partes guardadas à parte, para que
+  // cada mudança só refaça o que lhe toca: as calibrações mexidas (só mudam com os toques da referência
+  // e das arestas), as zonas levadas a cada uma e a câmara de cada uma (`zonasNaCalibracao`,
+  // `centroNaCalibracao`), e as contas, as únicas que uma saliência, os vidros laterais ou o R/C mudam.
+  // Durante um arrasto as zonas não mudam, e nada se refaz. Medido em Node (04/11/2026, este
+  // computador), com a referência, uma vertical e duas horizontais: as calibrações, ~3 ms; uma tecla no
+  // passo 4, ~8 ms com 18 zonas e ~85–105 ms com 123 (antes, 50 e 270 ms). E a tecla não espera por
+  // elas: a margem do passo 4 segue as opções com `useDeferredValue` — escreve-se o número, e a margem
+  // refaz-se a seguir, numa renderização que o React larga se vier outra tecla; até lá, aparece esbatida.
+  const arestasMarcadas: ArestasMarcadas = {
+    verticais: arestas.length + desenho.acertos.verticais.length,
+    horizontais: desenho.acertos.horizontais.length,
+  };
+  const margemVisivel = passo === 3 || passo === 4;
+  const temContornoDesenhado = zonas.some((z) => z.tipo === 'fachada');
+  const mexidas = useMemo(
+    () =>
+      margemVisivel && referencia && calibracao
+        ? calibracoesMexidas(referencia, [...arestas, ...desenho.acertos.verticais], desenho.acertos.horizontais)
+        : null,
+    [margemVisivel, referencia, calibracao, arestas, desenho.acertos],
+  );
+  const baseDasZonas = desenho.base ?? calibracao?.planoParaImagem ?? null;
+  const contornosEm = useMemo(
+    () =>
+      baseDasZonas
+        ? zonasNaCalibracao(
+            zonas.filter((z) => z.tipo === 'fachada'),
+            baseDasZonas,
+          )
+        : null,
+    [zonas, baseDasZonas],
+  );
+  const zonasEm = useMemo(() => (baseDasZonas ? zonasNaCalibracao(zonas, baseDasZonas) : null), [zonas, baseDasZonas]);
+  const centroEm = useMemo(() => (foto && referencia ? centroNaCalibracao(foto, referencia) : null), [foto, referencia]);
+  const margemDoContorno = useMemo(
+    () =>
+      passo === 3 && mexidas && contornosEm && temContornoDesenhado
+        ? margemNasCalibracoes(mexidas, contornoNaCalibracao(contornosEm))
+        : null,
+    [passo, mexidas, contornosEm, temContornoDesenhado],
+  );
+  const opcoesDaMargem = useDeferredValue(opcoesDaFachada);
+  const salienciaDaMargem = useDeferredValue(salienciaM);
+  const salienciaVarandaDaMargem = useDeferredValue(salienciaVarandaM);
+  const margemAtrasada =
+    opcoesDaMargem !== opcoesDaFachada || salienciaDaMargem !== salienciaM || salienciaVarandaDaMargem !== salienciaVarandaM;
+  const margemAPintar = useMemo(
+    () =>
+      passo === 4 && mexidas && zonasEm && centroEm && temContornoDesenhado
+        ? margemNasCalibracoes(
+            mexidas,
+            pintavelNaCalibracao({
+              zonas: zonasEm,
+              centro: centroEm,
+              saliencias: { marquise: salienciaDaMargem, varanda: salienciaVarandaDaMargem },
+              opcoes: opcoesDaMargem,
+            }),
+          )
+        : null,
+    [passo, mexidas, zonasEm, centroEm, temContornoDesenhado, salienciaDaMargem, salienciaVarandaDaMargem, opcoesDaMargem],
   );
 
   const recomecar = () => {
@@ -585,6 +671,8 @@ export function MedirFachada() {
           desfazer={desfazer}
           acertos={desenho.acertos.verticais.length + desenho.acertos.horizontais.length}
           avisoAcertos={avisoDasHorizontais(desenho.acertos.horizontais)}
+          margem={margemDoContorno}
+          arestasMarcadas={arestasMarcadas}
           onAcertar={acertar}
           onAnularAcertos={() => mudarAcertos(SEM_ACERTOS)}
           onVoltar={() => setPasso(2)}
@@ -596,6 +684,9 @@ export function MedirFachada() {
         <PassoResultado
           controlo={resumoControlo.texto}
           resultado={resultado}
+          margem={margemAPintar}
+          margemACalcular={margemAtrasada}
+          arestasMarcadas={arestasMarcadas}
           zonas={zonasParaContas}
           correcao={
             salienciaM || salienciaVarandaM
@@ -637,7 +728,28 @@ export function MedirFachada() {
             // (avaliação do método "Levantamento v7", 04/11/2026). Só "Outra" se pode repetir.
             setGuardadas((gs) => [
               ...gs.filter((g) => g.nome !== nome || nome === 'Outra'),
-              { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM, salienciaVarandaM },
+              {
+                id: Date.now(),
+                nome,
+                resultado,
+                zonas: zonasParaContas,
+                salienciaM,
+                salienciaVarandaM,
+                // Guardada logo a seguir a uma tecla, a margem ainda seria a das opções de antes: refaz-se agora.
+                margemM2:
+                  (margemAtrasada && mexidas && zonasEm && centroEm
+                    ? margemNasCalibracoes(
+                        mexidas,
+                        pintavelNaCalibracao({
+                          zonas: zonasEm,
+                          centro: centroEm,
+                          saliencias: { marquise: salienciaM, varanda: salienciaVarandaM },
+                          opcoes: opcoesDaFachada,
+                        }),
+                      )
+                    : margemAPintar
+                  )?.margemM2 ?? null,
+              },
             ]);
             setNome(NOMES_DE_FACHADA.find((n) => !usados.has(n)) ?? 'Outra');
             recomecar();
@@ -744,6 +856,8 @@ function PassoDesenhar({
   desfazer,
   acertos,
   avisoAcertos,
+  margem,
+  arestasMarcadas,
   onAcertar,
   onAnularAcertos,
   onVoltar,
@@ -760,6 +874,10 @@ function PassoDesenhar({
   acertos: number;
   /** Uma só horizontal pode piorar longe dela (`avisoDasHorizontais`): diz-se ao avaliador. */
   avisoAcertos: string | null;
+  /** A margem de erro da área do contorno (`margemDaArea`); nula sem contorno ou quando não se pode calcular. */
+  margem: MargemDaArea | null;
+  /** As arestas que já entram na calibração: as verticais do passo 2 e dos acertos, e as horizontais dos acertos. */
+  arestasMarcadas: ArestasMarcadas;
   onAcertar: (a: Ponto, b: Ponto) => void;
   onAnularAcertos: () => void;
   onVoltar: () => void;
@@ -1067,6 +1185,8 @@ function PassoDesenhar({
         </div>
       )}
 
+      {temContorno && <MargemDoContorno margem={margem} arestas={arestasMarcadas} />}
+
       {verOriginal ? (
         <VistaOriginal foto={foto} calibracao={calibracao} zonas={zonas} />
       ) : (
@@ -1119,6 +1239,83 @@ function PassoDesenhar({
         {propostas && <p className="text-[13px] text-slate-500">Aceitar ou descartar as janelas propostas primeiro.</p>}
       </div>
     </section>
+  );
+}
+
+/**
+ * «± 2,1 % (± 4,6 m²)», em algarismos tabulares (`textoDaMargem`); sem área, só os m²; sem margem, «—».
+ * Num ecrã estreito parte entre as duas, nunca a meio de uma.
+ */
+function TextoDaMargem({ margem }: { margem: MargemEArea }) {
+  const t = textoDaMargem(margem);
+  return (
+    <span className="font-mono tabular-nums">
+      {!t ? (
+        '—'
+      ) : t.percentagem ? (
+        <>
+          <span className="whitespace-nowrap">{t.percentagem}</span> <span className="whitespace-nowrap">({t.m2})</span>
+        </>
+      ) : (
+        <span className="whitespace-nowrap">{t.m2}</span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * A margem de erro por baixo do total a que se refere, com o número à direita e o que cobre atrás do
+ * (i). Sem margem, «indisponível». Enquanto se refaz a seguir a uma tecla (`aCalcular`), o número que
+ * ainda lá está aparece esbatido: é o das opções de antes.
+ */
+function LinhaDaMargem({
+  margem,
+  aCalcular = false,
+  rotulo,
+  children,
+}: {
+  margem: MargemEArea | null;
+  aCalcular?: boolean;
+  rotulo: string;
+  children: ReactNode;
+}) {
+  return (
+    // O balão da Dica abre a partir da linha inteira, e não do (i): a meio do ecrã, com 80 % da largura
+    // do telemóvel, saía cortado pela direita. O nowrap fica só no rótulo — herdado pela Dica, o texto
+    // do balão saía numa linha só.
+    <div className="relative mt-1 flex items-center justify-between gap-3 text-[15px] text-slate-600 [&_details>span]:top-full [&_details>span]:mt-1 [&_details]:static">
+      <span className="flex shrink-0 items-center gap-2">
+        <span className="whitespace-nowrap">Margem de erro</span>
+        <Dica rotulo={rotulo}>{children}</Dica>
+      </span>
+      <span aria-busy={aCalcular} className={`min-w-0 text-right transition-opacity ${aCalcular ? 'opacity-50' : ''}`}>
+        {margem ? <TextoDaMargem margem={margem} /> : 'indisponível'}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * A margem de erro da área do contorno, numa linha discreta por cima da vista; acima de
+ * `MARGEM_A_REDUZIR`, o que a reduz (`comoReduzirAMargem`). Ver `margemDaArea`.
+ */
+function MargemDoContorno({ margem, arestas }: { margem: MargemDaArea | null; arestas: ArestasMarcadas }) {
+  if (!margem) {
+    return (
+      <p className="text-[15px] font-medium text-amber-800">
+        Margem de erro da área indisponível: com um píxel de diferença num canto, a referência deixa de dar uma calibração. Rever os cantos
+        no passo 2.
+      </p>
+    );
+  }
+  const sugestao = comoReduzirAMargem(margem, arestas, 3);
+  return (
+    <div className="space-y-1">
+      <p className="text-[13px] text-slate-500">
+        Margem de erro da área do contorno: <TextoDaMargem margem={margem} />.
+      </p>
+      {sugestao && <p className="text-[15px] font-medium text-amber-800">{sugestao}</p>}
+    </div>
   );
 }
 
@@ -2058,6 +2255,12 @@ function LeituraDasAlturas({ zonas, alturaM }: { zonas: Zona[]; alturaM: number 
 
 function PassoResultado(props: {
   resultado: ResultadoFachada;
+  /** A margem de erro da área a pintar desta fachada (`margemDaArea`); nula se não se pôde calcular. */
+  margem: MargemDaArea | null;
+  /** A margem ainda é a das opções de antes da última tecla: refaz-se a seguir. */
+  margemACalcular: boolean;
+  /** As arestas que entram na calibração, para dizer o que reduz a margem. */
+  arestasMarcadas: ArestasMarcadas;
   zonas: Zona[];
   /** Correção da perspetiva das frentes salientes: indefinida sem saliência; nula se a fotografia não a permite. */
   correcao: { distanciaM: number; oQue: string } | null | undefined;
@@ -2086,14 +2289,21 @@ function PassoResultado(props: {
   onOutraFachada: () => void;
 }) {
   const { resultado: r, zonas } = props;
+  // O aviso dos 5 % decide-se aqui pela área que vai para o orçamento, e não só pelo contorno do passo
+  // 3: com o R/C excluído ou as saliências, a margem relativa muda (5,0 % no passo 3, 6,2 % aqui).
+  const sugestaoDaMargem = props.margem && !props.margemACalcular ? comoReduzirAMargem(props.margem, props.arestasMarcadas, 4) : null;
   const temRC = zonas.some((z) => z.tipo === 'rc');
   const temMarquises = zonas.some((z) => z.tipo === 'marquise');
   const substitui = props.nome !== 'Outra' && props.guardadas.some((g) => g.nome === props.nome);
   const todas = [
-    ...props.guardadas.filter((g) => !(substitui && g.nome === props.nome)).map((g) => ({ nome: g.nome, resultado: g.resultado })),
-    { nome: props.nome, resultado: r },
+    ...props.guardadas
+      .filter((g) => !(substitui && g.nome === props.nome))
+      .map((g) => ({ nome: g.nome, resultado: g.resultado, margemM2: g.margemM2 })),
+    { nome: props.nome, resultado: r, margemM2: props.margem?.margemM2 ?? null },
   ];
   const totalPredio = todas.reduce((s, f) => s + f.resultado.pintavelM2, 0);
+  // Fachadas diferentes, fotografias e toques diferentes: as margens combinam-se em quadratura.
+  const margemPredioM2 = margemCombinada(todas.map((f) => f.margemM2));
   const faltaNoPredio = todas.filter((f) => f.resultado.porMedir.length > 0);
 
   // O volume: cada fachada medida vai para a sua parede; a última medida de cada lado é a que conta.
@@ -2262,6 +2472,16 @@ function PassoResultado(props: {
           <span>{r.porMedir.length > 0 ? 'Subtotal a pintar nesta fachada' : 'A pintar nesta fachada'}</span>
           <span className="font-mono tabular-nums">{m(r.pintavelM2)} m²</span>
         </div>
+        <LinhaDaMargem margem={props.margem} aCalcular={props.margemACalcular} rotulo="O que a margem de erro cobre">
+          Quanto a área pode estar errada só pelos toques na fotografia (os cantos da referência e as pontas das arestas). Conta com cerca
+          de um píxel de erro em cada toque — uma estimativa, ainda não medida em obra: assim, e com o desenho certo, a área verdadeira fica
+          dentro da margem em cerca de 95 casos em 100. As arestas traçadas no telemóvel costumam errar mais, e aí a margem verdadeira é
+          maior. Não cobre medidas da referência mal escritas, uma referência fora do plano da parede (uma porta recuada), um canto que o
+          íman prendeu no aro, a distorção da lente, as medidas à fita nem o que falta medir; os erros de escala apanham-se com as medidas
+          de controlo do passo 2. Reduz-se com uma referência maior (passo 2) e acertando o endireitamento com uma vertical comprida e duas
+          horizontais a alturas diferentes (passo 3). Indisponível quando um píxel num canto já não dá uma calibração.
+        </LinhaDaMargem>
+        {sugestaoDaMargem && <p className="mt-1 text-[15px] font-medium text-amber-800">{sugestaoDaMargem}</p>}
         {r.porMedir.length > 0 && (
           <p className="mt-1 text-[15px] font-medium text-amber-800">
             É um subtotal: falta {r.porMedir.join('; ')}. O que falta entra a zero até ser medido.
@@ -2307,6 +2527,21 @@ function PassoResultado(props: {
             <span>{faltaNoPredio.length > 0 ? 'Subtotal do prédio' : 'Total do prédio'}</span>
             <span className="font-mono tabular-nums">{m(totalPredio)} m²</span>
           </div>
+          <LinhaDaMargem
+            margem={
+              margemPredioM2 === null
+                ? null
+                : {
+                    margemM2: margemPredioM2,
+                    areaM2: totalPredio,
+                  }
+            }
+            rotulo="Como se soma a margem do prédio"
+          >
+            Cada fachada tem a sua fotografia e os seus toques, e os erros de umas não se juntam aos das outras: as margens combinam-se pela
+            raiz da soma dos quadrados, e a do prédio sai menor do que a soma das margens. Cobre o mesmo que a margem de cada fachada. Fica
+            indisponível quando alguma fachada não tem margem.
+          </LinhaDaMargem>
           {faltaNoPredio.length > 0 && (
             <p className="mt-1 text-[13px] text-amber-800">
               Falta medir: {faltaNoPredio.map((f) => `${f.nome} — ${f.resultado.porMedir.join('; ')}`).join(' · ')}.

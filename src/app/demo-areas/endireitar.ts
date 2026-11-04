@@ -1,4 +1,4 @@
-import { aplicar, type Calibracao, type Matriz3 } from '@/domain/homografia';
+import { aplicar, type Calibracao, type Matriz3, type Ponto } from '@/domain/homografia';
 import type { Zona } from '@/domain/fachadaMedida';
 
 /**
@@ -162,6 +162,16 @@ export function enquadrarNoContorno(
  * Uma zona desenhada com uma calibração, levada para outra (depois de "acertar o endireitamento"):
  * os cantos vão à fotografia pela calibração antiga e voltam ao plano pela nova. A zona fica no mesmo
  * sítio da fotografia — a janela continua em cima da janela.
+ *
+ * Na calibração nova os quatro cantos já não fazem um retângulo, e a zona tem de voltar a sê-lo: cada
+ * lado fica **a meio** dos dois cantos desse lado (o esquerdo na média dos x dos cantos da esquerda, e
+ * assim por diante) — o retângulo mais perto dos quatro cantos, e o que quem desenha poria à mão por
+ * cima deles. Com a área do quadrilátero, a menos de um termo de segunda ordem na deformação. Até
+ * 04/11/2026 ficava a caixa que envolve os quatro cantos, que é sempre maior: depois de um acerto, o
+ * contorno de 6 × 12 m da câmara virtual crescia 5,4 m² (+7,5 %) sem ninguém lhe tocar, cada ida e
+ * volta à mesma calibração acrescentava mais 0,45 %, e a margem de erro (`margemDaArea`) não via esse
+ * crescimento, já gravado nas zonas. Um canto que não se possa levar (para lá do horizonte) deixa a
+ * zona como estava.
  */
 export function remapearZona(z: Zona, planoParaImagemAntes: Matriz3, imagemParaPlanoDepois: Matriz3): Zona {
   const cantos = [
@@ -174,8 +184,46 @@ export function remapearZona(z: Zona, planoParaImagemAntes: Matriz3, imagemParaP
     return q ? aplicar(imagemParaPlanoDepois, q) : null;
   });
   if (cantos.some((c) => !c || !Number.isFinite(c.x) || !Number.isFinite(c.y))) return z;
-  const xs = cantos.map((c) => c!.x);
-  const ys = cantos.map((c) => c!.y);
-  const [x0, y0] = [Math.min(...xs), Math.min(...ys)];
-  return { ...z, x: x0, y: y0, largura: Math.max(...xs) - x0, altura: Math.max(...ys) - y0 };
+  const [ie, id, sd, se] = cantos as [Ponto, Ponto, Ponto, Ponto]; // inferior esquerdo, inferior direito, superior direito, superior esquerdo
+  const esquerda = (ie.x + se.x) / 2;
+  const direita = (id.x + sd.x) / 2;
+  const baixo = (ie.y + id.y) / 2;
+  const cima = (se.y + sd.y) / 2;
+  // Uma calibração que espelhe o plano trocaria os lados: o retângulo fica o mesmo, com largura positiva.
+  return {
+    ...z,
+    x: Math.min(esquerda, direita),
+    y: Math.min(baixo, cima),
+    largura: Math.abs(direita - esquerda),
+    altura: Math.abs(cima - baixo),
+  };
+}
+
+/** Duas homografias iguais (a mesma calibração recalculada dá os mesmos números, a menos do arredondamento). */
+export const mesmaMatriz = (a: Matriz3, b: Matriz3) => a.every((v, i) => Math.abs(v - b[i]!) <= 1e-12 * Math.max(1, Math.abs(v)));
+
+/**
+ * De onde veio cada zona que já foi levada a outra calibração: a zona tal como estava desenhada e a
+ * calibração (plano → imagem) em que o estava. Por objeto de zona — uma zona mexida à mão é um objeto
+ * novo, sem origem, e passa a ser ela a origem; um «Desfazer» devolve os objetos antigos, com as suas.
+ */
+export type OrigensDasZonas = WeakMap<Zona, { zona: Zona; base: Matriz3 }>;
+
+/**
+ * As zonas, escritas na calibração `base`, levadas à calibração `nova` (`remapearZona`) — sempre a
+ * partir de como foram desenhadas, e não de como ficaram no acerto anterior. Assim, voltar à
+ * calibração em que se desenhou («Retirar o acerto», a referência reposta) devolve as zonas exatamente
+ * como estavam, e uma série de acertos leva cada zona uma vez só, sem juntar o desvio de cada passo.
+ * Com a caixa que `remapearZona` usava até 04/11/2026, cada ida e volta acrescentava 0,45 % ao
+ * contorno da fotografia do promotor; com o retângulo a meio dos cantos sobrava um desvio de segunda
+ * ordem (0,2 % por ida e volta entre a porta pequena sozinha e as três arestas), e com isto, nenhum.
+ */
+export function levarZonas(zonas: Zona[], base: Matriz3, nova: Calibracao, origens: OrigensDasZonas): Zona[] {
+  return zonas.map((z) => {
+    const origem = origens.get(z) ?? { zona: z, base };
+    if (mesmaMatriz(origem.base, nova.planoParaImagem)) return origem.zona;
+    const levada = remapearZona(origem.zona, origem.base, nova.imagemParaPlano);
+    if (levada !== origem.zona) origens.set(levada, origem);
+    return levada;
+  });
 }
