@@ -4,13 +4,25 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { aplicar, calibrar, problemaDaReferencia, type Calibracao, type Ponto, type ReferenciaRetangular } from '@/domain/homografia';
 import {
   areaDaZona,
+  arestasPerto,
   areasDaFachada,
+  contagemSugerida,
+  LADO_MINIMO_M,
+  moverArestas,
   TIPO_ZONA_LABELS,
+  ENTRE_PISOS_HABITUAL_M,
+  leituraDeAlturas,
+  verticesDaZona,
+  zonaContem,
   zonaDeDoisCantos,
+  zonasEmSerie,
+  type Aresta,
+  type CantoReto,
   type ResultadoFachada,
   type TipoZona,
   type Zona,
 } from '@/domain/fachadaMedida';
+import { Dica } from '@/components/Dica';
 import { Lupa } from './Lupa';
 import { Modelo3D } from './Modelo3D';
 import type { FaceMedida, Lado } from './modelo3d';
@@ -23,8 +35,10 @@ import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, type 
  * 2. Referência — os quatro cantos de algo retangular que se mediu com fita (uma porta) e, de
  *    preferência, uma aresta vertical comprida do prédio. Com isto, `calibrar` (`homografia.ts`)
  *    fica a saber transformar qualquer ponto da fotografia em metros no plano da fachada.
- * 3. Desenhar — a fotografia aparece endireitada e à escala; arrasta-se o contorno da fachada, os
- *    vãos, as marquises, as varandas, o R/C. Cada retângulo já está em metros reais.
+ * 3. Desenhar — a fotografia aparece endireitada e à escala; primeiro o contorno da fachada (os
+ *    outros tipos só abrem depois dele), depois vãos, marquises, varandas, R/C — um a um ou em série
+ *    (o primeiro e o último de uma coluna, e quantos são). Cada retângulo já está em metros reais e
+ *    acerta-se arrastando a aresta.
  * 4. Áreas e volume — `areasDaFachada` (`fachadaMedida.ts`) dá as áreas; o volume 3D usa a frente e
  *    a altura medidas.
  *
@@ -124,6 +138,7 @@ function CamadaDeToque({
   ativo,
   lupa,
   onToque,
+  onCancelar,
   onArrastar,
   children,
 }: {
@@ -132,7 +147,9 @@ function CamadaDeToque({
   ativo: boolean;
   lupa?: CanvasImageSource;
   onToque?: (p: Ponto) => void;
-  onArrastar?: (de: Ponto, ate: Ponto, fim: boolean) => void;
+  onCancelar?: () => void;
+  /** `unidades` = unidades do SVG por píxel de ecrã, para tolerâncias "a um dedo" de distância. */
+  onArrastar?: (de: Ponto, ate: Ponto, fim: boolean, unidades: number) => void;
   children?: ReactNode;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -152,6 +169,10 @@ function CamadaDeToque({
       x: Math.min(largura, Math.max(0, l.x)),
       y: Math.min(altura, Math.max(0, l.y)),
     };
+  };
+  const unidadesPorPx = () => {
+    const a = svgRef.current?.getScreenCTM()?.a;
+    return a ? 1 / a : 1;
   };
   const seguir = (e: React.PointerEvent) => {
     const p = local(e);
@@ -179,7 +200,7 @@ function CamadaDeToque({
         onPointerMove={(e) => {
           if (!ativo) return;
           const p = seguir(e);
-          if (p && toque.current && e.pointerId === toque.current.id) onArrastar?.(toque.current.de, p, false);
+          if (p && toque.current && e.pointerId === toque.current.id) onArrastar?.(toque.current.de, p, false, unidadesPorPx());
         }}
         onPointerUp={(e) => {
           const t = toque.current;
@@ -187,12 +208,15 @@ function CamadaDeToque({
           toque.current = null;
           const p = local(e);
           if (!p) return;
-          if (onArrastar) onArrastar(t.de, p, true);
+          if (onArrastar) onArrastar(t.de, p, true, unidadesPorPx());
           else onToque?.(p);
         }}
         onPointerCancel={() => {
+          const t = toque.current;
           toque.current = null;
           setCursor(null);
+          // Um gesto cancelado pelo sistema não desenha nada, mas tem de largar o que estava a meio.
+          if (t) onCancelar?.();
         }}
         onPointerLeave={() => {
           if (!toque.current) setCursor(null);
@@ -270,9 +294,15 @@ export function MedirFachada() {
   const [arestaPendente, setArestaPendente] = useState<Ponto | null>(null);
   const [aMarcarAresta, setAMarcarAresta] = useState(false);
 
-  const [zonas, setZonas] = useState<Zona[]>([]);
-  const [tipo, setTipo] = useState<TipoZona>('fachada');
-  const [verOriginal, setVerOriginal] = useState(false);
+  // As zonas e as versões anteriores, juntas: "Desfazer" volta à anterior, seja o que for que mudou
+  // (zona nova, série, aresta acertada, zona apagada).
+  const [desenho, setDesenho] = useState<{ zonas: Zona[]; anteriores: Zona[][] }>({ zonas: [], anteriores: [] });
+  const zonas = desenho.zonas;
+  const mudarZonas = (f: (zs: Zona[]) => Zona[]) =>
+    setDesenho((d) => ({ zonas: f(d.zonas), anteriores: [...d.anteriores.slice(-99), d.zonas] }));
+  const desfazer = () =>
+    setDesenho((d) => (d.anteriores.length ? { zonas: d.anteriores[d.anteriores.length - 1]!, anteriores: d.anteriores.slice(0, -1) } : d));
+  const limparZonas = () => setDesenho({ zonas: [], anteriores: [] });
 
   const [incluirRC, setIncluirRC] = useState(false);
   const [nome, setNome] = useState<string>(NOMES_DE_FACHADA[0]);
@@ -313,9 +343,7 @@ export function MedirFachada() {
     setArestas([]);
     setArestaPendente(null);
     setAMarcarAresta(false);
-    setZonas([]);
-    setTipo('fachada');
-    setVerOriginal(false);
+    limparZonas();
     setIncluirRC(false);
   };
 
@@ -357,7 +385,7 @@ export function MedirFachada() {
                     setCantos([]);
                     setArestas([]);
                     setArestaPendente(null);
-                    setZonas([]);
+                    limparZonas();
                   } finally {
                     setACarregar(false);
                   }
@@ -394,77 +422,17 @@ export function MedirFachada() {
       )}
 
       {passo === 3 && foto && calibracao && referencia && (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-[17px] font-semibold text-slate-900">Desenhar o prédio</h2>
-          <p className="max-w-[60ch] text-[15px] text-slate-600">
-            A fotografia já está endireitada e à escala — cada quadrado da grelha é 1 m. Confirmar que as arestas verticais do prédio
-            ficaram verticais; se não ficaram, voltar e acertar os cantos da referência. Escolher o tipo e arrastar sobre a imagem para
-            desenhar. Começar pelo contorno da fachada. Varandas e marquises saem da parede e por isso aparecem maiores e inclinadas:
-            desenhá-las pela linha onde encostam à parede.
-          </p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo da zona a desenhar">
-            {ORDEM_DOS_TIPOS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="radio"
-                aria-checked={tipo === t}
-                className={tipo === t ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
-                onClick={() => setTipo(t)}
-              >
-                <span className={`mr-2 inline-block h-3 w-3 rounded-full ${COR[t].bg}`} />
-                {TIPO_ZONA_LABELS[t]}
-              </button>
-            ))}
-          </div>
-
-          {verOriginal ? (
-            <VistaOriginal foto={foto} calibracao={calibracao} zonas={zonas} />
-          ) : (
-            <FachadaEndireitada
-              foto={foto}
-              calibracao={calibracao}
-              referencia={referencia}
-              zonas={zonas}
-              onNovaZona={(a, b) => setZonas((zs) => [...zs, zonaDeDoisCantos(`${Date.now()}-${zs.length}`, tipo, a, b)])}
-              tipo={tipo}
-            />
-          )}
-
-          <label className="flex min-h-[44px] items-center gap-2 text-[15px] text-slate-700">
-            <input type="checkbox" className="h-5 w-5" checked={verOriginal} onChange={(e) => setVerOriginal(e.target.checked)} />
-            Ver o desenho sobre a fotografia original
-          </label>
-
-          {zonas.length > 0 && (
-            <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200">
-              {zonas.map((z) => (
-                <li key={z.id} className="flex items-center justify-between gap-3 px-3 py-1 text-[15px]">
-                  <span className="flex items-center gap-2 text-slate-700">
-                    <span className={`inline-block h-3 w-3 rounded-full ${COR[z.tipo].bg}`} />
-                    {TIPO_ZONA_LABELS[z.tipo]}
-                  </span>
-                  <span className="ml-auto font-mono tabular-nums text-slate-900">
-                    {m(z.largura)} × {m(z.altura)} m = {m(areaDaZona(z))} m²
-                  </span>
-                  <button type="button" className="btn-quiet btn-sm" onClick={() => setZonas((zs) => zs.filter((x) => x.id !== z.id))}>
-                    Apagar
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="btn-quiet btn-sm" onClick={() => setPasso(2)}>
-              Voltar à referência
-            </button>
-            <button type="button" className="btn-primary btn-sm" disabled={!resultado.temContorno} onClick={() => setPasso(4)}>
-              Ver áreas e volume
-            </button>
-            {!resultado.temContorno && <p className="self-center text-[13px] text-slate-500">Falta desenhar o contorno da fachada.</p>}
-          </div>
-        </section>
+        <PassoDesenhar
+          foto={foto}
+          calibracao={calibracao}
+          referencia={referencia}
+          zonas={zonas}
+          mudarZonas={mudarZonas}
+          podeDesfazer={desenho.anteriores.length > 0}
+          desfazer={desfazer}
+          onVoltar={() => setPasso(2)}
+          onContinuar={() => setPasso(4)}
+        />
       )}
 
       {passo === 4 && (
@@ -489,6 +457,354 @@ export function MedirFachada() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+const FORMAS: { canto: CantoReto | null; rotulo: string }[] = [
+  { canto: null, rotulo: 'Retângulo' },
+  { canto: 'sup-esq', rotulo: 'Triângulo com o ângulo reto em cima, à esquerda' },
+  { canto: 'sup-dir', rotulo: 'Triângulo com o ângulo reto em cima, à direita' },
+  { canto: 'inf-esq', rotulo: 'Triângulo com o ângulo reto em baixo, à esquerda' },
+  { canto: 'inf-dir', rotulo: 'Triângulo com o ângulo reto em baixo, à direita' },
+];
+
+/** O desenho da forma num quadrado de 16 × 16 (y para baixo), para o botão que a escolhe. */
+function IconeForma({ canto }: { canto: CantoReto | null }) {
+  const pontos = verticesDaZona({ id: '', tipo: 'fachada', x: 2, y: 2, largura: 12, altura: 12, ...(canto ? { triangulo: canto } : {}) })
+    .map((p) => `${p.x},${16 - p.y}`)
+    .join(' ');
+  return (
+    <svg viewBox="0 0 16 16" className="h-5 w-5" aria-hidden>
+      <polygon points={pontos} className="fill-current opacity-25 stroke-current" strokeWidth={1.5} strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Como se diz cada tipo numa frase ("desenhar o primeiro vão"). */
+const NOME_DO_ELEMENTO: Record<TipoZona, string> = {
+  fachada: 'contorno',
+  vao: 'vão',
+  marquise: 'marquise',
+  varanda: 'varanda',
+  rc: 'R/C',
+};
+
+/** Uma série nunca passa disto — um número escrito por engano (600 em vez de 6) não congela o ecrã. */
+const SERIE_MAXIMA = 60;
+
+const novoId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+interface SeriePendente {
+  primeira: Zona;
+  ultima: Zona | null;
+  total: string;
+}
+
+function PassoDesenhar({
+  foto,
+  calibracao,
+  referencia,
+  zonas,
+  mudarZonas,
+  podeDesfazer,
+  desfazer,
+  onVoltar,
+  onContinuar,
+}: {
+  foto: Foto;
+  calibracao: Calibracao;
+  referencia: ReferenciaRetangular;
+  zonas: Zona[];
+  mudarZonas: (f: (zs: Zona[]) => Zona[]) => void;
+  podeDesfazer: boolean;
+  desfazer: () => void;
+  onVoltar: () => void;
+  onContinuar: () => void;
+}) {
+  const temContorno = zonas.some((z) => z.tipo === 'fachada');
+  const [tipo, setTipo] = useState<TipoZona>(temContorno ? 'vao' : 'fachada');
+  const [modo, setModo] = useState<'um' | 'serie'>('um');
+  // Retângulo, ou um dos quatro triângulos. Volta a retângulo depois de cada triângulo desenhado:
+  // triângulos são a exceção (um empena, a parede por cima do telhado do vizinho).
+  const [canto, setCanto] = useState<CantoReto | null>(null);
+  // A zona escolhida com um toque: só as arestas dela se arrastam. Sem isto, começar a desenhar
+  // encostado a uma zona (um triângulo por cima do contorno, um recuo ao lado) agarrava a aresta dela.
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [serie, setSerie] = useState<SeriePendente | null>(null);
+  const [verOriginal, setVerOriginal] = useState(false);
+
+  // Sem contorno só se desenha contorno (o promotor desenhou 35 zonas sem ele e não conseguia
+  // avançar, 04/11/2026): o contorno é a base de todas as contas e do enquadramento da vista.
+  const tipoAtivo: TipoZona = temContorno ? tipo : 'fachada';
+  const emSerie = modo === 'serie' && tipoAtivo !== 'fachada';
+  const elemento = NOME_DO_ELEMENTO[tipoAtivo];
+  const selecionada = zonas.find((z) => z.id === selecionadaId && z.tipo === tipoAtivo) ?? null;
+
+  const escolherTipo = (t: TipoZona) => {
+    setTipo(t);
+    setSerie(null);
+    setSelecionadaId(null);
+  };
+  const escolherModo = (m: 'um' | 'serie') => {
+    setModo(m);
+    setSerie(null);
+  };
+
+  const aoDesenhar = (a: Ponto, b: Ponto) => {
+    const z = zonaDeDoisCantos(novoId(), tipoAtivo, a, b, canto ?? undefined);
+    // Numa série, a forma fica até ao último; fora dela, volta logo a retângulo.
+    if (!emSerie || (serie && !serie.ultima)) setCanto(null);
+    if (!emSerie) {
+      mudarZonas((zs) => [...zs, z]);
+      // Feito o primeiro contorno, o mais comum a seguir são os vãos.
+      if (tipoAtivo === 'fachada' && !temContorno) setTipo('vao');
+      return;
+    }
+    if (serie && !serie.ultima) setSerie({ ...serie, ultima: z, total: String(contagemSugerida(serie.primeira, z)) });
+    else setSerie({ primeira: z, ultima: null, total: '' });
+  };
+
+  const nSerie = serie?.ultima ? numero(serie.total) : null;
+  const totalSerie = nSerie ? Math.min(SERIE_MAXIMA, Math.max(2, Math.round(nSerie))) : null;
+  const previas: Zona[] = !serie
+    ? []
+    : serie.ultima && totalSerie
+      ? zonasEmSerie(serie.primeira, serie.ultima, totalSerie, (i) => `previa-${i}`)
+      : [serie.primeira, ...(serie.ultima ? [serie.ultima] : [])];
+
+  const criarSerie = () => {
+    if (!serie?.ultima || !totalSerie) return;
+    const novas = zonasEmSerie(serie.primeira, serie.ultima, totalSerie, () => novoId());
+    mudarZonas((zs) => [...zs, ...novas]);
+    setSerie(null);
+  };
+
+  let instrucao: ReactNode;
+  if (!temContorno)
+    instrucao = (
+      <>
+        <strong>Primeiro, o contorno:</strong> arrastar à volta da parede toda, do chão ao telhado. Os outros tipos abrem a seguir.
+      </>
+    );
+  else if (emSerie && !serie)
+    instrucao = (
+      <>
+        Desenhar o <strong>primeiro</strong> {elemento} da série — por exemplo, o do piso de baixo.
+      </>
+    );
+  else if (emSerie && serie && !serie.ultima)
+    instrucao = (
+      <>
+        Agora o <strong>último</strong> {elemento} da série — o do piso de cima na mesma coluna, ou o da outra ponta da linha.
+      </>
+    );
+  else if (emSerie) instrucao = <>Quantos são ao todo?</>;
+  else if (selecionada) instrucao = <>Arrastar uma aresta (ou um canto) da zona escolhida para a acertar. Tocar fora dela para largar.</>;
+  else
+    instrucao = (
+      <>
+        Arrastar para desenhar {tipoAtivo === 'fachada' ? 'outro contorno (um recuo, um triângulo)' : `um ${elemento}`}. Para acertar um que
+        já está desenhado, tocar nele.
+      </>
+    );
+
+  return (
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+      <h2 className="flex items-center gap-2 text-[17px] font-semibold text-slate-900">
+        Desenhar o prédio
+        <Dica rotulo="Como desenhar">
+          A fotografia já está endireitada e à escala — cada quadrado da grelha é 1 m. Confirmar que as arestas verticais do prédio ficaram
+          verticais; se não ficaram, voltar e acertar os cantos da referência. Varandas e marquises saem da parede e por isso aparecem
+          maiores e inclinadas: desenhá-las pela linha onde encostam à parede. Janelas repetidas de piso para piso desenham-se depressa em
+          série: o primeiro, o último, e quantos são.
+        </Dica>
+      </h2>
+
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo da zona a desenhar">
+        {ORDEM_DOS_TIPOS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="radio"
+            aria-checked={tipoAtivo === t}
+            disabled={t !== 'fachada' && !temContorno}
+            className={tipoAtivo === t ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            onClick={() => escolherTipo(t)}
+          >
+            <span className={`mr-2 inline-block h-3 w-3 rounded-full ${COR[t].bg}`} />
+            {TIPO_ZONA_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      {tipoAtivo !== 'fachada' && (
+        <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Como desenhar">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={modo === 'um'}
+            className={modo === 'um' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            onClick={() => escolherModo('um')}
+          >
+            Um a um
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={modo === 'serie'}
+            className={modo === 'serie' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            onClick={() => escolherModo('serie')}
+          >
+            Em série
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Forma">
+        <span className="text-[15px] text-slate-600">Forma</span>
+        {FORMAS.map((f) => (
+          <button
+            key={f.canto ?? 'retangulo'}
+            type="button"
+            role="radio"
+            aria-checked={canto === f.canto}
+            aria-label={f.rotulo}
+            title={f.rotulo}
+            className={canto === f.canto ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            onClick={() => setCanto(f.canto)}
+          >
+            <IconeForma canto={f.canto} />
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-[15px] text-slate-700" aria-live="polite">
+          {instrucao}
+        </p>
+        <button
+          type="button"
+          className="btn-quiet btn-sm"
+          disabled={!podeDesfazer && !serie}
+          onClick={() => (serie ? setSerie(null) : desfazer())}
+        >
+          Desfazer
+        </button>
+        {selecionada && (
+          <button
+            type="button"
+            className="btn-quiet btn-sm"
+            onClick={() => {
+              mudarZonas((zs) => zs.filter((x) => x.id !== selecionada.id));
+              setSelecionadaId(null);
+            }}
+          >
+            Apagar a escolhida
+          </button>
+        )}
+      </div>
+
+      {emSerie && serie?.ultima && (
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 p-3">
+          <label className="block">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">Quantos ao todo, com o primeiro e o último</span>
+            <input
+              className="campo w-28"
+              inputMode="numeric"
+              autoFocus
+              value={serie.total}
+              onChange={(e) => setSerie({ ...serie, total: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') criarSerie();
+              }}
+            />
+          </label>
+          <button type="button" className="btn-primary btn-sm" disabled={!totalSerie} onClick={criarSerie}>
+            {totalSerie ? `Criar ${totalSerie}` : 'Criar'}
+          </button>
+          <button type="button" className="btn-quiet btn-sm" onClick={() => setSerie(null)}>
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {verOriginal ? (
+        <VistaOriginal foto={foto} calibracao={calibracao} zonas={zonas} />
+      ) : (
+        <FachadaEndireitada
+          foto={foto}
+          calibracao={calibracao}
+          referencia={referencia}
+          zonas={zonas}
+          tipo={tipoAtivo}
+          canto={canto}
+          selecionada={selecionada}
+          onSelecionar={setSelecionadaId}
+          previas={previas}
+          onDesenho={aoDesenhar}
+          onAlterarZona={(nova) => mudarZonas((zs) => zs.map((z) => (z.id === nova.id ? nova : z)))}
+        />
+      )}
+
+      <label className="flex min-h-[44px] items-center gap-2 text-[15px] text-slate-700">
+        <input type="checkbox" className="h-5 w-5" checked={verOriginal} onChange={(e) => setVerOriginal(e.target.checked)} />
+        Ver o desenho sobre a fotografia original
+      </label>
+
+      <ListaDeZonas zonas={zonas} onApagar={(id) => mudarZonas((zs) => zs.filter((x) => x.id !== id))} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="btn-quiet btn-sm" onClick={onVoltar}>
+          Voltar à referência
+        </button>
+        <button type="button" className="btn-primary btn-sm" disabled={!temContorno} onClick={onContinuar}>
+          Ver áreas e volume
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * As zonas agrupadas por tipo: quantas e quanto somam, à vista; o detalhe (e o "Apagar") abre-se.
+ * Com 35 zonas numa lista corrida, o promotor tinha de descer o ecrã inteiro para chegar ao botão.
+ */
+function ListaDeZonas({ zonas, onApagar }: { zonas: Zona[]; onApagar: (id: string) => void }) {
+  if (zonas.length === 0) return null;
+  return (
+    <div className="divide-y divide-slate-200 rounded-lg border border-slate-200">
+      {ORDEM_DOS_TIPOS.map((t) => {
+        const doTipo = zonas.filter((z) => z.tipo === t);
+        if (doTipo.length === 0) return null;
+        const soma = doTipo.reduce((s, z) => s + areaDaZona(z), 0);
+        return (
+          <details key={t} className="group">
+            <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 px-3 text-[15px] [&::-webkit-details-marker]:hidden">
+              <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${COR[t].bg}`} />
+              <span className="text-slate-700">{TIPO_ZONA_LABELS[t]}</span>
+              <span className="text-slate-500">· {doTipo.length}</span>
+              <span className="ml-auto font-mono tabular-nums text-slate-900">{m(soma)} m²</span>
+              <span className="w-4 text-slate-500 group-open:rotate-90" aria-hidden>
+                ›
+              </span>
+            </summary>
+            <ul className="divide-y divide-slate-100 border-t border-slate-100">
+              {doTipo.map((z) => (
+                <li key={z.id} className="flex items-center justify-between gap-3 pl-8 pr-3 text-[15px]">
+                  <span className="ml-auto font-mono tabular-nums text-slate-900">
+                    {z.triangulo ? 'triângulo ' : ''}
+                    {m(z.largura)} × {m(z.altura)} m = {m(areaDaZona(z))} m²
+                  </span>
+                  <button type="button" className="btn-quiet btn-sm" onClick={() => onApagar(z.id)}>
+                    Apagar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        );
+      })}
     </div>
   );
 }
@@ -674,14 +990,28 @@ function FachadaEndireitada({
   referencia,
   zonas,
   tipo,
-  onNovaZona,
+  canto,
+  selecionada,
+  onSelecionar,
+  previas,
+  onDesenho,
+  onAlterarZona,
 }: {
   foto: Foto;
   calibracao: Calibracao;
   referencia: ReferenciaRetangular;
   zonas: Zona[];
+  /** O tipo que se está a desenhar — e o único cujas zonas se acertam pela aresta. */
   tipo: TipoZona;
-  onNovaZona: (a: Ponto, b: Ponto) => void;
+  /** A forma da zona que se está a desenhar (nulo: retângulo). */
+  canto: CantoReto | null;
+  /** A zona escolhida com um toque — a única cujas arestas se arrastam. */
+  selecionada: Zona | null;
+  onSelecionar: (id: string | null) => void;
+  /** Pré-visualização de uma série por confirmar, a tracejado. */
+  previas: Zona[];
+  onDesenho: (a: Ponto, b: Ponto) => void;
+  onAlterarZona: (z: Zona) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [verTudo, setVerTudo] = useState(false);
@@ -701,6 +1031,10 @@ function FachadaEndireitada({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foto, calibracao, chave]);
   const [arrasto, setArrasto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
+  // O que o gesto em curso faz, decidido no primeiro movimento: desenhar uma zona nova, ou acertar
+  // as arestas de uma zona do tipo escolhido que estejam a um dedo de onde se carregou.
+  const gesto = useRef<{ novo: true } | { id: string; arestas: Aresta[] } | null>(null);
+  const [edicao, setEdicao] = useState<Zona | null>(null);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -764,16 +1098,13 @@ function FachadaEndireitada({
     }
   }
 
-  const retangulo = (z: { x: number; y: number; largura: number; altura: number }, t: TipoZona, chave: string, rotulo: boolean) => (
+  const pontos = (z: Zona) =>
+    verticesDaZona(z)
+      .map((p) => `${px(p.x)},${py(p.y)}`)
+      .join(' ');
+  const retangulo = (z: Zona, t: TipoZona, chave: string, rotulo: boolean) => (
     <g key={chave} style={{ pointerEvents: 'none' }}>
-      <rect
-        x={px(z.x)}
-        y={py(z.y + z.altura)}
-        width={z.largura * ppm}
-        height={z.altura * ppm}
-        className={`${COR[t].fill} ${COR[t].stroke}`}
-        strokeWidth={letra / 6}
-      />
+      <polygon points={pontos(z)} className={`${COR[t].fill} ${COR[t].stroke}`} strokeWidth={letra / 6} strokeLinejoin="round" />
       {rotulo && z.largura * ppm > letra * 4 && (
         <text
           x={px(z.x) + 4}
@@ -789,7 +1120,25 @@ function FachadaEndireitada({
     </g>
   );
 
-  const temp = arrasto ? zonaDeDoisCantos('temp', tipo, metros(arrasto.de), metros(arrasto.ate)) : null;
+  const temp = arrasto ? zonaDeDoisCantos('temp', tipo, metros(arrasto.de), metros(arrasto.ate), canto ?? undefined) : null;
+
+  /** Só as arestas da zona escolhida se agarram, a 14 píxeis de ecrã: o que um dedo acerta sem lupa. */
+  const decidir = (de: Ponto, unidades: number) => {
+    if (selecionada) {
+      const arestas = arestasPerto(selecionada, metros(de), (14 * unidades) / ppm);
+      if (arestas.length > 0) return { id: selecionada.id, arestas };
+    }
+    return { novo: true as const };
+  };
+
+  /** Um toque (sem arrastar) escolhe a zona do tipo em curso que está por baixo, ou larga a escolha. */
+  const tocar = (p: Ponto) => {
+    for (let i = zonas.length - 1; i >= 0; i--) {
+      const z = zonas[i]!;
+      if (z.tipo === tipo && zonaContem(z, p)) return onSelecionar(z.id === selecionada?.id ? null : z.id);
+    }
+    onSelecionar(null);
+  };
 
   return (
     <div className="space-y-2" data-ext={JSON.stringify(ext)} data-ppm={ppm}>
@@ -808,12 +1157,32 @@ function FachadaEndireitada({
           largura={vista.width}
           altura={vista.height}
           ativo
-          onArrastar={(de, ate, fim) => {
+          lupa={canvasRef.current ?? undefined}
+          onCancelar={() => {
+            gesto.current = null;
+            setArrasto(null);
+            setEdicao(null);
+          }}
+          onArrastar={(de, ate, fim, unidades) => {
+            if (!gesto.current) gesto.current = decidir(de, unidades);
+            const g = gesto.current;
+            if (fim) gesto.current = null;
+            if ('id' in g) {
+              const original = zonas.find((z) => z.id === g.id);
+              if (!original) return setEdicao(null);
+              const nova = moverArestas(original, g.arestas, metros(ate));
+              if (!fim) return setEdicao(nova);
+              setEdicao(null);
+              // Um toque sem arrastar numa aresta não muda nada (nem conta para o "Desfazer").
+              if (Math.hypot(ate.x - de.x, ate.y - de.y) > 2 * unidades) onAlterarZona(nova);
+              return;
+            }
             if (!fim) return setArrasto({ de, ate });
             setArrasto(null);
+            if (Math.hypot(ate.x - de.x, ate.y - de.y) <= 2 * unidades) return tocar(metros(de));
             const a = metros(de);
             const b = metros(ate);
-            if (Math.abs(a.x - b.x) >= 0.2 && Math.abs(a.y - b.y) >= 0.2) onNovaZona(a, b);
+            if (Math.abs(a.x - b.x) >= LADO_MINIMO_M && Math.abs(a.y - b.y) >= LADO_MINIMO_M) onDesenho(a, b);
           }}
         >
           {grelha}
@@ -828,7 +1197,57 @@ function FachadaEndireitada({
             strokeDasharray={`${letra / 2} ${letra / 3}`}
             style={{ pointerEvents: 'none' }}
           />
-          {zonas.map((z) => retangulo(z, z.tipo, z.id, true))}
+          {zonas.map((z) => (
+            <g key={z.id} opacity={z.tipo === tipo || z.tipo === 'fachada' ? 1 : 0.55}>
+              {retangulo(edicao?.id === z.id ? edicao : z, z.tipo, z.id, true)}
+            </g>
+          ))}
+          {selecionada &&
+            (() => {
+              const z = edicao?.id === selecionada.id ? edicao : selecionada;
+              const lado = letra * 0.7;
+              const cantos = [
+                [z.x, z.y],
+                [z.x + z.largura, z.y],
+                [z.x + z.largura, z.y + z.altura],
+                [z.x, z.y + z.altura],
+              ];
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <rect
+                    x={px(z.x)}
+                    y={py(z.y + z.altura)}
+                    width={z.largura * ppm}
+                    height={z.altura * ppm}
+                    fill="none"
+                    className="stroke-white"
+                    strokeWidth={letra / 4}
+                    strokeDasharray={`${letra / 2} ${letra / 3}`}
+                  />
+                  {cantos.map(([x, y], i) => (
+                    <rect
+                      key={i}
+                      x={px(x!) - lado / 2}
+                      y={py(y!) - lado / 2}
+                      width={lado}
+                      height={lado}
+                      className={`fill-white ${COR[z.tipo].stroke}`}
+                      strokeWidth={letra / 6}
+                    />
+                  ))}
+                </g>
+              );
+            })()}
+          {previas.map((z) => (
+            <polygon
+              key={z.id}
+              points={pontos(z)}
+              className={`${COR[z.tipo].fill} ${COR[z.tipo].stroke}`}
+              strokeWidth={letra / 6}
+              strokeDasharray={`${letra / 2} ${letra / 3}`}
+              style={{ pointerEvents: 'none' }}
+            />
+          ))}
           {temp && retangulo(temp, tipo, 'temp', true)}
         </CamadaDeToque>
       </Moldura>
@@ -853,15 +1272,9 @@ function VistaOriginal({ foto, calibracao, zonas }: { foto: Foto; calibracao: Ca
     >
       <svg viewBox={`0 0 ${foto.largura} ${foto.altura}`} className="absolute inset-0 h-full w-full" style={{ pointerEvents: 'none' }}>
         {zonas.map((z) => {
-          const pts = [
-            { x: z.x, y: z.y },
-            { x: z.x + z.largura, y: z.y },
-            { x: z.x + z.largura, y: z.y + z.altura },
-            { x: z.x, y: z.y + z.altura },
-          ]
-            .map((p) => aplicar(calibracao.planoParaImagem, p))
-            .filter((p): p is Ponto => !!p);
-          if (pts.length < 4) return null;
+          const vertices = verticesDaZona(z);
+          const pts = vertices.map((p) => aplicar(calibracao.planoParaImagem, p)).filter((p): p is Ponto => !!p);
+          if (pts.length < vertices.length) return null;
           return (
             <polygon
               key={z.id}
@@ -873,6 +1286,47 @@ function VistaOriginal({ foto, calibracao, zonas }: { foto: Foto; calibracao: Ca
         })}
       </svg>
     </Moldura>
+  );
+}
+
+/**
+ * A prova dos nove da escala: a distância entre janelas de pisos seguidos não depende da referência
+ * só por si, e tem um valor habitual. A altura total explica-se por partes (R/C, pisos, o que sobra
+ * por cima) — foi a dúvida do promotor no primeiro teste ("R/C + 5 andares não pode ter 20 m").
+ */
+function LeituraDasAlturas({ zonas, alturaM }: { zonas: Zona[]; alturaM: number }) {
+  const l = leituraDeAlturas(zonas);
+  if (!l) {
+    return (
+      <p className="mt-1 text-[13px] text-slate-500">
+        Para conferir a escala pela altura entre pisos, desenhar a mesma janela em dois pisos seguidos (em série é mais rápido).
+      </p>
+    );
+  }
+  const habitual = l.entrePisosM >= ENTRE_PISOS_HABITUAL_M.min && l.entrePisosM <= ENTRE_PISOS_HABITUAL_M.max;
+  const acima = l.rcM !== null ? alturaM - l.rcM - l.pisos * l.entrePisosM : null;
+  return (
+    <div className="mt-2 space-y-1 text-[15px] text-slate-600">
+      <p>
+        Altura entre pisos, medida pelas janelas: <span className="font-mono tabular-nums text-slate-900">{m(l.entrePisosM)} m</span>{' '}
+        <span className="text-[13px] text-slate-500">
+          ({l.medicoes} {l.medicoes === 1 ? 'medição' : 'medições'}; habitual {m(ENTRE_PISOS_HABITUAL_M.min)} a{' '}
+          {m(ENTRE_PISOS_HABITUAL_M.max)} m, com a laje)
+        </span>
+      </p>
+      {acima !== null && l.rcM !== null && acima > -0.5 && acima < 4 && (
+        <p>
+          {m(alturaM)} m = R/C <span className="font-mono tabular-nums">{m(l.rcM)}</span> + {l.pisos} pisos ×{' '}
+          <span className="font-mono tabular-nums">{m(l.entrePisosM)}</span> +{' '}
+          <span className="font-mono tabular-nums">{m(Math.max(0, acima))}</span> m acima do último piso (platibanda, cobertura).
+        </p>
+      )}
+      {!habitual && (
+        <p className="font-medium text-amber-800">
+          Fora do habitual: confirmar a medida da referência (largura e altura em cm) e os cantos tocados no passo 2.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -933,6 +1387,7 @@ function PassoResultado(props: {
           Contorno medido: <span className="font-mono tabular-nums text-slate-900">{m(r.frenteM)} m</span> de largura ×{' '}
           <span className="font-mono tabular-nums text-slate-900">{m(r.alturaM)} m</span> de altura.
         </p>
+        <LeituraDasAlturas zonas={zonas} alturaM={r.alturaM} />
         <ul className="mt-3 space-y-2">
           {r.linhas.map((l) => (
             <li key={l.tipo} className="flex items-start justify-between gap-3 text-[17px]">

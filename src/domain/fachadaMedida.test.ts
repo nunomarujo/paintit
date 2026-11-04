@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { areasDaFachada, zonaDeDoisCantos, type TipoZona, type Zona } from './fachadaMedida';
+import {
+  arestasPerto,
+  areaDaZona,
+  areasDaFachada,
+  contagemSugerida,
+  leituraDeAlturas,
+  moverArestas,
+  verticesDaZona,
+  zonaDeDoisCantos,
+  zonaContem,
+  zonasEmSerie,
+  type CantoReto,
+  type TipoZona,
+  type Zona,
+} from './fachadaMedida';
 
 let n = 0;
 const z = (tipo: TipoZona, x: number, y: number, largura: number, altura: number): Zona => ({
@@ -85,6 +99,164 @@ describe('areasDaFachada', () => {
   it('zonaDeDoisCantos aceita os cantos por qualquer ordem', () => {
     const a = zonaDeDoisCantos('x', 'vao', { x: 5, y: 1 }, { x: 2, y: 4 });
     expect(a).toMatchObject({ x: 2, y: 1, largura: 3, altura: 3 });
+  });
+});
+
+describe('zonasEmSerie', () => {
+  it('uma coluna: primeiro e último desenhados, os do meio igualmente espaçados', () => {
+    const r = zonasEmSerie(z('vao', 2, 4, 1.4, 1.2), z('vao', 2, 16, 1.4, 1.2), 5, (i) => `s${i}`);
+    expect(r.map((q) => q.y)).toEqual([4, 7, 10, 13, 16]);
+    expect(r.every((q) => q.x === 2 && q.largura === 1.4 && q.altura === 1.2 && q.tipo === 'vao')).toBe(true);
+    expect(new Set(r.map((q) => q.id)).size).toBe(5);
+  });
+
+  it('o primeiro e o último ficam exatamente como foram desenhados; a diferença de tamanho reparte-se', () => {
+    const r = zonasEmSerie(z('marquise', 0, 0, 2, 1.8), z('marquise', 0.4, 12, 2.2, 2.2), 3, String);
+    expect(r[0]).toMatchObject({ x: 0, y: 0, largura: 2, altura: 1.8 });
+    expect(r[2]).toMatchObject({ x: 0.4, y: 12, largura: 2.2, altura: 2.2 });
+    expect(r[1]!.largura).toBeCloseTo(2.1, 9);
+    expect(r[1]!.altura).toBeCloseTo(2.0, 9);
+  });
+
+  it('nunca menos de dois (o primeiro e o último)', () => {
+    expect(zonasEmSerie(z('vao', 0, 0, 1, 1), z('vao', 0, 9, 1, 1), 0, String)).toHaveLength(2);
+  });
+});
+
+describe('contagemSugerida', () => {
+  it('numa coluna sugere um por piso (pé-direito de 2,9 m)', () => {
+    expect(contagemSugerida(z('vao', 0, 3, 1.4, 1.2), z('vao', 0, 17.5, 1.4, 1.2))).toBe(6);
+  });
+  it('numa linha sugere um por cada duas larguras', () => {
+    expect(contagemSugerida(z('vao', 0, 3, 1.5, 1.2), z('vao', 9, 3, 1.5, 1.2))).toBe(4);
+  });
+});
+
+describe('acertar uma zona pela aresta', () => {
+  const q = z('vao', 2, 4, 2, 1);
+  it('encontra a aresta a que se tocou, e duas num canto', () => {
+    expect(arestasPerto(q, { x: 2.05, y: 4.5 }, 0.1)).toEqual(['esquerda']);
+    expect(arestasPerto(q, { x: 3, y: 5.08 }, 0.1)).toEqual(['cima']);
+    expect(arestasPerto(q, { x: 4.02, y: 3.97 }, 0.1)).toEqual(['direita', 'baixo']);
+    expect(arestasPerto(q, { x: 3, y: 4.5 }, 0.1)).toEqual([]); // no meio: desenha uma zona nova
+    expect(arestasPerto(q, { x: 2, y: 9 }, 0.1)).toEqual([]); // no prolongamento da aresta, longe da zona
+  });
+  it('move só a aresta escolhida, e nunca deixa a zona virar do avesso', () => {
+    expect(moverArestas(q, ['cima'], { x: 99, y: 6 })).toMatchObject({ x: 2, y: 4, largura: 2, altura: 2 });
+    const encolhida = moverArestas(q, ['esquerda'], { x: 7, y: 0 });
+    expect(encolhida.x).toBeCloseTo(3.8, 9);
+    expect(encolhida.largura).toBeCloseTo(0.2, 9);
+  });
+});
+
+const tri = (tipo: TipoZona, canto: CantoReto, x: number, y: number, largura: number, altura: number): Zona => ({
+  ...z(tipo, x, y, largura, altura),
+  triangulo: canto,
+});
+
+describe('zonas triangulares', () => {
+  it('um triângulo é metade do retângulo, com o ângulo reto no canto escolhido', () => {
+    const t = tri('fachada', 'sup-dir', 0, 0, 4, 3);
+    expect(areaDaZona(t)).toBe(6);
+    const v = verticesDaZona(t);
+    expect(v).toHaveLength(3);
+    expect(v).toContainEqual({ x: 4, y: 3 }); // o ângulo reto
+    expect(v).not.toContainEqual({ x: 0, y: 0 }); // o canto cortado
+  });
+
+  it('parede por cima do telhado do vizinho: contorno retangular + triângulo por cima', () => {
+    const r = areasDaFachada([z('fachada', 0, 0, 10, 20), tri('fachada', 'sup-esq', 0, 20, 10, 4)]);
+    expect(r.contornoM2).toBe(220);
+    expect(r.alturaM).toBe(24);
+  });
+
+  it('triângulo meio sobreposto ao contorno: conta a união exata, não a soma', () => {
+    // Triângulo de 5 a 15 m, com o ângulo reto em baixo à direita: a parte de 5 a 10 m (12,5 m²) já estava no contorno.
+    const r = areasDaFachada([z('fachada', 0, 0, 10, 10), tri('fachada', 'inf-dir', 5, 0, 10, 10)]);
+    expect(r.contornoM2).toBe(137.5);
+  });
+
+  it('diagonais que se cruzam: dois triângulos no mesmo retângulo, em espelho', () => {
+    // União = abaixo do maior de y = x e y = 10 − x → 75 m²; o cruzamento a meio (x = 5) tem de ser um corte.
+    const r = areasDaFachada([tri('fachada', 'inf-esq', 0, 0, 10, 10), tri('fachada', 'inf-dir', 0, 0, 10, 10)]);
+    expect(r.contornoM2).toBe(75);
+  });
+
+  it('um vão triangular segue a regra do 1 m² pela sua área (metade do retângulo)', () => {
+    expect(areasDaFachada([contorno, tri('vao', 'inf-esq', 1, 1, 2, 1)]).pintavelM2).toBe(200); // 1 m²: não desconta
+    expect(areasDaFachada([contorno, tri('vao', 'inf-esq', 1, 1, 2, 1.2)]).pintavelM2).toBeCloseTo(198.8, 9);
+  });
+
+  it('as contas exatas batem com uma amostragem fina, em formas misturadas e sobrepostas', () => {
+    const zonas = [
+      z('fachada', 0, 0, 9, 12),
+      tri('fachada', 'sup-dir', 3, 12, 6, 3.5),
+      tri('fachada', 'inf-esq', 9, 0, 4, 7),
+      z('rc', 0, 0, 13, 3),
+      tri('vao', 'sup-esq', 1, 5, 3, 2),
+      z('vao', 2.5, 5.5, 2, 1.5),
+      tri('marquise', 'inf-dir', 6, 8, 2.5, 5),
+    ];
+    const r = areasDaFachada(zonas);
+    // Amostragem: o mesmo pintável, contado ponto a ponto numa grelha de 2 cm (ponto-em-polígono).
+    const dentroDe = (q: Zona, x: number, y: number) => {
+      const v = verticesDaZona(q);
+      let dentro = false;
+      for (let i = 0, j = v.length - 1; i < v.length; j = i++) {
+        const [a, b] = [v[i]!, v[j]!];
+        if (a.y > y !== b.y > y && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) dentro = !dentro;
+      }
+      return dentro;
+    };
+    const h = 0.02;
+    let amostrado = 0;
+    for (let x = h / 2; x < 14; x += h) {
+      for (let y = h / 2; y < 16; y += h) {
+        const em = (t: TipoZona) => zonas.some((q) => q.tipo === t && dentroDe(q, x, y));
+        const vaoGrande = zonas.some((q) => q.tipo === 'vao' && areaDaZona(q) > 1 && dentroDe(q, x, y));
+        if (em('fachada') && !em('rc') && !em('marquise') && !vaoGrande) amostrado += h * h;
+      }
+    }
+    expect(Math.abs(r.pintavelM2 - amostrado) / amostrado).toBeLessThan(0.003);
+  });
+
+  it('tocar dentro de um triângulo escolhe-o; no canto cortado, não', () => {
+    const t = tri('vao', 'sup-dir', 0, 0, 4, 4);
+    expect(zonaContem(t, { x: 3.5, y: 3.5 })).toBe(true);
+    expect(zonaContem(t, { x: 0.5, y: 0.5 })).toBe(false);
+    expect(zonaContem(z('vao', 0, 0, 4, 4), { x: 0.5, y: 0.5 })).toBe(true);
+  });
+
+  it('a série e o acertar de arestas guardam a forma triangular', () => {
+    const s = zonasEmSerie(tri('vao', 'sup-dir', 0, 0, 2, 2), tri('vao', 'sup-dir', 0, 9, 2, 2), 4, String);
+    expect(s.every((q) => q.triangulo === 'sup-dir')).toBe(true);
+    expect(moverArestas(tri('vao', 'inf-esq', 0, 0, 2, 2), ['cima'], { x: 0, y: 3 }).triangulo).toBe('inf-esq');
+    expect(zonaDeDoisCantos('t', 'fachada', { x: 0, y: 0 }, { x: 1, y: 1 }, 'inf-dir').triangulo).toBe('inf-dir');
+    expect('triangulo' in zonaDeDoisCantos('r', 'fachada', { x: 0, y: 0 }, { x: 1, y: 1 })).toBe(false);
+  });
+});
+
+describe('leituraDeAlturas', () => {
+  it('altura entre pisos pela distância entre janelas da mesma coluna; R/C pelo desenho', () => {
+    const zonas = [
+      z('fachada', 0, 0, 10, 20),
+      z('rc', 0, 0, 10, 4),
+      ...[0, 1, 2, 3, 4].map((i) => z('vao', 1, 5 + 3 * i, 1.4, 1.2)),
+      ...[0, 1, 2, 3, 4].map((i) => z('vao', 6, 5.1 + 3 * i, 1.8, 1.3)),
+    ];
+    const l = leituraDeAlturas(zonas)!;
+    expect(l.entrePisosM).toBe(3);
+    expect(l.medicoes).toBe(8);
+    expect(l.pisos).toBe(5);
+    expect(l.rcM).toBe(4);
+  });
+
+  it('sem elementos repetidos na vertical, não há leitura (não se inventa)', () => {
+    expect(leituraDeAlturas([contorno, z('vao', 1, 5, 1, 1), z('vao', 5, 5, 1, 1)])).toBeNull();
+  });
+
+  it('uma varanda desenhada de alto a baixo, de uma vez, não conta como pisos', () => {
+    expect(leituraDeAlturas([contorno, z('varanda', 1, 4, 3, 15)])).toBeNull();
   });
 });
 

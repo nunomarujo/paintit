@@ -1,4 +1,4 @@
-import type { TipoZona, Zona } from '@/domain/fachadaMedida';
+import { verticesDaZona, type TipoZona, type Zona } from '@/domain/fachadaMedida';
 
 /**
  * O volume do prédio montado a partir do que se mediu (04/11/2026): paredes à escala, e em cada
@@ -30,7 +30,11 @@ export interface Poligono {
   sombra?: boolean;
 }
 
-/** Quanto sai da parede cada elemento saliente (metros) — ilustrativo: a profundidade não se mede na foto. */
+/**
+ * Quanto sai da parede cada elemento saliente (metros) — ilustrativo: a profundidade não se mede na foto.
+ * Uma marquise ou varanda triangular sai como a caixa que a envolve (são raras; a área conta-se certa
+ * em `fachadaMedida.ts`, isto é só o desenho).
+ */
 export const SALIENCIA_M: Partial<Record<TipoZona, number>> = { marquise: 1.0, varanda: 1.2 };
 
 type V3 = [number, number, number];
@@ -132,7 +136,9 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
         for (const z of zonas?.filter((q) => q.tipo === tipo) ?? []) {
           const { s0, s1, y0, y1 } = dentro(z);
           if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;
-          caixa.push(quad([ponto(r, s0, y0, 0), ponto(r, s1, y0, 0), ponto(r, s1, y1, 0), ponto(r, s0, y1, 0)], tipo));
+          // A forma desenhada (retângulo ou triângulo), com cada vértice preso à parede.
+          const vertices = verticesDaZona(z).map((v) => ponto(r, Math.max(0, Math.min(L, v.x)), Math.max(0, Math.min(H, v.y)), 0));
+          caixa.push(quad(vertices, tipo));
         }
       }
     }

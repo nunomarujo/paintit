@@ -67,7 +67,10 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 **Por fazer:**
 - O promotor testar com outras fotografias (pedido dele) — e comparar com uma medição real à fita.
 - Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
-- Ajustar um retângulo já desenhado (hoje apaga-se e desenha-se de novo).
+- *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
+  desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
+  pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
+- Varandas: hoje desenha-se a frente; as faces interiores continuam por medir (decisão 8.2).
 - Deteção automática de vãos e varandas na vista endireitada (com IA) — pede decisão do promotor
   sobre privacidade (a fotografia sairia do aparelho) e custo; não construído.
 - Decidir se `retificacao.ts` e `volumeAreas.ts` (sem ecrã desde 04/11/2026) se apagam.

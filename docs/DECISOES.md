@@ -5009,3 +5009,48 @@ Verificado num browser (Chromium) com a fotografia real, em 1280 px e em 390 px:
 desenhadas, os mesmos 133,18 m² nos dois, sem scroll horizontal, sem erros de consola.
 `npm test` (1617 testes), `npm run typecheck`, `npm run lint` (28 avisos, os de antes, nenhum nos
 ficheiros novos) e `npm run build`, todos com código de saída 0.
+
+## 04/11/2026 (tarde) — Medição de fachadas, segundo teste do promotor: contorno primeiro, séries, triângulos, e a altura explicada
+
+O promotor testou `/demo-areas` com outra fotografia (prédio R/C + 5 andares, tirada de lado) e
+relatou três coisas:
+
+1. **"Não consigo passar para o ponto 4."** Tinha desenhado 35 zonas — R/C, varandas, marquises, 29
+   vãos — mas nunca o contorno da fachada, e o botão ficava desativado com o motivo escrito em
+   letra pequena no fundo da página. Erro da ferramenta, não dele: nada o impedia de começar pelas
+   janelas. **Agora o contorno é o primeiro passo obrigatório** — os outros tipos ficam desativados
+   até haver contorno, a instrução está por cima da imagem, e depois do contorno a ferramenta passa
+   sozinha para "Vãos". Sem contorno, também a vista não se enquadra no prédio — por isso as zonas
+   dele eram tão pequenas de desenhar.
+2. **"Dá muito trabalho."** Desenhar em série: o primeiro e o último elemento de uma coluna (ou
+   linha) e quantos são — os do meio interpolam-se (`zonasEmSerie`, com o número sugerido por
+   `contagemSugerida`, um por piso de 2,9 m). No teste automático com a fotografia anterior, 18 zonas
+   passaram de 18 arrastos a 8. Também: **acertar uma zona** (tocar nela — fica escolhida, com
+   pegas — e arrastar a aresta ou o canto), **Desfazer** para tudo (instantâneos), "Apagar a
+   escolhida", e a lista agrupada por tipo com contagem e total (35 linhas corridas obrigavam a
+   descer o ecrã inteiro).
+   *Apanhado no teste de ponta a ponta antes de publicar:* na primeira versão, qualquer arrasto
+   começado a 14 px de uma aresta acertava essa zona em vez de desenhar — desenhar um triângulo
+   encostado ao contorno subia o contorno. Daí a regra: **só as arestas da zona escolhida com um
+   toque se arrastam**; arrastar noutro sítio desenha sempre.
+3. **Uma parte da fachada é triangular** (por cima do telhado vizinho); tinha posto "um retângulo
+   a meio termo, a olho". **Zonas triangulares**: metade do retângulo cortado na diagonal, com o
+   ângulo reto num dos quatro cantos (escolhido por botões com o desenho da forma; depois de cada
+   triângulo, a forma volta a retângulo). As áreas continuam **exatas**: `areaOnde` passou da
+   compressão de coordenadas a faixas verticais cortadas nos x de todas as formas e nos cruzamentos
+   das retas — em cada faixa, cada pedaço é um trapézio. Com só retângulos dá exatamente o mesmo de
+   antes (os testes anteriores passam sem mudança); um teste compara com uma amostragem de 2 cm em
+   formas misturadas e sobrepostas (diferença < 0,3 %).
+
+**A dúvida da altura ("R/C de 3,77 m + 5 andares não pode ter 20 m").** Tem: medido na fotografia
+pela distância entre janelas de pisos seguidos — que não depende só da referência — o R/C vai até
+4,0 m (a porta de 3,77 m mais padieira e laje), cada piso tem ~3,0 m de piso a piso (pé-direito
+livre de ~2,7 m mais a laje de ~0,3 m) e sobram ~0,6–1 m de platibanda/cobertura: 4,0 + 5 × 3,06 +
+0,6 = 19,9 m. O passo 4 passou a mostrar esta leitura (`leituraDeAlturas`: mediana da distância
+vertical entre zonas iguais na mesma coluna) e a decomposição da altura, e avisa em texto âmbar se
+a altura entre pisos sair de 2,7–3,2 m — sinal de referência mal medida ou mal tocada. É a
+confirmação cruzada que a secção 3.2 do handoff pedia, feita com o que já se desenha.
+
+Verificado em Chromium (1280 px e 390 px) com a fotografia anterior: 19 verificações automáticas, das
+quais as do contorno bloqueado, da série, de acertar e desfazer, do triângulo (220,52 + 3,69 =
+224,21 m²) e da leitura (3,06 m entre pisos); sem scroll horizontal, sem erros de consola.

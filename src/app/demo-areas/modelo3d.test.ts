@@ -3,7 +3,14 @@ import type { TipoZona, Zona } from '@/domain/fachadaMedida';
 import { enquadramento, montarModelo, type FaceMedida } from './modelo3d';
 
 let n = 0;
-const z = (tipo: TipoZona, x: number, y: number, largura: number, altura: number): Zona => ({ id: String(n++), tipo, x, y, largura, altura });
+const z = (tipo: TipoZona, x: number, y: number, largura: number, altura: number): Zona => ({
+  id: String(n++),
+  tipo,
+  x,
+  y,
+  largura,
+  altura,
+});
 const dim = { larguraM: 10, fundoM: 8, alturaM: 20 };
 const frente: FaceMedida = { lado: 'frente', zonas: [z('fachada', 0, 0, 10, 20), z('vao', 2, 6, 2, 1.5), z('varanda', 6, 3.5, 3, 3)] };
 
@@ -51,6 +58,15 @@ describe('montarModelo', () => {
     const primeiraParede = pols.findIndex((p) => p.tipo.startsWith('parede'));
     const varandas = pols.map((p, i) => (p.tipo === 'varanda' ? i : -1)).filter((i) => i >= 0);
     for (const i of varandas) expect(i).toBeLessThan(primeiraParede);
+  });
+
+  it('um vão triangular desenha-se como triângulo na parede', () => {
+    const comTriangulo: FaceMedida = {
+      lado: 'frente',
+      zonas: [z('fachada', 0, 0, 10, 20), { ...z('vao', 2, 6, 2, 2), triangulo: 'sup-dir' }],
+    };
+    const pols = montarModelo([comTriangulo], dim, { azimute: 0, elevacao: 0 });
+    expect(pols.find((p) => p.tipo === 'vao')!.pontos).toHaveLength(3);
   });
 
   it('o enquadramento envolve tudo, com margem', () => {
