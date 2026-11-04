@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { VolumeViewer } from '@/components/VolumeViewer';
 import { areasDoVolume } from '@/domain/volumeAreas';
 import { FORMA_LABELS, FORMAS, type Forma, type VolumeInput } from '@/domain/volume';
+import { MedirZona } from './MedirZona';
 
 type Varandas = 'nenhuma' | 'aberta' | 'marquise';
 
@@ -34,6 +35,16 @@ export function DemoAreas() {
   const [peDireito, setPeDireito] = useState('3');
   const [janelasPorPiso, setJanelasPorPiso] = useState('2');
   const [varandas, setVarandas] = useState<Varandas>('nenhuma');
+
+  type Alvo = 'nenhum' | 'frente' | 'fundo' | 'peDireito';
+  const [alvoLargura, setAlvoLargura] = useState<Alvo>('frente');
+  const [alvoAltura, setAlvoAltura] = useState<Alvo>('peDireito');
+  const aplicarAoAlvo = (alvo: Alvo, valor: number) => {
+    const texto = valor.toLocaleString('pt-PT', { maximumFractionDigits: 2 }).replace('.', ',');
+    if (alvo === 'frente') setLargura(texto);
+    else if (alvo === 'fundo') setProfundidade(texto);
+    else if (alvo === 'peDireito') setPeDireito(texto);
+  };
 
   const input: VolumeInput = useMemo(() => {
     const j = numero(janelasPorPiso);
@@ -88,7 +99,7 @@ export function DemoAreas() {
 
         <div>
           <h3 className="text-[15px] font-semibold text-slate-900">Dimensões reais, em metros</h3>
-          <p className="text-[13px] text-slate-500">Medidas com fita, ou lidas de uma planta — não tiradas de uma fotografia.</p>
+          <p className="text-[13px] text-slate-500">Medidas com fita, lidas de uma planta, ou tiradas de uma fotografia (secção abaixo).</p>
           <div className="mt-2 grid gap-4 sm:grid-cols-3">
             <label className="block">
               <span className="mb-1 block text-[15px] font-medium text-slate-700">Frente (m)</span>
@@ -157,6 +168,34 @@ export function DemoAreas() {
             </p>
           )}
         </div>
+      </div>
+      <div className="lg:col-span-2 space-y-3">
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="block">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">A largura medida (A–B) vai para</span>
+            <select className="campo" value={alvoLargura} onChange={(e) => setAlvoLargura(e.target.value as Alvo)}>
+              <option value="nenhum">Não aplicar</option>
+              <option value="frente">Frente</option>
+              <option value="fundo">Fundo</option>
+              <option value="peDireito">Pé-direito</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">A altura medida vai para</span>
+            <select className="campo" value={alvoAltura} onChange={(e) => setAlvoAltura(e.target.value as Alvo)}>
+              <option value="nenhum">Não aplicar</option>
+              <option value="frente">Frente</option>
+              <option value="fundo">Fundo</option>
+              <option value="peDireito">Pé-direito</option>
+            </select>
+          </label>
+        </div>
+        <MedirZona
+          onMedido={({ largura: l, altura: a }) => {
+            if (alvoLargura !== 'nenhum') aplicarAoAlvo(alvoLargura, l);
+            if (alvoAltura !== 'nenhum') aplicarAoAlvo(alvoAltura, a);
+          }}
+        />
       </div>
     </div>
   );

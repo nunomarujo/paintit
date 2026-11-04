@@ -51,24 +51,31 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
-## 2b. Medição de zonas: abandonada a via da fotografia, construído o modelo declarativo (03/11/2026)
+## 2b. Medição de zonas: declarativo (volume) + por fotografia (retificarZona), os dois juntos em `/demo-areas` (03/11/2026)
 
-**Estado:** `retificarZona` (`src/domain/retificacao.ts`) ficou feito e testado (passo 1 da ordem do
-handoff original), mas **não se continua por essa via** — decisão do promotor, 03/11/2026, depois de
-comparar com uma app de outra sessão que entregava sub-áreas em 3D (fachadas, varandas, marquises)
-em muito menos tempo. Os passos 2-7 dessa ordem (confirmação, vãos por foto, ecrã de marcação sobre
-fotografia, acessos, piloto) **não se constroem**. Detalhe e o achado que levou à decisão (entrada
-real medida com fita, 1,65 m × 3,77 m, erro de -1,9% a +20,5% consoante os cantos — porque um vão
-recuado não é uma fachada plana): `docs/DECISOES.md`, entradas de 03/11/2026.
+**Estado, no fim do dia:** duas vias, complementares, não uma a substituir a outra.
 
-**Construído em vez disso, sobre o modelo 3D declarativo que já existia** (`src/domain/volume.ts`,
-de 30/10-01/11/2026): `src/domain/volumeAreas.ts` (área real por categoria — fachadas líquidas de
-vãos > 1 m², empenas, varandas, marquises, marquises fora do total pintável), `marquise` como
-`FaceKind` novo, e um ecrã de teste em `/demo-areas` (sem autenticação, fora do produto). Detalhe:
-`docs/DECISOES.md`, "Pivot: áreas pelo volume declarado", 03/11/2026.
+1. **Modelo 3D declarativo**, sobre `src/domain/volume.ts` (já existia, de 30/10-01/11/2026):
+   `src/domain/volumeAreas.ts` calcula área real por categoria (fachadas líquidas de vãos > 1 m²,
+   empenas, varandas, marquises — marquises fora do total pintável); `marquise` é `FaceKind` novo.
+2. **Medição por fotografia**, sobre `retificarZona` (`src/domain/retificacao.ts`, feito e testado
+   de manhã — passo 1 da ordem do handoff original): `src/app/demo-areas/MedirZona.tsx` deixa
+   importar uma ou mais fotografias da mesma fachada, marcar nelas um ou mais segmentos medidos com
+   fita métrica (com lupa de precisão) e, opcionalmente, os quatro cantos de uma zona, para calcular
+   área — o resultado pode aplicar-se aos campos do modelo declarativo.
 
-**Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada); cores por zona escolhidas
-pelo cliente (secção 3.5 do handoff original, ainda não construída).
+**O que ficou decidido pelo caminho:** o promotor pediu, a meio do dia, para abandonar uma primeira
+ideia — usar UMA fotografia do prédio inteiro para derivar sozinha todas as dimensões — depois de a
+testar contra uma entrada real (1,65 m × 3,77 m) e ver erros de -1,9% a +20,5% consoante os cantos
+(um vão recuado não é uma fachada plana — detalhe: `docs/DECISOES.md`). Isso levou primeiro a um
+ecrã só declarativo; mas ainda no mesmo dia, o promotor pediu de volta a via da fotografia, só que
+**por zona/segmento, não pelo prédio inteiro** — o que é exactamente o que `retificarZona` já fazia
+bem (erro <0,5% nos testes sintéticos). As duas vias ficaram, cada uma a fazer o que lhe compete.
+
+**Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada, tudo em estado local do
+browser); confirmação cruzada entre segmentos medidos na mesma fotografia (secção 3.2 do handoff
+original — hoje só o primeiro segmento entra no cálculo, os outros ficam registados); cores por zona
+escolhidas pelo cliente (secção 3.5, ainda não construída).
 
 ## 3. Por construir (já decidido, ainda não feito)
 

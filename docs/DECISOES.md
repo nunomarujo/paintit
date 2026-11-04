@@ -4748,3 +4748,51 @@ fotografia, confirmação por dois pontos extra) fica arquivado nas secções 8/
 abandonado, só não prosseguido.
 
 `npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 03/11/2026 — Medir uma zona a partir de fotografias, ligado ao ecrã de teste
+
+O promotor reparou que `/demo-areas` não tinha nenhuma via de medição por fotografia — só a
+declarativa. `retificarZona` já existia e estava testado desde a sessão da manhã, mas nunca tinha
+ecrã nenhum. Construída uma primeira versão (um corpo com quatro cantos + um só segmento A/B); o
+promotor pediu logo a seguir para afinar o fluxo antes de ficar fechado:
+
+1. Importar fotografias **uma de cada vez** ("Importar foto"), podendo repetir para a mesma fachada.
+2. Em cada fotografia, o primeiro passo é marcar **um ou mais segmentos que já se mediu com fita
+   métrica** (ponto A, ponto B, comprimento real) — não os quatro cantos primeiro, como a primeira
+   versão (e como o handoff original) tinham. Pode marcar-se mais do que um segmento na mesma foto.
+3. Só depois, opcionalmente, marcam-se os quatro cantos de uma zona retangular, para calcular área
+   (usa-se sempre o primeiro segmento como referência de escala).
+4. Cada fotografia mostra o seu próprio cálculo, **lado a lado, sem se fundirem automaticamente**:
+   combinar números de fotografias diferentes sem saber que correspondem exatamente à mesma medida
+   seria inventar um valor — exactamente o que `src/domain/geometria.ts` já recusa fazer ("nunca
+   inferir geometria a partir de áreas insuficientes"). A comparação entre fontes fica para a pessoa.
+
+**Construído:** `src/app/demo-areas/MedirZona.tsx` — um SVG posicionado exatamente sobre a imagem
+(viewBox nas dimensões naturais da foto, a mesma unidade de pixel que `retificarZona` espera, sem
+contas de escala à parte) recebe o toque; uma **lupa** (`Lupa`, um `<canvas>` que desenha um recorte
+ampliado 4× da própria fotografia, com mira) segue o dedo/cursor durante a colocação de cada ponto,
+posicionada sempre acima-à-esquerda para nunca tapar o ponto a marcar — o pedido explícito do
+promotor ("indicando com precisão, zoom in na foto"), que também já estava no handoff original
+("Lupa para ajustar cada ponto") e nunca tinha sido construído. Cada segmento tem a sua própria cor;
+os marcadores dos cantos e dos segmentos estão rotulados (1-4 para cantos, 1A/1B, 2A/2B… para
+segmentos). Duas seleções no ecrã principal ("a largura medida vai para"/"a altura medida vai para":
+Frente/Fundo/Pé-direito) deixam aplicar o resultado de uma fotografia aos campos do volume
+declarativo com um clique ("Usar esta medida").
+
+**Um limite físico, não de código, repetido aqui para não se perder:** nenhuma fotografia sozinha
+carrega escala — é sempre preciso pelo menos uma distância real conhecida por segmento. Isto não é
+diferente de qualquer outra ferramenta que dê medidas em metros a partir de uma foto.
+
+**Verificado contra a fotografia real do promotor (a mesma entrada de 1,65 m × 3,77 m):** marcados
+dois segmentos (topo do vão e base do vão, 165 cm e 198 cm) e os quatro cantos — o resultado
+reproduz **exatamente** o achado manual de mais cedo: "Em revisão: a zona não parece retangular"
+(desvio dos cantos: 5,3º, igual ao calculado à mão), largura 1,65 m, altura 4,27 m, igual ao script
+de verificação manual. O aviso "Cálculo feito só com o segmento 1… a confirmação cruzada ainda não
+está construída" aparece quando há mais do que um segmento — honesto sobre o que falta (secção 3.2
+do handoff, confirmação, continua por construir). O botão "Usar esta medida" passa a "Usar esta
+medida mesmo assim" quando o resultado está em revisão. Testada também a importação de uma segunda
+fotografia (cartão independente, com o seu próprio cálculo). Tudo verificado num browser real
+(Playwright): a lupa aparece e desenha ao mover o rato/dedo, os cliques colocam os pontos certos, sem
+erros de consola, sem scroll horizontal em 390px.
+
+`npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
