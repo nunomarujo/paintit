@@ -19,6 +19,8 @@ export type Lado = 'frente' | 'direita' | 'tras' | 'esquerda';
 export interface FaceMedida {
   lado: Lado;
   zonas: Zona[];
+  /** A saliência medida das marquises desta fachada; sem ela, a ilustrativa de `SALIENCIA_M`. */
+  salienciaMarquiseM?: number;
 }
 
 export type TipoPoligono = TipoZona | 'parede' | 'parede-por-medir' | 'topo';
@@ -106,16 +108,11 @@ function aoCanto(zonas: Zona[]): Zona[] {
   return zonas.map((z) => ({ ...z, x: z.x - x0, y: z.y - y0 }));
 }
 
-export function montarModelo(
-  faces: FaceMedida[],
-  dim: { larguraM: number; fundoM: number; alturaM: number },
-  vista: Vista,
-  /** Saliências medidas, por cima das ilustrativas de `SALIENCIA_M`. */
-  saliencias: Partial<Record<TipoZona, number>> = {},
-): Poligono[] {
+export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundoM: number; alturaM: number }, vista: Vista): Poligono[] {
   const { larguraM: W, fundoM: D, alturaM: H } = dim;
   const proj = projetor(vista);
   const medidas = new Map(faces.map((f) => [f.lado, aoCanto(f.zonas)]));
+  const salienciaPorLado = new Map(faces.filter((f) => f.salienciaMarquiseM).map((f) => [f.lado, f.salienciaMarquiseM!]));
   const quad = (pts: V3[], tipo: TipoPoligono, sombra = false): Poligono => ({ pontos: pts.map((p) => proj.ecra(p)), tipo, sombra });
 
   const antes: Poligono[] = [];
@@ -150,7 +147,7 @@ export function montarModelo(
     }
 
     for (const z of zonas ?? []) {
-      const p = saliencias[z.tipo] ?? SALIENCIA_M[z.tipo];
+      const p = z.tipo === 'marquise' ? (salienciaPorLado.get(lado) ?? SALIENCIA_M.marquise) : SALIENCIA_M[z.tipo];
       if (!p) continue;
       const { s0, s1, y0, y1 } = dentro(z);
       if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;

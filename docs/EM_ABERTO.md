@@ -72,8 +72,11 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - Varandas: hoje desenha-se a frente; as faces interiores continuam por medir (decisão 8.2).
 - *Decidido pelo promotor a 04/11/2026:* o R/C pinta-se por omissão (fecha a 8.3, que propunha o
   contrário) e as marquises têm parede — a frente pinta-se, os vidros descontam-se como vãos, e as
-  paredes laterais acrescentam altura × saliência (medida à fita). Falta só o promotor confirmar se
-  o tecto exterior da marquise mais baixa (por baixo dela) também se pinta — hoje não conta.
+  paredes laterais acrescentam altura × saliência (medida à fita), mais o tecto da mais baixa e a
+  cobertura da mais alta de cada coluna (largura × saliência). *Feito no mesmo dia.*
+- Vidros nas paredes laterais das marquises: hoje um total em m² escrito à mão (não se veem de frente).
+- A correção da perspetiva das marquises depende da câmara tirada da fotografia (`camaraDaHomografia`):
+  numa fotografia tirada de frente não há correção (e o ecrã di-lo). Comparar com uma medição real.
 - Deteção automática de vãos e varandas na vista endireitada (com IA) — pede decisão do promotor
   sobre privacidade (a fotografia sairia do aparelho) e custo; não construído.
 - Decidir se `retificacao.ts` e `volumeAreas.ts` (sem ecrã desde 04/11/2026) se apagam.
@@ -81,6 +84,16 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   motor de `retificarZona`, que já não está em uso.
 
 ## 3. Por construir (já decidido, ainda não feito)
+
+- **Impermeabilização das coberturas de corpos salientes sem telha (promotor, 04/11/2026)** — sempre
+  que haja corpos salientes sem telha (marquises, palas, varandas cobertas em laje), perguntar ao
+  **cliente**, ao **avaliador** e ao **pintor** se se orçamenta a impermeabilização dessa parte e como:
+  só pintura, membrana líquida, tela asfáltica (e que tipo), outra. Na ferramenta de medição (`/demo-areas`)
+  a pergunta já aparece ao avaliador, no passo 4, quando há marquises. **Falta no produto:** o pedido do
+  cliente (com palavras de quem não é técnico — o `RequestForm` evita de propósito perguntas técnicas,
+  por isso aqui é "a cobertura deixa entrar água? quer que o pintor proponha impermeabilizar?"), o
+  levantamento do avaliador e a proposta do pintor (linha própria, com o método). Precisa de decidir
+  onde se guarda (superfície própria, ou uma pergunta da superfície `beirais_cobertura`) — migração.
 
 - **Sexto estado do trabalho, «alternativa proposta»** — precisa de coluna e migração. `ESTADO.md` «Em aberto».
 - **Perguntas geradas na reconciliação** ainda não se enviam num clique (falta ligar a `sendMessage`).

@@ -23,6 +23,13 @@
  * muito mais precisão — qualquer aresta vertical serve, mesmo fora do plano da fachada, porque todas
  * as verticais do mundo vão parar ao mesmo ponto de fuga. Com uma aresta, ±2 px dão ±1,5 % na altura.
  *
+ * ## O que está fora do plano da fachada
+ *
+ * A homografia só é exata no plano da referência. A frente de uma marquise ou de um corpo saliente
+ * está mais perto da câmara e sai maior na vista endireitada. Da homografia tira-se também a câmara
+ * (`camaraDaHomografia`: focal e posição, supondo um telemóvel comum) e, com ela, a frente saliente
+ * volta à medida verdadeira (`corrigirParalaxe`), desde que se saiba quanto sai da fachada.
+ *
  * Funções puras: sem base de dados, sem DOM.
  */
 
@@ -144,9 +151,15 @@ function normalizacao(pontos: Ponto[]): Matriz3 {
 
 /**
  * Ponto de fuga comum a vários segmentos (as retas que, no mundo, são paralelas), por mínimos
- * quadrados. Cada reta pesa o mesmo, venha de um segmento curto ou comprido.
+ * quadrados. Por omissão, cada reta pesa o mesmo, venha de um segmento curto ou comprido.
+ *
+ * Com `pesarPeloComprimento`, cada reta pesa proporcionalmente ao comprimento do segmento: o mesmo
+ * erro de toque nas pontas inclina um segmento curto muito mais do que um comprido, e o lado de uma
+ * porta (150 px) não deve valer o mesmo que uma cimalha (1200 px). Sem isto, duas retas curtas
+ * erradas puxam o ponto de fuga tanto como duas compridas certas (medido nos testes: com a base e o
+ * topo da porta inclinados 2 px, duas horizontais compridas só corrigem a sério com este peso).
  */
-export function pontoDeFuga(segmentos: [Ponto, Ponto][]): Homogeneo {
+export function pontoDeFuga(segmentos: [Ponto, Ponto][], opcoes: { pesarPeloComprimento?: boolean } = {}): Homogeneo {
   if (segmentos.length < 2) throw new Error('são precisos pelo menos dois segmentos');
   const todos = segmentos.flat();
   const t = normalizacao(todos);
@@ -155,7 +168,8 @@ export function pontoDeFuga(segmentos: [Ponto, Ponto][]): Homogeneo {
     const a = norm(p);
     const b = norm(q);
     const l = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    const n = Math.hypot(l[0]!, l[1]!) || 1;
+    // hypot(l₀, l₁) é o comprimento do segmento (em coordenadas normalizadas).
+    const n = opcoes.pesarPeloComprimento ? 1 : Math.hypot(l[0]!, l[1]!) || 1;
     return l.map((x) => x / n);
   });
   const v = nucleo(linhas);
@@ -169,15 +183,47 @@ export function pontoDeFuga(segmentos: [Ponto, Ponto][]): Homogeneo {
 }
 
 /**
- * Homografia plano → imagem a partir de correspondências de pontos (pelo menos quatro), com uma
- * restrição opcional: a direção vertical do plano (0, 1) tem de ir parar a um ponto de fuga
- * conhecido. DLT normalizado (Hartley); com exatamente quatro pontos e sem ponto de fuga, a solução
- * é exata.
- *
- * `pesoFuga` diz quanto mais vale o ponto de fuga do que cada ponto: arestas compridas medem a
- * convergência das verticais com muito mais precisão do que os cantos de uma referência curta.
+ * As equações lineares de Hn[:, coluna] × pf_n = 0: a coluna `coluna` da homografia normalizada (0 =
+ * direção horizontal do plano, 1 = vertical) tem de apontar para o ponto de fuga. Nas coordenadas
+ * normalizadas, Hn·eₖ ∥ Ti·pf (a translação de Tp não mexe numa direção). Das três equações só duas
+ * são independentes; entram as três para não ter de escolher qual largar quando uma componente do
+ * ponto de fuga é zero — o caso de um ponto de fuga no infinito (retas paralelas na imagem), que
+ * assim funciona como qualquer outro, sem divisão nenhuma por w.
  */
-export function homografia(plano: Ponto[], imagem: Ponto[], opcoes: { fugaVertical?: Homogeneo; pesoFuga?: number } = {}): Matriz3 {
+function restricoesDeFuga(coluna: 0 | 1, pf: Homogeneo, ti: Matriz3, peso: number): number[][] {
+  const n0 = ti[0] * pf[0] + ti[2] * pf[2];
+  const n1 = ti[4] * pf[1] + ti[5] * pf[2];
+  const n2 = pf[2];
+  const norma = Math.hypot(n0, n1, n2) || 1;
+  const [a, b, c] = [n0 / norma, n1 / norma, n2 / norma];
+  // A coluna k de Hn = (h_k, h_{3+k}, h_{6+k}).
+  const [i0, i1, i2] = [coluna, 3 + coluna, 6 + coluna];
+  const r1 = new Array(9).fill(0) as number[];
+  r1[i1] = c * peso;
+  r1[i2] = -b * peso;
+  const r2 = new Array(9).fill(0) as number[];
+  r2[i2] = a * peso;
+  r2[i0] = -c * peso;
+  const r3 = new Array(9).fill(0) as number[];
+  r3[i0] = b * peso;
+  r3[i1] = -a * peso;
+  return [r1, r2, r3];
+}
+
+/**
+ * Homografia plano → imagem a partir de correspondências de pontos (pelo menos quatro), com duas
+ * restrições opcionais: a direção vertical do plano (0, 1) e a horizontal (1, 0) têm de ir parar a
+ * pontos de fuga conhecidos. DLT normalizado (Hartley); com exatamente quatro pontos e sem ponto de
+ * fuga, a solução é exata. Os pontos de fuga são homogéneos e podem estar no infinito (w = 0).
+ *
+ * `pesoFuga` diz quanto mais vale cada ponto de fuga do que cada ponto: arestas compridas medem a
+ * convergência das retas com muito mais precisão do que os cantos de uma referência curta.
+ */
+export function homografia(
+  plano: Ponto[],
+  imagem: Ponto[],
+  opcoes: { fugaVertical?: Homogeneo; fugaHorizontal?: Homogeneo; pesoFuga?: number } = {},
+): Matriz3 {
   if (plano.length !== imagem.length || plano.length < 4) throw new Error('são precisos pelo menos quatro pares de pontos');
   const tp = normalizacao(plano);
   const ti = normalizacao(imagem);
@@ -190,28 +236,10 @@ export function homografia(plano: Ponto[], imagem: Ponto[], opcoes: { fugaVertic
     linhas.push([x, y, 1, 0, 0, 0, -u * x, -u * y, -u]);
     linhas.push([0, 0, 0, x, y, 1, -v * x, -v * y, -v]);
   }
-  if (opcoes.fugaVertical) {
-    // H·(0,1,0) ∥ ponto de fuga. Nas coordenadas normalizadas: Hn·(0,1,0) ∥ Ti·pf (a translação de
-    // Tp não mexe numa direção). Duas equações lineares independentes de Hn[:,1] × pf_n = 0.
-    const pf = opcoes.fugaVertical;
-    const n0 = ti[0] * pf[0] + ti[2] * pf[2];
-    const n1 = ti[4] * pf[1] + ti[5] * pf[2];
-    const n2 = pf[2];
-    const norma = Math.hypot(n0, n1, n2) || 1;
-    const [a, b, c] = [n0 / norma, n1 / norma, n2 / norma];
-    const peso = opcoes.pesoFuga ?? 30;
-    // Coluna 1 de Hn = (h1, h4, h7) nas posições 1, 4, 7.
-    const r1 = new Array(9).fill(0) as number[];
-    r1[4] = c * peso;
-    r1[7] = -b * peso;
-    const r2 = new Array(9).fill(0) as number[];
-    r2[7] = a * peso;
-    r2[1] = -c * peso;
-    const r3 = new Array(9).fill(0) as number[];
-    r3[1] = b * peso;
-    r3[4] = -a * peso;
-    linhas.push(r1, r2, r3);
-  }
+  const peso = opcoes.pesoFuga ?? 30;
+  // H·(0,1,0) ∥ ponto de fuga vertical; H·(1,0,0) ∥ ponto de fuga horizontal.
+  if (opcoes.fugaVertical) linhas.push(...restricoesDeFuga(1, opcoes.fugaVertical, ti, peso));
+  if (opcoes.fugaHorizontal) linhas.push(...restricoesDeFuga(0, opcoes.fugaHorizontal, ti, peso));
   const hn = nucleo(linhas) as Matriz3;
   const h = multiplicar(multiplicar(inverter(ti), hn), tp);
   const escala = h[8] !== 0 ? h[8] : 1;
@@ -258,9 +286,30 @@ export function problemaDaReferencia(ref: ReferenciaRetangular): string | null {
 
 /**
  * Calibração métrica do plano da fachada a partir de um retângulo medido e, opcionalmente, de
- * arestas verticais compridas do prédio (cada uma: dois pontos, em baixo e em cima).
+ * arestas verticais compridas do prédio (cada uma: dois pontos, em baixo e em cima) e de arestas
+ * horizontais compridas da fachada (uma cimalha, um friso, a linha de um peitoril corrido — cada
+ * uma: dois pontos, à esquerda e à direita).
+ *
+ * As horizontais servem para o erro que as verticais não apanham: a base e o topo de uma porta têm
+ * pouco mais de um metro e meio, e dois píxeis de erro num canto inclinam a direção horizontal
+ * inteira — a vista endireitada sai ligeiramente rodada e um ponto a 10 m para o lado cai à altura
+ * errada. Ao contrário das verticais, só servem horizontais **do plano da fachada** (ou paralelas a
+ * ele): horizontais de outras paredes vão para outro ponto de fuga.
+ *
+ * **Uma aresta horizontal não chega para a fachada toda.** Uma reta só diz que o ponto de fuga está
+ * algures nela; onde, ao longo dela, continua a decidir a base e o topo da referência. Na prática,
+ * uma cimalha endireita bem as alturas perto dela e pouco as de baixo (o ponto a 10 m para o lado
+ * cai certo à altura da cimalha e quase tão errado como antes ao nível do passeio). Duas horizontais
+ * compridas a alturas diferentes (a cimalha e um friso, a linha dos peitoris de um piso) fixam o
+ * ponto de fuga sozinhas, e aí a correção vale para toda a fachada. Por isso as horizontais entram
+ * pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a base e o topo da porta,
+ * curtos e errados, valeriam tanto como elas. As verticais continuam com o peso igual de sempre.
  */
-export function calibrar(ref: ReferenciaRetangular, arestasVerticais: [Ponto, Ponto][] = []): Calibracao {
+export function calibrar(
+  ref: ReferenciaRetangular,
+  arestasVerticais: [Ponto, Ponto][] = [],
+  arestasHorizontais: [Ponto, Ponto][] = [],
+): Calibracao {
   const problema = problemaDaReferencia(ref);
   if (problema) throw new Error(problema);
   const plano: Ponto[] = [
@@ -275,8 +324,145 @@ export function calibrar(ref: ReferenciaRetangular, arestasVerticais: [Ponto, Po
     // As ombreiras da própria referência também são verticais: entram no ponto de fuga com as arestas.
     fugaVertical = pontoDeFuga([[be, te], [bd, td], ...arestasVerticais]);
   }
-  const planoParaImagem = homografia(plano, [be, bd, td, te], { fugaVertical });
+  let fugaHorizontal: Homogeneo | undefined;
+  if (arestasHorizontais.length > 0) {
+    // A base e o topo da referência também são horizontais da fachada, mas curtas: pesam pelo comprimento.
+    fugaHorizontal = pontoDeFuga([[be, bd], [te, td], ...arestasHorizontais], { pesarPeloComprimento: true });
+  }
+  const planoParaImagem = homografia(plano, [be, bd, td, te], { fugaVertical, fugaHorizontal });
   return { planoParaImagem, imagemParaPlano: inverter(planoParaImagem) };
+}
+
+/** Onde estava a câmara e que lente tinha, tirados da homografia (`camaraDaHomografia`). */
+export interface CamaraDaFotografia {
+  /** Distância focal em píxeis da fotografia. */
+  focalPx: number;
+  /**
+   * Centro ótico em coordenadas do plano da fachada, em metros: x para a direita, y para cima (a
+   * origem é a da calibração, o canto inferior esquerdo da referência), z a distância à fachada,
+   * sempre positiva — do lado da câmara, à frente da fachada.
+   */
+  centro: { x: number; y: number; z: number };
+}
+
+/**
+ * Abaixo deste ângulo entre a fachada e o plano da fotografia, a fotografia conta como «de frente» e a
+ * focal não se tira dela (ver `camaraDaHomografia`). Porquê 8° e não perto de zero: o próprio erro de
+ * toque inventa perspetiva. Com ±1 px nos cantos de uma porta a 12 m, uma fotografia exatamente de
+ * frente parece inclinada 5° (mediana; 7° no percentil 95), e a 5° verdadeiros a focal ainda sai com
+ * 50 % de erro. Acima de 8° deixa passar quase tudo o que é real (a 10°, 94 %). Afinado para
+ * referências do tamanho de uma porta; uma referência maior na imagem aguentaria um limite mais baixo.
+ */
+export const INCLINACAO_MINIMA_GRAUS = 8;
+
+/**
+ * A câmara que tirou a fotografia, a partir da homografia plano → imagem: a distância focal e o
+ * centro ótico, em metros, no referencial da fachada. É o que permite corrigir o que não está no
+ * plano da fachada (`corrigirParalaxe`).
+ *
+ * Supõe uma câmara de telemóvel comum: ponto principal no centro da imagem, píxeis quadrados, sem
+ * distorção da lente (ou já corrigida). Com essas três suposições sobra uma incógnita na matriz da
+ * câmara, a focal f, e a homografia dá duas equações para ela (Zhang, 2000): as duas primeiras
+ * colunas de K⁻¹·H são as direções horizontal e vertical da fachada vistas da câmara, logo têm de ser
+ * perpendiculares e do mesmo comprimento. As duas são lineares em 1/f², e resolvem-se juntas por
+ * mínimos quadrados.
+ *
+ * **Limitação, e porque devolve `null`.** A informação sobre a focal está toda na perspetiva — no
+ * quanto as retas paralelas da fachada convergem. Numa fotografia tirada exatamente de frente, as
+ * paralelas continuam paralelas, as duas equações reduzem-se a 0 = 0 e qualquer focal serve: a
+ * mesma fotografia tanto pode ser de uma grande angular perto como de uma teleobjetiva longe. A
+ * precisão cai com o quadrado do seno desse ângulo, por isso abaixo de `INCLINACAO_MINIMA_GRAUS`
+ * devolve `null`, e também quando 1/f² sai negativo ou a focal sai fora de [0,3; 3] × o lado maior
+ * da imagem (fora do que um telemóvel faz: é sinal de cantos mal marcados). Acima desse ângulo, a
+ * função não sabe quão bem foram tocados os cantos e o erro de toque passa para a focal: com ±1 px
+ * nos cantos de uma porta a 12 m, o erro mediano da focal ronda 8 % a 10° de inclinação e 1 a 3 %
+ * de 20° para cima (ver os testes). A grande angular (0,5×) dos telemóveis dá um campo de visão de
+ * 95 a 110° no lado maior e cabe no intervalo (a fotografia real dos testes dá 102°, o que só uma
+ * grande angular faz). Um recorte da fotografia (ponto principal fora do centro) engana a função sem
+ * aviso.
+ */
+export function camaraDaHomografia(h: Matriz3, larguraImg: number, alturaImg: number): CamaraDaFotografia | null {
+  if (!(larguraImg > 0) || !(alturaImg > 0) || !h.every(Number.isFinite)) return null;
+  // Coordenadas da imagem com o ponto principal na origem e o lado maior a valer 1: a focal passa a
+  // ser um número perto de 1 e as equações ficam bem condicionadas.
+  const s = Math.max(larguraImg, alturaImg);
+  const [cx, cy] = [larguraImg / 2, alturaImg / 2];
+  const a1 = (h[0] - cx * h[6]) / s;
+  const a2 = (h[1] - cx * h[7]) / s;
+  const a3 = (h[2] - cx * h[8]) / s;
+  const b1 = (h[3] - cy * h[6]) / s;
+  const b2 = (h[4] - cy * h[7]) / s;
+  const b3 = (h[5] - cy * h[8]) / s;
+  const [c1, c2, c3] = [h[6], h[7], h[8]];
+  // Colunas de K⁻¹·H: m₁ = (a1/f, b1/f, c1), m₂ = (a2/f, b2/f, c2). Com u = 1/f²:
+  //   m₁·m₂ = 0           →  A1·u + B1 = 0
+  //   |m₁|² − |m₂|² = 0   →  A2·u + B2 = 0
+  const A1 = a1 * a2 + b1 * b2;
+  const B1 = c1 * c2;
+  const A2 = a1 * a1 + b1 * b1 - (a2 * a2 + b2 * b2);
+  const B2 = c1 * c1 - c2 * c2;
+  // A primeira equação entra a dobrar: assim (2·A1, A2) mede a perspetiva sem depender da focal nem
+  // da rotação da fotografia — dividido por k, é sen²θ/(1 − sen²θ/2), sendo θ o ângulo entre a
+  // fachada e o plano da fotografia.
+  const k = (a1 * a1 + b1 * b1 + a2 * a2 + b2 * b2) / 2;
+  if (!(k > 0)) return null;
+  const q = Math.hypot(2 * A1, A2) / k;
+  const sen2 = q / (1 + q / 2);
+  const senMin = Math.sin((INCLINACAO_MINIMA_GRAUS * Math.PI) / 180);
+  if (!(sen2 >= senMin * senMin)) return null;
+  const u = -(4 * A1 * B1 + A2 * B2) / (4 * A1 * A1 + A2 * A2);
+  if (!(u > 0) || !Number.isFinite(u)) return null;
+  const fn = 1 / Math.sqrt(u);
+  if (!(fn >= 0.3 && fn <= 3)) return null;
+
+  // [r₁ r₂ t] = λ·K⁻¹·H, com λ a média geométrica das duas escalas (com ruído, |m₁| ≠ |m₂|).
+  const m1 = [a1 / fn, b1 / fn, c1];
+  const m2 = [a2 / fn, b2 / fn, c2];
+  const m3 = [a3 / fn, b3 / fn, c3];
+  const n1 = Math.hypot(m1[0]!, m1[1]!, m1[2]!);
+  const n2 = Math.hypot(m2[0]!, m2[1]!, m2[2]!);
+  if (!(n1 > 0) || !(n2 > 0)) return null;
+  const lambda = 1 / Math.sqrt(n1 * n2);
+  const t = m3.map((x) => x * lambda);
+  // Com ruído, r₁ e r₂ não saem perpendiculares: o par ortonormado mais próximo, simétrico nos dois
+  // (as bissetrizes de r₁ e r₂ são perpendiculares; roda-se ±45° a partir delas).
+  const e1 = m1.map((x) => x / n1);
+  const e2 = m2.map((x) => x / n2);
+  const soma = e1.map((x, i) => x + e2[i]!);
+  const dif = e1.map((x, i) => x - e2[i]!);
+  const ns = Math.hypot(soma[0]!, soma[1]!, soma[2]!);
+  const nd = Math.hypot(dif[0]!, dif[1]!, dif[2]!);
+  if (!(ns > 0) || !(nd > 0)) return null;
+  const r1 = soma.map((x, i) => (x / ns + dif[i]! / nd) / Math.SQRT2);
+  const r2 = soma.map((x, i) => (x / ns - dif[i]! / nd) / Math.SQRT2);
+  const r3 = [r1[1]! * r2[2]! - r1[2]! * r2[1]!, r1[2]! * r2[0]! - r1[0]! * r2[2]!, r1[0]! * r2[1]! - r1[1]! * r2[0]!];
+  const escalar = (a: number[], b: number[]) => a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!;
+  // t = R·(origem − centro) ⇒ centro = −Rᵀ·t no referencial (horizontal, vertical, normal) da
+  // fachada. O sinal de λ e o lado da normal não se sabem da homografia, mas não importam: x e y não
+  // mudam com o sinal de λ, e z é, por definição, a distância do lado da câmara.
+  const centro = { x: -escalar(r1, t), y: -escalar(r2, t), z: Math.abs(escalar(r3, t)) };
+  if (![centro.x, centro.y, centro.z].every(Number.isFinite)) return null;
+  return { focalPx: fn * s, centro };
+}
+
+/**
+ * Corrige a paralaxe de um ponto que não está no plano da fachada mas num plano paralelo, `saliencia`
+ * metros à frente dela — a frente de uma marquise, de uma varanda fechada, de um corpo saliente.
+ *
+ * A vista endireitada leva tudo para o plano da fachada (Z = 0): um ponto mais perto da câmara cai
+ * onde o raio que passa por ele fura a fachada, mais longe do pé da câmara do que está na realidade
+ * — a frente de uma marquise sai maior do que é. Sendo C o centro ótico (`camaraDaHomografia`) e pé =
+ * (C.x, C.y) o ponto da fachada em frente da câmara, a posição verdadeira é
+ *
+ *     pé + (p − pé) · (C.z − saliencia) / C.z
+ *
+ * Com `saliencia` ≤ 0 (nada a corrigir, ou um recuo, que esta função não trata) ou ≥ C.z (o ponto
+ * estaria atrás da câmara), devolve o ponto tal como está.
+ */
+export function corrigirParalaxe(p: Ponto, centro: { x: number; y: number; z: number }, saliencia: number): Ponto {
+  if (!(saliencia > 0) || !(saliencia < centro.z)) return p;
+  const fator = (centro.z - saliencia) / centro.z;
+  return { x: centro.x + (p.x - centro.x) * fator, y: centro.y + (p.y - centro.y) * fator };
 }
 
 export const distancia = (a: Ponto, b: Ponto) => Math.hypot(a.x - b.x, a.y - b.y);

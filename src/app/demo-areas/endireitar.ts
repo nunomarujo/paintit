@@ -1,4 +1,5 @@
 import { aplicar, type Calibracao, type Matriz3 } from '@/domain/homografia';
+import type { Zona } from '@/domain/fachadaMedida';
 
 /**
  * Desenhar a fachada "endireitada": cada píxel da vista de frente (em metros, à escala) vai buscar a
@@ -155,4 +156,26 @@ export function enquadrarNoContorno(
     y0: Math.max(total.y0, y0 - my),
     y1: Math.min(total.y1, y1 + my),
   };
+}
+
+/**
+ * Uma zona desenhada com uma calibração, levada para outra (depois de "acertar o endireitamento"):
+ * os cantos vão à fotografia pela calibração antiga e voltam ao plano pela nova. A zona fica no mesmo
+ * sítio da fotografia — a janela continua em cima da janela.
+ */
+export function remapearZona(z: Zona, planoParaImagemAntes: Matriz3, imagemParaPlanoDepois: Matriz3): Zona {
+  const cantos = [
+    { x: z.x, y: z.y },
+    { x: z.x + z.largura, y: z.y },
+    { x: z.x + z.largura, y: z.y + z.altura },
+    { x: z.x, y: z.y + z.altura },
+  ].map((p) => {
+    const q = aplicar(planoParaImagemAntes, p);
+    return q ? aplicar(imagemParaPlanoDepois, q) : null;
+  });
+  if (cantos.some((c) => !c || !Number.isFinite(c.x) || !Number.isFinite(c.y))) return z;
+  const xs = cantos.map((c) => c!.x);
+  const ys = cantos.map((c) => c!.y);
+  const [x0, y0] = [Math.min(...xs), Math.min(...ys)];
+  return { ...z, x: x0, y: y0, largura: Math.max(...xs) - x0, altura: Math.max(...ys) - y0 };
 }

@@ -5082,3 +5082,56 @@ da rua) — hoje não conta; e, nas varandas abertas, as faces interiores contin
 Verificado em Chromium (1280 e 390 px) com a fotografia anterior: sem saliência, pintável = contorno −
 vãos (197,28 m²); com 1,2 m, sobe exatamente as laterais (22,37 m² = 5 marquises × 2 lados × 1,86 m
 de altura média × 1,2 m); excluir o R/C tira exatamente os 44,28 m².
+
+## 04/11/2026 (noite) — Medição de fachadas, quarta ronda: precisão, acerto do endireitamento, perspetiva das marquises, e a revisão independente
+
+**Do promotor, depois do terceiro teste:**
+
+1. **Tecto e cobertura das marquises** — "o teto da marquise de baixo também se pinta (apenas do piso
+   mais baixo), mas também se pinta a cobertura da marquise no último andar". As marquises agrupam-se
+   em colunas (umas sobre as outras, com sobreposição horizontal e larguras parecidas): tecto da mais
+   baixa e cobertura da mais alta, largura × saliência; as paredes laterais vão de baixo a cima da
+   coluna (o intervalo entre marquises desenhadas piso a piso é parede, não ar).
+2. **Impermeabilização** — "sempre que haja corpos salientes (sem telha) deve ser questionado ao
+   cliente, avaliador e pintor" (tela? asfáltica, líquida? só pintura?). Na ferramenta, a pergunta
+   aparece ao avaliador quando há marquises; no produto fica em `EM_ABERTO.md` §3 — mexe no pedido,
+   no levantamento e na proposta, e pede uma migração, por isso não se fez às escondidas numa rota
+   de teste.
+3. **Precisão nos cantos** — "ponteiro magnético como no Photoshop… aumentar o foco e a precisão do
+   rato". **Íman nos cantos** (`cantos.ts`: resposta de canto num recorte à volta do dedo, com
+   refinamento subpíxel; sem canto claro, o ponto fica onde se apontou), ligado por omissão e com
+   interruptor; **lupa a 6×** (era 4×); e **arrastar um ponto já marcado move-o a um quarto da
+   velocidade do dedo**, com a lupa em cima dele. Na fotografia do promotor, um toque a 6 px do canto
+   da porta caiu no canto.
+4. **Acertar depois de endireitar** — "o erro levou a ligeira inclinação do prédio". "Acertar o
+   endireitamento": arrasta-se na vista endireitada ao longo de uma aresta que devia estar direita
+   (vertical ou horizontal); a aresta vai para a calibração (`calibrar` ganhou arestas horizontais —
+   ponto de fuga horizontal) e as zonas já desenhadas são levadas para a nova calibração no mesmo sítio
+   da fotografia (`remapearZona`). "Desfazer" guarda zonas e acertos juntos.
+5. **"Medir só a frente?"** — Desenhar a frente inteira, tal como se vê (a coluna de marquises ou de
+   varandas de baixo a cima, de uma vez), e os vidros depois como vãos. Mas a frente de uma marquise
+   está mais perto da câmara: na vista endireitada aparece **maior** (na fotografia do promotor, com
+   1,2 m de saliência, 16 % maior). **Correção da perspetiva:** a posição da câmara tira-se da própria
+   fotografia (`camaraDaHomografia` — a focal pela ortogonalidade das direções da fachada; na
+   fotografia do promotor, a câmara estava a 8,7 m da fachada) e as marquises e os vidros delas
+   levam-se ao tamanho verdadeiro (`corrigirSaliencias`). Numa fotografia tirada de frente a focal não
+   se determina: não há correção, e o ecrã di-lo.
+6. **"Indicações em grande, passo a passo"** — um painel "Agora" a 20 px por cima da imagem nos
+   passos 2 e 3, com o que fazer e como, por tipo (incluindo a resposta ao ponto 5).
+
+**Revisão independente (4 revisores, cada achado atacado por um cético): 16 confirmados, 5
+recusados.** Corrigidos todos: laterais das marquises contavam fora do contorno e dentro de um R/C
+excluído; marquises lado a lado desenhadas à mão (folga ou sobreposição de 10 cm) contavam a parede do
+meio duas vezes; uma marquise triangular contava dois lados verticais; a leitura das alturas juntava
+a porta e as montras do R/C (que a regra das montras manda desenhar como vãos) às colunas das janelas
+— um piso a mais e um falso alarme; **no telemóvel, arrastar a aresta de cima de uma janela pequena
+agarrava também um lado** e a janela ficava com metade da largura (a faixa de cada aresta passou a
+não exceder um terço do lado, e um canto só no canto); o toque só contava abaixo de 2 px (passou a
+10 px) e largar sem arrastar numa aresta não largava a escolha; as arestas passaram a mover-se pelo
+deslocamento do dedo, não para a posição dele; uma série por criar perdia-se ao avançar; a saliência
+passava para a fachada seguinte; "um marquise" e "o primeiro varanda"; ícones de forma a 25 % de
+opacidade. Os vidros nas laterais das marquises passaram a ter campo próprio (não se veem de frente).
+
+As duas peças com matemática própria (câmara/perspetiva e íman) foram feitas por agentes em paralelo.
+Neste commit entram verificadas no browser com a fotografia real (o íman caiu no canto; a câmara a
+8,7 m da fachada); os testes próprios e o ataque de um cético a cada uma entram no commit seguinte.

@@ -1,14 +1,23 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { aplicar, calibrar, problemaDaReferencia, type Calibracao, type Ponto, type ReferenciaRetangular } from '@/domain/homografia';
+import {
+  aplicar,
+  calibrar,
+  camaraDaHomografia,
+  problemaDaReferencia,
+  type Calibracao,
+  type Ponto,
+  type ReferenciaRetangular,
+} from '@/domain/homografia';
 import {
   areaDaZona,
   arestasPerto,
+  deslocarArestas,
   areasDaFachada,
   contagemSugerida,
+  corrigirSaliencias,
   LADO_MINIMO_M,
-  moverArestas,
   TIPO_ZONA_LABELS,
   ENTRE_PISOS_HABITUAL_M,
   leituraDeAlturas,
@@ -23,10 +32,11 @@ import {
   type Zona,
 } from '@/domain/fachadaMedida';
 import { Dica } from '@/components/Dica';
+import { cantoMaisProximo } from './cantos';
 import { Lupa } from './Lupa';
 import { Modelo3D } from './Modelo3D';
 import type { FaceMedida, Lado } from './modelo3d';
-import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, type Extensao } from './endireitar';
+import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, remapearZona, type Extensao } from './endireitar';
 
 /**
  * Medir uma fachada a partir de uma fotografia (04/11/2026). Quatro passos, um de cada vez:
@@ -77,6 +87,13 @@ async function carregarFoto(file: File): Promise<Foto> {
     altura,
   };
 }
+
+/** Arestas marcadas na vista endireitada para a acertar (em píxeis da fotografia). */
+interface Acertos {
+  verticais: [Ponto, Ponto][];
+  horizontais: [Ponto, Ponto][];
+}
+const SEM_ACERTOS: Acertos = { verticais: [], horizontais: [] };
 
 const ORDEM_DOS_CANTOS = ['inferior esquerdo', 'inferior direito', 'superior direito', 'superior esquerdo'];
 
@@ -139,6 +156,7 @@ function CamadaDeToque({
   lupa,
   onToque,
   onCancelar,
+  focoLupa,
   onArrastar,
   children,
 }: {
@@ -148,6 +166,8 @@ function CamadaDeToque({
   lupa?: CanvasImageSource;
   onToque?: (p: Ponto) => void;
   onCancelar?: () => void;
+  /** Onde a lupa aponta, quando não é o dedo: o ponto que vai ficar (íman) ou o que se está a mover. */
+  focoLupa?: Ponto | null;
   /** `unidades` = unidades do SVG por píxel de ecrã, para tolerâncias "a um dedo" de distância. */
   onArrastar?: (de: Ponto, ate: Ponto, fim: boolean, unidades: number) => void;
   children?: ReactNode;
@@ -224,7 +244,7 @@ function CamadaDeToque({
       >
         {children}
       </svg>
-      {ativo && lupa && cursor && <Lupa fonte={lupa} ponto={cursor.p} cursorCss={cursor.css} />}
+      {ativo && lupa && cursor && <Lupa fonte={lupa} ponto={focoLupa ?? cursor.p} cursorCss={cursor.css} />}
     </div>
   );
 }
@@ -279,7 +299,12 @@ interface FachadaGuardada {
   nome: string;
   resultado: ResultadoFachada;
   zonas: Zona[];
+  /** A saliência das marquises desta fachada (cada fachada tem as suas — revisão de 04/11/2026). */
+  salienciaM: number | null;
 }
+
+/** Como se trata a cobertura de um corpo saliente sem telha (promotor, 04/11/2026). */
+const IMPERMEABILIZACAO = ['Só pintura', 'Membrana líquida', 'Tela asfáltica', 'Outra, a definir com o pintor'] as const;
 
 export function MedirFachada() {
   const [passo, setPasso] = useState(1);
@@ -296,17 +321,28 @@ export function MedirFachada() {
 
   // As zonas e as versões anteriores, juntas: "Desfazer" volta à anterior, seja o que for que mudou
   // (zona nova, série, aresta acertada, zona apagada).
-  const [desenho, setDesenho] = useState<{ zonas: Zona[]; anteriores: Zona[][] }>({ zonas: [], anteriores: [] });
+  // As zonas e os acertos do endireitamento (arestas marcadas na vista endireitada), com as versões
+  // anteriores dos dois juntos: "Desfazer" nunca deixa zonas de uma calibração sobre outra.
+  const [desenho, setDesenho] = useState<{ zonas: Zona[]; acertos: Acertos; anteriores: { zonas: Zona[]; acertos: Acertos }[] }>({
+    zonas: [],
+    acertos: SEM_ACERTOS,
+    anteriores: [],
+  });
   const zonas = desenho.zonas;
   const mudarZonas = (f: (zs: Zona[]) => Zona[]) =>
-    setDesenho((d) => ({ zonas: f(d.zonas), anteriores: [...d.anteriores.slice(-99), d.zonas] }));
+    setDesenho((d) => ({ ...d, zonas: f(d.zonas), anteriores: [...d.anteriores.slice(-99), { zonas: d.zonas, acertos: d.acertos }] }));
   const desfazer = () =>
-    setDesenho((d) => (d.anteriores.length ? { zonas: d.anteriores[d.anteriores.length - 1]!, anteriores: d.anteriores.slice(0, -1) } : d));
-  const limparZonas = () => setDesenho({ zonas: [], anteriores: [] });
+    setDesenho((d) => {
+      const ultimo = d.anteriores[d.anteriores.length - 1];
+      return ultimo ? { ...ultimo, anteriores: d.anteriores.slice(0, -1) } : d;
+    });
+  const limparZonas = () => setDesenho({ zonas: [], acertos: SEM_ACERTOS, anteriores: [] });
 
   // O R/C pinta-se por omissão (promotor, 04/11/2026); a saliência das marquises é medida à fita.
   const [incluirRC, setIncluirRC] = useState(true);
   const [saliencia, setSaliencia] = useState('');
+  const [vidrosLaterais, setVidrosLaterais] = useState('');
+  const [impermeabilizacao, setImpermeabilizacao] = useState<string | null>(null);
   const [nome, setNome] = useState<string>(NOMES_DE_FACHADA[0]);
   const [frente, setFrente] = useState('');
   const [fundo, setFundo] = useState('');
@@ -324,17 +360,51 @@ export function MedirFachada() {
   }, [cantos, larguraCm, alturaCm]);
 
   const problema = referencia ? problemaDaReferencia(referencia) : null;
-  const calibracao: Calibracao | null = useMemo(() => {
+  const calibrarCom = (acertos: Acertos): Calibracao | null => {
     if (!referencia || problemaDaReferencia(referencia)) return null;
     try {
-      return calibrar(referencia, arestas);
+      return calibrar(referencia, [...arestas, ...acertos.verticais], acertos.horizontais);
     } catch {
       return null;
     }
-  }, [referencia, arestas]);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const calibracao: Calibracao | null = useMemo(() => calibrarCom(desenho.acertos), [referencia, arestas, desenho.acertos]);
+  // A câmara, tirada da própria fotografia: dá a correção da perspetiva das frentes salientes.
+  const camara = useMemo(
+    () => (calibracao && foto ? camaraDaHomografia(calibracao.planoParaImagem, foto.largura, foto.altura) : null),
+    [calibracao, foto],
+  );
+
+  /** Muda os acertos e leva as zonas para a nova calibração, no mesmo sítio da fotografia. */
+  const mudarAcertos = (novos: Acertos) => {
+    const antes = calibracao;
+    const depois = calibrarCom(novos);
+    if (!antes || !depois) return;
+    setDesenho((d) => ({
+      zonas: d.zonas.map((z) => remapearZona(z, antes.planoParaImagem, depois.imagemParaPlano)),
+      acertos: novos,
+      anteriores: [...d.anteriores.slice(-99), { zonas: d.zonas, acertos: d.acertos }],
+    }));
+  };
+  const acertar = (a: Ponto, b: Ponto) => {
+    if (!calibracao) return;
+    const [ia, ib] = [aplicar(calibracao.planoParaImagem, a), aplicar(calibracao.planoParaImagem, b)];
+    if (!ia || !ib) return;
+    const vertical = Math.abs(b.y - a.y) >= Math.abs(b.x - a.x);
+    const { verticais, horizontais } = desenho.acertos;
+    mudarAcertos(vertical ? { verticais: [...verticais, [ia, ib]], horizontais } : { verticais, horizontais: [...horizontais, [ia, ib]] });
+  };
 
   const salienciaM = numero(saliencia);
-  const resultado = useMemo(() => areasDaFachada(zonas, { incluirRC, salienciaMarquisesM: salienciaM }), [zonas, incluirRC, salienciaM]);
+  // As marquises e os vidros delas, no tamanho verdadeiro (desenhados à frente da parede, na vista
+  // endireitada aparecem maiores): é isto que entra nas contas, no 3D e na leitura das alturas.
+  const zonasParaContas = useMemo(() => corrigirSaliencias(zonas, camara?.centro ?? null, salienciaM), [zonas, camara, salienciaM]);
+  const vidrosLateraisM2 = numero(vidrosLaterais);
+  const resultado = useMemo(
+    () => areasDaFachada(zonasParaContas, { incluirRC, salienciaMarquisesM: salienciaM, vidrosLateraisMarquisesM2: vidrosLateraisM2 }),
+    [zonasParaContas, incluirRC, salienciaM, vidrosLateraisM2],
+  );
 
   const recomecar = () => {
     setPasso(1);
@@ -348,6 +418,9 @@ export function MedirFachada() {
     setAMarcarAresta(false);
     limparZonas();
     setIncluirRC(true);
+    // A saliência e os vidros laterais são desta fachada: a seguinte mede os seus.
+    setSaliencia('');
+    setVidrosLaterais('');
   };
 
   return (
@@ -433,6 +506,9 @@ export function MedirFachada() {
           mudarZonas={mudarZonas}
           podeDesfazer={desenho.anteriores.length > 0}
           desfazer={desfazer}
+          acertos={desenho.acertos.verticais.length + desenho.acertos.horizontais.length}
+          onAcertar={acertar}
+          onAnularAcertos={() => mudarAcertos(SEM_ACERTOS)}
           onVoltar={() => setPasso(2)}
           onContinuar={() => setPasso(4)}
         />
@@ -441,11 +517,22 @@ export function MedirFachada() {
       {passo === 4 && (
         <PassoResultado
           resultado={resultado}
-          zonas={zonas}
+          zonas={zonasParaContas}
+          correcao={
+            salienciaM
+              ? camara
+                ? { distanciaM: camara.centro.z, fator: (camara.centro.z - salienciaM) / camara.centro.z }
+                : null
+              : undefined
+          }
           incluirRC={incluirRC}
           setIncluirRC={setIncluirRC}
           saliencia={saliencia}
           setSaliencia={setSaliencia}
+          vidrosLaterais={vidrosLaterais}
+          setVidrosLaterais={setVidrosLaterais}
+          impermeabilizacao={impermeabilizacao}
+          setImpermeabilizacao={setImpermeabilizacao}
           nome={nome}
           setNome={setNome}
           frente={frente}
@@ -456,7 +543,7 @@ export function MedirFachada() {
           onVoltar={() => setPasso(3)}
           onOutraFachada={() => {
             const usados = new Set([...guardadas.map((g) => g.nome), nome]);
-            setGuardadas((gs) => [...gs, { id: Date.now(), nome, resultado, zonas }]);
+            setGuardadas((gs) => [...gs, { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM }]);
             setNome(NOMES_DE_FACHADA.find((n) => !usados.has(n)) ?? 'Outra');
             recomecar();
           }}
@@ -481,19 +568,55 @@ function IconeForma({ canto }: { canto: CantoReto | null }) {
     .join(' ');
   return (
     <svg viewBox="0 0 16 16" className="h-5 w-5" aria-hidden>
-      <polygon points={pontos} className="fill-current opacity-25 stroke-current" strokeWidth={1.5} strokeLinejoin="round" />
+      <polygon points={pontos} className="fill-current stroke-current" fillOpacity={0.3} strokeWidth={1.5} strokeLinejoin="round" />
     </svg>
   );
 }
 
-/** Como se diz cada tipo numa frase ("desenhar o primeiro vão"). */
-const NOME_DO_ELEMENTO: Record<TipoZona, string> = {
-  fachada: 'contorno',
-  vao: 'vão',
-  marquise: 'marquise',
-  varanda: 'varanda',
-  rc: 'R/C',
+/**
+ * Como se diz cada tipo numa frase, com o género certo ("a primeira marquise", "Quantas são?"), e o
+ * que desenhar para cada um — a resposta à pergunta do promotor (04/11/2026) "deve medir só a frente?".
+ */
+const FRASES: Record<TipoZona, { um: string; primeiro: string; ultimo: string; quantos: string; como: string }> = {
+  fachada: {
+    um: 'outro contorno (um recuo, um triângulo)',
+    primeiro: 'o primeiro contorno',
+    ultimo: 'o último contorno',
+    quantos: 'Quantos',
+    como: 'A parede toda, do chão ao telhado. Por cima de um telhado vizinho inclinado, juntar um triângulo.',
+  },
+  vao: {
+    um: 'um vão',
+    primeiro: 'o primeiro vão',
+    ultimo: 'o último vão',
+    quantos: 'Quantos',
+    como: 'Janelas, portas, montras — e também os vidros das marquises. Numa coluna de janelas iguais, «Em série» é mais rápido.',
+  },
+  marquise: {
+    um: 'uma marquise',
+    primeiro: 'a primeira marquise',
+    ultimo: 'a última marquise',
+    quantos: 'Quantas',
+    como: 'A frente inteira, tal como se vê — uma coluna de marquises de baixo a cima, de uma vez. Os vidros desenham-se depois, como vãos.',
+  },
+  varanda: {
+    um: 'uma varanda',
+    primeiro: 'a primeira varanda',
+    ultimo: 'a última varanda',
+    quantos: 'Quantas',
+    como: 'A coluna de varandas inteira, de baixo a cima, tal como se vê.',
+  },
+  rc: {
+    um: 'o R/C',
+    primeiro: 'o primeiro R/C',
+    ultimo: 'o último R/C',
+    quantos: 'Quantos',
+    como: 'De ponta a ponta, do chão à laje do 1.º andar. As montras e a porta desenham-se depois, como vãos.',
+  },
 };
+
+/** Folga de um toque, em píxeis de ecrã: um dedo mexe-se uns px ao pousar (revisão de 04/11/2026). */
+const FOLGA_TOQUE_PX = 10;
 
 /** Uma série nunca passa disto — um número escrito por engano (600 em vez de 6) não congela o ecrã. */
 const SERIE_MAXIMA = 60;
@@ -514,6 +637,9 @@ function PassoDesenhar({
   mudarZonas,
   podeDesfazer,
   desfazer,
+  acertos,
+  onAcertar,
+  onAnularAcertos,
   onVoltar,
   onContinuar,
 }: {
@@ -524,6 +650,10 @@ function PassoDesenhar({
   mudarZonas: (f: (zs: Zona[]) => Zona[]) => void;
   podeDesfazer: boolean;
   desfazer: () => void;
+  /** Quantas arestas já se marcaram na vista endireitada para a acertar. */
+  acertos: number;
+  onAcertar: (a: Ponto, b: Ponto) => void;
+  onAnularAcertos: () => void;
   onVoltar: () => void;
   onContinuar: () => void;
 }) {
@@ -538,12 +668,15 @@ function PassoDesenhar({
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
   const [serie, setSerie] = useState<SeriePendente | null>(null);
   const [verOriginal, setVerOriginal] = useState(false);
+  // Acertar o endireitamento (promotor, 04/11/2026: "o erro levou a ligeira inclinação do prédio"):
+  // arrasta-se ao longo de uma aresta que devia estar direita e o prédio endireita-se por ela.
+  const [modoAcerto, setModoAcerto] = useState(false);
 
   // Sem contorno só se desenha contorno (o promotor desenhou 35 zonas sem ele e não conseguia
   // avançar, 04/11/2026): o contorno é a base de todas as contas e do enquadramento da vista.
   const tipoAtivo: TipoZona = temContorno ? tipo : 'fachada';
   const emSerie = modo === 'serie' && tipoAtivo !== 'fachada';
-  const elemento = NOME_DO_ELEMENTO[tipoAtivo];
+  const frase = FRASES[tipoAtivo];
   const selecionada = zonas.find((z) => z.id === selecionadaId && z.tipo === tipoAtivo) ?? null;
 
   const escolherTipo = (t: TipoZona) => {
@@ -586,33 +719,24 @@ function PassoDesenhar({
   };
 
   let instrucao: ReactNode;
-  if (!temContorno)
-    instrucao = (
-      <>
-        <strong>Primeiro, o contorno:</strong> arrastar à volta da parede toda, do chão ao telhado. Os outros tipos abrem a seguir.
-      </>
-    );
-  else if (emSerie && !serie)
-    instrucao = (
-      <>
-        Desenhar o <strong>primeiro</strong> {elemento} da série — por exemplo, o do piso de baixo.
-      </>
-    );
-  else if (emSerie && serie && !serie.ultima)
-    instrucao = (
-      <>
-        Agora o <strong>último</strong> {elemento} da série — o do piso de cima na mesma coluna, ou o da outra ponta da linha.
-      </>
-    );
-  else if (emSerie) instrucao = <>Quantos são ao todo?</>;
-  else if (selecionada) instrucao = <>Arrastar uma aresta (ou um canto) da zona escolhida para a acertar. Tocar fora dela para largar.</>;
-  else
-    instrucao = (
-      <>
-        Arrastar para desenhar {tipoAtivo === 'fachada' ? 'outro contorno (um recuo, um triângulo)' : `um ${elemento}`}. Para acertar um que
-        já está desenhado, tocar nele.
-      </>
-    );
+  let como: ReactNode = frase.como;
+  if (modoAcerto) {
+    instrucao = <>Arrastar ao longo de uma aresta que devia estar direita</>;
+    como = 'Uma vertical (canto do prédio, tubo de queda) ou uma horizontal (cimalha, linha das janelas), de uma ponta à outra.';
+  } else if (!temContorno) instrucao = <>Primeiro, o contorno da fachada</>;
+  else if (emSerie && !serie) {
+    instrucao = <>Desenhar {frase.primeiro} da série</>;
+    como = 'Por exemplo, o do piso de baixo. Depois, o último; os do meio ficam feitos.';
+  } else if (emSerie && serie && !serie.ultima) {
+    instrucao = <>Agora {frase.ultimo} da série</>;
+    como = 'O do piso de cima na mesma coluna, ou o da outra ponta da linha.';
+  } else if (emSerie) {
+    instrucao = <>{frase.quantos} são ao todo?</>;
+    como = 'Contando com o primeiro e o último. Depois, «Criar».';
+  } else if (selecionada) {
+    instrucao = <>Arrastar uma aresta ou um canto para acertar</>;
+    como = 'Tocar fora da zona escolhida para a largar.';
+  } else instrucao = <>Arrastar para desenhar {frase.um}</>;
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
@@ -685,36 +809,57 @@ function PassoDesenhar({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-[15px] text-slate-700" aria-live="polite">
-          {instrucao}
-        </p>
-        <button
-          type="button"
-          className="btn-quiet btn-sm"
-          disabled={!podeDesfazer && !serie}
-          onClick={() => (serie ? setSerie(null) : desfazer())}
-        >
-          Desfazer
-        </button>
-        {selecionada && (
+      <div className="rounded-xl border border-slate-200 p-4" aria-live="polite">
+        <p className="text-[13px] font-medium text-slate-500">Agora</p>
+        <p className="text-[20px] font-semibold leading-snug text-slate-900">{instrucao}</p>
+        <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">{como}</p>
+        {temContorno && !selecionada && !emSerie && (
+          <p className="mt-1 text-[13px] text-slate-500">Para acertar uma zona já desenhada, tocar nela.</p>
+        )}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
             type="button"
             className="btn-quiet btn-sm"
+            disabled={!podeDesfazer && !serie}
+            onClick={() => (serie ? setSerie(null) : desfazer())}
+          >
+            Desfazer
+          </button>
+          <button
+            type="button"
+            className={modoAcerto ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            disabled={!!serie}
             onClick={() => {
-              mudarZonas((zs) => zs.filter((x) => x.id !== selecionada.id));
+              setModoAcerto((v) => !v);
               setSelecionadaId(null);
             }}
           >
-            Apagar a escolhida
+            {modoAcerto ? 'Cancelar o acerto' : 'Acertar o endireitamento'}
           </button>
-        )}
+          {acertos > 0 && !modoAcerto && (
+            <button type="button" className="btn-quiet btn-sm" onClick={onAnularAcertos}>
+              Anular os acertos ({acertos})
+            </button>
+          )}
+          {selecionada && (
+            <button
+              type="button"
+              className="btn-quiet btn-sm"
+              onClick={() => {
+                mudarZonas((zs) => zs.filter((x) => x.id !== selecionada.id));
+                setSelecionadaId(null);
+              }}
+            >
+              Apagar a escolhida
+            </button>
+          )}
+        </div>
       </div>
 
       {emSerie && serie?.ultima && (
         <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 p-3">
           <label className="block">
-            <span className="mb-1 block text-[15px] font-medium text-slate-700">Quantos ao todo, com o primeiro e o último</span>
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">{frase.quantos} ao todo, com o primeiro e o último</span>
             <input
               className="campo w-28"
               inputMode="numeric"
@@ -747,6 +892,11 @@ function PassoDesenhar({
           canto={canto}
           selecionada={selecionada}
           onSelecionar={setSelecionadaId}
+          modoAcerto={modoAcerto}
+          onAcerto={(a, b) => {
+            setModoAcerto(false);
+            onAcertar(a, b);
+          }}
           previas={previas}
           onDesenho={aoDesenhar}
           onAlterarZona={(nova) => mudarZonas((zs) => zs.map((z) => (z.id === nova.id ? nova : z)))}
@@ -761,12 +911,13 @@ function PassoDesenhar({
       <ListaDeZonas zonas={zonas} onApagar={(id) => mudarZonas((zs) => zs.filter((x) => x.id !== id))} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="btn-quiet btn-sm" onClick={onVoltar}>
+        <button type="button" className="btn-quiet btn-sm" disabled={!!serie} onClick={onVoltar}>
           Voltar à referência
         </button>
-        <button type="button" className="btn-primary btn-sm" disabled={!temContorno} onClick={onContinuar}>
+        <button type="button" className="btn-primary btn-sm" disabled={!temContorno || !!serie} onClick={onContinuar}>
           Ver áreas e volume
         </button>
+        {serie && <p className="text-[13px] text-slate-500">Criar ou cancelar a série primeiro.</p>}
       </div>
     </section>
   );
@@ -788,9 +939,10 @@ function ListaDeZonas({ zonas, onApagar }: { zonas: Zona[]; onApagar: (id: strin
           <details key={t} className="group">
             <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 px-3 text-[15px] [&::-webkit-details-marker]:hidden">
               <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${COR[t].bg}`} />
-              <span className="text-slate-700">{TIPO_ZONA_LABELS[t]}</span>
-              <span className="text-slate-500">· {doTipo.length}</span>
-              <span className="ml-auto font-mono tabular-nums text-slate-900">{m(soma)} m²</span>
+              <span className="min-w-0 flex-1 text-slate-700">
+                {TIPO_ZONA_LABELS[t]} <span className="whitespace-nowrap text-slate-500">· {doTipo.length}</span>
+              </span>
+              <span className="ml-auto whitespace-nowrap font-mono tabular-nums text-slate-900">{m(soma)} m²</span>
               <span className="w-4 text-slate-500 group-open:rotate-90" aria-hidden>
                 ›
               </span>
@@ -839,6 +991,44 @@ function PassoReferencia(props: {
   const aMarcarCantos = cantos.length < 4;
   const ativo = aMarcarCantos || aMarcarAresta;
 
+  // Precisão (promotor, 04/11/2026: "aumentar a precisão do rato"): carregar num ponto já marcado e
+  // arrastar move-o a um quarto da velocidade do dedo, com a lupa em cima dele.
+  type Alvo = { k: 'canto'; i: number } | { k: 'aresta'; i: number; j: 0 | 1 } | { k: 'pendente' };
+  const gesto = useRef<{ mover: Alvo; origem: Ponto } | { colocar: true } | null>(null);
+  const [foco, setFoco] = useState<Ponto | null>(null);
+  // Íman nos cantos, como no Photoshop: ao marcar um canto da referência, o ponto salta para o canto
+  // da imagem mais próximo (`cantos.ts`); sem canto claro por perto, fica onde se apontou.
+  const [ima, setIma] = useState(true);
+  const ajustar = (p: Ponto): Ponto => (ima && aMarcarCantos ? (cantoMaisProximo(foto.pixeis, p, 16) ?? p) : p);
+  const posicao = (a: Alvo): Ponto | null =>
+    a.k === 'canto' ? (cantos[a.i] ?? null) : a.k === 'aresta' ? (arestas[a.i]?.[a.j] ?? null) : arestaPendente;
+  const pontoPerto = (p: Ponto, raio: number): Alvo | null => {
+    const candidatos: Alvo[] = [
+      ...cantos.map((_, i): Alvo => ({ k: 'canto', i })),
+      ...arestas.flatMap((_, i): Alvo[] => [
+        { k: 'aresta', i, j: 0 },
+        { k: 'aresta', i, j: 1 },
+      ]),
+      ...(arestaPendente ? [{ k: 'pendente' } as Alvo] : []),
+    ];
+    let melhor: Alvo | null = null;
+    let dist = raio;
+    for (const a of candidatos) {
+      const q = posicao(a);
+      if (q && Math.hypot(q.x - p.x, q.y - p.y) <= dist) {
+        melhor = a;
+        dist = Math.hypot(q.x - p.x, q.y - p.y);
+      }
+    }
+    return melhor;
+  };
+  const mover = (a: Alvo, q: Ponto) => {
+    if (a.k === 'canto') props.setCantos((c) => c.map((v, k) => (k === a.i ? q : v)));
+    else if (a.k === 'aresta')
+      props.setArestas((ar) => ar.map((e, k): [Ponto, Ponto] => (k === a.i ? (a.j === 0 ? [q, e[1]] : [e[0], q]) : e)));
+    else props.setArestaPendente(q);
+  };
+
   const tocar = (p: Ponto) => {
     if (aMarcarCantos) {
       props.setCantos((c) => (c.length >= 4 ? c : [...c, p]));
@@ -862,33 +1052,49 @@ function PassoReferencia(props: {
   };
 
   let instrucao: ReactNode;
-  if (aMarcarCantos)
+  let como: string;
+  if (aMarcarCantos) {
     instrucao = (
       <>
-        Tocar no canto <strong>{ORDEM_DOS_CANTOS[cantos.length]}</strong> da referência.
+        Tocar no canto <span className="text-tinta-700">{ORDEM_DOS_CANTOS[cantos.length]}</span> da referência
       </>
     );
-  else if (aMarcarAresta)
-    instrucao = arestaPendente ? (
-      <>
-        Tocar no <strong>outro extremo</strong> da aresta.
-      </>
-    ) : (
-      <>Tocar num extremo de uma aresta vertical comprida do prédio.</>
-    );
-  else instrucao = <>Cantos marcados.</>;
+    como = 'Carregar, levar a lupa até ao canto e largar. O íman puxa o ponto para o canto da imagem.';
+  } else if (aMarcarAresta) {
+    instrucao = arestaPendente ? <>Agora o outro extremo da aresta</> : <>Tocar num extremo de uma aresta vertical comprida</>;
+    como = 'Um canto do prédio ou um tubo de queda, do ponto mais baixo ao mais alto que se vê.';
+  } else {
+    instrucao = <>Cantos marcados — escrever a largura e a altura reais</>;
+    como = 'Para acertar um ponto, carregar nele e arrastar: move-se devagar, com a lupa por cima.';
+  }
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="text-[17px] font-semibold text-slate-900">Referência medida</h2>
-      <p className="max-w-[60ch] text-[15px] text-slate-600">
-        Tocar nos 4 cantos de algo retangular que se mediu com fita, na própria fachada — uma porta, uma janela, uma montra — por esta
-        ordem: inferior esquerdo, inferior direito, superior direito, superior esquerdo. Carregar e arrastar mostra a lupa; o ponto fica
-        onde se largar.
-      </p>
-      <p className="max-w-[60ch] text-[13px] text-slate-500">
-        A referência tem de estar no plano da parede: numa entrada recuada, os cantos da abertura na parede, não os da porta lá dentro.
-      </p>
+      <h2 className="flex items-center gap-2 text-[17px] font-semibold text-slate-900">
+        Referência medida
+        <Dica rotulo="O que é a referência">
+          Algo retangular que se mediu com fita, na própria fachada — uma porta, uma janela, uma montra. Tocam-se os 4 cantos por esta
+          ordem: inferior esquerdo, inferior direito, superior direito, superior esquerdo. A referência tem de estar no plano da parede:
+          numa entrada recuada, os cantos da abertura na parede, não os da porta lá dentro.
+        </Dica>
+      </h2>
+
+      <div className="rounded-xl border border-slate-200 p-4" aria-live="polite">
+        <p className="text-[13px] font-medium text-slate-500">Agora</p>
+        <p className="text-[20px] font-semibold leading-snug text-slate-900">{instrucao}</p>
+        <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">{como}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <label className="flex min-h-[44px] items-center gap-2 text-[15px] text-slate-700">
+            <input type="checkbox" className="h-5 w-5" checked={ima} onChange={(e) => setIma(e.target.checked)} />
+            Íman nos cantos
+          </label>
+          {(cantos.length > 0 || arestas.length > 0) && (
+            <button type="button" className="btn-quiet btn-sm" onClick={desfazer}>
+              Desfazer último ponto
+            </button>
+          )}
+        </div>
+      </div>
 
       <Moldura
         fundo={
@@ -896,7 +1102,38 @@ function PassoReferencia(props: {
           <img src={foto.url} alt="Fotografia da fachada" draggable={false} className="block max-h-[70vh] w-auto max-w-full select-none" />
         }
       >
-        <CamadaDeToque largura={foto.largura} altura={foto.altura} ativo={ativo} lupa={foto.canvas} onToque={tocar}>
+        <CamadaDeToque
+          largura={foto.largura}
+          altura={foto.altura}
+          ativo
+          lupa={foto.canvas}
+          focoLupa={foco}
+          onCancelar={() => {
+            gesto.current = null;
+            setFoco(null);
+          }}
+          onArrastar={(de, ate, fim, unidades) => {
+            if (!gesto.current) {
+              const alvo = pontoPerto(de, 24 * unidades);
+              const origem = alvo ? posicao(alvo) : null;
+              gesto.current = alvo && origem ? { mover: alvo, origem } : { colocar: true };
+            }
+            const g = gesto.current;
+            if (fim) {
+              gesto.current = null;
+              setFoco(null);
+            }
+            if ('mover' in g) {
+              const q = { x: g.origem.x + (ate.x - de.x) / 4, y: g.origem.y + (ate.y - de.y) / 4 };
+              mover(g.mover, q);
+              if (!fim) setFoco(q);
+              return;
+            }
+            const q = ajustar(ate);
+            if (!fim) return setFoco(q);
+            if (ativo) tocar(q);
+          }}
+        >
           {cantos.length === 4 && (
             <polygon
               points={cantos.map((p) => `${p.x},${p.y}`).join(' ')}
@@ -923,15 +1160,6 @@ function PassoReferencia(props: {
           {arestaPendente && <Marcador p={arestaPendente} escala={escala} cor="fill-fuchsia-500" />}
         </CamadaDeToque>
       </Moldura>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-[15px] text-slate-700">{instrucao}</p>
-        {(cantos.length > 0 || arestas.length > 0) && (
-          <button type="button" className="btn-quiet btn-sm" onClick={desfazer}>
-            Desfazer último ponto
-          </button>
-        )}
-      </div>
 
       <div className="grid max-w-md gap-4 sm:grid-cols-2">
         <label className="block">
@@ -999,6 +1227,8 @@ function FachadaEndireitada({
   canto,
   selecionada,
   onSelecionar,
+  modoAcerto,
+  onAcerto,
   previas,
   onDesenho,
   onAlterarZona,
@@ -1014,6 +1244,9 @@ function FachadaEndireitada({
   /** A zona escolhida com um toque — a única cujas arestas se arrastam. */
   selecionada: Zona | null;
   onSelecionar: (id: string | null) => void;
+  /** Em vez de desenhar, o arrasto marca uma aresta que devia estar direita. */
+  modoAcerto: boolean;
+  onAcerto: (a: Ponto, b: Ponto) => void;
   /** Pré-visualização de uma série por confirmar, a tracejado. */
   previas: Zona[];
   onDesenho: (a: Ponto, b: Ponto) => void;
@@ -1041,6 +1274,7 @@ function FachadaEndireitada({
   // as arestas de uma zona do tipo escolhido que estejam a um dedo de onde se carregou.
   const gesto = useRef<{ novo: true } | { id: string; arestas: Aresta[] } | null>(null);
   const [edicao, setEdicao] = useState<Zona | null>(null);
+  const [linhaAcerto, setLinhaAcerto] = useState<{ de: Ponto; ate: Ponto } | null>(null);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -1168,24 +1402,35 @@ function FachadaEndireitada({
             gesto.current = null;
             setArrasto(null);
             setEdicao(null);
+            setLinhaAcerto(null);
           }}
           onArrastar={(de, ate, fim, unidades) => {
+            if (modoAcerto) {
+              if (!fim) return setLinhaAcerto({ de, ate });
+              setLinhaAcerto(null);
+              const [a, b] = [metros(de), metros(ate)];
+              if (Math.hypot(b.x - a.x, b.y - a.y) >= 1) onAcerto(a, b);
+              return;
+            }
             if (!gesto.current) gesto.current = decidir(de, unidades);
             const g = gesto.current;
             if (fim) gesto.current = null;
             if ('id' in g) {
               const original = zonas.find((z) => z.id === g.id);
               if (!original) return setEdicao(null);
-              const nova = moverArestas(original, g.arestas, metros(ate));
+              const [a, b] = [metros(de), metros(ate)];
+              const nova = deslocarArestas(original, g.arestas, { x: b.x - a.x, y: b.y - a.y });
+              const parado = Math.hypot(ate.x - de.x, ate.y - de.y) <= FOLGA_TOQUE_PX * unidades;
               if (!fim) return setEdicao(nova);
               setEdicao(null);
-              // Um toque sem arrastar numa aresta não muda nada (nem conta para o "Desfazer").
-              if (Math.hypot(ate.x - de.x, ate.y - de.y) > 2 * unidades) onAlterarZona(nova);
+              // Largar sem ter arrastado é um toque: larga a escolha, ou escolhe a zona vizinha.
+              if (parado) return tocar(metros(de));
+              onAlterarZona(nova);
               return;
             }
             if (!fim) return setArrasto({ de, ate });
             setArrasto(null);
-            if (Math.hypot(ate.x - de.x, ate.y - de.y) <= 2 * unidades) return tocar(metros(de));
+            if (Math.hypot(ate.x - de.x, ate.y - de.y) <= FOLGA_TOQUE_PX * unidades) return tocar(metros(de));
             const a = metros(de);
             const b = metros(ate);
             if (Math.abs(a.x - b.x) >= LADO_MINIMO_M && Math.abs(a.y - b.y) >= LADO_MINIMO_M) onDesenho(a, b);
@@ -1255,6 +1500,18 @@ function FachadaEndireitada({
             />
           ))}
           {temp && retangulo(temp, tipo, 'temp', true)}
+          {linhaAcerto && (
+            <line
+              x1={linhaAcerto.de.x}
+              y1={linhaAcerto.de.y}
+              x2={linhaAcerto.ate.x}
+              y2={linhaAcerto.ate.y}
+              className="stroke-fuchsia-500"
+              strokeWidth={letra / 4}
+              strokeDasharray={`${letra / 2} ${letra / 3}`}
+              style={{ pointerEvents: 'none' }}
+            />
+          )}
         </CamadaDeToque>
       </Moldura>
     </div>
@@ -1339,10 +1596,16 @@ function LeituraDasAlturas({ zonas, alturaM }: { zonas: Zona[]; alturaM: number 
 function PassoResultado(props: {
   resultado: ResultadoFachada;
   zonas: Zona[];
+  /** Correção da perspetiva das marquises: indefinida sem saliência; nula se a fotografia não a permite. */
+  correcao: { distanciaM: number; fator: number } | null | undefined;
   incluirRC: boolean;
   setIncluirRC: (v: boolean) => void;
   saliencia: string;
   setSaliencia: (v: string) => void;
+  vidrosLaterais: string;
+  setVidrosLaterais: (v: string) => void;
+  impermeabilizacao: string | null;
+  setImpermeabilizacao: (v: string) => void;
   nome: string;
   setNome: (v: string) => void;
   frente: string;
@@ -1360,13 +1623,17 @@ function PassoResultado(props: {
   const totalPredio = todas.reduce((s, f) => s + f.resultado.pintavelM2, 0);
 
   // O volume: cada fachada medida vai para a sua parede; a última medida de cada lado é a que conta.
-  const medidas = [...props.guardadas, { nome: props.nome, resultado: r, zonas }];
-  const porLado = new Map<Lado, { resultado: ResultadoFachada; zonas: Zona[] }>();
+  const medidas = [...props.guardadas, { nome: props.nome, resultado: r, zonas, salienciaM: numero(props.saliencia) }];
+  const porLado = new Map<Lado, { resultado: ResultadoFachada; zonas: Zona[]; salienciaM: number | null }>();
   for (const f of medidas) {
     const lado = LADO_DO_NOME[f.nome];
     if (lado && f.resultado.temContorno) porLado.set(lado, f);
   }
-  const faces: FaceMedida[] = [...porLado].map(([lado, f]) => ({ lado, zonas: f.zonas }));
+  const faces: FaceMedida[] = [...porLado].map(([lado, f]) => ({
+    lado,
+    zonas: f.zonas,
+    ...(f.salienciaM ? { salienciaMarquiseM: f.salienciaM } : {}),
+  }));
   const frenteMedida = (porLado.get('frente') ?? porLado.get('tras'))?.resultado.frenteM;
   const fundoMedido = (porLado.get('esquerda') ?? porLado.get('direita'))?.resultado.frenteM;
   const dimensao = (medida: number | undefined, indicada: string) => {
@@ -1430,8 +1697,54 @@ function PassoResultado(props: {
               value={props.saliencia}
               onChange={(e) => props.setSaliencia(e.target.value)}
             />
-            <span className="mt-1 block text-[13px] text-slate-500">Medido à fita, de lado. Dá as paredes laterais.</span>
+            <span className="mt-1 block text-[13px] text-slate-500">
+              Medido à fita, de lado. Dá as paredes laterais, o tecto e a cobertura.
+            </span>
           </label>
+        )}
+        {temMarquises && (
+          <label className="mt-3 block max-w-xs">
+            <span className="mb-1 block text-[15px] font-medium text-slate-700">Vidros nas paredes laterais, ao todo (m²)</span>
+            <input
+              className="campo"
+              inputMode="decimal"
+              placeholder="0"
+              value={props.vidrosLaterais}
+              onChange={(e) => props.setVidrosLaterais(e.target.value)}
+            />
+            <span className="mt-1 block text-[13px] text-slate-500">Não se veem de frente: medir no local, se houver.</span>
+          </label>
+        )}
+        {props.correcao !== undefined && (
+          <p className="mt-2 text-[13px] text-slate-500">
+            {props.correcao
+              ? `Marquises e os vidros delas corrigidos da perspetiva: a frente está mais perto da câmara (a ${m(props.correcao.distanciaM)} m da fachada) e aparecia ${Math.round((1 / props.correcao.fator - 1) * 100)} % maior.`
+              : 'Sem correção da perspetiva das marquises: a fotografia está quase de frente. Contam como desenhadas.'}
+          </p>
+        )}
+        {r.coberturasSalientes.existem && (
+          <div className="mt-4 space-y-2" role="radiogroup" aria-label="Cobertura das marquises">
+            <p className="text-[15px] font-medium text-slate-700">
+              Cobertura das marquises, sem telha: como se trata?
+              <span className="block text-[13px] font-normal text-slate-500">
+                Corpos salientes sem telha: a pergunta da impermeabilização é para o cliente, o avaliador e o pintor.
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {IMPERMEABILIZACAO.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  role="radio"
+                  aria-checked={props.impermeabilizacao === o}
+                  className={props.impermeabilizacao === o ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+                  onClick={() => props.setImpermeabilizacao(o)}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {temRC && (
           <label className="mt-2 flex min-h-[44px] items-center gap-2 text-[15px] text-slate-700">
@@ -1499,7 +1812,7 @@ function PassoResultado(props: {
           </div>
         )}
         {faces.length > 0 ? (
-          <Modelo3D faces={faces} larguraM={W.valor} fundoM={D.valor} alturaM={H} salienciaMarquiseM={props.saliencia} />
+          <Modelo3D faces={faces} larguraM={W.valor} fundoM={D.valor} alturaM={H} />
         ) : (
           <p className="text-[15px] text-slate-500">Escolher acima que fachada é esta para a pôr no volume.</p>
         )}

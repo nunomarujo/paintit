@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react';
 
 const TAMANHO = 140;
-const ZOOM = 4;
+const ZOOM = 6;
 
 /**
- * Lupa: um recorte ampliado 4× da fotografia, centrado no ponto que se está a marcar, com mira.
+ * Lupa: um recorte ampliado 6× da fotografia (era 4×; o promotor pediu mais, 04/11/2026), centrado no ponto que se está a marcar, com mira.
  * Fica acima e à esquerda do dedo/cursor para nunca tapar o ponto (handoff de 03/11/2026, secção 4:
  * «lupa para ajustar cada ponto»).
  */

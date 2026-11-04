@@ -1,4 +1,4 @@
-import type { Ponto } from './homografia';
+import { corrigirParalaxe, type Ponto } from './homografia';
 
 /**
  * Áreas de uma fachada desenhada sobre a fotografia endireitada (`homografia.ts`): cada zona é um
@@ -51,7 +51,7 @@ export interface Zona {
   altura: number;
   /**
    * Sem isto, a zona é o retângulo. Com isto, é a metade do retângulo com o ângulo reto neste canto —
-   * a parede que fica por cima de um telhado inclinado, um empena (promotor, 04/11/2026: "tendo que
+   * a parede que fica por cima de um telhado inclinado, uma empena (promotor, 04/11/2026: "tendo que
    * se colocar uma forma triangular, meti o retângulo a meio termo, a olho").
    */
   triangulo?: CantoReto;
@@ -161,15 +161,35 @@ export const LADO_MINIMO_M = 0.2;
  * Serve para acertar um retângulo arrastando a aresta, em vez de o apagar e desenhar de novo.
  */
 export function arestasPerto(z: Zona, p: Ponto, tolerancia: number): Aresta[] {
-  const { x0, y0, x1, y1 } = { x0: z.x, y0: z.y, x1: z.x + z.largura, y1: z.y + z.altura };
-  const dentroX = p.x >= x0 - tolerancia && p.x <= x1 + tolerancia;
-  const dentroY = p.y >= y0 - tolerancia && p.y <= y1 + tolerancia;
-  const achadas: Aresta[] = [];
-  if (dentroY && Math.abs(p.x - x0) <= tolerancia) achadas.push('esquerda');
-  else if (dentroY && Math.abs(p.x - x1) <= tolerancia) achadas.push('direita');
-  if (dentroX && Math.abs(p.y - y0) <= tolerancia) achadas.push('baixo');
-  else if (dentroX && Math.abs(p.y - y1) <= tolerancia) achadas.push('cima');
-  return achadas;
+  const [x0, x1, y0, y1] = [z.x, z.x + z.largura, z.y, z.y + z.altura];
+  // Numa zona pequena, a faixa de cada aresta não passa de um terço do lado: o meio de uma janela de
+  // 1,2 m nunca agarra a aresta de lado (no telemóvel, 14 px chegam a ser 0,8 m — revisão de 04/11/2026).
+  const tol = Math.min(tolerancia, Math.min(z.largura, z.altura) / 3);
+  const dentroX = p.x >= x0 - tol && p.x <= x1 + tol;
+  const dentroY = p.y >= y0 - tol && p.y <= y1 + tol;
+  const [de, dd, db, dc] = [Math.abs(p.x - x0), Math.abs(p.x - x1), Math.abs(p.y - y0), Math.abs(p.y - y1)];
+  const vertical: [Aresta, number] | null = dentroY && Math.min(de, dd) <= tol ? (de <= dd ? ['esquerda', de] : ['direita', dd]) : null;
+  const horizontalA: [Aresta, number] | null = dentroX && Math.min(db, dc) <= tol ? (db <= dc ? ['baixo', db] : ['cima', dc]) : null;
+  if (vertical && horizontalA) {
+    // Um canto só quando o dedo está mesmo no canto; senão, a aresta mais próxima.
+    if (Math.hypot(vertical[1], horizontalA[1]) <= tol) return [vertical[0], horizontalA[0]];
+    return [vertical[1] <= horizontalA[1] ? vertical[0] : horizontalA[0]];
+  }
+  if (vertical) return [vertical[0]];
+  if (horizontalA) return [horizontalA[0]];
+  return [];
+}
+
+/**
+ * As arestas indicadas deslocadas de `d` (o arrasto do dedo, em metros) — e não levadas à posição do
+ * dedo: assim um tremor ao pousar o dedo mexe a aresta o mesmo que o tremor, e não a faz saltar.
+ */
+export function deslocarArestas(z: Zona, arestas: Aresta[], d: Ponto): Zona {
+  const alvo = {
+    x: arestas.includes('esquerda') ? z.x + d.x : z.x + z.largura + d.x,
+    y: arestas.includes('baixo') ? z.y + d.y : z.y + z.altura + d.y,
+  };
+  return moverArestas(z, arestas, alvo);
 }
 
 /** A zona com as arestas indicadas levadas ao ponto `p`, sem nunca ficar com menos de `LADO_MINIMO_M`. */
@@ -283,9 +303,14 @@ export interface ResultadoFachada {
   linhas: LinhaArea[];
   vaosDescontados: number;
   vaosPequenos: number;
-  /** Área a pintar desta fachada: contorno − vãos > 1 m² (− R/C, se excluído) + paredes laterais das marquises. */
+  /** Área a pintar desta fachada: contorno − vãos > 1 m² (− R/C, se excluído) + laterais, tecto e cobertura das marquises. */
   pintavelM2: number;
   avisos: string[];
+  /**
+   * Há marquises com cobertura à vista (corpos salientes sem telha): a impermeabilização tem de se
+   * perguntar (promotor, 04/11/2026). Área em m², ou nula se ainda falta a saliência.
+   */
+  coberturasSalientes: { existem: boolean; areaM2: number | null };
 }
 
 const arred = (n: number) => Math.round(n * 100) / 100;
@@ -295,26 +320,147 @@ export interface OpcoesFachada {
   incluirRC?: boolean;
   /** Quanto as marquises saem da parede, em metros, medido à fita. Sem valor: laterais por medir. */
   salienciaMarquisesM?: number | null;
+  /** Vidro nas paredes laterais das marquises, ao todo (m²) — não se vê de frente, mede-se no local. */
+  vidrosLateraisMarquisesM2?: number | null;
 }
 
+/** Intervalos [a, b] em y, ordenados e sem sobreposição. */
+type Intervalos = [number, number][];
+
+function uniao(is: Intervalos): Intervalos {
+  const ordenados = is.filter(([a, b]) => b - a > 1e-12).sort((p, q) => p[0] - q[0]);
+  const r: Intervalos = [];
+  for (const [a, b] of ordenados) {
+    const ultimo = r[r.length - 1];
+    if (ultimo && a <= ultimo[1] + 1e-12) ultimo[1] = Math.max(ultimo[1], b);
+    else r.push([a, b]);
+  }
+  return r;
+}
+function intersecao(a: Intervalos, b: Intervalos): Intervalos {
+  const r: Intervalos = [];
+  for (const [a0, a1] of a)
+    for (const [b0, b1] of b) if (Math.min(a1, b1) - Math.max(a0, b0) > 1e-12) r.push([Math.max(a0, b0), Math.min(a1, b1)]);
+  return uniao(r);
+}
+function menos(a: Intervalos, b: Intervalos): Intervalos {
+  let r = a;
+  for (const [b0, b1] of b) {
+    r = r.flatMap(([a0, a1]): Intervalos => {
+      if (b1 <= a0 || b0 >= a1) return [[a0, a1]];
+      return [...(b0 > a0 ? ([[a0, b0]] as Intervalos) : []), ...(b1 < a1 ? ([[b1, a1]] as Intervalos) : [])];
+    });
+  }
+  return uniao(r);
+}
+const medida = (is: Intervalos) => is.reduce((s, [a, b]) => s + (b - a), 0);
+/** O que as formas cobrem na vertical x = `x` (avaliado em x, só formas que atravessam x). */
+const naVertical = (fs: Forma[], x: number): Intervalos =>
+  uniao(fs.filter((f) => f.x0 < x && f.x1 > x).map((f): [number, number] => [emX(f.baixo, x), emX(f.cima, x)]));
+
+/** Folga até à qual duas marquises desenhadas à mão se consideram encostadas (a parede do meio é interior). */
+export const FOLGA_ENCOSTADAS_M = 0.25;
+
 /**
- * Altura de cada lado de cada marquise que fica à vista — tirando o que encosta a outra marquise
- * (duas marquises lado a lado partilham a parede, que fica por dentro).
+ * As marquises por colunas (as de pisos seguidos, umas sobre as outras): o tecto de baixo é só o da
+ * mais baixa e a cobertura só a da mais alta (promotor, 04/11/2026), e as paredes laterais vão de baixo
+ * a cima da coluna — os intervalos entre marquises desenhadas piso a piso são parede da coluna, não ar.
  */
-function ladosExpostosM(marquises: Zona[]): number {
-  const encostado = (m: Zona, x: number, lado: 'esq' | 'dir') =>
-    marquises
-      .filter((o) => o !== m && Math.abs((lado === 'esq' ? o.x + o.largura : o.x) - x) <= 0.05)
-      .reduce((s, o) => s + Math.max(0, Math.min(m.y + m.altura, o.y + o.altura) - Math.max(m.y, o.y)), 0);
-  return marquises.reduce(
-    (s, m) => s + Math.max(0, m.altura - encostado(m, m.x, 'esq')) + Math.max(0, m.altura - encostado(m, m.x + m.largura, 'dir')),
-    0,
-  );
+function colunasDeMarquises(marquises: Zona[]): Zona[][] {
+  const colunas: Zona[][] = [];
+  for (const m of [...marquises].sort((a, b) => a.y - b.y)) {
+    const coluna = m.triangulo
+      ? undefined
+      : colunas.find((c) => {
+          const u = c[c.length - 1]!;
+          if (u.triangulo) return false;
+          const sobre = Math.min(u.x + u.largura, m.x + m.largura) - Math.max(u.x, m.x);
+          const razao = Math.max(u.largura, m.largura) / Math.max(1e-9, Math.min(u.largura, m.largura));
+          return sobre >= 0.5 * Math.min(u.largura, m.largura) && razao <= 1.6;
+        });
+    if (coluna) coluna.push(m);
+    else colunas.push([m]);
+  }
+  return colunas;
+}
+
+interface GeometriaMarquises {
+  /** Comprimento vertical das paredes laterais à vista, dentro do contorno e fora de um R/C excluído. */
+  lateraisM: number;
+  /** Comprimento horizontal do tecto à vista (por baixo da mais baixa de cada coluna). */
+  tectoM: number;
+  /** Comprimento da cobertura (por cima da mais alta de cada coluna; a hipotenusa num triângulo). */
+  coberturaM: number;
+}
+
+function geometriaDasMarquises(marquises: Zona[], contorno: Forma[], rcFora: Forma[]): GeometriaMarquises {
+  if (marquises.length === 0) return { lateraisM: 0, tectoM: 0, coberturaM: 0 };
+  const colunas = colunasDeMarquises(marquises);
+  // A caixa de cada coluna (os triângulos ficam como estão: uma marquise triangular é a sua própria coluna).
+  const caixas: Zona[] = colunas.map((c) => {
+    if (c.length === 1 && c[0]!.triangulo) return c[0]!;
+    const x0 = Math.min(...c.map((m) => m.x));
+    const y0 = Math.min(...c.map((m) => m.y));
+    return {
+      ...c[0]!,
+      x: x0,
+      y: y0,
+      largura: Math.max(...c.map((m) => m.x + m.largura)) - x0,
+      altura: Math.max(...c.map((m) => m.y + m.altura)) - y0,
+    };
+  });
+  // Colunas desenhadas à mão quase encostadas (folga ou sobreposição pequena): encostam de facto.
+  for (const a of caixas) {
+    if (a.triangulo) continue;
+    for (const b of caixas) {
+      if (a === b || b.triangulo) continue;
+      const folga = a.x - (b.x + b.largura);
+      const sobreV = Math.min(a.y + a.altura, b.y + b.altura) - Math.max(a.y, b.y);
+      if (folga > 0 && folga <= FOLGA_ENCOSTADAS_M && sobreV > 0) {
+        a.largura += folga;
+        a.x = b.x + b.largura;
+      }
+    }
+  }
+  const formas = caixas.map(forma);
+  const valido = (x: number) => menos(naVertical(contorno, x), naVertical(rcFora, x));
+  const eps = 1e-7;
+  // Paredes laterais: a fronteira vertical da união das colunas, onde um lado é marquise e o outro não.
+  let lateraisM = 0;
+  for (const x of new Set(formas.flatMap((f) => [f.x0, f.x1]))) {
+    const esquerda = naVertical(formas, x - eps);
+    const direita = naVertical(formas, x + eps);
+    lateraisM += medida(intersecao(menos(esquerda, direita), valido(x - eps)));
+    lateraisM += medida(intersecao(menos(direita, esquerda), valido(x + eps)));
+  }
+  // Tecto da mais baixa e cobertura da mais alta, de cada coluna — se esse ponto contar (no contorno, fora de R/C excluído).
+  const conta = (x: number, y: number) => contem(contorno, x, y) && !contem(rcFora, x, y);
+  let tectoM = 0;
+  let coberturaM = 0;
+  for (const c of colunas) {
+    const baixo = c[0]!;
+    const cima = c[c.length - 1]!;
+    const hipotenusa = (m: Zona) => Math.hypot(m.largura, m.altura);
+    const meio = (m: Zona) => m.x + m.largura / 2;
+    if (baixo.triangulo) {
+      const emBaixo = baixo.triangulo.startsWith('inf');
+      const yb = emBaixo ? baixo.y + eps : baixo.y + baixo.altura / 2;
+      if (conta(meio(baixo), yb)) {
+        tectoM += emBaixo ? baixo.largura : hipotenusa(baixo);
+        coberturaM += emBaixo ? hipotenusa(baixo) : baixo.largura;
+      }
+      continue;
+    }
+    if (conta(meio(baixo), baixo.y + 0.01)) tectoM += baixo.largura;
+    if (conta(meio(cima), cima.y + cima.altura - 0.01)) coberturaM += cima.largura;
+  }
+  return { lateraisM, tectoM, coberturaM };
 }
 
 export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): ResultadoFachada {
   const incluirRC = opcoes.incluirRC ?? true;
   const saliencia = opcoes.salienciaMarquisesM && opcoes.salienciaMarquisesM > 0 ? opcoes.salienciaMarquisesM : null;
+  const vidrosLaterais = opcoes.vidrosLateraisMarquisesM2 && opcoes.vidrosLateraisMarquisesM2 > 0 ? opcoes.vidrosLateraisMarquisesM2 : 0;
   const contornoZonas = zonas.filter((z) => z.tipo === 'fachada');
   const contorno = contornoZonas.map(forma);
   const avisos: string[] = [];
@@ -329,6 +475,7 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
       vaosPequenos: 0,
       pintavelM2: 0,
       avisos: ['Falta desenhar o contorno da fachada.'],
+      coberturasSalientes: { existem: zonas.some((z) => z.tipo === 'marquise'), areaM2: null },
     };
   }
 
@@ -352,9 +499,16 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
   const vaosM2 = noContorno(vaosGrandes, rcFora);
   const excluidas = [...rcFora, ...vaosGrandes];
   const marquisesM2 = noContorno(marquises, excluidas);
-  const lateraisM2 = saliencia ? ladosExpostosM(zonas.filter((z) => z.tipo === 'marquise')) * saliencia : 0;
+  const geo = geometriaDasMarquises(
+    zonas.filter((z) => z.tipo === 'marquise'),
+    contorno,
+    rcFora,
+  );
+  const lateraisM2 = saliencia ? Math.max(0, geo.lateraisM * saliencia - vidrosLaterais) : 0;
+  const tectoM2 = saliencia ? geo.tectoM * saliencia : 0;
+  const coberturaM2 = saliencia ? geo.coberturaM * saliencia : 0;
   const contornoM2 = areaOnde(todos, (x, y) => contem(contorno, x, y));
-  const pintavelM2 = contornoM2 - rcForaM2 - vaosM2 + lateraisM2;
+  const pintavelM2 = contornoM2 - rcForaM2 - vaosM2 + lateraisM2 + tectoM2 + coberturaM2;
 
   for (const z of zonas) {
     if (z.tipo === 'fachada') continue;
@@ -398,15 +552,34 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
       efeito: 'pinta',
       nota: 'incluída na fachada; os vidros descontam-se desenhados como vãos',
     });
+    const s = saliencia ? String(saliencia).replace('.', ',') : '';
     linhas.push({
       tipo: 'marquise',
       rotulo: 'Marquises — paredes laterais',
       areaM2: arred(lateraisM2),
       efeito: 'acrescenta',
       porMedir: !saliencia,
-      nota: saliencia
-        ? `altura de cada lado à vista × ${String(saliencia).replace('.', ',')} m de saliência`
-        : 'por medir: indicar quanto as marquises saem da parede',
+      nota: !saliencia
+        ? 'por medir: indicar quanto as marquises saem da parede'
+        : vidrosLaterais > 0
+          ? `lados à vista × ${s} m de saliência, menos ${String(arred(vidrosLaterais)).replace('.', ',')} m² de vidros laterais`
+          : `lados à vista × ${s} m de saliência; vidros nas laterais não descontados`,
+    });
+    linhas.push({
+      tipo: 'marquise',
+      rotulo: 'Marquises — tecto da mais baixa',
+      areaM2: arred(tectoM2),
+      efeito: 'acrescenta',
+      porMedir: !saliencia,
+      nota: saliencia ? `a face de baixo, à vista da rua × ${s} m` : 'por medir: falta a saliência',
+    });
+    linhas.push({
+      tipo: 'marquise',
+      rotulo: 'Marquises — cobertura da mais alta',
+      areaM2: arred(coberturaM2),
+      efeito: 'acrescenta',
+      porMedir: !saliencia,
+      nota: saliencia ? `sem telha × ${s} m — perguntar a impermeabilização` : 'por medir: falta a saliência',
     });
   }
   if (varandas.length > 0) {
@@ -429,6 +602,7 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
     vaosPequenos: vaos.length - vaosGrandes.length,
     pintavelM2: arred(pintavelM2),
     avisos,
+    coberturasSalientes: { existem: marquises.length > 0, areaM2: saliencia ? arred(coberturaM2) : null },
   };
 }
 
@@ -454,13 +628,24 @@ export interface LeituraDeAlturas {
  * ~3 m (com a laje) e ~1 m de platibanda.
  */
 export function leituraDeAlturas(zonas: Zona[]): LeituraDeAlturas | null {
-  const repetidas = zonas.filter((z) => z.tipo === 'vao' || z.tipo === 'marquise' || z.tipo === 'varanda').sort((a, b) => a.y - b.y);
+  const contornoZ = zonas.filter((z) => z.tipo === 'fachada');
+  const rcZ = zonas.filter((z) => z.tipo === 'rc');
+  const chaoZ = contornoZ.length > 0 ? Math.min(...contornoZ.map((z) => z.y)) : 0;
+  const topoRC = rcZ.length > 0 ? Math.max(...rcZ.map((z) => z.y + z.altura)) : null;
+  // Fica de fora o que não se repete de piso para piso: o que está no R/C (montras, a porta — que a
+  // regra das montras manda desenhar como vãos) e o que nasce no chão.
+  const repetidas = zonas
+    .filter((z) => z.tipo === 'vao' || z.tipo === 'marquise' || z.tipo === 'varanda')
+    .filter((z) => z.y > chaoZ + 0.5 && (topoRC === null || z.y >= topoRC - 0.1))
+    .sort((a, b) => a.y - b.y);
   const colunas: Zona[][] = [];
   for (const z of repetidas) {
+    // Compara com o último da coluna (e larguras parecidas): uma zona larga não junta duas colunas.
     const coluna = colunas.find((c) => {
-      const r = c[0]!;
+      const r = c[c.length - 1]!;
       const sobreposicao = Math.min(r.x + r.largura, z.x + z.largura) - Math.max(r.x, z.x);
-      return r.tipo === z.tipo && sobreposicao >= 0.5 * Math.min(r.largura, z.largura);
+      const razao = Math.max(r.largura, z.largura) / Math.max(1e-9, Math.min(r.largura, z.largura));
+      return r.tipo === z.tipo && sobreposicao >= 0.5 * Math.min(r.largura, z.largura) && razao <= 1.6;
     });
     if (coluna) coluna.push(z);
     else colunas.push([z]);
@@ -476,13 +661,33 @@ export function leituraDeAlturas(zonas: Zona[]): LeituraDeAlturas | null {
   passos.sort((a, b) => a - b);
   const meio = Math.floor(passos.length / 2);
   const mediana = passos.length % 2 ? passos[meio]! : (passos[meio - 1]! + passos[meio]!) / 2;
-  const contorno = zonas.filter((z) => z.tipo === 'fachada');
-  const rc = zonas.filter((z) => z.tipo === 'rc');
-  const chao = contorno.length > 0 ? Math.min(...contorno.map((z) => z.y)) : 0;
   return {
     entrePisosM: arred(mediana),
     medicoes: passos.length,
     pisos: Math.max(...colunas.map((c) => c.length)),
-    rcM: rc.length > 0 ? arred(Math.max(...rc.map((z) => z.y + z.altura)) - chao) : null,
+    rcM: topoRC !== null ? arred(topoRC - chaoZ) : null,
   };
+}
+
+/**
+ * A frente de uma marquise está mais perto da câmara do que a parede: na vista endireitada (que põe
+ * tudo no plano da parede) aparece maior e deslocada — à volta de 10 % numa fotografia tirada a 10 m
+ * com 1,2 m de saliência. Desenha-se a frente tal como se vê (é o que está à vista), e aqui corrige-se:
+ * as marquises e os vãos que estão nelas (os vidros) levam-se ao seu tamanho verdadeiro, com a posição
+ * da câmara tirada da própria fotografia (`camaraDaHomografia`). Sem câmara ou sem saliência, fica tudo
+ * como foi desenhado.
+ */
+export function corrigirSaliencias(zonas: Zona[], centro: { x: number; y: number; z: number } | null, salienciaM: number | null): Zona[] {
+  if (!centro || !salienciaM || salienciaM <= 0 || salienciaM >= centro.z) return zonas;
+  const marquises = zonas.filter((z) => z.tipo === 'marquise');
+  const naMarquise = (z: Zona) => {
+    const meio = { x: z.x + z.largura / 2, y: z.y + z.altura / 2 };
+    return marquises.some((m) => zonaContem(m, meio));
+  };
+  return zonas.map((z) => {
+    if (z.tipo !== 'marquise' && !(z.tipo === 'vao' && naMarquise(z))) return z;
+    const a = corrigirParalaxe({ x: z.x, y: z.y }, centro, salienciaM);
+    const b = corrigirParalaxe({ x: z.x + z.largura, y: z.y + z.altura }, centro, salienciaM);
+    return { ...z, x: a.x, y: a.y, largura: b.x - a.x, altura: b.y - a.y };
+  });
 }

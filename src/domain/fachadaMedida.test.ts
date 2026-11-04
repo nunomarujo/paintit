@@ -4,6 +4,8 @@ import {
   areaDaZona,
   areasDaFachada,
   contagemSugerida,
+  corrigirSaliencias,
+  deslocarArestas,
   leituraDeAlturas,
   moverArestas,
   verticesDaZona,
@@ -61,21 +63,56 @@ describe('areasDaFachada', () => {
     expect(areasDaFachada([contorno, marquise, z('vao', 2.3, 5.9, 2.4, 1)]).pintavelM2).toBeCloseTo(197.6, 9);
   });
 
-  it('marquises: as paredes laterais acrescentam altura × saliência; sem saliência ficam por medir', () => {
+  it('marquises: laterais (altura × saliência), tecto e cobertura (largura × saliência); sem saliência, por medir', () => {
     const marquise = z('marquise', 2, 5, 3, 2);
     const semMedida = areasDaFachada([contorno, marquise]);
-    const laterais = semMedida.linhas.find((l) => l.efeito === 'acrescenta')!;
-    expect(laterais.porMedir).toBe(true);
-    expect(laterais.areaM2).toBe(0);
+    const acrescentos = semMedida.linhas.filter((l) => l.efeito === 'acrescenta');
+    expect(acrescentos.map((l) => l.rotulo)).toEqual([
+      'Marquises — paredes laterais',
+      'Marquises — tecto da mais baixa',
+      'Marquises — cobertura da mais alta',
+    ]);
+    expect(acrescentos.every((l) => l.porMedir && l.areaM2 === 0)).toBe(true);
+    expect(semMedida.coberturasSalientes).toEqual({ existem: true, areaM2: null });
     const comMedida = areasDaFachada([contorno, marquise], { salienciaMarquisesM: 1.2 });
-    expect(comMedida.pintavelM2).toBeCloseTo(200 + 2 * 2 * 1.2, 9); // dois lados de 2 m × 1,2 m
+    // laterais 2 × 2 m × 1,2 = 4,8; tecto 3 × 1,2 = 3,6; cobertura 3,6
+    expect(comMedida.pintavelM2).toBeCloseTo(200 + 4.8 + 3.6 + 3.6, 9);
+    expect(comMedida.coberturasSalientes).toEqual({ existem: true, areaM2: 3.6 });
   });
 
-  it('marquises lado a lado partilham a parede do meio, que não é exterior; empilhadas, contam todas', () => {
+  it('marquises lado a lado partilham a parede do meio; empilhadas são uma coluna (tecto só em baixo, cobertura só em cima)', () => {
     const ladoALado = areasDaFachada([contorno, z('marquise', 1, 5, 2, 2), z('marquise', 3, 5, 2, 2)], { salienciaMarquisesM: 1 });
-    expect(ladoALado.pintavelM2).toBe(204); // só os dois lados de fora: 2 × 2 m × 1 m
+    expect(ladoALado.pintavelM2).toBe(200 + 4 + 4 + 4); // 2 lados de fora × 2 m; tecto e cobertura das duas (2 + 2)
     const empilhadas = areasDaFachada([contorno, z('marquise', 1, 5, 2, 2), z('marquise', 1, 8, 2, 2)], { salienciaMarquisesM: 1 });
-    expect(empilhadas.pintavelM2).toBe(208);
+    expect(empilhadas.pintavelM2).toBe(200 + 10 + 2 + 2); // laterais de 5 a 10 m (o intervalo é parede da coluna)
+  });
+
+  it('revisão de 04/11: laterais, tecto e cobertura só contam dentro do contorno e fora de um R/C excluído', () => {
+    const s1 = { salienciaMarquisesM: 1 };
+    expect(areasDaFachada([contorno, z('marquise', 12, 5, 2, 2)], s1).pintavelM2).toBe(200); // fora do contorno
+    expect(areasDaFachada([contorno, z('marquise', 2, 18, 2, 4)], s1).pintavelM2).toBe(200 + 4 + 2); // sobe 2 m acima: 2 lados × 2 m + tecto
+    const rcFora = areasDaFachada([contorno, z('rc', 0, 0, 10, 4), z('marquise', 2, 1, 2, 2)], { ...s1, incluirRC: false });
+    expect(rcFora.pintavelM2).toBe(160);
+  });
+
+  it('revisão de 04/11: marquise triangular tem um só lado vertical; o lado inclinado é cobertura', () => {
+    const r = areasDaFachada([contorno, tri('marquise', 'inf-dir', 2, 5, 3, 2)], { salienciaMarquisesM: 1 });
+    expect(r.pintavelM2).toBeCloseTo(200 + 2 + 3 + Math.hypot(3, 2), 2);
+  });
+
+  it('revisão de 04/11: uma marquise desenhada duas vezes, ou à mão com 10 cm de folga ou sobreposição, não duplica a parede', () => {
+    const s1 = { salienciaMarquisesM: 1 };
+    const uma = areasDaFachada([contorno, z('marquise', 2, 5, 3, 2)], s1).pintavelM2;
+    expect(areasDaFachada([contorno, z('marquise', 2, 5, 3, 2), z('marquise', 2, 5, 3, 2)], s1).pintavelM2).toBe(uma);
+    const folga = areasDaFachada([contorno, z('marquise', 1, 5, 2, 2), z('marquise', 3.1, 5, 2, 2)], s1);
+    expect(folga.linhas.find((l) => l.rotulo === 'Marquises — paredes laterais')!.areaM2).toBe(4);
+    const sobreposta = areasDaFachada([contorno, z('marquise', 1, 5, 2.1, 2), z('marquise', 3, 5, 2, 2)], s1);
+    expect(sobreposta.linhas.find((l) => l.rotulo === 'Marquises — paredes laterais')!.areaM2).toBe(4);
+  });
+
+  it('vidros nas paredes laterais (medidos no local) descontam das laterais', () => {
+    const r = areasDaFachada([contorno, z('marquise', 2, 5, 3, 2)], { salienciaMarquisesM: 1, vidrosLateraisMarquisesM2: 1.5 });
+    expect(r.linhas.find((l) => l.rotulo === 'Marquises — paredes laterais')!.areaM2).toBe(2.5);
   });
 
   it('R/C pinta-se por omissão (promotor, 04/11/2026) e pode excluir-se', () => {
@@ -166,6 +203,20 @@ describe('acertar uma zona pela aresta', () => {
     expect(arestasPerto(q, { x: 3, y: 4.5 }, 0.1)).toEqual([]); // no meio: desenha uma zona nova
     expect(arestasPerto(q, { x: 2, y: 9 }, 0.1)).toEqual([]); // no prolongamento da aresta, longe da zona
   });
+  it('revisão de 04/11 (telemóvel): no meio da aresta de cima de uma janela pequena agarra só essa aresta', () => {
+    const janela = z('vao', 2, 5, 1.2, 1.4);
+    expect(arestasPerto(janela, { x: 2.6, y: 6.4 }, 0.8)).toEqual(['cima']);
+    expect(arestasPerto(janela, { x: 2.02, y: 6.38 }, 0.8)).toEqual(['esquerda', 'cima']);
+    expect(arestasPerto(janela, { x: 3.15, y: 5.7 }, 0.8)).toEqual(['direita']);
+  });
+
+  it('acertar por deslocamento: a aresta anda o que o dedo andou, não salta para o dedo', () => {
+    expect(deslocarArestas(q, ['cima'], { x: 9, y: 0.5 })).toMatchObject({ x: 2, y: 4, largura: 2, altura: 1.5 });
+    const esq = deslocarArestas(q, ['esquerda'], { x: -0.3, y: 0 });
+    expect(esq.x).toBeCloseTo(1.7, 9);
+    expect(esq.largura).toBeCloseTo(2.3, 9);
+  });
+
   it('move só a aresta escolhida, e nunca deixa a zona virar do avesso', () => {
     expect(moverArestas(q, ['cima'], { x: 99, y: 6 })).toMatchObject({ x: 2, y: 4, largura: 2, altura: 2 });
     const encolhida = moverArestas(q, ['esquerda'], { x: 7, y: 0 });
@@ -276,12 +327,58 @@ describe('leituraDeAlturas', () => {
     expect(l.rcM).toBe(4);
   });
 
+  it('revisão de 04/11: a porta e as montras do R/C (desenhadas como vãos) não entram nas colunas', () => {
+    const base = [z('fachada', 0, 0, 10, 12), z('rc', 0, 0, 10, 3.2), z('vao', 1, 4.1, 1.4, 1.2), z('vao', 1, 7.1, 1.4, 1.2)];
+    const comPorta = leituraDeAlturas([...base, z('vao', 1, 0, 1.4, 2.4)])!;
+    expect(comPorta).toMatchObject({ entrePisosM: 3, medicoes: 1, pisos: 2 });
+    const alto = [
+      z('fachada', 0, 0, 10, 22.5),
+      z('rc', 0, 0, 10, 4),
+      z('vao', 1, 0, 1.65, 3.77),
+      ...[0, 1, 2, 3, 4].map((i) => z('vao', 1, 5 + 3 * i, 1.4, 1.2)),
+    ];
+    expect(leituraDeAlturas(alto)).toMatchObject({ entrePisosM: 3, pisos: 5 });
+    const montraLarga = [
+      z('fachada', 0, 0, 10, 20),
+      z('rc', 0, 0, 10, 4),
+      z('vao', 0.5, 0.5, 5.5, 3),
+      ...[0, 1, 2, 3, 4].map((i) => z('vao', 1, 5 + 3 * i, 1.4, 1.2)),
+      ...[0, 1, 2, 3, 4].map((i) => z('vao', 4, 5.1 + 3 * i, 1.4, 1.2)),
+    ];
+    expect(leituraDeAlturas(montraLarga)).toMatchObject({ entrePisosM: 3, medicoes: 8, pisos: 5 });
+  });
+
+  it('sem R/C desenhado, o que nasce no chão (a porta) também fica de fora', () => {
+    const zonas = [z('fachada', 0, 0, 10, 20), z('vao', 1, 0, 1.4, 2.4), ...[0, 1, 2].map((i) => z('vao', 1, 5 + 3 * i, 1.4, 1.2))];
+    expect(leituraDeAlturas(zonas)).toMatchObject({ entrePisosM: 3, pisos: 3 });
+  });
+
   it('sem elementos repetidos na vertical, não há leitura (não se inventa)', () => {
     expect(leituraDeAlturas([contorno, z('vao', 1, 5, 1, 1), z('vao', 5, 5, 1, 1)])).toBeNull();
   });
 
   it('uma varanda desenhada de alto a baixo, de uma vez, não conta como pisos', () => {
     expect(leituraDeAlturas([contorno, z('varanda', 1, 4, 3, 15)])).toBeNull();
+  });
+});
+
+describe('corrigirSaliencias', () => {
+  const centro = { x: 5, y: 1.5, z: 10 };
+  it('marquises e os vidros nelas encolhem para o tamanho verdadeiro (fator (z − s)/z, em torno do pé da câmara)', () => {
+    const marquise = z('marquise', 1, 5, 3, 2.5);
+    const vidro = z('vao', 1.5, 5.5, 2, 1.2);
+    const janela = z('vao', 6, 5, 1.4, 1.2); // na parede, fora da marquise
+    const [m, v, j] = corrigirSaliencias([marquise, vidro, janela], centro, 1);
+    expect(m!.largura).toBeCloseTo(3 * 0.9, 9);
+    expect(m!.altura).toBeCloseTo(2.5 * 0.9, 9);
+    expect(m!.x).toBeCloseTo(5 + (1 - 5) * 0.9, 9);
+    expect(v!.largura).toBeCloseTo(2 * 0.9, 9);
+    expect(j).toBe(janela);
+  });
+  it('sem câmara ou sem saliência, nada muda', () => {
+    const zonas = [z('marquise', 1, 5, 3, 2.5)];
+    expect(corrigirSaliencias(zonas, null, 1)).toBe(zonas);
+    expect(corrigirSaliencias(zonas, centro, null)).toBe(zonas);
   });
 });
 

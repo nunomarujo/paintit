@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calibrar, inverter, type Calibracao, type Matriz3 } from '@/domain/homografia';
-import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro } from './endireitar';
+import { endireitar, enquadrarNoContorno, extensaoDoPlano, pixeisPorMetro, remapearZona } from './endireitar';
 
 /** Imagem 200×200 com um gradiente: vermelho = coluna, verde = linha. Bilinear num gradiente é exato. */
 function gradiente(): {
@@ -89,5 +89,15 @@ describe('enquadrarNoContorno', () => {
   it('a margem nunca sai da parte do plano que a fotografia mostra', () => {
     const e = enquadrarNoContorno([{ tipo: 'fachada', x: -27, y: -3, largura: 44, altura: 50 }], total);
     expect(e).toEqual(total);
+  });
+});
+
+describe('remapearZona', () => {
+  it('a zona continua no mesmo sítio da fotografia quando a calibração muda', () => {
+    // Antes: 10 px/m; depois: 20 px/m (a mesma fotografia, outra escala) → a zona passa a metade.
+    const antes: Matriz3 = [10, 0, 50, 0, -10, 150, 0, 0, 1];
+    const depois: Matriz3 = [20, 0, 50, 0, -20, 150, 0, 0, 1];
+    const z = remapearZona({ id: 'a', tipo: 'vao', x: 2, y: 3, largura: 4, altura: 2, triangulo: 'sup-esq' }, antes, inverter(depois));
+    expect(z).toMatchObject({ id: 'a', tipo: 'vao', x: 1, y: 1.5, largura: 2, altura: 1, triangulo: 'sup-esq' });
   });
 });
