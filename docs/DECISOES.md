@@ -5183,8 +5183,15 @@ Três observações do promotor ao ver o passo 4:
    lajes — está à frente da parede; as portas de varanda, na parede, não se corrigem). As faces de
    dentro das varandas continuam por decidir (8.2): com a profundidade medida já se podem contar, mas
    quais se pintam (tetos, guardas por dentro, paredes do recuo) é decisão do promotor.
-3. **"Podia ter de imediato o desenho de varandas, assim como as janelas das marquises."** Em curso
-   (um agente, atacado depois por um cético): o volume vai desenhar as varandas **piso a piso** (laje e
-   guarda, à altura entre pisos lida nas janelas) em vez de uma caixa sólida, e os **vidros das
-   marquises na frente delas** (hoje ficam na parede, escondidos atrás da caixa da marquise). Este
-   commit já passa ao volume a profundidade das varandas e a altura entre pisos.
+3. **"Podia ter de imediato o desenho de varandas, assim como as janelas das marquises."** O volume
+   desenha as varandas **piso a piso** — laje de 0,18 m, guarda à frente e guardas laterais de 1 m,
+   semitransparentes — à altura entre pisos lida nas janelas, e os **vidros das marquises na frente
+   delas** (antes ficavam na parede, escondidos atrás da caixa da marquise). Feito por um agente e
+   atacado por um cético, que reproduziu três defeitos, todos corrigidos: (a) uma coluna desenhada
+   "tal como se vê" (da base da primeira laje ao topo da última guarda) saía com **uma varanda a
+   menos** — na fotografia do promotor, 4 em vez de 5; a repartição aceita agora as duas maneiras de
+   desenhar a coluna (tal como se vê, ou por pisos inteiros) e escolhe a que dá a altura entre pisos
+   mais próxima da lida; (b) a última guarda perdia 0,3 m sem haver piso acima; (c) uma coluna de
+   varandas e uma de marquises desenhadas à mão a sobreporem-se 2 cm cruzavam as caixas e a ordem
+   de desenho pintava guardas por cima da marquise — sobreposições pequenas cortam-se a meio, como
+   no domínio. Na fotografia do promotor: 5 varandas, como no prédio.

@@ -1,4 +1,4 @@
-import { PE_DIREITO_SUGERIDO_M, verticesDaZona, zonaContem, type TipoZona, type Zona } from '@/domain/fachadaMedida';
+import { FOLGA_ENCOSTADAS_M, PE_DIREITO_SUGERIDO_M, verticesDaZona, zonaContem, type TipoZona, type Zona } from '@/domain/fachadaMedida';
 
 /**
  * O volume do prédio montado a partir do que se mediu (04/11/2026): paredes à escala, e em cada
@@ -53,13 +53,39 @@ export const SALIENCIA_M: Partial<Record<TipoZona, number>> = { marquise: 1.0, v
 
 /**
  * Uma varanda desenhada piso a piso (04/11/2026, promotor: "podia ter de imediato o desenho de
- * varandas"). O avaliador desenha a coluna inteira de uma vez, de baixo a cima; a coluna reparte-se
- * em troços iguais, um por piso (`entrePisosM`, ou `PE_DIREITO_SUGERIDO_M` sem leitura das janelas),
- * e cada troço leva uma laje na base e uma guarda à frente e dos lados. A guarda tem 1 m, ou menos
- * num troço baixo: fica sempre `folgaAoPisoDeCima` livre até ao troço seguinte. Valores habituais,
- * não medidos na foto — só servem o desenho.
+ * varandas"). O avaliador desenha a coluna inteira de uma vez, de baixo a cima (`repartirColuna`), e
+ * cada varanda leva uma laje na base e uma guarda à frente e dos lados. A guarda tem 1 m, ou menos
+ * num troço baixo: entre varandas fica sempre `folgaAoPisoDeCima` livre até ao troço seguinte; no
+ * último troço (ou numa varanda sozinha) não há troço acima, e a guarda vai até 1 m. Valores
+ * habituais, não medidos na foto — só servem o desenho.
  */
 export const VARANDA_DESENHO_M = { laje: 0.18, guarda: 1.0, folgaAoPisoDeCima: 0.3 } as const;
+
+/** Tolerância numérica (metros, ou unidades de ecrã). */
+const E = 1e-9;
+
+/**
+ * Quantas varandas tem uma coluna de altura `h` e a que distância ficam as lajes. A coluna pode ter
+ * sido desenhada de duas maneiras, e as duas cabem aqui:
+ * - tal como se vê (o que o ecrã pede): da base da primeira laje ao topo da última guarda, ou seja
+ *   (n − 1) pisos mais laje e guarda — `round(h / entrePisos)` cortava esse topo (1,18 m, menos de meio
+ *   piso) e saía uma varanda a menos (cético, 04/11/2026);
+ * - por pisos inteiros: n troços iguais, até ao piso de cima.
+ * Fica a repartição cuja distância entre lajes é a mais parecida com a altura entre pisos
+ * (`entrePisos`, lida nas janelas ou a sugerida). A distância ajusta-se à coluna desenhada: a primeira
+ * laje assenta na base e a última varanda acaba no topo, como no desenho.
+ */
+function repartirColuna(h: number, entrePisos: number): { varandas: number; passo: number } {
+  const topo = VARANDA_DESENHO_M.laje + VARANDA_DESENHO_M.guarda;
+  let melhor = { varandas: 1, passo: h };
+  for (let n = 1; n <= Math.ceil(h / entrePisos) + 1; n++) {
+    // Pisos inteiros; e, de duas varandas para cima, tal como se vê.
+    for (const passo of n > 1 ? [h / n, (h - topo) / (n - 1)] : [h]) {
+      if (passo > 0 && Math.abs(passo - entrePisos) < Math.abs(melhor.passo - entrePisos) - E) melhor = { varandas: n, passo };
+    }
+  }
+  return melhor;
+}
 
 type V3 = [number, number, number];
 
@@ -131,6 +157,34 @@ function aoCanto(zonas: Zona[]): Zona[] {
   return zonas.map((z) => ({ ...z, x: z.x - x0, y: z.y - y0 }));
 }
 
+/**
+ * Colunas salientes (marquises, varandas) desenhadas à mão que se sobrepõem de lado até
+ * `FOLGA_ENCOSTADAS_M` encostam de facto — o critério do domínio para as colunas quase encostadas: a
+ * sobreposição corta-se a meio. Duas caixas que se cruzam não têm ordem de desenho certa: com 2 cm, a
+ * guarda do lado de lá de uma varanda ficava dentro da marquise ao lado e era pintada por cima dela, e a
+ * frente da varanda (que sai mais) ficava tapada pela marquise (cético, 04/11/2026). Devolve, para cada
+ * zona saliente, a cópia a desenhar; as outras zonas não mudam.
+ */
+function encostarColunas(zonas: Zona[]): Map<Zona, Zona> {
+  const ajustadas = new Map(zonas.filter((z) => z.tipo === 'marquise' || z.tipo === 'varanda').map((z) => [z, { ...z }]));
+  const salientes = [...ajustadas.values()];
+  for (const a of salientes) {
+    for (const b of salientes) {
+      // `a` à esquerda de `b`, nenhuma dentro da outra, e as duas à mesma altura em algum troço.
+      const [fimA, fimB] = [a.x + a.largura, b.x + b.largura];
+      const sobre = fimA - b.x;
+      const aMesmaAltura = Math.min(a.y + a.altura, b.y + b.altura) - Math.max(a.y, b.y) > 1e-6;
+      if (a === b || !(a.x < b.x && fimA < fimB && sobre > 0 && sobre <= FOLGA_ENCOSTADAS_M && aMesmaAltura)) continue;
+      // Só encolhem: um acerto nunca cria outra sobreposição.
+      const meio = b.x + sobre / 2;
+      a.largura = meio - a.x;
+      b.largura = fimB - meio;
+      b.x = meio;
+    }
+  }
+  return ajustadas;
+}
+
 /** Uma medida que se pode usar: um número positivo. Zero, negativo ou NaN contam como "não medido". */
 const medida = (v: number | undefined) => (v !== undefined && Number.isFinite(v) && v > 0 ? v : undefined);
 
@@ -169,25 +223,36 @@ interface Grupo {
   ecra: { x0: number; x1: number; y0: number; y1: number };
 }
 
-const E = 1e-9;
-
 /**
  * 1 se `a` fica à frente de `b` (desenha-se depois), -1 se ao contrário, 0 se a ordem não importa.
  * Dois objetos que não se cruzam e são caixas alinhadas com os eixos (as paredes são-no) têm um
  * plano alinhado com os eixos entre eles; o que fica do lado de quem vê não pode ser tapado pelo outro.
+ *
+ * Caixas que se cruzam não têm plano. As sobreposições pequenas de lado já foram cortadas a meio
+ * (`encostarColunas`); para as que sobram (maiores, ou de cima a baixo) conta o eixo em que menos se
+ * cruzam, como se estivessem encostadas por ele — erra menos do que a profundidade do centro, que era
+ * o que decidia. Se esse eixo estiver de perfil para quem vê, a ordem não importa.
  */
 function aFrente(a: Grupo, b: Grupo, d: V3): number {
   if (a.ecra.x1 <= b.ecra.x0 + E || b.ecra.x1 <= a.ecra.x0 + E || a.ecra.y1 <= b.ecra.y0 + E || b.ecra.y1 <= a.ecra.y0 + E) return 0;
+  const eixos = [0, 1, 2] as const;
   let veredito = 0;
-  for (const k of [0, 1, 2] as const) {
+  let separados = false;
+  for (const k of eixos) {
+    const lado = a.min[k] >= b.max[k] - E ? 1 : a.max[k] <= b.min[k] + E ? -1 : 0;
+    if (lado === 0) continue;
+    separados = true;
     if (Math.abs(d[k]) <= E) continue;
-    const v = a.min[k] >= b.max[k] - E ? Math.sign(d[k]) : a.max[k] <= b.min[k] + E ? -Math.sign(d[k]) : 0;
-    if (v === 0) continue;
+    const v = lado * Math.sign(d[k]);
     // Dois planos com respostas opostas: nenhum tapa o outro.
     if (veredito !== 0 && v !== veredito) return 0;
     veredito = v;
   }
-  return veredito;
+  if (separados) return veredito;
+  const cruzam = (k: 0 | 1 | 2) => Math.min(a.max[k], b.max[k]) - Math.max(a.min[k], b.min[k]);
+  const k = eixos.reduce((m, j) => (cruzam(j) < cruzam(m) ? j : m));
+  if (Math.abs(d[k]) <= E) return 0;
+  return Math.sign(a.min[k] + a.max[k] - b.min[k] - b.max[k]) * Math.sign(d[k]);
 }
 
 /**
@@ -195,7 +260,8 @@ function aFrente(a: Grupo, b: Grupo, d: V3): number {
  * que estão livres, o mais longe primeiro. Ordenar só pelo centro, como se fazia, falha numa coluna
  * de varandas ao lado de uma coluna de marquises: a varanda do último piso está mais alta, vista de
  * cima tem o centro mais perto do que o da marquise inteira ao lado, e passava por cima da frente
- * dela. Se as caixas se cruzarem (zonas sobrepostas por engano) e houver um ciclo, sai o mais longe.
+ * dela. Caixas que se cruzam ordenam-se pelo eixo em que menos se cruzam (`aFrente`); se mesmo assim
+ * houver um ciclo, sai o mais longe.
  */
 function porOrdemDeDesenho(grupos: Grupo[], d: V3): Poligono[] {
   const n = grupos.length;
@@ -281,6 +347,7 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
     const juntar = (g: Grupo | null) => {
       if (g) (paredeVisivel ? depois : escondidas).push(g);
     };
+    const ajustadas = zonas ? encostarColunas(zonas) : new Map<Zona, Zona>();
 
     // Os vidros das marquises: o avaliador desenha-os como vãos por cima da frente da marquise. Um
     // vão com o centro dentro de uma marquise é dela (o mesmo critério de `corrigirSaliencias`) e
@@ -308,19 +375,23 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
       }
     }
 
-    for (const z of zonas ?? []) {
+    for (const original of zonas ?? []) {
+      const z = ajustadas.get(original) ?? original;
       const p = salienciaDe(z.tipo);
       if (!p) continue;
       const { s0, s1, y0, y1 } = dentro(z);
       if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;
 
       if (z.tipo === 'varanda' && !z.triangulo) {
-        const pisos = Math.max(1, Math.round((y1 - y0) / entrePisos));
-        const troco = (y1 - y0) / pisos;
-        const laje = Math.min(VARANDA_DESENHO_M.laje, troco);
-        const guarda = Math.min(VARANDA_DESENHO_M.guarda, troco - laje - VARANDA_DESENHO_M.folgaAoPisoDeCima);
-        for (let i = 0; i < pisos; i++) {
-          const base = y0 + i * troco;
+        const { varandas, passo } = repartirColuna(y1 - y0, entrePisos);
+        for (let i = 0; i < varandas; i++) {
+          const base = y0 + i * passo;
+          const ultima = i === varandas - 1;
+          // O troço desta varanda: até à laje seguinte, ou, na última, até ao topo da coluna.
+          const troco = ultima ? y1 - base : passo;
+          const laje = Math.min(VARANDA_DESENHO_M.laje, troco);
+          const folga = ultima ? 0 : VARANDA_DESENHO_M.folgaAoPisoDeCima;
+          const guarda = Math.min(VARANDA_DESENHO_M.guarda, troco - laje - folga);
           const facesLaje = todas(facesDaCaixa(r, s0, s1, base, base + laje, p));
           const pols = facesLaje.filter((f) => proj.visivel(f.n)).map((f) => quad(f.pts, 'varanda', f.sombra, 'laje'));
           const solido = facesLaje.flatMap((f) => f.pts);
@@ -350,7 +421,7 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
       // Os vidros só se veem quando se vê a frente da marquise, e por cima dela (no mesmo grupo,
       // depois da frente): presos ao retângulo da frente, à distância da saliência.
       if (z.tipo === 'marquise' && proj.visivel(r.n)) {
-        for (const v of vidros.get(z) ?? []) {
+        for (const v of vidros.get(original) ?? []) {
           if (Math.min(s1, v.x + v.largura) - Math.max(s0, v.x) < 1e-6 || Math.min(y1, v.y + v.altura) - Math.max(y0, v.y) < 1e-6) continue;
           const vertices = verticesDaZona(v).map((q) => ponto(r, entre(q.x, s0, s1), entre(q.y, y0, y1), p));
           pols.push(quad(vertices, 'vao'));

@@ -116,15 +116,23 @@ describe('montarModelo — varandas piso a piso', () => {
     expect(pols.some((p) => p.tipo === 'varanda' && !p.elemento)).toBe(false); // já não há caixa sólida
   });
 
-  it('sem altura entre pisos lida, usa 2,9 m: 10,2 m são 4 varandas (com 3 m seriam 3)', () => {
+  // Até à revisão do cético (04/11/2026) este teste pedia 3 varandas a 10,2 m com 3 m entre pisos —
+  // round(10,2 / 3). Mas 10,2 = 3 × 3 + 1,2 é uma coluna de 4 varandas desenhada tal como se vê (até
+  // ao topo da última guarda): o teste guardava o defeito. A regra que fica é a mesma — sem leitura
+  // vale 2,9 m, e uma leitura diferente muda a repartição.
+  it('sem altura entre pisos lida, usa 2,9 m: 9,88 m (3 × 2,9 + laje + guarda) são 4 varandas; com 3,5 m lidos, 3 pisos inteiros', () => {
     const lajes = (f: FaceMedida) =>
       deBaixoParaCima(montarModelo([f], dim, { azimute: 0, elevacao: 0 }).filter((p) => p.elemento === 'laje'));
-    expect(lajes(coluna(10.2, { entrePisosM: 3 }))).toHaveLength(3);
-    const sem = lajes(coluna(10.2));
+    const h = 3 * 2.9 + VARANDA_DESENHO_M.laje + VARANDA_DESENHO_M.guarda;
+    const sem = lajes(coluna(h));
     expect(sem).toHaveLength(4);
-    sem.forEach((l, i) => expect(Math.max(...ys(l))).toBeCloseTo(-(2 + 2.55 * i), 9));
+    sem.forEach((l, i) => expect(Math.max(...ys(l))).toBeCloseTo(-(2 + 2.9 * i), 9));
+    const lida = lajes(coluna(h, { entrePisosM: 3.5 }));
+    expect(lida).toHaveLength(3);
+    lida.forEach((l, i) => expect(Math.max(...ys(l))).toBeCloseTo(-(2 + (h / 3) * i), 9));
     // Uma leitura que não serve (zero, negativa) conta como não lida.
-    expect(lajes(coluna(10.2, { entrePisosM: 0 }))).toHaveLength(4);
+    expect(lajes(coluna(h, { entrePisosM: 0 }))).toHaveLength(4);
+    expect(lajes(coluna(h, { entrePisosM: -3 }))).toHaveLength(4);
   });
 
   it('num troço baixo a guarda baixa e deixa 0,3 m livres até ao troço seguinte', () => {
@@ -160,6 +168,111 @@ describe('montarModelo — varandas piso a piso', () => {
     const primeiraMarquise = pols.findIndex((p) => p.tipo === 'marquise');
     expect(varandas).toHaveLength(5 * 6);
     for (const i of varandas) expect(i).toBeLessThan(primeiraMarquise);
+  });
+
+  // Defeito encontrado por um cético (04/11/2026): o ecrã manda desenhar a coluna «de baixo a cima, tal
+  // como se vê» — da base da primeira laje ao topo da última guarda, (n − 1) pisos mais laje e guarda.
+  // Repartida por round(h / entrePisos), o topo (1,18 m, menos de meio piso) perdia-se: saía uma
+  // varanda a menos, e as que ficavam espaçadas de h/n e não da altura entre pisos.
+  it('uma coluna desenhada tal como se vê (até ao topo da última guarda) dá uma varanda por piso, de entrePisos em entrePisos', () => {
+    const topo = VARANDA_DESENHO_M.laje + VARANDA_DESENHO_M.guarda;
+    for (const e of [2.8, 2.9, 3.0]) {
+      for (let quantas = 2; quantas <= 6; quantas++) {
+        const h = (quantas - 1) * e + topo;
+        const leituras: Partial<FaceMedida>[] = e === 2.9 ? [{ entrePisosM: e }, {}] : [{ entrePisosM: e }];
+        for (const extra of leituras) {
+          const lajes = deBaixoParaCima(
+            montarModelo([coluna(h, extra)], dim, { azimute: 0, elevacao: 0 }).filter((p) => p.elemento === 'laje'),
+          );
+          expect(lajes, `${quantas} varandas, ${e} m entre pisos`).toHaveLength(quantas);
+          lajes.forEach((l, i) => expect(Math.max(...ys(l))).toBeCloseTo(-(2 + i * e), 9));
+          // A última guarda acaba no topo da coluna desenhada.
+          const guardas = deBaixoParaCima(
+            montarModelo([coluna(h, extra)], dim, { azimute: 0, elevacao: 0 }).filter((p) => p.elemento === 'guarda'),
+          );
+          expect(Math.min(...ys(guardas[guardas.length - 1]!))).toBeCloseTo(-(2 + h), 9);
+        }
+      }
+    }
+  });
+
+  // Defeito encontrado por um cético (04/11/2026): a folga de 0,3 m é «até ao troço seguinte», e
+  // descontava-se também no último troço (ou no único), onde não há troço seguinte.
+  it('a guarda do último troço (ou de uma varanda sozinha) tem 1 m: não há troço acima a que deixar folga', () => {
+    const sozinha = deBaixoParaCima(montarModelo([coluna(1.2)], dim, { azimute: 0, elevacao: 0 }).filter((p) => p.elemento === 'guarda'));
+    expect(sozinha).toHaveLength(1);
+    expect(Math.max(...ys(sozinha[0]!))).toBeCloseTo(-(2 + VARANDA_DESENHO_M.laje), 9);
+    expect(Math.min(...ys(sozinha[0]!))).toBeCloseTo(-(2 + VARANDA_DESENHO_M.laje + VARANDA_DESENHO_M.guarda), 9);
+    // Em série (FRASES.varanda: «a primeira varanda», «Quantas»): quatro varandas de 1,2 m, de 2,9 em 2,9 m.
+    const serie: FaceMedida = {
+      lado: 'frente',
+      entrePisosM: 2.9,
+      zonas: [z('fachada', 0, 0, 10, 20), ...[0, 1, 2, 3].map((i) => z('varanda', 6, 2 + 2.9 * i, 3, 1.2))],
+    };
+    const guardas = deBaixoParaCima(montarModelo([serie], dim, { azimute: 0, elevacao: 0 }).filter((p) => p.elemento === 'guarda'));
+    expect(guardas).toHaveLength(4);
+    for (const g of guardas) expect(Math.max(...ys(g)) - Math.min(...ys(g))).toBeCloseTo(VARANDA_DESENHO_M.guarda, 9);
+  });
+
+  // Defeito encontrado por um cético (04/11/2026): colunas desenhadas à mão sobrepõem-se uns
+  // centímetros (o domínio conta com isso: FOLGA_ENCOSTADAS_M). Com 2 cm as caixas cruzam-se, não há
+  // plano de separação, e a ordem voltava a ser a do centro — a guarda do último piso por cima da marquise.
+  it('com as colunas sobrepostas 2 cm, a ordem é a das colunas encostadas: a mais perto de quem vê por cima', () => {
+    const sobrepostas: FaceMedida = {
+      lado: 'frente',
+      entrePisosM: 3,
+      zonas: [z('fachada', 0, 0, 10, 20), z('varanda', 2, 3, 3.02, 15), z('marquise', 5, 3, 3, 15)],
+    };
+    const indices = (pols: Poligono[], tipo: string) => pols.map((p, i) => (p.tipo === tipo ? i : -1)).filter((i) => i >= 0);
+    // A sobreposição corta-se a meio (5,01 m), como se tivessem sido desenhadas encostadas.
+    const deFrente = montarModelo([sobrepostas], dim, { azimute: 0, elevacao: 0 });
+    expect(Math.max(...deFrente.filter((p) => p.elemento === 'laje').flatMap(xs))).toBeCloseTo(5.01, 9);
+    expect(Math.min(...deFrente.filter((p) => p.tipo === 'marquise').flatMap(xs))).toBeCloseTo(5.01, 9);
+    // Vista da direita: a marquise está mais perto, e as varandas todas antes dela.
+    const daDireita = montarModelo([sobrepostas], dim, { azimute: -30, elevacao: 18 });
+    expect(indices(daDireita, 'varanda')).toHaveLength(5 * 6);
+    for (const i of indices(daDireita, 'varanda')) expect(i).toBeLessThan(Math.min(...indices(daDireita, 'marquise')));
+    // Vista da esquerda (a frente ainda à vista, ou já de perfil): as varandas estão mais perto, e
+    // cada peça que se sobrepõe à marquise no ecrã desenha-se depois dela.
+    for (const azimute of [45, 60, 75, 90]) {
+      const pols = montarModelo([sobrepostas], dim, { azimute, elevacao: 18 });
+      const marquise = indices(pols, 'marquise');
+      const caixa = (ps: Poligono[]) => ({
+        x0: Math.min(...ps.flatMap(xs)),
+        x1: Math.max(...ps.flatMap(xs)),
+        y0: Math.min(...ps.flatMap(ys)),
+        y1: Math.max(...ps.flatMap(ys)),
+      });
+      const m = caixa(marquise.map((i) => pols[i]!));
+      const porCima = indices(pols, 'varanda').filter((i) => {
+        const v = caixa([pols[i]!]);
+        return Math.min(v.x1, m.x1) - Math.max(v.x0, m.x0) > 1e-6 && Math.min(v.y1, m.y1) - Math.max(v.y0, m.y0) > 1e-6;
+      });
+      expect(porCima.length, `azimute ${azimute}`).toBeGreaterThan(0);
+      for (const i of porCima) expect(i, `azimute ${azimute}`).toBeGreaterThan(Math.max(...marquise));
+    }
+  });
+
+  // O que sobra do mesmo defeito: uma sobreposição maior do que FOLGA_ENCOSTADAS_M não se corta (já
+  // não é «quase encostada»), mas a ordem segue o eixo em que menos se cruzam, e não o centro — com o
+  // centro, as peças do último piso saíam por cima da marquise.
+  it('com as colunas sobrepostas 0,4 m (não se cortam), vista da direita: as varandas continuam antes da marquise', () => {
+    const muito: FaceMedida = {
+      lado: 'frente',
+      entrePisosM: 3,
+      zonas: [z('fachada', 0, 0, 10, 20), z('varanda', 2, 3, 3.4, 15), z('marquise', 5, 3, 3, 15)],
+    };
+    const pols = montarModelo([muito], dim, { azimute: -30, elevacao: 18 });
+    const varandas = pols.map((p, i) => (p.tipo === 'varanda' ? i : -1)).filter((i) => i >= 0);
+    expect(
+      Math.max(
+        ...montarModelo([muito], dim, { azimute: 0, elevacao: 0 })
+          .filter((p) => p.elemento === 'laje')
+          .flatMap(xs),
+      ),
+    ).toBeCloseTo(5.4, 9);
+    expect(varandas).toHaveLength(5 * 6);
+    for (const i of varandas) expect(i).toBeLessThan(pols.findIndex((p) => p.tipo === 'marquise'));
   });
 
   it('uma varanda triangular continua caixa (uma laje cortada na diagonal não é nada que se construa)', () => {
