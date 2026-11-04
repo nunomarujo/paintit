@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   aplicar,
+  avisoDasHorizontais,
   calibrar,
   camaraDaHomografia,
   corrigirParalaxe,
   distancia,
   homografia,
+  INCERTEZA_MAXIMA_DA_FOCAL,
+  incertezaDaFocal,
   inverter,
   pontoDeFuga,
   problemaDaReferencia,
   type Matriz3,
   type Ponto,
   type ReferenciaRetangular,
+  type TamanhoDaReferencia,
 } from './homografia';
 import { baseDaCamera, projetarPonto, type ParametrosCamera } from './perspectiveCamera';
 
@@ -262,11 +266,15 @@ const portaVista = (projetarP: (X: number, Z: number) => Ponto): ReferenciaRetan
   projetarP(0, PORTA.altura),
 ];
 
+/** O tamanho da porta, que a câmara usa para saber quanto vale um píxel de erro nos cantos. */
+const TAMANHO_DA_PORTA: TamanhoDaReferencia = { larguraM: PORTA.largura, alturaM: PORTA.altura };
+
 const camaraDe = (cantos: ReferenciaRetangular['cantos'], arestas: [Ponto, Ponto][] = []) =>
   camaraDaHomografia(
     calibrar({ cantos, larguraM: PORTA.largura, alturaM: PORTA.altura }, arestas).planoParaImagem,
     imagem.largura,
     imagem.altura,
+    TAMANHO_DA_PORTA,
   );
 
 const distancia3 = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) =>
@@ -344,8 +352,138 @@ describe('camaraDaHomografia: a câmara tirada da porta (câmara sintética)', (
     expect(nulos / 400).toBeGreaterThan(0.95);
   });
 
+  it('de frente e de longe (20 e 30 m), com ±1 px: null — o erro de toque não pode inventar uma câmara', () => {
+    // Até 04/11/2026 o limite era um ângulo fixo (8°), afinado para uma porta a 12 m: de frente a 30 m,
+    // ±1 px passava uma câmara em cada cinco, com a focal até 3,8 vezes a verdadeira e o centro a 100 m.
+    const r = aleatorio(11);
+    for (const distanciaM of [20, 30]) {
+      const verdade = pose({ distanciaM, azimuteGraus: 0, inclinacaoGraus: 0, fovVerticalGraus: 65 });
+      let comTamanho = 0;
+      let semTamanho = 0;
+      let piorFocal = 0;
+      for (let i = 0; i < 1000; i++) {
+        const cantos = portaVista(verdade.projetar).map((c) => ({
+          x: c.x + (r() * 2 - 1),
+          y: c.y + (r() * 2 - 1),
+        })) as ReferenciaRetangular['cantos'];
+        const h = calibrar({ cantos, larguraM: PORTA.largura, alturaM: PORTA.altura }).planoParaImagem;
+        const camara = camaraDaHomografia(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA);
+        if (camara) {
+          comTamanho++;
+          piorFocal = Math.max(piorFocal, Math.abs(camara.focalPx / verdade.focalPx - 1));
+        }
+        // Como a interface a chama hoje, sem o tamanho: supõe uma porta comum, mais pequena — mais exigente.
+        if (camaraDaHomografia(h, imagem.largura, imagem.altura)) semTamanho++;
+      }
+      console.log(
+        `[de frente, ${distanciaM} m, ±1 px] câmaras não nulas em 1000: ${comTamanho} com o tamanho da porta, ${semTamanho} sem; ` +
+          `pior focal ${(piorFocal * 100).toFixed(0)} % ao lado`,
+      );
+      expect(comTamanho, `${distanciaM} m`).toBeLessThanOrEqual(5);
+      expect(semTamanho, `${distanciaM} m`).toBeLessThanOrEqual(5);
+      expect(piorFocal).toBeLessThan(1);
+    }
+  });
+
+  it('o caso concreto da revisão (de frente a 30 m, cantos com menos de 1 px de erro): null', () => {
+    const cantos: ReferenciaRetangular['cantos'] = [
+      { x: 749.37, y: 1078.3 },
+      { x: 837.29, y: 1077.96 },
+      { x: 837.12, y: 880.79 },
+      { x: 749.94, y: 880.82 },
+    ];
+    const h = calibrar({ cantos, larguraM: PORTA.largura, alturaM: PORTA.altura }).planoParaImagem;
+    // Antes: focal 5960 px (a verdadeira é 1570) e centro (−11,3; −25,7; 106,8) m, contra (0; 1,5; 30).
+    expect(camaraDaHomografia(h, imagem.largura, imagem.altura)).toBeNull();
+    expect(camaraDaHomografia(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA)).toBeNull();
+    expect(incertezaDaFocal(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA)).toBeGreaterThan(INCERTEZA_MAXIMA_DA_FOCAL);
+  });
+
+  it('o mesmo píxel de erro pesa mais de longe: com a mesma perspetiva, a incerteza da focal cresce com a distância', () => {
+    const incertezas = [8, 15, 30].map((distanciaM) => {
+      const verdade = pose({ distanciaM, azimuteGraus: 15, inclinacaoGraus: 10, fovVerticalGraus: 65 });
+      const h = calibrar({ cantos: portaVista(verdade.projetar), larguraM: PORTA.largura, alturaM: PORTA.altura }).planoParaImagem;
+      return incertezaDaFocal(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA);
+    });
+    console.log(`[incerteza da focal, 15° de lado, 10° para cima] a 8 / 15 / 30 m: ${incertezas.map((x) => x.toFixed(3)).join(' / ')}`);
+    expect(incertezas[0]!).toBeLessThan(incertezas[1]!);
+    expect(incertezas[1]!).toBeLessThan(incertezas[2]!);
+    // Aproximadamente com o quadrado da distância: de 15 para 30 m, bem mais do que o dobro.
+    expect(incertezas[2]!).toBeGreaterThan(2 * incertezas[1]!);
+    // A 8 m a câmara sai; a 30 m, com a mesma perspetiva, já não se confia nela (o limite de 8° deixava-a passar).
+    expect(incertezas[0]!).toBeLessThan(INCERTEZA_MAXIMA_DA_FOCAL);
+    expect(incertezas[2]!).toBeGreaterThan(INCERTEZA_MAXIMA_DA_FOCAL);
+  });
+
+  it('no limite, o ruído pode fazer passar uma câmara pior do que a incerteza diz — rara e sem disparates (30 m, 15° de lado)', () => {
+    const r = aleatorio(5);
+    const verdade = pose({ distanciaM: 30, azimuteGraus: 15, inclinacaoGraus: 10, fovVerticalGraus: 65 });
+    const erros: number[] = [];
+    for (let i = 0; i < 400; i++) {
+      const cantos = portaVista(verdade.projetar).map((c) => ({
+        x: c.x + (r() * 2 - 1),
+        y: c.y + (r() * 2 - 1),
+      })) as ReferenciaRetangular['cantos'];
+      const camara = camaraDe(cantos);
+      if (camara) erros.push(Math.abs(camara.focalPx / verdade.focalPx - 1));
+    }
+    console.log(
+      `[no limite, 30 m] câmaras em 400: ${erros.length}; erro da focal nessas: mediana ${(erros.length ? mediana(erros) * 100 : 0).toFixed(0)} %, ` +
+        `pior ${(Math.max(0, ...erros) * 100).toFixed(0)} %`,
+    );
+    expect(erros.length).toBeLessThan(400 * 0.1);
+    for (const e of erros) expect(e).toBeLessThan(0.6);
+  });
+
+  it('teleobjetiva: a 77 e a 100 mm a câmara sai exata; a 5× (111 e 120 mm) dá null de propósito, com os cantos perfeitos', () => {
+    // A câmara em (20; 1,5; 34,6) m, a olhar para a porta: 40 m de distância, 30° de lado. Focal
+    // equivalente em mm → píxeis: 36 mm equivalem ao lado maior (2000 px).
+    const posicao = { x: 20, z: 34.6 };
+    for (const mm of [77, 100, 111, 120]) {
+      const focalPx = (mm / 36) * imagem.altura;
+      const fovVerticalGraus = (2 * Math.atan(imagem.altura / 2 / focalPx) * 180) / Math.PI;
+      const camera = {
+        distanciaM: Math.hypot(posicao.x, posicao.z),
+        alturaOlhoM: 1.5,
+        azimuteGraus: (Math.atan2(posicao.x, posicao.z) * 180) / Math.PI,
+        fovVerticalGraus,
+      };
+      const base = baseDaCamera(camera, [PORTA.largura / 2, 0, PORTA.altura / 2], { cx: 0, cy: 0 });
+      const projetarT = (X: number, Z: number): Ponto => {
+        const p = projetarPonto([X, 0, Z], base, fovVerticalGraus, imagem)!;
+        return { x: p[0], y: p[1] };
+      };
+      const h = calibrar({ cantos: portaVista(projetarT), larguraM: PORTA.largura, alturaM: PORTA.altura }).planoParaImagem;
+      const camara = camaraDaHomografia(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA);
+      // Com os cantos perfeitos e 30° de perspetiva, a incerteza fica abaixo do limite em todas.
+      expect(incertezaDaFocal(h, imagem.largura, imagem.altura, TAMANHO_DA_PORTA), `${mm} mm`).toBeLessThan(INCERTEZA_MAXIMA_DA_FOCAL);
+      if (focalPx <= 3 * Math.max(imagem.largura, imagem.altura)) {
+        expect(camara, `${mm} mm`).not.toBeNull();
+        expect(Math.abs(camara!.focalPx / focalPx - 1)).toBeLessThan(0.01);
+        expect(distancia3(camara!.centro, { x: posicao.x, y: 1.5, z: posicao.z })).toBeLessThan(0.1);
+      } else {
+        // 3,1 e 3,3 × o lado maior: fora do intervalo [0,3; 3], por decisão (ver camaraDaHomografia).
+        expect(camara, `${mm} mm`).toBeNull();
+      }
+    }
+  });
+
+  it('limitação: uma medida da referência mal escrita dá uma câmara muito errada, que nem a incerteza nem o intervalo apanham', () => {
+    // A porta tem 3,77 m; escreveu-se 5,00. O erro não é de toque, e a função não tem como o ver.
+    const verdade = pose({ distanciaM: 12, azimuteGraus: 0, inclinacaoGraus: 15, fovVerticalGraus: 65 });
+    const errada = { larguraM: PORTA.largura, alturaM: 5 };
+    const h = calibrar({ cantos: portaVista(verdade.projetar), ...errada }).planoParaImagem;
+    const camara = camaraDaHomografia(h, imagem.largura, imagem.altura, errada);
+    expect(camara).not.toBeNull();
+    console.log(
+      `[altura da porta mal escrita, 5,00 em vez de 3,77 m] focal ${(camara!.focalPx / verdade.focalPx).toFixed(2)} × a verdadeira, ` +
+        `distância ${camara!.centro.z.toFixed(1)} m em vez de ${verdade.centro.z.toFixed(1)} m`,
+    );
+    expect(camara!.focalPx / verdade.focalPx).toBeGreaterThan(3);
+  });
+
   it('focal fora de [0,3; 3] × o lado maior da imagem: null', () => {
-    // fov 150° (f ≈ 0,13 × 2000 px) e 8° (f ≈ 7,1 × 2000 px): nenhum telemóvel; sinal de cantos mal marcados.
+    // fov 150° (f ≈ 0,13 × 2000 px) e 8° (f ≈ 7,1 × 2000 px): nenhuma lente de telemóvel.
     for (const fovVerticalGraus of [150, 8]) {
       const verdade = pose({ distanciaM: 12, azimuteGraus: 20, inclinacaoGraus: 20, fovVerticalGraus });
       expect(camaraDe(portaVista(verdade.projetar))).toBeNull();
@@ -376,7 +514,7 @@ describe('corrigirParalaxe: a frente de uma marquise, 1,2 m à frente da fachada
     const verdade = pose(p);
     const cantos = portaVista(verdade.projetar);
     const { planoParaImagem, imagemParaPlano } = calibrar({ cantos, larguraM: PORTA.largura, alturaM: PORTA.altura });
-    const camara = camaraDaHomografia(planoParaImagem, imagem.largura, imagem.altura)!;
+    const camara = camaraDaHomografia(planoParaImagem, imagem.largura, imagem.altura, TAMANHO_DA_PORTA)!;
     expect(camara).not.toBeNull();
     const { x0, x1, z0, z1, saliencia } = MARQUISE;
     // Os quatro cantos da frente, na fotografia e depois na vista endireitada (que os põe em Z = 0).
@@ -460,6 +598,84 @@ describe('arestas horizontais: corrigir a inclinação que a porta deixa', () =>
     for (const e of [...duas, ...comVertical]) expect(e).toBeLessThan(0.05);
   });
 
+  it('com a referência rodada, uma só horizontal acerta a sua altura e piora o outro extremo da fachada (documentado em calibrar)', () => {
+    const soleira: [Ponto, Ponto] = [verdade.projetar(-10, 0), verdade.projetar(6, 0)];
+    const sem = { topo: erroAltura(calibrar(ref).imagemParaPlano, 9), passeio: erroAltura(calibrar(ref).imagemParaPlano, 0) };
+    const soSoleira = {
+      topo: erroAltura(calibrar(ref, [], [soleira]).imagemParaPlano, 9),
+      passeio: erroAltura(calibrar(ref, [], [soleira]).imagemParaPlano, 0),
+    };
+    const soCimalha = {
+      topo: erroAltura(calibrar(ref, [], [cimalha]).imagemParaPlano, 9),
+      passeio: erroAltura(calibrar(ref, [], [cimalha]).imagemParaPlano, 0),
+    };
+    const fmt = (e: { topo: number; passeio: number }) => `passeio ${e.passeio.toFixed(3)} m, 9 m ${e.topo.toFixed(3)} m`;
+    console.log(
+      `[horizontais, referência rodada, a 10 m para o lado] sem: ${fmt(sem)}; só a soleira: ${fmt(soSoleira)}; só a cimalha: ${fmt(soCimalha)}`,
+    );
+    // Cada uma acerta a sua altura…
+    expect(soSoleira.passeio).toBeLessThan(0.02);
+    expect(soCimalha.topo).toBeLessThan(0.02);
+    // …e piora a outra ponta: a soleira põe o erro a 9 m a dobrar; a cimalha, o do passeio um pouco.
+    expect(soSoleira.topo).toBeGreaterThan(1.8 * sem.topo);
+    expect(soCimalha.passeio).toBeGreaterThan(sem.passeio);
+  });
+
+  it('com erros independentes nos cantos e nas pontas (±2 px): uma só horizontal melhora a média mas piora parte dos casos; duas pioram menos', () => {
+    const r = aleatorio(7);
+    const ruido = (p: Ponto): Ponto => ({ x: p.x + (r() * 2 - 1) * 2, y: p.y + (r() * 2 - 1) * 2 });
+    const grelha: [number, number][] = [];
+    for (const X of [-10, -4, 2, 6]) for (const Z of [0, 3, 6, 9]) grelha.push([X, Z]);
+    const erroDaFachada = (imagemParaPlano: Matriz3) =>
+      Math.sqrt(
+        grelha.reduce((s, [X, Z]) => {
+          const p = aplicar(imagemParaPlano, verdade.projetar(X, Z))!;
+          return s + (p.x - X) ** 2 + (p.y - Z) ** 2;
+        }, 0) / grelha.length,
+      );
+    const casos = ['soleira', 'cimalha', 'cimalha + friso'] as const;
+    const piora: Record<(typeof casos)[number], number> = { soleira: 0, cimalha: 0, 'cimalha + friso': 0 };
+    const soma: Record<(typeof casos)[number] | 'sem', number> = { sem: 0, soleira: 0, cimalha: 0, 'cimalha + friso': 0 };
+    const N = 400;
+    for (let i = 0; i < N; i++) {
+      const cantosR = portaVista(verdade.projetar).map(ruido) as ReferenciaRetangular['cantos'];
+      const refR = { cantos: cantosR, larguraM: PORTA.largura, alturaM: PORTA.altura };
+      const linha = (Z: number): [Ponto, Ponto] => [ruido(verdade.projetar(-10, Z)), ruido(verdade.projetar(6, Z))];
+      const [soleiraR, cimalhaR, frisoR] = [linha(0), linha(9), linha(3)];
+      const e0 = erroDaFachada(calibrar(refR).imagemParaPlano);
+      soma.sem += e0;
+      const erros = {
+        soleira: erroDaFachada(calibrar(refR, [], [soleiraR]).imagemParaPlano),
+        cimalha: erroDaFachada(calibrar(refR, [], [cimalhaR]).imagemParaPlano),
+        'cimalha + friso': erroDaFachada(calibrar(refR, [], [cimalhaR, frisoR]).imagemParaPlano),
+      };
+      for (const c of casos) {
+        soma[c] += erros[c];
+        if (erros[c] > e0) piora[c]++;
+      }
+    }
+    console.log(
+      `[horizontais, ±2 px, ${N} sorteios] erro médio da fachada (m) — sem: ${(soma.sem / N).toFixed(3)}; ` +
+        casos.map((c) => `${c}: ${(soma[c] / N).toFixed(3)}, pior que sem em ${piora[c]}`).join('; '),
+    );
+    // Em média, qualquer delas ajuda; duas ajudam mais do que uma.
+    for (const c of casos) expect(soma[c], c).toBeLessThan(soma.sem);
+    expect(soma['cimalha + friso']).toBeLessThan(soma.cimalha);
+    // A frequência da piora, que calibrar documenta: ~2 em 5 com a soleira, ~1 em 5 com a cimalha, ~1 em 7 com duas.
+    expect(piora.soleira / N).toBeGreaterThan(0.25);
+    expect(piora.soleira / N).toBeLessThan(0.55);
+    expect(piora.cimalha / N).toBeLessThan(0.3);
+    expect(piora['cimalha + friso'] / N).toBeLessThan(0.2);
+  });
+
+  it('avisoDasHorizontais: só avisa quem marcou uma única horizontal', () => {
+    expect(avisoDasHorizontais([])).toBeNull();
+    expect(avisoDasHorizontais([cimalha])).toMatch(/segunda horizontal/);
+    expect(avisoDasHorizontais([cimalha, friso])).toBeNull();
+    // Impessoal (regra 12 do CLAUDE.md): sem «tu», «você» nem «marque».
+    expect(avisoDasHorizontais([cimalha])).not.toMatch(/\b(tu|você|marque)\b/i);
+  });
+
   it('pontos de fuga no infinito (fotografia de frente: cimalha e verticais paralelas na imagem) — continua exata', () => {
     const frente = pose({ distanciaM: 12, azimuteGraus: 0, inclinacaoGraus: 0, fovVerticalGraus: 65 });
     const cantosFrente = portaVista(frente.projetar);
@@ -523,10 +739,12 @@ describe('fotografia real do promotor: a câmara (03/11/2026, 1500×2000)', () =
   ];
 
   it.each([
-    { nome: 'só a porta', arestas: [] as [Ponto, Ponto][] },
-    { nome: 'porta + aresta vertical', arestas: [aresta] },
-  ])('$nome: uma câmara plausível', ({ nome, arestas }) => {
-    const camara = camaraDaHomografia(calibrar(porta, arestas).planoParaImagem, 1500, 2000);
+    { nome: 'só a porta', arestas: [] as [Ponto, Ponto][], tamanho: porta as TamanhoDaReferencia | undefined },
+    { nome: 'porta + aresta vertical', arestas: [aresta], tamanho: porta },
+    // Como a interface a chama hoje, sem o tamanho da referência: supõe uma porta comum (mais exigente).
+    { nome: 'só a porta, sem dizer o tamanho dela', arestas: [], tamanho: undefined },
+  ])('$nome: uma câmara plausível', ({ nome, arestas, tamanho }) => {
+    const camara = camaraDaHomografia(calibrar(porta, arestas).planoParaImagem, 1500, 2000, tamanho);
     expect(camara).not.toBeNull();
     const { focalPx, centro } = camara!;
     const fov = fovVertical(focalPx);

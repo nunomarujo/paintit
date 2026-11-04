@@ -155,6 +155,21 @@ describe('cantoMaisProximo — sem canto, fica o ponto apontado', () => {
     }
   });
 
+  it('disco pequeno (3 a 3,5 px de raio, cabeça de parafuso), com e sem ruído → null: não é canto', () => {
+    // Mais pequeno do que a janela do tensor, passa a razão dos valores próprios; antes devolvia um ponto
+    // da orla a 45° nas 16 direções (revisão de 04/11/2026).
+    for (const R of [3, 3.25, 3.5]) {
+      for (const semente of [0, 1, 2, 3, 4, 5]) {
+        const n = semente ? ruido(semente, 12) : () => 0;
+        const img = imagem(140, 140, (x, y) => 28 + 200 * cobertura(x, y, (px, py) => Math.hypot(px - 70, py - 70) < R) + n());
+        for (let k = 0; k < 16; k++) {
+          const t = (k * Math.PI) / 8;
+          expect(cantoMaisProximo(img, { x: 70 + R * Math.cos(t), y: 70 + R * Math.sin(t) }, 16)).toBeNull();
+        }
+      }
+    }
+  });
+
   it('contorno curvo (disco de 4, 8 e 12 px de raio, contraste 200) → null: curva não é canto', () => {
     for (const R of [4, 8, 12]) {
       const img = imagem(140, 140, (x, y) => 28 + 200 * cobertura(x, y, (px, py) => Math.hypot(px - 70, py - 70) < R));
@@ -210,6 +225,17 @@ describe('cantoMaisProximo — vários cantos dentro do raio', () => {
     expect(distancia(r!, { x: 47, y: 50 })).toBeLessThanOrEqual(1);
   });
 
+  it('a preferência pelo mais próximo não depende do raio: de 16 a 64, sempre o canto a 3 px', () => {
+    // Com a penalização proporcional ao raio, a partir de raio 32 ganhava o canto a 10 px (revisão de
+    // 04/11/2026). Hoje o ecrã passa raio 16, mas o raio pode vir a acompanhar o zoom.
+    const img = imagem(120, 100, (x, y) => (A(x, y) ? 110 : B(x, y) ? 180 : 40));
+    for (const raio of [16, 20, 24, 32, 48, 64]) {
+      const r = cantoMaisProximo(img, ponto, raio);
+      expect(r, `raio ${raio}`).not.toBeNull();
+      expect(distancia(r!, { x: 47, y: 50 }), `raio ${raio}`).toBeLessThanOrEqual(1);
+    }
+  });
+
   it('o canto a 10 px conta: sem o de 3 px, é ele que se encontra', () => {
     const img = imagem(120, 100, (x, y) => (B(x, y) ? 180 : 40));
     const r = cantoMaisProximo(img, ponto, 16);
@@ -220,6 +246,130 @@ describe('cantoMaisProximo — vários cantos dentro do raio', () => {
   it('fora do raio não conta', () => {
     const img = imagem(120, 100, (x, y) => (B(x, y) ? 180 : 40));
     expect(cantoMaisProximo(img, ponto, 8)).toBeNull();
+  });
+
+  it('sozinho, o canto a 10 px também se encontra com raio 64: a penalização só desempata', () => {
+    const img = imagem(120, 100, (x, y) => (B(x, y) ? 180 : 40));
+    const r = cantoMaisProximo(img, ponto, 64);
+    expect(r).not.toBeNull();
+    expect(distancia(r!, { x: 56, y: 42 })).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('cantoMaisProximo — cantos a poucos píxeis uns dos outros', () => {
+  /**
+   * Porta 80×60 em [40, 120) × [30, 90) com aro de `aro` px: dois cantos verdadeiros a 3 ou 4 px um do
+   * outro em cada esquina, o de fora (parede/aro) e o de dentro (aro/folha).
+   */
+  function porta(aro: number, parede: number, nivelAro: number, folha: number): Pixeis {
+    const fora = dentro(40, 30, 120, 90);
+    const folhaDentro = dentro(40 + aro, 30 + aro, 120 - aro, 90 - aro);
+    return imagem(160, 120, (x, y) => (folhaDentro(x, y) ? folha : fora(x, y) ? nivelAro : parede));
+  }
+
+  it('porta com aro de 3 e 4 px, apontada a cada canto da folha de 6 px em 8 direções: sempre um canto verdadeiro', () => {
+    // Antes, quando o passo de Förstner era recusado (o aro puxava-o para o canto de fora), devolvia o
+    // máximo da resposta, 1,41 px para dentro da folha: (50, 34) dava (45, 35).
+    for (const [aro, parede, nivelAro, folha] of [
+      [4, 220, 90, 180],
+      [3, 220, 90, 180],
+      [4, 200, 60, 200],
+      [3, 200, 60, 200],
+      [4, 200, 60, 170],
+      [3, 200, 60, 170],
+    ] as const) {
+      const img = porta(aro, parede, nivelAro, folha);
+      const pares = CANTOS.map((c) => ({
+        fora: c,
+        folha: { x: c.x === 40 ? 40 + aro : 120 - aro, y: c.y === 30 ? 30 + aro : 90 - aro },
+      }));
+      for (const par of pares)
+        for (const p of aVolta(par.folha, 6)) {
+          const caso = `aro ${aro} ${parede}/${nivelAro}/${folha}, apontado a (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`;
+          const r = cantoMaisProximo(img, p, 16);
+          // Do lado da folha, longe do canto de fora, tem de ser o canto da folha.
+          if (distancia(p, par.fora) - distancia(p, par.folha) >= 4) {
+            expect(r, caso).not.toBeNull();
+            expect(distancia(r!, par.folha), caso).toBeLessThanOrEqual(1);
+          } else if (r) {
+            expect(Math.min(distancia(r, par.folha), distancia(r, par.fora)), caso).toBeLessThanOrEqual(1);
+          }
+        }
+    }
+    const r = cantoMaisProximo(porta(4, 220, 90, 180), { x: 50, y: 34 }, 16);
+    expect(r).not.toBeNull();
+    expect(distancia(r!, { x: 44, y: 34 })).toBeLessThanOrEqual(1);
+  });
+
+  it('junta escura em L de 3 e 4 px numa parede clara: 169 pontos à volta, nunca a mais de 1 px de um canto', () => {
+    for (const largura of [3, 4]) {
+      const junta = (x: number, y: number) => (x >= 40 && x < 40 + largura && y >= 40) || (y >= 40 && y < 40 + largura && x >= 40);
+      const img = imagem(120, 120, (x, y) => (junta(x, y) ? 80 : 210));
+      const cantos = [
+        { x: 40, y: 40 },
+        { x: 40 + largura, y: 40 + largura },
+      ];
+      for (let dy = -6; dy <= 6; dy++)
+        for (let dx = -6; dx <= 6; dx++) {
+          const r = cantoMaisProximo(img, { x: 41 + dx, y: 41 + dy }, 16);
+          if (r)
+            expect(Math.min(...cantos.map((c) => distancia(r, c))), `junta ${largura}, (${41 + dx}, ${41 + dy})`).toBeLessThanOrEqual(1);
+        }
+    }
+  });
+
+  it('ponta de uma barra de 3 e 4 px de altura (peitoril, laje vista de topo): um dos cantos a ≤ 1 px, ou null', () => {
+    // Antes devolvia o meio da ponta: (29,59; 41,88) com 4 px, a quase 2 px dos dois cantos.
+    for (const altura of [3, 4]) {
+      const img = imagem(120, 80, (x, y) => (dentro(30, 40, 90, 40 + altura)(x, y) ? 220 : 60));
+      const cantos = [
+        { x: 30, y: 40 },
+        { x: 30, y: 40 + altura },
+      ];
+      for (const p of [...cantos, ...cantos.flatMap((c) => aVolta(c, 6))]) {
+        const r = cantoMaisProximo(img, p, 16);
+        if (r) expect(Math.min(...cantos.map((c) => distancia(r, c))), `barra ${altura}, (${p.x}, ${p.y})`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it('quadrado de 3 e 4 px: um dos cantos a ≤ 1 px, ou null — nunca o centro', () => {
+    for (const lado of [3, 4]) {
+      const img = imagem(80, 80, (x, y) => (dentro(40, 40, 40 + lado, 40 + lado)(x, y) ? 220 : 40));
+      const cantos = [
+        { x: 40, y: 40 },
+        { x: 40 + lado, y: 40 },
+        { x: 40 + lado, y: 40 + lado },
+        { x: 40, y: 40 + lado },
+      ];
+      for (const p of [{ x: 40, y: 40 }, ...cantos.flatMap((c) => aVolta(c, 4))]) {
+        const r = cantoMaisProximo(img, p, 16);
+        if (r) expect(Math.min(...cantos.map((c) => distancia(r, c))), `quadrado ${lado}, (${p.x}, ${p.y})`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it('a confirmação não tira o íman a cantos verdadeiros: barra e quadrado de 6 px, canto de 60°', () => {
+    const barra = imagem(120, 80, (x, y) => (dentro(30, 40, 90, 46)(x, y) ? 220 : 60));
+    const rb = cantoMaisProximo(barra, { x: 24, y: 40 }, 16);
+    expect(rb).not.toBeNull();
+    expect(distancia(rb!, { x: 30, y: 40 })).toBeLessThanOrEqual(1);
+    const quadrado = imagem(80, 80, (x, y) => (dentro(40, 40, 46, 46)(x, y) ? 220 : 40));
+    const rq = cantoMaisProximo(quadrado, { x: 36, y: 36 }, 16);
+    expect(rq).not.toBeNull();
+    expect(distancia(rq!, { x: 40, y: 40 })).toBeLessThanOrEqual(1);
+    // Cunha de 60° com o vértice em (60, 60), com anti-aliasing.
+    const cunha = imagem(120, 120, (x, y) =>
+      Math.round(
+        40 +
+          160 *
+            cobertura(x, y, (px, py) => {
+              const t = Math.atan2(py - 60, px - 60);
+              return (px !== 60 || py !== 60) && t >= 0 && t <= Math.PI / 3;
+            }),
+      ),
+    );
+    expect(piorErro(cunha, [{ x: 60, y: 60 }], 16)).toBeLessThanOrEqual(0.5);
   });
 });
 

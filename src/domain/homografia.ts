@@ -296,14 +296,33 @@ export function problemaDaReferencia(ref: ReferenciaRetangular): string | null {
  * errada. Ao contrário das verticais, só servem horizontais **do plano da fachada** (ou paralelas a
  * ele): horizontais de outras paredes vão para outro ponto de fuga.
  *
- * **Uma aresta horizontal não chega para a fachada toda.** Uma reta só diz que o ponto de fuga está
- * algures nela; onde, ao longo dela, continua a decidir a base e o topo da referência. Na prática,
- * uma cimalha endireita bem as alturas perto dela e pouco as de baixo (o ponto a 10 m para o lado
- * cai certo à altura da cimalha e tão errado como antes, ou mais, ao nível do passeio). Duas horizontais
- * compridas a alturas diferentes (a cimalha e um friso, a linha dos peitoris de um piso) fixam o
- * ponto de fuga sozinhas, e aí a correção vale para toda a fachada. Por isso as horizontais entram
- * pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a base e o topo da porta,
- * curtos e errados, valeriam tanto como elas. As verticais continuam com o peso igual de sempre.
+ * As horizontais entram pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a
+ * base e o topo da porta, curtos e errados, valeriam tanto como elas. As verticais continuam com o
+ * peso igual de sempre.
+ *
+ * **Uma só horizontal não chega para a fachada toda, e longe dela pode piorar.** Uma reta só diz
+ * que o ponto de fuga está algures nela; onde, ao longo dela, continuam a decidir a base e o topo da
+ * referência, curtos e com o erro do toque. A altura da própria aresta fica certa; as outras ficam
+ * entre a aresta e a referência, e o resultado depende do erro que a referência traz. Medido nos
+ * testes (16 m, 20° de lado, ponto a 10 m para o lado da porta):
+ * - referência marcada rodada (os dois cantos da direita 2 px acima): a aresta certa a uma altura e a
+ *   referência rodada a outra abrem um leque. Uma cimalha a 9 m deixa o passeio pior do que sem ela
+ *   (0,117 → 0,139 m); uma **soleira** ao nível do passeio põe o erro a 9 m de altura a dobrar
+ *   (0,154 → 0,332 m) — está à altura da base da porta e pouco lhe acrescenta;
+ * - erros independentes nos cantos e nas pontas da aresta (±2 px, o caso normal): uma só horizontal
+ *   melhora a média da fachada, mas piora-a num caso em cada cinco com a cimalha e em dois em cada
+ *   cinco com a soleira.
+ * Duas horizontais compridas a alturas diferentes (a cimalha e um friso, a linha dos peitoris de um
+ * piso) fixam o ponto de fuga sozinhas, e aí a correção vale para a fachada toda (ainda piora cerca
+ * de um caso em sete, pelo erro nas pontas das próprias arestas). Quem marca uma só horizontal deve
+ * ser avisado: `avisoDasHorizontais`.
+ *
+ * Porque não se corrige só a inclinação. Com uma só horizontal, rodar todas as horizontais pelo
+ * mesmo ângulo, sem mexer no resto da perspetiva que a referência deu (um cisalhamento da vista
+ * endireitada), acerta a fachada toda quando a referência foi marcada rodada — mas, com erros
+ * independentes nos cantos, piora a fachada em seis casos de cada dez e piora a média. Os dois
+ * modelos de erro pedem correções opostas, e nenhuma serve aos dois; ficou a do ponto de fuga, que é
+ * a que os dados dão quando os cantos foram tocados cada um por si.
  */
 export function calibrar(
   ref: ReferenciaRetangular,
@@ -333,6 +352,19 @@ export function calibrar(
   return { planoParaImagem, imagemParaPlano: inverter(planoParaImagem) };
 }
 
+/**
+ * O aviso para quem marcou uma só aresta horizontal (ver `calibrar`): endireita as alturas perto
+ * dela, mas longe dela pode deixar a fachada pior do que estava. `null` sem horizontais ou com duas
+ * ou mais.
+ */
+export function avisoDasHorizontais(arestasHorizontais: readonly (readonly [Ponto, Ponto])[]): string | null {
+  if (arestasHorizontais.length !== 1) return null;
+  return (
+    'Uma só horizontal endireita as alturas perto dela, mas longe dela pode piorar. Marcar uma segunda horizontal ' +
+    'comprida a outra altura — a cimalha e a linha das janelas de um piso, por exemplo.'
+  );
+}
+
 /** Onde estava a câmara e que lente tinha, tirados da homografia (`camaraDaHomografia`). */
 export interface CamaraDaFotografia {
   /** Distância focal em píxeis da fotografia. */
@@ -346,14 +378,124 @@ export interface CamaraDaFotografia {
 }
 
 /**
- * Abaixo deste ângulo entre a fachada e o plano da fotografia, a fotografia conta como «de frente» e a
- * focal não se tira dela (ver `camaraDaHomografia`). Porquê 8° e não perto de zero: o próprio erro de
- * toque inventa perspetiva. Com ±1 px nos cantos de uma porta a 12 m, uma fotografia exatamente de
- * frente parece inclinada 5° (mediana; 7° no percentil 95), e a 5° verdadeiros a focal ainda sai com
- * um erro mediano de ~50 %. Acima de 8° deixa passar quase tudo o que é real (a 10°, 94 %). Afinado para
- * referências do tamanho de uma porta; uma referência maior na imagem aguentaria um limite mais baixo.
+ * O erro de toque com que se conta, em píxeis da fotografia, em cada coordenada de cada canto da
+ * referência (um desvio-padrão). Com a lupa e o íman nos cantos, 1 px é o que se consegue; é com ele
+ * que `incertezaDaFocal` decide se a fotografia tem perspetiva que chegue.
  */
-export const INCLINACAO_MINIMA_GRAUS = 8;
+export const ERRO_DE_TOQUE_PX = 1;
+
+/**
+ * A incerteza relativa da focal (um desvio-padrão, com `ERRO_DE_TOQUE_PX`) acima da qual
+ * `camaraDaHomografia` devolve `null`. A 25 %, o erro mediano da focal com ±1 px nos cantos ronda os
+ * 10 a 12 %; com a câmara a 12 m, a correção de uma marquise de 1,2 m (10 %) fica certa a ±2,5 %.
+ */
+export const INCERTEZA_MAXIMA_DA_FOCAL = 0.25;
+
+/** O tamanho real da referência — o que `incertezaDaFocal` e `camaraDaHomografia` precisam de saber dela. */
+export interface TamanhoDaReferencia {
+  larguraM: number;
+  alturaM: number;
+}
+
+/**
+ * A referência que se supõe quando não se diz qual foi: uma porta comum, 0,90 × 2,10 m. A incerteza
+ * depende do tamanho da referência na fotografia, e a homografia não o sabe; supor uma referência
+ * mais pequena do que a verdadeira só torna a função mais exigente. Uma referência ainda mais
+ * pequena do que esta (uma janela pequena) tem de ser passada, senão a câmara passa com menos
+ * perspetiva do que devia.
+ */
+export const REFERENCIA_POR_OMISSAO: Readonly<TamanhoDaReferencia> = { larguraM: 0.9, alturaM: 2.1 };
+
+/**
+ * 1/f², com a focal f em unidades do lado maior da imagem — `NaN` quando não se pode tirar (a
+ * fotografia de frente, sem perspetiva nenhuma). Pode sair negativo: nenhuma câmara dá essa
+ * homografia (ver `camaraDaHomografia`).
+ */
+function umSobreF2(h: Matriz3, larguraImg: number, alturaImg: number): number {
+  // Coordenadas da imagem com o ponto principal na origem e o lado maior a valer 1: a focal passa a
+  // ser um número perto de 1 e as equações ficam bem condicionadas.
+  const s = Math.max(larguraImg, alturaImg);
+  const [cx, cy] = [larguraImg / 2, alturaImg / 2];
+  const a1 = (h[0] - cx * h[6]) / s;
+  const a2 = (h[1] - cx * h[7]) / s;
+  const b1 = (h[3] - cy * h[6]) / s;
+  const b2 = (h[4] - cy * h[7]) / s;
+  const [c1, c2] = [h[6], h[7]];
+  // Colunas de K⁻¹·H: m₁ = (a1/f, b1/f, c1), m₂ = (a2/f, b2/f, c2). Com u = 1/f²:
+  //   m₁·m₂ = 0           →  A1·u + B1 = 0
+  //   |m₁|² − |m₂|² = 0   →  A2·u + B2 = 0
+  // resolvidas juntas por mínimos quadrados, a primeira a dobrar (assim as duas pesam o mesmo
+  // qualquer que seja a rotação da fotografia).
+  const A1 = a1 * a2 + b1 * b2;
+  const B1 = c1 * c2;
+  const A2 = a1 * a1 + b1 * b1 - (a2 * a2 + b2 * b2);
+  const B2 = c1 * c1 - c2 * c2;
+  const den = 4 * A1 * A1 + A2 * A2;
+  // De frente, A1 = A2 = 0: o denominador é zero, ou quase, e u não quer dizer nada.
+  const k = (a1 * a1 + b1 * b1 + a2 * a2 + b2 * b2) / 2;
+  if (!(k > 0) || !(den > 1e-24 * k * k)) return NaN;
+  return -(4 * A1 * B1 + A2 * B2) / den;
+}
+
+/**
+ * Quanto se sabe da focal: a incerteza relativa (σ_f / f) que `ERRO_DE_TOQUE_PX` em cada coordenada
+ * dos quatro cantos da referência lhe deixa. `Infinity` quando a focal nem se pode tirar.
+ *
+ * Calcula-se sem saber os cantos que foram tocados, só com a homografia e o tamanho real da
+ * referência: os cantos são onde a homografia põe o retângulo (0, 0)–(largura, altura). Cada uma das
+ * oito coordenadas anda 1 px para cada lado, refaz-se a homografia por esses quatro pontos e vê-se
+ * quanto 1/f² mexe. É a mesma conta para uma porta a 8 m e para uma a 30 m: quanto mais pequena a
+ * referência na fotografia, mais a mexe o mesmo píxel, e é isso que um limite fixo em graus não via.
+ * Linearizado no ponto medido: num caso no limite, o próprio erro de toque pode fazer a perspetiva
+ * parecer maior do que é e a incerteza parecer menor (ver os testes).
+ *
+ * As arestas verticais e horizontais não entram aqui (só a homografia chega à função): com elas, a
+ * focal é mais certa do que este número diz, e a função fica do lado seguro.
+ */
+export function incertezaDaFocal(
+  h: Matriz3,
+  larguraImg: number,
+  alturaImg: number,
+  referencia: TamanhoDaReferencia = REFERENCIA_POR_OMISSAO,
+): number {
+  if (!(larguraImg > 0) || !(alturaImg > 0) || !h.every(Number.isFinite)) return Infinity;
+  if (!(referencia.larguraM > 0) || !(referencia.alturaM > 0)) return Infinity;
+  const u = umSobreF2(h, larguraImg, alturaImg);
+  if (!(u > 0)) return Infinity;
+  const plano: Ponto[] = [
+    { x: 0, y: 0 },
+    { x: referencia.larguraM, y: 0 },
+    { x: referencia.larguraM, y: referencia.alturaM },
+    { x: 0, y: referencia.alturaM },
+  ];
+  const cantos: Ponto[] = [];
+  for (const p of plano) {
+    const q = aplicarVisivel(h, p);
+    if (!q) return Infinity;
+    cantos.push(q);
+  }
+  const e = ERRO_DE_TOQUE_PX;
+  let variancia = 0;
+  for (let i = 0; i < 8; i++) {
+    const canto = i >> 1;
+    const eixo = i & 1 ? 'y' : 'x';
+    const mexido = (sinal: number) =>
+      umSobreF2(
+        homografia(
+          plano,
+          cantos.map((c, j) => (j === canto ? { ...c, [eixo]: c[eixo] + sinal * e } : c)),
+        ),
+        larguraImg,
+        alturaImg,
+      );
+    // Diferença centrada sobre ±1 px: apanha também o que não é linear à escala do erro de toque.
+    const d = (mexido(1) - mexido(-1)) / 2;
+    if (!Number.isFinite(d)) return Infinity;
+    variancia += d * d;
+  }
+  // f = u^(−1/2) ⇒ σ_f / f = σ_u / (2·u).
+  return Math.sqrt(variancia) / (2 * u);
+}
 
 /**
  * A câmara que tirou a fotografia, a partir da homografia plano → imagem: a distância focal e o
@@ -367,24 +509,51 @@ export const INCLINACAO_MINIMA_GRAUS = 8;
  * perpendiculares e do mesmo comprimento. As duas são lineares em 1/f², e resolvem-se juntas por
  * mínimos quadrados.
  *
+ * `referencia` é o tamanho real da referência com que se calibrou; sem ele, supõe-se
+ * `REFERENCIA_POR_OMISSAO` (uma porta comum), o que só deixa a função mais exigente quando a
+ * referência verdadeira é maior. Quem tem a referência deve passá-la.
+ *
  * **Limitação, e porque devolve `null`.** A informação sobre a focal está toda na perspetiva — no
- * quanto as retas paralelas da fachada convergem. Numa fotografia tirada exatamente de frente, as
- * paralelas continuam paralelas, as duas equações reduzem-se a 0 = 0 e qualquer focal serve: a
- * mesma fotografia tanto pode ser de uma grande angular perto como de uma teleobjetiva longe. A
- * precisão cai com o quadrado do seno desse ângulo, por isso abaixo de `INCLINACAO_MINIMA_GRAUS`
- * devolve `null`, e também quando 1/f² sai negativo ou a focal sai fora de [0,3; 3] × o lado maior
- * da imagem (fora do que um telemóvel faz: é sinal de cantos mal marcados). Acima desse ângulo, a
- * função não sabe quão bem foram tocados os cantos e o erro de toque passa para a focal: com ±1 px
- * nos cantos de uma porta a 12 m, o erro mediano da focal ronda 8 % a 10° de inclinação e 1 a 3 %
- * de 20° para cima (ver os testes). A grande angular (0,5×) dos telemóveis dá um campo de visão de
- * 95 a 110° no lado maior e cabe no intervalo (a fotografia real dos testes dá 102°, o que só uma
- * grande angular faz). Um recorte da fotografia (ponto principal fora do centro) engana a função sem
- * aviso.
+ * quanto as retas paralelas da fachada convergem. Numa fotografia tirada de frente, as paralelas
+ * continuam paralelas, as duas equações reduzem-se a 0 = 0 e qualquer focal serve: a mesma fotografia
+ * tanto pode ser de uma grande angular perto como de uma teleobjetiva longe. E o erro de toque
+ * inventa perspetiva: tanto mais quanto mais pequena a referência aparece, ou seja, quanto mais longe
+ * foi tirada a fotografia. Por isso devolve `null` quando a focal sai mais incerta do que
+ * `INCERTEZA_MAXIMA_DA_FOCAL` com o erro de toque de `ERRO_DE_TOQUE_PX` (`incertezaDaFocal`) — um
+ * critério que cresce com a distância, ao contrário de um ângulo mínimo fixo (até 04/11/2026, 8°:
+ * afinado para uma porta a 12 m, deixava passar, de frente a 30 m, uma câmara em cada cinco, com a
+ * focal até 3,8 vezes a verdadeira). Devolve `null` também quando 1/f² sai negativo (nenhuma câmara
+ * dá aquela homografia) e quando a focal sai fora de [0,3; 3] × o lado maior da imagem.
+ *
+ * Esse intervalo deixa de fora, **de propósito**, a teleobjetiva 5× dos telemóveis de topo (111 a
+ * 120 mm equivalentes, 3,1 a 3,3 × o lado maior), mesmo com os cantos perfeitos e a perspetiva forte:
+ * aí o `null` não quer dizer cantos mal marcados. O intervalo é a rede para o que `incertezaDaFocal`
+ * não vê, por não ser erro de toque — as medidas da referência mal escritas, uma referência fora do
+ * plano da parede. Só apanha os casos grosseiros (uma altura mal escrita pode dar uma focal três vezes
+ * e meia a verdadeira e passar, ver os testes), e cada degrau a mais deixa passar mais deles. O que se
+ * perde com a 5× é pouco: a fachada só cabe nela de longe, e a correção da paralaxe vale s/z — 3 %
+ * para uma marquise de 1,2 m a 35 m; sem câmara, a marquise fica medida por excesso, nunca por
+ * defeito. Se as fotografias a 5× passarem a contar, o limite de cima sobe para 3,5. A 3× (77 mm) e a
+ * grande angular 0,5× (95 a 110° no lado maior) cabem no intervalo; a fotografia real dos testes dá
+ * 102°, o que só uma grande angular faz.
+ *
+ * Mesmo dentro do limite, o erro de toque passa para a focal: com ±1 px nos cantos de uma porta a
+ * 12 m, o erro mediano ronda 8 % a 10° de inclinação e 1 a 3 % de 20° para cima (ver os testes). Um
+ * recorte da fotografia (ponto principal fora do centro) engana a função sem aviso.
  */
-export function camaraDaHomografia(h: Matriz3, larguraImg: number, alturaImg: number): CamaraDaFotografia | null {
+export function camaraDaHomografia(
+  h: Matriz3,
+  larguraImg: number,
+  alturaImg: number,
+  referencia: TamanhoDaReferencia = REFERENCIA_POR_OMISSAO,
+): CamaraDaFotografia | null {
   if (!(larguraImg > 0) || !(alturaImg > 0) || !h.every(Number.isFinite)) return null;
-  // Coordenadas da imagem com o ponto principal na origem e o lado maior a valer 1: a focal passa a
-  // ser um número perto de 1 e as equações ficam bem condicionadas.
+  const u = umSobreF2(h, larguraImg, alturaImg);
+  if (!(u > 0) || !Number.isFinite(u)) return null;
+  const fn = 1 / Math.sqrt(u);
+  if (!(fn >= 0.3 && fn <= 3)) return null;
+  if (!(incertezaDaFocal(h, larguraImg, alturaImg, referencia) <= INCERTEZA_MAXIMA_DA_FOCAL)) return null;
+
   const s = Math.max(larguraImg, alturaImg);
   const [cx, cy] = [larguraImg / 2, alturaImg / 2];
   const a1 = (h[0] - cx * h[6]) / s;
@@ -394,26 +563,6 @@ export function camaraDaHomografia(h: Matriz3, larguraImg: number, alturaImg: nu
   const b2 = (h[4] - cy * h[7]) / s;
   const b3 = (h[5] - cy * h[8]) / s;
   const [c1, c2, c3] = [h[6], h[7], h[8]];
-  // Colunas de K⁻¹·H: m₁ = (a1/f, b1/f, c1), m₂ = (a2/f, b2/f, c2). Com u = 1/f²:
-  //   m₁·m₂ = 0           →  A1·u + B1 = 0
-  //   |m₁|² − |m₂|² = 0   →  A2·u + B2 = 0
-  const A1 = a1 * a2 + b1 * b2;
-  const B1 = c1 * c2;
-  const A2 = a1 * a1 + b1 * b1 - (a2 * a2 + b2 * b2);
-  const B2 = c1 * c1 - c2 * c2;
-  // A primeira equação entra a dobrar: assim (2·A1, A2) mede a perspetiva sem depender da focal nem
-  // da rotação da fotografia — dividido por k, é sen²θ/(1 − sen²θ/2), sendo θ o ângulo entre a
-  // fachada e o plano da fotografia.
-  const k = (a1 * a1 + b1 * b1 + a2 * a2 + b2 * b2) / 2;
-  if (!(k > 0)) return null;
-  const q = Math.hypot(2 * A1, A2) / k;
-  const sen2 = q / (1 + q / 2);
-  const senMin = Math.sin((INCLINACAO_MINIMA_GRAUS * Math.PI) / 180);
-  if (!(sen2 >= senMin * senMin)) return null;
-  const u = -(4 * A1 * B1 + A2 * B2) / (4 * A1 * A1 + A2 * A2);
-  if (!(u > 0) || !Number.isFinite(u)) return null;
-  const fn = 1 / Math.sqrt(u);
-  if (!(fn >= 0.3 && fn <= 3)) return null;
 
   // [r₁ r₂ t] = λ·K⁻¹·H, com λ a média geométrica das duas escalas (com ruído, |m₁| ≠ |m₂|).
   const m1 = [a1 / fn, b1 / fn, c1];

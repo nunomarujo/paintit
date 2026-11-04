@@ -5132,6 +5132,23 @@ deslocamento do dedo, não para a posição dele; uma série por criar perdia-se
 passava para a fachada seguinte; "um marquise" e "o primeiro varanda"; ícones de forma a 25 % de
 opacidade. Os vidros nas laterais das marquises passaram a ter campo próprio (não se veem de frente).
 
-As duas peças com matemática própria (câmara/perspetiva e íman) foram feitas por agentes em paralelo.
-Neste commit entram verificadas no browser com a fotografia real (o íman caiu no canto; a câmara a
-8,7 m da fachada); os testes próprios e o ataque de um cético a cada uma entram no commit seguinte.
+As duas peças com matemática própria (câmara/perspetiva e íman) foram feitas por agentes em paralelo,
+cada uma atacada por um cético com testes adversariais e corrigida:
+
+- **Câmara** (`homografia.ts`, 66 testes). Na fotografia do promotor: a 8,73 m da fachada e a **1,75 m
+  do chão** — a altura de quem segura o telemóvel, o que confirma o cálculo sem depender da porta —,
+  com 102° de campo de visão (grande angular 0,5×). O cético reproduziu três defeitos: (1) numa
+  fotografia de frente tirada de longe, 1 px de erro nos cantos inventava uma câmara sem sentido (focal
+  3,8 × a verdadeira) — **corrigido**: o ângulo mínimo fixo deu lugar a um teste ao próprio erro de
+  toque (a focal tem de aguentar ±1 px nos cantos com menos de 25 % de incerteza, sabendo o tamanho
+  real da referência); (2) a teleobjetiva 5× dos telemóveis era recusada — corrigido; (3) **uma só
+  aresta horizontal de acerto endireita perto dela mas pode piorar longe dela** — não tem correção no
+  cálculo (a informação não está numa linha só; experimentadas alternativas, todas pioram outros
+  casos): o ecrã avisa (`avisoDasHorizontais`) e a instrução pede de preferência uma vertical, e
+  horizontais só duas a alturas diferentes.
+- **Íman** (`cantos.ts`, 27 testes). O cético reproduziu três casos em que devolvia um ponto a mais de
+  1 px do canto em vez de desistir — aro escuro de porta de 3–4 px, formas mais pequenas do que a
+  janela (barras, quadrados), e um raio grande a preferir o canto vizinho mais contrastado. Todos
+  corrigidos: um canto tem de ter dois braços retos à volta; o refinamento ignora arestas que não
+  passam pelo canto; a preferência pela distância já não depende do raio. Na fotografia do promotor,
+  um toque a 6 px do canto da porta continua a cair no canto.

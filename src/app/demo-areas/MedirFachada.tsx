@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   aplicar,
+  avisoDasHorizontais,
   calibrar,
   camaraDaHomografia,
   problemaDaReferencia,
@@ -372,8 +373,8 @@ export function MedirFachada() {
   const calibracao: Calibracao | null = useMemo(() => calibrarCom(desenho.acertos), [referencia, arestas, desenho.acertos]);
   // A câmara, tirada da própria fotografia: dá a correção da perspetiva das frentes salientes.
   const camara = useMemo(
-    () => (calibracao && foto ? camaraDaHomografia(calibracao.planoParaImagem, foto.largura, foto.altura) : null),
-    [calibracao, foto],
+    () => (calibracao && foto && referencia ? camaraDaHomografia(calibracao.planoParaImagem, foto.largura, foto.altura, referencia) : null),
+    [calibracao, foto, referencia],
   );
 
   /** Muda os acertos e leva as zonas para a nova calibração, no mesmo sítio da fotografia. */
@@ -507,6 +508,7 @@ export function MedirFachada() {
           podeDesfazer={desenho.anteriores.length > 0}
           desfazer={desfazer}
           acertos={desenho.acertos.verticais.length + desenho.acertos.horizontais.length}
+          avisoAcertos={avisoDasHorizontais(desenho.acertos.horizontais)}
           onAcertar={acertar}
           onAnularAcertos={() => mudarAcertos(SEM_ACERTOS)}
           onVoltar={() => setPasso(2)}
@@ -638,6 +640,7 @@ function PassoDesenhar({
   podeDesfazer,
   desfazer,
   acertos,
+  avisoAcertos,
   onAcertar,
   onAnularAcertos,
   onVoltar,
@@ -652,6 +655,8 @@ function PassoDesenhar({
   desfazer: () => void;
   /** Quantas arestas já se marcaram na vista endireitada para a acertar. */
   acertos: number;
+  /** Uma só horizontal pode piorar longe dela (`avisoDasHorizontais`): diz-se ao avaliador. */
+  avisoAcertos: string | null;
   onAcertar: (a: Ponto, b: Ponto) => void;
   onAnularAcertos: () => void;
   onVoltar: () => void;
@@ -722,7 +727,8 @@ function PassoDesenhar({
   let como: ReactNode = frase.como;
   if (modoAcerto) {
     instrucao = <>Arrastar ao longo de uma aresta que devia estar direita</>;
-    como = 'Uma vertical (canto do prédio, tubo de queda) ou uma horizontal (cimalha, linha das janelas), de uma ponta à outra.';
+    como =
+      'De preferência uma vertical comprida (canto do prédio, tubo de queda), de uma ponta à outra. Horizontais, só duas a alturas diferentes (a cimalha e a linha das janelas de um piso): uma sozinha pode piorar longe dela.';
   } else if (!temContorno) instrucao = <>Primeiro, o contorno da fachada</>;
   else if (emSerie && !serie) {
     instrucao = <>Desenhar {frase.primeiro} da série</>;
@@ -813,6 +819,7 @@ function PassoDesenhar({
         <p className="text-[13px] font-medium text-slate-500">Agora</p>
         <p className="text-[20px] font-semibold leading-snug text-slate-900">{instrucao}</p>
         <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">{como}</p>
+        {avisoAcertos && !modoAcerto && <p className="mt-1 text-[15px] font-medium text-amber-800">{avisoAcertos}</p>}
         {temContorno && !selecionada && !emSerie && (
           <p className="mt-1 text-[13px] text-slate-500">Para acertar uma zona já desenhada, tocar nela.</p>
         )}
