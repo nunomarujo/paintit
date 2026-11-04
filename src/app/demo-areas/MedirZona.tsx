@@ -145,19 +145,21 @@ function FotoAnotada({
     setCursor({ natural, css: { x: e.clientX - rect.left, y: e.clientY - rect.top } });
   };
 
-  const tocar = (e: React.PointerEvent<SVGSVGElement>) => {
+  const tocar = (e: React.MouseEvent<SVGSVGElement>) => {
     const natural = naturalDoEvento(e);
     if (!natural) return;
-    if (foto.modo === 'cantos') {
-      if (foto.cantos.length >= 4) return;
-      atualizar((f) => ({ ...f, cantos: [...f.cantos, natural] }));
-      return;
-    }
-    if (!foto.pendente) {
-      atualizar((f) => ({ ...f, pendente: natural }));
-    } else {
-      atualizar((f) => ({ ...f, segmentos: [...f.segmentos, { a: f.pendente!, b: natural, distanciaCm: '' }], pendente: null }));
-    }
+    // A decisão (que ponto é este, se já há 4 cantos) corre sempre dentro do atualizador funcional,
+    // sobre o estado vivo — nunca sobre `foto` (que pode estar desatualizado se dois eventos
+    // chegarem antes de o componente voltar a renderizar, como aconteceu com `onPointerUp` em
+    // ecrãs reais: dois eventos para um só toque empurravam dois cantos de uma vez).
+    atualizar((f) => {
+      if (f.modo === 'cantos') {
+        return f.cantos.length >= 4 ? f : { ...f, cantos: [...f.cantos, natural] };
+      }
+      return f.pendente
+        ? { ...f, segmentos: [...f.segmentos, { a: f.pendente, b: natural, distanciaCm: '' }], pendente: null }
+        : { ...f, pendente: natural };
+    });
   };
 
   const cantos: CantosZona | null =
@@ -220,7 +222,7 @@ function FotoAnotada({
             className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
             onPointerMove={mover}
             onPointerLeave={() => setCursor(null)}
-            onPointerUp={tocar}
+            onClick={tocar}
           >
             {cantos && (
               <polygon
@@ -281,14 +283,23 @@ function FotoAnotada({
           type="button"
           className="btn-quiet btn-sm"
           onClick={() =>
-            atualizar((f) =>
-              f.modo === 'segmentos'
-                ? { ...f, pendente: null, segmentos: f.segmentos.slice(0, -1) }
-                : { ...f, cantos: f.cantos.slice(0, -1) },
-            )
+            atualizar((f) => {
+              if (f.modo === 'cantos') return { ...f, cantos: f.cantos.slice(0, -1) };
+              // Com um ponto A pendente (ainda sem B), desfazer tira só esse ponto — nunca também o
+              // último segmento já completo, que é um erro distinto de "escrevi o ponto errado".
+              if (f.pendente) return { ...f, pendente: null };
+              return { ...f, segmentos: f.segmentos.slice(0, -1) };
+            })
           }
         >
           Desfazer último ponto
+        </button>
+        <button
+          type="button"
+          className="btn-quiet btn-sm"
+          onClick={() => atualizar((f) => ({ ...f, pendente: null, segmentos: [], cantos: [], modo: 'segmentos' }))}
+        >
+          Recomeçar esta fotografia
         </button>
         <button type="button" className="btn-quiet btn-sm" onClick={remover}>
           Remover esta fotografia

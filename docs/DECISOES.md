@@ -4819,3 +4819,39 @@ marcá-la e clicar "Concluir medição" leva o valor certo (7,05 m²) até ao ca
 fotografia". Sem erros de consola.
 
 `npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 03/11/2026 — Corrigido: marcar os quatro cantos podia duplicar um ponto por toque
+
+O promotor relatou, ao testar `/demo-areas` a sério: marcou os quatro cantos, desfez e voltou a
+marcar, e a zona nunca mais "fechou" — o resultado não aparecia, sem explicação.
+
+**Causa:** o toque usava `onPointerUp`, e o guarda que impede mais do que quatro cantos lia
+`foto.cantos.length` do valor da prop (capturado na renderização anterior), não do estado vivo. Num
+ecrã real — ao contrário dos cliques sintéticos e limpos do Playwright —, dois eventos de ponteiro
+por um só toque (rato + emulação tátil, por exemplo) podiam chegar antes de o componente voltar a
+renderizar: os dois viam `cantos.length < 4` e os dois empurravam um canto, duplicando um ponto e
+desalinhando a ordem dos quatro cantos (o terceiro clique real ficava a valer como quarto, e por aí
+fora) — exatamente o "nunca fechou" que o promotor descreveu.
+
+**Correção, duas camadas:**
+1. A decisão (que ponto é este, se já há quatro cantos) passa a correr sempre dentro do atualizador
+   funcional do `useState`, sobre o estado vivo — nunca sobre a prop `foto`. Esta é a correção real:
+   mesmo que dois eventos cheguem antes de renderizar, cada um vê o resultado do anterior.
+2. O toque passa de `onPointerUp` para `onClick` — um evento que o browser já garante uma só vez por
+   interação discreta, em vez de depender só da camada 1.
+
+Corrigido também o mesmo erro em "Desfazer último ponto": com um ponto A pendente (segmento ainda
+sem B), desfazer tirava esse ponto **e também** o último segmento já completo, ao mesmo tempo — dois
+erros diferentes tratados como um só. Agora desfaz só o que está a meio.
+
+Acrescentado "Recomeçar esta fotografia" (limpa cantos, segmentos e o ponto pendente de uma zona),
+como válvula de escape independente destas correções — nunca deve ser preciso, mas um utilizador
+confuso a meio de uma sequência de pontos precisa de conseguir recomeçar sem ambiguidade.
+
+Verificado num browser real: sequência de marcar/desfazer/remarcar os quatro cantos termina sempre
+com exatamente quatro pontos, o polígono fecha certo, e "Recomeçar esta fotografia" limpa tudo.
+**Não foi possível reproduzir aqui o evento duplicado em si** (o Playwright só gera um evento por
+clique) — a correção assenta no raciocínio sobre a causa, não numa reprodução direta; o promotor é
+quem pode confirmar em definitivo num ecrã tátil real.
+
+`npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
