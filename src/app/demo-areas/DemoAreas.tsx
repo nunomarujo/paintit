@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { VolumeViewer } from '@/components/VolumeViewer';
 import { areasDoVolume } from '@/domain/volumeAreas';
 import { FORMA_LABELS, FORMAS, type Forma, type VolumeInput } from '@/domain/volume';
-import { MedirZona } from './MedirZona';
 import { AjustarFotografia } from './AjustarFotografia';
 
 type Varandas = 'nenhuma' | 'aberta' | 'marquise';
@@ -22,8 +21,16 @@ const numero = (v: string): number | null => {
 };
 
 /**
- * Ecrã de teste (pedido do promotor, 03/11/2026): dimensões reais declaradas (não tiradas de uma
- * fotografia) → volume 3D + área por categoria, para comparar visualmente contra fotografias reais.
+ * Ecrã de teste (pedido do promotor, 03/11/2026): três passos em sequência, nunca três ferramentas
+ * paralelas e desligadas entre si — era esse o problema estrutural apontado depois da primeira
+ * versão (zona por zona dava "trabalho interminável" e nunca escrevia de volta nos campos reais).
+ *
+ * 1. Descrever o prédio (forma, pisos, janelas, varandas) — o que se vê na fotografia.
+ * 2. Dar escala a partir de uma fotografia (`AjustarFotografia.tsx`) — as distâncias medidas com
+ *    fita métrica escrevem directamente Frente/Fundo/Pé-direito; os deslizadores da câmara só
+ *    confirmam visualmente o encaixe, nunca mudam uma medida sozinhos.
+ * 3. Área por categoria — sai sozinha de `areasDoVolume`, já com a escala do passo 2.
+ *
  * Tudo em estado local, sem gravar nada — é só para experimentar.
  */
 export function DemoAreas() {
@@ -37,15 +44,11 @@ export function DemoAreas() {
   const [janelasPorPiso, setJanelasPorPiso] = useState('2');
   const [varandas, setVarandas] = useState<Varandas>('nenhuma');
 
-  type Alvo = 'nenhum' | 'frente' | 'fundo' | 'peDireito';
-  const [alvoLargura, setAlvoLargura] = useState<Alvo>('frente');
-  const [alvoAltura, setAlvoAltura] = useState<Alvo>('peDireito');
-  const [areaMedidaPorFotoM2, setAreaMedidaPorFotoM2] = useState<number | null>(null);
-  const aplicarAoAlvo = (alvo: Alvo, valor: number) => {
-    const texto = valor.toLocaleString('pt-PT', { maximumFractionDigits: 2 }).replace('.', ',');
-    if (alvo === 'frente') setLargura(texto);
-    else if (alvo === 'fundo') setProfundidade(texto);
-    else if (alvo === 'peDireito') setPeDireito(texto);
+  const onEscala = (campo: 'frente' | 'fundo' | 'peDireito', metros: number) => {
+    const texto = metros.toLocaleString('pt-PT', { maximumFractionDigits: 2 }).replace('.', ',');
+    if (campo === 'frente') setLargura(texto);
+    else if (campo === 'fundo') setProfundidade(texto);
+    else setPeDireito(texto);
   };
 
   const input: VolumeInput = useMemo(() => {
@@ -69,8 +72,10 @@ export function DemoAreas() {
   const areas = useMemo(() => areasDoVolume(input), [input]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5">
+    <div className="space-y-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-1 text-[15px] font-semibold text-slate-900">Passo 1 — Descrever o prédio</h2>
+        <p className="mb-4 text-[13px] text-slate-500">O que se vê na fotografia: forma, pisos, janelas, varandas.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-[15px] font-medium text-slate-700">Forma em planta</span>
@@ -88,7 +93,7 @@ export function DemoAreas() {
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-[15px] font-medium text-slate-700">Pisos acima do solo</span>
             <input className="campo" inputMode="numeric" value={pisos} onChange={(e) => setPisos(e.target.value)} />
@@ -99,9 +104,33 @@ export function DemoAreas() {
           </label>
         </div>
 
-        <div>
+        <label className="mt-4 block">
+          <span className="mb-1 block text-[15px] font-medium text-slate-700">Janelas por piso, em cada fachada</span>
+          <input className="campo max-w-[120px]" inputMode="numeric" value={janelasPorPiso} onChange={(e) => setJanelasPorPiso(e.target.value)} />
+        </label>
+
+        <fieldset className="mt-4">
+          <legend className="mb-1 text-[15px] font-medium text-slate-700">Varandas</legend>
+          <div className="flex flex-wrap gap-4">
+            {([
+              ['nenhuma', 'Nenhuma'],
+              ['aberta', 'Abertas (pintadas por dentro)'],
+              ['marquise', 'Marquises (fechadas, não pintadas)'],
+            ] as const).map(([v, label]) => (
+              <label key={v} className="flex items-center gap-2 text-[15px] text-slate-700">
+                <input type="radio" name="varandas" checked={varandas === v} onChange={() => setVarandas(v)} className="h-5 w-5" />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="mt-5 border-t border-slate-200 pt-4">
           <h3 className="text-[15px] font-semibold text-slate-900">Dimensões reais, em metros</h3>
-          <p className="text-[13px] text-slate-500">Medidas com fita, lidas de uma planta, ou tiradas de uma fotografia (secção abaixo).</p>
+          <p className="text-[13px] text-slate-500">
+            Enchem-se sozinhas no passo 2, a partir de uma fotografia — ou escrevem-se aqui directamente, se já souber as
+            medidas (fita métrica, planta).
+          </p>
           <div className="mt-2 grid gap-4 sm:grid-cols-3">
             <label className="block">
               <span className="mb-1 block text-[15px] font-medium text-slate-700">Frente (m)</span>
@@ -117,31 +146,14 @@ export function DemoAreas() {
             </label>
           </div>
         </div>
-
-        <label className="block">
-          <span className="mb-1 block text-[15px] font-medium text-slate-700">Janelas por piso, em cada fachada</span>
-          <input className="campo max-w-[120px]" inputMode="numeric" value={janelasPorPiso} onChange={(e) => setJanelasPorPiso(e.target.value)} />
-        </label>
-
-        <fieldset>
-          <legend className="mb-1 text-[15px] font-medium text-slate-700">Varandas</legend>
-          <div className="flex flex-wrap gap-4">
-            {([
-              ['nenhuma', 'Nenhuma'],
-              ['aberta', 'Abertas (pintadas por dentro)'],
-              ['marquise', 'Marquises (fechadas, não pintadas)'],
-            ] as const).map(([v, label]) => (
-              <label key={v} className="flex items-center gap-2 text-[15px] text-slate-700">
-                <input type="radio" name="varandas" checked={varandas === v} onChange={() => setVarandas(v)} className="h-5 w-5" />
-                {label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
       </div>
 
-      <div className="space-y-4">
+      <AjustarFotografia input={input} onEscala={onEscala} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-1 text-[15px] font-semibold text-slate-900">Passo 3 — Volume e área por categoria</h2>
+          <p className="mb-3 text-[13px] text-slate-500">Já com a escala do passo 2.</p>
           <VolumeViewer {...input} className="h-72 w-full" />
         </div>
 
@@ -170,49 +182,6 @@ export function DemoAreas() {
             </p>
           )}
         </div>
-      </div>
-      <div className="lg:col-span-2 space-y-3">
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="block">
-            <span className="mb-1 block text-[15px] font-medium text-slate-700">A largura medida (A–B) vai para</span>
-            <select className="campo" value={alvoLargura} onChange={(e) => setAlvoLargura(e.target.value as Alvo)}>
-              <option value="nenhum">Não aplicar</option>
-              <option value="frente">Frente</option>
-              <option value="fundo">Fundo</option>
-              <option value="peDireito">Pé-direito</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[15px] font-medium text-slate-700">A altura medida vai para</span>
-            <select className="campo" value={alvoAltura} onChange={(e) => setAlvoAltura(e.target.value as Alvo)}>
-              <option value="nenhum">Não aplicar</option>
-              <option value="frente">Frente</option>
-              <option value="fundo">Fundo</option>
-              <option value="peDireito">Pé-direito</option>
-            </select>
-          </label>
-        </div>
-        <MedirZona
-          onMedido={({ largura: l, altura: a }) => {
-            if (alvoLargura !== 'nenhum') aplicarAoAlvo(alvoLargura, l);
-            if (alvoAltura !== 'nenhum') aplicarAoAlvo(alvoAltura, a);
-          }}
-          onConcluir={(total) => setAreaMedidaPorFotoM2(total)}
-        />
-        {areaMedidaPorFotoM2 !== null && (
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between text-[17px] font-semibold">
-              <span>Área medida por fotografia</span>
-              <span className="font-mono tabular-nums">{areaMedidaPorFotoM2.toLocaleString('pt-PT', { maximumFractionDigits: 2 })} m²</span>
-            </div>
-            <p className="mt-1 text-[13px] text-slate-500">
-              Soma das zonas marcadas no resumo acima. Separada de propósito do «Total a pintar» do volume declarado — são duas
-              contas diferentes (uma mede zonas específicas, a outra estima o prédio todo) e não se somam uma à outra sem se
-              saber que não se sobrepõem.
-            </p>
-          </div>
-        )}
-        <AjustarFotografia input={input} />
       </div>
     </div>
   );

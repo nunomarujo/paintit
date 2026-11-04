@@ -4902,3 +4902,43 @@ Não ficou perfeitamente alinhado nesta sessão (não era o objetivo — é a pe
 fotografia à frente, que afina o encaixe); o mecanismo está verificado a funcionar.
 
 `npm test` (1577 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 03/11/2026 — Correção estrutural: um só fluxo (descrever → dar escala → área), não três ferramentas soltas
+
+O promotor testou a sério e apontou, com razão, um problema estrutural: o ecrã tinha três
+ferramentas lado a lado sem se falarem — `MedirZona.tsx` (segmentos + 4 cantos → área só dessa
+zona), `AjustarFotografia.tsx` (câmara visual, sem ligação nenhuma às medidas) e o formulário do
+volume (Frente/Fundo/Pé-direito só mudavam escrevendo à mão). Marcar os 4 cantos e premir "Concluir
+medição" nunca mudava o "Total a pintar" — eram contas diferentes, nunca ditas como tal com clareza
+suficiente. Nas palavras do promotor: *"devias começar por criar o volume com base nos dados
+extraídos da foto... e com base nas medições dadas, dimensionar o tamanho/escala, calculando depois
+as áreas."*
+
+**Reconstrução, um ecrã, três passos em sequência, nunca três ferramentas paralelas:**
+
+1. **Descrever o prédio** — o formulário de sempre (forma, pisos, fachadas livres, janelas,
+   varandas), sem mudanças de fundo, só reordenado e identificado como "Passo 1".
+2. **Dar escala a partir de uma fotografia** — `AjustarFotografia.tsx`, reescrito: a mesma
+   fotografia mostra ao mesmo tempo o volume projetado (para conferir visualmente a descrição do
+   passo 1) **e** permite marcar distâncias medidas com fita métrica (dois pontos, lupa). Cada
+   distância marcada tem um seletor — "esta medida corresponde a: Frente / Fundo / Pé-direito" — e
+   um botão "Aplicar" que **escreve diretamente esse campo**. Os deslizadores da câmara (distância,
+   altura do olho, ângulo, campo de visão) ficam só para conferir o encaixe visual; nunca mudam
+   nenhuma medida sozinhos.
+3. **Volume e área por categoria** — inalterado (`areasDoVolume`), mas agora genuinamente a jusante
+   dos dois passos anteriores: muda sozinho assim que o passo 2 escreve um campo.
+
+**O que se eliminou:** `MedirZona.tsx` (apagado) e, com ele, a marcação dos quatro cantos de uma
+zona, o "Resumo das zonas medidas" e o botão "Concluir medição" — eram precisamente a parte que dava
+a entender, erradamente, que calculavam a área do prédio. `retificarZona`
+(`src/domain/retificacao.ts`) e os seus testes mantêm-se intactos no domínio — a lógica continua
+válida e testada, só deixou de ter ecrã próprio; pode voltar a ter um, no futuro, para medir uma
+zona concreta que não encaixe no modelo genérico, mas não como via principal.
+
+**Verificado num browser real, de ponta a ponta:** com o formulário do passo 1 por omissão (Frente
+14 m), "Total a pintar" = 571,68 m²; marcada a distância real do vão de entrada (165 cm,
+topo-esquerdo a topo-direito) e aplicada como "Frente", o campo Frente muda para 1,65 m **e o Total
+a pintar recalcula sozinho para 314,16 m²** — sem precisar de nenhum botão "concluir" à parte. Sem
+scroll horizontal em 390px, sem erros de consola.
+
+`npm test` (1577 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.

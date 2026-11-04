@@ -51,42 +51,40 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
-## 2b. Medição e ajuste de volumes: três vias em `/demo-areas` (03/11/2026)
+## 2b. Medição e escala de volumes, em `/demo-areas` — um só fluxo (reformulado 03/11/2026)
 
-**Estado, no fim do dia:** três vias complementares, cada uma a fazer o que lhe compete — nenhuma
-substitui as outras.
+**Estado, no fim do dia:** um ecrã, três passos em sequência — nunca ferramentas paralelas e
+desligadas entre si (foi isso que o promotor apontou como "problema estrutural" a meio do dia, numa
+versão anterior com três vias soltas que nunca escreviam de volta no formulário).
 
-1. **Modelo 3D declarativo**, sobre `src/domain/volume.ts` (já existia, de 30/10-01/11/2026):
-   `src/domain/volumeAreas.ts` calcula área real por categoria (fachadas líquidas de vãos > 1 m²,
-   empenas, varandas, marquises — marquises fora do total pintável); `marquise` é `FaceKind` novo.
-2. **Medição por fotografia, zona a zona**, sobre `retificarZona` (`src/domain/retificacao.ts`, feito
-   e testado de manhã — passo 1 da ordem do handoff original): `src/app/demo-areas/MedirZona.tsx`
-   deixa importar fotografias, marcar segmentos medidos com fita métrica (com lupa) e,
-   opcionalmente, os quatro cantos de uma zona, para calcular área — soma-se num resumo e total.
-   **Dá trabalho repetir por cada zona/fachada** — é exato, mas não escala bem para um prédio
-   inteiro (o promotor apontou isto).
-3. **Ajustar o volume a uma fotografia**, sobre `src/domain/perspectiveCamera.ts` (novo, testado):
-   em vez de medir zona a zona, projeta-se o volume 3D **declarado** (mesmos campos do formulário
-   principal) sobre a fotografia com uma câmara de perspetiva real, e ajustam-se 4 deslizadores
-   (distância, altura do olho, ângulo, campo de visão) até encaixar nas arestas do prédio na foto —
-   `src/app/demo-areas/AjustarFotografia.tsx`. É o problema direto (dados os parâmetros, onde cai
-   cada ponto), geometria simples sem ambiguidade — ao contrário de tentar resolver a câmara a
-   partir de pontos tocados. Verificado a reagir correctamente aos deslizadores contra a fotografia
-   real do promotor; não ficou perfeitamente afinado nesta sessão (é a pessoa que afina, com tempo).
+1. **Passo 1, descrever o prédio** — formulário sobre `src/domain/volume.ts` (forma, pisos,
+   fachadas livres, janelas, varandas).
+2. **Passo 2, dar escala a partir de uma fotografia** — `src/app/demo-areas/AjustarFotografia.tsx`,
+   sobre `src/domain/perspectiveCamera.ts` (câmara de perspetiva real, testada) e `retificarZona`
+   (`src/domain/retificacao.ts`, feito de manhã): a fotografia mostra o volume do passo 1 projetado
+   por cima (para conferir visualmente), **e** deixa marcar distâncias medidas com fita métrica
+   (dois pontos, lupa), cada uma com um seletor "aplicar a: Frente/Fundo/Pé-direito" que escreve
+   diretamente esse campo.
+3. **Passo 3, área por categoria** — `src/domain/volumeAreas.ts` (fachadas líquidas de vãos > 1 m²,
+   empenas, varandas, marquises fora do total pintável), a jusante dos dois passos anteriores: muda
+   sozinho assim que o passo 2 escreve um campo.
 
-**O que ficou decidido pelo caminho, por ordem:** (a) abandonar usar UMA fotografia do prédio
-inteiro para derivar sozinha todas as dimensões (erro -1,9% a +20,5%, vão recuado não é fachada
-plana); (b) voltar à via da fotografia, mas zona a zona (via 2); (c) o promotor apontou que isto dá
-"trabalho interminável ao avaliador" e pediu a via 3 — conjugar o volume declarado com a geometria
-da foto, com referências reais a dar a escala. Detalhe completo em `docs/DECISOES.md`, entradas de
-03/11/2026.
+**O que ficou pelo caminho, por ordem (detalhe completo em `docs/DECISOES.md`, entradas de
+03/11/2026):** (a) abandonar usar UMA fotografia do prédio inteiro para derivar tudo sozinha (erro
+-1,9% a +20,5%, vão recuado não é fachada plana); (b) voltar à fotografia zona a zona
+(`MedirZona.tsx`, 4 cantos + segmento, "trabalho interminável" segundo o promotor); (c) ligar o
+volume declarado à fotografia por câmara de perspetiva, sem nenhuma escrita de volta ao formulário;
+(d) **versão atual** — a mesma câmara, mas com as distâncias marcadas a escrever directamente
+Frente/Fundo/Pé-direito. `MedirZona.tsx` foi apagado nesta última reformulação; `retificarZona`
+continua válido e testado no domínio, só sem ecrã próprio.
+
+**Verificado:** marcar uma distância real (165 cm) e aplicá-la como Frente muda esse campo **e** o
+"Total a pintar" recalcula sozinho, sem nenhum botão "concluir" à parte.
 
 **Por fazer:** ligar `/demo-areas` ao fluxo real (hoje não grava nada, tudo em estado local do
-browser); confirmação cruzada entre segmentos medidos na mesma fotografia (via 2, secção 3.2 do
-handoff original); cores por zona escolhidas pelo cliente (secção 3.5, ainda não construída); na via
-3, nenhum mecanismo ainda lê de volta as dimensões ajustadas — hoje é só visual, a pessoa afina os
-deslizadores e tira as suas próprias conclusões, não há "aplicar este ajuste" a escrever de volta
-largura/profundidade/pé-direito no formulário.
+browser); confirmação cruzada entre várias distâncias marcadas na mesma fotografia (secção 3.2 do
+handoff original — hoje cada uma aplica-se independentemente, sem comparação entre si); cores por
+zona escolhidas pelo cliente (secção 3.5, ainda não construída).
 
 ## 3. Por construir (já decidido, ainda não feito)
 
