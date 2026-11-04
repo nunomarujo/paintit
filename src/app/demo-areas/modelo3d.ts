@@ -1,15 +1,16 @@
-import { verticesDaZona, type TipoZona, type Zona } from '@/domain/fachadaMedida';
+import { PE_DIREITO_SUGERIDO_M, verticesDaZona, zonaContem, type TipoZona, type Zona } from '@/domain/fachadaMedida';
 
 /**
  * O volume do prédio montado a partir do que se mediu (04/11/2026): paredes à escala, e em cada
- * parede medida as zonas desenhadas no sítio exato — vãos e R/C como manchas na parede, marquises e
- * varandas como caixas salientes. Nada é inventado: uma parede que não se mediu fica lisa e marcada
- * como tal.
+ * parede medida as zonas desenhadas no sítio exato — vãos e R/C como manchas na parede, marquises
+ * como caixas salientes com os seus vidros na frente, varandas piso a piso (laje e guarda). Nada é
+ * inventado: uma parede que não se mediu fica lisa e marcada como tal.
  *
  * Projeção ortogonal (axonométrica) a rodar à volta do eixo vertical — paralelas continuam
  * paralelas e uma medida no desenho não muda com a distância. Ordem de desenho por camadas, não por
  * profundidade do centro das faces: uma varanda do 1.º andar tem o centro "mais longe" do que o
- * centro da parede onde está, e seria tapada por ela.
+ * centro da parede onde está, e seria tapada por ela. Dentro de cada camada, os elementos salientes
+ * ordenam-se por planos de separação (`porOrdemDeDesenho`).
  *
  * Funções puras, para se testarem sem browser.
  */
@@ -29,19 +30,36 @@ export interface FaceMedida {
 
 export type TipoPoligono = TipoZona | 'parede' | 'parede-por-medir' | 'topo';
 
+/** As peças de uma varanda desenhada piso a piso. */
+export type Elemento = 'laje' | 'guarda';
+
 export interface Poligono {
   pontos: { x: number; y: number }[];
   tipo: TipoPoligono;
   /** Face lateral de uma caixa saliente (mais escura, para dar volume). */
   sombra?: boolean;
+  /** Numa varanda piso a piso: a laje (cheia) ou a guarda (meio transparente, deixa ver a parede atrás). */
+  elemento?: Elemento;
 }
 
 /**
- * Quanto sai da parede cada elemento saliente (metros) — ilustrativo: a profundidade não se mede na foto.
+ * Quanto sai da parede cada elemento saliente (metros) quando não se mediu — ilustrativo. Com a
+ * saliência medida (`salienciaMarquiseM`, `salienciaVarandaM`), manda a medida.
  * Uma marquise ou varanda triangular sai como a caixa que a envolve (são raras; a área conta-se certa
- * em `fachadaMedida.ts`, isto é só o desenho).
+ * em `fachadaMedida.ts`, isto é só o desenho). Uma varanda triangular não se reparte por pisos: uma
+ * laje cortada na diagonal não corresponde a nada que se construa, e fica a caixa.
  */
 export const SALIENCIA_M: Partial<Record<TipoZona, number>> = { marquise: 1.0, varanda: 1.2 };
+
+/**
+ * Uma varanda desenhada piso a piso (04/11/2026, promotor: "podia ter de imediato o desenho de
+ * varandas"). O avaliador desenha a coluna inteira de uma vez, de baixo a cima; a coluna reparte-se
+ * em troços iguais, um por piso (`entrePisosM`, ou `PE_DIREITO_SUGERIDO_M` sem leitura das janelas),
+ * e cada troço leva uma laje na base e uma guarda à frente e dos lados. A guarda tem 1 m, ou menos
+ * num troço baixo: fica sempre `folgaAoPisoDeCima` livre até ao troço seguinte. Valores habituais,
+ * não medidos na foto — só servem o desenho.
+ */
+export const VARANDA_DESENHO_M = { laje: 0.18, guarda: 1.0, folgaAoPisoDeCima: 0.3 } as const;
 
 type V3 = [number, number, number];
 
@@ -85,20 +103,21 @@ function projetor(v: Vista) {
   const f = (v.elevacao * Math.PI) / 180;
   const [ct, st, cf, sf] = [Math.cos(t), Math.sin(t), Math.cos(f), Math.sin(f)];
   const rodar = (p: V3): V3 => [p[0] * ct + p[2] * st, p[1], -p[0] * st + p[2] * ct];
+  /** Quanto uma direção aponta para quem vê: positivo, para cá; zero, de perfil. */
+  const voltada = (n: V3) => {
+    const [, y, z] = rodar(n);
+    return y * sf + z * cf;
+  };
   return {
     /** Coordenadas de ecrã com y para baixo (SVG). */
     ecra(p: V3) {
       const [x, y, z] = rodar(p);
       return { x, y: -(y * cf - z * sf) };
     },
-    profundidade(p: V3) {
-      const [, y, z] = rodar(p);
-      return y * sf + z * cf;
-    },
-    visivel(n: V3) {
-      const [, y, z] = rodar(n);
-      return y * sf + z * cf > 1e-9;
-    },
+    /** Maior = mais perto de quem vê. */
+    profundidade: voltada,
+    voltada,
+    visivel: (n: V3) => voltada(n) > 1e-9,
   };
 }
 
@@ -112,60 +131,237 @@ function aoCanto(zonas: Zona[]): Zona[] {
   return zonas.map((z) => ({ ...z, x: z.x - x0, y: z.y - y0 }));
 }
 
+/** Uma medida que se pode usar: um número positivo. Zero, negativo ou NaN contam como "não medido". */
+const medida = (v: number | undefined) => (v !== undefined && Number.isFinite(v) && v > 0 ? v : undefined);
+
+const entre = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+interface Face {
+  pts: V3[];
+  n: V3;
+  sombra: boolean;
+}
+
+/** As cinco faces de uma caixa encostada à parede (a sexta é a parede): de s0 a s1, de y0 a y1, de t = 0 a p. */
+function facesDaCaixa(r: Referencial, s0: number, s1: number, y0: number, y1: number, p: number) {
+  const c = (s: number, y: number, t: number) => ponto(r, s, y, t);
+  const face = (pts: V3[], n: V3, sombra: boolean): Face => ({ pts, n, sombra });
+  return {
+    frente: face([c(s0, y0, p), c(s1, y0, p), c(s1, y1, p), c(s0, y1, p)], r.n, false),
+    inicio: face([c(s0, y0, 0), c(s0, y0, p), c(s0, y1, p), c(s0, y1, 0)], [-r.u[0], 0, -r.u[2]], true),
+    fim: face([c(s1, y0, p), c(s1, y0, 0), c(s1, y1, 0), c(s1, y1, p)], r.u, true),
+    cima: face([c(s0, y1, p), c(s1, y1, p), c(s1, y1, 0), c(s0, y1, 0)], [0, 1, 0], true),
+    baixo: face([c(s0, y0, 0), c(s1, y0, 0), c(s1, y0, p), c(s0, y0, p)], [0, -1, 0], true),
+  };
+}
+
+const todas = (f: ReturnType<typeof facesDaCaixa>) => [f.frente, f.inicio, f.fim, f.cima, f.baixo];
+
+/** Um objeto saliente (uma caixa, ou uma varanda de um piso) e os polígonos que dele se veem, já pela ordem certa entre si. */
+interface Grupo {
+  pols: Poligono[];
+  /** A caixa alinhada com os eixos que envolve o objeto em 3D — para procurar um plano de separação. */
+  min: V3;
+  max: V3;
+  /** Profundidade do centro — só desempata. */
+  prof: number;
+  /** A caixa que envolve o desenho no ecrã: dois grupos que não se sobrepõem no ecrã não pedem ordem. */
+  ecra: { x0: number; x1: number; y0: number; y1: number };
+}
+
+const E = 1e-9;
+
+/**
+ * 1 se `a` fica à frente de `b` (desenha-se depois), -1 se ao contrário, 0 se a ordem não importa.
+ * Dois objetos que não se cruzam e são caixas alinhadas com os eixos (as paredes são-no) têm um
+ * plano alinhado com os eixos entre eles; o que fica do lado de quem vê não pode ser tapado pelo outro.
+ */
+function aFrente(a: Grupo, b: Grupo, d: V3): number {
+  if (a.ecra.x1 <= b.ecra.x0 + E || b.ecra.x1 <= a.ecra.x0 + E || a.ecra.y1 <= b.ecra.y0 + E || b.ecra.y1 <= a.ecra.y0 + E) return 0;
+  let veredito = 0;
+  for (const k of [0, 1, 2] as const) {
+    if (Math.abs(d[k]) <= E) continue;
+    const v = a.min[k] >= b.max[k] - E ? Math.sign(d[k]) : a.max[k] <= b.min[k] + E ? -Math.sign(d[k]) : 0;
+    if (v === 0) continue;
+    // Dois planos com respostas opostas: nenhum tapa o outro.
+    if (veredito !== 0 && v !== veredito) return 0;
+    veredito = v;
+  }
+  return veredito;
+}
+
+/**
+ * Pintor com planos de separação: cada grupo desenha-se depois de todos os que pode tapar; entre os
+ * que estão livres, o mais longe primeiro. Ordenar só pelo centro, como se fazia, falha numa coluna
+ * de varandas ao lado de uma coluna de marquises: a varanda do último piso está mais alta, vista de
+ * cima tem o centro mais perto do que o da marquise inteira ao lado, e passava por cima da frente
+ * dela. Se as caixas se cruzarem (zonas sobrepostas por engano) e houver um ciclo, sai o mais longe.
+ */
+function porOrdemDeDesenho(grupos: Grupo[], d: V3): Poligono[] {
+  const n = grupos.length;
+  const seguintes: number[][] = grupos.map(() => []);
+  const faltam = grupos.map(() => 0);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const v = aFrente(grupos[i]!, grupos[j]!, d);
+      if (v === 0) continue;
+      const [atras, aFrenteDele] = v > 0 ? [j, i] : [i, j];
+      seguintes[atras]!.push(aFrenteDele);
+      faltam[aFrenteDele]!++;
+    }
+  }
+  const feito = grupos.map(() => false);
+  const ordem: Poligono[] = [];
+  for (let k = 0; k < n; k++) {
+    let escolhido = -1;
+    for (const soLivres of [true, false]) {
+      for (let i = 0; i < n; i++) {
+        if (feito[i] || (soLivres && faltam[i]! > 0)) continue;
+        if (escolhido < 0 || grupos[i]!.prof < grupos[escolhido]!.prof) escolhido = i;
+      }
+      if (escolhido >= 0) break;
+    }
+    feito[escolhido] = true;
+    for (const j of seguintes[escolhido]!) faltam[j]!--;
+    ordem.push(...grupos[escolhido]!.pols);
+  }
+  return ordem;
+}
+
 export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundoM: number; alturaM: number }, vista: Vista): Poligono[] {
   const { larguraM: W, fundoM: D, alturaM: H } = dim;
   const proj = projetor(vista);
-  const medidas = new Map(faces.map((f) => [f.lado, aoCanto(f.zonas)]));
-  const salienciaPorLado = new Map(faces.filter((f) => f.salienciaMarquiseM).map((f) => [f.lado, f.salienciaMarquiseM!]));
-  const quad = (pts: V3[], tipo: TipoPoligono, sombra = false): Poligono => ({ pontos: pts.map((p) => proj.ecra(p)), tipo, sombra });
+  const porLado = new Map(faces.map((f) => [f.lado, f]));
+  const quad = (pts: V3[], tipo: TipoPoligono, sombra = false, elemento?: Elemento): Poligono => ({
+    pontos: pts.map((p) => proj.ecra(p)),
+    tipo,
+    sombra,
+    ...(elemento ? { elemento } : {}),
+  });
+  const grupo = (solido: V3[], pols: Poligono[]): Grupo | null => {
+    if (pols.length === 0) return null;
+    const eixo = (k: 0 | 1 | 2) => solido.map((p) => p[k]);
+    const min: V3 = [Math.min(...eixo(0)), Math.min(...eixo(1)), Math.min(...eixo(2))];
+    const max: V3 = [Math.max(...eixo(0)), Math.max(...eixo(1)), Math.max(...eixo(2))];
+    const xs = pols.flatMap((p) => p.pontos.map((q) => q.x));
+    const ys = pols.flatMap((p) => p.pontos.map((q) => q.y));
+    return {
+      pols,
+      min,
+      max,
+      prof: proj.profundidade([(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2]),
+      ecra: { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) },
+    };
+  };
 
   const antes: Poligono[] = [];
   const caixa: Poligono[] = [];
-  const depois: { prof: number; pols: Poligono[] }[] = [];
-  const escondidas: { prof: number; pols: Poligono[] }[] = [];
+  const depois: Grupo[] = [];
+  const escondidas: Grupo[] = [];
 
   for (const lado of ['frente', 'direita', 'tras', 'esquerda'] as Lado[]) {
     const r = referencial(lado, W, D);
-    const zonas = medidas.get(lado);
+    const face = porLado.get(lado);
+    const zonas = face ? aoCanto(face.zonas) : undefined;
     const paredeVisivel = proj.visivel(r.n);
     const L = r.comprimento;
     const dentro = (z: Zona) => ({
-      s0: Math.max(0, Math.min(L, z.x)),
-      s1: Math.max(0, Math.min(L, z.x + z.largura)),
-      y0: Math.max(0, Math.min(H, z.y)),
-      y1: Math.max(0, Math.min(H, z.y + z.altura)),
+      s0: entre(z.x, 0, L),
+      s1: entre(z.x + z.largura, 0, L),
+      y0: entre(z.y, 0, H),
+      y1: entre(z.y + z.altura, 0, H),
     });
+    const salienciaDe = (tipo: TipoZona) =>
+      tipo === 'marquise'
+        ? (medida(face?.salienciaMarquiseM) ?? SALIENCIA_M.marquise)
+        : tipo === 'varanda'
+          ? (medida(face?.salienciaVarandaM) ?? SALIENCIA_M.varanda)
+          : undefined;
+    const entrePisos = medida(face?.entrePisosM) ?? PE_DIREITO_SUGERIDO_M;
+    const juntar = (g: Grupo | null) => {
+      if (g) (paredeVisivel ? depois : escondidas).push(g);
+    };
+
+    // Os vidros das marquises: o avaliador desenha-os como vãos por cima da frente da marquise. Um
+    // vão com o centro dentro de uma marquise é dela (o mesmo critério de `corrigirSaliencias`) e
+    // desenha-se na frente da marquise, não na parede — na parede ficava escondido atrás da caixa.
+    const marquises = zonas?.filter((q) => q.tipo === 'marquise') ?? [];
+    const vidros = new Map<Zona, Zona[]>();
+    for (const v of zonas ?? []) {
+      if (v.tipo !== 'vao') continue;
+      const m = marquises.find((q) => zonaContem(q, { x: v.x + v.largura / 2, y: v.y + v.altura / 2 }));
+      if (m) vidros.set(m, [...(vidros.get(m) ?? []), v]);
+    }
+    const naMarquise = new Set([...vidros.values()].flat());
 
     if (paredeVisivel) {
       caixa.push(quad([ponto(r, 0, 0, 0), ponto(r, L, 0, 0), ponto(r, L, H, 0), ponto(r, 0, H, 0)], zonas ? 'parede' : 'parede-por-medir'));
       // Manchas na parede: R/C primeiro, vãos por cima.
       for (const tipo of ['rc', 'vao'] as TipoZona[]) {
-        for (const z of zonas?.filter((q) => q.tipo === tipo) ?? []) {
+        for (const z of zonas?.filter((q) => q.tipo === tipo && !naMarquise.has(q)) ?? []) {
           const { s0, s1, y0, y1 } = dentro(z);
           if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;
           // A forma desenhada (retângulo ou triângulo), com cada vértice preso à parede.
-          const vertices = verticesDaZona(z).map((v) => ponto(r, Math.max(0, Math.min(L, v.x)), Math.max(0, Math.min(H, v.y)), 0));
+          const vertices = verticesDaZona(z).map((v) => ponto(r, entre(v.x, 0, L), entre(v.y, 0, H), 0));
           caixa.push(quad(vertices, tipo));
         }
       }
     }
 
     for (const z of zonas ?? []) {
-      const p = z.tipo === 'marquise' ? (salienciaPorLado.get(lado) ?? SALIENCIA_M.marquise) : SALIENCIA_M[z.tipo];
+      const p = salienciaDe(z.tipo);
       if (!p) continue;
       const { s0, s1, y0, y1 } = dentro(z);
       if (s1 - s0 < 1e-6 || y1 - y0 < 1e-6) continue;
-      const c = (s: number, y: number, t: number) => ponto(r, s, y, t);
-      const lados: { pts: V3[]; n: V3; sombra: boolean }[] = [
-        { pts: [c(s0, y0, p), c(s1, y0, p), c(s1, y1, p), c(s0, y1, p)], n: r.n, sombra: false },
-        { pts: [c(s0, y0, 0), c(s0, y0, p), c(s0, y1, p), c(s0, y1, 0)], n: [-r.u[0], 0, -r.u[2]], sombra: true },
-        { pts: [c(s1, y0, p), c(s1, y0, 0), c(s1, y1, 0), c(s1, y1, p)], n: r.u, sombra: true },
-        { pts: [c(s0, y1, p), c(s1, y1, p), c(s1, y1, 0), c(s0, y1, 0)], n: [0, 1, 0], sombra: true },
-        { pts: [c(s0, y0, 0), c(s1, y0, 0), c(s1, y0, p), c(s0, y0, p)], n: [0, -1, 0], sombra: true },
-      ];
-      const pols = lados.filter((f) => proj.visivel(f.n)).map((f) => quad(f.pts, z.tipo, f.sombra));
-      const prof = proj.profundidade(c((s0 + s1) / 2, (y0 + y1) / 2, p / 2));
-      (paredeVisivel ? depois : escondidas).push({ prof, pols });
+
+      if (z.tipo === 'varanda' && !z.triangulo) {
+        const pisos = Math.max(1, Math.round((y1 - y0) / entrePisos));
+        const troco = (y1 - y0) / pisos;
+        const laje = Math.min(VARANDA_DESENHO_M.laje, troco);
+        const guarda = Math.min(VARANDA_DESENHO_M.guarda, troco - laje - VARANDA_DESENHO_M.folgaAoPisoDeCima);
+        for (let i = 0; i < pisos; i++) {
+          const base = y0 + i * troco;
+          const facesLaje = todas(facesDaCaixa(r, s0, s1, base, base + laje, p));
+          const pols = facesLaje.filter((f) => proj.visivel(f.n)).map((f) => quad(f.pts, 'varanda', f.sombra, 'laje'));
+          const solido = facesLaje.flatMap((f) => f.pts);
+          if (guarda > 1e-6) {
+            // A guarda é um plano sem espessura e vê-se dos dois lados. A que se vê por dentro (a do
+            // lado de lá) fica atrás da laje e desenha-se antes dela; a que se vê por fora fica à
+            // frente da laje e desenha-se depois. Entre si não se sobrepõem: são faces da mesma caixa.
+            const g = facesDaCaixa(r, s0, s1, base + laje, base + laje + guarda, p);
+            const deDentro: Poligono[] = [];
+            const deFora: Poligono[] = [];
+            for (const f of [g.frente, g.inicio, g.fim]) {
+              solido.push(...f.pts);
+              const v = proj.voltada(f.n);
+              if (Math.abs(v) <= E) continue; // de perfil seria só uma risca
+              (v > 0 ? deFora : deDentro).push(quad(f.pts, 'varanda', f.sombra, 'guarda'));
+            }
+            pols.unshift(...deDentro);
+            pols.push(...deFora);
+          }
+          juntar(grupo(solido, pols));
+        }
+        continue;
+      }
+
+      const facesCaixa = todas(facesDaCaixa(r, s0, s1, y0, y1, p));
+      const pols = facesCaixa.filter((f) => proj.visivel(f.n)).map((f) => quad(f.pts, z.tipo, f.sombra));
+      // Os vidros só se veem quando se vê a frente da marquise, e por cima dela (no mesmo grupo,
+      // depois da frente): presos ao retângulo da frente, à distância da saliência.
+      if (z.tipo === 'marquise' && proj.visivel(r.n)) {
+        for (const v of vidros.get(z) ?? []) {
+          if (Math.min(s1, v.x + v.largura) - Math.max(s0, v.x) < 1e-6 || Math.min(y1, v.y + v.altura) - Math.max(y0, v.y) < 1e-6) continue;
+          const vertices = verticesDaZona(v).map((q) => ponto(r, entre(q.x, s0, s1), entre(q.y, y0, y1), p));
+          pols.push(quad(vertices, 'vao'));
+        }
+      }
+      juntar(
+        grupo(
+          facesCaixa.flatMap((f) => f.pts),
+          pols,
+        ),
+      );
     }
   }
 
@@ -183,13 +379,8 @@ export function montarModelo(faces: FaceMedida[], dim: { larguraM: number; fundo
     );
   }
 
-  const porProfundidade = (a: { prof: number }, b: { prof: number }) => a.prof - b.prof;
-  return [
-    ...escondidas.sort(porProfundidade).flatMap((e) => e.pols),
-    ...antes,
-    ...caixa,
-    ...depois.sort(porProfundidade).flatMap((e) => e.pols),
-  ];
+  const direcao: V3 = [proj.voltada([1, 0, 0]), proj.voltada([0, 1, 0]), proj.voltada([0, 0, 1])];
+  return [...porOrdemDeDesenho(escondidas, direcao), ...antes, ...caixa, ...porOrdemDeDesenho(depois, direcao)];
 }
 
 /** Caixa que envolve os polígonos, para o `viewBox`. */

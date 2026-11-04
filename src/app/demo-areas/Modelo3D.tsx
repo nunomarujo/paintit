@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { enquadramento, montarModelo, type FaceMedida, type TipoPoligono } from './modelo3d';
+import { enquadramento, montarModelo, type Elemento, type FaceMedida, type TipoPoligono } from './modelo3d';
 
-const ESTILO: Record<TipoPoligono, { normal: string; sombra?: string; tracejado?: boolean }> = {
+type Estilo = { normal: string; sombra?: string; tracejado?: boolean };
+
+const ESTILO: Record<TipoPoligono, Estilo> = {
   parede: { normal: 'fill-tinta-100 stroke-tinta-600' },
   'parede-por-medir': { normal: 'fill-slate-100 stroke-slate-400', tracejado: true },
   topo: { normal: 'fill-slate-200 stroke-slate-500' },
@@ -11,12 +13,20 @@ const ESTILO: Record<TipoPoligono, { normal: string; sombra?: string; tracejado?
   rc: { normal: 'fill-slate-400 stroke-slate-700' },
   vao: { normal: 'fill-violet-500 stroke-violet-800' },
   marquise: { normal: 'fill-sky-300 stroke-sky-700', sombra: 'fill-sky-500 stroke-sky-700' },
+  // Só a varanda triangular, que continua caixa; as outras desenham-se piso a piso (ESTILO_ELEMENTO).
   varanda: { normal: 'fill-emerald-300/70 stroke-emerald-800', sombra: 'fill-emerald-600/70 stroke-emerald-800' },
+};
+
+/** Varandas piso a piso: a laje cheia; a guarda meio transparente, para se ver a parede (e a porta) atrás dela. */
+const ESTILO_ELEMENTO: Record<Elemento, Estilo> = {
+  laje: { normal: 'fill-emerald-600 stroke-emerald-800', sombra: 'fill-emerald-700 stroke-emerald-800' },
+  guarda: { normal: 'fill-emerald-300/50 stroke-emerald-800' },
 };
 
 /**
  * O prédio montado com o que se mediu, a rodar (arrastar ou setas). Cores das zonas iguais às do
- * desenho; nenhuma fotografia no volume — só retângulos medidos.
+ * desenho (os vidros das marquises com a cor dos vãos, na frente da marquise); nenhuma fotografia no
+ * volume — só retângulos medidos.
  */
 export function Modelo3D({ faces, larguraM, fundoM, alturaM }: { faces: FaceMedida[]; larguraM: number; fundoM: number; alturaM: number }) {
   const [azimute, setAzimute] = useState(-30);
@@ -57,7 +67,7 @@ export function Modelo3D({ faces, larguraM, fundoM, alturaM }: { faces: FaceMedi
           aria-hidden
         >
           {pols.map((p, i) => {
-            const e = ESTILO[p.tipo];
+            const e = p.elemento ? ESTILO_ELEMENTO[p.elemento] : ESTILO[p.tipo];
             return (
               <polygon
                 key={i}
