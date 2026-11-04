@@ -615,3 +615,34 @@ export function corrigirParalaxe(p: Ponto, centro: { x: number; y: number; z: nu
 }
 
 export const distancia = (a: Ponto, b: Ponto) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/**
+ * Medidas de controlo (avaliação do método "Levantamento v7", 04/11/2026): uma segunda distância
+ * medida à fita, longe da referência, comparada com a mesma distância medida no desenho. A homografia
+ * passa exatamente pela referência e propaga sem aviso qualquer erro que ela traga — uma largura mal
+ * escrita (90 cm em vez de 80) aumenta todas as larguras 12,5 %, uma porta recuada fora do plano da
+ * parede encolhe tudo — e nada mais na ferramenta o vê. Uma medida de controlo vê.
+ *
+ * A distância em metros, no plano da fachada, entre dois pontos da fotografia; nula se algum cair do
+ * outro lado do horizonte do plano.
+ */
+export function medirNoPlano(cal: Calibracao, a: Ponto, b: Ponto): number | null {
+  const pa = aplicar(cal.imagemParaPlano, a);
+  const pb = aplicar(cal.imagemParaPlano, b);
+  if (!pa || !pb || ![pa.x, pa.y, pb.x, pb.y].every(Number.isFinite)) return null;
+  return distancia(pa, pb);
+}
+
+/**
+ * Desvio a partir do qual uma medida de controlo pede para rever a referência. O ruído medido nos
+ * testes é de ~1 % nas larguras e 1–1,5 % nas alturas com uma aresta (3–6 % sem ela); 1 % daria falsos
+ * alarmes, 3 % ainda apanha uma largura mal escrita por 5 cm numa porta (3 %) e uma porta recuada.
+ */
+export const DESVIO_MAXIMO_DO_CONTROLO = 0.03;
+
+/** Quanto o desenho difere da fita, em fração (+0,05 = o desenho dá 5 % a mais). Nulo sem medida válida. */
+export function desvioDoControlo(cal: Calibracao, a: Ponto, b: Ponto, fitaM: number): number | null {
+  const medido = medirNoPlano(cal, a, b);
+  if (medido === null || !(fitaM > 0)) return null;
+  return medido / fitaM - 1;
+}

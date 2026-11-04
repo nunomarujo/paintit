@@ -311,6 +311,12 @@ export interface ResultadoFachada {
    * perguntar (promotor, 04/11/2026). Área em m², ou nula se ainda falta a saliência.
    */
   coberturasSalientes: { existem: boolean; areaM2: number | null };
+  /**
+   * O que ainda falta para a área estar completa (avaliação do método "Levantamento v7", 04/11/2026):
+   * sem isto, as linhas "por medir" entravam a zero e o ecrã mostrava "A pintar" como se fosse o total
+   * — no terceiro teste do promotor, só as laterais das marquises valiam 22 m². Vazio: está completa.
+   */
+  porMedir: string[];
 }
 
 const arred = (n: number) => Math.round(n * 100) / 100;
@@ -476,6 +482,7 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
       pintavelM2: 0,
       avisos: ['Falta desenhar o contorno da fachada.'],
       coberturasSalientes: { existem: zonas.some((z) => z.tipo === 'marquise'), areaM2: null },
+      porMedir: ['contorno da fachada'],
     };
   }
 
@@ -603,6 +610,10 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
     pintavelM2: arred(pintavelM2),
     avisos,
     coberturasSalientes: { existem: marquises.length > 0, areaM2: saliencia ? arred(coberturaM2) : null },
+    porMedir: [
+      ...(marquises.length > 0 && !saliencia ? ['saliência das marquises (paredes laterais, tecto e cobertura)'] : []),
+      ...(varandas.length > 0 ? ['faces de dentro das varandas (por decidir — decisão 8.2)'] : []),
+    ],
   };
 }
 

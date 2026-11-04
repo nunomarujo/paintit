@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   aplicar,
   avisoDasHorizontais,
   calibrar,
   camaraDaHomografia,
+  DESVIO_MAXIMO_DO_CONTROLO,
+  desvioDoControlo,
+  medirNoPlano,
   problemaDaReferencia,
   type Calibracao,
+  type Matriz3,
   type Ponto,
   type ReferenciaRetangular,
 } from '@/domain/homografia';
@@ -89,6 +93,16 @@ async function carregarFoto(file: File): Promise<Foto> {
     altura,
   };
 }
+
+/** Uma medida de controlo: dois pontos da fotografia e a distância medida à fita, em cm (como se escreve). */
+interface Controlo {
+  a: Ponto;
+  b: Ponto;
+  cm: string;
+}
+
+/** Duas homografias iguais (a mesma calibração recalculada dá os mesmos números, a menos do arredondamento). */
+const mesmaMatriz = (a: Matriz3, b: Matriz3) => a.every((v, i) => Math.abs(v - b[i]!) <= 1e-12 * Math.max(1, Math.abs(v)));
 
 /** Arestas marcadas na vista endireitada para a acertar (em píxeis da fotografia). */
 interface Acertos {
@@ -322,25 +336,33 @@ export function MedirFachada() {
   const [arestas, setArestas] = useState<[Ponto, Ponto][]>([]);
   const [arestaPendente, setArestaPendente] = useState<Ponto | null>(null);
   const [aMarcarAresta, setAMarcarAresta] = useState(false);
+  const [controlos, setControlos] = useState<Controlo[]>([]);
+  const [controloPendente, setControloPendente] = useState<Ponto | null>(null);
+  const [aMarcarControlo, setAMarcarControlo] = useState(false);
 
-  // As zonas e as versões anteriores, juntas: "Desfazer" volta à anterior, seja o que for que mudou
-  // (zona nova, série, aresta acertada, zona apagada).
-  // As zonas e os acertos do endireitamento (arestas marcadas na vista endireitada), com as versões
-  // anteriores dos dois juntos: "Desfazer" nunca deixa zonas de uma calibração sobre outra.
-  const [desenho, setDesenho] = useState<{ zonas: Zona[]; acertos: Acertos; anteriores: { zonas: Zona[]; acertos: Acertos }[] }>({
+  // As zonas, os acertos do endireitamento e a calibração em que as zonas estão escritas (`base`), com
+  // as versões anteriores dos três juntas. As zonas guardam-se em metros; quando a calibração muda — um
+  // acerto, um canto da referência movido, uma medida corrigida —, levam-se para a nova através da
+  // fotografia (`remapearZona`) e continuam em cima das mesmas janelas. Antes só os acertos o faziam:
+  // corrigir a referência depois de desenhar deixava as zonas com os metros antigos (avaliação do
+  // método "Levantamento v7", 04/11/2026: "a fotografia manda").
+  type Instantaneo = { zonas: Zona[]; acertos: Acertos; base: Matriz3 | null };
+  const [desenho, setDesenho] = useState<Instantaneo & { anteriores: Instantaneo[] }>({
     zonas: [],
     acertos: SEM_ACERTOS,
+    base: null,
     anteriores: [],
   });
   const zonas = desenho.zonas;
+  const instantaneo = (d: Instantaneo): Instantaneo => ({ zonas: d.zonas, acertos: d.acertos, base: d.base });
   const mudarZonas = (f: (zs: Zona[]) => Zona[]) =>
-    setDesenho((d) => ({ ...d, zonas: f(d.zonas), anteriores: [...d.anteriores.slice(-99), { zonas: d.zonas, acertos: d.acertos }] }));
+    setDesenho((d) => ({ ...d, zonas: f(d.zonas), anteriores: [...d.anteriores.slice(-99), instantaneo(d)] }));
   const desfazer = () =>
     setDesenho((d) => {
       const ultimo = d.anteriores[d.anteriores.length - 1];
       return ultimo ? { ...ultimo, anteriores: d.anteriores.slice(0, -1) } : d;
     });
-  const limparZonas = () => setDesenho({ zonas: [], acertos: SEM_ACERTOS, anteriores: [] });
+  const limparZonas = () => setDesenho({ zonas: [], acertos: SEM_ACERTOS, base: null, anteriores: [] });
 
   // O R/C pinta-se por omissão (promotor, 04/11/2026); a saliência das marquises é medida à fita.
   const [incluirRC, setIncluirRC] = useState(true);
@@ -381,16 +403,41 @@ export function MedirFachada() {
     [calibracao, foto, referencia],
   );
 
-  /** Muda os acertos e leva as zonas para a nova calibração, no mesmo sítio da fotografia. */
+  // As medidas de controlo, para o passo 4: o maior desvio, ou o aviso de que a escala depende só da referência.
+  const resumoControlo = useMemo(() => {
+    const desvios = calibracao
+      ? controlos.map((c) => {
+          const cm = numero(c.cm);
+          return cm ? desvioDoControlo(calibracao, c.a, c.b, cm / 100) : null;
+        })
+      : [];
+    const validos = desvios.filter((d): d is number => d !== null);
+    if (validos.length === 0) return { texto: 'Sem medida de controlo: a escala depende só da referência (passo 2).', alerta: false };
+    const pior = validos.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a));
+    const pct = `${pior >= 0 ? '+' : '−'}${String(Math.abs(Math.round(pior * 1000) / 10)).replace('.', ',')} %`;
+    const alerta = Math.abs(pior) > DESVIO_MAXIMO_DO_CONTROLO;
+    return {
+      texto: `Conferido com ${validos.length === 1 ? '1 medida' : `${validos.length} medidas`} à fita: desvio ${validos.length === 1 ? '' : 'máximo '}${pct}${alerta ? ' — acima de 3 %: rever a referência' : ''}.`,
+      alerta,
+    };
+  }, [controlos, calibracao]);
+
+  // Sempre que a calibração muda, as zonas vão para ela pela fotografia (antes de se desenhar: sem saltos).
+  useLayoutEffect(() => {
+    if (!calibracao) return;
+    setDesenho((d) => {
+      if (d.base === calibracao.planoParaImagem) return d;
+      if (!d.base || d.zonas.length === 0 || mesmaMatriz(d.base, calibracao.planoParaImagem))
+        return { ...d, base: calibracao.planoParaImagem };
+      const base = d.base;
+      return { ...d, zonas: d.zonas.map((z) => remapearZona(z, base, calibracao.imagemParaPlano)), base: calibracao.planoParaImagem };
+    });
+  }, [calibracao]);
+
+  /** Muda os acertos (as zonas seguem pela calibração nova — ver acima). */
   const mudarAcertos = (novos: Acertos) => {
-    const antes = calibracao;
-    const depois = calibrarCom(novos);
-    if (!antes || !depois) return;
-    setDesenho((d) => ({
-      zonas: d.zonas.map((z) => remapearZona(z, antes.planoParaImagem, depois.imagemParaPlano)),
-      acertos: novos,
-      anteriores: [...d.anteriores.slice(-99), { zonas: d.zonas, acertos: d.acertos }],
-    }));
+    if (!calibrarCom(novos)) return;
+    setDesenho((d) => ({ ...d, acertos: novos, anteriores: [...d.anteriores.slice(-99), instantaneo(d)] }));
   };
   const acertar = (a: Ponto, b: Ponto) => {
     if (!calibracao) return;
@@ -425,6 +472,9 @@ export function MedirFachada() {
     setArestas([]);
     setArestaPendente(null);
     setAMarcarAresta(false);
+    setControlos([]);
+    setControloPendente(null);
+    setAMarcarControlo(false);
     limparZonas();
     setIncluirRC(true);
     // A saliência e os vidros laterais são desta fachada: a seguinte mede os seus.
@@ -471,6 +521,9 @@ export function MedirFachada() {
                     setCantos([]);
                     setArestas([]);
                     setArestaPendente(null);
+                    setControlos([]);
+                    setControloPendente(null);
+                    setAMarcarControlo(false);
                     limparZonas();
                   } finally {
                     setACarregar(false);
@@ -499,7 +552,20 @@ export function MedirFachada() {
           arestaPendente={arestaPendente}
           setArestaPendente={setArestaPendente}
           aMarcarAresta={aMarcarAresta}
-          setAMarcarAresta={setAMarcarAresta}
+          setAMarcarAresta={(v) => {
+            setAMarcarAresta(v);
+            if (v) setAMarcarControlo(false);
+          }}
+          controlos={controlos}
+          setControlos={setControlos}
+          controloPendente={controloPendente}
+          setControloPendente={setControloPendente}
+          aMarcarControlo={aMarcarControlo}
+          setAMarcarControlo={(v) => {
+            setAMarcarControlo(v);
+            if (v) setAMarcarAresta(false);
+          }}
+          calibracao={calibracao}
           problema={problema}
           pronta={!!calibracao}
           onVoltar={() => setPasso(1)}
@@ -527,6 +593,7 @@ export function MedirFachada() {
 
       {passo === 4 && (
         <PassoResultado
+          controlo={resumoControlo.texto}
           resultado={resultado}
           zonas={zonasParaContas}
           correcao={
@@ -565,7 +632,12 @@ export function MedirFachada() {
           onVoltar={() => setPasso(3)}
           onOutraFachada={() => {
             const usados = new Set([...guardadas.map((g) => g.nome), nome]);
-            setGuardadas((gs) => [...gs, { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM, salienciaVarandaM }]);
+            // A mesma fachada guardada duas vezes substitui a anterior — nunca soma duas vezes
+            // (avaliação do método "Levantamento v7", 04/11/2026). Só "Outra" se pode repetir.
+            setGuardadas((gs) => [
+              ...gs.filter((g) => g.nome !== nome || nome === 'Outra'),
+              { id: Date.now(), nome, resultado, zonas: zonasParaContas, salienciaM, salienciaVarandaM },
+            ]);
             setNome(NOMES_DE_FACHADA.find((n) => !usados.has(n)) ?? 'Outra');
             recomecar();
           }}
@@ -1038,27 +1110,54 @@ function PassoReferencia(props: {
   setArestaPendente: (p: Ponto | null) => void;
   aMarcarAresta: boolean;
   setAMarcarAresta: (v: boolean) => void;
+  controlos: Controlo[];
+  setControlos: (f: (c: Controlo[]) => Controlo[]) => void;
+  controloPendente: Ponto | null;
+  setControloPendente: (p: Ponto | null) => void;
+  aMarcarControlo: boolean;
+  setAMarcarControlo: (v: boolean) => void;
+  calibracao: Calibracao | null;
   problema: string | null;
   pronta: boolean;
   onVoltar: () => void;
   onContinuar: () => void;
 }) {
-  const { foto, cantos, arestas, arestaPendente, aMarcarAresta } = props;
+  const { foto, cantos, arestas, arestaPendente, aMarcarAresta, controlos, controloPendente, aMarcarControlo } = props;
   const escala = Math.max(foto.largura, foto.altura) / 900;
   const aMarcarCantos = cantos.length < 4;
-  const ativo = aMarcarCantos || aMarcarAresta;
+  const ativo = aMarcarCantos || aMarcarAresta || aMarcarControlo;
 
   // Precisão (promotor, 04/11/2026: "aumentar a precisão do rato"): carregar num ponto já marcado e
   // arrastar move-o a um quarto da velocidade do dedo, com a lupa em cima dele.
-  type Alvo = { k: 'canto'; i: number } | { k: 'aresta'; i: number; j: 0 | 1 } | { k: 'pendente' };
+  type Alvo =
+    | { k: 'canto'; i: number }
+    | { k: 'aresta'; i: number; j: 0 | 1 }
+    | { k: 'pendente' }
+    | { k: 'controlo'; i: number; j: 0 | 1 }
+    | { k: 'controloPendente' };
   const gesto = useRef<{ mover: Alvo; origem: Ponto } | { colocar: true } | null>(null);
   const [foco, setFoco] = useState<Ponto | null>(null);
   // Íman nos cantos, como no Photoshop: ao marcar um canto da referência, o ponto salta para o canto
   // da imagem mais próximo (`cantos.ts`); sem canto claro por perto, fica onde se apontou.
   const [ima, setIma] = useState(true);
-  const ajustar = (p: Ponto): Ponto => (ima && aMarcarCantos ? (cantoMaisProximo(foto.pixeis, p, 16) ?? p) : p);
-  const posicao = (a: Alvo): Ponto | null =>
-    a.k === 'canto' ? (cantos[a.i] ?? null) : a.k === 'aresta' ? (arestas[a.i]?.[a.j] ?? null) : arestaPendente;
+  // Também nas medidas de controlo: as pontas costumam ser cantos (de uma montra, do prédio).
+  const ajustar = (p: Ponto): Ponto => (ima && (aMarcarCantos || aMarcarControlo) ? (cantoMaisProximo(foto.pixeis, p, 16) ?? p) : p);
+  const posicao = (a: Alvo): Ponto | null => {
+    switch (a.k) {
+      case 'canto':
+        return cantos[a.i] ?? null;
+      case 'aresta':
+        return arestas[a.i]?.[a.j] ?? null;
+      case 'pendente':
+        return arestaPendente;
+      case 'controlo': {
+        const c = controlos[a.i];
+        return c ? (a.j === 0 ? c.a : c.b) : null;
+      }
+      case 'controloPendente':
+        return controloPendente;
+    }
+  };
   const pontoPerto = (p: Ponto, raio: number): Alvo | null => {
     const candidatos: Alvo[] = [
       ...cantos.map((_, i): Alvo => ({ k: 'canto', i })),
@@ -1067,6 +1166,11 @@ function PassoReferencia(props: {
         { k: 'aresta', i, j: 1 },
       ]),
       ...(arestaPendente ? [{ k: 'pendente' } as Alvo] : []),
+      ...controlos.flatMap((_, i): Alvo[] => [
+        { k: 'controlo', i, j: 0 },
+        { k: 'controlo', i, j: 1 },
+      ]),
+      ...(controloPendente ? [{ k: 'controloPendente' } as Alvo] : []),
     ];
     let melhor: Alvo | null = null;
     let dist = raio;
@@ -1083,12 +1187,23 @@ function PassoReferencia(props: {
     if (a.k === 'canto') props.setCantos((c) => c.map((v, k) => (k === a.i ? q : v)));
     else if (a.k === 'aresta')
       props.setArestas((ar) => ar.map((e, k): [Ponto, Ponto] => (k === a.i ? (a.j === 0 ? [q, e[1]] : [e[0], q]) : e)));
-    else props.setArestaPendente(q);
+    else if (a.k === 'pendente') props.setArestaPendente(q);
+    else if (a.k === 'controlo')
+      props.setControlos((cs) => cs.map((c, k) => (k === a.i ? (a.j === 0 ? { ...c, a: q } : { ...c, b: q }) : c)));
+    else props.setControloPendente(q);
   };
 
   const tocar = (p: Ponto) => {
     if (aMarcarCantos) {
       props.setCantos((c) => (c.length >= 4 ? c : [...c, p]));
+      return;
+    }
+    if (aMarcarControlo) {
+      if (!controloPendente) return props.setControloPendente(p);
+      const a = controloPendente;
+      props.setControlos((cs) => [...cs, { a, b: p, cm: '' }]);
+      props.setControloPendente(null);
+      props.setAMarcarControlo(false);
       return;
     }
     if (!aMarcarAresta) return;
@@ -1103,6 +1218,9 @@ function PassoReferencia(props: {
   };
 
   const desfazer = () => {
+    if (controloPendente) return props.setControloPendente(null);
+    if (aMarcarControlo || (controlos.length > 0 && !aMarcarAresta && !aMarcarCantos && arestas.length === 0))
+      return props.setControlos((cs) => cs.slice(0, -1));
     if (arestaPendente) return props.setArestaPendente(null);
     if (arestas.length > 0 && !aMarcarCantos) return props.setArestas((a) => a.slice(0, -1));
     props.setCantos((c) => c.slice(0, -1));
@@ -1117,6 +1235,9 @@ function PassoReferencia(props: {
       </>
     );
     como = 'Carregar, levar a lupa até ao canto e largar. O íman puxa o ponto para o canto da imagem.';
+  } else if (aMarcarControlo) {
+    instrucao = controloPendente ? <>Agora a outra ponta da medida de controlo</> : <>Tocar numa ponta da medida de controlo</>;
+    como = 'Uma distância medida à fita longe da referência — a largura da fachada ao nível do passeio, uma montra do outro lado.';
   } else if (aMarcarAresta) {
     instrucao = arestaPendente ? <>Agora o outro extremo da aresta</> : <>Tocar num extremo de uma aresta vertical comprida</>;
     como = 'Um canto do prédio ou um tubo de queda, do ponto mais baixo ao mais alto que se vê.';
@@ -1215,6 +1336,22 @@ function PassoReferencia(props: {
             <Marcador key={i} p={p} rotulo={String(i + 1)} escala={escala} />
           ))}
           {arestaPendente && <Marcador p={arestaPendente} escala={escala} cor="fill-fuchsia-500" />}
+          {controlos.map((c, i) => (
+            <g key={`c${i}`} style={{ pointerEvents: 'none' }}>
+              <line
+                x1={c.a.x}
+                y1={c.a.y}
+                x2={c.b.x}
+                y2={c.b.y}
+                className="stroke-cyan-600"
+                strokeWidth={4 * escala}
+                strokeDasharray={`${12 * escala} ${6 * escala}`}
+              />
+              <Marcador p={c.a} escala={escala} cor="fill-cyan-600" />
+              <Marcador p={c.b} escala={escala} cor="fill-cyan-600" rotulo={`C${i + 1}`} />
+            </g>
+          ))}
+          {controloPendente && <Marcador p={controloPendente} escala={escala} cor="fill-cyan-600" />}
         </CamadaDeToque>
       </Moldura>
 
@@ -1258,6 +1395,71 @@ function PassoReferencia(props: {
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {cantos.length === 4 && (
+        <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+          <p className="max-w-[60ch] text-[15px] text-slate-700">
+            <strong>Conferir com outra medida à fita (recomendado):</strong> uma distância longe da referência, de preferência na horizontal
+            — a largura da fachada ao nível do passeio, uma montra do outro lado. Mostra se a referência está bem medida e bem tocada: uma
+            largura mal escrita ou uma porta recuada passam despercebidas em tudo o resto.
+          </p>
+          {controlos.map((c, i) => {
+            const medido = props.calibracao ? medirNoPlano(props.calibracao, c.a, c.b) : null;
+            const cm = numero(c.cm);
+            const desvio = props.calibracao && cm ? desvioDoControlo(props.calibracao, c.a, c.b, cm / 100) : null;
+            const alto = desvio !== null && Math.abs(desvio) > DESVIO_MAXIMO_DO_CONTROLO;
+            return (
+              <div key={i} className="space-y-1">
+                <div className="flex flex-wrap items-end gap-3">
+                  <span className="flex min-h-[44px] items-center gap-1 text-[15px] text-slate-700">
+                    C{i + 1} · no desenho{' '}
+                    <span className="font-mono tabular-nums text-slate-900">{medido !== null ? `${m(medido)} m` : '—'}</span>
+                  </span>
+                  <label className="block w-36">
+                    <span className="mb-1 block text-[13px] text-slate-600">À fita (cm)</span>
+                    <input
+                      className="campo"
+                      inputMode="decimal"
+                      placeholder="Ex.: 1405"
+                      value={c.cm}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        props.setControlos((cs) => cs.map((x, k) => (k === i ? { ...x, cm: v } : x)));
+                      }}
+                    />
+                  </label>
+                  {desvio !== null && (
+                    <span
+                      className={`flex min-h-[44px] items-center gap-1 text-[15px] ${alto ? 'font-medium text-amber-800' : 'text-slate-700'}`}
+                    >
+                      desvio{' '}
+                      <span className="font-mono tabular-nums">
+                        {desvio >= 0 ? '+' : '−'}
+                        {String(Math.abs(Math.round(desvio * 1000) / 10)).replace('.', ',')} %
+                      </span>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-quiet btn-sm"
+                    onClick={() => props.setControlos((cs) => cs.filter((_, k) => k !== i))}
+                  >
+                    Apagar
+                  </button>
+                </div>
+                {alto && (
+                  <p className="text-[15px] font-medium text-amber-800">
+                    Desvio acima de 3 %: rever a largura e a altura da referência e os cantos tocados — uma porta recuada também dá isto.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          <button type="button" className="btn-secondary btn-sm" disabled={aMarcarControlo} onClick={() => props.setAMarcarControlo(true)}>
+            {controlos.length === 0 ? 'Marcar uma medida de controlo' : 'Marcar outra medida de controlo'}
+          </button>
         </div>
       )}
 
@@ -1757,6 +1959,8 @@ function PassoResultado(props: {
   correcao: { distanciaM: number; oQue: string } | null | undefined;
   salienciaVaranda: string;
   setSalienciaVaranda: (v: string) => void;
+  /** Resumo das medidas de controlo do passo 2 (ou o aviso de que não há nenhuma). */
+  controlo: string | null;
   /** Para a vista «Conferir a área»: a fotografia endireitada com as zonas tal como foram desenhadas. */
   conferir: { foto: Foto; calibracao: Calibracao; referencia: ReferenciaRetangular; zonas: Zona[] } | null;
   incluirRC: boolean;
@@ -1780,8 +1984,13 @@ function PassoResultado(props: {
   const { resultado: r, zonas } = props;
   const temRC = zonas.some((z) => z.tipo === 'rc');
   const temMarquises = zonas.some((z) => z.tipo === 'marquise');
-  const todas = [...props.guardadas.map((g) => ({ nome: g.nome, resultado: g.resultado })), { nome: props.nome, resultado: r }];
+  const substitui = props.nome !== 'Outra' && props.guardadas.some((g) => g.nome === props.nome);
+  const todas = [
+    ...props.guardadas.filter((g) => !(substitui && g.nome === props.nome)).map((g) => ({ nome: g.nome, resultado: g.resultado })),
+    { nome: props.nome, resultado: r },
+  ];
   const totalPredio = todas.reduce((s, f) => s + f.resultado.pintavelM2, 0);
+  const faltaNoPredio = todas.filter((f) => f.resultado.porMedir.length > 0);
 
   // O volume: cada fachada medida vai para a sua parede; a última medida de cada lado é a que conta.
   const medidas = [
@@ -1821,6 +2030,12 @@ function PassoResultado(props: {
     <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-5">
       <h2 className="text-[17px] font-semibold text-slate-900">Áreas e volume</h2>
 
+      {substitui && (
+        <p className="text-[15px] text-slate-600">
+          Já há uma «{props.nome}» guardada: ao guardar, esta substitui-a — a mesma fachada nunca se soma duas vezes. Para a segunda parte
+          de uma fachada comprida, escolher «Outra».
+        </p>
+      )}
       <label className="block max-w-xs">
         <span className="mb-1 block text-[15px] font-medium text-slate-700">Esta fachada é a</span>
         <select className="campo" value={props.nome} onChange={(e) => props.setNome(e.target.value)}>
@@ -1940,9 +2155,15 @@ function PassoResultado(props: {
           </label>
         )}
         <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-[17px] font-semibold">
-          <span>A pintar nesta fachada</span>
+          <span>{r.porMedir.length > 0 ? 'Subtotal a pintar nesta fachada' : 'A pintar nesta fachada'}</span>
           <span className="font-mono tabular-nums">{m(r.pintavelM2)} m²</span>
         </div>
+        {r.porMedir.length > 0 && (
+          <p className="mt-1 text-[15px] font-medium text-amber-800">
+            É um subtotal: falta {r.porMedir.join('; ')}. O que falta entra a zero até ser medido.
+          </p>
+        )}
+        {props.controlo && <p className="mt-1 text-[13px] text-slate-500">{props.controlo}</p>}
         {r.avisos.map((a) => (
           <p key={a} className="mt-2 text-[13px] text-amber-800">
             {a}
@@ -1979,9 +2200,14 @@ function PassoResultado(props: {
             ))}
           </ul>
           <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-[17px] font-semibold">
-            <span>Total do prédio</span>
+            <span>{faltaNoPredio.length > 0 ? 'Subtotal do prédio' : 'Total do prédio'}</span>
             <span className="font-mono tabular-nums">{m(totalPredio)} m²</span>
           </div>
+          {faltaNoPredio.length > 0 && (
+            <p className="mt-1 text-[13px] text-amber-800">
+              Falta medir: {faltaNoPredio.map((f) => `${f.nome} — ${f.resultado.porMedir.join('; ')}`).join(' · ')}.
+            </p>
+          )}
         </div>
       )}
 
@@ -2031,7 +2257,7 @@ function PassoResultado(props: {
           Voltar ao desenho
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={props.onOutraFachada}>
-          Guardar e medir outra fachada
+          {substitui ? 'Guardar (substitui a anterior) e medir outra fachada' : 'Guardar e medir outra fachada'}
         </button>
       </div>
     </section>

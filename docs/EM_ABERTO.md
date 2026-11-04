@@ -65,6 +65,12 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 
 **Por fazer:**
 - O promotor testar com outras fotografias (pedido dele) — e comparar com uma medição real à fita.
+  *Desde 04/11/2026 a ferramenta tem medidas de controlo (passo 2) para isso.*
+- Da avaliação do "Levantamento v7" (DECISOES 04/11/2026, noite), por fazer: guardar no aparelho;
+  caixas das marquises sobre a fotografia; saliência tirada da fotografia; zona "não se pinta";
+  várias fotografias da mesma fachada; ligar fachadas vizinhas pela esquina comum.
+- Deteção automática de janelas: no aparelho em construção (04/11/2026); com IA, por decidir
+  (privacidade — a fotografia sairia do aparelho — e custo).
 - Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
@@ -79,8 +85,6 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - Vidros nas paredes laterais das marquises: hoje um total em m² escrito à mão (não se veem de frente).
 - A correção da perspetiva das marquises depende da câmara tirada da fotografia (`camaraDaHomografia`):
   numa fotografia tirada de frente não há correção (e o ecrã di-lo). Comparar com uma medição real.
-- Deteção automática de vãos e varandas na vista endireitada (com IA) — pede decisão do promotor
-  sobre privacidade (a fotografia sairia do aparelho) e custo; não construído.
 - Decidir se `retificacao.ts` e `volumeAreas.ts` (sem ecrã desde 04/11/2026) se apagam.
 - A linha "valor de `INCLINACAO_TIPICA_GRAUS_PROPOSTA`" da secção 2 deixou de travar o ecrã: era do
   motor de `retificarZona`, que já não está em uso.

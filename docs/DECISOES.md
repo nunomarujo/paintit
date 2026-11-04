@@ -5195,3 +5195,55 @@ Três observações do promotor ao ver o passo 4:
    varandas e uma de marquises desenhadas à mão a sobreporem-se 2 cm cruzavam as caixas e a ordem
    de desenho pintava guardas por cima da marquise — sobreposições pequenas cortam-se a meio, como
    no domínio. Na fotografia do promotor: 5 varandas, como no prédio.
+
+## 04/11/2026 (noite) — Avaliação do método "Levantamento v7" e quatro correções que vieram dela
+
+O promotor trouxe outro protótipo de levantamento por fotografia ("QuemPinta_Levantamento v7",
+aplicação estática feita noutro sítio) e pediu só uma avaliação: "não é para aplicar, apenas para
+avaliares se tem alguma estratégia ou mecanismo que reforce aquilo que estás a construir". Três
+leitores (geometria, estrutura, fluxo) compararam-no com a nossa ferramenta e um cético por área
+confirmou cada afirmação nos dois códigos (o código do zip foi lido, nunca executado).
+
+**Conclusão.** O núcleo deles é mais fraco: a câmara tira-se só da proporção da porta na fotografia
+(a via que abandonámos a 03/11 — numa simulação, com uma fotografia tirada de baixo, 20 % das
+marcações não dão resultado e a focal erra 24 %), os testes são sem ruído (o de "duas fotografias"
+usa a mesma fotografia copiada), cada janela pede 4 toques livres, a "esquadria" e o alinhamento entre
+colunas mudam a geometria e apagam o erro em vez de o mostrar, e o relatório exportado leva as
+fotografias (contra a regra 6). **Não identifica janelas sozinho**: o exemplo traz o prédio do
+promotor com as janelas, varandas e marquises escritas à mão em `seed.js`, e o README diz três vezes
+que não há reconhecimento visual — o promotor tinha ficado com essa ideia. Mas tem mecanismos de fluxo
+bons, e quatro tapavam erros reais nossos, que se fizeram já:
+
+1. **Medidas de controlo** (passo 2): uma segunda distância medida à fita, longe da referência,
+   comparada com o desenho ("C1 · no desenho 7,40 m · à fita … · desvio …"), com aviso âmbar acima de
+   3 % (`DESVIO_MAXIMO_DO_CONTROLO`; 1 % daria falsos alarmes com o ruído medido). Era o único
+   instrumento capaz de ver uma largura mal escrita (90 cm em vez de 80 → todas as áreas +12,5 %, sem
+   nenhum aviso — a leitura das alturas não o vê) ou uma porta recuada. Estava pedido no handoff de
+   03/11 (§3.2) e nunca se tinha construído. O passo 4 resume ("Conferido com 1 medida à fita…" ou
+   "Sem medida de controlo: a escala depende só da referência").
+2. **Subtotal honesto**: `ResultadoFachada.porMedir` diz o que falta; sem a saliência, as laterais, o
+   tecto e a cobertura das marquises entravam a zero e o ecrã mostrava "A pintar" como se fosse o
+   total. Agora "Subtotal a pintar nesta fachada — falta: …" e "Subtotal do prédio".
+3. **A mesma fachada nunca soma duas vezes**: guardar outra vez a "Fachada principal" somava-a duas
+   vezes no total do prédio (e uma só no 3D). Agora substitui a anterior, dito no ecrã antes de
+   guardar; só "Outra" se repete.
+4. **A fotografia manda**: corrigir a referência depois de desenhar (um canto movido, a largura
+   corrigida) deixava as zonas com os metros antigos. As zonas guardam agora a calibração em que estão
+   escritas e vão para a nova através da fotografia sempre que ela muda (acertos, referência, desfazer).
+
+Para depois (valor médio, por ordem): guardar no aparelho (um recarregamento perde o levantamento);
+sobrepor as caixas das marquises à fotografia para conferir a saliência; tirar a saliência da própria
+fotografia (marquises dos andares altos); zona "não se pinta" (azulejo, pedra); várias fotografias da
+mesma fachada; mostrar quanto uma série discorda. E, da estrutura deles, **ligar fachadas vizinhas
+pela esquina comum** (a mesma aresta nas duas fotografias: conferência da altura e junção no volume).
+O que não se copia: a câmara deles, a esquadria que apaga o erro, pisos escritos por números, faces
+obrigatórias a apagar depois, a exportação com fotografias, a planta em L/U só visual.
+
+Sobre identificar as janelas sozinho — a ideia que o promotor viu no exemplo — o promotor deixou a
+escolha ("por onde entendas ser melhor"): **deteção no próprio aparelho**, sobre a fachada já
+endireitada (gratuita, a fotografia não sai do telemóvel), a propor e o avaliador a confirmar e
+acertar à mão. A deteção com IA fica por decidir (privacidade e custo).
+
+Verificado em Chromium (1280 e 390 px) com a fotografia real: controlo com desvio ~0 % e aviso a 10 %;
+largura 165 → 160 cm leva o contorno de 220,52 a 213,84 m² e volta; subtotal com o que falta; a
+"Fachada principal" medida duas vezes conta uma.

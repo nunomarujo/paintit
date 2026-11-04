@@ -391,6 +391,25 @@ describe('corrigirSaliencias', () => {
   });
 });
 
+describe('o que falta medir (subtotal honesto)', () => {
+  it('só o contorno: nada falta', () => {
+    expect(areasDaFachada([contorno]).porMedir).toEqual([]);
+  });
+  it('marquises sem saliência: falta a saliência; com ela, já não', () => {
+    const zonas = [contorno, z('marquise', 2, 5, 3, 2)];
+    expect(areasDaFachada(zonas).porMedir).toEqual(['saliência das marquises (paredes laterais, tecto e cobertura)']);
+    expect(areasDaFachada(zonas, { salienciaMarquisesM: 1.2 }).porMedir).toEqual([]);
+  });
+  it('varandas: as faces de dentro ficam por decidir (8.2)', () => {
+    expect(areasDaFachada([contorno, z('varanda', 1, 4, 3, 9)]).porMedir).toEqual([
+      'faces de dentro das varandas (por decidir — decisão 8.2)',
+    ]);
+  });
+  it('sem contorno, falta o contorno', () => {
+    expect(areasDaFachada([z('vao', 1, 1, 2, 2)]).porMedir).toEqual(['contorno da fachada']);
+  });
+});
+
 describe('sem base de dados', () => {
   it('fachadaMedida.ts não importa cliente de base de dados', async () => {
     const fonte = await import('fs/promises').then((fs) => fs.readFile(new URL('./fachadaMedida.ts', import.meta.url), 'utf8'));

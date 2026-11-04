@@ -5,7 +5,10 @@ import {
   calibrar,
   camaraDaHomografia,
   corrigirParalaxe,
+  desvioDoControlo,
+  DESVIO_MAXIMO_DO_CONTROLO,
   distancia,
+  medirNoPlano,
   homografia,
   INCERTEZA_MAXIMA_DA_FOCAL,
   incertezaDaFocal,
@@ -765,6 +768,38 @@ describe('fotografia real do promotor: a câmara (03/11/2026, 1500×2000)', () =
     expect(centro.z).toBeLessThan(30);
     expect(centro.y).toBeGreaterThan(-1);
     expect(centro.y).toBeLessThan(4);
+  });
+});
+
+describe('medidas de controlo', () => {
+  // A largura da fachada ao nível do passeio, de X = −5 a X = 9 m (14 m), longe da porta.
+  const fachada = (): [Ponto, Ponto] => [projetar(-5, 0.05), projetar(9, 0.05)];
+
+  it('com a referência certa, o desenho dá a mesma distância que a fita', () => {
+    const cal = calibrar({ cantos: cantosDaPorta(), larguraM: PORTA.largura, alturaM: PORTA.altura });
+    const [a, b] = fachada();
+    expect(medirNoPlano(cal, a, b)).toBeCloseTo(14, 6);
+    expect(Math.abs(desvioDoControlo(cal, a, b, 14)!)).toBeLessThan(1e-6);
+  });
+
+  it('uma largura da referência mal escrita (1,85 em vez de 1,65) aparece no controlo horizontal, acima do limite', () => {
+    const cal = calibrar({ cantos: cantosDaPorta(), larguraM: 1.85, alturaM: PORTA.altura });
+    const [a, b] = fachada();
+    const desvio = desvioDoControlo(cal, a, b, 14)!;
+    expect(desvio).toBeCloseTo(1.85 / 1.65 - 1, 2); // ≈ +12 %
+    expect(desvio).toBeGreaterThan(DESVIO_MAXIMO_DO_CONTROLO);
+  });
+
+  it('um controlo junto à referência não prova nada: a homografia passa exatamente por ela', () => {
+    const cal = calibrar({ cantos: cantosDaPorta(), larguraM: 1.85, alturaM: PORTA.altura });
+    // A própria largura da porta dá o valor escrito, não o real — por isso o controlo tem de ser longe.
+    expect(medirNoPlano(cal, projetar(0, 0), projetar(PORTA.largura, 0))).toBeCloseTo(1.85, 6);
+  });
+
+  it('sem medida à fita válida, não há desvio', () => {
+    const cal = calibrar({ cantos: cantosDaPorta(), larguraM: PORTA.largura, alturaM: PORTA.altura });
+    const [a, b] = fachada();
+    expect(desvioDoControlo(cal, a, b, 0)).toBeNull();
   });
 });
 
