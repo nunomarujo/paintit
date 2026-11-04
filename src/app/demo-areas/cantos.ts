@@ -24,38 +24,79 @@
  *    candidato por canto, mesmo com ruído), tiver o menor valor próprio acima de `LAMBDA_MINIMO`
  *    (contraste, não ruído de uma parede lisa) e pelo menos `RAZAO_MINIMA` do maior (canto, não aresta
  *    reta: numa aresta o menor valor próprio é só o ruído).
- * 5. Entre candidatos ganha o de maior resposta × exp(−d² / 2s²), com d a distância ao ponto apontado e
- *    s = raio / 4. Quem aponta está a mirar um canto: um canto vizinho mais contrastado só ganha se
- *    estiver quase à mesma distância — a 3 px contra 10 px, com raio 16, o mais longe precisaria de uma
- *    resposta 17 vezes maior (contraste 4 vezes maior).
- * 6. Refinamento subpíxel do máximo: quádrica ajustada por mínimos quadrados aos 3×3 à volta dele.
- * 7. Do máximo da resposta ao canto (Förstner; é o `cornerSubPix` do OpenCV). O máximo de Shi–Tomasi não
+ * 5. Refinamento subpíxel do máximo: quádrica ajustada por mínimos quadrados aos 3×3 à volta dele.
+ * 6. Do máximo da resposta ao canto (Förstner; é o `cornerSubPix` do OpenCV). O máximo de Shi–Tomasi não
  *    está no canto: a janela do tensor apanha mais aresta se se meter para dentro do ângulo, e o máximo
  *    fica cerca de 1 px para dentro em cada eixo (medido: 1,41 px num canto reto e nítido, 1,54 px num
  *    de 45°) — numa porta com 80 px de largura, 2 px a menos. Perto do canto q, cada píxel p ou tem
  *    gradiente nulo ou está numa aresta que passa por q, e então o gradiente em p é perpendicular a
- *    q − p. O q que melhor cumpre ∇I(p)·(q − p) = 0, com pesos gaussianos, sai de um sistema 2×2. Erro
- *    medido depois deste passo: até 0,26 px em cantos retos, rodados, de 60° e de 45°.
+ *    q − p. O q que melhor cumpre ∇I(p)·(q − p) = 0, com pesos gaussianos, sai de um sistema 2×2,
+ *    repetido até parar. Robusto: cada píxel pesa também pela distância de q à reta da sua aresta
+ *    (biweight de Tukey, `CORTE_ROBUSTO`), e uma aresta que passa a 2 px ou mais de q não conta. Sem
+ *    isto, o aro escuro de 3 ou 4 px de uma porta puxava o ponto para o canto de fora, o passo era
+ *    recusado e ficava o máximo enviesado (revisão de 04/11/2026). Se o passo falhar ou andar mais de
+ *    `DESLOCACAO_MAXIMA`, o candidato cai — nunca se devolve o máximo da resposta, que está fora do canto.
+ *    Erro medido no fim: até 0,2 px em cantos retos, rodados e de 60°, com e sem ruído de ±12 níveis.
+ * 7. Confirmação: um canto são duas arestas retas que passam por q e seguem assim uns 5 px. Contam os
+ *    píxeis a entre 3,5 e 5,5 px de q cuja aresta passa a menos de 1 px de q (os «braços»); o menor
+ *    valor próprio do tensor só deles tem de valer `BRACOS_MINIMO` vezes a resposta do candidato. Assim
+ *    caem as formas mais pequenas do que a janela do tensor, que a resposta toma por cantos: a ponta de
+ *    uma barra de 3 ou 4 px de altura (dava o meio da ponta, a quase 2 px dos dois cantos), um quadrado
+ *    de 3 ou 4 px (dava o centro) e um disco de 3 a 3,5 px de raio (dava um ponto da orla). O preço: uma
+ *    peça com menos de 6 px de lado não tem íman — fica o ponto apontado.
+ * 8. Entre os candidatos confirmados ganha o de maior resposta × exp(−d² / 2s²), com d a distância do
+ *    canto ao ponto apontado e s = `ESCALA_DISTANCIA`, fixo. Quem aponta está a mirar um canto: um canto
+ *    vizinho mais contrastado só ganha se estiver quase à mesma distância — a 3 px contra 10 px, o mais
+ *    longe precisaria de uma resposta 17 vezes maior (contraste 4 vezes maior), seja qual for o raio.
+ *    Com s proporcional ao raio, a partir de raio 32 ganhava o vizinho.
  *
  * Nada disto convence? Devolve null e a pessoa fica com o ponto que apontou.
  */
 
-/** Raio e σ (píxeis) da janela do passo final, e quantas vezes se repete. */
+/** Raio e σ (píxeis) da janela do passo de Förstner, e o máximo de repetições. */
 const RAIO_FORSTNER = 4;
 const SIGMA_FORSTNER = 2;
-const ITERACOES_FORSTNER = 3;
+const ITERACOES_FORSTNER = 12;
 
 /**
- * Quanto o passo final pode afastar o ponto do máximo da resposta. Num canto limpo anda entre 0,6 e
- * 1,4 px; mais do que isto é outra aresta dentro da janela a puxar, e fica o máximo da quádrica.
+ * Distância (píxeis) de q à reta da aresta de um píxel a partir da qual esse píxel deixa de contar no
+ * passo de Förstner. As duas filas de píxeis de uma aresta nítida ficam a 0,5 px dela, e o máximo da
+ * resposta, de onde se parte, a 1,4 px do canto: 2 px apanha-as desde o início e deixa de fora o aro de
+ * uma porta (3 px ou mais da aresta de dentro).
+ */
+const CORTE_ROBUSTO = 2;
+
+/**
+ * Quanto o passo de Förstner pode afastar o ponto do máximo da resposta. Num canto limpo anda entre 0,6
+ * e 1,4 px; mais do que isto é outra aresta dentro da janela a puxar, e o candidato cai.
  */
 const DESLOCACAO_MAXIMA = 2.5;
 
+/** Os braços do canto: píxeis a entre 3,5 e 5,5 px de q, com a aresta a menos de 1 px de q. */
+const RAIO_BRACOS = 3.5;
+const RAIO_BRACOS_FORA = 5.5;
+const TOLERANCIA_BRACOS = 1;
+
 /**
- * Píxeis lidos para lá do raio: 1 (Sobel) + 4 (janela do passo final) + 3 (o que esse passo pode andar,
- * arredondado). Cobre também os 1 + 2 + 2 do Sobel, do tensor 5×5 e da vizinhança 5×5 dos máximos.
+ * Menor valor próprio do tensor dos braços, em múltiplos da resposta do candidato. Medido: um canto
+ * reto dá cerca de 18; um de 60°, 7; um canto com 40 níveis de contraste e ruído de ±12, 6. O que não é
+ * canto — ponta de barra de 2 a 5 px, quadrado de 2 a 5 px, disco de 3 a 3,5 px de raio, com ou sem
+ * ruído — fica abaixo de 0,15.
  */
-const MARGEM = 1 + RAIO_FORSTNER + 3;
+const BRACOS_MINIMO = 2;
+
+/**
+ * Desvio (píxeis) da penalização pela distância ao ponto apontado. Fixo, e não proporcional ao raio:
+ * a preferência pelo canto mais próximo não pode depender de quão longe o íman procura.
+ */
+const ESCALA_DISTANCIA = 4;
+
+/**
+ * Píxeis lidos para lá do raio: 1 (Sobel) + 6 (braços, 5,5 arredondado) + 3 (o que o passo de Förstner
+ * pode andar, arredondado). Cobre também a janela de Förstner (4) e os 1 + 2 + 2 do Sobel, do tensor 5×5
+ * e da vizinhança 5×5 dos máximos.
+ */
+const MARGEM = 1 + Math.ceil(RAIO_BRACOS_FORA) + 3;
 
 /**
  * Raio máximo (píxeis da fotografia). O íman serve para acertar num canto que a pessoa já está a
@@ -79,7 +120,8 @@ export const LAMBDA_MINIMO = 60;
  * disco com 4 a 12 px de raio — um candeeiro, uma cabeça de parafuso), 0,09; o ruído de ±12 níveis a
  * 2 ou 3 px de uma aresta, 0,12. Daí 0,15. Ficam de fora um canto de 45° (0,10) e um canto reto em
  * que uma das arestas tenha pouco mais de metade do contraste da outra: sem íman, a pessoa fica com o
- * ponto que apontou.
+ * ponto que apontou. Um disco mais pequeno (3 a 3,5 px de raio) passa este limiar e cai na confirmação
+ * dos braços.
  */
 export const RAZAO_MINIMA = 0.15;
 
@@ -118,6 +160,8 @@ export function cantoMaisProximo(
 
   // Gradientes de Sobel (níveis por píxel) e os produtos do tensor. Na borda da janela repete-se o
   // último píxel; na borda da fotografia é isso que se quer, e no interior fica dentro da margem.
+  const gx = new Float64Array(n);
+  const gy = new Float64Array(n);
   const ixx = new Float64Array(n);
   const iyy = new Float64Array(n);
   const ixy = new Float64Array(n);
@@ -136,15 +180,17 @@ export function cantoMaisProximo(
       const g = cinza[lp + im]!;
       const k = cinza[lp + i]!;
       const l = cinza[lp + ip]!;
-      const gx = (c + 2 * f + l - a - 2 * d - g) / 8;
-      const gy = (g + 2 * k + l - a - 2 * b - c) / 8;
-      ixx[lc + i] = gx * gx;
-      iyy[lc + i] = gy * gy;
-      ixy[lc + i] = gx * gy;
+      const ux = (c + 2 * f + l - a - 2 * d - g) / 8;
+      const uy = (g + 2 * k + l - a - 2 * b - c) / 8;
+      gx[lc + i] = ux;
+      gy[lc + i] = uy;
+      ixx[lc + i] = ux * ux;
+      iyy[lc + i] = uy * uy;
+      ixy[lc + i] = ux * uy;
     }
   }
 
-  // Tensor de estrutura: janela gaussiana 5×5. Os produtos em bruto ficam para o passo final.
+  // Tensor de estrutura: janela gaussiana 5×5.
   const tmp = new Float64Array(n);
   const sxx = alisar(ixx, w, h, tmp);
   const syy = alisar(iyy, w, h, tmp);
@@ -160,40 +206,40 @@ export function cantoMaisProximo(
     resposta[p] = (a + c) / 2 - Math.sqrt(meio * meio + b * b);
   }
 
-  // Candidatos: máximos locais 5×5, dentro do raio, com contraste e com as duas direções.
-  const s = Math.max(1, r / 4);
+  // Candidatos: máximos locais 5×5, dentro do raio, com contraste e com as duas direções. Cada um
+  // vai ao canto (Förstner) e tem de mostrar os braços; dos que ficam, ganha o de maior resposta
+  // penalizada pela distância do canto ao ponto apontado.
   const r2 = r * r;
-  let melhor = -1;
+  const s2 = 2 * ESCALA_DISTANCIA * ESCALA_DISTANCIA;
+  let melhor: { x: number; y: number } | null = null;
   let melhorNota = 0;
   for (let j = 0; j < h; j++) {
     const dy = y0 + j - cy;
     if (dy * dy > r2) continue;
     for (let i = 0; i < w; i++) {
       const dx = x0 + i - cx;
-      const d2 = dx * dx + dy * dy;
-      if (d2 > r2) continue;
+      if (dx * dx + dy * dy > r2) continue;
       const p = j * w + i;
       const lambdaMin = resposta[p]!;
       if (!(lambdaMin >= LAMBDA_MINIMO)) continue;
       if (!maximoLocal(resposta, w, h, i, j, lambdaMin)) continue;
       const lambdaMax = sxx[p]! + syy[p]! - lambdaMin;
       if (lambdaMin < RAZAO_MINIMA * lambdaMax) continue;
-      const nota = lambdaMin * Math.exp(-d2 / (2 * s * s));
+      const canto = aoCanto(gx, gy, w, h, refinar(resposta, w, h, i, j));
+      if (!canto || !(bracos(gx, gy, w, h, canto) >= BRACOS_MINIMO * lambdaMin)) continue;
+      const ex = x0 + canto.x - cx;
+      const ey = y0 + canto.y - cy;
+      const nota = lambdaMin * Math.exp(-(ex * ex + ey * ey) / s2);
       if (nota > melhorNota) {
         melhorNota = nota;
-        melhor = p;
+        melhor = canto;
       }
     }
   }
-  if (melhor < 0) return null;
-
-  const bi = melhor % w;
-  const bj = (melhor - bi) / w;
-  const pico = refinar(resposta, w, h, bi, bj);
-  const canto = aoCanto(ixx, iyy, ixy, w, h, pico) ?? pico;
+  if (!melhor) return null;
   return {
-    x: Math.min(W, Math.max(0, x0 + canto.x + 0.5)),
-    y: Math.min(H, Math.max(0, y0 + canto.y + 0.5)),
+    x: Math.min(W, Math.max(0, x0 + melhor.x + 0.5)),
+    y: Math.min(H, Math.max(0, y0 + melhor.y + 0.5)),
   };
 }
 
@@ -265,14 +311,15 @@ function refinar(resposta: Float64Array, w: number, h: number, i: number, j: num
 }
 
 /**
- * Passo de Förstner a partir do máximo da resposta: q tal que Σ peso·(∇I(p)·(q − p))² seja mínimo,
- * com pesos gaussianos à volta de q. Os produtos do gradiente vêm em bruto (gx², gy², gx·gy). Devolve
- * null se o sistema for singular ou se o ponto andar mais do que `DESLOCACAO_MAXIMA`.
+ * Passo de Förstner a partir do máximo da resposta: q tal que Σ peso·(∇I(p)·(q − p))² seja mínimo, com
+ * pesos gaussianos à volta de q vezes o biweight de Tukey da distância de q à reta da aresta de p
+ * (|∇I(p)·(q − p)| / |∇I(p)|), que tira as arestas que não passam por q. Repete-se até o passo ficar
+ * abaixo de 0,001 px. Devolve null se o sistema for singular (só uma direção) ou se o ponto andar mais
+ * do que `DESLOCACAO_MAXIMA`.
  */
 function aoCanto(
-  gxx: Float64Array,
-  gyy: Float64Array,
-  gxy: Float64Array,
+  gx: Float64Array,
+  gy: Float64Array,
   w: number,
   h: number,
   inicio: { x: number; y: number },
@@ -280,6 +327,7 @@ function aoCanto(
   let qx = inicio.x;
   let qy = inicio.y;
   const k = 1 / (2 * SIGMA_FORSTNER * SIGMA_FORSTNER);
+  const corte2 = CORTE_ROBUSTO * CORTE_ROBUSTO;
   for (let it = 0; it < ITERACOES_FORSTNER; it++) {
     const ci = Math.round(qx);
     const cj = Math.round(qy);
@@ -290,13 +338,21 @@ function aoCanto(
     let by = 0;
     for (let j = Math.max(0, cj - RAIO_FORSTNER); j <= Math.min(h - 1, cj + RAIO_FORSTNER); j++) {
       for (let i = Math.max(0, ci - RAIO_FORSTNER); i <= Math.min(w - 1, ci + RAIO_FORSTNER); i++) {
+        const p = j * w + i;
+        const ux = gx[p]!;
+        const uy = gy[p]!;
+        const g2 = ux * ux + uy * uy;
+        if (g2 === 0) continue;
         const dx = i - qx;
         const dy = j - qy;
-        const peso = Math.exp(-(dx * dx + dy * dy) * k);
-        const p = j * w + i;
-        const xx = gxx[p]! * peso;
-        const yy = gyy[p]! * peso;
-        const xy = gxy[p]! * peso;
+        const proj = ux * dx + uy * dy;
+        const reta2 = (proj * proj) / g2;
+        if (reta2 >= corte2) continue;
+        const tukey = 1 - reta2 / corte2;
+        const peso = Math.exp(-(dx * dx + dy * dy) * k) * tukey * tukey;
+        const xx = ux * ux * peso;
+        const yy = uy * uy * peso;
+        const xy = ux * uy * peso;
         a += xx;
         b += xy;
         c += yy;
@@ -306,10 +362,51 @@ function aoCanto(
     }
     const det = a * c - b * b;
     if (!(det > 1e-9 * (a + c) * (a + c))) return null;
-    qx += (c * bx - b * by) / det;
-    qy += (a * by - b * bx) / det;
+    const passoX = (c * bx - b * by) / det;
+    const passoY = (a * by - b * bx) / det;
+    qx += passoX;
+    qy += passoY;
     if (!Number.isFinite(qx) || !Number.isFinite(qy)) return null;
+    if (Math.hypot(qx - inicio.x, qy - inicio.y) > DESLOCACAO_MAXIMA) return null;
+    if (passoX * passoX + passoY * passoY < 1e-6) break;
   }
-  if (Math.hypot(qx - inicio.x, qy - inicio.y) > DESLOCACAO_MAXIMA) return null;
   return { x: qx, y: qy };
+}
+
+/**
+ * Os braços do canto em q: menor valor próprio do tensor dos gradientes dos píxeis a entre
+ * `RAIO_BRACOS` e `RAIO_BRACOS_FORA` de q cuja aresta passa a menos de `TOLERANCIA_BRACOS` de q. Num
+ * canto são as duas arestas a continuar retas; numa forma mais pequena do que isso, ou curva, a esta
+ * distância as arestas já não apontam para q.
+ */
+function bracos(gx: Float64Array, gy: Float64Array, w: number, h: number, q: { x: number; y: number }): number {
+  const ci = Math.round(q.x);
+  const cj = Math.round(q.y);
+  const alcance = Math.ceil(RAIO_BRACOS_FORA);
+  const dentro2 = RAIO_BRACOS * RAIO_BRACOS;
+  const fora2 = RAIO_BRACOS_FORA * RAIO_BRACOS_FORA;
+  const tol2 = TOLERANCIA_BRACOS * TOLERANCIA_BRACOS;
+  let a = 0;
+  let b = 0;
+  let c = 0;
+  for (let j = Math.max(0, cj - alcance); j <= Math.min(h - 1, cj + alcance); j++) {
+    for (let i = Math.max(0, ci - alcance); i <= Math.min(w - 1, ci + alcance); i++) {
+      const dx = i - q.x;
+      const dy = j - q.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < dentro2 || d2 > fora2) continue;
+      const p = j * w + i;
+      const ux = gx[p]!;
+      const uy = gy[p]!;
+      const g2 = ux * ux + uy * uy;
+      if (g2 === 0) continue;
+      const proj = ux * dx + uy * dy;
+      if ((proj * proj) / g2 > tol2) continue;
+      a += ux * ux;
+      b += ux * uy;
+      c += uy * uy;
+    }
+  }
+  const meio = (a - c) / 2;
+  return (a + c) / 2 - Math.sqrt(meio * meio + b * b);
 }
