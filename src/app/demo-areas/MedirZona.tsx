@@ -110,14 +110,18 @@ const ROTULOS_DOS_CANTOS = ['Canto superior esquerdo', 'Canto superior direito',
 
 function FotoAnotada({
   foto,
+  indice,
   atualizar,
   remover,
   onMedido,
+  onResultado,
 }: {
   foto: EstadoFoto;
+  indice: number;
   atualizar: (f: (prev: EstadoFoto) => EstadoFoto) => void;
   remover: () => void;
   onMedido?: (m: Medidas) => void;
+  onResultado?: (r: ResultadoRetificacao | null) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -181,10 +185,18 @@ function FotoAnotada({
     }
   }
 
+  useEffect(() => {
+    onResultado?.(resultado);
+    // O resultado é um objeto novo a cada render; quem recebe (MedirZona) só atualiza o seu estado
+    // quando o conteúdo muda de facto, para isto nunca entrar num ciclo de novas renderizações.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultado?.larguraCm, resultado?.alturaCm, resultado?.areaCm2, resultado?.estado, resultado?.aproximado]);
+
   const corDoSegmento = ['stroke-amber-500', 'stroke-fuchsia-500', 'stroke-emerald-500', 'stroke-cyan-500'];
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+      <h4 className="text-[15px] font-semibold text-slate-900">Fotografia {indice}</h4>
       <div className="relative overflow-hidden rounded-lg border border-slate-200" ref={containerRef}>
         {/* A imagem fica escondida por trás do SVG: é o SVG que recebe o toque e desenha os pontos,
             com viewBox nas dimensões naturais da foto — a mesma unidade que retificarZona usa.
@@ -393,13 +405,31 @@ function Marcador({ p, rotulo, tamanhoBase }: { p: Ponto; rotulo: string; tamanh
   );
 }
 
-export function MedirZona({ onMedido }: { onMedido?: (m: Medidas) => void }) {
+export function MedirZona({ onMedido, onConcluir }: { onMedido?: (m: Medidas) => void; onConcluir?: (totalM2: number) => void }) {
   const [fotos, setFotos] = useState<EstadoFoto[]>([]);
+  const [resultados, setResultados] = useState<Record<number, ResultadoRetificacao | null>>({});
+  const [incluidos, setIncluidos] = useState<Record<number, boolean>>({});
+  const [concluido, setConcluido] = useState(false);
 
   const importar = (file: File | null) => {
     if (!file) return;
+    setConcluido(false);
     setFotos((fs) => [...fs, novaFoto(URL.createObjectURL(file))]);
   };
+
+  const registarResultado = (id: number, r: ResultadoRetificacao | null) => {
+    setResultados((prev) => ({ ...prev, [id]: r }));
+    setIncluidos((prev) => (id in prev ? prev : { ...prev, [id]: r?.estado === 'ok' }));
+    setConcluido(false);
+  };
+
+  const zonasComResultado = fotos
+    .map((foto, i) => ({ foto, indice: i + 1, resultado: resultados[foto.id] ?? null }))
+    .filter((z): z is { foto: EstadoFoto; indice: number; resultado: ResultadoRetificacao } => z.resultado !== null);
+
+  const totalM2 = zonasComResultado
+    .filter((z) => incluidos[z.foto.id])
+    .reduce((soma, z) => soma + z.resultado.areaCm2 / 10000, 0);
 
   return (
     <div className="space-y-4">
@@ -417,13 +447,26 @@ export function MedirZona({ onMedido }: { onMedido?: (m: Medidas) => void }) {
         </label>
       </div>
 
-      {fotos.map((foto) => (
+      {fotos.map((foto, i) => (
         <FotoAnotada
           key={foto.id}
           foto={foto}
-          atualizar={(fn) => setFotos((fs) => fs.map((f) => (f.id === foto.id ? fn(f) : f)))}
-          remover={() => setFotos((fs) => fs.filter((f) => f.id !== foto.id))}
+          indice={i + 1}
+          atualizar={(fn) => {
+            setFotos((fs) => fs.map((f) => (f.id === foto.id ? fn(f) : f)));
+            setConcluido(false);
+          }}
+          remover={() => {
+            setFotos((fs) => fs.filter((f) => f.id !== foto.id));
+            setResultados((prev) => {
+              const resto = { ...prev };
+              delete resto[foto.id];
+              return resto;
+            });
+            setConcluido(false);
+          }}
           onMedido={onMedido}
+          onResultado={(r) => registarResultado(foto.id, r)}
         />
       ))}
 
@@ -432,6 +475,53 @@ export function MedirZona({ onMedido }: { onMedido?: (m: Medidas) => void }) {
           + Importar outra fotografia desta fachada
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => importar(e.target.files?.[0] ?? null)} />
         </label>
+      )}
+
+      {zonasComResultado.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h3 className="text-[15px] font-semibold text-slate-900">Resumo das zonas medidas</h3>
+          <p className="mt-1 text-[13px] text-slate-500">
+            Cada linha vem de uma fotografia diferente. Desmarcar as que não deve somar (por exemplo, zonas em revisão, ou que
+            meça outra coisa que não a área a pintar).
+          </p>
+          <ul className="mt-3 space-y-2">
+            {zonasComResultado.map(({ foto, indice, resultado }) => (
+              <li key={foto.id} className="flex items-center justify-between gap-3 text-[15px]">
+                <label className="flex items-center gap-2 text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={incluidos[foto.id] ?? false}
+                    onChange={(e) => {
+                      setIncluidos((prev) => ({ ...prev, [foto.id]: e.target.checked }));
+                      setConcluido(false);
+                    }}
+                    className="h-5 w-5"
+                  />
+                  Fotografia {indice}
+                  {resultado.estado === 'revisao' && <span className="text-[13px] text-amber-800">(em revisão)</span>}
+                </label>
+                <span className="font-mono tabular-nums text-slate-900">{(resultado.areaCm2 / 10000).toFixed(2)} m²</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-[17px] font-semibold">
+            <span>Total das zonas marcadas</span>
+            <span className="font-mono tabular-nums">{totalM2.toFixed(2)} m²</span>
+          </div>
+          {onConcluir && (
+            <button
+              type="button"
+              className="btn-primary btn-sm mt-3"
+              onClick={() => {
+                onConcluir(totalM2);
+                setConcluido(true);
+              }}
+            >
+              Concluir medição
+            </button>
+          )}
+          {concluido && <p className="mt-2 text-[13px] text-emerald-700">Total enviado.</p>}
+        </div>
       )}
     </div>
   );

@@ -39,6 +39,7 @@ export function DemoAreas() {
   type Alvo = 'nenhum' | 'frente' | 'fundo' | 'peDireito';
   const [alvoLargura, setAlvoLargura] = useState<Alvo>('frente');
   const [alvoAltura, setAlvoAltura] = useState<Alvo>('peDireito');
+  const [areaMedidaPorFotoM2, setAreaMedidaPorFotoM2] = useState<number | null>(null);
   const aplicarAoAlvo = (alvo: Alvo, valor: number) => {
     const texto = valor.toLocaleString('pt-PT', { maximumFractionDigits: 2 }).replace('.', ',');
     if (alvo === 'frente') setLargura(texto);
@@ -195,7 +196,21 @@ export function DemoAreas() {
             if (alvoLargura !== 'nenhum') aplicarAoAlvo(alvoLargura, l);
             if (alvoAltura !== 'nenhum') aplicarAoAlvo(alvoAltura, a);
           }}
+          onConcluir={(total) => setAreaMedidaPorFotoM2(total)}
         />
+        {areaMedidaPorFotoM2 !== null && (
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between text-[17px] font-semibold">
+              <span>Área medida por fotografia</span>
+              <span className="font-mono tabular-nums">{areaMedidaPorFotoM2.toLocaleString('pt-PT', { maximumFractionDigits: 2 })} m²</span>
+            </div>
+            <p className="mt-1 text-[13px] text-slate-500">
+              Soma das zonas marcadas no resumo acima. Separada de propósito do «Total a pintar» do volume declarado — são duas
+              contas diferentes (uma mede zonas específicas, a outra estima o prédio todo) e não se somam uma à outra sem se
+              saber que não se sobrepõem.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

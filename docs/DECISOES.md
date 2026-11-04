@@ -4796,3 +4796,26 @@ fotografia (cartão independente, com o seu próprio cálculo). Tudo verificado 
 erros de consola, sem scroll horizontal em 390px.
 
 `npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
+
+## 03/11/2026 — "Concluir medição": resumo das zonas e um total, em vez de cada foto isolada
+
+O promotor reparou que, depois de marcar as zonas, não havia nenhum ponto final — cada fotografia
+ficava com o seu resultado isolado, sem nada a juntar tudo. Acrescentado a `MedirZona.tsx`:
+
+- Cada fotografia reporta o seu resultado ao componente principal (`onResultado`, por `useEffect`
+  com as dependências nos valores do resultado — nunca no objeto inteiro, que é novo a cada
+  render — para nunca entrar num ciclo de novas renderizações).
+- Um cartão **"Resumo das zonas medidas"**, com uma linha por fotografia com resultado, uma caixa de
+  seleção por linha (desmarcada por omissão quando a zona está "em revisão" — nunca se soma por
+  omissão algo que o próprio sistema já assinalou como duvidoso) e o total das zonas marcadas.
+- Um botão **"Concluir medição"** que entrega esse total ao ecrã principal, mostrado num cartão
+  próprio, **"Área medida por fotografia"** — separado de propósito do "Total a pintar" do volume
+  declarado: são duas contas diferentes (uma mede zonas específicas que se fotografaram, a outra
+  estima o prédio inteiro a partir de dimensões declaradas) e somá-las sem saber que não se
+  sobrepõem seria inventar um número.
+
+Verificado num browser real: a zona "em revisão" nasce desmarcada (total correto em 0,00 m²);
+marcá-la e clicar "Concluir medição" leva o valor certo (7,05 m²) até ao cartão "Área medida por
+fotografia". Sem erros de consola.
+
+`npm test` (1569 testes), `npm run typecheck`, `npm run lint` e `npm run build` a zero.
