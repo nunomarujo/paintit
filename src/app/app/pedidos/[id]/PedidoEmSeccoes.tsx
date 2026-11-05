@@ -63,6 +63,13 @@ export const PASSOS = [
 ] as const;
 type PassoId = (typeof PASSOS)[number]['id'];
 
+/**
+ * As classes de um bloco que se esconde sem se desmontar: visível, as suas; escondido, só `hidden`.
+ * O atributo `hidden` sozinho não chega quando o bloco tem uma classe de `display` (`grid`, `flex`):
+ * no Tailwind 3.4 essa classe vence a regra `[hidden]` do preflight e o bloco fica à vista.
+ */
+export const mostrarSo = (visivel: boolean, classes: string) => (visivel ? classes : 'hidden');
+
 const passoDe = (s: SeccaoId): PassoId => PASSOS.find((p) => (p.seccoes as readonly SeccaoId[]).includes(s))!.id;
 
 function estadoDoPasso(p: (typeof PASSOS)[number], estados: Record<SeccaoId, EstadoDaSeccao>): EstadoDaSeccao {
@@ -132,8 +139,13 @@ export function PedidoEmSeccoes({
           {/* Passo 1: o formulário em grelha de quadros (RequestForm trata da disposição). */}
           <div hidden={passo !== 'essencial'}>{formulario}</div>
 
-          {/* Passo 2: zonas e medidas à esquerda, fotografias à direita. `hidden` e não desmontar. */}
-          <div hidden={passo !== 'medidas'} className="grid gap-6 lg:grid-cols-12">
+          {/* Passo 2: zonas e medidas à esquerda, fotografias à direita. Esconder e não desmontar.
+              A classe `grid` não pode ir com o atributo `hidden`: no Tailwind 3.4 a regra
+              `[hidden] { display: none }` tem a mesma especificidade que `.grid` e vem antes, por isso
+              perdia — o passo escondido aparecia por baixo dos outros (o «Resumo do pedido» e o
+              «Publicar» no passo 2, relatado pelo promotor a 05/11/2026). Escondido, leva `hidden`
+              também como classe (`mostrarSo`). */}
+          <div hidden={passo !== 'medidas'} className={mostrarSo(passo === 'medidas', 'grid gap-6 lg:grid-cols-12')}>
             <Area nome="Zonas e medidas" estado={estados.zonas} className="lg:col-span-7" moldura>
               {slots.zonas}
             </Area>
@@ -143,7 +155,7 @@ export function PedidoEmSeccoes({
           </div>
 
           {/* Passo 3: o resumo do que os pintores vão ler e, ao lado, o que falta e o botão. */}
-          <div hidden={passo !== 'rever'} className="grid gap-6 lg:grid-cols-12">
+          <div hidden={passo !== 'rever'} className={mostrarSo(passo === 'rever', 'grid gap-6 lg:grid-cols-12')}>
             <Area nome="Resumo do pedido" estado={estados.resumo} className="lg:col-span-7" semEstado>
               {slots.resumo}
             </Area>
@@ -219,8 +231,9 @@ export function CaixaDaSeccao({
   children: ReactNode;
 }) {
   const activa = useSeccaoActiva();
+  const visivel = activa === null || seccoes.includes(activa);
   return (
-    <div hidden={activa !== null && !seccoes.includes(activa)} className={className}>
+    <div hidden={!visivel} className={mostrarSo(visivel, className ?? '')}>
       {children}
     </div>
   );
