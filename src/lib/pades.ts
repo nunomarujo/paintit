@@ -39,8 +39,11 @@ export async function verifyLastSignature(pdf: Uint8Array): Promise<SignerInfo> 
   return verifySignature(pdf, findSignatures(pdf).length - 1);
 }
 
-/** Verifica a assinatura n.º `index` (pela ordem no ficheiro). */
-export async function verifySignature(pdf: Uint8Array, index: number): Promise<SignerInfo> {
+/**
+ * Verifica a assinatura n.º `index` (pela ordem no ficheiro). `anchors` só muda nos testes (por omissão, as
+ * entidades «Cartão de Cidadão» do Estado).
+ */
+export async function verifySignature(pdf: Uint8Array, index: number, anchors?: pkijs.Certificate[]): Promise<SignerInfo> {
   const sigs = findSignatures(pdf);
   const sig = sigs[index];
   if (!sig) return { valid: false, trusted: false, name: null, serialNumber: null, issuer: null, signedAt: null, reason: 'Sem assinatura.' };
@@ -61,7 +64,12 @@ export async function verifySignature(pdf: Uint8Array, index: number): Promise<S
     const time = signed.signerInfos[0]?.signedAttrs?.attributes.find((a) => a.type === OID.SIGNING_TIME)?.values[0] as
       | { toDate?: () => Date }
       | undefined;
-    const chain = cert ? await validateChain(cert, (signed.certificates ?? []).filter((c): c is pkijs.Certificate => c instanceof pkijs.Certificate), time?.toDate?.()) : { trusted: false, reason: 'Sem certificado.' };
+    // A cadeia valida-se na data de AGORA, e não na hora que a própria assinatura declara (`signingTime`): essa
+    // escreve-a quem assina, e sem carimbo temporal de terceiro um certificado caducado passava com uma data
+    // antiga (revisão de 05/11/2026). Só se verifica uma assinatura quando o PDF é carregado, logo a seguir a
+    // ser feita (`uploadSignedContract`).
+    const included = (signed.certificates ?? []).filter((c): c is pkijs.Certificate => c instanceof pkijs.Certificate);
+    const chain = cert ? await validateChain(cert, included, undefined, anchors) : { trusted: false, reason: 'Sem certificado.' };
     return {
       valid: result.signatureVerified === true,
       trusted: chain.trusted,
@@ -163,6 +171,9 @@ async function checkRevocation(
   }
 }
 
+/** O mesmo certificado: o mesmo conteúdo assinado (TBS), que é o que o pkijs compara. */
+const mesmoConteudo = (a: pkijs.Certificate, b: pkijs.Certificate) => a === b || Buffer.from(a.tbsView).equals(Buffer.from(b.tbsView));
+
 /**
  * `indeterminate: true` (decisão de 24/10/2026, item 12 do `docs/DECISOES.md`): a cadeia não chegou a ser
  * avaliada e recusada de facto — ficou por completar só porque uma falha de rede impediu obter um
@@ -177,7 +188,9 @@ export async function validateChain(
   at?: Date,
   anchors: pkijs.Certificate[] = ANCHORS,
 ): Promise<{ trusted: boolean; reason?: string; indeterminate?: boolean }> {
-  const pool = [...included];
+  // O próprio signatário sai do conjunto (e qualquer outro com o mesmo conteúdo assinado — o pkijs funde-os
+  // e podia ficar com o errado); entra no fim, à parte (ver abaixo).
+  const pool = included.filter((c) => !mesmoConteudo(c, cert));
   let indeterminate = false;
   // Completa a cadeia pelo AIA, no máximo três níveis.
   let current = cert;
@@ -191,20 +204,35 @@ export async function validateChain(
     const { cert: next, networkError } = await fetchIssuer(current);
     if (networkError) indeterminate = true;
     if (!next) break;
-    if (!pool.includes(next)) pool.push(next);
+    if (!pool.includes(next) && !mesmoConteudo(next, cert)) pool.push(next);
     current = next;
   }
   try {
+    // O signatário vai em ÚLTIMO: o pkijs (3.4.1, `CertificateChainValidationEngine.verify`) toma o último
+    // de `certs` como o certificado a validar (`leafCert = localCerts[localCerts.length - 1]`). Até
+    // 05/11/2026 ia em primeiro, e com outros certificados no PDF validava-se o último deles, não o do
+    // signatário: um certificado autoassinado, com o nome e o n.º de identificação de outra pessoa, mais a
+    // EC 0019 pública no PDF, dava «de confiança» (revisão de 05/11/2026; testes em `pades.test.ts`,
+    // «certificado do signatário forjado»). E com a raiz do Estado em último a cadeia verdadeira era recusada.
     const engine = new pkijs.CertificateChainValidationEngine({
       trustedCerts: anchors,
-      certs: [cert, ...pool.filter((c) => c !== cert)],
+      certs: [...pool, cert],
       checkDate: at ?? new Date(),
     });
     const r = await engine.verify();
     if (!r.result) {
       return { trusted: false, reason: r.resultMessage || 'Cadeia de certificados não confiável.', indeterminate: indeterminate || undefined };
     }
-    const issuer = [...pool, ...anchors].find((c) => c.subject.isEqual(cert.issuer));
+    // E confirma-se que o caminho validado começa mesmo no signatário: se o pkijs mudar de ordem numa
+    // versão futura, recusa-se em vez de confiar no certificado errado.
+    const caminho = r.certificatePath ?? [];
+    if (!caminho[0] || !mesmoConteudo(caminho[0], cert)) {
+      return { trusted: false, reason: 'A cadeia validada não começa no certificado do signatário.' };
+    }
+    // O emissor para o OCSP é o do caminho validado, e não o primeiro com o mesmo nome: um falso com o nome
+    // da EC verdadeira, posto no PDF, desviava a pergunta e um certificado revogado passava (revisão de
+    // 05/11/2026).
+    const issuer = caminho[1];
     const revoked = await checkRevocation(cert, issuer, anchors, pool);
     return revoked ? { trusted: false, reason: 'Certificado revogado.' } : { trusted: true };
   } catch (err) {

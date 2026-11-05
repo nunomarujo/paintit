@@ -5522,3 +5522,73 @@ Mantém-se.
 
 A fotografia do promotor não entra no repositório: os testes permanentes usam só a fachada sintética
 (`fachadaSintetica.ts`).
+
+## 05/11/2026 — Assinaturas: a âncora «Cartão de Cidadão 008» e uma falha grave na verificação da cadeia
+
+**De onde veio.** Uma pesquisa sobre o middleware oficial do Cartão de Cidadão (pedida a propósito de outra
+coisa) mostrou que o Estado tem, desde 23/11/2023, a entidade «Cartão de Cidadão 008» (chave ECDSA P-521,
+emitida pela ECRaizEstado 002), e que `src/lib/trust/anchors.ts` só ia da 001 à 007. A 008 emite as
+entidades que hoje assinam:
+- «EC de Assinatura Digital Qualificada do Cartão de Cidadão 0019» (desde 14/02/2024) e «0020» (desde
+  12/11/2025), dos cartões recentes;
+- «EC de Chave Móvel Digital de Assinatura Digital Qualificada do Cartão de Cidadão 00007» (desde 17/09/2025,
+  na TSL portuguesa desde 08/10/2025; as listas de revogação mostram-na em uso desde dezembro de 2025).
+
+Sem a 008, uma assinatura com um cartão recente ou com a Chave Móvel Digital emitida por essa entidade era
+**recusada logo**. A 008 entrou na lista; o ficheiro oficial (pki2.cartaodecidadao.pt, `CC_Root008.crt`) é
+byte a byte igual ao do middleware, e a `certs.json` do middleware dá a mesma impressão SHA-256
+(e290db26…f7b5) e as mesmas da 003 à 007 que já cá estavam.
+
+**A falha grave, encontrada pelo cético que reviu a correção.** O pkijs (3.4.1) valida o **último**
+certificado da lista que recebe (`leafCert = localCerts[localCerts.length - 1]`), e `validateChain` punha o
+do signatário em **primeiro**. Com outros certificados no PDF, validava-se um deles e não o do signatário.
+Um PDF assinado com um certificado feito por quem quisesse, com o nome e o n.º de identificação de outra
+pessoa, mais a EC 0019 (que é pública) no PDF, dava `trusted: true`: a ação gravava `cadeiaConfiavel: true` e
+dizia «Assinado por …, com certificado do Estado português». Existia desde a verificação da cadeia
+(19/10/2026). Ao contrário, uma cadeia verdadeira com a raiz em último (como o middleware a mete nos cartões
+antigos, com a ECRaizEstado certificada pela Multicert) era recusada.
+
+**Exposição: nenhuma.** Na base real há 5 eventos de contratação, nenhum com `metodo = 'cmd_pdf'` (consulta
+só de contagem, a 05/11/2026): nunca se gravou uma assinatura PAdES em produção.
+
+**O que mudou em `validateChain` (`src/lib/pades.ts`):**
+1. O signatário vai em último, e as cópias dele (mesmo conteúdo assinado) saem do conjunto: o middleware
+   mete-o duas vezes no PDF, e o pkijs funde as cópias e fica com a primeira.
+2. Confirma-se que o caminho validado começa no signatário; se não, recusa-se.
+3. O emissor para o OCSP é o do caminho validado, e não o primeiro do PDF com o mesmo nome: uma EC falsa
+   com o nome da verdadeira desviava a pergunta e um certificado revogado passava.
+4. A cadeia valida-se na data de agora, e não na hora que a assinatura declara (`signingTime`, escrita por
+   quem assina): um certificado caducado passava com uma data antiga. Só se verifica uma assinatura no
+   carregamento do PDF, logo a seguir a ser feita.
+
+Uma primeira versão desta correção tirava a raiz do conjunto, com um diagnóstico errado («o pkijs
+constrói o caminho até à raiz»): o cético mostrou que a raiz só estorvava por ficar em último, e que esse
+filtro abria a variante do ataque com a cadeia inteira. Foi retirado; o pkijs para na primeira âncora
+(`buildPath`), por isso o que está acima dela já não conta.
+
+**Testes** (`src/lib/trust/anchors.test.ts`, `src/lib/pades.test.ts`; certificados públicos oficiais em
+`src/lib/trust/cadeiasOficiais.fixture.ts`, com as impressões fixadas):
+- as entidades 0019, 0020 e CMD 00007 encadeiam na 008, com a raiz no PDF por qualquer ordem, ou sem nada;
+- sem a 008, eram recusadas logo (com o AIA a devolver a raiz, como em produção);
+- um certificado autoassinado ou forjado «da EC 0019», com a cadeia oficial no PDF, é recusado, também de
+  ponta a ponta com `verifyLastSignature`;
+- o signatário duplicado, o legítimo passa e o forjado não;
+- uma EC falsa com o mesmo nome não desvia o OCSP;
+- um certificado caducado com `signingTime` antigo não passa.
+
+Contra o código anterior falham 10 deles (e nenhum dos que já existiam); a correção «ingénua» (pôr o signatário em último sem tirar as
+cópias) é apanhada pelo teste do duplicado, e voltar à data declarada pelo do certificado caducado.
+
+**Limites que ficam** (`docs/EM_ABERTO.md`):
+- Também encadeiam as entidades de **autenticação** do cartão: um PDF assinado com a chave de autenticação
+  passaria por assinatura de confiança. Verificar o uso da chave (não-repúdio) do signatário precisa de um
+  certificado real de assinatura para confirmar que não recusa assinaturas legítimas.
+- Quem forja pode escolher «por confirmar» em vez de «recusada»: basta um AIA para um endereço que não
+  responde (decisão de 24/10: a falha de rede não recusa). E o servidor segue os endereços AIA e OCSP que o
+  certificado traz. A revisão manual no backoffice não pode confiar no nome mostrado.
+- Não se sabe se o serviço da Chave Móvel Digital mete a raiz no PDF; com esta correção, tanto faz.
+- Falta testar com uma assinatura real: um cartão emitido desde 2024 e a Chave Móvel Digital.
+
+Verificado: typecheck, lint (0 erros, os mesmos 28 avisos), 1861 testes e build com código 0, num diretório
+limpo só com os ficheiros deste commit. Os ficheiros novos passam o prettier; os que já existiam ficaram no
+estilo em que estavam (não seguiam o prettier), para o diff mostrar só o que mudou.

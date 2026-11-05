@@ -50,9 +50,12 @@ Como o contrato é gerado pela plataforma, também mostramos ao lado o **texto d
 - Percurso: o cliente assina o PDF gerado; o pintor assina o PDF já assinado pelo cliente. Os PDF ficam no
   armazenamento `contratos`, sem possibilidade de alteração.
 - Cadeia de confiança: o certificado do signatário tem de encadear numa das entidades "Cartão de Cidadão
-  001–007" do Estado (`src/lib/trust/anchors.ts`, descarregadas do site oficial); a cadeia completa-se pelo
-  endereço do emissor (AIA) quando não vem no PDF. Se não encadear, a assinatura válida é aceite mas fica
-  marcada "por confirmar" no backoffice.
+  001–008" do Estado (`src/lib/trust/anchors.ts`, descarregadas do site oficial; a 008 desde 05/11/2026, ver
+  `DECISOES.md`); a cadeia completa-se pelo endereço do emissor (AIA) quando não vem no PDF. Se a cadeia for
+  avaliada e não encadear, a assinatura é recusada (decisão de 24/10/2026); se ficar por completar por uma
+  falha de rede, é aceite e fica "por confirmar" no backoffice. Valida-se o certificado do signatário (em
+  último na lista do pkijs, que valida o último), na data de agora, e o OCSP pergunta ao emissor do caminho
+  validado (05/11/2026).
 - **Revogação (22/10/2026):** consultada por OCSP (`checkRevocation` em `src/lib/pades.ts`) ao responder indicado
   no próprio certificado; uma resposta "revogado" com assinatura válida impede a confiança, qualquer outro caso
   (sem responder, responder em baixo, resposta inconclusiva) falha aberto, como o resto desta verificação. CRL

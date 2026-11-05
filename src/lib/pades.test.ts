@@ -1,17 +1,21 @@
 import * as asn1js from 'asn1js';
 import * as pkijs from 'pkijs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkIncrement, checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
-import { validateChain, verifyLastSignature } from './pades';
+import { validateChain, verifyLastSignature, verifySignature } from './pades';
+import { PT_CC_ANCHORS } from './trust/anchors';
+import { EC_ASSINATURA_0019, EC_RAIZ_ESTADO_002 } from './trust/cadeiasOficiais.fixture';
 
 // Constrói um PDF "assinado" como a Autenticação.gov faz: acrescenta ao fim um
 // dicionário de assinatura com /ByteRange e /Contents, e põe em /Contents uma
 // assinatura CMS dos bytes cobertos. Certificado de teste autoassinado.
 
 const enc = new TextEncoder();
+// O `fetch` simulado num teste nunca passa para o seguinte, mesmo quando esse teste falha a meio.
+afterEach(() => vi.restoreAllMocks());
 const crypto = globalThis.crypto;
 
-async function testCertificate(name: string) {
+async function testCertificate(name: string, notAfter = '2030-01-01') {
   const keys = (await crypto.subtle.generateKey(
     { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
     true,
@@ -25,7 +29,7 @@ async function testCertificate(name: string) {
     target.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.5', value: new asn1js.PrintableString({ value: 'BI12345678' }) }));
   }
   cert.notBefore.value = new Date('2026-01-01');
-  cert.notAfter.value = new Date('2030-01-01');
+  cert.notAfter.value = new Date(notAfter);
   const bc = new pkijs.BasicConstraints({ cA: true });
   cert.extensions = [new pkijs.Extension({ extnID: '2.5.29.19', critical: true, extnValue: bc.toSchema().toBER(false), parsedValue: bc })];
   await cert.subjectPublicKeyInfo.importKey(keys.publicKey);
@@ -33,7 +37,7 @@ async function testCertificate(name: string) {
   return { cert, key: keys.privateKey };
 }
 
-async function cms(data: Uint8Array, signer: Awaited<ReturnType<typeof testCertificate>>) {
+async function cms(data: Uint8Array, signer: Awaited<ReturnType<typeof testCertificate>>, extra: pkijs.Certificate[] = [], quando = new Date('2026-10-19T10:00:00Z')) {
   const digest = await crypto.subtle.digest('SHA-256', data as Uint8Array<ArrayBuffer>);
   const signed = new pkijs.SignedData({
     version: 1,
@@ -47,12 +51,12 @@ async function cms(data: Uint8Array, signer: Awaited<ReturnType<typeof testCerti
           attributes: [
             new pkijs.Attribute({ type: '1.2.840.113549.1.9.3', values: [new asn1js.ObjectIdentifier({ value: '1.2.840.113549.1.7.1' })] }),
             new pkijs.Attribute({ type: '1.2.840.113549.1.9.4', values: [new asn1js.OctetString({ valueHex: digest })] }),
-            new pkijs.Attribute({ type: '1.2.840.113549.1.9.5', values: [new asn1js.UTCTime({ valueDate: new Date('2026-10-19T10:00:00Z') })] }),
+            new pkijs.Attribute({ type: '1.2.840.113549.1.9.5', values: [new asn1js.UTCTime({ valueDate: quando })] }),
           ],
         }),
       }),
     ],
-    certificates: [signer.cert],
+    certificates: [signer.cert, ...extra],
   });
   await signed.sign(signer.key, 0, 'SHA-256', data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer);
   const info = new pkijs.ContentInfo({ contentType: '1.2.840.113549.1.7.2', content: signed.toSchema(true) });
@@ -61,13 +65,13 @@ async function cms(data: Uint8Array, signer: Awaited<ReturnType<typeof testCerti
 
 const SLOT = 8192; // espaço reservado para a assinatura, em dígitos hexadecimais
 
-async function signPdf(original: Uint8Array, signer: Awaited<ReturnType<typeof testCertificate>>) {
+async function signPdf(original: Uint8Array, signer: Awaited<ReturnType<typeof testCertificate>>, extra: pkijs.Certificate[] = [], slot = SLOT, quando?: Date) {
   const pad = (n: number) => String(n).padStart(10, '0');
   const head = `\n9 0 obj\n<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /ETSI.CAdES.detached /ByteRange [${pad(0)} ${pad(0)} ${pad(0)} ${pad(0)}] /Contents `;
   const tail = ` >>\nendobj\n%%EOF\n`;
-  const total = original.length + head.length + SLOT + 2 + tail.length;
+  const total = original.length + head.length + slot + 2 + tail.length;
   const gapStart = original.length + head.length;
-  const gapEnd = gapStart + SLOT + 2;
+  const gapEnd = gapStart + slot + 2;
   const realHead = head.replace(
     `[${pad(0)} ${pad(0)} ${pad(0)} ${pad(0)}]`,
     `[${pad(0)} ${pad(gapStart)} ${pad(gapEnd)} ${pad(total - gapEnd)}]`,
@@ -75,13 +79,13 @@ async function signPdf(original: Uint8Array, signer: Awaited<ReturnType<typeof t
   const bytes = new Uint8Array(total);
   bytes.set(original, 0);
   bytes.set(enc.encode(realHead), original.length);
-  bytes.set(enc.encode('<' + '0'.repeat(SLOT) + '>'), gapStart);
+  bytes.set(enc.encode('<' + '0'.repeat(slot) + '>'), gapStart);
   bytes.set(enc.encode(tail), gapEnd);
   const covered = new Uint8Array(gapStart + (total - gapEnd));
   covered.set(bytes.subarray(0, gapStart), 0);
   covered.set(bytes.subarray(gapEnd), gapStart);
-  const der = await cms(covered, signer);
-  const hex = Array.from(der, (b) => b.toString(16).padStart(2, '0')).join('').padEnd(SLOT, '0');
+  const der = await cms(covered, signer, extra, quando);
+  const hex = Array.from(der, (b) => b.toString(16).padStart(2, '0')).join('').padEnd(slot, '0');
   bytes.set(enc.encode(hex), gapStart + 1);
   return bytes;
 }
@@ -97,6 +101,64 @@ describe('PDF assinado (PAdES)', () => {
     expect(checkSignedPdf(two, ORIGINAL)).toEqual({ ok: true, newSignatures: 2 });
     const v = await verifyLastSignature(signed);
     expect(v).toMatchObject({ valid: true, name: 'MARIA SILVA', serialNumber: 'BI12345678', signedAt: '2026-10-19T10:00:00.000Z' });
+  }, 30_000);
+
+  it('um certificado autoassinado com o nome de outra pessoa e a cadeia oficial no PDF não é de confiança', async () => {
+    // Revisão de 05/11/2026: o signatário ia em primeiro na lista do pkijs, que valida o último; com a EC
+    // 0019 pública (e a 008 e a raiz) no PDF, validava-se a 0019 e a assinatura forjada passava por «de
+    // confiança», com o nome e o n.º de identificação escolhidos por quem a forjou.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('sem rede no teste'));
+    const der = (b64: string) => {
+      const b = Buffer.from(b64, 'base64');
+      return new pkijs.Certificate({
+        schema: asn1js.fromBER(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer).result,
+      });
+    };
+    const a008 = der(PT_CC_ANCHORS.find((a) => a.name === 'Cartão de Cidadão 008')!.der);
+    const raiz = der(EC_RAIZ_ESTADO_002);
+    const atacante = await testCertificate('ANA PEREIRA');
+    // Só a EC 0019 — a forma que passava (com a raiz em último, o pkijs recusava por acaso) — e a cadeia inteira.
+    for (const cadeia of [[der(EC_ASSINATURA_0019)], [der(EC_ASSINATURA_0019), a008, raiz]]) {
+      const v = await verifyLastSignature(await signPdf(ORIGINAL, atacante, cadeia, 16384));
+      expect(v.valid).toBe(true); // a assinatura CMS é válida para a chave de quem a fez...
+      expect(v.name).toBe('ANA PEREIRA');
+      expect(v.trusted).toBe(false); // ...mas o certificado não é do Estado
+      expect(v.indeterminate).toBeUndefined();
+    }
+  }, 30_000);
+
+  it('valida o certificado na data de hoje, e não na hora que a própria assinatura declara', async () => {
+    // Revisão de 05/11/2026: a cadeia validava-se no `signingTime`, que escreve quem assina. Um certificado
+    // caducado passava declarando uma hora em que ainda valia.
+    const ca = await testCertificate('EC DATAS TESTE', '2049-12-01');
+    const emitido = async (nome: string, ate: string) => {
+      const k = (await crypto.subtle.generateKey(
+        { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+        true,
+        ['sign', 'verify'],
+      )) as CryptoKeyPair;
+      const c = new pkijs.Certificate();
+      c.version = 2;
+      c.serialNumber = new asn1js.Integer({ value: 31 });
+      c.issuer = ca.cert.subject;
+      c.subject.typesAndValues.push(new pkijs.AttributeTypeAndValue({ type: '2.5.4.3', value: new asn1js.Utf8String({ value: nome }) }));
+      c.notBefore.value = new Date('2026-01-01');
+      c.notAfter.value = new Date(ate);
+      await c.subjectPublicKeyInfo.importKey(k.publicKey);
+      await c.sign(ca.key, 'SHA-256');
+      return { cert: c, key: k.privateKey };
+    };
+    const declarada = new Date('2026-02-01T10:00:00Z');
+    const caducado = await emitido('RUI CADUCADO', '2026-03-01');
+    const v = await verifySignature(await signPdf(ORIGINAL, caducado, [], SLOT, declarada), 0, [ca.cert]);
+    expect(v.valid).toBe(true);
+    expect(v.signedAt).toBe(declarada.toISOString());
+    expect(v.trusted).toBe(false);
+    expect(v.trustReason).toMatch(/expired/);
+    // Controlo: o mesmo, com um certificado que ainda vale, fica de confiança (datas até 2049: o X.509 escreve-as
+    // em UTCTime, com o ano em dois dígitos).
+    const valido = await emitido('RUI VALIDO', '2049-01-01');
+    expect((await verifySignature(await signPdf(ORIGINAL, valido, [], SLOT, declarada), 0, [ca.cert])).trusted).toBe(true);
   }, 30_000);
 
   it('aceita a segunda assinatura sobre o PDF já assinado', async () => {
@@ -253,6 +315,48 @@ describe('cadeia completada por AIA (certificado do emissor não incluído no PD
     });
   }, 30_000);
 
+  it('com a raiz no PDF, a cadeia fecha na âncora intermédia, e não é recusada por a raiz não ser âncora', async () => {
+    // 05/11/2026: as âncoras são entidades intermédias («Cartão de Cidadão 00N»), e o PDF pode trazer a
+    // cadeia inteira, raiz incluída. Com a raiz em último na lista, o pkijs tomava-a pelo signatário (valida
+    // o último certificado que recebe) e recusava («No valid certificate paths found»).
+    const root = await testCertificate('EC RAIZ TESTE 3');
+    const inter = await intermediateSignedBy(root);
+    // O AIA nunca se segue: o emissor do signatário já é uma âncora.
+    const leaf = await leafViaAia(inter, 'http://127.0.0.1:1/ec.cer');
+    const at = new Date('2026-10-19');
+    expect(await validateChain(leaf, [inter.cert, root.cert], at, [inter.cert])).toEqual({ trusted: true });
+    expect(await validateChain(leaf, [root.cert], at, [inter.cert])).toEqual({ trusted: true });
+    // Sem a âncora, a raiz no PDF não dá confiança nenhuma.
+    const outraRaiz = await testCertificate('EC RAIZ TESTE 4');
+    const r = await validateChain(leaf, [inter.cert, root.cert], at, [outraRaiz.cert]);
+    expect(r.trusted).toBe(false);
+    expect(r.indeterminate).toBeUndefined();
+  }, 30_000);
+
+  it('um autoassinado do atacante com a EC verdadeira no PDF não fica de confiança (a EC não é o signatário)', async () => {
+    // Revisão de 05/11/2026: já acontecia antes da 008 — o pkijs validava a EC (último da lista) em vez do
+    // certificado do signatário.
+    const root = await testCertificate('EC RAIZ TESTE 5');
+    const inter = await intermediateSignedBy(root);
+    const atacante = await testCertificate('MARIA SILVA');
+    const at = new Date('2026-10-19');
+    for (const noPdf of [[atacante.cert, inter.cert], [atacante.cert, inter.cert, root.cert], [inter.cert]]) {
+      const r = await validateChain(atacante.cert, noPdf, at, [root.cert]);
+      expect(r.trusted).toBe(false);
+      expect(r.indeterminate).toBeUndefined();
+    }
+    // Controlo: um certificado emitido de facto pela EC fica de confiança com o mesmo PDF.
+    const leaf = await leafViaAia(inter, 'http://127.0.0.1:1/ec.cer');
+    expect(await validateChain(leaf, [leaf, inter.cert, root.cert], at, [root.cert])).toEqual({ trusted: true });
+    // O middleware oficial mete o signatário duas vezes no PDF (sign-pkcs7.cpp, linhas 508 e 414): uma cópia
+    // com os mesmos bytes, noutro objeto. O pkijs funde as cópias e fica com a primeira — que não pode ser a
+    // que se valida no lugar do signatário.
+    const copia = (c: pkijs.Certificate) => new pkijs.Certificate({ schema: asn1js.fromBER(c.toSchema().toBER(false)).result });
+    expect(await validateChain(leaf, [copia(leaf), leaf, inter.cert, root.cert], at, [root.cert])).toEqual({ trusted: true });
+    const duplicado = await validateChain(atacante.cert, [copia(atacante.cert), atacante.cert, inter.cert], at, [root.cert]);
+    expect(duplicado.trusted).toBe(false);
+  }, 30_000);
+
   // 30/10/2026: este ficheiro estava apontado como de falha intermitente. Corri-o oito vezes
   // seguidas, verde todas; e fui ver os dois mecanismos plausíveis, que estão os dois já
   // protegidos — o `testTimeout` são 30 s e o teste mais lento leva 200 ms, e a ida à rede do AIA
@@ -371,6 +475,23 @@ describe('revogação por OCSP', () => {
       async (url) => {
         leaf = await leafSignedByCa(ca, url);
         const result = await validateChain(leaf, [], new Date('2026-10-19'), [ca.cert]);
+        expect(result).toEqual({ trusted: false, reason: 'Certificado revogado.' });
+      },
+    );
+  }, 30_000);
+
+  it('uma EC falsa com o nome da verdadeira, posta no PDF, não desvia o OCSP: o revogado continua revogado', async () => {
+    // Revisão de 05/11/2026: o emissor para o OCSP era o primeiro do PDF com o mesmo NOME, e a pergunta saía
+    // com a chave da falsa — a resposta não batia e ficava «inconclusiva», que não bloqueia. Agora é o
+    // emissor do caminho validado.
+    const ca = await testCertificate('EC OCSP TESTE F');
+    const falsa = await testCertificate('EC OCSP TESTE F');
+    let leaf!: pkijs.Certificate;
+    await withOcspServer(
+      async () => ocspResponseBytes(ca, leaf, 'revogado'),
+      async (url) => {
+        leaf = await leafSignedByCa(ca, url);
+        const result = await validateChain(leaf, [falsa.cert, ca.cert], new Date('2026-10-19'), [ca.cert]);
         expect(result).toEqual({ trusted: false, reason: 'Certificado revogado.' });
       },
     );
