@@ -52,6 +52,23 @@ Contabilidade › A pagar, mas `syncLedger` só conhece os resgates de adesão) 
 pagamento real; e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
 sem uso desde que a comissão passou a ser sempre da pessoa — retirá-las numa migração com confirmação.
 
+## 1c. Dinheiro e faturação — o que separa a app do primeiro pagamento real (05/11/2026)
+
+Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade real**. Fica por esta ordem:
+
+1. **Moloni: criar a conta de testes** (`moloni.pt/registo`, NIF fictício, 30 dias, API completa; resposta do
+   ticket J98-JYQ-L177, 23/10/2026). Só o promotor a cria (termos, confirmação de email). As credenciais
+   dela nunca se misturam com as da conta real (`MOLONI_*` na Vercel são da real). Depois: fechar os 7 pontos
+   por confirmar de `FATURACAO.md` e só então ligar o «Emitir» do backoffice. O ticket tem a data de 23/10
+   para pedir prorrogação.
+2. **Stripe em modo real:** ativar a conta com os dados da empresa; criar de novo a taxa de IVA
+   (`STRIPE_TAX_RATE_IVA`) e os produtos; limpar os resíduos de ensaio antes (secção 1).
+3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário
+   (`/api/cron/devolucoes`) — só vistas em modo de teste. Falta um percurso completo em teste do pagamento à
+   devolução, e a validação do contabilista sobre a natureza fiscal da caução (secção 2).
+4. **Livro de movimentos:** os resgates de avaliadores ainda não entram nele (ver 1b).
+5. **IVA trimestral e fecho formal; acesso do contabilista** (`CONTABILIDADE.md`).
+
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
 | Tema | Pergunta | Origem |
