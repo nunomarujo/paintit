@@ -66,6 +66,15 @@ abaixo estarem confirmados numa conta de testes.
 É a demonstração pública e partilhada da Moloni (editada por utilizadores de outras empresas) e os menus
 «Developers/API», «Empresa» e «Subscrição» estão indisponíveis nela. A conta de testes tem de ser uma conta nova.
 
+**Conta de testes criada a 05/11/2026 (22:49), plano Experimental até 05/12/2026 22:49.** Empresa «Quem Pinta TESTES API»,
+Developer ID `NIF_XPTO_QUEMPINTA_TESTE_01`, API ativada, callback `https://quempinta.pt/api/moloni/callback`. Série única
+«M» (id 978495, serve FT e NC como na real), IVA Normal 23% id 3946815, Consumidor Final id 163662825; a Moloni tem
+envio de documentos por email (separador «E-mails» em Empresa, não ativado). O client secret só está com o promotor.
+**◆ `company_id` por confirmar:** a interface só usa o slug; uma chave local do browser sugere `404970`, mas não é fonte
+fiável — confirma-se com `companies/getAll` depois do primeiro token. Atenção: o `MOLONI_COMPANY_ID` da conta real em
+`.env.example` é `517588676`, que é o **contribuinte**; se o id interno for outro número (como na conta de testes), a
+configuração real está errada e só se descobre com este ensaio.
+
 **Resposta da Moloni (ticket J98-JYQ-L177, 23/10/2026):** não há sandbox a pedir. O caminho é criar uma **conta
 separada**, pelo registo normal (`https://www.moloni.pt/registo`), com um NIF fictício (sugestão deles:
 `NIF_XPTO_TESTE_API`). Fica com o plano experimental de 30 dias e **acesso total à API**; se for preciso mais tempo,
