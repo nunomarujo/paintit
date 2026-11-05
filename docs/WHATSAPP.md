@@ -1,3 +1,47 @@
+# WhatsApp — pela Meta, sem intermediário (05/11/2026)
+
+> **Mudança de 05/11/2026.** O envio passava pela Twilio (decisão de 02/11). A Twilio exigia a fotografia do
+> cartão de cidadão do gerente, por um terceiro (Persona), para aprovar a conta; o promotor recusou, e a
+> Meta só verifica a empresa. A conta Twilio vai ser eliminada. O que está mais abaixo sobre a Twilio
+> fica como história; **o que vale é esta secção.** O número +351 926 549 194 e os modelos aprovados
+> (`avaliador_nova_oportunidade`, `levantamento_agendado`, `propostas_disponiveis`) são da conta WhatsApp
+> Business da Relevante Planeta, não da Twilio: ficam.
+
+## Como funciona agora
+
+- `src/lib/whatsapp.ts` fala com `graph.facebook.com/<versão>/<numeroId>/messages`; `src/domain/whatsapp.ts`
+  tem o que se testa sem rede (corpos dos pedidos, assinatura, leitura do webhook).
+- `/api/whatsapp`: GET confirma o endereço à Meta (palavra combinada); POST verifica `X-Hub-Signature-256`
+  sobre o corpo cru e trata o «Aceito» e os estados de entrega. O botão do convite leva o id do convite no
+  payload (`aceito_avaliador:<id>`), por isso a resposta não precisa de adivinhar a que convite se refere.
+- Variáveis na Vercel (Production): `WHATSAPP_TOKEN` (token permanente de um utilizador de sistema),
+  `WHATSAPP_NUMERO_ID` (identificador do número, não o número), `WHATSAPP_SEGREDO_APP` (segredo da
+  aplicação Meta), `WHATSAPP_TOKEN_VERIFICACAO` (uma palavra qualquer, a mesma no painel da Meta).
+  Opcionais: `WHATSAPP_MODELO_CONVITE` (omissão `avaliador_nova_oportunidade`), `WHATSAPP_MODELO_AVISO`
+  (modelo genérico dos avisos; sem ele só saem os convites), `WHATSAPP_IDIOMA` (`pt_PT`), `WHATSAPP_VERSAO_API`.
+- As colunas `twilio_sid` das tabelas `survey_invites` e `whatsapp_messages` guardam agora o id da Meta
+  (`wamid…`). O nome ficou: mudá-lo é uma migração sem ganho.
+
+## Passos do promotor, por esta ordem
+
+1. **Verificação da empresa** (business.facebook.com › Definições › Centro de segurança): a Relevante Planeta
+   tem de aparecer «Verificada», com documentos da empresa.
+2. **Aplicação** (developers.facebook.com › Criar aplicação › tipo Empresa), ligada a esse Business Manager,
+   com o produto **WhatsApp**. Guardar o *segredo da aplicação* (Definições › Básico).
+3. **Utilizador de sistema** (Business Manager › Utilizadores › Utilizadores do sistema): criar um, dar-lhe a
+   aplicação e as permissões `whatsapp_business_messaging` e `whatsapp_business_management`, gerar o token
+   **sem expiração**.
+4. **Libertar o número da Twilio:** na Twilio, apagar o *WhatsApp sender* +351 926 549 194. Só depois a Meta
+   o aceita. Os modelos aprovados mantêm-se na conta WhatsApp Business.
+5. **Registar o número na Cloud API** (WhatsApp › Configuração da API › Adicionar número): confirmação por
+   SMS/chamada para o cartão SIM. Anotar o *identificador do número*.
+6. **Webhook** (WhatsApp › Configuração): URL `https://quempinta.pt/api/whatsapp`, palavra de verificação =
+   `WHATSAPP_TOKEN_VERIFICACAO`; subscrever o campo **messages**.
+7. **As quatro chaves na Vercel** e *redeploy*. Depois, fechar a conta Twilio e apagar as chaves `TWILIO_*`.
+8. **Ensaio:** pedido de teste num concelho com avaliador configurado (ver mais abaixo).
+
+---
+
 # Avisos por WhatsApp
 
 Decidido a 02/11/2026. O código está feito e publicado; o canal só abre quando as quatro chaves estiverem

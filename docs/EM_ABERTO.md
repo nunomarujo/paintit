@@ -30,10 +30,12 @@ O código está feito; o canal abre quando isto estiver feito, pela ordem de `do
 dedicado → conta Twilio → WhatsApp sender → verificação da empresa na Meta → modelo `aviso_quem_pinta`
 aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` aplicada a 02/11/2026.
 
-**Convites aos avaliadores (05/11/2026):** construídos e dormentes até às chaves. Falta do promotor, por
-esta ordem (detalhe em `docs/WHATSAPP.md`, «Convites aos avaliadores»): as três chaves Twilio mais
-`WHATSAPP_MODELO_CONVITE` na Vercel (confirmado a 05/11 que nenhuma lá está), o endereço
-`https://quempinta.pt/api/whatsapp` como webhook de mensagens recebidas no sender, e um ensaio real.
+**Convites aos avaliadores (05/11/2026):** construídos; o canal passou da Twilio para a **Meta direta** (decisão do
+promotor, ver `docs/DECISOES.md`). Dormente até haver as quatro chaves `WHATSAPP_*` na Vercel — passos do promotor
+em `docs/WHATSAPP.md` (verificação da empresa na Meta, aplicação, utilizador de sistema, libertar o número da
+Twilio, registá-lo na Cloud API, webhook). Depois: fechar a conta Twilio e apagar as chaves `TWILIO_*` da Vercel.
+Ensaio pendente: QP-1009 (pedido «ENSAIO convites WhatsApp», a apagar no fim) tem uma onda falhada da Twilio —
+apagar essa onda antes do ensaio, para o convite voltar a sair.
 Ficam por decidir/construir: a «informação do levantamento» e a «resposta a tempo» ainda não entram na
 ordem das ondas (só a qualificação geral, como no simulador); um painel interno com avaliadores elegíveis
 por concelho, para recrutar onde não há nenhum.

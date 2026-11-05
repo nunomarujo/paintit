@@ -1,5 +1,4 @@
 import 'server-only';
-import { BRAND } from '@/config/brand';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import {
   REGRAS_DA_CONVOCATORIA,
@@ -15,11 +14,11 @@ import { DESEMPENHO_INICIAL } from '@/domain/avaliador';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import { referenciaDoLevantamento } from '@/domain/referencias';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
-import { credenciaisWhatsApp } from '@/domain/whatsapp';
+import { configuracaoWhatsApp, modeloDoConvite, payloadDoConvite } from '@/domain/whatsapp';
 import { CENTROS_DOS_CONCELHOS } from '@/lib/centrosDosConcelhos';
 import { sendEmail } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
-import { enviarConvite } from '@/lib/whatsapp';
+import { enviarModelo } from '@/lib/whatsapp';
 
 /**
  * Avança as convocatórias: para cada levantamento aberto decide, pelas regras de
@@ -35,14 +34,13 @@ import { enviarConvite } from '@/lib/whatsapp';
 
 export type ResumoDasConvocatorias = { semCanal?: true; ondas: number; convites: number; falhas: number; esgotadas: number; semCandidatos: number };
 
-export const URL_DO_WEBHOOK = () => process.env.WHATSAPP_WEBHOOK_URL?.trim() || `${BRAND.url}/api/whatsapp`;
 
 export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDasConvocatorias> {
   const resumo: ResumoDasConvocatorias = { ondas: 0, convites: 0, falhas: 0, esgotadas: 0, semCandidatos: 0 };
   const db = adminClient();
-  const cfg = credenciaisWhatsApp(process.env);
-  const modelo = process.env.WHATSAPP_MODELO_CONVITE?.trim();
-  if (!db || !cfg || !modelo) return { ...resumo, semCanal: true };
+  const cfg = configuracaoWhatsApp(process.env);
+  const modelo = modeloDoConvite(process.env);
+  if (!db || !cfg) return { ...resumo, semCanal: true };
 
   // Levantamentos abertos, com o concelho e o tipo de obra (só isso: a morada nunca entra num convite).
   const { data: abertos } = await db
@@ -127,10 +125,10 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
         .single();
       if (!convite) continue;
       try {
-        const sid = await enviarConvite(cfg, modelo, c.telemovel, variaveis, URL_DO_WEBHOOK());
+        const sid = await enviarModelo(cfg, c.telemovel, modelo, [variaveis['1'], variaveis['2']], payloadDoConvite(convite.id));
         await db.from('survey_invites').update({ estado: 'enviado', twilio_sid: sid || null, enviado_em: new Date().toISOString() }).eq('id', convite.id);
         await db.from('whatsapp_messages').insert({
-          direcao: 'saida', twilio_sid: sid || null, para: c.telemovel, de: cfg.de.replace(/^whatsapp:/, ''), modelo, variaveis, invite_id: convite.id,
+          direcao: 'saida', twilio_sid: sid || null, para: c.telemovel, de: cfg.numeroId, modelo, variaveis, invite_id: convite.id,
         });
         resumo.convites++;
       } catch (e) {

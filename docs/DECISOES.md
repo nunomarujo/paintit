@@ -4666,3 +4666,17 @@ Esgotado é definitivo, por isso nunca seriam oferecidos ao primeiro avaliador d
 Corrigido (`20261105111016_convocatoria_sem_candidatos`): «sem candidatos» antes da primeira onda passa a ser
 um estado próprio — avisa a equipa uma vez e o levantamento continua à espera. Esgotar fica para quem já teve
 ondas sem resposta. Os três levantamentos voltaram a estar à espera.
+
+## 05/11/2026 — WhatsApp pela Meta, sem a Twilio
+
+Decisão do promotor. A Twilio recusava enviar (erro 20003) até o *Primary Customer Profile* ser aprovado, e
+esse perfil exige a fotografia do cartão de cidadão do gerente, recolhida por um terceiro (Persona, dados
+biométricos, até 3 anos). O promotor recusou — com razão: a Lei 7/2007 limita a reprodução do cartão, e a
+Meta verifica a empresa com documentos da empresa. Escolher a Twilio em 02/11 («o caminho mais curto») sem
+comparar foi o erro; a Cloud API da Meta é mais barata (sem margem do intermediário) e tem uma verificação a
+menos.
+
+Mudou: o envio (`src/lib/whatsapp.ts`), a receção (`/api/whatsapp`, assinatura `X-Hub-Signature-256`) e as
+variáveis (`WHATSAPP_*`, sem `TWILIO_*`). Não mudou: ondas, reserva atómica (`aceitar_convite`), ecrã do
+avaliador, modelos aprovados e número. O botão passou a levar o id do convite. Fica inativo até as quatro
+chaves da Meta estarem na Vercel (passos em `docs/WHATSAPP.md`).
