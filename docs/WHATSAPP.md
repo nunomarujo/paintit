@@ -1,3 +1,47 @@
+# WhatsApp — pela Meta, sem intermediário (05/11/2026)
+
+> **Mudança de 05/11/2026.** O envio passava pela Twilio (decisão de 02/11). A Twilio exigia a fotografia do
+> cartão de cidadão do gerente, por um terceiro (Persona), para aprovar a conta; o promotor recusou, e a
+> Meta só verifica a empresa. A conta Twilio vai ser eliminada. O que está mais abaixo sobre a Twilio
+> fica como história; **o que vale é esta secção.** O número +351 926 549 194 e os modelos aprovados
+> (`avaliador_nova_oportunidade`, `levantamento_agendado`, `propostas_disponiveis`) são da conta WhatsApp
+> Business da Relevante Planeta, não da Twilio: ficam.
+
+## Como funciona agora
+
+- `src/lib/whatsapp.ts` fala com `graph.facebook.com/<versão>/<numeroId>/messages`; `src/domain/whatsapp.ts`
+  tem o que se testa sem rede (corpos dos pedidos, assinatura, leitura do webhook).
+- `/api/whatsapp`: GET confirma o endereço à Meta (palavra combinada); POST verifica `X-Hub-Signature-256`
+  sobre o corpo cru e trata o «Aceito» e os estados de entrega. O botão do convite leva o id do convite no
+  payload (`aceito_avaliador:<id>`), por isso a resposta não precisa de adivinhar a que convite se refere.
+- Variáveis na Vercel (Production): `WHATSAPP_TOKEN` (token permanente de um utilizador de sistema),
+  `WHATSAPP_NUMERO_ID` (identificador do número, não o número), `WHATSAPP_SEGREDO_APP` (segredo da
+  aplicação Meta), `WHATSAPP_TOKEN_VERIFICACAO` (uma palavra qualquer, a mesma no painel da Meta).
+  Opcionais: `WHATSAPP_MODELO_CONVITE` (omissão `avaliador_nova_oportunidade`), `WHATSAPP_MODELO_AVISO`
+  (modelo genérico dos avisos; sem ele só saem os convites), `WHATSAPP_IDIOMA` (`pt_PT`), `WHATSAPP_VERSAO_API`.
+- As colunas `twilio_sid` das tabelas `survey_invites` e `whatsapp_messages` guardam agora o id da Meta
+  (`wamid…`). O nome ficou: mudá-lo é uma migração sem ganho.
+
+## Passos do promotor, por esta ordem
+
+1. **Verificação da empresa** (business.facebook.com › Definições › Centro de segurança): a Relevante Planeta
+   tem de aparecer «Verificada», com documentos da empresa.
+2. **Aplicação** (developers.facebook.com › Criar aplicação › tipo Empresa), ligada a esse Business Manager,
+   com o produto **WhatsApp**. Guardar o *segredo da aplicação* (Definições › Básico).
+3. **Utilizador de sistema** (Business Manager › Utilizadores › Utilizadores do sistema): criar um, dar-lhe a
+   aplicação e as permissões `whatsapp_business_messaging` e `whatsapp_business_management`, gerar o token
+   **sem expiração**.
+4. **Libertar o número da Twilio:** na Twilio, apagar o *WhatsApp sender* +351 926 549 194. Só depois a Meta
+   o aceita. Os modelos aprovados mantêm-se na conta WhatsApp Business.
+5. **Registar o número na Cloud API** (WhatsApp › Configuração da API › Adicionar número): confirmação por
+   SMS/chamada para o cartão SIM. Anotar o *identificador do número*.
+6. **Webhook** (WhatsApp › Configuração): URL `https://quempinta.pt/api/whatsapp`, palavra de verificação =
+   `WHATSAPP_TOKEN_VERIFICACAO`; subscrever o campo **messages**.
+7. **As quatro chaves na Vercel** e *redeploy*. Depois, fechar a conta Twilio e apagar as chaves `TWILIO_*`.
+8. **Ensaio:** pedido de teste num concelho com avaliador configurado (ver mais abaixo).
+
+---
+
 # Avisos por WhatsApp
 
 Decidido a 02/11/2026. O código está feito e publicado; o canal só abre quando as quatro chaves estiverem
@@ -57,3 +101,49 @@ São uns minutos de preenchimento; a espera é a verificação da Meta.
 
 Custo: em Portugal, alguns cêntimos por conversa de 24 horas, cobrados pela Twilio. Para o volume atual é
 irrelevante.
+
+## Convites aos avaliadores — convocatória por ondas (05/11/2026)
+
+Construído e publicado: regras em `src/domain/convocatoria.ts`, envio em `src/lib/convocatorias.ts`, rotas
+`/api/convocatorias` (chamada pela base ao minuto, só em horário útil e só quando há trabalho) e
+`/api/whatsapp` (o «Aceito» e os estados de entrega), migração `20261105094801_convocatoria_por_ondas`
+(aplicada). Decisões em `docs/DECISOES.md`, «Convocatória por ondas».
+
+Os convites **não** dependem do modelo genérico de avisos (`WHATSAPP_MODELO_AVISO`): chegam três chaves
+da conta mais o modelo do convite. Sem elas a convocatória não envia nada e nada falha.
+
+### O que fica do lado do promotor
+
+1. **Chaves na Vercel** (projeto `paintit`, Production) — confirmado a 05/11/2026 que ainda não lá estão:
+   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (`whatsapp:+351926549194`) e
+   `WHATSAPP_MODELO_CONVITE` = `HXf935d8b59e7b691ef507936d14f3ee14` (modelo `avaliador_nova_oportunidade`,
+   variáveis `{{1}}` concelho e `{{2}}` descrição, botão de resposta rápida «Aceito» com payload
+   `aceito_avaliador`). Depois, um *redeploy*.
+2. **Endereço das mensagens recebidas na Twilio** (Messaging › Senders › WhatsApp senders › o número ›
+   *Webhook URL for incoming messages*): `https://quempinta.pt/api/whatsapp`, método POST. Tem de ser
+   **exatamente** este endereço: a assinatura da Twilio é calculada sobre ele e a aplicação recusa (403)
+   qualquer pedido cuja assinatura não bata. Se tiver de ser outro, pôr o mesmo valor em
+   `WHATSAPP_WEBHOOK_URL`.
+3. **Modelos de resposta** — não são precisos: as respostas ao «Aceito» («reservado», «já atribuída»)
+   saem dentro das 24 horas a seguir à mensagem da própria pessoa, onde o WhatsApp aceita texto livre.
+4. **Ensaio:** com uma conta de avaliador, em «Avaliações › Disponibilidade e alertas», ligar o WhatsApp
+   com o próprio número, escolher concelho base e raio, e confirmar que a lista «falta» fica vazia. Criar
+   um pedido de teste nesse concelho num dia útil entre as 9h e as 18h: o convite chega no minuto
+   seguinte; carregar em «Aceito» reserva o levantamento e a resposta traz a ligação para a ficha.
+
+## Estado dos modelos e da conta (lido a 05/11/2026)
+
+- **A conta WhatsApp atual** («Relevante Planeta, Lda - Twilio, Inc», id 1776463656911573) foi criada pela
+  Twilio e é **paga pela linha de crédito da Twilio**: a Meta bloqueia nela as definições de pagamento, e o
+  seletor de contas não mostra outra. Decisão do promotor (B): criar uma conta WhatsApp nova, só da Relevante
+  Planeta, com pagamento próprio, e passar o número +351 926 549 194 (id 1409052285626700) para lá. Os
+  modelos não passam: recriam-se.
+- **`avaliador_nova_oportunidade`** (categoria Serviços/Utility, idioma português, botão de resposta rápida
+  «Aceito», sem cabeçalho nem rodapé). Corpo antigo (conta Twilio), que mandava
+  ir ao site: «…Aceite-o em quempinta.pt…». Corpo novo, a submeter na conta nova, que
+  `CORPO_DO_MODELO_DO_CONVITE` (`src/domain/convocatoria.ts`) repete: «Quem Pinta: há um levantamento
+  disponível em {{1}} ({{2}}). Carregue em «Aceito» para ficar com ele: fica com o trabalho a primeira pessoa a
+  aceitar. Depois de aceitar, tem uma hora útil para contactar o cliente.» Exemplos usados:
+  Braga / prédio de 6 andares. O payload do botão não vai no modelo: a aplicação envia-o em cada mensagem.
+- `propostas_disponiveis` (Marketing — mais cara que Utility; não usado) e `levantamento_agendado` (em
+  revisão; não usado). Estado «Qualidade pendente» é o normal de um modelo ainda sem envios.

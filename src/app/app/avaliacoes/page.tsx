@@ -27,7 +27,8 @@ export default async function HojeAvaliacoesPage({
   const [{ emCurso, concluidos }, { data: abertos }, { data: payouts }, { data: presenca }, { data: cobertura }] = await Promise.all([
     osMeusLevantamentos(supabase, user!.id),
     supabase.from('request_surveys').select('id').eq('status', 'aberto'),
-    supabase.from('survey_payouts').select('amount_cents, estado, redemption_id').eq('supplier_org_id', pertenca.orgId),
+    // As comissões são da pessoa (05/11/2026): só as suas, nunca as da empresa.
+    supabase.from('survey_payouts').select('amount_cents, estado, redemption_id').eq('vendedor_user_id', user!.id),
     // A linha é da pessoa: só ela a lê (RLS), por isso não é preciso filtrar mais.
     supabase.from('survey_availability').select('suspenso_ate').eq('user_id', user!.id).maybeSingle(),
     supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),

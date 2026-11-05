@@ -1,5 +1,10 @@
-import { ToPay } from '../sections';
+import { ToPay, ToPayAvaliadores } from '../sections';
 
 export default function Page() {
-  return <ToPay />;
+  return (
+    <>
+      <ToPay />
+      <ToPayAvaliadores />
+    </>
+  );
 }

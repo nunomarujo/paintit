@@ -2,7 +2,7 @@ import { ACCOUNTS, accountName } from '@/domain/accounting/accounts';
 import { formatEuros } from '@/domain/money';
 import { getUser } from '@/lib/supabase/server';
 import { reconcile } from '@/domain/accounting/reconcile';
-import { BankImportForm, BankLineForm, PeriodForms, RedemptionForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
+import { BankImportForm, BankLineForm, PeriodForms, RedemptionAvaliadorForm, RedemptionForm, RegimeAvaliadorForm, RematchButton, StripeReviewForm, SyncButton, SyncStripeButton, VoidPayoutForm } from './Forms';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 
@@ -562,6 +562,97 @@ export async function Bank() {
           </ul>
         </section>
       )}
+    </>
+  );
+}
+
+/**
+ * Comissões de levantamento: são de cada avaliador, não da empresa (05/11/2026). A equipa valida os dados
+ * de pagamento que a pessoa declara e paga o resgate contra o recibo em nome próprio (fatura-recibo ou ato
+ * isolado). Nada disto é visível à empresa onde a pessoa trabalha.
+ */
+export async function ToPayAvaliadores() {
+  const { supabase } = await getUser();
+  const [{ data: porValidar }, { data: abertos }, { data: recentes }] = await Promise.all([
+    supabase.from('avaliador_payout_details').select('*').eq('regime_validado', false).not('declaracao_retencao', 'is', null),
+    supabase.from('survey_redemptions').select('*').not('user_id', 'is', null).in('estado', ['pedido', 'fatura_recebida']).order('created_at'),
+    supabase.from('survey_redemptions').select('*').not('user_id', 'is', null).in('estado', ['paga', 'anulado']).order('created_at', { ascending: false }).limit(10),
+  ]);
+  const links = new Map<string, string>();
+  for (const r of abertos ?? []) {
+    if (!r.invoice_path) continue;
+    const { data: signed } = await supabase.storage.from('faturas-adesao').createSignedUrl(r.invoice_path, 600);
+    if (signed?.signedUrl) links.set(r.id, signed.signedUrl);
+  }
+  const RETENCAO: Record<string, string> = { sujeito: 'sujeito', dispensa: 'dispensado', nao_sujeito: 'não sujeito' };
+  const DOCUMENTO: Record<string, string> = { recibo_verde: 'fatura-recibo', ato_isolado: 'ato isolado' };
+  return (
+    <>
+      <section className={card}>
+        <h2 className="font-semibold">Avaliadores: dados para receber por validar</h2>
+        <p className="mt-1 text-[17px] text-slate-600">Confirme com o contabilista o regime de IVA e a retenção antes do primeiro resgate da pessoa.</p>
+        {(porValidar ?? []).length === 0 ? (
+          <p className="mt-3 text-[17px] text-slate-600">Nenhum por validar.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
+            {(porValidar ?? []).map((d) => (
+              <li key={d.user_id} className="py-3">
+                <b>{d.titular}</b> (NIF {d.nif}) · {DOCUMENTO[d.documento]} · {d.cobra_iva ? 'liquida IVA' : `isento: ${d.isencao_iva ?? '—'}`} · retenção declarada:{' '}
+                {RETENCAO[d.declaracao_retencao ?? ''] ?? 'não declarada'}
+                <RegimeAvaliadorForm userId={d.user_id} current={d.retencao_bps} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className={card}>
+        <h2 className="font-semibold">Resgates de avaliadores</h2>
+        <p className="mt-1 text-[17px] text-slate-600">
+          Pague por transferência o valor líquido, depois de confirmar o recibo (emitido em nome próprio à Relevante Planeta, Lda, no valor da comissão mais IVA, se houver).
+        </p>
+        {(abertos ?? []).length === 0 ? (
+          <p className="mt-3 text-[17px] text-slate-600">Nada por pagar.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-[17px]">
+            {(abertos ?? []).map((r) => (
+              <li key={r.id} className="py-3">
+                <b>{r.titular}</b> (NIF {r.nif ?? '—'}) · pedido em {ptDate(r.created_at)} · {r.estado === 'pedido' ? 'a aguardar o recibo' : 'recibo recebido'}
+                <p>
+                  Comissão {formatEuros(r.comissao_cents)}
+                  {r.iva_cents > 0 ? ` + IVA ${formatEuros(r.iva_cents)}` : r.cobra_iva ? '' : ` (isento${r.isencao_iva ? `: ${r.isencao_iva}` : ''})`}
+                  {r.retencao_cents > 0 ? ` − retenção ${formatEuros(r.retencao_cents)} (${r.retencao_bps / 100}%)` : ''} → <strong>transferir {formatEuros(r.liquido_cents)}</strong>
+                </p>
+                <p className="text-[15px] text-slate-600">
+                  {r.iban} · {DOCUMENTO[r.documento ?? ''] ?? 'documento'}
+                  {r.invoice_numero ? ` ${r.invoice_numero}` : ''}
+                  {links.get(r.id) && (
+                    <>
+                      {' '}
+                      <a href={links.get(r.id)} target="_blank" rel="noopener noreferrer" className="text-tinta-700 underline">
+                        Abrir PDF
+                      </a>
+                    </>
+                  )}
+                </p>
+                <RedemptionAvaliadorForm id={r.id} canPay={r.estado === 'fatura_recebida'} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {(recentes ?? []).length > 0 && (
+          <details className="mt-4 text-[17px]">
+            <summary className="cursor-pointer font-medium">Últimos resgates encerrados</summary>
+            <ul className="mt-2 space-y-1 text-slate-600">
+              {(recentes ?? []).map((r) => (
+                <li key={r.id}>
+                  {r.titular} · {formatEuros(r.liquido_cents)} · {r.estado === 'paga' ? `pago em ${ptDate(r.paga_em)}${r.referencia_pagamento ? ` (${r.referencia_pagamento})` : ''}` : `anulado${r.motivo ? `: ${r.motivo}` : ''}`}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </section>
     </>
   );
 }

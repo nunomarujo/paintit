@@ -1032,6 +1032,10 @@ export type Database = {
           // hoje dezenas de erros de tipos e é dívida à parte. A migração
           // 20261101040000_referencia_do_levantamento está aplicada à base real (01/11/2026).
           numero: number;
+          // 20261105094801_convocatoria_por_ondas: ao fim das ondas sem resposta.
+          convocatoria_esgotada_em: string | null;
+          // 20261105111016_convocatoria_sem_candidatos: equipa avisada de que não havia ninguém na zona (uma vez).
+          convocatoria_sem_candidatos_em: string | null;
           contact_notes: string;
           created_at: string;
           created_by: string;
@@ -1045,7 +1049,7 @@ export type Database = {
           vendedor_user_id: string | null;
         };
         Insert: { request_id: string };
-        Update: { contact_notes?: string; scheduled_at?: string | null };
+        Update: { contact_notes?: string; scheduled_at?: string | null; convocatoria_esgotada_em?: string | null; convocatoria_sem_candidatos_em?: string | null };
         Relationships: [];
       };
       // Uma tentativa de levantamento (migração 20261031200000): quem aceitou, com que prazos, o que
@@ -1080,9 +1084,37 @@ export type Database = {
       // regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
       survey_availability: {
         // alerta_whatsapp e telemovel_whatsapp: migração 20261102090000_avisos_por_whatsapp.
-        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; alerta_whatsapp: boolean; telemovel_whatsapp: string | null; updated_at: string };
-        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
-        Update: { suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
+        // concelho_base, raio_km, recebimento, nif_pessoal: 20261105094801_convocatoria_por_ondas (aplicada a 05/11/2026).
+        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; alerta_whatsapp: boolean; telemovel_whatsapp: string | null; concelho_base: string | null; raio_km: number | null; recebimento: 'empresa' | 'proprio'; nif_pessoal: string | null; updated_at: string };
+        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null; concelho_base?: string | null; raio_km?: number | null; recebimento?: 'empresa' | 'proprio'; nif_pessoal?: string | null };
+        Update: { suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null; concelho_base?: string | null; raio_km?: number | null; recebimento?: 'empresa' | 'proprio'; nif_pessoal?: string | null };
+        Relationships: [];
+      };
+      // Convocatória por ondas: 20261105094801_convocatoria_por_ondas (aplicada a 05/11/2026). Só a chave de
+      // serviço escreve; cada pessoa lê os seus convites, a equipa lê tudo.
+      survey_waves: {
+        Row: { id: string; survey_id: string; numero: number; versao_regras: string; enviada_em: string };
+        Insert: { survey_id: string; numero: number; versao_regras: string; enviada_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_invites: {
+        Row: {
+          id: string; wave_id: string; survey_id: string; user_id: string; org_id: string; telemovel: string;
+          estado: 'a_enviar' | 'enviado' | 'falhou' | 'aceite' | 'tarde' | 'expirado';
+          twilio_sid: string | null; erro: string | null; enviado_em: string | null; respondido_em: string | null; created_at: string;
+        };
+        Insert: { wave_id: string; survey_id: string; user_id: string; org_id: string; telemovel: string; estado?: 'a_enviar' | 'enviado' | 'falhou' };
+        Update: { estado?: 'a_enviar' | 'enviado' | 'falhou' | 'aceite' | 'tarde' | 'expirado'; twilio_sid?: string | null; erro?: string | null; enviado_em?: string | null; respondido_em?: string | null };
+        Relationships: [];
+      };
+      whatsapp_messages: {
+        Row: {
+          id: string; direcao: 'saida' | 'entrada'; twilio_sid: string | null; para: string; de: string; modelo: string | null;
+          variaveis: Json | null; corpo: string | null; estado: string; erro: string | null; invite_id: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { direcao: 'saida' | 'entrada'; twilio_sid?: string | null; para: string; de: string; modelo?: string | null; variaveis?: Json | null; corpo?: string | null; estado?: string; erro?: string | null; invite_id?: string | null };
+        Update: { estado?: string; erro?: string | null; updated_at?: string };
         Relationships: [];
       };
       avisos_por_email: {
@@ -1160,8 +1192,10 @@ export type Database = {
           redemption_id: string | null;
           request_survey_id: string;
           supplier_org_id: string;
+          // 20261105103940_comissoes_pessoais_do_avaliador: o pagamento é da pessoa.
+          vendedor_user_id: string | null;
         };
-        Insert: { amount_cents: number; engagement_id: string; fee_recebido_em: string; request_survey_id: string; supplier_org_id: string };
+        Insert: { amount_cents: number; engagement_id: string; fee_recebido_em: string; request_survey_id: string; supplier_org_id: string; vendedor_user_id: string | null };
         Update: never;
         Relationships: [];
       };
@@ -1187,9 +1221,27 @@ export type Database = {
           retencao_cents: number;
           supplier_org_id: string;
           titular: string;
+          // 20261105103940_comissoes_pessoais_do_avaliador: resgates da pessoa (nulo nos antigos, de empresa).
+          user_id: string | null;
+          nif: string | null;
+          documento: 'recibo_verde' | 'ato_isolado' | null;
         };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      // 20261105103940_comissoes_pessoais_do_avaliador: dados de pagamento da pessoa (só ela e a equipa os leem).
+      avaliador_payout_details: {
+        Row: {
+          user_id: string; nif: string; titular: string; iban: string; documento: 'recibo_verde' | 'ato_isolado';
+          cobra_iva: boolean; isencao_iva: string | null; declaracao_retencao: 'nao_sujeito' | 'sujeito' | 'dispensa' | null;
+          retencao_bps: number; regime_validado: boolean; updated_at: string;
+        };
+        Insert: {
+          user_id: string; nif: string; titular: string; iban: string; documento: 'recibo_verde' | 'ato_isolado';
+          cobra_iva?: boolean; isencao_iva?: string | null; declaracao_retencao?: 'nao_sujeito' | 'sujeito' | 'dispensa' | null;
+        };
+        Update: Partial<Database['public']['Tables']['avaliador_payout_details']['Insert']>;
         Relationships: [];
       };
       survey_terms_acceptances: {
@@ -2180,6 +2232,8 @@ export type Database = {
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
+      // Só a chave de serviço (webhook do WhatsApp). 'aceite' | 'tarde' | 'sem_inscricao' | 'excluido'.
+      aceitar_convite: { Args: { p_invite: string }; Returns: string };
       reserve_survey: {
         Args: { p_survey_id: string; p_org: string };
         Returns: {
@@ -2207,6 +2261,8 @@ export type Database = {
       survey_vendor_rating: { Args: { p_user: string }; Returns: { n: number; media: number | null }[] };
       survey_preview: { Args: { p_survey_id: string }; Returns: { concelho: string; tipo_obra: string }[] };
       survey_request_redemption: { Args: { p_org: string }; Returns: string };
+      avaliador_pedir_resgate: { Args: Record<string, never>; Returns: string };
+      avaliador_validar_regime: { Args: { p_user: string; p_bps: number }; Returns: undefined };
       survey_redemption_invoice: { Args: { p_redemption: string; p_numero: string; p_path: string }; Returns: undefined };
       survey_redemption_cancel: { Args: { p_redemption: string; p_motivo: string }; Returns: undefined };
       survey_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };

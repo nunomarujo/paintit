@@ -5592,3 +5592,98 @@ cópias) é apanhada pelo teste do duplicado, e voltar à data declarada pelo do
 Verificado: typecheck, lint (0 erros, os mesmos 28 avisos), 1861 testes e build com código 0, num diretório
 limpo só com os ficheiros deste commit. Os ficheiros novos passam o prettier; os que já existiam ficaram no
 estilo em que estavam (não seguiam o prettier), para o diff mostrar só o que mudou.
+
+## 05/11/2026 — Convocatória por ondas: quem é convidado para um levantamento, e por que ordem
+
+Até aqui, quando um levantamento abria, **ninguém era avisado**: os avaliadores descobriam-no a navegar
+a lista e quem chegava primeiro ficava. Com o WhatsApp (modelo `avaliador_nova_oportunidade`, botão
+«Aceito») a convidar, chamar toda a gente de uma vez paga uma mensagem por pessoa e entrega sempre a
+vaga a quem tem o telemóvel mais à mão. Proposta discutida com o promotor; decisões dele:
+
+1. **NIF pessoal só para quem quer receber em nome próprio (recibo verde).** Por omissão a comissão
+   continua a ir para a empresa, e aí o NIF pessoal não se pede (RGPD, minimização).
+2. **Até metade de cada onda para avaliadores novos**, arredondada para baixo (2 em 5, 1 em 3). Novo é
+   quem tem menos de 3 levantamentos avaliados — o mesmo limiar do comparador de pintores.
+3. **«Já atribuída» só a quem carregou em «Aceito» tarde**, não a todos os convidados: cada mensagem
+   do modelo é paga, e o próprio convite já diz que fica com o trabalho a primeira pessoa a aceitar.
+4. **Concelho base e raio de deslocação** (15/30/60/100 km) declarados pela pessoa, em vez de listas
+   de concelhos: funciona no país inteiro sem marcar 308 concelhos. Anéis à volta da obra: o próprio
+   concelho, até 25 km, até 50 km, até ao raio de cada um — nunca além do raio declarado.
+
+O resto, proposto e aceite com a proposta: condições de convite (NIPC válido da empresa, inscrição e
+confidencialidade em vigor, nome completo, WhatsApp pessoal ligado, menos de 2 levantamentos em curso,
+não suspenso); onda de metade dos elegíveis entre 3 e 5; ordem pela qualidade que já define a banda de
+comissão (uma regra só), empate para quem está há mais tempo sem trabalho; quem ganhou uma vaga nas
+últimas 24 h vai para o fim do seu anel; nota baixa (média < 3 com ≥ 5 avaliações) ou incumprimento
+provado nos últimos 7 dias tiram da **primeira** onda, nunca da convocatória; uma hora útil por onda;
+só se envia em horário útil; ao fim de 3 ondas, alerta à equipa e o cliente segue pelo preenchimento
+próprio. Os dados do cliente **não** seguem por WhatsApp: o «Aceito» reserva e a resposta leva a
+ligação para a ficha, onde a dupla chave de 31/10/2026 continua a decidir.
+
+Construído: `src/domain/convocatoria.ts` (puro e testado, números numa versão `2026-11-05`) e
+`src/lib/centrosDosConcelhos.ts` (centroide oficial de cada concelho, geoapi.pt/CAOP; o Funchal fica na
+cidade porque as Selvagens puxavam o centroide 38 km para o mar).
+
+**Aplicado à base real (05/11/2026):** migração `20261105094801_convocatoria_por_ondas` — concelho base,
+raio, recebimento e NIF pessoal na linha pessoal de «Disponibilidade»; tabelas `survey_waves`,
+`survey_invites` e `whatsapp_messages` (RLS: cada pessoa lê os seus convites, a equipa lê tudo, só a chave
+de serviço escreve); `aceitar_convite` (só a chave de serviço) reserva atomicamente pelo convite; um gatilho
+fecha os convites pendentes quando o levantamento deixa de estar aberto; tarefa `quempinta-convocatorias`
+ao minuto, que só acorda a aplicação em horário útil e quando há trabalho. Verificado na base real com
+utilizadores `zz-test-*` num bloco revertido: dois «Aceito» ao mesmo levantamento → `aceite` e `tarde`, uma
+só tentativa; nada ficou gravado. A migração **não** depende de `reserva_so_para_avaliadores_inscritos`
+(ainda por aplicar, à espera do promotor): repete a função da versão da inscrição, com o mesmo corpo.
+
+## 05/11/2026 — A comissão do avaliador é da pessoa; a reserva exige a inscrição
+
+**Comissões.** Decisão do promotor, a recusar a solução da manhã (comissão para a empresa, ou para a
+pessoa só se ela escolhesse): *«as comissões de avaliador devem ir apenas para um separador na sua conta,
+a empresa onde trabalha não tem essa informação, não tem acesso a isso; o vendedor/avaliador acumula
+crédito/dinheiro real na sua conta e, quando quiser resgatar, basta apresentar recibo-fatura (ainda que em
+ato único).»* Construído e aplicado (`20261105103940_comissoes_pessoais_do_avaliador`):
+
+- Cada pagamento de levantamento tem dono (`survey_payouts.vendedor_user_id`); só a pessoa e a equipa o
+  veem — a empresa deixou de ver (a política antiga era `can_access_org`).
+- A pessoa declara, em «Comissões pessoais», NIF de pessoa singular, nome, IBAN, o documento que emite
+  (fatura-recibo ou ato isolado) e o regime de IVA e de retenção; a equipa valida e fixa a retenção em
+  Contabilidade › A pagar, como já fazia para as empresas. Mudar o NIF, o documento ou o regime volta a
+  pedir validação.
+- A pessoa pede o resgate do saldo inteiro, emite o recibo nas Finanças em nome da Relevante Planeta, Lda,
+  envia o PDF, e a equipa paga por transferência. Valor = comissão + IVA − retenção.
+- A empresa deixou de poder resgatar comissões de levantamento (`survey_request_redemption` recusa com
+  uma frase que aponta para a conta de cada um).
+- A escolha «em nome da empresa / em nome próprio» do ecrã de convites desapareceu: a comissão é sempre
+  da pessoa, e o NIF passou para os dados para receber.
+
+Na base real não havia nenhum pagamento nem resgate de levantamento: nada a converter. Testes:
+`supabase/tests/comissoesPessoais.test.ts` (quem vê, quem valida, resgate, recibo na pasta da pessoa,
+pagamento).
+
+**Reserva só para inscritos.** O promotor mandou aplicar a migração de 02/11 sem inscrever ninguém
+automaticamente. Aplicada a 05/11/2026 (`20261105103114`); o ficheiro passou a ter o nome da versão
+registada (a ordem não quebra nada: `npm test` verde).
+
+## 05/11/2026 — Sem candidatos não é esgotar
+
+Erro meu, encontrado no ensaio: na primeira passagem com as chaves do WhatsApp ligadas (10:28), três
+levantamentos abertos de Viana do Castelo (QP-1000, QP-1002, QP-1005) foram dados por esgotados com zero
+ondas, só porque ainda nenhum avaliador tinha o WhatsApp configurado — e a equipa recebeu três emails.
+Esgotado é definitivo, por isso nunca seriam oferecidos ao primeiro avaliador da zona.
+
+Corrigido (`20261105111016_convocatoria_sem_candidatos`): «sem candidatos» antes da primeira onda passa a ser
+um estado próprio — avisa a equipa uma vez e o levantamento continua à espera. Esgotar fica para quem já teve
+ondas sem resposta. Os três levantamentos voltaram a estar à espera.
+
+## 05/11/2026 — WhatsApp pela Meta, sem a Twilio
+
+Decisão do promotor. A Twilio recusava enviar (erro 20003) até o *Primary Customer Profile* ser aprovado, e
+esse perfil exige a fotografia do cartão de cidadão do gerente, recolhida por um terceiro (Persona, dados
+biométricos, até 3 anos). O promotor recusou — com razão: a Lei 7/2007 limita a reprodução do cartão, e a
+Meta verifica a empresa com documentos da empresa. Escolher a Twilio em 02/11 («o caminho mais curto») sem
+comparar foi o erro; a Cloud API da Meta é mais barata (sem margem do intermediário) e tem uma verificação a
+menos.
+
+Mudou: o envio (`src/lib/whatsapp.ts`), a receção (`/api/whatsapp`, assinatura `X-Hub-Signature-256`) e as
+variáveis (`WHATSAPP_*`, sem `TWILIO_*`). Não mudou: ondas, reserva atómica (`aceitar_convite`), ecrã do
+avaliador, modelos aprovados e número. O botão passou a levar o id do convite. Fica inativo até as quatro
+chaves da Meta estarem na Vercel (passos em `docs/WHATSAPP.md`).

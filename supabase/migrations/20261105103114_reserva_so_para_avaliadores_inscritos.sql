@@ -7,8 +7,10 @@
 -- Só muda a verificação no início de reserve_survey; o resto da função é o de
 -- 20261031210000_matriz_de_libertacao.sql, repetido porque uma função se substitui inteira.
 
+-- `set search_path = ''` acrescentado a 05/11/2026, antes de esta migração ir à base real: sem ele o analisador
+-- avisa, e um `create or replace` sem a opção apagava a correcção de 20261105094822.
 create or replace function private.versao_da_autodeclaracao_do_avaliador() returns text
-language sql immutable as $$ select 'avaliador-2026-11-02'::text $$;
+language sql immutable set search_path = '' as $$ select 'avaliador-2026-11-02'::text $$;
 
 create or replace function private.e_avaliador_inscrito() returns boolean
 language sql stable security definer set search_path = '' as $$

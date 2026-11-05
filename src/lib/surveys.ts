@@ -110,6 +110,8 @@ export async function settleSurveyPayout(engagementId: string, requestId: string
     .insert({
       request_survey_id: survey.id,
       supplier_org_id: survey.vendedor_org_id,
+      // A comissão é da pessoa que fez o levantamento, não da empresa (05/11/2026).
+      vendedor_user_id: survey.vendedor_user_id,
       engagement_id: engagementId,
       amount_cents: surveyorPayoutAmount(valorAdjudicado, shareBp, feeNet),
       fee_recebido_em: at.toISOString(),

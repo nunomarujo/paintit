@@ -1,7 +1,7 @@
 import 'server-only';
 import { sendEmail } from '@/lib/notify';
-import { enviarWhatsApp } from '@/lib/whatsapp';
-import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { enviarModelo } from '@/lib/whatsapp';
+import { configuracaoWhatsApp, modeloDoAviso, variaveisDoAviso } from '@/domain/whatsapp';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -42,7 +42,9 @@ export async function esvaziarFilaDeAvisos(limite = 20): Promise<ResumoDoEsvazia
   if (error || !linhas || linhas.length === 0) return vazio;
 
   const resumo: ResumoDoEsvaziamento = { ...vazio, reclamados: linhas.length };
-  const whatsapp = configuracaoWhatsApp(process.env);
+  // Sem o modelo genérico aprovado os avisos gerais não saem por WhatsApp (os convites têm o seu).
+  const whatsapp = modeloDoAviso(process.env) ? configuracaoWhatsApp(process.env) : null;
+  const modeloAviso = modeloDoAviso(process.env);
 
   for (const linha of linhas) {
     // WhatsApp, quando existe o canal e a pessoa o ligou. Independente do email: uma falha aqui não trava
@@ -55,7 +57,7 @@ export async function esvaziarFilaDeAvisos(limite = 20): Promise<ResumoDoEsvazia
         .maybeSingle();
       if (pref?.alerta_whatsapp && pref.telemovel_whatsapp) {
         try {
-          await enviarWhatsApp(whatsapp, pref.telemovel_whatsapp, linha.assunto, linha.texto, linha.link);
+          await enviarModelo(whatsapp, pref.telemovel_whatsapp, modeloAviso!, variaveisDoAviso(linha.assunto, linha.texto, linha.link));
           resumo.whatsappEnviados += 1;
           await db.from('avisos_por_email').update({ whatsapp_estado: 'enviado', whatsapp_em: new Date().toISOString(), whatsapp_erro: null }).eq('id', linha.id);
         } catch (e) {
