@@ -57,3 +57,32 @@ São uns minutos de preenchimento; a espera é a verificação da Meta.
 
 Custo: em Portugal, alguns cêntimos por conversa de 24 horas, cobrados pela Twilio. Para o volume atual é
 irrelevante.
+
+## Convites aos avaliadores — convocatória por ondas (05/11/2026)
+
+Construído e publicado: regras em `src/domain/convocatoria.ts`, envio em `src/lib/convocatorias.ts`, rotas
+`/api/convocatorias` (chamada pela base ao minuto, só em horário útil e só quando há trabalho) e
+`/api/whatsapp` (o «Aceito» e os estados de entrega), migração `20261105094801_convocatoria_por_ondas`
+(aplicada). Decisões em `docs/DECISOES.md`, «Convocatória por ondas».
+
+Os convites **não** dependem do modelo genérico de avisos (`WHATSAPP_MODELO_AVISO`): chegam três chaves
+da conta mais o modelo do convite. Sem elas a convocatória não envia nada e nada falha.
+
+### O que fica do lado do promotor
+
+1. **Chaves na Vercel** (projeto `paintit`, Production) — confirmado a 05/11/2026 que ainda não lá estão:
+   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (`whatsapp:+351926549194`) e
+   `WHATSAPP_MODELO_CONVITE` = `HXf935d8b59e7b691ef507936d14f3ee14` (modelo `avaliador_nova_oportunidade`,
+   variáveis `{{1}}` concelho e `{{2}}` descrição, botão de resposta rápida «Aceito» com payload
+   `aceito_avaliador`). Depois, um *redeploy*.
+2. **Endereço das mensagens recebidas na Twilio** (Messaging › Senders › WhatsApp senders › o número ›
+   *Webhook URL for incoming messages*): `https://quempinta.pt/api/whatsapp`, método POST. Tem de ser
+   **exatamente** este endereço: a assinatura da Twilio é calculada sobre ele e a aplicação recusa (403)
+   qualquer pedido cuja assinatura não bata. Se tiver de ser outro, pôr o mesmo valor em
+   `WHATSAPP_WEBHOOK_URL`.
+3. **Modelos de resposta** — não são precisos: as respostas ao «Aceito» («reservado», «já atribuída»)
+   saem dentro das 24 horas a seguir à mensagem da própria pessoa, onde o WhatsApp aceita texto livre.
+4. **Ensaio:** com uma conta de avaliador, em «Avaliações › Disponibilidade e alertas», ligar o WhatsApp
+   com o próprio número, escolher concelho base e raio, e confirmar que a lista «falta» fica vazia. Criar
+   um pedido de teste nesse concelho num dia útil entre as 9h e as 18h: o convite chega no minuto
+   seguinte; carregar em «Aceito» reserva o levantamento e a resposta traz a ligação para a ficha.

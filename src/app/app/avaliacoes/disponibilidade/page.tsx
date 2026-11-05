@@ -6,7 +6,7 @@ import { getUser } from '@/lib/supabase/server';
 import { Disponibilidade } from './Formulario';
 import { ConvitesWhatsApp } from './Convites';
 import { PreVisualizacaoDoConvite, RegrasDosConvites } from './PreVisualizacao';
-import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { credenciaisWhatsApp } from '@/domain/whatsapp';
 import { motivosDeInelegibilidade } from '@/domain/convocatoria';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
@@ -114,7 +114,7 @@ export default async function DisponibilidadePage() {
             raioKm={minha?.raio_km ?? null}
             recebimento={minha?.recebimento ?? 'empresa'}
             nifPessoal={minha?.nif_pessoal ?? null}
-            whatsappDisponivel={configuracaoWhatsApp(process.env) !== null}
+            whatsappDisponivel={credenciaisWhatsApp(process.env) !== null && !!process.env.WHATSAPP_MODELO_CONVITE}
           />
           <PreVisualizacaoDoConvite concelho={minha?.concelho_base ?? 'Viana do Castelo'} />
         </div>

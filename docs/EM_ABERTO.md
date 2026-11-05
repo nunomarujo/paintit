@@ -30,6 +30,15 @@ O código está feito; o canal abre quando isto estiver feito, pela ordem de `do
 dedicado → conta Twilio → WhatsApp sender → verificação da empresa na Meta → modelo `aviso_quem_pinta`
 aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` aplicada a 02/11/2026.
 
+**Convites aos avaliadores (05/11/2026):** construídos e dormentes até às chaves. Falta do promotor, por
+esta ordem (detalhe em `docs/WHATSAPP.md`, «Convites aos avaliadores»): as três chaves Twilio mais
+`WHATSAPP_MODELO_CONVITE` na Vercel (confirmado a 05/11 que nenhuma lá está), o endereço
+`https://quempinta.pt/api/whatsapp` como webhook de mensagens recebidas no sender, e um ensaio real.
+Ficam por decidir/construir: pagar a comissão a quem escolheu «em nome próprio» (hoje o pagamento ainda
+vai sempre para a empresa — o campo e o NIF já se guardam); a «informação do levantamento» e a «resposta a
+tempo» ainda não entram na ordem das ondas (só a qualificação geral, como no simulador); um painel interno
+com avaliadores elegíveis por concelho, para recrutar onde não há nenhum.
+
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
 | Tema | Pergunta | Origem |

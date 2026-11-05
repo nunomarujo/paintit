@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configuracaoWhatsApp, numeroWhatsApp, variaveisDoAviso } from './whatsapp';
+import { configuracaoWhatsApp, numeroWhatsApp, variaveisDoAviso, assinaturaTwilio, assinaturaValida, eAceito, numeroDoRemetente } from './whatsapp';
 
 describe('o número de WhatsApp', () => {
   it('aceita um telemóvel português escrito de várias maneiras', () => {
@@ -36,5 +36,30 @@ describe('as variáveis do modelo', () => {
     expect(v['1']).toBe('Prazo a acabar');
     expect(v['2']?.length).toBe(600);
     expect(v['3']).toBe('https://quempinta.pt/app/levantamentos/1');
+  });
+});
+
+describe('o que chega da Twilio', () => {
+  // O exemplo da própria documentação da Twilio («Webhooks security»), com o Auth Token 12345.
+  const url = 'https://mycompany.com/myapp.php?foo=1&bar=2';
+  const params = { CallSid: 'CA1234567890ABCDE', Caller: '+12349013030', Digits: '1234', From: '+12349013030', To: '+18005551212' };
+  it('a assinatura é a da documentação da Twilio', () => {
+    expect(assinaturaTwilio('12345', url, params)).toBe('0/KCTR6DLpKmkAf8muzZqo1nDgQ=');
+  });
+  it('recusa a assinatura em falta, trocada, ou de outro endereço', () => {
+    expect(assinaturaValida('12345', url, params, '0/KCTR6DLpKmkAf8muzZqo1nDgQ=')).toBe(true);
+    expect(assinaturaValida('12345', url, params, null)).toBe(false);
+    expect(assinaturaValida('12345', url, { ...params, Digits: '9999' }, '0/KCTR6DLpKmkAf8muzZqo1nDgQ=')).toBe(false);
+    expect(assinaturaValida('12345', 'https://outro.pt/', params, '0/KCTR6DLpKmkAf8muzZqo1nDgQ=')).toBe(false);
+  });
+  it('reconhece o «Aceito» pelo botão ou escrito à mão', () => {
+    expect(eAceito({ ButtonPayload: 'aceito_avaliador' })).toBe(true);
+    expect(eAceito({ Body: ' Aceito! ' })).toBe(true);
+    expect(eAceito({ Body: 'aceite' })).toBe(true);
+    expect(eAceito({ Body: 'Não aceito' })).toBe(false);
+    expect(eAceito({ Body: 'Olá' })).toBe(false);
+  });
+  it('tira o prefixo do remetente', () => {
+    expect(numeroDoRemetente('whatsapp:+351912345678')).toBe('+351912345678');
   });
 });

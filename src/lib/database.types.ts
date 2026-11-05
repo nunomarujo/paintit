@@ -1047,7 +1047,7 @@ export type Database = {
           vendedor_user_id: string | null;
         };
         Insert: { request_id: string };
-        Update: { contact_notes?: string; scheduled_at?: string | null };
+        Update: { contact_notes?: string; scheduled_at?: string | null; convocatoria_esgotada_em?: string | null };
         Relationships: [];
       };
       // Uma tentativa de levantamento (migração 20261031200000): quem aceitou, com que prazos, o que

@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 /**
  * Avisos por WhatsApp (02/11/2026, pedido do promotor).
  *
@@ -35,15 +36,25 @@ export type ConfiguracaoWhatsApp = {
   modelo: string;
 };
 
-/** Lê a configuração do ambiente. Sem as quatro chaves, o canal não existe — e isso não é erro: o email
- * continua a sair. */
-export function configuracaoWhatsApp(env: Record<string, string | undefined>): ConfiguracaoWhatsApp | null {
+/** As três chaves da conta Twilio, sem modelo nenhum: chegam para responder e para os convites, que
+ * têm modelo próprio (`WHATSAPP_MODELO_CONVITE`). */
+export type CredenciaisWhatsApp = Omit<ConfiguracaoWhatsApp, 'modelo'>;
+
+export function credenciaisWhatsApp(env: Record<string, string | undefined>): CredenciaisWhatsApp | null {
   const accountSid = env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = env.TWILIO_AUTH_TOKEN?.trim();
   const de = env.TWILIO_WHATSAPP_FROM?.trim();
+  if (!accountSid || !authToken || !de) return null;
+  return { accountSid, authToken, de: de.startsWith('whatsapp:') ? de : `whatsapp:${de}` };
+}
+
+/** Lê a configuração do ambiente. Sem as quatro chaves, o canal não existe — e isso não é erro: o email
+ * continua a sair. */
+export function configuracaoWhatsApp(env: Record<string, string | undefined>): ConfiguracaoWhatsApp | null {
+  const cred = credenciaisWhatsApp(env);
   const modelo = env.WHATSAPP_MODELO_AVISO?.trim();
-  if (!accountSid || !authToken || !de || !modelo) return null;
-  return { accountSid, authToken, de: de.startsWith('whatsapp:') ? de : `whatsapp:${de}`, modelo };
+  if (!cred || !modelo) return null;
+  return { ...cred, modelo };
 }
 
 /** As três variáveis do modelo, já aparadas ao que o WhatsApp aceita (sem quebras de linha, tamanho
@@ -55,3 +66,39 @@ export function variaveisDoAviso(assunto: string, texto: string, link: string | 
   };
   return { '1': limpa(assunto, 120), '2': limpa(texto, 600), '3': link ?? '' };
 }
+
+// ---------------------------------------------------------------------------------------------------
+// O que chega da Twilio (convocatória por ondas, 05/11/2026)
+// ---------------------------------------------------------------------------------------------------
+
+/**
+ * A assinatura que a Twilio põe em cada pedido (`X-Twilio-Signature`): HMAC-SHA1, com o Auth Token, do
+ * endereço exato seguido dos parâmetros do formulário ordenados por nome, cada nome colado ao valor; em
+ * base64. É a única prova de que o pedido veio da Twilio — sem ela, qualquer pessoa reservava levantamentos
+ * a partir da internet.
+ */
+export function assinaturaTwilio(authToken: string, url: string, params: Record<string, string>): string {
+  const texto = url + Object.keys(params).sort().map((k) => k + params[k]).join('');
+  return createHmac('sha1', authToken).update(texto, 'utf8').digest('base64');
+}
+
+/** Compara em tempo constante: a diferença de tempo de uma comparação normal deixava adivinhar a assinatura. */
+export function assinaturaValida(authToken: string, url: string, params: Record<string, string>, recebida: string | null): boolean {
+  if (!recebida) return false;
+  const esperada = Buffer.from(assinaturaTwilio(authToken, url, params));
+  const dada = Buffer.from(recebida);
+  return esperada.length === dada.length && timingSafeEqual(esperada, dada);
+}
+
+/** O botão do modelo `avaliador_nova_oportunidade`. */
+export const PAYLOAD_ACEITO = 'aceito_avaliador';
+
+/** Esta mensagem é um «Aceito»? O botão manda o payload; quem escreve à mão «Aceito» conta também. */
+export function eAceito(params: Record<string, string>): boolean {
+  if (params.ButtonPayload === PAYLOAD_ACEITO) return true;
+  const t = (params.ButtonText || params.Body || '').trim().toLowerCase().replace(/[.!]+$/, '');
+  return t === 'aceito' || t === 'aceite';
+}
+
+/** «whatsapp:+351912345678» → «+351912345678». */
+export const numeroDoRemetente = (de: string | undefined) => (de ?? '').replace(/^whatsapp:/, '').trim();
