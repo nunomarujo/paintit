@@ -4,7 +4,7 @@ import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
 import { classifyBankLineAction, importBankFileAction, rematchAction } from './bank-actions';
-import { closePeriodAction, decideRedemption, reviewStripeLineAction, reopenPeriodAction, syncLedgerAction, syncStripeAction, validateRegimeAction, voidPayoutAction } from '../actions';
+import { closePeriodAction, decideRedemption, decideRedemptionAvaliador, reviewStripeLineAction, reopenPeriodAction, syncLedgerAction, syncStripeAction, validarRegimeDoAvaliador, validateRegimeAction, voidPayoutAction } from '../actions';
 
 const note = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
@@ -51,6 +51,37 @@ export function RedemptionForm({ id, canPay }: { id: string; canPay: boolean }) 
       )}
       <button type="submit" name="decision" value="anular" disabled={pending} className="btn-secondary">
         Anular
+      </button>
+      <div className="basis-full">{note(state)}</div>
+    </form>
+  );
+}
+
+export function RedemptionAvaliadorForm({ id, canPay }: { id: string; canPay: boolean }) {
+  const { state, pending, formProps } = useFormAction<FormState>(decideRedemptionAvaliador.bind(null, id), { errors: {} });
+  return (
+    <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-3">
+      <Field name="texto" label={canPay ? 'Referência da transferência (ou motivo, se anular)' : 'Motivo, se anular'} />
+      {canPay && (
+        <button type="submit" name="decision" value="paga" disabled={pending} className="btn-primary">
+          Marcar como pago
+        </button>
+      )}
+      <button type="submit" name="decision" value="anular" disabled={pending} className="btn-secondary">
+        Anular
+      </button>
+      <div className="basis-full">{note(state)}</div>
+    </form>
+  );
+}
+
+export function RegimeAvaliadorForm({ userId, current }: { userId: string; current: number }) {
+  const { state, pending, formProps } = useFormAction<FormState>(validarRegimeDoAvaliador.bind(null, userId), { errors: {} });
+  return (
+    <form {...formProps} autoComplete="off" className="mt-1 flex flex-wrap items-end gap-3">
+      <Field name="retencao" label="Taxa de retenção (%)" inputMode="numeric" defaultValue={String(current / 100)} hint="0 se não houver retenção. Validar confirma os dados declarados." />
+      <button type="submit" disabled={pending} className="btn-primary">
+        Validar dados
       </button>
       <div className="basis-full">{note(state)}</div>
     </form>

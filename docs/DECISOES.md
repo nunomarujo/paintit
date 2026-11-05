@@ -4626,3 +4626,32 @@ ao minuto, que só acorda a aplicação em horário útil e quando há trabalho.
 utilizadores `zz-test-*` num bloco revertido: dois «Aceito» ao mesmo levantamento → `aceite` e `tarde`, uma
 só tentativa; nada ficou gravado. A migração **não** depende de `reserva_so_para_avaliadores_inscritos`
 (ainda por aplicar, à espera do promotor): repete a função da versão da inscrição, com o mesmo corpo.
+
+## 05/11/2026 — A comissão do avaliador é da pessoa; a reserva exige a inscrição
+
+**Comissões.** Decisão do promotor, a recusar a solução da manhã (comissão para a empresa, ou para a
+pessoa só se ela escolhesse): *«as comissões de avaliador devem ir apenas para um separador na sua conta,
+a empresa onde trabalha não tem essa informação, não tem acesso a isso; o vendedor/avaliador acumula
+crédito/dinheiro real na sua conta e, quando quiser resgatar, basta apresentar recibo-fatura (ainda que em
+ato único).»* Construído e aplicado (`20261105103940_comissoes_pessoais_do_avaliador`):
+
+- Cada pagamento de levantamento tem dono (`survey_payouts.vendedor_user_id`); só a pessoa e a equipa o
+  veem — a empresa deixou de ver (a política antiga era `can_access_org`).
+- A pessoa declara, em «Comissões pessoais», NIF de pessoa singular, nome, IBAN, o documento que emite
+  (fatura-recibo ou ato isolado) e o regime de IVA e de retenção; a equipa valida e fixa a retenção em
+  Contabilidade › A pagar, como já fazia para as empresas. Mudar o NIF, o documento ou o regime volta a
+  pedir validação.
+- A pessoa pede o resgate do saldo inteiro, emite o recibo nas Finanças em nome da Relevante Planeta, Lda,
+  envia o PDF, e a equipa paga por transferência. Valor = comissão + IVA − retenção.
+- A empresa deixou de poder resgatar comissões de levantamento (`survey_request_redemption` recusa com
+  uma frase que aponta para a conta de cada um).
+- A escolha «em nome da empresa / em nome próprio» do ecrã de convites desapareceu: a comissão é sempre
+  da pessoa, e o NIF passou para os dados para receber.
+
+Na base real não havia nenhum pagamento nem resgate de levantamento: nada a converter. Testes:
+`supabase/tests/comissoesPessoais.test.ts` (quem vê, quem valida, resgate, recibo na pasta da pessoa,
+pagamento).
+
+**Reserva só para inscritos.** O promotor mandou aplicar a migração de 02/11 sem inscrever ninguém
+automaticamente. Aplicada a 05/11/2026 (`20261105103114`); o ficheiro passou a ter o nome da versão
+registada (a ordem não quebra nada: `npm test` verde).

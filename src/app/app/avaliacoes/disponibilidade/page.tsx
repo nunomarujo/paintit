@@ -44,7 +44,7 @@ export default async function DisponibilidadePage() {
     await Promise.all([
       supabase
         .from('survey_availability')
-        .select('suspenso_ate, alerta_email, alerta_whatsapp, telemovel_whatsapp, concelho_base, raio_km, recebimento, nif_pessoal')
+        .select('suspenso_ate, alerta_email, alerta_whatsapp, telemovel_whatsapp, concelho_base, raio_km')
         .eq('user_id', user!.id)
         .maybeSingle(),
       supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),
@@ -70,8 +70,6 @@ export default async function DisponibilidadePage() {
     whatsapp: !!minha?.alerta_whatsapp && !!minha?.telemovel_whatsapp,
     concelhoBase: minha?.concelho_base ?? null,
     raioKm: minha?.raio_km ?? null,
-    recebimento: minha?.recebimento ?? 'empresa',
-    nifPessoal: minha?.nif_pessoal ?? null,
     suspenso: !!minha?.suspenso_ate && minha.suspenso_ate >= hoje,
     emCurso: emCurso ?? 0,
   });
@@ -112,8 +110,6 @@ export default async function DisponibilidadePage() {
             telemovel={minha?.telemovel_whatsapp ?? null}
             concelhoBase={minha?.concelho_base ?? null}
             raioKm={minha?.raio_km ?? null}
-            recebimento={minha?.recebimento ?? 'empresa'}
-            nifPessoal={minha?.nif_pessoal ?? null}
             whatsappDisponivel={credenciaisWhatsApp(process.env) !== null && !!process.env.WHATSAPP_MODELO_CONVITE}
           />
           <PreVisualizacaoDoConvite concelho={minha?.concelho_base ?? 'Viana do Castelo'} />

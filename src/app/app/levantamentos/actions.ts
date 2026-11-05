@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
-import { sniffPdf } from '@/domain/fileSignature';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { notifyVisitaAgendada } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
@@ -151,37 +150,3 @@ export async function setSurveyCoverage(orgId: string, _prev: FormState, form: F
   return { errors: {}, ok: true, message: 'Zonas guardadas.' };
 }
 
-export async function requestSurveyRedemption(orgId: string): Promise<FormState> {
-  const { supabase, user } = await getUser();
-  if (!user) return NOT_SIGNED_IN;
-  const { error } = await supabase.rpc('survey_request_redemption', { p_org: orgId });
-  if (error) return { errors: {}, message: error.message };
-  revalidatePath(path);
-  return { errors: {}, ok: true, message: 'Resgate pedido. Envie agora a fatura.' };
-}
-
-export async function cancelSurveyRedemption(redemptionId: string): Promise<void> {
-  const { supabase } = await getUser();
-  await supabase.rpc('survey_redemption_cancel', { p_redemption: redemptionId, p_motivo: 'Cancelado pelo fornecedor' });
-  revalidatePath(path);
-}
-
-export async function submitSurveyRedemptionInvoice(orgId: string, redemptionId: string, _prev: FormState, form: FormData): Promise<FormState> {
-  const { supabase, user } = await getUser();
-  if (!user) return NOT_SIGNED_IN;
-  const numero = String(form.get('numero') ?? '').trim();
-  const file = form.get('ficheiro');
-  if (!numero || numero.length > 40) return { errors: { numero: 'Indique o número da fatura.' } };
-  if (!(file instanceof File) || file.size === 0) return { errors: { ficheiro: 'Escolha o PDF da fatura.' } };
-  if (file.size > 5 * 1024 * 1024) return { errors: { ficheiro: 'PDF até 5 MB.' } };
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  if (!sniffPdf(bytes)) return { errors: { ficheiro: 'O ficheiro não é um PDF.' } };
-  // Mesmo balde já usado pelas comissões de adesão (faturas-adesao): mesmo formato de caminho, mesma política.
-  const storagePath = `${orgId}/levantamento-${redemptionId}.pdf`;
-  const up = await supabase.storage.from('faturas-adesao').upload(storagePath, bytes, { contentType: 'application/pdf', upsert: false });
-  if (up.error && !/exists|Duplicate/i.test(up.error.message)) return { errors: {}, message: 'Não foi possível enviar o ficheiro. Só gestores do fornecedor o podem fazer.' };
-  const { error } = await supabase.rpc('survey_redemption_invoice', { p_redemption: redemptionId, p_numero: numero, p_path: storagePath });
-  if (error) return { errors: {}, message: error.message };
-  revalidatePath(path);
-  return { errors: {}, ok: true, message: 'Fatura enviada. A plataforma paga por transferência.' };
-}

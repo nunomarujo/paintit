@@ -181,6 +181,38 @@ export async function validateRegimeAction(orgId: string, _prev: FormState, form
   return { errors: {}, ok: true, message: 'Regime validado.' };
 }
 
+/** Resgate de um avaliador (comissões de levantamento, pessoais desde 05/11/2026): pagar ou anular. */
+export async function decideRedemptionAvaliador(redemptionId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const decision = String(form.get('decision') ?? '');
+  const texto = String(form.get('texto') ?? '').trim();
+  if (!UUID.test(redemptionId)) return { errors: {}, message: 'Resgate inválido.' };
+  if (decision !== 'paga' && decision !== 'anular') return { errors: {}, message: 'Escolha pagar ou anular.' };
+  if (decision === 'paga' && texto.length < 3) return { errors: { texto: 'Indique a referência da transferência.' } };
+  if (decision === 'anular' && texto.length < 10) return { errors: { texto: 'Explique porque se anula.' } };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } =
+    decision === 'paga'
+      ? await supabase.rpc('survey_redemption_pay', { p_redemption: redemptionId, p_ref: texto })
+      : await supabase.rpc('survey_redemption_cancel', { p_redemption: redemptionId, p_motivo: texto });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice', 'layout');
+  return { errors: {}, ok: true, message: decision === 'paga' ? 'Marcado como pago.' : 'Resgate anulado; o saldo volta ao avaliador.' };
+}
+
+/** Valida os dados de pagamento declarados por um avaliador e fixa a taxa de retenção. */
+export async function validarRegimeDoAvaliador(userId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  if (!UUID.test(userId)) return { errors: {}, message: 'Avaliador inválido.' };
+  const pct = Number(String(form.get('retencao') ?? '0').replace(',', '.'));
+  if (!Number.isFinite(pct) || pct < 0 || pct > 30) return { errors: { retencao: 'Retenção entre 0% e 30%.' } };
+  const supabase = await adminOnly();
+  if (!supabase) return { errors: {}, message: 'Sem permissão.' };
+  const { error } = await supabase.rpc('avaliador_validar_regime', { p_user: userId, p_bps: Math.round(pct * 100) });
+  if (error) return { errors: {}, message: error.message };
+  revalidatePath('/app/backoffice', 'layout');
+  return { errors: {}, ok: true, message: 'Dados validados.' };
+}
+
 /** Lança no livro de movimentos o que ainda não está lançado (também corre todos os dias). */
 export async function syncLedgerAction(): Promise<FormState> {
   if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };

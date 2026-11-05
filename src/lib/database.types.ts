@@ -1190,8 +1190,10 @@ export type Database = {
           redemption_id: string | null;
           request_survey_id: string;
           supplier_org_id: string;
+          // 20261105103940_comissoes_pessoais_do_avaliador: o pagamento é da pessoa.
+          vendedor_user_id: string | null;
         };
-        Insert: { amount_cents: number; engagement_id: string; fee_recebido_em: string; request_survey_id: string; supplier_org_id: string };
+        Insert: { amount_cents: number; engagement_id: string; fee_recebido_em: string; request_survey_id: string; supplier_org_id: string; vendedor_user_id: string | null };
         Update: never;
         Relationships: [];
       };
@@ -1217,9 +1219,27 @@ export type Database = {
           retencao_cents: number;
           supplier_org_id: string;
           titular: string;
+          // 20261105103940_comissoes_pessoais_do_avaliador: resgates da pessoa (nulo nos antigos, de empresa).
+          user_id: string | null;
+          nif: string | null;
+          documento: 'recibo_verde' | 'ato_isolado' | null;
         };
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      // 20261105103940_comissoes_pessoais_do_avaliador: dados de pagamento da pessoa (só ela e a equipa os leem).
+      avaliador_payout_details: {
+        Row: {
+          user_id: string; nif: string; titular: string; iban: string; documento: 'recibo_verde' | 'ato_isolado';
+          cobra_iva: boolean; isencao_iva: string | null; declaracao_retencao: 'nao_sujeito' | 'sujeito' | 'dispensa' | null;
+          retencao_bps: number; regime_validado: boolean; updated_at: string;
+        };
+        Insert: {
+          user_id: string; nif: string; titular: string; iban: string; documento: 'recibo_verde' | 'ato_isolado';
+          cobra_iva?: boolean; isencao_iva?: string | null; declaracao_retencao?: 'nao_sujeito' | 'sujeito' | 'dispensa' | null;
+        };
+        Update: Partial<Database['public']['Tables']['avaliador_payout_details']['Insert']>;
         Relationships: [];
       };
       survey_terms_acceptances: {
@@ -2239,6 +2259,8 @@ export type Database = {
       survey_vendor_rating: { Args: { p_user: string }; Returns: { n: number; media: number | null }[] };
       survey_preview: { Args: { p_survey_id: string }; Returns: { concelho: string; tipo_obra: string }[] };
       survey_request_redemption: { Args: { p_org: string }; Returns: string };
+      avaliador_pedir_resgate: { Args: Record<string, never>; Returns: string };
+      avaliador_validar_regime: { Args: { p_user: string; p_bps: number }; Returns: undefined };
       survey_redemption_invoice: { Args: { p_redemption: string; p_numero: string; p_path: string }; Returns: undefined };
       survey_redemption_cancel: { Args: { p_redemption: string; p_motivo: string }; Returns: undefined };
       survey_redemption_pay: { Args: { p_redemption: string; p_ref: string }; Returns: undefined };

@@ -135,7 +135,7 @@ type Admin = NonNullable<ReturnType<typeof adminClient>>;
 async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliador; candidato: Omit<Candidato, 'anel'>; telemovel: string }[]> {
   const { data: disp } = await db
     .from('survey_availability')
-    .select('user_id, suspenso_ate, alerta_whatsapp, telemovel_whatsapp, concelho_base, raio_km, recebimento, nif_pessoal')
+    .select('user_id, suspenso_ate, alerta_whatsapp, telemovel_whatsapp, concelho_base, raio_km')
     .eq('alerta_whatsapp', true)
     .not('telemovel_whatsapp', 'is', null)
     .not('concelho_base', 'is', null)
@@ -175,8 +175,6 @@ async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliado
       whatsapp: !!d.alerta_whatsapp && !!d.telemovel_whatsapp,
       concelhoBase: d.concelho_base,
       raioKm: d.raio_km,
-      recebimento: d.recebimento,
-      nifPessoal: d.nif_pessoal,
       suspenso: !!d.suspenso_ate && d.suspenso_ate >= hoje,
       emCurso: minhas.filter((t) => t.estado === 'ativa').length,
     };

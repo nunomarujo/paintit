@@ -34,10 +34,15 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 esta ordem (detalhe em `docs/WHATSAPP.md`, «Convites aos avaliadores»): as três chaves Twilio mais
 `WHATSAPP_MODELO_CONVITE` na Vercel (confirmado a 05/11 que nenhuma lá está), o endereço
 `https://quempinta.pt/api/whatsapp` como webhook de mensagens recebidas no sender, e um ensaio real.
-Ficam por decidir/construir: pagar a comissão a quem escolheu «em nome próprio» (hoje o pagamento ainda
-vai sempre para a empresa — o campo e o NIF já se guardam); a «informação do levantamento» e a «resposta a
-tempo» ainda não entram na ordem das ondas (só a qualificação geral, como no simulador); um painel interno
-com avaliadores elegíveis por concelho, para recrutar onde não há nenhum.
+Ficam por decidir/construir: a «informação do levantamento» e a «resposta a tempo» ainda não entram na
+ordem das ondas (só a qualificação geral, como no simulador); um painel interno com avaliadores elegíveis
+por concelho, para recrutar onde não há nenhum.
+
+**Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). Fica: os
+resgates de avaliadores ainda **não são lançados no livro de movimentos** (o pagamento marca-se em
+Contabilidade › A pagar, mas `syncLedger` só conhece os resgates de adesão) — ligar antes do primeiro
+pagamento real; e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
+sem uso desde que a comissão passou a ser sempre da pessoa — retirá-las numa migração com confirmação.
 
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
@@ -69,7 +74,7 @@ com avaliadores elegíveis por concelho, para recrutar onde não há nenhum.
 
 - **Revisão de desenho de ponta a ponta (01/11/2026, pedida pelo promotor):** site público a zero falhas no inspetor e no estilo aprovado (DECISOES.md). Nos espaços autenticados o varrimento ao código está feito (botões, maiúsculas, kickers, títulos, sombras); **falta a revisão com os olhos**, ecrã a ecrã e por perfil, que precisa de uma sessão iniciada em cada perfil (cliente, pintor, fornecedor/avaliador, condómino, backoffice) — o promotor entra no painel do browser ou cria contas `zz-test-*` e passa as credenciais. Até lá, `inspect.mjs --app` só corre sobre os ecrãs públicos.
 
-- **Avaliador (02/11/2026):** a migração que fecha a reserva na base a quem não tem a autodeclaração está escrita e testada (`20261102120000_reserva_so_para_avaliadores_inscritos.sql`) e **por aplicar** — handoff em `docs/HANDOFF_MIGRACOES.md`; decidir se a «experiência comprovada» passa a pedir documento; o simulador usa só a qualificação geral da pessoa (os outros três fatores são por obra).
+- **Avaliador (02/11/2026):** a barreira na base (só reserva quem tem a autodeclaração) **está aplicada** desde 05/11/2026 (`20261105103114_reserva_so_para_avaliadores_inscritos`, decisão do promotor: aplicar sem inscrever ninguém automaticamente). Fica por decidir se a «experiência comprovada» passa a pedir documento; o simulador usa só a qualificação geral da pessoa (os outros três fatores são por obra).
 
 - **Campanhas e marketing (02/11/2026):** o promotor confirmar as condições da campanha de lançamento antes de os flyers saírem (plano Pro sem custo e catálogo sem subscrição até 31/01/2027 são compromissos comerciais); passar os flyers de «rascunho» a «aprovado». **Futuro, por autorizar:** automatismos de campanha e um motor de divulgação e promoção com métricas (os QR já levam `?c=` por flyer; falta lê-lo na adesão e guardar a origem). O promotor pediu para ser lembrado de dar autorização para se pensar o plano em detalhe.
 

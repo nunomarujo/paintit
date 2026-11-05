@@ -71,29 +71,19 @@ export const REGRAS_DA_CONVOCATORIA: RegrasDaConvocatoria = {
 export const DIAS_FORA_DA_PRIMEIRA_ONDA = 7;
 
 // ---------------------------------------------------------------------------------------------------
-// Recebimento da comissão
+// O NIF de quem recebe
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * A comissão do levantamento vai para a empresa do avaliador (por omissão, como até aqui) ou para a
- * própria pessoa, com recibo verde. Só no segundo caso o NIF pessoal é pedido: sem esse destino, guardá-lo
- * era recolher um dado de que a plataforma não precisa (RGPD, minimização). Decisão de 05/11/2026.
+ * A comissão do levantamento é sempre da pessoa (decisão de 05/11/2026): acumula na sua conta, e resgata-se
+ * com recibo em nome próprio (fatura-recibo ou ato isolado). O NIF é por isso de pessoa singular — um NIF
+ * de empresa (começado por 5, 6, 8 ou 9) não serve. Pede-se nos dados para receber, não para ser convidado.
  */
-export const RECEBIMENTOS = ['empresa', 'proprio'] as const;
-export type Recebimento = (typeof RECEBIMENTOS)[number];
-
-export const ROTULO_DO_RECEBIMENTO: Record<Recebimento, string> = {
-  empresa: 'Em nome da empresa',
-  proprio: 'Em nome próprio (recibo verde)',
-};
-
-/** Erro a mostrar, ou null se a combinação serve. O NIF tem de ser de pessoa singular (não começa por 5, 6, 8 ou 9). */
-export function erroDoNifPessoal(recebimento: Recebimento, nif: string | null | undefined): string | null {
+export function erroDoNifPessoal(nif: string | null | undefined): string | null {
   const limpo = normalizeNif(nif ?? '');
-  if (recebimento === 'empresa') return null;
-  if (limpo === '') return 'Para receber em nome próprio, indique o NIF pessoal.';
+  if (limpo === '') return 'Indique o NIF pessoal.';
   if (!isValidNif(limpo)) return 'Este NIF não é válido: confirme os nove algarismos.';
-  if (isCompanyNif(limpo)) return 'Este é um NIF de empresa. Para receber em nome próprio, indique o NIF pessoal.';
+  if (isCompanyNif(limpo)) return 'Este é um NIF de empresa. A comissão é paga em nome próprio: indique o NIF pessoal.';
   return null;
 }
 
@@ -115,8 +105,6 @@ export interface FichaDoAvaliador {
   whatsapp: boolean;
   concelhoBase: string | null;
   raioKm: number | null;
-  recebimento: Recebimento;
-  nifPessoal: string | null;
   /** Suspenso em «Disponibilidade» hoje. */
   suspenso: boolean;
   emCurso: number;
@@ -135,8 +123,6 @@ export function motivosDeInelegibilidade(f: FichaDoAvaliador, regras: RegrasDaCo
   if (!f.whatsapp) m.push('Falta ligar o WhatsApp, com um telemóvel pessoal.');
   if (!f.concelhoBase) m.push('Falta o concelho base.');
   if (f.raioKm == null || !regras.raiosKm.includes(f.raioKm)) m.push('Falta o raio de deslocação.');
-  const erroNif = erroDoNifPessoal(f.recebimento, f.nifPessoal);
-  if (erroNif) m.push(erroNif);
   if (f.suspenso) m.push('A presença está suspensa.');
   if (f.emCurso >= regras.maximoEmCurso) m.push(`Já tem ${f.emCurso} levantamentos em curso: novos convites voltam quando um terminar.`);
   return m;

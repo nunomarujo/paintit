@@ -4,8 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
 import { numeroWhatsApp } from '@/domain/whatsapp';
-import { REGRAS_DA_CONVOCATORIA, RECEBIMENTOS, erroDoNifPessoal, type Recebimento } from '@/domain/convocatoria';
-import { normalizeNif } from '@/domain/nif';
+import { REGRAS_DA_CONVOCATORIA } from '@/domain/convocatoria';
 import { DISTRITOS } from '@/lib/concelhos';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'Sessão terminada.' };
@@ -45,7 +44,7 @@ export async function guardarDisponibilidade(_prev: FormState, form: FormData): 
 const CONCELHOS = new Set(DISTRITOS.flatMap((d) => d.concelhos));
 
 /**
- * Convites por WhatsApp: o número e o consentimento, onde está e até onde vai, e em nome de quem recebe.
+ * Convites por WhatsApp: o número e o consentimento, e onde está e até onde vai.
  * Tudo da própria pessoa, como a presença — o dono da linha é quem está em sessão (regra 10).
  */
 export async function guardarConvites(_prev: FormState, form: FormData): Promise<FormState> {
@@ -57,17 +56,12 @@ export async function guardarConvites(_prev: FormState, form: FormData): Promise
   const telemovel = numeroWhatsApp(telemovelEscrito);
   const concelho = String(form.get('concelho_base') ?? '').trim();
   const raio = Number(form.get('raio_km') ?? '');
-  const recebimentoEscrito = String(form.get('recebimento') ?? 'empresa');
-  const recebimento: Recebimento = (RECEBIMENTOS as readonly string[]).includes(recebimentoEscrito) ? (recebimentoEscrito as Recebimento) : 'empresa';
-  const nif = normalizeNif(String(form.get('nif_pessoal') ?? ''));
 
   const errors: Record<string, string> = {};
   if (alertaWhatsApp && !telemovel) errors.telemovel_whatsapp = 'Para receber por WhatsApp, indique o número de telemóvel.';
   else if (telemovelEscrito && !telemovel) errors.telemovel_whatsapp = 'Indique um telemóvel válido, por exemplo 912 345 678.';
   if (concelho && !CONCELHOS.has(concelho)) errors.concelho_base = 'Escolha o concelho na lista.';
   if (form.get('raio_km') && !REGRAS_DA_CONVOCATORIA.raiosKm.includes(raio)) errors.raio_km = 'Escolha um dos raios.';
-  const erroNif = erroDoNifPessoal(recebimento, nif);
-  if (erroNif) errors.nif_pessoal = erroNif;
   if (Object.keys(errors).length > 0) return { errors };
 
   const { error } = await supabase.from('survey_availability').upsert(
@@ -77,9 +71,6 @@ export async function guardarConvites(_prev: FormState, form: FormData): Promise
       telemovel_whatsapp: telemovel,
       concelho_base: concelho || null,
       raio_km: form.get('raio_km') ? raio : null,
-      recebimento,
-      // Em nome da empresa não se guarda NIF pessoal (minimização): mudar para a empresa apaga-o.
-      nif_pessoal: recebimento === 'proprio' ? nif : null,
     },
     { onConflict: 'user_id' },
   );

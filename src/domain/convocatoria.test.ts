@@ -31,8 +31,6 @@ const ficha = (o: Partial<FichaDoAvaliador> = {}): FichaDoAvaliador => ({
   whatsapp: true,
   concelhoBase: 'Viana do Castelo',
   raioKm: 30,
-  recebimento: 'empresa',
-  nifPessoal: null,
   suspenso: false,
   emCurso: 0,
   ...o,
@@ -68,15 +66,12 @@ describe('centros dos concelhos', () => {
   });
 });
 
-describe('recebimento da comissão', () => {
-  it('em nome da empresa não pede NIF pessoal', () => {
-    expect(erroDoNifPessoal('empresa', null)).toBeNull();
-  });
-  it('em nome próprio pede um NIF de pessoa singular válido', () => {
-    expect(erroDoNifPessoal('proprio', '')).toMatch(/indique o NIF pessoal/);
-    expect(erroDoNifPessoal('proprio', '123456780')).toMatch(/não é válido/);
-    expect(erroDoNifPessoal('proprio', '503504564')).toMatch(/NIF de empresa/);
-    expect(erroDoNifPessoal('proprio', '123 456 789')).toBeNull();
+describe('o NIF de quem recebe', () => {
+  it('pede um NIF de pessoa singular válido', () => {
+    expect(erroDoNifPessoal('')).toMatch(/indique o NIF pessoal/i);
+    expect(erroDoNifPessoal('123456780')).toMatch(/não é válido/);
+    expect(erroDoNifPessoal('503504564')).toMatch(/NIF de empresa/);
+    expect(erroDoNifPessoal('123 456 789')).toBeNull();
   });
 });
 
@@ -92,9 +87,6 @@ describe('condições para ser convidado', () => {
     expect(m.join(' ')).toMatch(/NIPC/);
     expect(m.join(' ')).toMatch(/nome completo/);
     expect(m.join(' ')).toMatch(/2 levantamentos em curso/);
-  });
-  it('quem recebe em nome próprio sem NIF pessoal não é convidado', () => {
-    expect(motivosDeInelegibilidade(ficha({ recebimento: 'proprio' }))).toEqual(['Para receber em nome próprio, indique o NIF pessoal.']);
   });
 });
 

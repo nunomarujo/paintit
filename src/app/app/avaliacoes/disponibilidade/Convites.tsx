@@ -1,38 +1,31 @@
 'use client';
 
-import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
-import { REGRAS_DA_CONVOCATORIA, ROTULO_DO_RECEBIMENTO, type Recebimento } from '@/domain/convocatoria';
+import { REGRAS_DA_CONVOCATORIA } from '@/domain/convocatoria';
 import { DISTRITOS } from '@/lib/concelhos';
 import { guardarConvites } from './actions';
 
 /**
- * Convites por WhatsApp: o número com o consentimento, o concelho base, o raio e o recebimento da
- * comissão. O NIF pessoal só aparece — e só se guarda — para quem escolhe receber em nome próprio
- * (decisão de 05/11/2026: minimização).
+ * Convites por WhatsApp: o número com o consentimento, o concelho base e o raio. Os dados para receber a
+ * comissão (NIF, IBAN) vivem em «Comissões pessoais» — a comissão é da pessoa (05/11/2026).
  */
 export function ConvitesWhatsApp({
   alertaWhatsApp,
   telemovel,
   concelhoBase,
   raioKm,
-  recebimento: recebimentoInicial,
-  nifPessoal,
   whatsappDisponivel,
 }: {
   alertaWhatsApp: boolean;
   telemovel: string | null;
   concelhoBase: string | null;
   raioKm: number | null;
-  recebimento: Recebimento;
-  nifPessoal: string | null;
   /** O canal existe neste ambiente (chaves configuradas). Sem ele, a preferência guarda-se na mesma. */
   whatsappDisponivel: boolean;
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(guardarConvites, { errors: {} });
-  const [recebimento, setRecebimento] = useState<Recebimento>(recebimentoInicial);
   const m = state.ok ? state.message : (Object.values(state.errors)[0] ?? state.message);
 
   return (
@@ -94,44 +87,6 @@ export function ConvitesWhatsApp({
         </div>
         {state.errors.raio_km && <p className="mt-1 text-[15px] text-red-700">{state.errors.raio_km}</p>}
       </fieldset>
-
-      <fieldset>
-        <legend className="text-[17px] font-medium text-slate-900">Comissão dos levantamentos</legend>
-        <div className="mt-2 space-y-1">
-          {(['empresa', 'proprio'] as const).map((r) => (
-            <label key={r} className="flex min-h-[44px] items-center gap-3 text-[17px] text-slate-900">
-              <input
-                type="radio"
-                name="recebimento"
-                value={r}
-                checked={recebimento === r}
-                onChange={() => setRecebimento(r)}
-                className="h-5 w-5 text-tinta-600"
-              />
-              {ROTULO_DO_RECEBIMENTO[r]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {recebimento === 'proprio' && (
-        <Field
-          name="nif_pessoal"
-          label="NIF pessoal"
-          hint="Para a emissão do recibo verde. Só se pede a quem recebe em nome próprio."
-          error={state.errors.nif_pessoal}
-        >
-          <input
-            id="nif_pessoal"
-            name="nif_pessoal"
-            inputMode="numeric"
-            autoComplete="off"
-            defaultValue={nifPessoal ?? ''}
-            placeholder="123 456 789"
-            className="campo mt-1 max-w-[12rem]"
-          />
-        </Field>
-      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className="btn-primary disabled:opacity-60">

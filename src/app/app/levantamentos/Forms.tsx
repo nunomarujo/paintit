@@ -4,7 +4,7 @@ import type { FormState } from '@/app/app/actions';
 import { ConcelhosPicker } from '@/components/ConcelhosPicker';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
-import { requestSurveyRedemption, setSurveyCoverage, submitSurveyRedemptionInvoice } from './actions';
+import { setSurveyCoverage } from './actions';
 
 const button = 'btn-secondary';
 const msg = (s: FormState) => {
@@ -27,35 +27,6 @@ export function CoverageForm({ orgId, initial }: { orgId: string; initial: strin
       </div>
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A guardar…' : 'Guardar'}
-      </button>
-      <div className="basis-full">{msg(state)}</div>
-    </form>
-  );
-}
-
-export function RedeemButton({ orgId, disabled }: { orgId: string; disabled: boolean }) {
-  const { state, pending, formProps } = useFormAction<FormState>(async () => requestSurveyRedemption(orgId), { errors: {} });
-  return (
-    <form {...formProps} className="flex flex-wrap items-center gap-3">
-      <button type="submit" disabled={pending || disabled} className={button}>
-        {pending ? 'A pedir…' : 'Resgatar saldo'}
-      </button>
-      {msg(state)}
-    </form>
-  );
-}
-
-export function SurveyInvoiceForm({ orgId, redemptionId }: { orgId: string; redemptionId: string }) {
-  const { state, pending, formProps } = useFormAction<FormState>(submitSurveyRedemptionInvoice.bind(null, orgId, redemptionId), { errors: {} });
-  const e = state.errors;
-  return (
-    <form {...formProps} autoComplete="off" className="mt-2 flex flex-wrap items-end gap-3 rounded-xl bg-amber-50 p-3">
-      <Field name="numero" label="N.º da fatura" required error={e.numero} />
-      <Field name="ficheiro" label="Fatura (PDF)" required error={e.ficheiro}>
-        <input name="ficheiro" type="file" required accept="application/pdf" className="mt-1 block text-[17px]" />
-      </Field>
-      <button type="submit" disabled={pending} className={button}>
-        {pending ? 'A enviar…' : 'Enviar fatura'}
       </button>
       <div className="basis-full">{msg(state)}</div>
     </form>

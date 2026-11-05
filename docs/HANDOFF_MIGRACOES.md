@@ -1,5 +1,9 @@
 # Handoff — Migrações por aplicar na base real (02/11/2026)
 
+> **Fechado a 05/11/2026:** as duas estão aplicadas — `condominos_do_predio` (`20261101090000`) e
+> `reserva_so_para_avaliadores_inscritos` (agora `20261105103114`, por decisão do promotor, sem inscrição
+> automática). Fica como registo.
+
 **Para:** uma sessão nova de Claude Code no repositório `nunomarujo/paintit` (ramo de produção
 `claude/sweet-brahmagupta-xd1vp7`; a Vercel publica cada push). **Promotor:** Nuno.
 
