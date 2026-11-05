@@ -77,16 +77,18 @@ export function Percurso({
   return (
     <section className={`rounded-2xl px-5 py-3 ${escuro ? 'bg-white/10' : 'bg-tinta-50'}`} aria-live="polite">
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div className="min-w-0 flex-1">
+      {/* `basis` para o botão descer para a linha de baixo no telemóvel, em vez de espremer o texto. */}
+      <div className="min-w-0 flex-1 basis-[16rem]">
         <p className="flex flex-wrap items-center gap-x-2 text-[17px]">
           <span className={`font-semibold ${escuro ? 'text-white' : 'text-tinta-900'}`}>{estado.titulo}</span>
           {quando && <span className={escuro ? 'text-tinta-100' : 'text-slate-700'}>· {quando}</span>}
           {vez && <span className={`text-[13px] ${escuro ? 'text-tinta-200' : 'text-slate-600'}`}>· {vez}</span>}
         </p>
-        <p className={`mt-0.5 flex items-center gap-2 text-[15px] ${escuro ? 'text-tinta-100' : 'text-slate-700'}`}>
+        {/* Um `<div>` e não um `<p>`: o (i) é um `<details>`, e dentro de um parágrafo dava erro de hidratação. */}
+        <div className={`mt-0.5 flex items-center gap-2 text-[15px] ${escuro ? 'text-tinta-100' : 'text-slate-700'}`}>
           <span className={longa ? 'truncate' : ''}>{longa ? `${estado.explicacao.slice(0, 88).trimEnd()}…` : estado.explicacao}</span>
           {longa && <Dica rotulo="Ler a explicação completa">{estado.explicacao}</Dica>}
-        </p>
+        </div>
       </div>
       {estado.accao &&
         (estado.accao.alvo === 'propostas' ? (

@@ -5687,3 +5687,108 @@ Mudou: o envio (`src/lib/whatsapp.ts`), a receção (`/api/whatsapp`, assinatura
 variáveis (`WHATSAPP_*`, sem `TWILIO_*`). Não mudou: ondas, reserva atómica (`aceitar_convite`), ecrã do
 avaliador, modelos aprovados e número. O botão passou a levar o id do convite. Fica inativo até as quatro
 chaves da Meta estarem na Vercel (passos em `docs/WHATSAPP.md`).
+
+## 05/11/2026 — Passo 2 do pedido: a proposta B, «o prédio ao centro»; e uma zona medida pelo cliente fica «medida pelo cliente», com margem
+
+**A escolha.** Para o passo 2 do pedido («Medidas e fotografias») foram feitas duas maquetas: a A, «a lista
+que se trabalha» (uma faixa com o total, uma lista de linhas, o prédio e as fotografias numa coluna à
+direita), e a B, «o prédio ao centro» (o desenho do prédio a toda a largura, com as zonas pintadas e
+numeradas e os cartões à volta, ligados ao número). O promotor escolheu a **B**: «construir algo bonito e
+fácil de trabalhar, prático, respirável, preferencialmente tudo num só ecrã», com uma opção que abre «um
+popup grande com a ferramenta de levantamento de área de obra». Porquê a B: é a que faz do prédio o objeto
+do ecrã — quem não é do ofício vê que «empena» é aquela parede, e que as varandas estão por decidir — e é a
+que tem um sítio natural para a ferramenta.
+
+**As correções do juiz, todas feitas** (`src/app/app/pedidos/[id]/`):
+
+1. **O modo lista é a base**: o desenho de um lado e os cartões numerados empilhados do outro (um por cima
+   do outro no telemóvel). As **chamadas** — os cartões à volta do desenho, ligados ao número — só entram
+   por *container query* a partir de 1040 px de contentor (`globals.css`), com seis zonas ou menos, todas
+   com sítio no desenho, e só se a disposição cumprir a regra do ponto 2; senão, fica a lista. As zonas que
+   o volume não mostra (escadas e átrio, interiores, tetos, outra; uma segunda fachada, que o desenho não
+   sabe qual é) vão para **«Fora do desenho»**, sem número. Os dois modos estão no HTML e o CSS escolhe:
+   o primeiro ecrã vem certo sem medir nada no servidor.
+2. **As ligações nunca cruzam cotas nem cortam faces na diagonal** — e isto é uma função pura com testes
+   (`src/domain/chamadas.ts`, `disporChamadas` e `problemasDasLigacoes`): só troços horizontais e
+   verticais, os verticais no corredor entre a coluna e o desenho; nenhuma ligação passa por uma cota, pelo
+   texto de uma cota, por outro número, nem por outra ligação. Para haver espaço, as cotas mudaram de sítio
+   (`src/domain/prancheta.ts`): a frente mede-se na aresta de trás do telhado (o mesmo comprimento), o fundo
+   na aresta esquerda do telhado, a altura na aresta vertical de trás — tudo por cima e atrás, onde nenhuma
+   ligação precisa de ir. Uma medida de olho escreve-se «≈ 12 m». A **hachura «por decidir»** passou a
+   contorno tracejado (1 px, sem engrossar com a escala) sobre fundo pálido; o **cobalto cheio** é só da zona
+   aberta ou apontada.
+3. **Da proposta A**: a barra fina medido/estimado debaixo do total (118 m² em cobalto, 98 m² em cobalto
+   pálido, com rótulos); a **conta ao vivo** no editor («10 × 11,2 − 14 = 98 m²», e «estimativa, fica por
+   confirmar»), escrita por `contaDaZona` (`src/domain/respostaDasZonas.ts`) e testada contra `surfaceArea`
+   — por isso as varandas são «6 × 1 m²»; as excluídas no fim, sob **«Fora do pedido»**, a cinzento, com «—»
+   na área; e, no pedido vazio, **uma frase por tipo de zona** («A parede lateral sem janelas, à vista ou
+   encostada ao prédio do lado»).
+4. **O que falta é acionável**: «Falta confirmar 98 m² (empena lado norte) e decidir as varandas» — cada nome
+   é um botão; «as varandas» leva ao cartão e põe-lhe o foco; «empena lado norte» abre a edição da zona, e,
+   na gaveta, para a equipa, o «Medir na fotografia» já com essa zona escolhida.
+5. **Regra 12** nos textos: «Como indicar as dimensões», «De onde vem este número», «Nome da zona».
+6. **Botão desativado legível** (`.btn-desativado`, `globals.css`): contorno, texto a 6,8:1, e a razão ao
+   lado a 15 px.
+7. **Contas coerentes**: «em 2 das 4 zonas» quando há zonas que não contam; a lista do que falta só lista o
+   que falta, e nunca diz «nenhuma» (um muro por levantar mas excluído não falta a ninguém). Testado em
+   `respostaDasZonas.test.ts`.
+8. **O primeiro ecrã**: «+ Acrescentar zona» e «Medir na fotografia» estão na linha da resposta, à direita do
+   total (no telemóvel, por baixo do desenho), para não gastar altura por baixo do «Voltar», do título e
+   do percurso.
+
+O editor de uma zona abre numa **gaveta** à direita (`<dialog>` nativo: foco preso, Escape fecha, o foco volta
+a quem abriu; ecrã inteiro no telemóvel), com o desenho à vista e a zona acesa. Nada se perdeu do que havia:
+editar por dimensões, área, quantidade, origem e trabalhos por zona; incluir, por decidir e excluir
+(`setParticipacaoDaZona`, agora com as três); remover; acrescentar; as medidas do prédio (que mudam o
+desenho enquanto se escrevem); as fotografias (várias de uma vez, geral ou pormenor, zona, legenda, estado
+da revisão — agrupadas pela zona, com o número do desenho, uma linha por fotografia com a legenda, o estado e
+a nota da revisão; a legenda e a zona editam-se numa janela); o modo recolhido com visita pedida; só leitura
+sem gestão. As *server actions* não mudaram de assinatura.
+De passagem: o (i) dentro de um `<p>` dava erro de hidratação no slot das fotografias, nas medidas do prédio
+e no percurso — passaram a `<div>`; e o percurso, no telemóvel, já não espreme o texto contra o botão.
+
+**A revisão dos céticos (05–06/11/2026).** A primeira versão tinha doze erros, todos corrigidos neste mesmo
+commit:
+
+- **A gaveta tem um só modo de gravar** (guia §8.2): «No pedido: Incluída / Por decidir / Fora do pedido»
+  passou para dentro do formulário e grava com «Guardar zona» (que chama `updateSurface` e, se a
+  participação mudou, `setParticipacaoDaZona`). «Remover a zona» fica à parte, no fim, **pede confirmação**
+  com o nome da zona, e fecha a gaveta; e a gaveta fecha-se sozinha quando a zona aberta deixa de existir —
+  antes passava a «Nova zona» com os números da apagada, e «Guardar» voltava a criá-la.
+- **O título conta só o que soma** (`tituloDaResposta`, testado): «118 m² a pintar, em 1 das 3 zonas» com
+  duas por levantar; «Por levantar · 1 zona a pintar, ainda sem medidas»; «0 m² a pintar: 1 zona por
+  decidir»; nunca «em 0 das 1 zona». A barra ganhou um troço tracejado para as zonas sem medidas («2 zonas
+  sem medidas»): já não fica toda a cobalto com zonas por medir.
+- **A frase do que falta é português** (`fraseDoQueFalta`, testada): os nomes levam artigo («levantar a
+  empena lado norte e o tardoz»; uma palavra que não se conhece fica «a zona «…»»), e uma lista cujos
+  itens já têm «e» separa-se com ponto e vírgula («(empena lado norte; escadas e átrio)»).
+- **As ligações não atravessam a zona de outro número** (`problemasDasLigacoes`, nova regra com testes
+  num prédio em L e num de 12 pisos): só o bocado que leva a uma zona assente noutra (as varandas sobre a
+  fachada), até 56 px e nunca mais de um terço da largura dessa zona. As cotas afastam-se até não assentarem
+  no prédio (o «≈ 12 m» em cima da asa do L).
+- **O palco das chamadas** é cinzento a toda a largura, com os cartões por cima (maqueta B); a coluna dos
+  cartões arruma-se dentro da altura do desenho em vez de a esticar (sem os vazios de 230 px); as
+  **excluídas ficam em «Fora do pedido»** também com chamadas — no fundo de uma coluna quando lá cabem, por
+  baixo do palco quando não. A secção das zonas desceu de 763 px para ~365 px a 1440.
+- **No telemóvel** as cotas saem do desenho para uma linha por baixo (o prédio fica ~1,5× maior) e os dois
+  botões vão para debaixo do desenho, que começa logo a seguir ao total.
+- **O desenho responde ao toque**: cada número é um botão (alvo de 44 px) que abre a zona, e cada face abre
+  a zona que a pinta. No pedido vazio, «+ Fachada», «+ Empena» e «+ Varandas» estão pousados no próprio
+  prédio, como na maqueta B, e a lista com uma frase por tipo fica ao lado.
+- **«Confirmar a empena» abre a edição da zona também para a equipa** (na gaveta está o «Medir na
+  fotografia», com a zona já escolhida); só quem não pode editar vai direto à ferramenta.
+- **As fotografias só de leitura** voltaram a mostrar, por fotografia, a legenda, o estado da revisão e a
+  nota de uma recusada, em âmbar (`Fotografias.test.ts`).
+
+**Decisão do promotor: «medida pelo cliente», com margem.** Uma zona que o cliente meça na ferramenta de
+levantamento fica com **origem própria, «medida pelo cliente»**, e com a **margem de erro** da medição
+(± %) — **nunca «confirmada»**. É uma medição a partir de uma fotografia, e a margem diz quanto vale; o
+pintor conta com ela como conta com uma estimativa honesta. Entra quando a ferramenta for ligada ao pedido
+(próxima tarefa, com migração: a origem nova e a margem por zona). Até lá:
+
+**A ferramenta só aparece à equipa.** «Medir na fotografia» abre uma janela grande, «Levantamento da área
+da obra», com a ferramenta verdadeira de `/demo-areas` (`MedirFachada`, importada sem SSR e só quando a
+janela abre) e um quadro «Do prédio, para conferir» (frente, fundo, altura). O resultado ainda não volta
+para o pedido: o botão só aparece a quem está em `platform_admins` (`isPlatformAdmin`), e a janela di-lo
+numa linha — quando voltar, a zona fica «medida pelo cliente», com a margem. O «Usar esta medição» está
+desativado, com a razão ao lado.

@@ -17,6 +17,7 @@ import {
   type WorksMode,
 } from '@/domain/request';
 import { percursoDoPedido } from '@/domain/percurso';
+import { numeracaoDoPedido } from '@/domain/prancheta';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
 import { CaixaDaSeccao, PedidoEmSeccoes } from './PedidoEmSeccoes';
@@ -25,7 +26,7 @@ import { horaExata } from '@/domain/contagem';
 import { RevisaoEPublicacao } from './RevisaoEPublicacao';
 import { estadosDasSeccoes, primeiraPendencia } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
-import { canManage, myRole } from '@/lib/access';
+import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
 import { qrCodeSvg } from '@/lib/qrcode';
 import { escolhivel, loadReferences, preferredView } from '@/lib/reference';
@@ -39,7 +40,6 @@ import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { ZonasComVolume } from './ZonasComVolume';
 import { Voltar } from '@/components/Voltar';
 import { Dica } from '@/components/Dica';
-import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -101,6 +101,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     .maybeSingle();
 
   const manager = canManage(await myRole(supabase, user!.id, org));
+  // A equipa da plataforma vê a entrada da ferramenta de levantamento (passo 2). Por agora só ela: o
+  // resultado da ferramenta ainda não volta para o pedido (docs/DECISOES.md, 05/11/2026).
+  const daEquipa = await isPlatformAdmin(supabase, user!.id);
   const draft = req.status === 'rascunho';
   const pt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '');
   // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
@@ -192,6 +195,46 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     .eq('request_id', id)
     .limit(1);
   const fotosPorZona = !faltaZonaNasFotos;
+
+  // O prédio e as zonas, como o passo 2 os desenha. A numeração das zonas sai da mesma função que o
+  // desenho usa (`numeracaoDoPedido`), para as fotografias terem os números do desenho.
+  const predioDoDesenho = {
+    buildingId: req.building_id,
+    pisos: building.pisos,
+    fachadas: building.fachadas,
+    temVarandas: !!building.tem_varandas,
+    moradia: building.tipo === 'moradia',
+    forma: (building.forma_implantacao as Forma | null) ?? null,
+    janelas: {
+      frente: janelas?.janelas_frente ?? null,
+      esquerda: janelas?.janelas_esquerda ?? null,
+      direita: janelas?.janelas_direita ?? null,
+      tras: janelas?.janelas_tras ?? null,
+    },
+    medidas: {
+      larguraM: medidas?.largura_cm ? medidas.largura_cm / 100 : null,
+      profundidadeM: medidas?.profundidade_cm ? medidas.profundidade_cm / 100 : null,
+      peDireitoM: medidas?.pe_direito_cm ? medidas.pe_direito_cm / 100 : null,
+      origem: medidas?.medidas_origem ?? 'estimativa',
+    },
+    podeMedir: !!medidas,
+  };
+  const zonasDoQuadro = list.map((s) => ({
+    id: s.id,
+    kind: s.kind,
+    descricao: s.descricao,
+    areaCm2: s.area_cm2,
+    areaDiretaCm2: s.area_direta_cm2,
+    larguraCm: s.largura_cm,
+    alturaCm: s.altura_cm,
+    vaosCm2: s.vaos_cm2,
+    quantidade: s.quantidade,
+    participacao: paraZona(s).participacao,
+    origemDaQuantidade: paraZona(s).origemDaQuantidade,
+    confirmacao: paraZona(s).confirmacao,
+    trabalhos: s.trabalhos,
+  }));
+  const numeracao = numeracaoDoPedido(predioDoDesenho, zonasDoQuadro);
 
   // O que os pintores vão ver: é a pré-visualização do anúncio, e é também o que fica debaixo da
   // lista do que falta para publicar. Fica numa variável porque serve nos dois sítios.
@@ -305,113 +348,40 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     ),
     zonas: (
       <div id="levantamento-da-obra" className="scroll-mt-6">
-        {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
-            errada (promotor, 29/10/2026). */}
-        <p className="text-[15px] text-slate-600">
-          {!tecnicoDoCliente
-            ? 'O avaliador regista as zonas e as medidas durante a visita.'
-            : list.length === 0
-              ? 'Área por levantar.'
-              : `Total: ${formatArea(total)}`}
-          {!tecnicoDoCliente && list.length > 0 && ` Até agora: ${formatArea(total)}.`}
-        </p>
-        {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            {[
-              resumo.semQuantidade > 0
-                ? `${resumo.semQuantidade} ${resumo.semQuantidade === 1 ? 'zona' : 'zonas'} por levantar`
-                : '',
-              resumo.porConfirmar > 0
-                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar`
-                : '',
-              resumo.excluidas > 0
-                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora, e por isso fora do total`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            .
-          </p>
-        )}
-        {/* Com visita pedida, os campos de medição ficam recolhidos: a página acompanha a escolha
-            do cliente em vez de o pôr a medir (promotor, 01/11/2026). */}
-        <ZonasRecolhiveis recolhido={!tecnicoDoCliente}>
-          <ZonasComVolume
-            requestId={req.id}
-            predio={{
-              buildingId: req.building_id,
-              pisos: building.pisos,
-              fachadas: building.fachadas,
-              temVarandas: !!building.tem_varandas,
-              moradia: building.tipo === 'moradia',
-              forma: (building.forma_implantacao as Forma | null) ?? null,
-              janelas: {
-                frente: janelas?.janelas_frente ?? null,
-                esquerda: janelas?.janelas_esquerda ?? null,
-                direita: janelas?.janelas_direita ?? null,
-                tras: janelas?.janelas_tras ?? null,
-              },
-              medidas: {
-                larguraM: medidas?.largura_cm ? medidas.largura_cm / 100 : null,
-                profundidadeM: medidas?.profundidade_cm ? medidas.profundidade_cm / 100 : null,
-                peDireitoM: medidas?.pe_direito_cm ? medidas.pe_direito_cm / 100 : null,
-                origem: medidas?.medidas_origem ?? 'estimativa',
-              },
-              podeMedir: !!medidas,
-            }}
-            zonas={list.map((s) => ({
-              id: s.id,
-              kind: s.kind,
-              descricao: s.descricao,
-              areaCm2: s.area_cm2,
-              areaDiretaCm2: s.area_direta_cm2,
-              larguraCm: s.largura_cm,
-              alturaCm: s.altura_cm,
-              vaosCm2: s.vaos_cm2,
-              quantidade: s.quantidade,
-              participacao: paraZona(s).participacao,
-              origemDaQuantidade: paraZona(s).origemDaQuantidade,
-              confirmacao: paraZona(s).confirmacao,
-              trabalhos: s.trabalhos,
-            }))}
-            modo={req.trabalhos_modo as WorksMode}
-            podeEditar={!!manager && draft}
-            doCliente={tecnicoDoCliente}
-          />
-        </ZonasRecolhiveis>
+        {/* A resposta (total, o que falta), o desenho com as zonas e as medidas do prédio: tudo em
+            ZonasComVolume (proposta B, 05/11/2026). Com visita pedida, o quadro fica recolhido: a
+            página acompanha a escolha do cliente em vez de o pôr a medir (promotor, 01/11/2026). */}
+        <ZonasComVolume
+          requestId={req.id}
+          predio={predioDoDesenho}
+          zonas={zonasDoQuadro}
+          modo={req.trabalhos_modo as WorksMode}
+          podeEditar={!!manager && draft}
+          doCliente={tecnicoDoCliente}
+          recolhido={!tecnicoDoCliente}
+          daEquipa={daEquipa}
+        />
       </div>
     ),
     fotografias: (
-      <div>
-        {/* Uma linha; o resto (quais vão ao anúncio, a remoção dos dados do aparelho) vai na
-            dica, para não gastar altura (promotor, 01/11/2026). */}
-        <p className="flex items-center gap-2 text-[15px] text-slate-600">
-          Opcionais. Ajudam o avaliador a perceber o estado atual.
-          <Dica rotulo="Quem vê as fotografias">
-            Só as imagens que aprovar para divulgação são mostradas aos pintores; as gerais ficam privadas. A localização e os
-            dados do aparelho são retirados de todas.
-          </Dica>
-        </p>
-        <div className="mt-4">
-          <Fotografias
-            requestId={req.id}
-            fotografias={(photos ?? []).map((f) => ({
-              id: f.id,
-              kind: f.kind,
-              legenda: f.legenda,
-              revisao: f.revisao,
-              notas_revisao: f.notas_revisao,
-              zonaId: f.zona_id ?? null,
-            }))}
-            zonas={list.map((s) => ({
-              id: s.id,
-              nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind],
-            }))}
-            podeEditar={!!manager && draft}
-            porZona={fotosPorZona}
-          />
-        </div>
-      </div>
+      <Fotografias
+        requestId={req.id}
+        fotografias={(photos ?? []).map((f) => ({
+          id: f.id,
+          kind: f.kind,
+          legenda: f.legenda,
+          revisao: f.revisao,
+          notas_revisao: f.notas_revisao,
+          zonaId: f.zona_id ?? null,
+        }))}
+        // As zonas pela ordem do quadro e com o mesmo número do desenho.
+        zonas={numeracao.map((n) => {
+          const s = list.find((x) => x.id === n.id)!;
+          return { id: s.id, nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind], n: n.n, fora: n.grupo === 'fora_do_pedido' };
+        })}
+        podeEditar={!!manager && draft}
+        porZona={fotosPorZona}
+      />
     ),
     publicar:
       manager && draft ? (
