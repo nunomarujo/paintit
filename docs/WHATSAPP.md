@@ -147,3 +147,23 @@ da conta mais o modelo do convite. Sem elas a convocatória não envia nada e na
   Braga / prédio de 6 andares. O payload do botão não vai no modelo: a aplicação envia-o em cada mensagem.
 - `propostas_disponiveis` (Marketing — mais cara que Utility; não usado) e `levantamento_agendado` (em
   revisão; não usado). Estado «Qualidade pendente» é o normal de um modelo ainda sem envios.
+
+## A subscrição à conta (05/11/2026) — o que faltava depois de «tudo ligado»
+
+Sintoma: o convite saía (a Meta aceitava o pedido e devolvia o id) mas **nunca chegava nenhum estado nem o
+«Aceito»** ao `/api/whatsapp`, ao passo que o teste do painel («Test» ao lado de `messages`) chegava e era
+guardado. Causa: subscrever o campo `messages` no painel da aplicação **não subscreve a aplicação à conta
+WhatsApp**; a Meta só entrega à aplicação o que vem de contas a que ela está subscrita
+(`/{conta}/subscribed_apps`), e o teste do painel ignora essa condição, o que disfarça a falha. A conta antiga
+tinha-a (criada pela Twilio); a nova, criada à mão, nasceu sem ela.
+
+- **O identificador a usar é o da conta de mensagens** (aqui 2334889570658270), não o da conta WhatsApp
+  (1466775882007762): com este último a Meta responde «This API is not supported for this WhatsApp Business
+  Account». O GET devolvia `data: []`; depois do POST, a lista traz a aplicação «Quem Pinta».
+- Faz-se com `GET/POST /api/whatsapp/subscricao?waba=<id>` (protegida pelo segredo dos trabalhos internos), a
+  chamar a Meta com o `WHATSAPP_TOKEN` do servidor. Foi chamada da base com pg_net, usando o segredo do cofre,
+  para o segredo não passar por mãos humanas.
+- Qualquer conta WhatsApp nova precisa disto, por ordem: criar conta → dar-lhe o utilizador de sistema →
+  **subscrever a aplicação** → webhook → publicar a aplicação (modo Live).
+- Para provar a entrega sem esperar por um levantamento: «Enviar mensagem» em WhatsApp › Configuração da API
+  (modelo `hello_world`) para o telemóvel de ensaio; se chegar, a conta envia.
