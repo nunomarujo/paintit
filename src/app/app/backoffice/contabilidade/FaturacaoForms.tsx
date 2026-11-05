@@ -2,7 +2,7 @@
 
 import type { FormState } from '@/app/app/actions';
 import { useFormAction } from '@/components/useFormAction';
-import { emitAllInvoicesAction, emitInvoiceAction } from '../actions';
+import { emitAllInvoicesAction, emitInvoiceAction, reenviarFaturaAction } from '../actions';
 
 const note = (s: FormState) => {
   const m = Object.values(s.errors)[0] ?? s.message;
@@ -31,6 +31,18 @@ export function EmitOneButton({ originType, originId }: { originType: string; or
     <form {...formProps} className="mt-1 flex flex-wrap items-center gap-2 text-[17px]">
       <button type="submit" disabled={pending} className="btn-secondary">
         {pending ? 'A emitir…' : 'Emitir'}
+      </button>
+      {note(state)}
+    </form>
+  );
+}
+
+export function ReenviarButton({ documentId, rotulo }: { documentId: string; rotulo: string }) {
+  const { state, pending, formProps } = useFormAction<FormState>(async () => reenviarFaturaAction(documentId), { errors: {} });
+  return (
+    <form {...formProps} className="flex flex-wrap items-center gap-2 text-[17px]">
+      <button type="submit" disabled={pending} className="btn-secondary btn-sm">
+        {pending ? 'A enviar…' : rotulo}
       </button>
       {note(state)}
     </form>

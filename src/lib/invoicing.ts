@@ -32,7 +32,7 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
     const { data: e } = await db.from('engagements').select('painter_org_id').eq('id', p.engagement_id).maybeSingle();
     if (!e) continue;
     const pintor = await customerOf(db, e.painter_org_id);
-    out.push(commissionInvoice({ paymentIntent: p.payment_intent, gross: p.amount_cents, data: day(p.created_at), pintor }));
+    out.push({ ...commissionInvoice({ paymentIntent: p.payment_intent, gross: p.amount_cents, data: day(p.created_at), pintor }), orgId: e.painter_org_id });
   }
 
   for (const s of subs ?? []) {
@@ -49,7 +49,7 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
         ? `Plano Pro (${pro.periodicidade})`
         : 'Subscrição';
     const cliente = await customerOf(db, s.org_id);
-    out.push(subscriptionInvoice({ stripeInvoiceId: s.stripe_invoice_id, planLabel, gross: s.amount_cents, vat: s.vat_cents, data: day(s.paid_at), fornecedor: cliente }));
+    out.push({ ...subscriptionInvoice({ stripeInvoiceId: s.stripe_invoice_id, planLabel, gross: s.amount_cents, vat: s.vat_cents, data: day(s.paid_at), fornecedor: cliente }), orgId: s.org_id });
   }
 
   // Caução retida: calculada pelo motor de regras, por contratação com depósito.
@@ -70,7 +70,7 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
     const total = kept.reduce((n, m) => n + m.amount, 0);
     if (total <= 0 || done.has(`engagement|${id}:${total}`)) continue;
     const cliente = await customerOf(db, row.client_org_id);
-    out.push(retainedGuaranteeInvoice({ engagementId: id, cumulative: total, data: kept.length ? day(kept[kept.length - 1]!.at) : day(row.created_at), cliente }));
+    out.push({ ...retainedGuaranteeInvoice({ engagementId: id, cumulative: total, data: kept.length ? day(kept[kept.length - 1]!.at) : day(row.created_at), cliente }), orgId: row.client_org_id });
   }
   return out;
 }
@@ -78,6 +78,8 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
 export interface EmitResult {
   ok: boolean;
   message: string;
+  /** Preenchido só quando o documento acabou de ser emitido agora (não quando já estava): é a esse que se envia o email. */
+  novoDocumento?: string;
 }
 
 /** Emite um documento na Moloni e grava o resultado (ou o erro, para se repetir). Idempotente por (origem, id). */
@@ -90,6 +92,7 @@ export async function emitInvoice(draft: InvoiceDraft): Promise<EmitResult> {
   const total = draft.lines.reduce((n, l) => n + Math.round((l.quantidade * l.precoUnitario) / 100), 0);
   const base = {
     reason: draft.reason,
+    org_id: draft.orgId ?? null,
     origin_type: draft.originType,
     origin_id: draft.originId,
     tipo: draft.tipo,
@@ -107,11 +110,15 @@ export async function emitInvoice(draft: InvoiceDraft): Promise<EmitResult> {
       pdfPath = `${draft.originType}/${draft.originId.replace(/[^a-z0-9_-]/gi, '_')}.pdf`;
       await db.storage.from('documentos-fiscais').upload(pdfPath, r.pdfBytes, { contentType: 'application/pdf', upsert: true });
     }
-    await db.from('fiscal_documents').upsert(
-      { ...base, estado: 'emitido', provider_document_id: r.providerDocumentId, numero: r.numero, atcud: r.atcud, pdf_path: pdfPath, erro: null, emitido_em: new Date().toISOString() },
-      { onConflict: 'origin_type,origin_id' },
-    );
-    return { ok: true, message: `Emitido${r.numero ? ` (${r.numero})` : ''}.` };
+    const { data: gravado } = await db
+      .from('fiscal_documents')
+      .upsert(
+        { ...base, estado: 'emitido', provider_document_id: r.providerDocumentId, numero: r.numero, atcud: r.atcud, pdf_path: pdfPath, erro: null, emitido_em: new Date().toISOString() },
+        { onConflict: 'origin_type,origin_id' },
+      )
+      .select('id')
+      .maybeSingle();
+    return { ok: true, message: `Emitido${r.numero ? ` (${r.numero})` : ''}.`, novoDocumento: gravado?.id };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await db.from('fiscal_documents').upsert({ ...base, estado: 'falhou', erro: msg.slice(0, 500) }, { onConflict: 'origin_type,origin_id' });

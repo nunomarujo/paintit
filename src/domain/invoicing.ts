@@ -39,6 +39,9 @@ export interface InvoiceDraft {
   tipo: DocumentType;
   data: string;
   customer: InvoiceCustomer;
+  /** A entidade da plataforma a quem a fatura é emitida: é a ela que o documento chega, por email e na aplicação.
+   * Preenchida por `pendingInvoices`; as funções puras abaixo não a conhecem. */
+  orgId?: string;
   lines: InvoiceLine[];
   /** Documento a que esta nota de crédito se refere (só quando tipo = NC). */
   referencia?: { originType: string; originId: string };

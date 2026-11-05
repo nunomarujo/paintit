@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COBRANCA_NOTICES, FATURACAO_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
+import { COBRANCA_NOTICES, FATURACAO_NOTICE, FATURA_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -184,5 +184,19 @@ describe('aviso da fila de facturação', () => {
     const n = FATURACAO_NOTICE({ ...base, total: 1, maisAntiga: { descricao: 'x', data: '2026-11-09', diasUteis: 1 } });
     expect(n.lines[0]).toContain('1 documento por emitir');
     expect(n.lines.join(' ')).toContain('1 dia útil');
+  });
+});
+
+describe('FATURA_NOTICE', () => {
+  const base = { tipo: 'FT' as const, numero: 'M 2026/12', total: '123,00 €', data: '05/11/2026', descricao: 'Subscrição — Plano Pro' };
+  it('diz o documento, o número e o total no assunto', () => {
+    expect(FATURA_NOTICE(base).subject).toBe('Fatura M 2026/12, 123,00 €');
+    expect(FATURA_NOTICE({ ...base, tipo: 'NC' }).subject).toBe('Nota de crédito M 2026/12, 123,00 €');
+  });
+  it('sem número ainda (a Moloni não o devolveu), não inventa um', () => {
+    expect(FATURA_NOTICE({ ...base, numero: null }).subject).toBe('Fatura, 123,00 €');
+  });
+  it('trata o leitor sem «tu» nem «você»', () => {
+    expect(FATURA_NOTICE(base).lines.join(' ')).not.toMatch(/\b(tu|você|teu|tua)\b/i);
   });
 });

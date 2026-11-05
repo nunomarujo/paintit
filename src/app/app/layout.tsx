@@ -204,6 +204,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             meuPerfil={meuPerfil}
             email={user.email ?? ''}
             mostrarSubscricao={kinds.has('pintor')}
+            mostrarFaturas={kinds.size > 0}
             pintorId={pintorId}
             leave={leave}
           />
@@ -240,6 +241,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {kinds.has('pintor') && (
               <Link href="/app/subscricao" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-barra-text hover:text-barra-strong">
                 Plano e subscrição
+              </Link>
+            )}
+            {kinds.size > 0 && (
+              <Link href="/app/faturas" className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-barra-text hover:text-barra-strong">
+                Faturas
               </Link>
             )}
             {pintorId && (

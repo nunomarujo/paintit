@@ -31,12 +31,17 @@ O código está feito; o canal abre quando isto estiver feito, pela ordem de `do
 dedicado → conta Twilio → WhatsApp sender → verificação da empresa na Meta → modelo `aviso_quem_pinta`
 aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_whatsapp` aplicada a 02/11/2026.
 
-**Convites aos avaliadores (05/11/2026):** construídos; o canal passou da Twilio para a **Meta direta** (decisão do
-promotor, ver `docs/DECISOES.md`). Dormente até haver as quatro chaves `WHATSAPP_*` na Vercel — passos do promotor
-em `docs/WHATSAPP.md` (verificação da empresa na Meta, aplicação, utilizador de sistema, libertar o número da
-Twilio, registá-lo na Cloud API, webhook). Depois: fechar a conta Twilio e apagar as chaves `TWILIO_*` da Vercel.
-Ensaio pendente: QP-1009 (pedido «ENSAIO convites WhatsApp», a apagar no fim) tem uma onda falhada da Twilio —
-apagar essa onda antes do ensaio, para o convite voltar a sair.
+**Convites aos avaliadores (05/11/2026): no ar e provados de ponta a ponta** (convite entregue → «Aceito» →
+reserva → resposta lida, às 20:31). Canal: **Meta direta** (Cloud API), conta WhatsApp «Quem Pinta»
+1466775882007762, número +351 926 549 194 (id 1500003363188840), pagamento com cartão em euros, aplicação
+publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver `docs/WHATSAPP.md`. Por fazer:
+(1) **a convocatória com ondas a sério ainda não foi vista a correr** (só reenviei um convite à mão); fica
+para um dia útil das 9h às 18h, com um pedido de teste novo; (2) o modelo `avaliador_nova_oportunidade` foi
+**reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa) e o pedido de
+revisão para Serviços está pendente — se recusarem, usar o texto mais informativo proposto na conversa de
+05/11; (3) o nome de apresentação «Quem Pinta» está em revisão (o cabeçalho mostra o número até aprovarem);
+(4) apagar as chaves `TWILIO_*` da Vercel e fechar a conta Twilio; (5) os modelos `propostas_disponiveis` e
+`levantamento_agendado` ficaram na conta antiga e não são usados — recriar só quando houver quem os envie.
 Ficam por decidir/construir: a «informação do levantamento» e a «resposta a tempo» ainda não entram na
 ordem das ondas (só a qualificação geral, como no simulador); um painel interno com avaliadores elegíveis
 por concelho, para recrutar onde não há nenhum.
@@ -46,6 +51,25 @@ resgates de avaliadores ainda **não são lançados no livro de movimentos** (o 
 Contabilidade › A pagar, mas `syncLedger` só conhece os resgates de adesão) — ligar antes do primeiro
 pagamento real; e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
 sem uso desde que a comissão passou a ser sempre da pessoa — retirá-las numa migração com confirmação.
+
+## 1c. Dinheiro e faturação — o que separa a app do primeiro pagamento real (05/11/2026)
+
+Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade real**. Fica por esta ordem:
+
+1. **Moloni: criar a conta de testes** (`moloni.pt/registo`, NIF fictício, 30 dias, API completa; resposta do
+   ticket J98-JYQ-L177, 23/10/2026). Só o promotor a cria (termos, confirmação de email). As credenciais
+   dela nunca se misturam com as da conta real (`MOLONI_*` na Vercel são da real). Depois: fechar os 7 pontos
+   por confirmar de `FATURACAO.md` e só então ligar o «Emitir» do backoffice. O ticket tem a data de 23/10
+   para pedir prorrogação.
+1b. **Envio da fatura ao cliente: construído a 05/11/2026**, automático na emissão (ver `FATURACAO.md`). Falta ensaiá-lo
+   de ponta a ponta quando existir a conta de testes da Moloni (PDF a chegar por email, `/app/faturas`, «Reenviar»).
+2. **Stripe em modo real:** ativar a conta com os dados da empresa; criar de novo a taxa de IVA
+   (`STRIPE_TAX_RATE_IVA`) e os produtos; limpar os resíduos de ensaio antes (secção 1).
+3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário
+   (`/api/cron/devolucoes`) — só vistas em modo de teste. Falta um percurso completo em teste do pagamento à
+   devolução, e a validação do contabilista sobre a natureza fiscal da caução (secção 2).
+4. **Livro de movimentos:** os resgates de avaliadores ainda não entram nele (ver 1b).
+5. **IVA trimestral e fecho formal; acesso do contabilista** (`CONTABILIDADE.md`).
 
 ## 2. Decisões do promotor que travam construção ou dinheiro
 
