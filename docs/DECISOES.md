@@ -4616,3 +4616,13 @@ ligação para a ficha, onde a dupla chave de 31/10/2026 continua a decidir.
 Construído: `src/domain/convocatoria.ts` (puro e testado, números numa versão `2026-11-05`) e
 `src/lib/centrosDosConcelhos.ts` (centroide oficial de cada concelho, geoapi.pt/CAOP; o Funchal fica na
 cidade porque as Selvagens puxavam o centroide 38 km para o mar).
+
+**Aplicado à base real (05/11/2026):** migração `20261105094801_convocatoria_por_ondas` — concelho base,
+raio, recebimento e NIF pessoal na linha pessoal de «Disponibilidade»; tabelas `survey_waves`,
+`survey_invites` e `whatsapp_messages` (RLS: cada pessoa lê os seus convites, a equipa lê tudo, só a chave
+de serviço escreve); `aceitar_convite` (só a chave de serviço) reserva atomicamente pelo convite; um gatilho
+fecha os convites pendentes quando o levantamento deixa de estar aberto; tarefa `quempinta-convocatorias`
+ao minuto, que só acorda a aplicação em horário útil e quando há trabalho. Verificado na base real com
+utilizadores `zz-test-*` num bloco revertido: dois «Aceito» ao mesmo levantamento → `aceite` e `tarde`, uma
+só tentativa; nada ficou gravado. A migração **não** depende de `reserva_so_para_avaliadores_inscritos`
+(ainda por aplicar, à espera do promotor): repete a função da versão da inscrição, com o mesmo corpo.

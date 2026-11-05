@@ -1032,6 +1032,8 @@ export type Database = {
           // hoje dezenas de erros de tipos e é dívida à parte. A migração
           // 20261101040000_referencia_do_levantamento está aplicada à base real (01/11/2026).
           numero: number;
+          // 20261105094801_convocatoria_por_ondas: ao fim das ondas sem resposta.
+          convocatoria_esgotada_em: string | null;
           contact_notes: string;
           created_at: string;
           created_by: string;
@@ -1080,9 +1082,37 @@ export type Database = {
       // regenerar o ficheiro depois de aplicar (CLAUDE.md, «Depois de aplicar»).
       survey_availability: {
         // alerta_whatsapp e telemovel_whatsapp: migração 20261102090000_avisos_por_whatsapp.
-        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; alerta_whatsapp: boolean; telemovel_whatsapp: string | null; updated_at: string };
-        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
-        Update: { suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null };
+        // concelho_base, raio_km, recebimento, nif_pessoal: 20261105094801_convocatoria_por_ondas (aplicada a 05/11/2026).
+        Row: { user_id: string; suspenso_ate: string | null; alerta_email: boolean; alerta_whatsapp: boolean; telemovel_whatsapp: string | null; concelho_base: string | null; raio_km: number | null; recebimento: 'empresa' | 'proprio'; nif_pessoal: string | null; updated_at: string };
+        Insert: { user_id: string; suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null; concelho_base?: string | null; raio_km?: number | null; recebimento?: 'empresa' | 'proprio'; nif_pessoal?: string | null };
+        Update: { suspenso_ate?: string | null; alerta_email?: boolean; alerta_whatsapp?: boolean; telemovel_whatsapp?: string | null; concelho_base?: string | null; raio_km?: number | null; recebimento?: 'empresa' | 'proprio'; nif_pessoal?: string | null };
+        Relationships: [];
+      };
+      // Convocatória por ondas: 20261105094801_convocatoria_por_ondas (aplicada a 05/11/2026). Só a chave de
+      // serviço escreve; cada pessoa lê os seus convites, a equipa lê tudo.
+      survey_waves: {
+        Row: { id: string; survey_id: string; numero: number; versao_regras: string; enviada_em: string };
+        Insert: { survey_id: string; numero: number; versao_regras: string; enviada_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      survey_invites: {
+        Row: {
+          id: string; wave_id: string; survey_id: string; user_id: string; org_id: string; telemovel: string;
+          estado: 'a_enviar' | 'enviado' | 'falhou' | 'aceite' | 'tarde' | 'expirado';
+          twilio_sid: string | null; erro: string | null; enviado_em: string | null; respondido_em: string | null; created_at: string;
+        };
+        Insert: { wave_id: string; survey_id: string; user_id: string; org_id: string; telemovel: string; estado?: 'a_enviar' | 'enviado' | 'falhou' };
+        Update: { estado?: 'a_enviar' | 'enviado' | 'falhou' | 'aceite' | 'tarde' | 'expirado'; twilio_sid?: string | null; erro?: string | null; enviado_em?: string | null; respondido_em?: string | null };
+        Relationships: [];
+      };
+      whatsapp_messages: {
+        Row: {
+          id: string; direcao: 'saida' | 'entrada'; twilio_sid: string | null; para: string; de: string; modelo: string | null;
+          variaveis: Json | null; corpo: string | null; estado: string; erro: string | null; invite_id: string | null; created_at: string; updated_at: string;
+        };
+        Insert: { direcao: 'saida' | 'entrada'; twilio_sid?: string | null; para: string; de: string; modelo?: string | null; variaveis?: Json | null; corpo?: string | null; estado?: string; erro?: string | null; invite_id?: string | null };
+        Update: { estado?: string; erro?: string | null; updated_at?: string };
         Relationships: [];
       };
       avisos_por_email: {
@@ -2180,6 +2210,8 @@ export type Database = {
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
+      // Só a chave de serviço (webhook do WhatsApp). 'aceite' | 'tarde' | 'sem_inscricao' | 'excluido'.
+      aceitar_convite: { Args: { p_invite: string }; Returns: string };
       reserve_survey: {
         Args: { p_survey_id: string; p_org: string };
         Returns: {
