@@ -62,6 +62,10 @@ qualquer documento emitido com ela é **real**, na única série da conta ("M"),
 crédito, deixando sempre um número gasto. Não usar o botão "Emitir" na fila do backoffice com esta conta até os pontos
 abaixo estarem confirmados numa conta de testes.
 
+**Verificado a 05/11/2026: a «Empresa Demonstração» do mesmo login (contribuinte 508252252, id interno 5) NÃO serve.**
+É a demonstração pública e partilhada da Moloni (editada por utilizadores de outras empresas) e os menus
+«Developers/API», «Empresa» e «Subscrição» estão indisponíveis nela. A conta de testes tem de ser uma conta nova.
+
 **Resposta da Moloni (ticket J98-JYQ-L177, 23/10/2026):** não há sandbox a pedir. O caminho é criar uma **conta
 separada**, pelo registo normal (`https://www.moloni.pt/registo`), com um NIF fictício (sugestão deles:
 `NIF_XPTO_TESTE_API`). Fica com o plano experimental de 30 dias e **acesso total à API**; se for preciso mais tempo,
