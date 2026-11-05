@@ -295,15 +295,17 @@ export function proximoPasso(
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * O texto do convite, igual ao modelo `avaliador_nova_oportunidade` aprovado na Meta: {{1}} localização,
- * {{2}} descrição do prédio, e o botão «Aceito». A localização é só o concelho — a morada só chega a quem
- * reserva (regra 6 do CLAUDE.md, e a dupla chave de 31/10/2026).
+ * O texto do convite: o do modelo `avaliador_nova_oportunidade`, **como está aprovado na Meta** (lido a
+ * 05/11/2026 no WhatsApp Manager), com {{1}} a localização e {{2}} a descrição. A localização é só o
+ * concelho — a morada só chega a quem reserva (regra 6 do CLAUDE.md, e a dupla chave de 31/10/2026).
+ * Mudar este texto aqui não muda o que chega: o que chega é o que a Meta aprovou. Se o modelo for recriado,
+ * o texto tem de ser submetido igual a este.
  */
+export const CORPO_DO_MODELO_DO_CONVITE =
+  'Quem Pinta: há um levantamento disponível em {{1}} ({{2}}). Aceite-o em quempinta.pt. Após aceitar, tem uma hora útil para contactar o cliente.';
+
 export function textoDoConvite(concelho: string, descricao: string): string {
-  return (
-    `Nova oportunidade de levantamento em ${concelho}: ${descricao}.\n\n` +
-    'Fica com o trabalho a primeira pessoa a aceitar. Os contactos do cliente ficam disponíveis na aplicação logo a seguir.'
-  );
+  return CORPO_DO_MODELO_DO_CONVITE.replace('{{1}}', concelho).replace('{{2}}', descricao);
 }
 
 export const TEXTO_JA_ATRIBUIDA =

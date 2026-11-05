@@ -5,7 +5,7 @@ import { REGRAS_DA_CONVOCATORIA as R, TEXTO_ATRIBUIDA, TEXTO_JA_ATRIBUIDA, texto
  * pré-visualização nunca dizer outra coisa do que a mensagem diz. É ilustração: nada aqui se carrega.
  */
 export function PreVisualizacaoDoConvite({ concelho }: { concelho: string }) {
-  const convite = textoDoConvite(concelho, 'fachadas de prédio, cerca de 420 m²');
+  const convite = textoDoConvite(concelho, 'fachadas, cerca de 420 m²');
   return (
     <figure aria-label="Exemplo de convite por WhatsApp" className="mx-auto w-full max-w-[22rem] self-start overflow-hidden rounded-2xl border border-slate-300 bg-[#efeae2]">
       <div className="flex items-center gap-3 bg-[#075e54] px-4 py-3 text-white">

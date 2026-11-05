@@ -197,9 +197,11 @@ describe('qualidade', () => {
 });
 
 describe('o texto do convite', () => {
-  it('diz só o concelho, nunca a morada', () => {
-    const t = textoDoConvite('Viana do Castelo', 'fachada de prédio, cerca de 420 m²');
-    expect(t).toContain('Viana do Castelo');
+  it('é o do modelo aprovado na Meta, só com o concelho — nunca a morada', () => {
+    const t = textoDoConvite('Braga', 'prédio de 6 andares');
+    expect(t).toBe(
+      'Quem Pinta: há um levantamento disponível em Braga (prédio de 6 andares). Aceite-o em quempinta.pt. Após aceitar, tem uma hora útil para contactar o cliente.',
+    );
     expect(t).not.toMatch(/\btu\b|\bvocê\b/i);
   });
 });
