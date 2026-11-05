@@ -405,8 +405,8 @@ describe('o texto da margem', () => {
 });
 
 describe('comoReduzirAMargem: só se aconselha o que faz descer o número', () => {
-  const semArestas = { verticais: 0, horizontais: 0 };
-  const comArestas = { verticais: 1, horizontais: 2 };
+  const semArestas = { duasVerticais: false, duasHorizontais: false };
+  const comArestas = { duasVerticais: true, duasHorizontais: true };
 
   const com = (relativa: number) => ({ margemM2: relativa * 200, areaM2: 200 });
 
@@ -420,13 +420,24 @@ describe('comoReduzirAMargem: só se aconselha o que faz descer o número', () =
 
   it('sem as arestas: as arestas e a referência maior, sem dizer qual reduz mais', () => {
     const t3 = comoReduzirAMargem(com(0.16), semArestas, 3)!;
-    expect(t3).toContain('vertical comprida e duas horizontais');
+    expect(t3).toContain('duas verticais compridas, longe uma da outra, e duas horizontais');
+    expect(t3).toContain('«Propor as arestas»');
     expect(t3).toContain('referência maior');
     expect(t3).not.toMatch(/o que mais/);
     expect(comoReduzirAMargem(com(0.16), semArestas, 4)).toContain('voltar ao passo 3');
   });
 
-  it('com a vertical e as duas horizontais: a referência maior, e não rever os cantos — que muda a área, não a margem', () => {
+  it('com uma vertical e duas horizontais ainda falta a segunda vertical: não diz que só a referência maior reduz', () => {
+    // Avaliação de 04/11/2026: «Propor as arestas», logo por baixo da sugestão, levava a margem de ± 7,3 %
+    // a ± 2,4 % com a segunda vertical, e a sugestão dizia que só uma referência maior a reduzia.
+    for (const passo of [3, 4] as const) {
+      const t = comoReduzirAMargem(com(0.073), { duasVerticais: false, duasHorizontais: true }, passo)!;
+      expect(t).toContain('duas verticais compridas');
+      expect(t).not.toMatch(/mesmo com/);
+    }
+  });
+
+  it('com duas verticais e duas horizontais: a referência maior, e não rever os cantos — que muda a área, não a margem', () => {
     for (const passo of [3, 4] as const) {
       const t = comoReduzirAMargem(com(0.075), comArestas, passo)!;
       expect(t).toContain('referência maior');

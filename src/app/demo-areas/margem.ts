@@ -103,10 +103,17 @@ export function contornoNaCalibracao(contornos: (cal: Calibracao) => Zona[]): (c
   return (cal) => areaPintavelExata(contornos(cal)).contornoM2;
 }
 
-/** As arestas que já entram na calibração: as verticais do passo 2 e dos acertos, e as horizontais dos acertos. */
+/**
+ * O que as arestas que já entram na calibração (as verticais do passo 2 e dos acertos, e as horizontais
+ * dos acertos) fixam: `oQueFalta`, em `arestasPropostas.ts`. Contá-las não chegava: com a segunda vertical
+ * curta e ao lado da primeira, a sugestão dizia «mesmo com duas verticais e duas horizontais» e escondia
+ * «Propor as arestas», que levava a margem de ± 6,1 % a ± 2,2 % (avaliação de 05/11/2026).
+ */
 export interface ArestasMarcadas {
-  verticais: number;
-  horizontais: number;
+  /** Duas verticais compridas (metade da altura da fachada ou mais) e afastadas uma da outra. */
+  duasVerticais: boolean;
+  /** Uma horizontal na parte de baixo do contorno e outra na de cima. */
+  duasHorizontais: boolean;
 }
 
 /** Abaixo disto, a área que o ecrã mostra (ao centésimo de m²) é «0,00». */
@@ -132,7 +139,12 @@ export function margemRelativa(m: MargemEArea): number | null {
  * área à vista. Decide-se pelo número que se vê, arredondado a uma casa: «± 5,0 %» nunca aparece com
  * «Acima de 5 %».
  *
- * Só se aconselha o que faz descer o número. Na fotografia do promotor (04/11/2026), com o contorno
+ * Só se aconselha o que faz descer o número. As arestas que reduzem a margem são duas verticais
+ * compridas e afastadas e duas horizontais a alturas diferentes (`arestasPropostas.ts`, passo 7): com
+ * uma vertical só, o ponto de fuga vertical fica livre ao longo dela, e a sugestão dizia que só uma
+ * referência maior reduzia a margem enquanto «Propor as arestas», logo por baixo, a levava de ± 7,3 %
+ * a ± 2,4 % com a segunda vertical (avaliação de 04/11/2026); com duas verticais juntas, o mesmo
+ * (05/11/2026: `ArestasMarcadas`). Na fotografia do promotor (04/11/2026), com o contorno
  * de 11,07 × 19,92 m: a porta sozinha, ±16 %; com uma vertical e duas horizontais, ±4,3 %; a banda do
  * R/C como referência, sem arestas nenhumas, ±2,5 %. As duas coisas reduzem, e a referência maior pode
  * reduzir mais do que as arestas — por isso aparecem as duas, sem dizer qual reduz mais. Rever os
@@ -143,11 +155,14 @@ export function comoReduzirAMargem(margem: MargemEArea, arestas: ArestasMarcadas
   const relativa = margemRelativa(margem);
   if (relativa === null || !Number.isFinite(relativa) || Math.round(relativa * 1000) <= Math.round(MARGEM_A_REDUZIR * 1000)) return null;
   const limite = `${String(MARGEM_A_REDUZIR * 100).replace('.', ',')} %`;
-  if (arestas.verticais >= 1 && arestas.horizontais >= 2) {
-    return `Acima de ${limite}, mesmo com a vertical e as duas horizontais: o que ainda a reduz é uma referência maior no passo 2 — um retângulo medido à fita que ocupe mais espaço na fotografia.`;
+  if (arestas.duasVerticais && arestas.duasHorizontais) {
+    return `Acima de ${limite}, mesmo com duas verticais e duas horizontais: o que ainda a reduz é uma referência maior no passo 2 — um retângulo medido à fita que ocupe mais espaço na fotografia.`;
   }
-  const acertar = passo === 3 ? 'acertar o endireitamento' : 'voltar ao passo 3 e acertar o endireitamento';
-  return `Acima de ${limite}. Para a reduzir: ${acertar} com uma vertical comprida e duas horizontais a alturas diferentes, ou usar no passo 2 uma referência maior — quanto mais espaço ocupa na fotografia, menor a margem.`;
+  const acertar =
+    passo === 3
+      ? 'acertar o endireitamento («Propor as arestas» procura-as na fotografia)'
+      : 'voltar ao passo 3 e acertar o endireitamento («Propor as arestas» procura-as na fotografia)';
+  return `Acima de ${limite}. Para a reduzir: ${acertar} com duas verticais compridas, longe uma da outra, e duas horizontais a alturas diferentes, ou usar no passo 2 uma referência maior — quanto mais espaço ocupa na fotografia, menor a margem.`;
 }
 
 /** Com uma casa decimal e nunca abaixo de 0,1: «± 0,0 %» diria que não há erro nenhum. */

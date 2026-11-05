@@ -163,6 +163,24 @@ describe('homografia: medir a fachada a partir só da porta (câmara sintética,
     expect(desvio(comAresta)).toBeLessThan(desvio(soPorta) * 0.5);
     expect(desvio(comAresta)).toBeLessThan(20 * 0.03); // < 3 % em 20 m
   });
+
+  it('as ombreiras curtas pesam pelo comprimento: tortas, não entortam o prédio que duas arestas compridas endireitaram', () => {
+    // Os cantos de cima da porta 6 px ao lado (como no e2e da fotografia do promotor) e duas arestas
+    // compridas certas. Com as quatro retas a pesar por igual, uma vertical a 18 m de altura saía 10 a
+    // 11 cm inclinada; pelo comprimento, 2,5 cm.
+    const cantos = cantosDaPorta();
+    cantos[2] = { ...cantos[2], x: cantos[2].x + 6 };
+    cantos[3] = { ...cantos[3], x: cantos[3].x + 6 };
+    const arestas: [Ponto, Ponto][] = [
+      [projetar(-5, 0), projetar(-5, 19)],
+      [projetar(6, 2), projetar(6, 20)],
+    ];
+    const { imagemParaPlano } = calibrar({ cantos, larguraM: PORTA.largura, alturaM: PORTA.altura }, arestas);
+    for (const X of [-3, 2, 9]) {
+      const [a, b] = [aplicar(imagemParaPlano, projetar(X, 0))!, aplicar(imagemParaPlano, projetar(X, 18))!];
+      expect(Math.abs(b.x - a.x)).toBeLessThan(0.04);
+    }
+  });
 });
 
 describe('problemaDaReferencia', () => {

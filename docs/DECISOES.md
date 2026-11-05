@@ -5404,3 +5404,121 @@ Verificado:
   só com os ficheiros deste commit;
 - e2e em Chromium a 1280 e a 390 px com a fotografia real: 0 falhas, sem scroll horizontal, sem
   erros de consola.
+
+## 05/11/2026 — «Propor as arestas»: a fotografia propõe as verticais e as horizontais, o avaliador confirma
+
+**De onde veio.** Era o próximo passo da entrada anterior: o que mais reduz a margem da área sem o
+avaliador fazer mais nada. Até aqui, as arestas que acertam o endireitamento (uma vertical comprida e
+duas horizontais) eram traçadas à mão, com o erro do dedo nas pontas.
+
+**O que é.** No passo 3, depois de desenhar o contorno, o botão «Propor as arestas» procura na própria
+fotografia, no aparelho, **duas verticais compridas e afastadas** e **duas horizontais da fachada**, uma
+na parte de baixo e outra na de cima. Aparecem a tracejado ciano por cima da fachada, com a margem antes
+e depois. Um toque numa reta tira-a; «Aceitar as N» junta as que ficam aos acertos, como um só passo de
+«Desfazer»; «Descartar» deixa tudo como estava. O método está descrito, passo a passo, no cabeçalho de
+`src/app/demo-areas/arestasPropostas.ts`:
+- segmentos por um LSD simplificado numa cópia reduzida;
+- pontos de fuga por RANSAC dentro de um cone à volta da calibração atual;
+- refinamento subpíxel ao longo de toda a reta na fotografia à resolução cheia;
+- cada reta provada contra o ponto de fuga dos **outros** objetos (as duas arestas de um tubo de queda
+  contam como um só);
+- a «concordância»: enquanto a calibração discordar das retas compridas da fotografia, junta-se a que
+  mais discorda.
+
+Melhor nada do que uma reta errada: uma reta 2 px ao lado da aresta estraga o que devia corrigir.
+
+**Desvio ao pedido, decidido na construção.** O pedido era «a vertical e as duas horizontais». Propõem-se
+**duas** verticais afastadas, mesmo quando já há a vertical do passo 2: com uma só, o ponto de fuga vertical
+fica decidido por ela e pelas ombreiras curtas da porta, e na fotografia do promotor a vista ficava torta
+do lado oposto. A sugestão da margem (`comoReduzirAMargem`) também passou a pedir «duas verticais compridas,
+longe uma da outra, e duas horizontais», e só diz «mesmo com duas verticais e duas horizontais» quando estão
+de facto afastadas (`oQueFalta`).
+
+**Regra do domínio mudada: `calibrar` pesa as verticais pelo comprimento**, as ombreiras da referência
+incluídas, como já fazia com as horizontais (`src/domain/homografia.ts`). Até aqui as verticais pesavam por
+igual: as ombreiras da porta valiam tanto como uma esquina de baixo a cima, e isso deitava fora a precisão
+das arestas propostas (centésimos de píxel). Na fotografia do promotor, com a porta tocada no e2e, a
+vertical do passo 2, as quatro arestas propostas e o mesmo contorno:
+- por igual, as esquinas ficavam 0,34–0,48° fora do prumo na vista e a procura seguinte acusava 12 cm de
+  inclinação em 19 m;
+- pelo comprimento, 0,10–0,28°, e a procura seguinte concorda. As áreas quase não mudam: 214,41 contra
+  214,17 m².
+
+Sem propostas, a regra nova foi comparada com a antiga em 17 casos × 3 câmaras × 3 erros de toque, com 200
+a 1000 sementes por caso. Com o mesmo erro em todos os toques, nunca é pior em média. Só piora um pouco
+fora do modelo da margem:
+- referência tocada 2–3× pior do que uma vertical curta bem traçada: mediana 1,67 → 1,90 %, cobertura
+  78 → 71 %;
+- uma vertical comprida traçada 3 px fora da aresta: cobertura 95 → 88 %.
+
+Mantém-se.
+
+**Números.**
+- Na fotografia do promotor, com a vertical do passo 2, saem 4 retas: a margem do contorno passa de
+  ± 5,1 % para ± 1,7 % e o contorno de 220,52 para 214,41 m².
+- Na mesma fotografia, sem a vertical do passo 2, saem 5 retas, uma delas a aresta direita da parede
+  branca: ± 15,9 % → ± 1,6 %, 208,65 m². Nos dois casos, propor outra vez dá «nada a propor».
+- A vertical do passo 2 do e2e fica 3,8 px fora da aresta: daí os 2,7 % entre os dois resultados, um erro
+  sistemático que a margem não vê.
+- Na fachada sintética dos testes, com a porta tocada com ±2 px, o erro mediano da área desce de 13,4 %
+  para menos de 4 %.
+
+**Duas rondas de céticos.**
+- **Primeira ronda** (geometria, ecrã, código). Corrigidos:
+  - um tubo de queda inclinado proposto como vertical;
+  - horizontais dos pisos de cima perdidas com a referência mal tocada;
+  - textos que prometiam o que não cumpriam;
+  - o aviso depois de aceitar;
+  - tirar todas as propostas;
+  - o plural;
+  - a deteção das janelas refeita ao voltar;
+  - o tempo ao aceitar;
+  - o contraste do traço;
+  - arrastos que desenhavam zonas com propostas pendentes.
+- **Segunda ronda.** 22 defeitos reproduzidos, 13 marcados como erro, todos corrigidos e verificados um a
+  um por outro agente:
+  - **Tubo de queda.** Numa empena com poucas verticais compridas, um tubo inclinado 0,2–1° era proposto
+    como «a vertical» e a esquina verdadeira deitada fora: 217 casos em 420, agora 0. As duas arestas do
+    tubo provavam-se uma à outra.
+  - **Famílias trocadas.** Com a porta muito mal tocada (σ = 5 px), arestas de laje saíam como verticais,
+    e a área explodia: agora nenhuma.
+  - **Concordância.** Com a calibração exata, propunha retas: agora desconta a incerteza do ponto de fuga
+    da fotografia, e nada a propor.
+  - **Vista torta.** Sem a vertical do passo 2, aceitar deixava a vista torta sem aviso. Agora a aresta
+    que faltava (a direita da parede branca, 53.ª em apoio) é encontrada. Quando a vista fica torta, o
+    ecrã diz de que lado e quanto, em cm, metros e graus, sem píxeis, logo ao propor e depois de aceitar,
+    e só quando isso mexe na área mais do que a margem.
+  - **Estado.** Com propostas pendentes, um toque só tira propostas. O aviso de cada aceite guarda-se com
+    ele, e fica ao ir ao passo 2 e voltar.
+  - **Testes.** A verificação final deixou três reparos menores, corrigidos com teste:
+    - o ecrã dizia «não se encontrou ali uma aresta fiável» quando quem mede a tinha tirado; agora aponta
+      «Propor as arestas» antes de traçar à mão;
+    - «as horizontais concordam» com 4 px de desacerto;
+    - a nota mínima das retas, que nenhum teste segurava (`notaDaReta`).
+
+    Testes permanentes: 30 em `arestasPropostas.test.ts`. Cada regra foi tirada uma a uma (mutação), e
+    cada uma faz falhar pelo menos um.
+
+**Limites que ficam** (detalhe no cabeçalho de `arestasPropostas.ts`):
+- Uma grande angular sem correção curva as retas: a proposta é a corda da parte que passa as provas.
+- Duas arestas quase na mesma reta só se separam a partir de ~2,5 px de degrau.
+- Numa empena com uma esquina escondida, contra só as ombreiras, um tubo até ~0,35° não se distingue de
+  uma esquina.
+- A margem conta as pontas propostas com o mesmo 1 px das traçadas à mão (pessimista para elas), e
+  continua sem ver erros sistemáticos, como uma vertical do passo 2 fora da aresta.
+- O traço ciano fica entre 2,6:1 e 3,0:1 contra o pior lado em até 1,9 % da reta.
+- Num telemóvel lento (CPU 4× mais lento), propor ocupa a página ~0,8–0,9 s e aceitar ~0,6 s, sempre
+  depois de o botão mostrar «A procurar…» ou «A aplicar…».
+- A 390 px, um duplo toque no «Propor as arestas» por baixo da sugestão muda a vista para «Fotografia
+  inteira».
+- Não há «Propor as arestas» antes de desenhar o contorno: é o contorno que diz onde está a fachada.
+
+**Verificado:**
+- typecheck, lint (0 erros, os mesmos 28 avisos), prettier, 1844 testes e build, todos com código 0, num
+  diretório limpo só com os ficheiros deste commit;
+- e2e em Chromium a 1280 e a 390 px com a fotografia real: 63 OK e 0 falhas em cada largura;
+- os cenários da fotografia real com as propostas (com e sem a vertical do passo 2, tirar a aresta
+  direita, propostas pendentes): tudo certo nas duas larguras, sem erros de consola.
+
+A fotografia do promotor não entra no repositório: os testes permanentes usam só a fachada sintética
+(`fachadaSintetica.ts`).

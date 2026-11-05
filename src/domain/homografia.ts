@@ -296,9 +296,15 @@ export function problemaDaReferencia(ref: ReferenciaRetangular): string | null {
  * errada. Ao contrário das verticais, só servem horizontais **do plano da fachada** (ou paralelas a
  * ele): horizontais de outras paredes vão para outro ponto de fuga.
  *
- * As horizontais entram pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a
- * base e o topo da porta, curtos e errados, valeriam tanto como elas. As verticais continuam com o
- * peso igual de sempre.
+ * As arestas entram pesadas pelo comprimento (`pontoDeFuga`, `pesarPeloComprimento`): senão a base e
+ * o topo da porta, curtos e errados, valeriam tanto como as horizontais compridas, e as ombreiras tanto
+ * como uma esquina de baixo a cima. É o peso certo para o mesmo erro nas pontas de cada segmento (o
+ * ângulo erra ~1/comprimento). Até 04/11/2026 as verticais pesavam por igual; com as arestas propostas
+ * pela fotografia (`arestasPropostas.ts`, ao centésimo de píxel) isso deitava fora a precisão delas. Na
+ * fotografia do promotor, com a porta tocada no e2e (as ombreiras apontam a um ponto de fuga 3° ao lado
+ * do das esquinas), a vertical do passo 2, uma vertical proposta e duas horizontais, o mesmo quadrilátero
+ * da fotografia: por igual, a esquina esquerda do prédio ficava 1,3° inclinada na vista e o contorno
+ * media 224,4 m² (214,7 com a esquina como terceira vertical); pelo comprimento, 0,46° e 218,1 m² (214,8).
  *
  * **Uma só horizontal não chega para a fachada toda, e longe dela pode piorar.** Uma reta só diz
  * que o ponto de fuga está algures nela; onde, ao longo dela, continuam a decidir a base e o topo da
@@ -340,8 +346,9 @@ export function calibrar(
   const [be, bd, td, te] = ref.cantos;
   let fugaVertical: Homogeneo | undefined;
   if (arestasVerticais.length > 0) {
-    // As ombreiras da própria referência também são verticais: entram no ponto de fuga com as arestas.
-    fugaVertical = pontoDeFuga([[be, te], [bd, td], ...arestasVerticais]);
+    // As ombreiras da própria referência também são verticais: entram no ponto de fuga com as arestas,
+    // pesadas pelo comprimento como elas.
+    fugaVertical = pontoDeFuga([[be, te], [bd, td], ...arestasVerticais], { pesarPeloComprimento: true });
   }
   let fugaHorizontal: Homogeneo | undefined;
   if (arestasHorizontais.length > 0) {

@@ -39,6 +39,18 @@ import {
 } from '@/domain/fachadaMedida';
 import { calibracoesMexidas, margemCombinada, margemNasCalibracoes, type MargemDaArea } from '@/domain/margemDaArea';
 import { Dica } from '@/components/Dica';
+import {
+  concordancia,
+  fraseDaInclinacao,
+  fraseDasArestas,
+  oQueFalta,
+  proporArestas,
+  type ArestaProposta,
+  type ArestasExistentes,
+  type Inclinacao,
+  type ResultadoDasArestas,
+  type RetasDaFotografia,
+} from './arestasPropostas';
 import { cantoMaisProximo } from './cantos';
 import { detetarJanelas, type JanelaDetetada } from './deteccao';
 import { Lupa } from './Lupa';
@@ -456,10 +468,27 @@ export function MedirFachada() {
     });
   }, [calibracao]);
 
-  /** Muda os acertos (as zonas seguem pela calibração nova — ver acima). */
-  const mudarAcertos = (novos: Acertos) => {
-    if (!calibrarCom(novos)) return;
-    setDesenho((d) => ({ ...d, acertos: novos, anteriores: [...d.anteriores.slice(-99), instantaneo(d)] }));
+  /**
+   * Muda os acertos, num passo de «Desfazer». As zonas seguem pela calibração nova já aqui, no mesmo
+   * passo, e não no efeito acima: senão a vista endireitada desenhava-se duas vezes — uma com a
+   * calibração nova e as zonas antigas, outra com o enquadramento das zonas levadas (avaliação de
+   * 04/11/2026: aceitar três arestas parava o ecrã 1,3 s num telemóvel lento). `marca` é o instantâneo
+   * que fica no topo dos anteriores (por omissão, o de agora). Falso se os acertos não derem calibração.
+   */
+  const mudarAcertos = (novos: Acertos, marca?: Instantaneo): boolean => {
+    const nova = calibrarCom(novos);
+    if (!nova) return false;
+    setDesenho((d) => {
+      const levar = !!d.base && d.zonas.length > 0;
+      return {
+        ...d,
+        acertos: novos,
+        zonas: levar ? levarZonas(d.zonas, d.base!, nova, ORIGENS_DAS_ZONAS) : d.zonas,
+        base: levar ? nova.planoParaImagem : d.base,
+        anteriores: [...d.anteriores.slice(-99), marca ?? instantaneo(d)],
+      };
+    });
+    return true;
   };
   const acertar = (a: Ponto, b: Ponto) => {
     if (!calibracao) return;
@@ -495,10 +524,18 @@ export function MedirFachada() {
   // passo 4, ~8 ms com 18 zonas e ~85–105 ms com 123 (antes, 50 e 270 ms). E a tecla não espera por
   // elas: a margem do passo 4 segue as opções com `useDeferredValue` — escreve-se o número, e a margem
   // refaz-se a seguir, numa renderização que o React larga se vier outra tecla; até lá, aparece esbatida.
-  const arestasMarcadas: ArestasMarcadas = {
-    verticais: arestas.length + desenho.acertos.verticais.length,
-    horizontais: desenho.acertos.horizontais.length,
-  };
+  // O que as arestas marcadas fixam (`oQueFalta`): duas verticais compridas e afastadas, e uma horizontal
+  // em baixo e outra em cima. É o que a sugestão da margem conta (`comoReduzirAMargem`).
+  const arestasMarcadas: ArestasMarcadas = useMemo(() => {
+    if (!calibracao || !foto) return { duasVerticais: false, duasHorizontais: false };
+    const falta = oQueFalta(
+      calibracao,
+      zonas.filter((z) => z.tipo === 'fachada'),
+      { verticais: [...arestas, ...desenho.acertos.verticais], horizontais: desenho.acertos.horizontais },
+      { width: foto.largura, height: foto.altura },
+    );
+    return { duasVerticais: !falta.vertical, duasHorizontais: !falta.baixo && !falta.cima };
+  }, [calibracao, foto, zonas, arestas, desenho.acertos]);
   const margemVisivel = passo === 3 || passo === 4;
   const temContornoDesenhado = zonas.some((z) => z.tipo === 'fachada');
   const mexidas = useMemo(
@@ -528,6 +565,89 @@ export function MedirFachada() {
         : null,
     [passo, mexidas, contornosEm, temContornoDesenhado],
   );
+  // As arestas propostas (`proporArestas`): o que já entra na calibração, e a margem do contorno se
+  // forem aceites — pelo mesmo caminho que dá a margem do ecrã.
+  const arestasExistentes: ArestasExistentes = {
+    verticais: [...arestas, ...desenho.acertos.verticais],
+    horizontais: desenho.acertos.horizontais,
+  };
+  const margemComMaisAcertos = (mais: Acertos): MargemDaArea | null => {
+    if (!referencia || !baseDasZonas || !temContornoDesenhado) return null;
+    const cals = calibracoesMexidas(
+      referencia,
+      [...arestas, ...desenho.acertos.verticais, ...mais.verticais],
+      [...desenho.acertos.horizontais, ...mais.horizontais],
+    );
+    if (!cals) return null;
+    // O contorno como fica depois de aceitar (levado pela fotografia, `levarZonas`, como no ecrã): a área
+    // e a margem que a previsão mostra são as que aparecem a seguir.
+    const contornos = levarZonas(
+      zonas.filter((z) => z.tipo === 'fachada'),
+      baseDasZonas,
+      cals.base,
+      ORIGENS_DAS_ZONAS,
+    );
+    return margemNasCalibracoes(cals, contornoNaCalibracao(zonasNaCalibracao(contornos, cals.base.planoParaImagem)));
+  };
+  // A calibração com mais arestas juntas aos acertos: a procura das arestas propõe de uma vez as que
+  // fazem a calibração concordar com a fotografia (`proporArestas`, `calibrarCom`).
+  const calibrarComMais = (vs: [Ponto, Ponto][], hs: [Ponto, Ponto][]) =>
+    calibrarCom({ verticais: [...desenho.acertos.verticais, ...vs], horizontais: [...desenho.acertos.horizontais, ...hs] });
+  // Depois de aceitar arestas que mudaram a área do contorno mais do que a margem que ela tinha: o aviso
+  // fica enquanto o último passo for esse aceite (`marca` no topo dos anteriores) — o conselho dele,
+  // «Desfazer o último passo», só é verdade aí, e os números só valem para esse contorno — e enquanto a
+  // referência e a vertical do passo 2 forem as mesmas. Desenhar um vão ou mexer no contorno tira-o;
+  // desfazer esse passo devolve-o. Guardam-se todos (um por aceite): com dois aceites seguidos, desfazer o
+  // segundo devolvia o estado que o primeiro aviso dava como errado, sem aviso nenhum (avaliação de
+  // 05/11/2026); e ir ao passo 2 e voltar sem mudar nada tirava-o.
+  const [avisosDoAcerto, setAvisosDoAcerto] = useState<AvisoGuardado[]>([]);
+  const topoDosAnteriores = desenho.anteriores[desenho.anteriores.length - 1];
+  const avisoDoAcerto =
+    avisosDoAcerto.find((a) => a.marca === topoDosAnteriores && a.referencia === referencia && a.arestas === arestas) ?? null;
+  const aceitarArestas = (mais: Acertos) => {
+    const antes = margemDoContorno;
+    const depois = margemComMaisAcertos(mais);
+    const novos: Acertos = {
+      verticais: [...desenho.acertos.verticais, ...mais.verticais],
+      horizontais: [...desenho.acertos.horizontais, ...mais.horizontais],
+    };
+    const marca = instantaneo(desenho);
+    if (!mudarAcertos(novos, marca)) return;
+    if (referencia && antes && depois && Math.abs(depois.areaM2 - antes.areaM2) > antes.margemM2)
+      setAvisosDoAcerto((as) => [...as.slice(-99), { marca, referencia, arestas, antes, depois }]);
+  };
+
+  // O que a última procura viu na fotografia (`RetasDaFotografia`): com ela, o ecrã confere qualquer
+  // calibração — depois de aceitar, de traçar à mão, de desfazer — e diz se a vista ainda sai torta, e
+  // onde. Na avaliação de 05/11/2026, sem a vertical do passo 2, a primeira procura já sabia que, aceites
+  // as quatro arestas, a vista ficava 15 cm torta em 12 m do lado direito, e o ecrã só o dizia se se
+  // voltasse a procurar.
+  const [retasDaFotografia, setRetasDaFotografia] = useState<{ foto: Foto; retas: RetasDaFotografia } | null>(null);
+  const contornosDesenhados = zonas.filter((z) => z.tipo === 'fachada');
+  /**
+   * Com mais estas arestas, onde a vista ainda sai torta — só se isso mudar a área do contorno mais do que
+   * a margem que ela teria (`TortaQueConta`): com a aresta que a fotografia pede ali (a reta que vai ao
+   * ponto de fuga dela), a área com e sem. Uma inclinação que não mexe na área não se avisa: a distorção
+   * da lente deixa sempre alguma, e não há aresta que a tire.
+   */
+  const tortaCom = (mais: Acertos): TortaQueConta | null => {
+    if (!retasDaFotografia || retasDaFotografia.foto !== foto || !foto || !baseDasZonas || !temContornoDesenhado) return null;
+    const nova = mais.verticais.length + mais.horizontais.length > 0 ? calibrarComMais(mais.verticais, mais.horizontais) : calibracao;
+    if (!nova) return null;
+    const contornos = levarZonas(contornosDesenhados, baseDasZonas, nova, ORIGENS_DAS_ZONAS);
+    const c = concordancia(retasDaFotografia.retas, nova, contornos, { width: foto.largura, height: foto.altura });
+    if (!c.torta) return null;
+    const reta: [Ponto, Ponto] = [c.torta.reta.a, c.torta.reta.b];
+    const antes = margemComMaisAcertos(mais);
+    const depois = margemComMaisAcertos(
+      c.torta.tipo === 'vertical'
+        ? { verticais: [...mais.verticais, reta], horizontais: mais.horizontais }
+        : { verticais: mais.verticais, horizontais: [...mais.horizontais, reta] },
+    );
+    if (!antes || !depois || !(Math.abs(depois.areaM2 - antes.areaM2) > antes.margemM2)) return null;
+    return { torta: c.torta, antes, depois };
+  };
+
   const opcoesDaMargem = useDeferredValue(opcoesDaFachada);
   const salienciaDaMargem = useDeferredValue(salienciaM);
   const salienciaVarandaDaMargem = useDeferredValue(salienciaVarandaM);
@@ -673,6 +793,13 @@ export function MedirFachada() {
           avisoAcertos={avisoDasHorizontais(desenho.acertos.horizontais)}
           margem={margemDoContorno}
           arestasMarcadas={arestasMarcadas}
+          arestasExistentes={arestasExistentes}
+          margemComMaisAcertos={margemComMaisAcertos}
+          onAceitarArestas={aceitarArestas}
+          avisoDoAcerto={avisoDoAcerto}
+          calibrarComMais={calibrarComMais}
+          tortaCom={tortaCom}
+          onRetasDaFotografia={(retas) => setRetasDaFotografia({ foto, retas })}
           onAcertar={acertar}
           onAnularAcertos={() => mudarAcertos(SEM_ACERTOS)}
           onVoltar={() => setPasso(2)}
@@ -858,6 +985,13 @@ function PassoDesenhar({
   avisoAcertos,
   margem,
   arestasMarcadas,
+  arestasExistentes,
+  margemComMaisAcertos,
+  onAceitarArestas,
+  avisoDoAcerto,
+  calibrarComMais,
+  tortaCom,
+  onRetasDaFotografia,
   onAcertar,
   onAnularAcertos,
   onVoltar,
@@ -878,6 +1012,20 @@ function PassoDesenhar({
   margem: MargemDaArea | null;
   /** As arestas que já entram na calibração: as verticais do passo 2 e dos acertos, e as horizontais dos acertos. */
   arestasMarcadas: ArestasMarcadas;
+  /** As mesmas, em píxeis da fotografia: o que `proporArestas` conta como já marcado. */
+  arestasExistentes: ArestasExistentes;
+  /** A margem do contorno se estas arestas se juntassem aos acertos. */
+  margemComMaisAcertos: (mais: Acertos) => MargemDaArea | null;
+  /** Junta as arestas aos acertos, num só passo de «Desfazer». */
+  onAceitarArestas: (mais: Acertos) => void;
+  /** Depois de aceitar arestas que mudaram a área mais do que a margem: o aviso, em âmbar. */
+  avisoDoAcerto: AvisoDoAcerto | null;
+  /** A calibração com estas arestas juntas às que já entram nela (nula se não der). */
+  calibrarComMais: (verticais: [Ponto, Ponto][], horizontais: [Ponto, Ponto][]) => Calibracao | null;
+  /** Com mais estas arestas, onde a vista ainda sai torta, se isso mudar a área mais do que a margem (`TortaQueConta`). */
+  tortaCom: (mais: Acertos) => TortaQueConta | null;
+  /** O que a procura viu na fotografia, para o ecrã conferir as calibrações seguintes. */
+  onRetasDaFotografia: (retas: RetasDaFotografia) => void;
   onAcertar: (a: Ponto, b: Ponto) => void;
   onAnularAcertos: () => void;
   onVoltar: () => void;
@@ -898,7 +1046,23 @@ function PassoDesenhar({
   const [propostas, setPropostas] = useState<Zona[] | null>(null);
   const [pedidoDeteccao, setPedidoDeteccao] = useState(0);
   const [serie, setSerie] = useState<SeriePendente | null>(null);
-  const pendente = !!serie || !!propostas;
+  // Arestas propostas para acertar o endireitamento (`proporArestas`, no próprio aparelho), à espera de
+  // confirmação, como as janelas: o avaliador vê-as sobre a fachada, tira as que não assentam numa
+  // aresta do prédio e aceita as outras de uma vez.
+  const [arestasPropostas, setArestasPropostas] = useState<{
+    lista: (ArestaProposta & { id: string })[];
+    /** Quantas a procura propôs (as que faltam na lista tirou-as quem mede). */
+    encontradas: number;
+    faltavam: ResultadoDasArestas['faltavam'];
+    desacerto: ResultadoDasArestas['desacerto'];
+  } | null>(null);
+  const [aProcurarArestas, setAProcurarArestas] = useState(false);
+  const [aAceitarArestas, setAAceitarArestas] = useState(false);
+  const pendente = !!serie || !!propostas || !!arestasPropostas || aProcurarArestas;
+  // A deteção de janelas já respondida: a vista endireitada desmonta-se ao ver a fotografia original e,
+  // ao voltar, não a deve refazer (avaliação de 04/11/2026: voltar refazia-a, e as propostas aceites
+  // davam lugar a «Não se encontraram janelas claras»).
+  const [deteccaoFeita, setDeteccaoFeita] = useState(0);
   const [verOriginal, setVerOriginal] = useState(false);
   // Acertar o endireitamento (promotor, 04/11/2026: "o erro levou a ligeira inclinação do prédio"):
   // arrasta-se ao longo de uma aresta que devia estar direita e o prédio endireita-se por ela.
@@ -923,6 +1087,55 @@ function PassoDesenhar({
     setModo(m);
     setSerie(null);
   };
+
+  const proporAsArestas = () => {
+    setSelecionadaId(null);
+    setModoAcerto(false);
+    setAProcurarArestas(true);
+    // Primeiro o botão mostra «A procurar…» (`depoisDePintar`): a procura ocupa o telemóvel uns décimos de segundo.
+    depoisDePintar(() => {
+      try {
+        const r = proporArestas(foto.pixeis, calibracao, {
+          contornos: zonas.filter((z) => z.tipo === 'fachada'),
+          existentes: arestasExistentes,
+          calibrarCom: calibrarComMais,
+        });
+        onRetasDaFotografia(r.fotografia);
+        setArestasPropostas({
+          lista: r.propostas.map((p, i) => ({ ...p, id: `aresta-${i}` })),
+          encontradas: r.propostas.length,
+          faltavam: r.faltavam,
+          desacerto: r.desacerto,
+        });
+      } finally {
+        setAProcurarArestas(false);
+      }
+    });
+  };
+  const acertosPropostos = (lista: ArestaProposta[]): Acertos => ({
+    verticais: lista.filter((a) => a.tipo === 'vertical').map((a): [Ponto, Ponto] => [a.a, a.b]),
+    horizontais: lista.filter((a) => a.tipo === 'horizontal').map((a): [Ponto, Ponto] => [a.a, a.b]),
+  });
+  // A margem do contorno com as arestas que ainda estão propostas: muda quando se tira uma, e quando
+  // muda o contorno (a margem de agora, `margem`, muda com ele; os acertos não mudam com propostas pendentes).
+  const margemProposta = useMemo(
+    () => (arestasPropostas && arestasPropostas.lista.length > 0 ? margemComMaisAcertos(acertosPropostos(arestasPropostas.lista)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [arestasPropostas, margem],
+  );
+  // Onde a vista ainda sai torta, se isso mexer na área mais do que a margem: com as propostas que ficam
+  // (dito ao propor), ou com o que já está aceite (dito depois de aceitar, de traçar à mão, de desfazer).
+  const tortaPendente = useMemo(
+    () => (arestasPropostas && arestasPropostas.lista.length > 0 ? tortaCom(acertosPropostos(arestasPropostas.lista)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [arestasPropostas, margem],
+  );
+  const tortaAgora = useMemo(
+    () => (arestasPropostas && arestasPropostas.lista.length > 0 ? null : tortaCom({ verticais: [], horizontais: [] })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [arestasPropostas, margem, calibracao],
+  );
+  const propostasPendentes = !!propostas || !!arestasPropostas || aProcurarArestas;
 
   const aoDesenhar = (a: Ponto, b: Ponto) => {
     const z = zonaDeDoisCantos(novoId(), tipoAtivo, a, b, canto ?? undefined);
@@ -955,7 +1168,17 @@ function PassoDesenhar({
 
   let instrucao: ReactNode;
   let como: ReactNode = frase.como;
-  if (propostas) {
+  if (arestasPropostas) {
+    const f = fraseDasArestas({
+      ...arestasPropostas,
+      ficam: arestasPropostas.lista.length,
+      // A inclinação que fica só se diz se mexer na área mais do que a margem (`tortaCom`).
+      desacerto: { ...arestasPropostas.desacerto, torta: tortaAgora?.torta ?? null },
+      tortaDepois: tortaPendente?.torta ?? null,
+    });
+    instrucao = <>{f.titulo}</>;
+    como = f.frase;
+  } else if (propostas) {
     instrucao =
       propostas.length === 0 ? (
         <>Não se encontraram janelas claras</>
@@ -969,7 +1192,7 @@ function PassoDesenhar({
   } else if (modoAcerto) {
     instrucao = <>Arrastar ao longo de uma aresta que devia estar direita</>;
     como =
-      'De preferência uma vertical comprida (canto do prédio, tubo de queda), de uma ponta à outra. Horizontais, só duas a alturas diferentes (a cimalha e a linha das janelas de um piso): uma sozinha pode piorar longe dela.';
+      'De preferência uma vertical comprida (canto do prédio, aresta de uma coluna de janelas), de uma ponta à outra. Horizontais, só duas a alturas diferentes (a cimalha e a linha das janelas de um piso): uma sozinha pode piorar longe dela.';
   } else if (!temContorno) instrucao = <>Primeiro, o contorno da fachada</>;
   else if (emSerie && !serie) {
     instrucao = <>Desenhar {frase.primeiro} da série</>;
@@ -991,10 +1214,10 @@ function PassoDesenhar({
         Desenhar o prédio
         <Dica rotulo="Como desenhar">
           A fotografia já está endireitada e à escala — cada quadrado da grelha é 1 m. Confirmar que as arestas verticais do prédio ficaram
-          verticais; se não ficaram, «Acertar o endireitamento». Marquises e varandas desenham-se pela frente, tal como se veem: saem da
-          parede e por isso aparecem maiores, e com a saliência medida (no passo 4) a ferramenta corrige o tamanho das marquises. Os vidros
-          das marquises e as montras do R/C desenham-se como vãos — é assim que se descontam. Janelas repetidas de piso para piso
-          desenham-se depressa em série: o primeiro, o último, e quantos são.
+          verticais; se não ficaram, «Propor as arestas» (a ferramenta procura-as na fotografia) ou «Acertar o endireitamento». Marquises e
+          varandas desenham-se pela frente, tal como se veem: saem da parede e por isso aparecem maiores, e com a saliência medida (no passo
+          4) a ferramenta corrige o tamanho das marquises. Os vidros das marquises e as montras do R/C desenham-se como vãos — é assim que
+          se descontam. Janelas repetidas de piso para piso desenham-se depressa em série: o primeiro, o último, e quantos são.
         </Dica>
       </h2>
 
@@ -1005,7 +1228,7 @@ function PassoDesenhar({
             type="button"
             role="radio"
             aria-checked={tipoAtivo === t}
-            disabled={t !== 'fachada' && !temContorno}
+            disabled={(t !== 'fachada' && !temContorno) || propostasPendentes}
             className={tipoAtivo === t ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
             onClick={() => escolherTipo(t)}
           >
@@ -1060,8 +1283,18 @@ function PassoDesenhar({
         <p className="text-[13px] font-medium text-slate-500">Agora</p>
         <p className="text-[20px] font-semibold leading-snug text-slate-900">{instrucao}</p>
         <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">{como}</p>
+        {arestasPropostas && arestasPropostas.lista.length > 0 && <PrevisaoDasArestas antes={margem} depois={margemProposta} />}
+        {avisoDoAcerto && !arestasPropostas && <TextoDoAvisoDoAcerto aviso={avisoDoAcerto} />}
+        {arestasPropostas && arestasPropostas.lista.length > 0 && tortaPendente && <TextoDaTortaNaArea t={tortaPendente} />}
+        {arestasPropostas && arestasPropostas.lista.length === 0 && tortaAgora && <TextoDaTortaNaArea t={tortaAgora} />}
+        {!arestasPropostas && tortaAgora && (
+          <>
+            <p className="mt-1 max-w-[60ch] text-[15px] font-medium text-amber-800">{fraseDaInclinacao(tortaAgora.torta)}</p>
+            <TextoDaTortaNaArea t={tortaAgora} />
+          </>
+        )}
         {avisoAcertos && !modoAcerto && <p className="mt-1 text-[15px] font-medium text-amber-800">{avisoAcertos}</p>}
-        {temContorno && !selecionada && !emSerie && (
+        {temContorno && !selecionada && !emSerie && !arestasPropostas && (
           <p className="mt-1 text-[13px] text-slate-500">
             Enganou-se? «Desfazer o último passo» volta um passo atrás; para acertar uma zona já desenhada, tocar nela.
           </p>
@@ -1085,7 +1318,39 @@ function PassoDesenhar({
               {propostas.length === 0 ? 'Fechar' : 'Descartar'}
             </button>
           )}
-          {temContorno && !propostas && !serie && !modoAcerto && (
+          {arestasPropostas && arestasPropostas.lista.length > 0 && (
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              disabled={aAceitarArestas}
+              onClick={() => {
+                const lista = arestasPropostas.lista;
+                setAAceitarArestas(true);
+                // Primeiro o botão mostra «A aplicar…»: a vista endireitada refaz-se com a calibração
+                // nova, e isso ocupa o telemóvel uns décimos de segundo (0,6 a 0,8 s com o CPU 4× mais lento).
+                depoisDePintar(() => {
+                  try {
+                    onAceitarArestas(acertosPropostos(lista));
+                    setArestasPropostas(null);
+                  } finally {
+                    setAAceitarArestas(false);
+                  }
+                });
+              }}
+            >
+              {aAceitarArestas
+                ? 'A aplicar…'
+                : arestasPropostas.lista.length === 1
+                  ? 'Aceitar a aresta'
+                  : `Aceitar as ${arestasPropostas.lista.length}`}
+            </button>
+          )}
+          {arestasPropostas && (
+            <button type="button" className="btn-quiet btn-sm" disabled={aAceitarArestas} onClick={() => setArestasPropostas(null)}>
+              {arestasPropostas.lista.length === 0 ? 'Fechar' : 'Descartar'}
+            </button>
+          )}
+          {temContorno && !propostas && !arestasPropostas && !aProcurarArestas && !serie && !modoAcerto && (
             <button
               type="button"
               className="btn-secondary btn-sm"
@@ -1100,7 +1365,7 @@ function PassoDesenhar({
           <button
             type="button"
             className="btn-quiet btn-sm"
-            disabled={(!podeDesfazer && !serie) || !!propostas}
+            disabled={(!podeDesfazer && !serie) || !!propostas || !!arestasPropostas || aProcurarArestas}
             onClick={() => (serie ? setSerie(null) : desfazer())}
           >
             Desfazer o último passo
@@ -1116,7 +1381,12 @@ function PassoDesenhar({
           >
             {modoAcerto ? 'Cancelar o acerto' : 'Acertar o endireitamento'}
           </button>
-          {selecionada && (
+          {temContorno && !propostas && !arestasPropostas && !serie && !modoAcerto && (
+            <button type="button" className="btn-secondary btn-sm" disabled={aProcurarArestas} onClick={proporAsArestas}>
+              {aProcurarArestas ? 'A procurar…' : 'Propor as arestas'}
+            </button>
+          )}
+          {selecionada && !propostasPendentes && (
             <button
               type="button"
               className="btn-quiet btn-sm"
@@ -1163,6 +1433,7 @@ function PassoDesenhar({
               <button
                 type="button"
                 className="btn-secondary btn-sm"
+                disabled={propostasPendentes}
                 onClick={() => {
                   setConfirmarRetirar(false);
                   onAnularAcertos();
@@ -1177,7 +1448,7 @@ function PassoDesenhar({
           ) : (
             <>
               <span>{acertos === 1 ? 'Endireitamento acertado por 1 aresta.' : `Endireitamento acertado por ${acertos} arestas.`}</span>
-              <button type="button" className="btn-quiet btn-sm" onClick={() => setConfirmarRetirar(true)}>
+              <button type="button" className="btn-quiet btn-sm" disabled={propostasPendentes} onClick={() => setConfirmarRetirar(true)}>
                 Retirar o acerto…
               </button>
             </>
@@ -1185,10 +1456,25 @@ function PassoDesenhar({
         </div>
       )}
 
-      {temContorno && <MargemDoContorno margem={margem} arestas={arestasMarcadas} />}
+      {temContorno && (
+        <MargemDoContorno
+          margem={margem}
+          arestas={arestasMarcadas}
+          // Enquanto procura, fica no mesmo sítio, desativado: um segundo toque impaciente caía no que
+          // subisse para o lugar dele (avaliação de 05/11/2026, a 390 px: «Ver a fotografia inteira»).
+          proporArestas={
+            !modoAcerto && (!pendente || aProcurarArestas) ? { aProcurar: aProcurarArestas, onClick: proporAsArestas } : undefined
+          }
+        />
+      )}
 
       {verOriginal ? (
-        <VistaOriginal foto={foto} calibracao={calibracao} zonas={zonas} />
+        <div className="space-y-2">
+          <VistaOriginal foto={foto} calibracao={calibracao} zonas={zonas} arestas={arestasPropostas?.lista ?? []} />
+          {arestasPropostas && arestasPropostas.lista.length > 0 && (
+            <p className="text-[13px] text-slate-600">As arestas propostas tiram-se na vista endireitada.</p>
+          )}
+        </div>
       ) : (
         <FachadaEndireitada
           foto={foto}
@@ -1204,8 +1490,9 @@ function PassoDesenhar({
             setModoAcerto(false);
             onAcertar(a, b);
           }}
-          pedidoDeteccao={pedidoDeteccao}
+          pedidoDeteccao={pedidoDeteccao > deteccaoFeita ? pedidoDeteccao : 0}
           onDetetadas={(ds) => {
+            setDeteccaoFeita(pedidoDeteccao);
             // Uma proposta em cima de um vão já desenhado não se repete.
             const existentes = zonas.filter((z) => z.tipo === 'vao');
             const novas = ds
@@ -1215,6 +1502,9 @@ function PassoDesenhar({
           }}
           propostas={propostas ?? []}
           onTirarProposta={(id) => setPropostas((ps) => (ps ? ps.filter((p) => p.id !== id) : ps))}
+          arestasPropostas={arestasPropostas?.lista ?? []}
+          onTirarAresta={(id) => setArestasPropostas((ap) => (ap ? { ...ap, lista: ap.lista.filter((a) => a.id !== id) } : ap))}
+          soToques={!!propostas || !!arestasPropostas}
           previas={previas}
           onDesenho={aoDesenhar}
           onAlterarZona={(nova) => mudarZonas((zs) => zs.map((z) => (z.id === nova.id ? nova : z)))}
@@ -1226,7 +1516,7 @@ function PassoDesenhar({
         Ver o desenho sobre a fotografia original
       </label>
 
-      <ListaDeZonas zonas={zonas} onApagar={(id) => mudarZonas((zs) => zs.filter((x) => x.id !== id))} />
+      <ListaDeZonas zonas={zonas} bloqueada={propostasPendentes} onApagar={(id) => mudarZonas((zs) => zs.filter((x) => x.id !== id))} />
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="btn-quiet btn-sm" disabled={pendente} onClick={onVoltar}>
@@ -1237,6 +1527,7 @@ function PassoDesenhar({
         </button>
         {serie && <p className="text-[13px] text-slate-500">Criar ou cancelar a série primeiro.</p>}
         {propostas && <p className="text-[13px] text-slate-500">Aceitar ou descartar as janelas propostas primeiro.</p>}
+        {arestasPropostas && <p className="text-[13px] text-slate-500">Aceitar ou descartar as arestas propostas primeiro.</p>}
       </div>
     </section>
   );
@@ -1299,7 +1590,16 @@ function LinhaDaMargem({
  * A margem de erro da área do contorno, numa linha discreta por cima da vista; acima de
  * `MARGEM_A_REDUZIR`, o que a reduz (`comoReduzirAMargem`). Ver `margemDaArea`.
  */
-function MargemDoContorno({ margem, arestas }: { margem: MargemDaArea | null; arestas: ArestasMarcadas }) {
+function MargemDoContorno({
+  margem,
+  arestas,
+  proporArestas,
+}: {
+  margem: MargemDaArea | null;
+  arestas: ArestasMarcadas;
+  /** Ao lado da sugestão, quando ainda faltam arestas: o mesmo que o botão «Propor as arestas» (desativado enquanto procura). */
+  proporArestas?: { aProcurar: boolean; onClick: () => void };
+}) {
   if (!margem) {
     return (
       <p className="text-[15px] font-medium text-amber-800">
@@ -1315,7 +1615,105 @@ function MargemDoContorno({ margem, arestas }: { margem: MargemDaArea | null; ar
         Margem de erro da área do contorno: <TextoDaMargem margem={margem} />.
       </p>
       {sugestao && <p className="text-[15px] font-medium text-amber-800">{sugestao}</p>}
+      {sugestao && proporArestas && !(arestas.duasVerticais && arestas.duasHorizontais) && (
+        <button type="button" className="btn-secondary btn-sm" disabled={proporArestas.aProcurar} onClick={proporArestas.onClick}>
+          {proporArestas.aProcurar ? 'A procurar…' : 'Propor as arestas'}
+        </button>
+      )}
     </div>
+  );
+}
+
+/**
+ * Corre `f` depois de o ecrã pintar o que já mudou — um «A procurar…» ou «A aplicar…» no botão antes de
+ * um cálculo que ocupa o telemóvel. O `requestAnimationFrame` corre antes da pintura seguinte e o
+ * `setTimeout` lá de dentro só depois dela; um `setTimeout` sozinho podia correr antes de pintar, e num
+ * telemóvel lento o botão nunca chegava a mostrar a frase (medido com o CPU 4× mais lento, 04/11/2026).
+ */
+function depoisDePintar(f: () => void) {
+  window.requestAnimationFrame(() => window.setTimeout(f, 0));
+}
+
+/** Um número da margem ou da área, que nunca se parte no fim de uma linha («±» sozinho, «m²» na seguinte). */
+function Inteiro({ children }: { children: ReactNode }) {
+  return <span className="whitespace-nowrap">{children}</span>;
+}
+
+/**
+ * Com as arestas propostas, a margem do contorno antes e depois; e, se a área do contorno mudar mais
+ * do que a margem que tinha, o aviso em âmbar — uma das duas calibrações está errada (o aviso de
+ * `MedirFachada` repete-o depois de aceitar, `TextoDoAvisoDoAcerto`).
+ */
+function PrevisaoDasArestas({ antes, depois }: { antes: MargemDaArea | null; depois: MargemDaArea | null }) {
+  if (!antes || !depois) return null;
+  const ta = textoDaMargem(antes);
+  const td = textoDaMargem(depois);
+  const mudaDeMais = Math.abs(depois.areaM2 - antes.areaM2) > antes.margemM2;
+  return (
+    <>
+      {ta && td && (
+        <p className="mt-1 max-w-[60ch] text-[15px] text-slate-600">
+          Com estas arestas, a margem do contorno passa de{' '}
+          <span className="whitespace-nowrap font-mono tabular-nums text-slate-900">{ta.percentagem ?? ta.m2}</span> para{' '}
+          <span className="whitespace-nowrap font-mono tabular-nums text-slate-900">{td.percentagem ?? td.m2}</span>.
+        </p>
+      )}
+      {mudaDeMais && (
+        <p className="mt-1 max-w-[60ch] text-[15px] font-medium text-amber-800">
+          Ao aceitar, a área do contorno passa de <Inteiro>{m(antes.areaM2)} m²</Inteiro> para <Inteiro>{m(depois.areaM2)} m²</Inteiro>,
+          mais do que a margem de <Inteiro>{ta?.m2 ?? '—'}</Inteiro>: uma das duas calibrações está errada. Conferir na vista se as retas
+          assentam nas arestas do prédio.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** A área do contorno antes e depois de aceitar arestas que a mudaram mais do que a margem que tinha. */
+interface AvisoDoAcerto {
+  antes: MargemDaArea;
+  depois: MargemDaArea;
+}
+
+/** Um aviso guardado com o passo que o deu (`marca`) e a referência e a vertical do passo 2 de então. */
+interface AvisoGuardado extends AvisoDoAcerto {
+  marca: unknown;
+  referencia: ReferenciaRetangular;
+  arestas: [Ponto, Ponto][];
+}
+
+/**
+ * Onde a vista ainda sai torta (`Concordancia.torta`), quando isso muda a área do contorno mais do que a
+ * margem: a área antes e com a aresta que a fotografia pede ali.
+ */
+interface TortaQueConta {
+  torta: Inclinacao;
+  antes: MargemDaArea;
+  depois: MargemDaArea;
+}
+
+/** O aviso depois de aceitar (ver `avisoDoAcerto` em `MedirFachada`): só aparece enquanto o último passo for o aceite. */
+function TextoDoAvisoDoAcerto({ aviso }: { aviso: AvisoDoAcerto }) {
+  return (
+    <p className="mt-1 max-w-[60ch] text-[15px] font-medium text-amber-800">
+      A área do contorno passou de <Inteiro>{m(aviso.antes.areaM2)} m²</Inteiro> para <Inteiro>{m(aviso.depois.areaM2)} m²</Inteiro>, mais
+      do que a margem de <Inteiro>{textoDaMargem(aviso.antes)?.m2 ?? '—'}</Inteiro> que tinha: uma das duas calibrações estava errada.
+      Conferir na vista se o prédio ficou direito; senão, «Desfazer o último passo».
+    </p>
+  );
+}
+
+/**
+ * Quanto a inclinação que a vista ainda tem mexe na área do contorno (`TortaQueConta`): a margem não a
+ * conta, e só se diz quando passa dela.
+ */
+function TextoDaTortaNaArea({ t }: { t: TortaQueConta }) {
+  return (
+    <p className="mt-1 max-w-[60ch] text-[15px] font-medium text-amber-800">
+      Acertada essa inclinação, a área do contorno passaria de <Inteiro>{m(t.antes.areaM2)} m²</Inteiro> para cerca de{' '}
+      <Inteiro>{m(t.depois.areaM2)} m²</Inteiro> — mais do que a margem de <Inteiro>{textoDaMargem(t.antes)?.m2 ?? '—'}</Inteiro>, que não a
+      conta.
+    </p>
   );
 }
 
@@ -1323,7 +1721,16 @@ function MargemDoContorno({ margem, arestas }: { margem: MargemDaArea | null; ar
  * As zonas agrupadas por tipo: quantas e quanto somam, à vista; o detalhe (e o "Apagar") abre-se.
  * Com 35 zonas numa lista corrida, o promotor tinha de descer o ecrã inteiro para chegar ao botão.
  */
-function ListaDeZonas({ zonas, onApagar }: { zonas: Zona[]; onApagar: (id: string) => void }) {
+function ListaDeZonas({
+  zonas,
+  bloqueada = false,
+  onApagar,
+}: {
+  zonas: Zona[];
+  /** Com propostas pendentes, nada se apaga: «Desfazer» está bloqueado até as aceitar ou descartar. */
+  bloqueada?: boolean;
+  onApagar: (id: string) => void;
+}) {
   if (zonas.length === 0) return null;
   return (
     <div className="divide-y divide-slate-200 rounded-lg border border-slate-200">
@@ -1350,7 +1757,7 @@ function ListaDeZonas({ zonas, onApagar }: { zonas: Zona[]; onApagar: (id: strin
                     {z.triangulo ? 'triângulo ' : ''}
                     {m(z.largura)} × {m(z.altura)} m = {m(areaDaZona(z))} m²
                   </span>
-                  <button type="button" className="btn-quiet btn-sm" onClick={() => onApagar(z.id)}>
+                  <button type="button" className="btn-quiet btn-sm" disabled={bloqueada} onClick={() => onApagar(z.id)}>
                     Apagar
                   </button>
                 </li>
@@ -1507,7 +1914,8 @@ function PassoReferencia(props: {
     como = 'Uma distância medida à fita longe da referência — a largura da fachada ao nível do passeio, uma montra do outro lado.';
   } else if (aMarcarAresta) {
     instrucao = arestaPendente ? <>Agora o outro extremo da aresta</> : <>Tocar num extremo de uma aresta vertical comprida</>;
-    como = 'Um canto do prédio ou um tubo de queda, do ponto mais baixo ao mais alto que se vê.';
+    como =
+      'Um canto do prédio ou a aresta de uma coluna de janelas, do ponto mais baixo ao mais alto que se vê. Um tubo de queda pode não estar a prumo.';
   } else {
     instrucao = <>Cantos marcados — escrever a largura e a altura reais</>;
     como = 'Para acertar um ponto, carregar nele e arrastar: move-se devagar, com a lupa por cima.';
@@ -1648,9 +2056,9 @@ function PassoReferencia(props: {
       {cantos.length === 4 && (
         <div className="space-y-2 rounded-lg border border-slate-200 p-4">
           <p className="max-w-[60ch] text-[15px] text-slate-700">
-            <strong>Recomendado:</strong> marcar também uma aresta vertical comprida do prédio — um canto, um tubo de queda — do ponto mais
-            baixo ao mais alto que se vê. A referência é curta e o prédio é alto; com uma aresta comprida, as alturas ficam cerca de quatro
-            vezes mais precisas.
+            <strong>Recomendado:</strong> marcar também uma aresta vertical comprida do prédio — um canto, a aresta de uma coluna de janelas
+            — do ponto mais baixo ao mais alto que se vê. A referência é curta e o prédio é alto; com uma aresta comprida, as alturas ficam
+            cerca de quatro vezes mais precisas.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" className="btn-secondary btn-sm" disabled={aMarcarAresta} onClick={() => props.setAMarcarAresta(true)}>
@@ -1883,6 +2291,9 @@ function FachadaEndireitada({
   onDetetadas,
   propostas,
   onTirarProposta,
+  arestasPropostas,
+  onTirarAresta,
+  soToques,
   previas,
   onDesenho,
   onAlterarZona,
@@ -1907,6 +2318,15 @@ function FachadaEndireitada({
   /** Janelas propostas à espera de confirmação: tocar numa tira-a. */
   propostas: Zona[];
   onTirarProposta: (id: string) => void;
+  /** Arestas propostas para acertar o endireitamento (píxeis da fotografia): tocar perto de uma tira-a. */
+  arestasPropostas: { id: string; a: Ponto; b: Ponto }[];
+  onTirarAresta: (id: string) => void;
+  /**
+   * Com propostas à espera (janelas ou arestas), a vista só aceita toques, e um toque só tira propostas:
+   * um dedo que escorrega ao tirar uma proposta desenhava um vão, e um toque ao lado escolhia uma zona que
+   * se podia apagar — nada disso se podia desfazer até aceitar ou descartar.
+   */
+  soToques: boolean;
   /** Pré-visualização de uma série por confirmar, a tracejado. */
   previas: Zona[];
   onDesenho: (a: Ponto, b: Ponto) => void;
@@ -2019,10 +2439,35 @@ function FachadaEndireitada({
     return { novo: true as const };
   };
 
-  /** Um toque (sem arrastar) escolhe a zona do tipo em curso que está por baixo, ou larga a escolha. */
-  const tocar = (p: Ponto) => {
+  // As arestas propostas na vista: da fotografia ao plano (a homografia leva retas a retas) e daí à vista.
+  const arestasNaVista = arestasPropostas
+    .map((a) => {
+      const [p, q] = [aplicar(calibracao.imagemParaPlano, a.a), aplicar(calibracao.imagemParaPlano, a.b)];
+      return p && q && [p.x, p.y, q.x, q.y].every(Number.isFinite)
+        ? { id: a.id, de: { x: px(p.x), y: py(p.y) }, ate: { x: px(q.x), y: py(q.y) } }
+        : null;
+    })
+    .filter((a): a is { id: string; de: Ponto; ate: Ponto } => !!a);
+
+  /**
+   * Um toque (sem arrastar) tira a aresta proposta que estiver a um dedo (22 píxeis de ecrã), ou a
+   * janela proposta por baixo; senão escolhe a zona do tipo em curso que está por baixo, ou larga a escolha.
+   */
+  const tocar = (p: Ponto, unidades: number) => {
+    const v = { x: px(p.x), y: py(p.y) };
+    let perto: { id: string; d: number } | null = null;
+    for (const a of arestasNaVista) {
+      const [ex, ey] = [a.ate.x - a.de.x, a.ate.y - a.de.y];
+      const t = Math.max(0, Math.min(1, ((v.x - a.de.x) * ex + (v.y - a.de.y) * ey) / Math.max(1e-9, ex * ex + ey * ey)));
+      const d = Math.hypot(v.x - a.de.x - t * ex, v.y - a.de.y - t * ey);
+      if (d <= 22 * unidades && (!perto || d < perto.d)) perto = { id: a.id, d };
+    }
+    if (perto) return onTirarAresta(perto.id);
     const proposta = propostas.find((z) => zonaContem(z, p));
     if (proposta) return onTirarProposta(proposta.id);
+    // Com propostas pendentes, um toque só as tira: escolher uma zona deixava apagá-la (e retirar o
+    // acerto), e nada disso se podia desfazer até aceitar ou descartar (avaliação de 05/11/2026).
+    if (soToques) return;
     for (let i = zonas.length - 1; i >= 0; i--) {
       const z = zonas[i]!;
       if (z.tipo === tipo && zonaContem(z, p)) return onSelecionar(z.id === selecionada?.id ? null : z.id);
@@ -2062,6 +2507,10 @@ function FachadaEndireitada({
               if (Math.hypot(b.x - a.x, b.y - a.y) >= 1) onAcerto(a, b);
               return;
             }
+            if (soToques) {
+              if (fim && Math.hypot(ate.x - de.x, ate.y - de.y) <= FOLGA_TOQUE_PX * unidades) tocar(metros(de), unidades);
+              return;
+            }
             if (!gesto.current) gesto.current = decidir(de, unidades);
             const g = gesto.current;
             if (fim) gesto.current = null;
@@ -2074,13 +2523,13 @@ function FachadaEndireitada({
               if (!fim) return setEdicao(nova);
               setEdicao(null);
               // Largar sem ter arrastado é um toque: larga a escolha, ou escolhe a zona vizinha.
-              if (parado) return tocar(metros(de));
+              if (parado) return tocar(metros(de), unidades);
               onAlterarZona(nova);
               return;
             }
             if (!fim) return setArrasto({ de, ate });
             setArrasto(null);
-            if (Math.hypot(ate.x - de.x, ate.y - de.y) <= FOLGA_TOQUE_PX * unidades) return tocar(metros(de));
+            if (Math.hypot(ate.x - de.x, ate.y - de.y) <= FOLGA_TOQUE_PX * unidades) return tocar(metros(de), unidades);
             const a = metros(de);
             const b = metros(ate);
             if (Math.abs(a.x - b.x) >= LADO_MINIMO_M && Math.abs(a.y - b.y) >= LADO_MINIMO_M) onDesenho(a, b);
@@ -2160,6 +2609,14 @@ function FachadaEndireitada({
               />
             </g>
           ))}
+          {arestasNaVista.map((a) => (
+            <g key={a.id} style={{ pointerEvents: 'none' }}>
+              <TracoDaAresta de={a.de} ate={a.ate} />
+              {[a.de, a.ate].map((q, i) => (
+                <circle key={i} cx={q.x} cy={q.y} r={letra / 3} className="fill-cyan-300 stroke-slate-900" strokeWidth={letra / 10} />
+              ))}
+            </g>
+          ))}
           {linhaAcerto && (
             <line
               x1={linhaAcerto.de.x}
@@ -2174,12 +2631,72 @@ function FachadaEndireitada({
           )}
         </CamadaDeToque>
       </Moldura>
+      {arestasNaVista.length > 0 && <LegendaDasArestas />}
     </div>
   );
 }
 
+/**
+ * O traço de uma aresta proposta: uma faixa escura contínua e, por cima, um tracejado ciano. Em
+ * píxeis de ecrã (`vector-effect: non-scaling-stroke`), com a mesma espessura no telemóvel e no
+ * computador. Sobre uma parede clara quem dá o contraste é a faixa escura (slate-900 opaco, ~17:1
+ * contra o branco), sobre uma escura é o ciano (≥ 4:1 contra slate-900); a avaliação de 04/11/2026
+ * mediu o contorno a 60 % — 2,6:1 no pior ponto, metade da reta de cima abaixo de 3:1 — e 1,4 px de
+ * ciano no telemóvel.
+ */
+function TracoDaAresta({ de, ate }: { de: Ponto; ate: Ponto }) {
+  return (
+    <>
+      <line
+        x1={de.x}
+        y1={de.y}
+        x2={ate.x}
+        y2={ate.y}
+        className="stroke-slate-900"
+        strokeOpacity={0.9}
+        strokeWidth={6}
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <line
+        x1={de.x}
+        y1={de.y}
+        x2={ate.x}
+        y2={ate.y}
+        className="stroke-cyan-300"
+        strokeWidth={3}
+        strokeDasharray="12 6"
+        vectorEffect="non-scaling-stroke"
+      />
+    </>
+  );
+}
+
+/** A legenda das arestas propostas, por baixo da vista. */
+function LegendaDasArestas() {
+  return (
+    <p className="flex items-center gap-2 text-[13px] text-slate-600">
+      <svg width="28" height="8" viewBox="0 0 28 8" className="shrink-0" aria-hidden>
+        <TracoDaAresta de={{ x: 3, y: 4 }} ate={{ x: 25, y: 4 }} />
+      </svg>
+      Aresta proposta — tocar nela para a tirar
+    </p>
+  );
+}
+
 /** As zonas desenhadas, levadas de volta à fotografia original — tem de bater certo com o prédio. */
-function VistaOriginal({ foto, calibracao, zonas }: { foto: Foto; calibracao: Calibracao; zonas: Zona[] }) {
+function VistaOriginal({
+  foto,
+  calibracao,
+  zonas,
+  arestas,
+}: {
+  foto: Foto;
+  calibracao: Calibracao;
+  zonas: Zona[];
+  /** As arestas propostas, à espera de confirmação: aqui só se veem (tiram-se na vista endireitada). */
+  arestas: { id: string; a: Ponto; b: Ponto }[];
+}) {
   const escala = Math.max(foto.largura, foto.altura) / 900;
   return (
     <Moldura
@@ -2207,6 +2724,9 @@ function VistaOriginal({ foto, calibracao, zonas }: { foto: Foto; calibracao: Ca
             />
           );
         })}
+        {arestas.map((a) => (
+          <TracoDaAresta key={a.id} de={a.a} ate={a.b} />
+        ))}
       </svg>
     </Moldura>
   );

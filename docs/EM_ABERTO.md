@@ -77,8 +77,13 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   (DECISOES «Margem de erro da área»). Assenta num erro de toque de 1 px **ainda não medido em obra**.
 - **Validar no terreno:** uma fachada medida pela fotografia e 3 ou 4 distâncias medidas a laser longe
   da referência. É isto que diz se o 1 px e a margem se aguentam (precisa do promotor).
-- Propor sozinho a vertical e as duas horizontais (linhas e pontos de fuga detetados no aparelho, o
-  avaliador confirma): o que mais reduz a margem. Próximo passo.
+- Propor sozinho as verticais e as duas horizontais: *feito a 05/11/2026* («Propor as arestas» no passo 3,
+  no aparelho; o avaliador confirma; DECISOES «Propor as arestas»), revisto por duas rondas de céticos. Na
+  fotografia real a margem do contorno desce de ± 5,1 % para ± 1,7 % (sem a vertical do passo 2, de
+  ± 15,9 % para ± 1,6 %). `calibrar` passou a pesar as verticais pelo comprimento. Limites que ficam: a
+  distorção de uma grande angular, um tubo de queda até ~0,35° numa empena com uma esquina escondida,
+  ~0,9 s num telemóvel lento, e a margem continua sem ver erros sistemáticos (uma vertical do passo 2 fora
+  da aresta). A validação a laser (acima) diz se o ganho se aguenta em obra.
 - **Por decidir pelo promotor:** a ferramenta é só do avaliador, ou também uma estimativa feita pelo
   cliente? (pergunta do documento «Medir fachadas a partir de uma fotografia: o que existe»).
 - O (i) dentro dos rótulos dos formulários (`Field.tsx`) tem 16 px, abaixo dos 44 px da regra 17:
