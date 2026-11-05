@@ -214,7 +214,10 @@ export function tamanhoDaOnda(n: number, regras: RegrasDaConvocatoria = REGRAS_D
  * avaliadores ninguém de fora é chamado na primeira onda; num com 1, junta-se o anel seguinte.
  */
 export function onda(numero: number, candidatos: readonly Candidato[], agora: Date, regras: RegrasDaConvocatoria = REGRAS_DA_CONVOCATORIA): string[] {
-  const pool = numero === 1 ? candidatos.filter((c) => !soDaSegundaOnda(c, agora, regras)) : [...candidatos];
+  // «Só a partir da 2.ª onda» quer dizer «depois dos outros», não «nunca»: se na primeira onda não houver mais
+  // ninguém, vão eles — senão um levantamento com um único avaliador na zona ficava parado (05/11/2026).
+  const primeiros = numero === 1 ? candidatos.filter((c) => !soDaSegundaOnda(c, agora, regras)) : [...candidatos];
+  const pool = primeiros.length > 0 ? primeiros : [...candidatos];
   if (pool.length === 0) return [];
 
   const aneis = [...new Set(pool.map((c) => c.anel))].sort((a, b) => a - b);

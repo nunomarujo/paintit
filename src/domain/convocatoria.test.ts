@@ -152,6 +152,8 @@ describe('quem é convidado', () => {
     expect(soDaSegundaOnda(faltou, QUARTA_10H)).toBe(true);
     expect(soDaSegundaOnda(cand('x', { avaliacoes: 2, media: 1 }), QUARTA_10H)).toBe(false);
     expect(onda(1, [fraco, faltou, cand('a')], QUARTA_10H)).toEqual(['a']);
+    // sem mais ninguém na zona, vão já na primeira onda — senão o levantamento ficava parado
+    expect(onda(1, [faltou], QUARTA_10H)).toEqual(['faltou']);
     expect(onda(2, [fraco, faltou], QUARTA_10H).sort()).toEqual(['faltou', 'fraco']);
   });
   it('sem ninguém, a onda vem vazia', () => {
