@@ -61,6 +61,8 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
    dela nunca se misturam com as da conta real (`MOLONI_*` na Vercel são da real). Depois: fechar os 7 pontos
    por confirmar de `FATURACAO.md` e só então ligar o «Emitir» do backoffice. O ticket tem a data de 23/10
    para pedir prorrogação.
+1b. **Envio da fatura ao cliente: construído a 05/11/2026**, automático na emissão (ver `FATURACAO.md`). Falta ensaiá-lo
+   de ponta a ponta quando existir a conta de testes da Moloni (PDF a chegar por email, `/app/faturas`, «Reenviar»).
 2. **Stripe em modo real:** ativar a conta com os dados da empresa; criar de novo a taxa de IVA
    (`STRIPE_TAX_RATE_IVA`) e os produtos; limpar os resíduos de ensaio antes (secção 1).
 3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário

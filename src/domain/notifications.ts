@@ -297,3 +297,21 @@ export const REFERRAL_NOTICES = {
     lines: [`Foi pago o seu resgate: ${p.comissao} transferidos.${p.referencia ? ` Referência: ${p.referencia}.` : ''}`],
   }),
 };
+
+/**
+ * O email com a fatura em anexo (05/11/2026). Chega a quem a deve, logo após a emissão. Não explica o negócio
+ * nem diz nada que a fatura não diga: o texto da comissão, por exemplo, nunca vai ao cliente — a fatura da
+ * comissão é emitida ao pintor, e a do cliente é a da caução retida (regra 15 do CLAUDE.md).
+ */
+export const FATURA_NOTICE = (p: { tipo: 'FT' | 'NC'; numero: string | null; total: string; data: string; descricao: string }): { subject: string; lines: string[] } => {
+  const doc = p.tipo === 'NC' ? 'Nota de crédito' : 'Fatura';
+  const ref = p.numero ? `${doc} ${p.numero}` : doc;
+  return {
+    subject: `${ref}, ${p.total}`,
+    lines: [
+      `Segue em anexo o documento emitido em ${p.data}: ${p.descricao}.`,
+      `Total: ${p.total}.`,
+      'Fica também disponível na aplicação, em Faturas.',
+    ],
+  };
+};

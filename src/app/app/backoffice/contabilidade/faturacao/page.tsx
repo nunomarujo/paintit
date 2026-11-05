@@ -3,7 +3,7 @@ import { INVOICE_REASONS, invoiceTotal } from '@/domain/invoicing';
 import { moloniConfigured } from '@/lib/moloni';
 import { pendingInvoices } from '@/lib/invoicing';
 import { getUser } from '@/lib/supabase/server';
-import { EmitAllButton, EmitOneButton } from '../FaturacaoForms';
+import { EmitAllButton, EmitOneButton, ReenviarButton } from '../FaturacaoForms';
 import { Voltar } from '@/components/Voltar';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -18,6 +18,18 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
     supabase.from('fiscal_documents').select('*').eq('estado', 'emitido').order('emitido_em', { ascending: false }).limit(20),
     supabase.from('fiscal_documents').select('*').eq('estado', 'falhou').order('created_at', { ascending: false }),
   ]);
+  const { data: envios } = await supabase
+    .from('fiscal_document_envios')
+    .select('document_id, para, estado, created_at')
+    .in('document_id', (emitted ?? []).map((d) => d.id))
+    .order('created_at', { ascending: false });
+  const envioDe = new Map<string, { enviados: string[]; ultimo: string; falhou: boolean }>();
+  for (const e of envios ?? []) {
+    const atual = envioDe.get(e.document_id) ?? { enviados: [], ultimo: e.created_at, falhou: false };
+    if (e.estado === 'enviado') atual.enviados.push(e.para);
+    else if (atual.enviados.length === 0) atual.falhou = true;
+    envioDe.set(e.document_id, atual);
+  }
   const links = new Map<string, string>();
   for (const d of emitted ?? []) {
     if (!d.pdf_path) continue;
@@ -98,13 +110,21 @@ export default async function InvoicingPage({ searchParams }: { searchParams: Pr
                   {d.tipo} {d.numero ?? d.provider_document_id} · {d.cliente_nome} · {formatEuros(d.total_cents)} · {d.emitido_em ? ptDate(d.emitido_em) : ''}
                   {d.atcud && <span className="text-slate-500"> · ATCUD {d.atcud}</span>}
                 </span>
-                {links.get(d.id) ? (
-                  <a href={links.get(d.id)} target="_blank" rel="noopener noreferrer" className="text-tinta-700 underline">
-                    Abrir PDF
-                  </a>
-                ) : (
-                  <span className="text-slate-600">Sem PDF</span>
-                )}
+                <span className="flex flex-wrap items-center gap-3">
+                  {envioDe.get(d.id)?.enviados.length ? (
+                    <span className="text-[15px] text-slate-600">Enviada a {envioDe.get(d.id)!.enviados.join(', ')} · {ptDate(envioDe.get(d.id)!.ultimo)}</span>
+                  ) : (
+                    <span className="text-[15px] text-amber-800">{envioDe.get(d.id)?.falhou ? 'O envio falhou' : 'Ainda não enviada'}</span>
+                  )}
+                  {d.pdf_path && d.org_id && <ReenviarButton documentId={d.id} rotulo={envioDe.get(d.id)?.enviados.length ? 'Reenviar' : 'Enviar'} />}
+                  {links.get(d.id) ? (
+                    <a href={links.get(d.id)} target="_blank" rel="noopener noreferrer" className="text-tinta-700 underline">
+                      Abrir PDF
+                    </a>
+                  ) : (
+                    <span className="text-slate-600">Sem PDF</span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

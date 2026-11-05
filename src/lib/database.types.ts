@@ -1386,6 +1386,7 @@ export type Database = {
           estado: 'pendente' | 'emitido' | 'falhou';
           id: string;
           numero: string | null;
+          org_id: string | null;
           origin_id: string;
           origin_type: string;
           pdf_path: string | null;
@@ -1407,6 +1408,7 @@ export type Database = {
           estado?: 'pendente' | 'emitido' | 'falhou';
           id?: string;
           numero?: string | null;
+          org_id?: string | null;
           origin_id: string;
           origin_type: string;
           pdf_path?: string | null;
@@ -1419,6 +1421,12 @@ export type Database = {
           total_cents: number;
         };
         Update: Partial<Database['public']['Tables']['fiscal_documents']['Insert']>;
+        Relationships: [];
+      };
+      fiscal_document_envios: {
+        Row: { created_at: string; document_id: string; erro: string | null; estado: 'enviado' | 'falhou'; id: string; para: string };
+        Insert: { created_at?: string; document_id: string; erro?: string | null; estado: 'enviado' | 'falhou'; id?: string; para: string };
+        Update: Partial<Database['public']['Tables']['fiscal_document_envios']['Insert']>;
         Relationships: [];
       };
       moloni_token: {

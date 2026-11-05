@@ -5,7 +5,8 @@ import type { FormState } from '@/app/app/actions';
 import { isPlatformAdmin } from '@/lib/access';
 import { decideAppeal, unblockUser } from '@/lib/strikes';
 import { syncLedger } from '@/lib/accounting';
-import { emitInvoice, pendingInvoices } from '@/lib/invoicing';
+import { pendingInvoices } from '@/lib/invoicing';
+import { emitirEEnviar, enviarFatura } from '@/lib/faturasEnviadas';
 import { syncStripeData } from '@/lib/stripeSync';
 import { notifyReferralPaid } from '@/lib/notify';
 import { getUser } from '@/lib/supabase/server';
@@ -276,7 +277,15 @@ export async function emitInvoiceAction(originType: string, originId: string): P
   const pending = await pendingInvoices();
   const draft = pending.find((d) => d.originType === originType && d.originId === originId);
   if (!draft) return { errors: {}, message: 'Este documento já não está pendente: a página pode estar desatualizada.' };
-  const r = await emitInvoice(draft);
+  const r = await emitirEEnviar(draft);
+  revalidatePath('/app/backoffice/contabilidade/faturacao');
+  return { errors: {}, ok: r.ok, message: r.message };
+}
+
+/** Reenvia por email uma fatura já emitida (o email não saiu, ou a entidade perdeu-o). */
+export async function reenviarFaturaAction(documentId: string): Promise<FormState> {
+  if (!(await adminOnly())) return { errors: {}, message: 'Sem permissão.' };
+  const r = await enviarFatura(documentId);
   revalidatePath('/app/backoffice/contabilidade/faturacao');
   return { errors: {}, ok: r.ok, message: r.message };
 }
@@ -287,7 +296,7 @@ export async function emitAllInvoicesAction(): Promise<FormState> {
   let ok = 0;
   const errors: string[] = [];
   for (const d of pending) {
-    const r = await emitInvoice(d);
+    const r = await emitirEEnviar(d);
     if (r.ok) ok++;
     else errors.push(`${d.customer.nome}: ${r.message}`);
   }

@@ -68,6 +68,17 @@ separada**, pelo registo normal (`https://www.moloni.pt/registo`), com um NIF fi
 pede-se pelo mesmo ticket antes de expirar. Essa conta de testes é a "sandbox" — nunca misturar as credenciais dela
 com as da conta real (nem na Vercel de produção, nem em `moloni_token`).
 
+## Envio da fatura a quem a deve (05/11/2026)
+
+Decisão do promotor: **sai automaticamente quando se emite**. `emitirEEnviar` (`src/lib/faturasEnviadas.ts`) emite e,
+se o documento acabou de nascer (não se já existia), manda um email com o PDF em anexo aos proprietários e gestores
+da entidade (e da administradora que a gere). Uma linha por destinatário em `fiscal_document_envios` (migração
+`20261105211749`, aplicada): o backoffice vê «Enviada a …» ou «O envio falhou» e tem «Reenviar» (`reenviarFaturaAction`).
+Uma falha de email nunca desfaz a emissão. A entidade vê as suas faturas emitidas em `/app/faturas` (RLS: só
+proprietário e gestor; as que falharam nunca, por trazerem o erro interno da Moloni). `fiscal_documents.org_id` é novo:
+nulo nos documentos anteriores. **Não testado com a Moloni nem com o Resend em produção** — ensaiar na conta de testes
+da Moloni com contas `zz-test-*`, nunca com a conta real (o email com uma fatura real não se desfaz).
+
 ## ◆ Pontos por confirmar (na conta de testes)
 
 1. **Nomes dos campos em `customers/getByVat`/`customers/insert`** e se `country_id: 1` é mesmo Portugal nessa conta.

@@ -23,6 +23,7 @@ export function MobileNavMenu({
   meuPerfil,
   email,
   mostrarSubscricao,
+  mostrarFaturas,
   pintorId,
   leave,
 }: {
@@ -30,6 +31,7 @@ export function MobileNavMenu({
   meuPerfil: { id: string; nome: string } | null;
   email: string;
   mostrarSubscricao: boolean;
+  mostrarFaturas: boolean;
   pintorId: string | undefined;
   leave: () => Promise<void>;
 }) {
@@ -67,6 +69,11 @@ export function MobileNavMenu({
           {mostrarSubscricao && (
             <Link href="/app/subscricao" onClick={fecha} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
               Plano e subscrição
+            </Link>
+          )}
+          {mostrarFaturas && (
+            <Link href="/app/faturas" onClick={fecha} className="flex min-h-[44px] items-center rounded-lg px-1 py-1 text-marca-muted hover:text-marca-ink">
+              Faturas
             </Link>
           )}
           {pintorId && (

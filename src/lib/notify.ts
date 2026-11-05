@@ -28,6 +28,8 @@ interface MailOptions {
   footer?: string;
   /** Ligações secundárias, pequenas, por baixo do botão principal (ex.: "Como funciona", FAQ). */
   links?: { label: string; href: string }[];
+  /** Ficheiros em anexo (o Resend pede o conteúdo em base64). */
+  attachments?: { filename: string; content: Uint8Array }[];
 }
 
 /*
@@ -53,9 +55,10 @@ ${o.links && o.links.length > 0 ? `<p style="margin:12px 0 0;font-size:13px">${o
 </div></body></html>`;
 }
 
-export async function sendEmail(to: string[], subject: string, lines: string[], path: string, opts: MailOptions = {}): Promise<void> {
+/** Devolve se o Resend aceitou o email. Quem só avisa ignora o valor; quem precisa de provar o envio (a fatura) usa-o. */
+export async function sendEmail(to: string[], subject: string, lines: string[], path: string, opts: MailOptions = {}): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
-  if (!key || to.length === 0) return;
+  if (!key || to.length === 0) return false;
   const link = `${BRAND.url}${path}`;
   const body = JSON.stringify({
     from: `${BRAND.name} <${BRAND.email}>`,
@@ -63,6 +66,7 @@ export async function sendEmail(to: string[], subject: string, lines: string[], 
     subject: opts.exactSubject ? subject : `${BRAND.name} · ${subject}`,
     html: html(subject, lines, link, opts),
     text: `${subject}\n\n${lines.join('\n')}\n\n${link}`,
+    ...(opts.attachments?.length ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content).toString('base64') })) } : {}),
   });
   // O Resend limita os pedidos por segundo (429): repete com uma pausa.
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -71,17 +75,18 @@ export async function sendEmail(to: string[], subject: string, lines: string[], 
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body,
     });
-    if (res.ok) return;
+    if (res.ok) return true;
     if (res.status !== 429 || attempt === 2) {
       console.error('Resend recusou o aviso:', res.status, await res.text().catch(() => ''));
-      return;
+      return false;
     }
     await new Promise((r) => setTimeout(r, 1200));
   }
+  return false;
 }
 
 /** Emails dos proprietários e gestores da entidade (e da administradora que a gere). */
-async function recipients(orgId: string, banned: Set<string> = new Set()): Promise<string[]> {
+export async function recipients(orgId: string, banned: Set<string> = new Set()): Promise<string[]> {
   const db = adminClient();
   if (!db) return [];
   const { data: org } = await db.from('organizations').select('id, gerida_por').eq('id', orgId).maybeSingle();
