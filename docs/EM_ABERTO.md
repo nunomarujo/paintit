@@ -23,6 +23,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
+| Aplicar a migração `20261105230000_poderes_de_representacao` (poderes de quem assina, 05/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` e confirmar as duas funções e as três tabelas | sem ela, as entidades e as partes não veem nada de novo — **tudo ou nada** (`src/lib/poderes.ts`, testado em `src/lib/poderes.test.ts`): nenhuma assinatura grava resultado, nem as de particulares e empresários em nome individual (que não precisam das tabelas novas); a página da entidade não mostra o campo do código nem passa a pedir a certidão ao pintor sociedade; só a equipa vê o menu novo, cuja fila diz que falta a migração. Aplicada, liga tudo de uma vez (`DECISOES.md` 05/11/2026, «Poderes de quem assina») |
+| Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email ao IRN, citando os Termos do portal registo.justica.gov.pt, §4 | **por enviar** a 05/11/2026; com a autorização, a leitura deixa de ser manual (secção 3) |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
 
 ## 1b. WhatsApp — passos do promotor (02/11/2026)
@@ -149,6 +151,14 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 
 ## 3. Por construir (já decidido, ainda não feito)
 
+- **Poderes de quem assina (05/11/2026), o que fica da versão manual** (`DECISOES.md`, «Poderes de quem assina»):
+  a leitura automática da certidão, só depois da autorização do IRN (secção 1); o **SCAP** (assinatura com o
+  atributo profissional «gerente», que provaria a qualidade de quem assina e não só o nome); a **LTV** (carimbo
+  temporal e revogação embebidos no PDF); procuradores (quem assina por procuração dá «não consta»); avisar a
+  entidade antes de a certidão registada caducar (hoje vê-se no ecrã e na fila da equipa, sem aviso por email);
+  o cofre de documentos do pintor (`/app/obras`, `src/domain/dossier.ts`) ainda não conta o código de acesso
+  como certidão (a lista do que falta, na página da entidade, já conta).
+
 - **Impermeabilização das coberturas de corpos salientes sem telha (promotor, 04/11/2026)** — sempre
   que haja corpos salientes sem telha (marquises, palas, varandas cobertas em laje), perguntar ao
   **cliente**, ao **avaliador** e ao **pintor** se se orçamenta a impermeabilização dessa parte e como:
@@ -179,6 +189,13 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - Assinaturas (`src/lib/pades.ts`, `DECISOES.md` 05/11/2026): as entidades de **autenticação** do cartão também encadeiam nas âncoras, e um PDF assinado com a chave de autenticação passaria por assinatura de confiança (falta verificar o não-repúdio do signatário, com um certificado real para não recusar assinaturas legítimas); quem forja pode forçar «por confirmar» com um AIA que não responde, e o servidor segue os endereços AIA/OCSP que o certificado traz.
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.
+- **Acontecimentos de assinatura inseridos à mão (achado a 05/11/2026):** a política `engagement_events_insert`
+  deixa quem gere a entidade inserir `cliente_assinou`/`pintor_assinou` diretamente pela API, sem PDF, e com o
+  `payload` que quiser — incluindo `cadeiaConfiavel: true` e um `poderes` «confere». A ação do servidor faz as
+  verificações, a base não. Fechar com uma porta só de serviço (ou uma função que receba o PDF) para as
+  assinaturas.
+- Página da contratação (`src/app/app/contratacoes/[id]/page.tsx`): a secção «Trabalhos a mais» aparece duas
+  vezes (uma antes do título, outra depois). Visto a 05/11/2026, não corrigido nesse commit.
 - 31 botões e ligações com geometria feita à mão, fora do percurso do fornecedor (inventário congelado em `alvosDeToque.test.ts`; só pode descer).
 - Avisos da base, a confirmar caso a caso: três tabelas com RLS ligado e sem políticas (`avisos_por_email`, `moloni_token`, `toques` — esperado se só o servidor lhes acede; confirmar `toques`); 43 funções que um utilizador autenticado pode executar (por desenho, cada uma verifica quem chama); 20 chaves estrangeiras sem índice; 46 índices por usar (base ainda quase vazia); 5 tabelas com políticas permissivas duplicadas (`DECISOES.md` «Notas técnicas em aberto»); `pg_net` no esquema público.
 

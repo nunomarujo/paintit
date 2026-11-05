@@ -1,4 +1,4 @@
-import { isValidNif, normalizeNif } from './nif';
+import { isSociedadeNif, isValidNif, normalizeNif } from './nif';
 
 // Organizações e prédios: tipos e validação partilhados pela interface e pelo
 // servidor. A base de dados repete as restrições essenciais (NIF, código
@@ -169,10 +169,28 @@ export const EXPECTED_DOCS: Record<OrgKind, DocKind[][]> = {
   fornecedor: [['certidao_permanente']],
 };
 
-/** Grupos de documentos ainda em falta, contando os submetidos e os aprovados. */
-export function missingDocs(kind: OrgKind, submitted: { kind: DocKind; status: string }[]): DocKind[][] {
+/**
+ * Os documentos pedidos a uma entidade, consoante o NIF. Um pintor que seja sociedade (NIPC a começar por 5)
+ * tem também de entregar a certidão permanente: é ela que diz quem pode assinar o contrato em nome da
+ * empresa (decisão de 05/11/2026, `src/domain/poderes.ts`). Um empresário em nome individual não.
+ */
+export function expectedDocs(kind: OrgKind, nif: string | null = null): DocKind[][] {
+  const base = EXPECTED_DOCS[kind];
+  return kind === 'pintor' && isSociedadeNif(nif) ? [...base, ['certidao_permanente']] : base;
+}
+
+/**
+ * Grupos de documentos ainda em falta, contando os submetidos e os aprovados. O código de acesso da
+ * certidão permanente vale pela certidão (Portaria 285/2012, art. 6.º, n.º 2).
+ */
+export function missingDocs(
+  kind: OrgKind,
+  submitted: { kind: DocKind; status: string }[],
+  { nif = null, codigoCertidao = false }: { nif?: string | null; codigoCertidao?: boolean } = {},
+): DocKind[][] {
   const usable = new Set(submitted.filter((d) => d.status !== 'rejeitado' && d.status !== 'expirado').map((d) => d.kind));
-  return EXPECTED_DOCS[kind].filter((group) => !group.some((k) => usable.has(k)));
+  if (codigoCertidao) usable.add('certidao_permanente');
+  return expectedDocs(kind, nif).filter((group) => !group.some((k) => usable.has(k)));
 }
 
 export type FieldErrors = Record<string, string>;

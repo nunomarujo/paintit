@@ -10,14 +10,18 @@ import {
   ROLE_CAPABILITIES,
   caeAviso,
   caeElegibilidade,
-  missingDocs,
+  type DocKind,
   type MemberRole,
 } from '@/domain/organization';
+import { diaDeLisboa } from '@/domain/disponibilidade';
+import { usaCertidao } from '@/domain/poderes';
 import { canManage, myRole } from '@/lib/access';
+import { faltasDaEntidade, leituraDaEntidade } from '@/lib/poderes';
 import { getUser } from '@/lib/supabase/server';
 import { LocalTabs } from '@/components/LocalTabs';
 import { PasswordForm } from '@/app/app/perfil/PasswordForm';
 import { ChangeEmailForm } from './ChangeEmailForm';
+import { CodigoCertidao } from './CodigoCertidao';
 import { DocumentUpload } from './DocumentUpload';
 import { LogotipoDaEmpresa } from './LogotipoDaEmpresa';
 import { EntityCardForm } from './EntityCardForm';
@@ -144,7 +148,29 @@ export default async function OrganizationPage({
   const { data: reviewerOrgs } = reviewerIds.length ? await supabase.from('organizations').select('id, nome').in('id', reviewerIds) : { data: [] };
   const reviewerName = new Map((reviewerOrgs ?? []).map((o) => [o.id, o.nome]));
 
-  const missing = missingDocs(org.kind, docs ?? []);
+  // Poderes de representação (05/11/2026): quem pode assinar em nome da entidade. A certidão permanente (ou o
+  // código de acesso, que vale por ela) para sociedades, administradoras e fornecedores; a ata de nomeação
+  // para condomínios. `undefined` quando não foi possível ler (a migração ainda por aplicar): o ecrã fica
+  // como era — sem o bloco do código e sem pedir a certidão ao pintor sociedade (`faltasDaEntidade`).
+  const hoje = diaDeLisboa(new Date());
+  const certidao = usaCertidao(org.kind, org.nif);
+  const poderes = certidao || org.kind === 'condominio' ? await leituraDaEntidade(supabase, org.id) : undefined;
+  const { leitura: leituraEstado, faltas: missing } = faltasDaEntidade(org, docs ?? [], poderes, hoje);
+  const temFicheiro = (kind: DocKind) => (docs ?? []).some((d) => d.kind === kind && d.status !== 'rejeitado' && d.status !== 'expirado');
+  const textoCertidao =
+    leituraEstado.estado === 'sem_codigo' && temFicheiro('certidao_permanente')
+      ? 'Sem código: a equipa da plataforma lê a certidão a partir do ficheiro enviado.'
+      : leituraEstado.texto;
+  const textoAta = poderes?.leitura
+    ? poderes.leitura.validaAte < hoje
+      ? `O mandato registado terminou a ${ptDate(poderes.leitura.validaAte)}: falta a ata da nova nomeação.`
+      : `Ata lida pela equipa a ${ptDate(poderes.estado?.lida_em ?? '')} · mandato até ${ptDate(poderes.leitura.validaAte)}`
+    : temFicheiro('ata_nomeacao_administrador')
+      ? 'A ata de nomeação está por ler pela equipa da plataforma.'
+      : 'Falta a ata de nomeação do administrador.';
+
+  const rotuloDoGrupo = (group: DocKind[]) =>
+    group.map((k) => DOC_KIND_LABELS[k]).join(' ou ') + (poderes && group.includes('certidao_permanente') ? ', ou o código de acesso (mais abaixo)' : '');
   const ownsBuildings = org.kind === 'condominio' || org.kind === 'particular';
 
   // Prédios dos condomínios administrados, para o cartão de cada um mostrar morada, frações e nº de
@@ -360,7 +386,7 @@ export default async function OrganizationPage({
                   </p>
                   <ul className="mt-2 list-disc pl-5 text-amber-900">
                     {missing.map((group) => (
-                      <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
+                      <li key={group.join('|')}>{rotuloDoGrupo(group)}</li>
                     ))}
                   </ul>
                   <p className="mt-2 text-amber-800">
@@ -396,6 +422,18 @@ export default async function OrganizationPage({
                 </ul>
               )}
 
+              {certidao && poderes && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <CodigoCertidao
+                    orgId={org.id}
+                    estado={leituraEstado.estado}
+                    texto={textoCertidao}
+                    membros={poderes.membros}
+                    podeIndicar={manager}
+                    obrigatoria={missing.some((g) => g.includes('certidao_permanente'))}
+                  />
+                </div>
+              )}
               {role && role !== 'leitor' && (
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   <DocumentUpload orgId={org.id} orgKind={org.kind} />
@@ -823,7 +861,7 @@ export default async function OrganizationPage({
             </p>
             <ul className="mt-2 list-disc pl-5 text-amber-900">
               {missing.map((group) => (
-                <li key={group.join('|')}>{group.map((k) => DOC_KIND_LABELS[k]).join(' ou ')}</li>
+                <li key={group.join('|')}>{rotuloDoGrupo(group)}</li>
               ))}
             </ul>
             <p className="mt-2 text-amber-800">
@@ -859,6 +897,33 @@ export default async function OrganizationPage({
           </ul>
         )}
 
+        {certidao && poderes && (
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <CodigoCertidao
+              orgId={org.id}
+              estado={leituraEstado.estado}
+              texto={textoCertidao}
+              membros={poderes.membros}
+              podeIndicar={manager}
+              obrigatoria={missing.some((g) => g.includes('certidao_permanente'))}
+            />
+          </div>
+        )}
+        {org.kind === 'condominio' && poderes && (
+          <div className="mt-6 border-t border-slate-100 pt-6 text-[17px]">
+            <h3 className="font-semibold">Quem representa o condomínio</h3>
+            <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">
+              A equipa da plataforma regista o administrador a partir da ata de nomeação. Na assinatura do contrato, o nome de quem assina é
+              comparado com este registo.
+            </p>
+            <p className={`mt-2 ${poderes.leitura && poderes.leitura.validaAte >= hoje ? 'text-slate-700' : 'text-amber-800'}`}>{textoAta}</p>
+            {poderes.membros.length > 0 && (
+              <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">
+                Registado pela equipa: {poderes.membros.map((m) => `${m.nome} (${m.cargo.toLowerCase()})`).join(', ')}.
+              </p>
+            )}
+          </div>
+        )}
         {role && role !== 'leitor' && (
           <div className="mt-6 border-t border-slate-100 pt-6">
             <DocumentUpload orgId={org.id} orgKind={org.kind} />

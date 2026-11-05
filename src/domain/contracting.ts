@@ -1,4 +1,5 @@
 import { EQUIVALENT_RULE } from './equivalence';
+import type { PoderesDaAssinatura } from './poderes';
 import {
   carryToNext,
   clientDepositDue,
@@ -83,6 +84,9 @@ export interface EngagementEvent {
     identificacao?: string | null;
     /** O certificado encadeia numa entidade "Cartão de Cidadão" do Estado. */
     cadeiaConfiavel?: boolean;
+    /** Quem assinou tem poderes para obrigar a entidade? Só o resultado e o texto — nunca os dados da
+     * certidão nem o código (`src/domain/poderes.ts`, 05/11/2026). Nunca recusa a assinatura. */
+    poderes?: PoderesDaAssinatura;
   };
   at: string;
 }

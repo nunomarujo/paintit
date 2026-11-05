@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { EVENT_LABELS, STATUS_LABELS, availableActions, clientDepositDue, isRevealed, reviewCategory } from '@/domain/contracting';
 import { held, settlement } from '@/domain/engagement';
 import { formatEuros } from '@/domain/money';
+import { avisosDasAssinaturas } from '@/domain/poderes';
 import { alias, proposalTotals } from '@/domain/proposal';
 import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
 import { loadReplay, missingCondoDocs } from '@/lib/engagements';
@@ -89,8 +90,48 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   const category = reviewCategory(e);
   const { data: review } = category ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
+  // Uma só banda no topo para tudo o que há a confirmar nas assinaturas (regra 13): os poderes de quem assinou
+  // (decisão de 05/11/2026 — só o resultado, nunca os dados da certidão) e o certificado por confirmar. Âmbar,
+  // porque se resolve; nada disto impediu a assinatura.
+  const avisosDePoderes = avisosDasAssinaturas(events);
+  const certificadoPorConfirmar = events.some(
+    (v) => (v.payload as { metodo?: string } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel,
+  );
+  const minhaEntidade = side === 'cliente' ? row.client_org_id : side === 'pintor' ? row.painter_org_id : null;
+
   return (
     <div className="space-y-8">
+      {(avisosDePoderes.length > 0 || certificadoPorConfirmar) && (
+        <section role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
+          <h2 className="text-[17px] font-semibold text-amber-900">Assinaturas a confirmar</h2>
+          <ul className="mt-2 max-w-[54ch] space-y-2 text-[17px] text-amber-900">
+            {avisosDePoderes.map((a, i) => (
+              <li key={i}>
+                <span className="font-semibold">Assinatura {a.lado === 'cliente' ? 'do cliente' : 'do pintor'}:</span> {a.texto}
+              </li>
+            ))}
+            {certificadoPorConfirmar && (
+              <li>
+                Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A
+                plataforma não o confirma; se continuarem, as partes assumem a responsabilidade.
+              </li>
+            )}
+          </ul>
+          {avisosDePoderes.length > 0 && (
+            <p className="mt-3 max-w-[54ch] text-[15px] text-amber-900">
+              A plataforma avisa e não impede. O resultado é o do momento em que cada parte assinou.
+            </p>
+          )}
+          {minhaEntidade && avisosDePoderes.some((a) => a.lado === side) && (
+            <Link
+              href={side === 'pintor' ? `/app/organizacoes/${minhaEntidade}?ver=documentos` : `/app/organizacoes/${minhaEntidade}#documentos`}
+              className="btn-secondary btn-sm mt-3"
+            >
+              Rever os documentos da entidade
+            </Link>
+          )}
+        </section>
+      )}
       {addenda.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-[17px] font-semibold">Trabalhos a mais</h2>
@@ -420,12 +461,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             </li>
           ))}
         </ol>
-        {events.some((v) => (v.payload as { metodo?: string; cadeiaConfiavel?: boolean } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel) && (
-          <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-[17px] text-red-800">
-            Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A plataforma
-            não o confirma; se continuarem, as partes assumem a responsabilidade.
-          </p>
-        )}
+        {/* O aviso do certificado por confirmar subiu para a banda do topo (05/11/2026): era uma segunda caixa
+            de fundo vermelho no mesmo ecrã, e o que se pode resolver é âmbar (regra 13). */}
         {events.some((v) => (v.payload as { documentHash?: string } | null)?.documentHash) && (
           <div className="mt-4 border-t border-slate-100 pt-3 text-[15px] text-slate-500">
             {events

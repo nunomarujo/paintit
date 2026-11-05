@@ -14,6 +14,8 @@ import type { Json } from '@/lib/database.types';
 import { isPlatformAdmin } from '@/lib/access';
 import { contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
 import { verifySignature } from '@/lib/pades';
+import { pedeAviso } from '@/domain/poderes';
+import { poderesDoLado } from '@/lib/poderes';
 import { checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { getUser } from '@/lib/supabase/server';
@@ -164,7 +166,12 @@ const MAX_PDF = 20 * 1024 * 1024;
  * (o PDF gerado, para o cliente; o PDF já assinado pelo cliente, para o pintor),
  * que acrescenta uma assinatura sobre o ficheiro inteiro e que ela é válida.
  */
-export async function signWithPdf(engagementId: string, side: 'cliente' | 'pintor', _prev: FormState, form: FormData): Promise<FormState> {
+export async function signWithPdf(
+  engagementId: string,
+  side: 'cliente' | 'pintor',
+  _prev: FormState & { aviso?: string },
+  form: FormData,
+): Promise<FormState & { aviso?: string }> {
   if (side !== 'cliente' && side !== 'pintor') return { errors: {}, message: 'Ação inválida.' };
   const file = form.get('pdf');
   if (!(file instanceof File) || file.size === 0) return { errors: { pdf: 'Escolha o PDF assinado.' } };
@@ -215,6 +222,13 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
     // mesmo recusada já foi devolvida acima, antes de qualquer gravação.
     trusted: signers.every((x) => x.trusted),
   };
+  // Poderes de representação (decisão de 05/11/2026): quem assinou pode obrigar a entidade deste lado? Vem
+  // depois de todas as verificações acima e nunca recusa — avisa. No acontecimento fica só o resultado e o
+  // texto, que as duas partes leem: nada da certidão, nunca o código. Se não for possível ler o que é preciso
+  // (`null`), não se grava resultado nenhum.
+  const poderes = await poderesDoLado(supabase, side === 'cliente' ? row.client_org_id : row.painter_org_id, signers.map((x) => x.name)).catch(
+    () => null,
+  );
 
   const up = await supabase.storage.from('contratos').upload(`${engagementId}/${side}.pdf`, uploaded, { contentType: 'application/pdf' });
   if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado (já tinha sido carregado?).' };
@@ -226,6 +240,7 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
       signatario: signer.name,
       identificacao: signer.serialNumber,
       cadeiaConfiavel: signer.trusted,
+      ...(poderes ? { poderes } : {}),
     },
   });
   if (!r.ok) return { errors: r.errors, message: r.message };
@@ -235,6 +250,7 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
     message: signer.trusted
       ? `Assinado por ${signer.name ?? 'titular do certificado'}, com certificado do Estado português.`
       : `Assinado por ${signer.name ?? 'titular do certificado'}. A equipa da plataforma vai confirmar a origem do certificado.`,
+    ...(poderes && pedeAviso(poderes.resultado) ? { aviso: poderes.texto } : {}),
   };
 }
 

@@ -2174,6 +2174,43 @@ export type Database = {
           { foreignKeyName: 'relatorios_de_propostas_fichas_relatorio_id_fkey'; columns: ['relatorio_id']; isOneToOne: false; referencedRelation: 'relatorios_de_propostas'; referencedColumns: ['id'] },
         ];
       };
+      // Migração `20261105230000_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
+      // aplicar à base real. Só se escrevem pelas funções `definir_codigo_certidao` e
+      // `registar_leitura_poderes` (abaixo), por isso Insert e Update são `never`.
+      poderes_de_representacao: {
+        Row: {
+          org_id: string;
+          fonte: 'certidao' | 'ata';
+          codigo_entregue_em: string | null;
+          forma_de_obrigar: string | null;
+          assinaturas_exigidas: number | null;
+          valida_ate: string | null;
+          lida_em: string | null;
+          lida_por: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'poderes_de_representacao_org_id_fkey'; columns: ['org_id']; isOneToOne: true; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+        ];
+      };
+      poderes_membros: {
+        Row: { id: string; org_id: string; ordem: number; nome: string; cargo: string; nif: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'poderes_membros_org_id_fkey'; columns: ['org_id']; isOneToOne: false; referencedRelation: 'poderes_de_representacao'; referencedColumns: ['org_id'] },
+        ];
+      };
+      // O código de acesso da certidão: só a equipa da plataforma o lê (RLS).
+      certidao_codigos: {
+        Row: { org_id: string; codigo: string; definido_por: string | null; definido_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'certidao_codigos_org_id_fkey'; columns: ['org_id']; isOneToOne: true; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+        ];
+      };
     };
     Views: {
       acc_balancete: { Row: { conta: string; credito_cents: number; debito_cents: number; natureza: 'devedora' | 'credora'; nome: string }; Relationships: [] };
@@ -2325,6 +2362,12 @@ export type Database = {
           adiado_para: string | null;
           por_responder: boolean;
         }[];
+      };
+      // Poderes de representação (migração 20261105230000), escritas à mão até ser aplicada.
+      definir_codigo_certidao: { Args: { p_org: string; p_codigo: string }; Returns: undefined };
+      registar_leitura_poderes: {
+        Args: { p_org: string; p_fonte: string; p_forma_de_obrigar: string; p_assinaturas: number | null; p_valida_ate: string; p_membros: Json };
+        Returns: undefined;
       };
       survey_client_contact: {
         Args: { p_attempt: string };

@@ -5,9 +5,18 @@ import { signWithPdf } from '@/app/app/contratacoes/actions';
 import { useFormAction } from '@/components/useFormAction';
 
 export function PdfSign({ engagementId, side }: { engagementId: string; side: 'cliente' | 'pintor' }) {
-  const { state, pending, formProps } = useFormAction<FormState>(signWithPdf.bind(null, engagementId, side), { errors: {} });
+  const { state, pending, formProps } = useFormAction<FormState & { aviso?: string }>(signWithPdf.bind(null, engagementId, side), { errors: {} });
   const download = `/app/contratacoes/${engagementId}/pdf?v=${side === 'cliente' ? 'base' : 'cliente'}`;
-  if (state.ok) return <p className="rounded-xl bg-tinta-50 p-4 text-[17px] text-tinta-700">{state.message}</p>;
+  // O aviso dos poderes de representação nunca recusa a assinatura: vai como texto âmbar debaixo da
+  // confirmação (a banda do ecrã é a do topo, regra 13).
+  if (state.ok) {
+    return (
+      <div className="rounded-xl bg-tinta-50 p-4 text-[17px]">
+        <p className="text-tinta-700">{state.message}</p>
+        {state.aviso && <p className="mt-2 text-amber-800">{state.aviso}</p>}
+      </div>
+    );
+  }
   return (
     <form {...formProps} className="space-y-4 rounded-xl border border-slate-200 p-5 text-[17px]">
       <p className="font-semibold">Assinar com Chave Móvel Digital ou Cartão de Cidadão</p>

@@ -5687,3 +5687,98 @@ Mudou: o envio (`src/lib/whatsapp.ts`), a receção (`/api/whatsapp`, assinatura
 variáveis (`WHATSAPP_*`, sem `TWILIO_*`). Não mudou: ondas, reserva atómica (`aceitar_convite`), ecrã do
 avaliador, modelos aprovados e número. O botão passou a levar o id do convite. Fica inativo até as quatro
 chaves da Meta estarem na Vercel (passos em `docs/WHATSAPP.md`).
+
+## 05/11/2026 — Poderes de quem assina: a certidão permanente lida à mão, e um aviso bem à vista
+
+**Decisão do promotor.** Verificar se quem assina um contrato tem poderes para obrigar a entidade; mesmo que
+não impeça, avisar bem à vista. Regras em `src/domain/poderes.ts` (58 testes), base em
+`supabase/migrations/20261105230000_poderes_de_representacao.sql` (19 testes de acesso, utilizador a utilizador).
+
+**Porque é manual.** Ler a certidão permanente de forma automática (ir ao portal com o código e ler a página) é
+proibido sem autorização do IRN: Termos de utilização do portal registo.justica.gov.pt, §4. O pedido de
+autorização segue por email (`docs/EM_ABERTO.md`). Até haver resposta:
+1. a empresa entrega o **código de acesso** da certidão (12 algarismos, NNNN-NNNN-NNNN). Pela Portaria
+   285/2012, art. 6.º, n.º 2, entregar o código equivale a entregar a certidão — por isso o código satisfaz o
+   documento «Certidão permanente» na lista do que falta, tal como o ficheiro;
+2. a equipa da plataforma abre a certidão no portal e regista (Entidades › Poderes de representação): quem
+   tem poderes (nome, cargo, NIF opcional), a forma de obrigar tal como está escrita, quantas assinaturas
+   obrigam (1, 2, ou «a confirmar» quando o texto é invulgar) e a data «válida até».
+
+**A quem se aplica.**
+- Pintor que seja sociedade (NIF/NIPC a começar por 5): a certidão passa a ser pedida (`expectedDocs`).
+  Administradoras e fornecedores já a tinham em `EXPECTED_DOCS`.
+- Condomínio: a equipa regista o administrador a partir da **ata de nomeação**, na mesma tabela (fonte
+  «ata»), e o «válido até» é o fim do mandato.
+- Particular e empresário em nome individual (NIF 1, 2, 3 ou 45): compara-se com o nome do titular da conta
+  (o proprietário da entidade).
+- Pintor com outro tipo de NIF (6, 7, 8, 9): «não se aplica».
+
+**Na assinatura.** Em `signWithPdf`, depois de todas as verificações que já existiam e **sem nunca recusar por
+isto**, calcula-se o resultado para o lado que assina — confere, provável, não consta, faltam assinaturas, sem
+leitura, caducada, por confirmar; num particular, confere ou não confere — e guarda-se no acontecimento
+(`payload.poderes`: só o resultado e o texto). Quem assina recebe o aviso logo na confirmação. A página da
+contratação mostra às duas partes e à equipa **uma banda âmbar no topo** sempre que uma assinatura registada
+tem um resultado que não seja «confere», «confere com o titular» ou «não se aplica» (o «provável» também
+avisa). O aviso do certificado por confirmar, que era uma segunda caixa, vermelha, no histórico, passou para
+a mesma banda: regra 13, uma banda por ecrã, âmbar porque se resolve. No backoffice, Contratações ›
+Assinaturas mostra o resultado de cada assinatura em PDF.
+
+**A comparação.** Pelo nome normalizado: maiúsculas, sem acentos (a certidão escreve «JOÃO LUIS», o cartão
+«João Luís»), sem DE/DA/DO/DOS/DAS/E/D'. «Confere» quando as palavras são as mesmas, por qualquer ordem;
+«provável» quando o primeiro e o último nome são iguais e um nome está contido no outro. A mesma pessoa a
+assinar duas vezes conta uma vez, e cada pessoa da certidão serve a um só signatário — escolhe-se o
+emparelhamento com mais pares, não o primeiro que aparece. «Faltam assinaturas» quando a forma de obrigar
+exige duas e só uma pessoa da lista assinou.
+
+**O que se guarda e quem o vê (RGPD: minimização).**
+- O código dá acesso a dados pessoais de terceiros (moradas, estado civil dos sócios…): é um segredo. Vive
+  numa tabela só sua (`certidao_codigos`) que **só a equipa lê**; só quem gere a entidade o define, e só pela
+  função; nunca aparece em mensagens, registos ou acontecimentos, e o ecrã não o volta a mostrar — no lugar
+  dele fica «Guardado · por ler pela equipa» ou «Lida pela equipa a … · válida até …». Trocar o código põe a
+  leitura por fazer (o mesmo código outra vez não mexe em nada).
+- Da certidão guarda-se só nome, cargo e NIF (opcional) de quem tem poderes, a forma de obrigar, o número de
+  assinaturas, a validade, e quando e por quem foi lida.
+- **Quem gere a entidade vê os nomes e os cargos registados** — decidido nesta sessão, à pergunta «a entidade
+  precisa de ver os nomes de volta?». São dados do seu próprio registo, que ela própria entregou, e vê-los é
+  a única maneira de dar por um erro de transcrição antes de assinar um contrato, e não depois, num aviso que
+  a outra parte também lê. O NIF fica registado mas não se mostra. Os outros membros (financeiro, avaliador,
+  leitor) veem só o estado — que não tem dados pessoais e lhes diz se a certidão ainda falta.
+- A outra parte de uma contratação vê só o resultado (regra 6). Os textos não levam nomes, datas nem a forma
+  de obrigar; um teste percorre os cenários e falha se aparecer algum.
+
+**Limites, ditos às claras.**
+- **Só pelo nome.** O certificado do Cartão de Cidadão e da Chave Móvel Digital traz o nome completo e o n.º
+  de identificação civil, mas não o NIF, e a certidão não traz o n.º de identificação civil. Um «confere» é
+  um indício, não uma prova, e nenhum texto diz «verificado». Homónimos passam; um apelido que o cartão tem e
+  a certidão não (ou ao contrário) dá «provável»; um nome escrito de outra maneira pode dar «não consta».
+- **A forma de obrigar é texto livre.** O número de assinaturas é a leitura que a equipa faz dela; formas
+  invulgares (gerentes de categorias diferentes, um gerente com um procurador, limites de valor) ficam «a
+  confirmar», e a assinatura fica «por confirmar».
+- **Procuradores** não estão cobertos: quem assina por procuração dá «não consta».
+- **Administrador de condomínio que é uma empresa:** a equipa regista à mão as pessoas que a obrigam.
+- **SCAP** (a assinatura com o atributo profissional «gerente», que provaria a qualidade de quem assina) e
+  **LTV** (carimbo temporal e revogação embebidos no PDF, para a assinatura se validar daqui a anos) ainda não
+  tratados.
+- O resultado é o do **momento** da assinatura: uma leitura registada depois não o muda.
+- O acontecimento de uma assinatura pode ser inserido diretamente pela API por quem gere a entidade — a
+  política de `engagement_events` não exige o PDF, e isto vale igualmente para `cadeiaConfiavel`. Já existia
+  antes desta decisão; ficou registado em `docs/EM_ABERTO.md` (dívida técnica).
+- **Migração por aplicar — tudo ou nada.** Publicar o código antes da migração não liga metade da
+  funcionalidade: enquanto as tabelas novas não existem, nenhuma assinatura grava resultado, em nenhum regime —
+  incluindo particulares e empresários em nome individual, cuja comparação com o titular da conta só lê tabelas
+  que já existiam e, na primeira versão deste commit, gravava (achado de uma revisão cética: um perfil «Rui»
+  contra o certificado «RUI MIGUEL SANTOS MOTA» punha a banda âmbar à outra parte antes de a funcionalidade
+  estar ligada). E a página da entidade fica como estava: sem o bloco do código e sem pedir a certidão ao pintor
+  sociedade, que de outro modo a veria em falta sem a alternativa do código. Porquê tudo ou nada e não ligar já
+  a parte que funciona: um aviso que a outra parte lê não deve aparecer antes de o promotor ligar a
+  funcionalidade de propósito, ao aplicar a migração; e pedir um documento novo sem a forma mais simples de o
+  entregar acrescenta peso sem necessidade. A equipa já vê o menu novo (Entidades › Poderes de
+  representação), cuja fila diz que falta a migração. A única mudança visível para as partes antes da migração
+  é que o aviso do certificado por confirmar, que já existia, passou da caixa vermelha no histórico para a
+  banda âmbar do topo. Regra em `src/lib/poderes.ts` (`poderesDoLado`, `faltasDaEntidade`), testes em
+  `src/lib/poderes.test.ts`.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros, os mesmos 28 avisos), `npm test` (2031
+testes, com as migrações em memória; 99 deles novos — 58 do domínio, 19 de acesso, 22 do «tudo ou nada») e `npm run build`. Os ficheiros novos passam o prettier
+(`--print-width 140 --single-quote`); os que já existiam ficaram no estilo em que estavam. **Não visto num
+navegador**: os ecrãs estão atrás de sessão, e a migração não está na base real.
