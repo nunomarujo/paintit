@@ -167,3 +167,11 @@ tinha-a (criada pela Twilio); a nova, criada à mão, nasceu sem ela.
   **subscrever a aplicação** → webhook → publicar a aplicação (modo Live).
 - Para provar a entrega sem esperar por um levantamento: «Enviar mensagem» em WhatsApp › Configuração da API
   (modelo `hello_world`) para o telemóvel de ensaio; se chegar, a conta envia.
+
+## Ensaio de ponta a ponta (05/11/2026, 20:31) — passou
+
+Convite do QP-1009 reenviado por `/api/whatsapp/reenviar` → estado «delivered» → «Aceito» no botão → reserva
+em nome da pessoa → resposta «Levantamento reservado…» entregue e lida. Dois achados: (1) o limite de 64
+caracteres no identificador da mensagem recusava, em silêncio, a linha das mensagens **recebidas** (os
+`wamid` delas são mais compridos): passou a 255 (`20261105203307`); (2) até a aplicação estar subscrita à
+conta (secção acima) nada disto chega. O texto do modelo na Meta continua «Marketing», em revisão.
