@@ -75,6 +75,18 @@ export const modeloDoConvite = (env: Record<string, string | undefined>) => env.
 /** O modelo genérico dos avisos (assunto, texto, ligação). Sem ele, os avisos não saem por WhatsApp. */
 export const modeloDoAviso = (env: Record<string, string | undefined>) => env.WHATSAPP_MODELO_AVISO?.trim() || null;
 
+/**
+ * O modelo do contrato pronto para assinar (05/11/2026, `contrato_para_assinar`): {{1}} a referência da obra,
+ * e o botão «Abrir o contrato» com o identificador da contratação no fim do endereço
+ * (`https://quempinta.pt/app/contratacoes/{{1}}`). Sem a variável — o modelo ainda não foi aprovado na Meta
+ * —, o aviso do contrato não sai por WhatsApp; o email e o aviso dentro da aplicação saem como sempre.
+ */
+export const modeloDoContrato = (env: Record<string, string | undefined>) => env.WHATSAPP_MODELO_CONTRATO?.trim() || null;
+
+/** A única variável do modelo do contrato: a referência da obra, que as duas partes já conhecem. Nada do
+ * contrato (valores, nomes, morada) vai na mensagem. */
+export const variaveisDoContrato = (referencia: string): string[] => [limpa(referencia, 60)];
+
 // ---------------------------------------------------------------------------------------------------
 // O que se envia
 // ---------------------------------------------------------------------------------------------------
@@ -98,11 +110,21 @@ export function conviteDoPayload(payload: string | undefined): string | null {
   return m ? m[1]!.toLowerCase() : null;
 }
 
-/** Corpo de um envio de modelo. `botao`, quando existe, é o payload do botão de resposta rápida n.º 0. */
-export function corpoDoModelo(para: string, nome: string, idioma: string, parametros: string[], botao?: string): Record<string, unknown> {
+/**
+ * Corpo de um envio de modelo. `botao`, quando existe, é o payload do botão de resposta rápida n.º 0 (texto)
+ * ou o fim do endereço do botão «Visitar website» n.º 0 (`{ sufixoUrl }`).
+ */
+export function corpoDoModelo(
+  para: string,
+  nome: string,
+  idioma: string,
+  parametros: string[],
+  botao?: string | { sufixoUrl: string },
+): Record<string, unknown> {
   const components: Record<string, unknown>[] = [];
   if (parametros.length) components.push({ type: 'body', parameters: parametros.map((text) => ({ type: 'text', text: limpa(text, 1000) })) });
-  if (botao) components.push({ type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: botao }] });
+  if (typeof botao === 'string' && botao) components.push({ type: 'button', sub_type: 'quick_reply', index: '0', parameters: [{ type: 'payload', payload: botao }] });
+  if (typeof botao === 'object') components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: botao.sufixoUrl }] });
   return { messaging_product: 'whatsapp', to: numeroParaMeta(para), type: 'template', template: { name: nome, language: { code: idioma }, components } };
 }
 

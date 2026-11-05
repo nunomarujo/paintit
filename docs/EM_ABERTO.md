@@ -24,6 +24,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
 | Aplicar a migração `20261105230000_poderes_de_representacao` (poderes de quem assina, 05/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` e confirmar as duas funções e as três tabelas | sem ela, as entidades e as partes não veem nada de novo — **tudo ou nada** (`src/lib/poderes.ts`, testado em `src/lib/poderes.test.ts`): nenhuma assinatura grava resultado, nem as de particulares e empresários em nome individual (que não precisam das tabelas novas); a página da entidade não mostra o campo do código nem passa a pedir a certidão ao pintor sociedade; só a equipa vê o menu novo, cuja fila diz que falta a migração. Aplicada, liga tudo de uma vez (`DECISOES.md` 05/11/2026, «Poderes de quem assina») |
+| Aplicar a migração `20261105233000_assinatura_so_pelo_servidor` (a assinatura só entra pelo servidor, 05/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` | fecha a falha que deixava registar «assinou» pela API sem PDF (`DECISOES.md` 05/11/2026, noite). O código funciona antes e depois dela; a falha só fecha com ela aplicada |
+| Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
 | Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
 
@@ -158,6 +160,14 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   entidade antes de a certidão registada caducar (hoje vê-se no ecrã e na fila da equipa, sem aviso por email);
   o cofre de documentos do pintor (`/app/obras`, `src/domain/dossier.ts`) ainda não conta o código de acesso
   como certidão (a lista do que falta, na página da entidade, já conta).
+
+- **Assinatura no telemóvel (05/11/2026):** confirmar o endereço da ferramenta web de assinatura com a Chave Móvel
+  Digital (o ecrã liga ao guia oficial do gov.pt, que não deu para ler daqui) e **provar com um PDF real** que o
+  ficheiro assinado nesse serviço passa na nossa verificação (o mesmo documento, só com a assinatura acrescentada).
+  Junta-se ao ensaio de assinatura da secção 1. Até lá, o caminho do telemóvel está no ecrã sem ter sido ensaiado.
+- **Rasto de avisos (05/11/2026), o que ficou para depois:** o contador do menu conta todos os passos do contrato
+  (caução, confirmação, assinatura); se se quiser só a assinatura, é uma linha em `layout.tsx`. Os avisos do
+  contrato por WhatsApp saem só na vez de assinar; os outros passos seguem pelo modelo genérico, quando existir.
 
 - **Impermeabilização das coberturas de corpos salientes sem telha (promotor, 04/11/2026)** — sempre
   que haja corpos salientes sem telha (marquises, palas, varandas cobertas em laje), perguntar ao

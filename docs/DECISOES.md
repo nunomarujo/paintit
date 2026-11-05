@@ -5782,3 +5782,76 @@ Verificado no worktree, pelo código de saída: typecheck, lint (0 erros, os mes
 testes, com as migrações em memória; 99 deles novos — 58 do domínio, 19 de acesso, 22 do «tudo ou nada») e `npm run build`. Os ficheiros novos passam o prettier
 (`--print-width 140 --single-quote`); os que já existiam ficaram no estilo em que estavam. **Não visto num
 navegador**: os ecrãs estão atrás de sessão, e a migração não está na base real.
+
+## 05/11/2026 (noite) — A assinatura só entra pelo servidor; o rasto de avisos até ao contrato; o contrato por WhatsApp
+
+### Falha fechada: registar «assinou» pela API, sem PDF
+
+Encontrada na revisão da verificação de poderes, e anterior a ela. A política `engagement_events_insert` deixava
+quem gere uma das entidades registar `cliente_assinou` ou `pintor_assinou` diretamente pela API, com a sessão do
+próprio, sem PDF nenhum e com o `payload` que quisesse (`metodo: 'cmd_pdf'`, `cadeiaConfiavel: true`, poderes
+«confere»). Todas as verificações do PDF viviam só no servidor. Também o balde `contratos` aceitava da parte um
+ficheiro qualquer, que o pintor depois descarregava como «o contrato assinado pelo cliente». **Sem exposição:** não
+há em produção acontecimentos de assinatura fora do percurso do servidor (consulta de 05/11/2026).
+
+**A correção** (migração `20261105233000_assinatura_so_pelo_servidor`, por aplicar): a base continua a decidir
+**quem** regista (a política de sempre: papel na entidade do lado certo e `actor = auth.uid()`) e passa a exigir a
+prova de **que** o servidor verificou. Depois de verificar o PDF, o servidor regista com a chave de serviço o
+`payload` exato do acontecimento (`registar_assinatura_verificada`, só executável pela chave de serviço; tabela
+`assinaturas_verificadas`, que ninguém com sessão lê nem escreve); o acontecimento só entra com um `payload` igual,
+para a mesma contratação, o mesmo lado e a mesma pessoa. O PDF passa a ser carregado pelo servidor (a política de
+inserção do balde fica fechada, `with check (false)`, para a migração não precisar de `drop`). A equipa da
+plataforma continua a poder registar qualquer acontecimento. Testes em `supabase/tests/rls.test.ts`, que falham sem
+a migração: sem registo, com outro `payload`, com o registo de outra pessoa da mesma entidade, a tabela e a função
+fechadas a quem tem sessão; e o balde, que nenhuma parte escreve.
+
+**Ordem de publicação indiferente.** Enquanto a migração não estiver aplicada, a função não existe (`PGRST202`) e a
+base ainda tem a política antiga: o servidor segue sem o registo, que não abre nada que não esteja aberto. Assim o
+código pode ir para produção antes ou depois da migração sem parar as assinaturas. Um carregamento cujo registo
+falhou já não fica preso: enquanto o passo estiver disponível, um PDF novo substitui o anterior.
+
+### Rasto de avisos: de qualquer menu até ao contrato
+
+Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação
+a cada menu onde carregar até alcançar o doc». Uma só regra decide de quem é o próximo passo e qual
+(`src/domain/proximoPasso.ts`, testada): caução, adiantamento, assinar, decidir (cliente); confirmar a obra, assinar
+(pintor). **Corrige um engano antigo:** a lista e o Início contavam qualquer ação disponível como «o próximo passo é
+seu» — o cliente via-o enquanto esperava pelo pintor, só por poder desistir, e o pintor não o via com a comissão por
+pagar. Os elos, todos a apontar para `#assinar` quando o passo é assinar:
+- **menu:** contador em «Contratações» (calculado em lote, três consultas, uma vez por pedido ao servidor —
+  `src/lib/contratosAMinhaEspera.ts`); no telemóvel, um ponto no botão do menu fechado (os avisos por ler do Início
+  não acendem o ponto, que estaria sempre aceso);
+- **Início** (as duas composições), **página da obra** do cliente e **Propostas recebidas**: o passo pelo nome;
+- **lista de Contratações:** «Precisa de si» com o passo, a assinatura primeiro; o cartão realçado e o prazo;
+- **página do contrato:** secção «Assinar o contrato» logo a seguir ao título, em três passos — descarregar,
+  assinar (no computador, a aplicação Autenticação.gov; no telemóvel, o serviço do Estado sem instalar nada,
+  pelo guia oficial do gov.pt), carregar — com o prazo; o PDF recusado em âmbar (resolve-se); o que falta ao
+  condomínio dentro da secção, em texto âmbar (deixou de ser uma segunda caixa de cor); quem não é proprietário
+  nem gestor lê que a assinatura cabe a quem é. As duas partes descarregam o PDF assinado (o do cliente enquanto
+  espera pelo pintor; o das duas no fim);
+- **email:** a ligação vai à secção, o botão diz «Abrir o contrato» e o texto diz onde e como.
+De passagem, na página do contrato: o bloco «Trabalhos a mais» aparecia duas vezes (saiu o de cima) e os
+«Registos sem efeito» deixaram de ser uma caixa vermelha (regra 13).
+
+**O endereço do serviço web de assinatura ficou por confirmar.** O guia oficial existe
+(`https://www.gov.pt/guias/assinar-com-a-chave-movel-digital`), mas a página carrega o conteúdo por JavaScript e não
+foi possível ler dela o endereço da ferramenta. O ecrã liga ao guia e não a um endereço adivinhado. **Também não está
+provado** que um PDF assinado nesse serviço passe na nossa verificação (o mesmo documento com a assinatura
+acrescentada): fica para o ensaio de assinatura real (`EM_ABERTO.md`).
+
+### O contrato por WhatsApp
+
+Decisão do promotor («devíamos aproveitar para avisar ambos por WhatsApp?» — «sim»). Quando é a vez de uma parte
+assinar, sai o modelo `contrato_para_assinar` no mesmo momento do email, a quem pode assinar pela entidade
+(proprietários e gestores, como o email) e **só a quem deu o consentimento e o número**. A preferência é da pessoa e
+vive onde já vivia a dos avaliadores (`survey_availability`): sem migração nova. Liga-se no **Perfil** e, enquanto o
+contrato está em curso e a pessoa ainda não o ligou, na própria página do contrato; ligado, a página diz para que
+número e como desligar (o consentimento retira-se com a mesma facilidade com que se dá). Na mensagem só vai a
+referência da obra; o botão abre o contrato. Sem `WHATSAPP_MODELO_CONTRATO` (o modelo por aprovar na Meta) não sai
+nada — e o email e o aviso na aplicação saem como sempre.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros; os avisos são os mesmos 28, nenhum nos
+ficheiros tocados), `npm test` (2043, com as migrações em memória) e `npm run build`. A secção da assinatura e o
+consentimento vistos num navegador (1280 e 390 px), numa página de ensaio com dados inventados que não entrou no
+Git: alvos de toque de 44 px, o erro do PDF a âmbar. **Não visto com sessão:** o contador do menu, o Início, a lista e
+a página verdadeira precisam de dados na base.

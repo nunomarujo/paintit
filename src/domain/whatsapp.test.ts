@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 type Modelo = { to: string; template: { components: { type: string; sub_type?: string; index?: string; parameters: { text?: string; payload?: string }[] }[] } };
 import {
-  assinaturaMeta, assinaturaValida, configuracaoWhatsApp, conviteDoPayload, corpoDeTexto, corpoDoModelo, eAceito,
+  assinaturaMeta, assinaturaValida, configuracaoWhatsApp, conviteDoPayload, corpoDeTexto, corpoDoModelo, eAceito, modeloDoContrato, variaveisDoContrato,
   eventosDoWebhook, numeroDaMeta, numeroParaMeta, numeroWhatsApp, payloadDoConvite, respostaDaVerificacao, variaveisDoAviso,
 } from './whatsapp';
 
@@ -44,6 +44,17 @@ describe('o que se envia', () => {
     expect(c.template.components[0]!.parameters.map((p) => p.text)).toEqual(['Viana do Castelo', 'fachadas']);
     expect(c.template.components[1]!).toMatchObject({ type: 'button', sub_type: 'quick_reply', index: '0' });
     expect(conviteDoPayload(c.template.components[1]!.parameters[0]!.payload)).toBe(id);
+  });
+  it('o modelo do contrato: a referência da obra no corpo e o identificador no fim do endereço do botão', () => {
+    const id = '589fab1c-a365-49bc-b50f-edc34590dce6';
+    const c = corpoDoModelo('+351912345678', 'contrato_para_assinar', 'pt_PT', variaveisDoContrato(' QP-1009 '), { sufixoUrl: id }) as unknown as Modelo;
+    expect(c.template.components[0]!.parameters.map((p) => p.text)).toEqual(['QP-1009']);
+    expect(c.template.components[1]!).toEqual({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: id }] });
+  });
+  it('sem o modelo do contrato configurado, não há envio (o modelo espera aprovação da Meta)', () => {
+    expect(modeloDoContrato({})).toBeNull();
+    expect(modeloDoContrato({ WHATSAPP_MODELO_CONTRATO: '  ' })).toBeNull();
+    expect(modeloDoContrato({ WHATSAPP_MODELO_CONTRATO: 'contrato_para_assinar' })).toBe('contrato_para_assinar');
   });
   it('texto livre não gera pré-visualização', () => {
     expect((corpoDeTexto('+351912345678', 'Olá') as { text: unknown }).text).toEqual({ body: 'Olá', preview_url: false });

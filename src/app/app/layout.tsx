@@ -15,6 +15,7 @@ import { queueCounts } from '@/lib/backofficeCounts';
 import { appealView } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
 import { residenciasDe } from '@/lib/condomino';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 // Os ícones já não entram aqui como componente: o layout é de servidor e o AppNav é de cliente, e
 // uma função não atravessa essa fronteira (produção em baixo a 26/10/2026, 12:49 — ver NavIcons.tsx,
 // `ICONES`). Pede-se o ícone pelo nome (string); o cliente resolve-o.
@@ -51,6 +52,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const pintorId = pintorOrg?.id;
   const meuPerfil = pintorOrg ?? fornecedorOrg ?? null;
   const porEnviar = pintorId ? await contarOrcamentosPorEnviar(supabase, pintorId) : 0;
+  // Rasto de avisos do contrato (05/11/2026): o menu diz onde está o passo à espera desta conta — assinar,
+  // pagar a caução, confirmar a obra —, a lista assinala-o e a página do contrato diz como fazer.
+  const contratosParaSi = kinds.size > 0 ? (await aMinhaEspera(user.id)).length : 0;
 
   // Estrutura e rotas do caderno de desenho da interface (26/10/2026, protótipo do promotor:
   // QuemPinta_Desenho_Interface.html, secção "Menus e larguras") — um perfil, um agrupamento. Dois
@@ -80,11 +84,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       { href: '/app/oportunidades', label: 'Oportunidades', icon: 'lupa' },
       { href: '/app/obras-publicas', label: 'Obra pública', icon: 'publico' },
       { href: '/app/orcamentos', label: 'Orçamentos', icon: 'recibo', aviso: porEnviar > 0 },
-      { href: '/app/contratacoes', label: 'Contratações', icon: 'documento' },
+      { href: '/app/contratacoes', label: 'Contratações', icon: 'documento', count: contratosParaSi },
     );
   }
   // Cliente sem conta de pintor: Contratações fica no único grupo (caderno, perfil "Cliente").
-  if (client && !kinds.has('pintor')) dia.push({ href: '/app/contratacoes', label: 'Contratações', icon: 'documento' });
+  if (client && !kinds.has('pintor')) dia.push({ href: '/app/contratacoes', label: 'Contratações', icon: 'documento', count: contratosParaSi });
 
   // Materiais (pintor): catálogo para procurar produtos, armazém para o que já existe na empresa.
   const materiais: NavItem[] = [];

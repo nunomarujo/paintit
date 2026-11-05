@@ -1103,6 +1103,15 @@ describe('contratação', () => {
         [engagementId, kind, extra.amount ?? null, extra.reveal ?? false, extra.at ?? null],
       ),
     );
+  /** O que o servidor faz depois de verificar o PDF: regista, com a chave de serviço, o payload exato. */
+  const verificar = async (actor: string, kind: string, payload: object, engagement = engagementId) => {
+    await db.exec('set role service_role');
+    try {
+      await db.query(`select public.registar_assinatura_verificada($1, $2, $3, $4)`, [engagement, kind, actor, JSON.stringify(payload)]);
+    } finally {
+      await db.exec('reset role');
+    }
+  };
 
   beforeAll(async () => {
     // A mais antiga: o teste do código de adesão cumulativo (acima) já selecionou mais propostas depois desta.
@@ -1146,7 +1155,47 @@ describe('contratação', () => {
     await expect(event(A, 'pintor_assinou')).rejects.toThrow(/row-level security/);
     await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(/row-level security/);
     await event(ADMIN, 'deposito_confirmado', { amount: 15000 });
+    // A assinatura só entra com o registo da verificação do servidor (teste seguinte); aqui fica feita.
+    await verificar(A, 'cliente_assinou', {});
     await event(A, 'cliente_assinou');
+  });
+
+  it('a assinatura não entra pela API sem o PDF verificado pelo servidor (05/11/2026)', async () => {
+    // A falha: quem gere a entidade registava «cliente assinou» com a sua sessão, sem PDF, e com o payload
+    // que quisesse. Esta contratação é outra, para não depender da assinatura do teste anterior.
+    const outra = await one<{ id: string }>(
+      `select e.id from public.engagements e where e.id <> $1 and e.client_org_id = (select client_org_id from public.engagements where id = $1) limit 1`,
+      [engagementId],
+    );
+    const assinar = (user: string, payload: object) =>
+      as(user, () =>
+        db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'cliente_assinou', $2)`, [
+          outra.id,
+          JSON.stringify(payload),
+        ]),
+      );
+    const forjado = { metodo: 'cmd_pdf', documentHash: 'f'.repeat(64), signatario: 'Alguém', cadeiaConfiavel: true };
+    // Sem registo do servidor: recusado, mesmo com o papel certo.
+    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    // Com registo, mas outro payload (ex.: a mesma assinatura com a cadeia trocada para «confiável»).
+    await verificar(A, 'cliente_assinou', { ...forjado, cadeiaConfiavel: false }, outra.id);
+    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    // Com o payload certo, mas verificado para outra pessoa — C também gere o condomínio (pela administradora).
+    await verificar(A, 'cliente_assinou', forjado, outra.id);
+    await expect(assinar(C, forjado)).rejects.toThrow(/row-level security/);
+    // Ninguém com sessão escreve ou lê o registo, nem chama a porta do servidor.
+    await expect(as(A, () => db.query(`select * from public.assinaturas_verificadas`))).rejects.toThrow(/permission denied/);
+    await expect(
+      as(A, () => db.query(`insert into public.assinaturas_verificadas (engagement_id, kind, actor, payload) values ($1, 'cliente_assinou', $2, '{}')`, [outra.id, A])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(A, () => db.query(`select public.registar_assinatura_verificada($1, 'cliente_assinou', $2, '{}')`, [outra.id, A])),
+    ).rejects.toThrow(/permission denied/);
+    // A porta só aceita assinaturas.
+    await expect(verificar(A, 'cliente_desistiu', {}, outra.id)).rejects.toThrow(/Só assinaturas/);
+    // O servidor verificou exatamente isto, para esta pessoa: entra.
+    await assinar(A, forjado);
+    await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id]);
   });
 
   it('as partes não escolhem a hora; a plataforma pode indicar uma hora passada', async () => {
@@ -1581,17 +1630,28 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
 });
 
 describe('contratos assinados', () => {
-  it('cada parte só carrega o seu PDF; o pintor lê o anúncio fechado da sua contratação', async () => {
+  it('só o servidor carrega os PDF assinados; cada parte lê os da sua contratação; o pintor lê o anúncio fechado', async () => {
     const e = await one<{ id: string; painter_org_id: string; request_id: string }>(
       `select e.id, e.painter_org_id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
     );
     const owner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario'`, [e.painter_org_id])).user_id;
     const put = (user: string, file: string) => as(user, () => db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${file}`]));
+    // Até 05/11/2026 cada parte carregava o seu pela API — e podia pôr lá um ficheiro qualquer, sem
+    // verificação. Agora ninguém com sessão carrega: nem a parte do próprio lado.
     await expect(put(owner, 'cliente.pdf')).rejects.toThrow(/row-level security/);
     await expect(put(A, 'pintor.pdf')).rejects.toThrow(/row-level security/);
     await expect(put(B, 'cliente.pdf')).rejects.toThrow(/row-level security/);
-    await put(A, 'cliente.pdf');
-    await put(owner, 'pintor.pdf');
+    await expect(put(A, 'cliente.pdf')).rejects.toThrow(/row-level security/);
+    await expect(put(owner, 'pintor.pdf')).rejects.toThrow(/row-level security/);
+    // O servidor (chave de serviço), depois de verificar o PDF.
+    await db.exec('set role service_role');
+    try {
+      for (const f of ['cliente.pdf', 'pintor.pdf']) {
+        await db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${f}`]);
+      }
+    } finally {
+      await db.exec('reset role');
+    }
     expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(2);
     expect(await as(B, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toEqual([]);
     expect(await as(owner, async () => (await db.query('select ref from public.request_listings where request_id = $1', [e.request_id])).rows)).toHaveLength(1);

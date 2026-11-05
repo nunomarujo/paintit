@@ -2369,6 +2369,13 @@ export type Database = {
         Args: { p_org: string; p_fonte: string; p_forma_de_obrigar: string; p_assinaturas: number | null; p_valida_ate: string; p_membros: Json };
         Returns: undefined;
       };
+      // A assinatura só entra pelo servidor (migração 20261105233000), escrita à mão até ser aplicada. Só a
+      // chave de serviço a executa; a tabela `assinaturas_verificadas` não tem entrada aqui porque ninguém
+      // com sessão a lê nem a escreve.
+      registar_assinatura_verificada: {
+        Args: { p_engagement: string; p_kind: EngagementEventKind; p_actor: string; p_payload: Json };
+        Returns: undefined;
+      };
       survey_client_contact: {
         Args: { p_attempt: string };
         Returns: { nome: string | null; telefone: string | null; email: string | null; morada: string; codigo_postal: string | null; localidade: string | null }[];

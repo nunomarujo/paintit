@@ -40,16 +40,21 @@ export function MobileNavMenu({
     if (ref.current) ref.current.open = false;
   };
   const { renderGroup } = useAppNavGroups(groups, fecha);
+  // Com o menu fechado, o telemóvel não mostra os contadores: um ponto no botão diz que há lá dentro um
+  // passo à espera (rasto de avisos do contrato, 05/11/2026). Os avisos por ler do Início não contam —
+  // estão quase sempre lá, e um ponto sempre aceso deixa de dizer alguma coisa.
+  const temPasso = groups.some((g) => g.items.some((i) => i.aviso || (i.count && i.href !== '/app')));
 
   return (
     <details ref={ref} className="relative md:hidden">
       <summary
-        aria-label="Abrir navegação"
-        className="flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-lg text-barra-strong hover:bg-barra-hover [&::-webkit-details-marker]:hidden"
+        aria-label={temPasso ? 'Abrir navegação — há um passo à sua espera' : 'Abrir navegação'}
+        className="relative flex h-11 w-11 cursor-pointer select-none items-center justify-center rounded-lg text-barra-strong hover:bg-barra-hover [&::-webkit-details-marker]:hidden"
       >
         <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
+        {temPasso && <span aria-hidden className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-lima ring-2 ring-tinta-900" />}
       </summary>
       {/* Fundo semitransparente a fechar ao toque fora do menu, sob o próprio painel (z menor). */}
       <div className="fixed inset-0 z-20" onClick={fecha} aria-hidden />

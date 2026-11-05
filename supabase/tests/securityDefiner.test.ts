@@ -47,6 +47,11 @@ const DISPENSADAS: Record<string, string> = {
     + 'assinatura da Twilio. O WhatsApp não traz sessão; quem a autoriza é o convite, e as verificações (inscrição, '
     + 'exclusão) correm contra a pessoa do convite (convocatoria_por_ondas, 05/11/2026). Um teste prova que '
     + 'authenticated recebe «permission denied».',
+  'public.registar_assinatura_verificada':
+    'Revogada a authenticated e a anon: só corre pelo serviço, chamada pelo servidor depois de verificar o PDF assinado. '
+    + 'Não decide quem pode assinar — isso continua na política engagement_events_insert, com a sessão da pessoa; só '
+    + 'regista o payload que o acontecimento terá de trazer (assinatura_so_pelo_servidor, 05/11/2026). Um teste prova '
+    + 'que authenticated recebe «permission denied».',
   'public.registar_condomino':
     'Corre como anon de propósito: é o registo pelo código do prédio, antes de haver conta. O que a autoriza é o '
     + 'código activo (building_access_codes), e só escreve na linha do próprio email — nunca toca em permilagem nem '
