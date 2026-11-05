@@ -4655,3 +4655,14 @@ pagamento).
 **Reserva só para inscritos.** O promotor mandou aplicar a migração de 02/11 sem inscrever ninguém
 automaticamente. Aplicada a 05/11/2026 (`20261105103114`); o ficheiro passou a ter o nome da versão
 registada (a ordem não quebra nada: `npm test` verde).
+
+## 05/11/2026 — Sem candidatos não é esgotar
+
+Erro meu, encontrado no ensaio: na primeira passagem com as chaves do WhatsApp ligadas (10:28), três
+levantamentos abertos de Viana do Castelo (QP-1000, QP-1002, QP-1005) foram dados por esgotados com zero
+ondas, só porque ainda nenhum avaliador tinha o WhatsApp configurado — e a equipa recebeu três emails.
+Esgotado é definitivo, por isso nunca seriam oferecidos ao primeiro avaliador da zona.
+
+Corrigido (`20261105111016_convocatoria_sem_candidatos`): «sem candidatos» antes da primeira onda passa a ser
+um estado próprio — avisa a equipa uma vez e o levantamento continua à espera. Esgotar fica para quem já teve
+ondas sem resposta. Os três levantamentos voltaram a estar à espera.

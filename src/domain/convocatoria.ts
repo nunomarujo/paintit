@@ -257,11 +257,18 @@ export function onda(numero: number, candidatos: readonly Candidato[], agora: Da
 export type PassoDaConvocatoria =
   | { tipo: 'aguardar'; ate: Date | null }
   | { tipo: 'nova_onda'; numero: number }
+  | { tipo: 'sem_candidatos' }
   | { tipo: 'esgotada' };
 
 /**
  * O que fazer agora com um levantamento aberto. `ondas` é o número de ondas já enviadas e `ultimaOnda`
  * quando saiu a última. `haMaisCandidatos` diz se a próxima onda teria alguém (a função `onda` não vazia).
+ *
+ * Sem ninguém a quem convidar **antes da primeira onda** não é esgotar: é «sem candidatos» — avisa-se a
+ * equipa e o levantamento continua à espera, para o primeiro avaliador que se inscrever na zona o receber.
+ * (Correção de 05/11/2026: na primeira passagem com as chaves ligadas, três levantamentos de Viana do
+ * Castelo foram dados por esgotados só porque ainda ninguém tinha configurado o WhatsApp.) Esgotar fica para
+ * quem já recebeu ondas e ninguém aceitou, ou cujos convidados já se acabaram.
  */
 export function proximoPasso(
   ondas: number,
@@ -274,6 +281,7 @@ export function proximoPasso(
     const fim = somarMinutosUteis(ultimaOnda, regras.janelaMinutosUteis);
     if (agora < fim) return { tipo: 'aguardar', ate: fim };
   }
+  if (ondas === 0 && !haMaisCandidatos) return { tipo: 'sem_candidatos' };
   if (ondas >= regras.maximoDeOndas || !haMaisCandidatos) return { tipo: 'esgotada' };
   if (!dentroDoHorarioUtil(agora)) return { tipo: 'aguardar', ate: null };
   return { tipo: 'nova_onda', numero: ondas + 1 };

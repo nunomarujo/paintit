@@ -177,6 +177,10 @@ describe('o tempo das ondas', () => {
     const passo = proximoPasso(1, tarde, new Date('2026-11-04T20:00:00Z'), true);
     expect(passo).toEqual({ tipo: 'aguardar', ate: new Date('2026-11-05T09:30:00Z') });
   });
+  it('sem ninguém antes da primeira onda não se esgota: fica à espera do primeiro avaliador da zona', () => {
+    expect(proximoPasso(0, null, QUARTA_10H, false)).toEqual({ tipo: 'sem_candidatos' });
+    expect(proximoPasso(0, null, new Date('2026-11-04T22:00:00Z'), false)).toEqual({ tipo: 'sem_candidatos' });
+  });
   it('ao fim de três ondas, ou sem mais ninguém, esgota-se', () => {
     expect(proximoPasso(R.maximoDeOndas, QUARTA_10H, new Date('2026-11-05T10:00:00Z'), true)).toEqual({ tipo: 'esgotada' });
     expect(proximoPasso(1, QUARTA_10H, new Date('2026-11-05T10:00:00Z'), false)).toEqual({ tipo: 'esgotada' });

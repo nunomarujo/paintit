@@ -33,12 +33,12 @@ import { enviarConvite } from '@/lib/whatsapp';
  * segunda inserção falha antes de enviar o que quer que seja.
  */
 
-export type ResumoDasConvocatorias = { semCanal?: true; ondas: number; convites: number; falhas: number; esgotadas: number };
+export type ResumoDasConvocatorias = { semCanal?: true; ondas: number; convites: number; falhas: number; esgotadas: number; semCandidatos: number };
 
 export const URL_DO_WEBHOOK = () => process.env.WHATSAPP_WEBHOOK_URL?.trim() || `${BRAND.url}/api/whatsapp`;
 
 export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDasConvocatorias> {
-  const resumo: ResumoDasConvocatorias = { ondas: 0, convites: 0, falhas: 0, esgotadas: 0 };
+  const resumo: ResumoDasConvocatorias = { ondas: 0, convites: 0, falhas: 0, esgotadas: 0, semCandidatos: 0 };
   const db = adminClient();
   const cfg = credenciaisWhatsApp(process.env);
   const modelo = process.env.WHATSAPP_MODELO_CONVITE?.trim();
@@ -88,6 +88,19 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
       await db.from('request_surveys').update({ convocatoria_esgotada_em: agora.toISOString() }).eq('id', s.id).is('convocatoria_esgotada_em', null);
       await avisarEquipa(db, `${referenciaDoLevantamento(s.numero)} · ${pedido.concelho}`, feitas.length);
       resumo.esgotadas++;
+      continue;
+    }
+    if (passo.tipo === 'sem_candidatos') {
+      // Avisa a equipa uma vez (para recrutar na zona) e continua à espera: o primeiro avaliador que se
+      // configurar aqui recebe o convite na passagem seguinte.
+      const { data: marcado } = await db
+        .from('request_surveys')
+        .update({ convocatoria_sem_candidatos_em: agora.toISOString() })
+        .eq('id', s.id)
+        .is('convocatoria_sem_candidatos_em', null)
+        .select('id');
+      if (marcado && marcado.length > 0) await avisarEquipa(db, `${referenciaDoLevantamento(s.numero)} · ${pedido.concelho}`, 0);
+      resumo.semCandidatos++;
       continue;
     }
     if (passo.tipo !== 'nova_onda') continue;
@@ -210,7 +223,7 @@ async function avisarEquipa(db: Admin, levantamento: string, ondas: number): Pro
     `Levantamento sem avaliador: ${levantamento}`,
     [
       ondas === 0
-        ? `O levantamento ${levantamento} abriu e não há nenhum avaliador elegível dentro do raio.`
+        ? `O levantamento ${levantamento} está aberto e não há nenhum avaliador elegível dentro do raio. Fica à espera: o primeiro que se configurar na zona recebe o convite.`
         : `O levantamento ${levantamento} passou por ${ondas} ${ondas === 1 ? 'onda' : 'ondas'} de convites sem ninguém aceitar.`,
       'O cliente continua a poder preencher o levantamento sozinho. Vale a pena procurar avaliadores nesta zona.',
     ],
