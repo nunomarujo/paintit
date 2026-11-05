@@ -37,9 +37,10 @@ reserva → resposta lida, às 20:31). Canal: **Meta direta** (Cloud API), conta
 publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver `docs/WHATSAPP.md`. Por fazer:
 (1) **a convocatória com ondas a sério ainda não foi vista a correr** (só reenviei um convite à mão); fica
 para um dia útil das 9h às 18h, com um pedido de teste novo; (2) o modelo `avaliador_nova_oportunidade` foi
-**reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa) e o pedido de
-revisão para Serviços está pendente — se recusarem, usar o texto mais informativo proposto na conversa de
-05/11; (3) o nome de apresentação «Quem Pinta» está em revisão (o cabeçalho mostra o número até aprovarem);
+**reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa). A 05/11/2026,
+18:58, a Meta enviou «pedido para atualizar a categoria de UTILITY para MARKETING aprovado… podes continuar a
+enviar mensagens com este modelo»: o modelo **funciona, como Marketing**. Não foi um recurso ganho — se o custo
+pesar, o texto mais informativo proposto a 05/11 (modelo novo, Utilidade) fica como alternativa; (3) o nome de apresentação «Quem Pinta» está em revisão (o cabeçalho mostra o número até aprovarem);
 (4) apagar as chaves `TWILIO_*` da Vercel e fechar a conta Twilio; (5) os modelos `propostas_disponiveis` e
 `levantamento_agendado` ficaram na conta antiga e não são usados — recriar só quando houver quem os envie.
 Ficam por decidir/construir: a «informação do levantamento» e a «resposta a tempo» ainda não entram na
