@@ -139,9 +139,11 @@ da conta mais o modelo do convite. Sem elas a convocatória não envia nada e na
   Planeta, com pagamento próprio, e passar o número +351 926 549 194 (id 1409052285626700) para lá. Os
   modelos não passam: recriam-se.
 - **`avaliador_nova_oportunidade`** (categoria Serviços/Utility, idioma português, botão de resposta rápida
-  «Aceito», sem cabeçalho nem rodapé). Corpo aprovado, que `CORPO_DO_MODELO_DO_CONVITE`
-  (`src/domain/convocatoria.ts`) repete: «Quem Pinta: há um levantamento disponível em {{1}} ({{2}}).
-  Aceite-o em quempinta.pt. Após aceitar, tem uma hora útil para contactar o cliente.» Exemplos usados:
+  «Aceito», sem cabeçalho nem rodapé). Corpo antigo (conta Twilio), que mandava
+  ir ao site: «…Aceite-o em quempinta.pt…». Corpo novo, a submeter na conta nova, que
+  `CORPO_DO_MODELO_DO_CONVITE` (`src/domain/convocatoria.ts`) repete: «Quem Pinta: há um levantamento
+  disponível em {{1}} ({{2}}). Carregue em «Aceito» para ficar com ele: fica com o trabalho a primeira pessoa a
+  aceitar. Depois de aceitar, tem uma hora útil para contactar o cliente.» Exemplos usados:
   Braga / prédio de 6 andares. O payload do botão não vai no modelo: a aplicação envia-o em cada mensagem.
 - `propostas_disponiveis` (Marketing — mais cara que Utility; não usado) e `levantamento_agendado` (em
   revisão; não usado). Estado «Qualidade pendente» é o normal de um modelo ainda sem envios.

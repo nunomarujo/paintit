@@ -295,14 +295,16 @@ export function proximoPasso(
 // ---------------------------------------------------------------------------------------------------
 
 /**
- * O texto do convite: o do modelo `avaliador_nova_oportunidade`, **como está aprovado na Meta** (lido a
- * 05/11/2026 no WhatsApp Manager), com {{1}} a localização e {{2}} a descrição. A localização é só o
+ * O texto do convite: o do modelo `avaliador_nova_oportunidade`, com {{1}} a localização e {{2}} a descrição.
+ * O texto aprovado na conta antiga (Twilio) dizia «Aceite-o em quempinta.pt» e levava a ir ao site em vez de
+ * carregar no botão; ao recriar o modelo na conta nova (05/11/2026) o texto passou a este, que manda carregar em
+ * «Aceito». Tem de ser submetido na Meta exatamente assim. A localização é só o
  * concelho — a morada só chega a quem reserva (regra 6 do CLAUDE.md, e a dupla chave de 31/10/2026).
  * Mudar este texto aqui não muda o que chega: o que chega é o que a Meta aprovou. Se o modelo for recriado,
  * o texto tem de ser submetido igual a este.
  */
 export const CORPO_DO_MODELO_DO_CONVITE =
-  'Quem Pinta: há um levantamento disponível em {{1}} ({{2}}). Aceite-o em quempinta.pt. Após aceitar, tem uma hora útil para contactar o cliente.';
+  'Quem Pinta: há um levantamento disponível em {{1}} ({{2}}). Carregue em «Aceito» para ficar com ele: fica com o trabalho a primeira pessoa a aceitar. Depois de aceitar, tem uma hora útil para contactar o cliente.';
 
 export function textoDoConvite(concelho: string, descricao: string): string {
   return CORPO_DO_MODELO_DO_CONVITE.replace('{{1}}', concelho).replace('{{2}}', descricao);
