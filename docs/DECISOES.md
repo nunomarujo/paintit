@@ -4585,3 +4585,34 @@ medição (`origem_quantidade` anterior nulo — `primeiraMedicao`, `src/domain/
 testado): nesse caso a edição É a primeira medição e fica atribuída a quem a fez; quando já tinha
 origem, a autoria anterior fica como estava. `addSurface` continua a escrever sempre as duas colunas
 (zona nova).
+
+## 05/11/2026 — Convocatória por ondas: quem é convidado para um levantamento, e por que ordem
+
+Até aqui, quando um levantamento abria, **ninguém era avisado**: os avaliadores descobriam-no a navegar
+a lista e quem chegava primeiro ficava. Com o WhatsApp (modelo `avaliador_nova_oportunidade`, botão
+«Aceito») a convidar, chamar toda a gente de uma vez paga uma mensagem por pessoa e entrega sempre a
+vaga a quem tem o telemóvel mais à mão. Proposta discutida com o promotor; decisões dele:
+
+1. **NIF pessoal só para quem quer receber em nome próprio (recibo verde).** Por omissão a comissão
+   continua a ir para a empresa, e aí o NIF pessoal não se pede (RGPD, minimização).
+2. **Até metade de cada onda para avaliadores novos**, arredondada para baixo (2 em 5, 1 em 3). Novo é
+   quem tem menos de 3 levantamentos avaliados — o mesmo limiar do comparador de pintores.
+3. **«Já atribuída» só a quem carregou em «Aceito» tarde**, não a todos os convidados: cada mensagem
+   do modelo é paga, e o próprio convite já diz que fica com o trabalho a primeira pessoa a aceitar.
+4. **Concelho base e raio de deslocação** (15/30/60/100 km) declarados pela pessoa, em vez de listas
+   de concelhos: funciona no país inteiro sem marcar 308 concelhos. Anéis à volta da obra: o próprio
+   concelho, até 25 km, até 50 km, até ao raio de cada um — nunca além do raio declarado.
+
+O resto, proposto e aceite com a proposta: condições de convite (NIPC válido da empresa, inscrição e
+confidencialidade em vigor, nome completo, WhatsApp pessoal ligado, menos de 2 levantamentos em curso,
+não suspenso); onda de metade dos elegíveis entre 3 e 5; ordem pela qualidade que já define a banda de
+comissão (uma regra só), empate para quem está há mais tempo sem trabalho; quem ganhou uma vaga nas
+últimas 24 h vai para o fim do seu anel; nota baixa (média < 3 com ≥ 5 avaliações) ou incumprimento
+provado nos últimos 7 dias tiram da **primeira** onda, nunca da convocatória; uma hora útil por onda;
+só se envia em horário útil; ao fim de 3 ondas, alerta à equipa e o cliente segue pelo preenchimento
+próprio. Os dados do cliente **não** seguem por WhatsApp: o «Aceito» reserva e a resposta leva a
+ligação para a ficha, onde a dupla chave de 31/10/2026 continua a decidir.
+
+Construído: `src/domain/convocatoria.ts` (puro e testado, números numa versão `2026-11-05`) e
+`src/lib/centrosDosConcelhos.ts` (centroide oficial de cada concelho, geoapi.pt/CAOP; o Funchal fica na
+cidade porque as Selvagens puxavam o centroide 38 km para o mar).
