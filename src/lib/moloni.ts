@@ -180,4 +180,14 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
   return { providerDocumentId: String(created.document_id), numero, atcud, pdfBytes };
 }
 
+/** Empresas a que o token dá acesso, com o `company_id` verdadeiro (ensaio: confirma o MOLONI_COMPANY_ID). */
+export async function listarEmpresasMoloni(): Promise<{ company_id: number; nome: string; vat: string }[]> {
+  const token = await getAccessToken();
+  const res = await fetch(`${BASE}/companies/getAll/?access_token=${encodeURIComponent(token)}`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: '' });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Moloni (companies/getAll) recusou: ${text.slice(0, 300)}`);
+  const lista = JSON.parse(text) as { company_id: number; name?: string; vat?: string }[];
+  return (Array.isArray(lista) ? lista : []).map((c) => ({ company_id: c.company_id, nome: c.name ?? '', vat: c.vat ?? '' }));
+}
+
 export const draftTotal = invoiceTotal;
