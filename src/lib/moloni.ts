@@ -1,5 +1,6 @@
 import 'server-only';
 import { invoiceTotal, type InvoiceDraft } from '@/domain/invoicing';
+import { idDoDocumentoCriado, recusaEmObjeto } from '@/domain/moloniResposta';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -97,7 +98,7 @@ async function call<T>(path: string, body: Record<string, unknown>): Promise<T> 
   } catch {
     throw new Error(`Moloni (${path}): resposta inesperada (${res.status}): ${text.slice(0, 300)}`);
   }
-  if (!res.ok || (Array.isArray(json) && json[0] === false)) throw new Error(`Moloni (${path}) recusou: ${text.slice(0, 500)}`);
+  if (!res.ok || (Array.isArray(json) && json[0] === false) || recusaEmObjeto(json)) throw new Error(`Moloni (${path}) recusou: ${text.slice(0, 500)}`);
   return json as T;
 }
 
@@ -156,10 +157,12 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
     body.notes = `Refere-se ao documento interno ${draft.referencia.originType}/${draft.referencia.originId}.`;
   }
   const created = await call<{ document_id: number; number?: string; atcud?: string }>(endpoint, body);
+  // Sem identificador não há documento que se possa dar por emitido (06/11/2026: ficou «undefined» na base).
+  const documentId = idDoDocumentoCriado(created);
   let numero = created.number ?? null;
   let atcud = created.atcud ?? null;
   try {
-    const got = await call<{ number?: string; atcud?: string; document_id: number }>(draft.tipo === 'FT' ? 'invoices/getOne' : 'creditNotes/getOne', { document_id: created.document_id });
+    const got = await call<{ number?: string; atcud?: string; document_id: number }>(draft.tipo === 'FT' ? 'invoices/getOne' : 'creditNotes/getOne', { document_id: documentId });
     numero = numero ?? got.number ?? null;
     atcud = atcud ?? got.atcud ?? null;
   } catch {
@@ -171,13 +174,13 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
     const pdfRes = await fetch(`${BASE}/${draft.tipo === 'FT' ? 'invoices' : 'creditNotes'}/getPDF/?access_token=${encodeURIComponent(token)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ company_id: env('MOLONI_COMPANY_ID'), document_id: String(created.document_id) }).toString(),
+      body: new URLSearchParams({ company_id: env('MOLONI_COMPANY_ID'), document_id: String(documentId) }).toString(),
     });
     if (pdfRes.ok) pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
   } catch {
     // O PDF pode obter-se mais tarde; não bloqueia a emissão.
   }
-  return { providerDocumentId: String(created.document_id), numero, atcud, pdfBytes };
+  return { providerDocumentId: String(documentId), numero, atcud, pdfBytes };
 }
 
 export const draftTotal = invoiceTotal;

@@ -6377,3 +6377,17 @@ perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
     fez antes de publicar. **O relatório do cliente fica como estava**: as outras propostas aparecem só como
     «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
     emite continua a ser a equipa, que confirma que quem pediu é parte da obra.
+
+## 06/11/2026 — A primeira emissão na Moloni deu «emitido» com o número «undefined»
+
+Primeira emissão a sério (conta de testes «Quem Pinta TESTES API», fatura da comissão de «Pintor Teste Lda», 188,40 €):
+a fila ficou vazia e apareceu em «Últimos documentos emitidos» uma fatura «FT undefined», sem PDF, sem ATCUD e sem
+botão de envio. Na base, `fiscal_documents.provider_document_id = 'undefined'`, estado `emitido`, `numero` nulo, `erro`
+nulo. **A causa:** `emitDocument` lia `created.document_id` sem ver se existia, e `call` só tratava como recusa uma
+lista com `false` na primeira posição — uma recusa em forma de objeto (`{ valid: 0, … }`, que a Moloni pode devolver com
+HTTP 200) passava por sucesso. **Não se sabe** o que a Moloni respondeu (a resposta não se guardou) nem se há ou não um
+documento do lado dela: tem de se ver na conta de testes. **A correção** (`src/domain/moloniResposta.ts`, com testes):
+uma resposta sem `document_id` inteiro positivo já não conta como emitida — falha, com a resposta da Moloni no campo
+`erro`, e fica por emitir; e uma resposta com `valid` a 0 ou com `errors` é uma recusa. A linha «undefined» que ficou na
+base é de teste e tem de ser tratada à mão (apagada ou posta em `falhou`) antes de voltar a emitir, senão a fila não
+volta a mostrá-la.
