@@ -191,17 +191,7 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
-- **Números de WhatsApp confirmados por mensagem (06/11/2026): migração `20261106201807_numeros_de_whatsapp_confirmados`
-  por aplicar** (só com o OK do promotor). Sem ela, o ecrã novo não grava e o webhook não confirma; o código antigo
-  continua a ler `telemovel_whatsapp`. Depois de aplicada: os 2 números de teste ficam sem número — associá-los de novo
-  pelo cartão «Números em vigor» (perfil), a partir do telemóvel de cada um. Ver numa base real: o percurso completo
-  (pedir código → mensagem → «Número associado» → cartão atualizado) e «PARAR», que só se vêem com o webhook ligado à
-  Meta. Não visto: o painel «À espera da mensagem» (precisa da ação no servidor).
-  **Ordem:** aplicar a migração mesmo antes de publicar o código — antes dela o cartão aparece vazio e o código não se
-  pede; depois dela, o código antigo recusa gravar o formulário dos avaliadores a quem já tivesse número. Revisão
-  independente (06/11/2026) corrigida: o «PARAR» e a confirmação repetem-se se a base falhar (500 à Meta), o «Aceito» e o
-  reenvio só valem para um número ainda confirmado, o contrato e os avisos gerais vão a todos os números confirmados
-  (os convites, ao mais recente), «Cancelar» apaga o código, e os códigos caducados limpam-se.
+- **Números de WhatsApp confirmados por mensagem (06/11/2026): publicado e migração aplicada** (`20261106201807`, junto com `20261106201643` face do prédio e `20261106201820` contas dos avaliadores, a 06/11/2026 à noite). Os 2 números de teste ficaram sem número: associá-los de novo no cartão «Números em vigor» (perfil). Por ver numa base real: o percurso completo (pedir código → mensagem → «Número associado» → cartão atualizado) e «PARAR».
 - **O desenho do prédio por alçados e a rodar — construído a 06/11/2026, por publicar** (`docs/DECISOES.md`, «O desenho do
   prédio é dos alçados, e roda»): laje até ao segundo alçado, planta ao segundo (a do cadastro ou a pergunta), cada alçado
   no seu lado da planta, números e cotas e chamadas por ângulo, e os botões e o arrasto para rodar. **Falta:**
