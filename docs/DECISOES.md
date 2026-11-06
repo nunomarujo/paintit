@@ -6419,3 +6419,15 @@ uma resposta sem `document_id` inteiro positivo já não conta como emitida — 
 `erro`, e fica por emitir; e uma resposta com `valid` a 0 ou com `errors` é uma recusa. A linha «undefined» que ficou na
 base é de teste e tem de ser tratada à mão (apagada ou posta em `falhou`) antes de voltar a emitir, senão a fila não
 volta a mostrá-la.
+
+## 06/11/2026 — Passo 2: nomes, «Fora do desenho» explicado, «Recomeçar do zero»
+
+Pedido do promotor, depois de ver o passo 2 em produção. **Feito:** «+ Acrescentar zona» passou a «+ Acrescentar
+alçado» (o separador chama-se «Alçados»); «Medir na fotografia» passou a «Medir por fotografia»; o aviso de «Fora do
+desenho» já não diz só «o desenho não as mostra» — diz que contam para o total, que o desenho só tem lugar para uma
+fachada e que não desenha escadas, átrio nem o interior; e há «Recomeçar do zero», ao lado dos outros botões, que
+remove todas as zonas do pedido, com confirmação (`apagarTodasAsZonas`; as fotografias só perdem a ligação à zona e
+as medidas do prédio ficam). Remover uma zona já existia, mas só dentro da gaveta, no fim: continua lá. **Por fazer,
+pedido na mesma mensagem — o desenho do prédio:** (1) o primeiro passo é a planta (quadrado, I, L, U, T), e o desenho
+só tem as fachadas que se foram entregando, coladas às anteriores; (2) o desenho roda e vê-se por inteiro, para
+nenhuma zona ficar «fora do desenho» por não ter sítio. Ver `docs/EM_ABERTO.md`.

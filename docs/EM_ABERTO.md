@@ -178,6 +178,12 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
+- **O desenho do prédio, a refazer (pedido do promotor, 06/11/2026):** hoje é um volume genérico com uma frente, e uma
+  segunda fachada, as escadas e o átrio ficam «Fora do desenho». Pedido: (1) começar pela planta — quadrado, I, L, U,
+  T (já existem em `volume.ts`/`FormaWizard`, com a forma no cadastro do prédio) —, e o desenho só ter as fachadas
+  entregues, coladas às anteriores; (2) poder rodar e ver o prédio inteiro (a câmara de `buildingVolume` já tem
+  azimute); (3) cada alçado ter o seu sítio, para nenhuma zona ficar de fora. Mexe em `prancheta.ts`, `chamadas.ts`
+  (as ligações assumem uma vista fixa) e `Prancheta.tsx`; as chamadas e as cotas têm de se refazer para cada ângulo.
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 

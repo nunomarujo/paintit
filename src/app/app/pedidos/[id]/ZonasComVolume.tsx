@@ -1,6 +1,8 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { apagarTodasAsZonas } from '@/app/app/pedidos/actions';
+import { useConfirmacao } from '@/components/Confirmar';
 import { alturaDoPredio, dimensao, type Certeza, type Dimensao } from '@/domain/geometria';
 import { entradaDoVolume, lugaresDasZonas, numerarZonas, type EixoDaCota } from '@/domain/prancheta';
 import type { SurfaceKind, WorksMode } from '@/domain/request';
@@ -96,6 +98,8 @@ export function ZonasComVolume({
   const podeMedirNaFotografia = podeEditar && medirNaFotografia;
   const [aberto, setAberto] = useState<{ id: string | null; tipo?: SurfaceKind } | null>(null);
   const [apontada, setApontada] = useState<string | null>(null);
+  const [pedir, dialogoDeConfirmacao] = useConfirmacao();
+  const [aRecomecar, setARecomecar] = useState(false);
   // `zonaId` nulo: abriu-se pelo botão do topo (sugere-se a primeira por confirmar); vazio: uma zona nova.
   const [ferramenta, setFerramenta] = useState<InicioDaFerramenta | null>(null);
   // O que a ferramenta gravou por último, dito por baixo do total até se voltar a medir — ou até a zona
@@ -185,7 +189,7 @@ export function ZonasComVolume({
 
   const botaoAcrescentar = podeEditar && (
     <button type="button" onClick={() => abrir(null)} className="btn-secondary btn-sm">
-      + Acrescentar zona
+      + Acrescentar alçado
     </button>
   );
   // A ferramenta grava no pedido (06/11/2026): aparece a quem o pode editar, e só a esses.
@@ -205,7 +209,36 @@ export function ZonasComVolume({
         <rect x="3" y="5" width="18" height="14" rx="2" />
         <path d="M3 15l5-5 4 4 3-3 6 6" />
       </svg>
-      Medir na fotografia
+      Medir por fotografia
+    </button>
+  );
+
+  // Recomeçar o desenho: apaga todas as zonas, com as medidas (as fotografias e as medidas do prédio ficam).
+  const botaoRecomecar = podeEditar && zonas.length > 0 && (
+    <button
+      type="button"
+      disabled={aRecomecar}
+      onClick={async () => {
+        const ok = await pedir({
+          titulo: `Remover ${zonas.length === 1 ? 'a zona' : `as ${zonas.length} zonas`} e recomeçar?`,
+          texto:
+            'Saem do pedido todas as zonas, com as medidas e os trabalhos de cada uma. As fotografias e as medidas do prédio ficam. Não se pode desfazer.',
+          confirmar: 'Remover e recomeçar',
+          destrutivo: true,
+        });
+        if (!ok) return;
+        setARecomecar(true);
+        try {
+          await apagarTodasAsZonas(requestId);
+          setAberto(null);
+          setGravada(null);
+        } finally {
+          setARecomecar(false);
+        }
+      }}
+      className="btn-quiet btn-sm font-normal text-slate-700"
+    >
+      {aRecomecar ? 'A remover…' : 'Recomeçar do zero'}
     </button>
   );
 
@@ -213,6 +246,7 @@ export function ZonasComVolume({
     <>
       {zonas.length > 0 && botaoAcrescentar}
       {botaoMedir}
+      {botaoRecomecar}
     </>
   );
 
@@ -239,6 +273,7 @@ export function ZonasComVolume({
             <div className="mb-4 flex flex-wrap gap-2">
               {botaoAcrescentar}
               {botaoMedir}
+              {botaoRecomecar}
             </div>
           )}
           <QuadroDasZonas
@@ -280,6 +315,7 @@ export function ZonasComVolume({
       </div>
 
       {/* As janelas fora da coluna de cima: um `<dialog>` dentro de um `space-y-*` herdava a margem. */}
+      {dialogoDeConfirmacao}
       <Janela aberta={aberto !== null && !desapareceu} aoFechar={() => setAberto(null)} forma="gaveta" idDoTitulo="gaveta-titulo">
         {aberto && !desapareceu && (
           <>

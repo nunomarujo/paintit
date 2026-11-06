@@ -383,6 +383,17 @@ export async function deleteSurface(requestId: string, surfaceId: string) {
 }
 
 /**
+ * Recomeçar o desenho: remove todas as zonas do pedido, com as medidas delas. As fotografias ficam (só
+ * perdem a ligação à zona, `on delete set null`), tal como as medidas do prédio. Pede-se confirmação no
+ * ecrã; aqui a RLS decide quem pode apagar — as mesmas regras de `deleteSurface`.
+ */
+export async function apagarTodasAsZonas(requestId: string) {
+  const { supabase } = await getUser();
+  await supabase.from('request_surfaces').delete().eq('request_id', requestId);
+  revalidarPedido(requestId);
+}
+
+/**
  * Põe uma zona dentro ou fora deste pedido.
  *
  * **Excluir não apaga.** É a diferença que o promotor fixou a 30/10/2026: uma zona excluída fica no

@@ -667,7 +667,7 @@ export function EditorDaZona({
                 }}
                 className="btn-secondary btn-sm mt-2"
               >
-                Medir na fotografia
+                Medir por fotografia
               </button>
             </div>
           )}

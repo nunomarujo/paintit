@@ -447,7 +447,7 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
                   <li key={z.id}>{cartao(z, false)}</li>
                 ))}
               </ul>
-              {grupo('Fora do desenho', 'O desenho do prédio não as mostra.', doGrupo('fora_do_desenho'))}
+              {grupo('Fora do desenho', 'Contam para o total, mas o desenho ainda não as mostra: só tem lugar para uma fachada, e não desenha escadas, átrio nem o interior.', doGrupo('fora_do_desenho'))}
               {foraDoPedido('lista')}
             </div>
           )}
