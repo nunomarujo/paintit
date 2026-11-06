@@ -189,6 +189,8 @@ export interface SubscricaoPintor {
   validaAte: string | null;
   /** O que está a ser debitado, para o ecrã poder dizê-lo sem ir ao Stripe. */
   precoCents?: Cents;
+  /** Concedido pela campanha de lançamento (sem pagamento nem renovação), não subscrito. */
+  lancamento?: boolean;
 }
 
 /**
@@ -203,11 +205,13 @@ export type SituacaoSubscricao =
   | { tipo: 'por_pagar' }
   | { tipo: 'activa'; periodicidade: Periodicidade; precoCents: Cents | null; renovaEm: string | null }
   | { tipo: 'cancelada_ate'; validaAte: string }
+  | { tipo: 'lancamento'; validaAte: string }
   | { tipo: 'terminada' };
 
 export function situacaoDe(s: SubscricaoPintor | null, hoje: string): SituacaoSubscricao {
   if (!s || s.plano !== 'pro') return { tipo: 'gratuito' };
   if (s.estado === 'por_pagar') return { tipo: 'por_pagar' };
+  if (s.lancamento) return s.validaAte !== null && s.validaAte >= hoje ? { tipo: 'lancamento', validaAte: s.validaAte } : { tipo: 'terminada' };
   const caducada = s.validaAte !== null && s.validaAte < hoje;
   if (s.estado === 'cancelada') {
     return !caducada && s.validaAte !== null ? { tipo: 'cancelada_ate', validaAte: s.validaAte } : { tipo: 'terminada' };

@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { canManage, myRole } from '@/lib/access';
-import { planAllows } from '@/domain/subscription';
+import { planAllows, planoVigente } from '@/domain/subscription';
+import { localDate } from '@/domain/deadline';
+import { CURRENT_RULES } from '@/domain/rules';
 import { getUser } from '@/lib/supabase/server';
 
 /**
@@ -15,7 +17,7 @@ export async function contextoDoCatalogo(id: string) {
   const { data: org } = await supabase.from('organizations').select('id, nome, kind, gerida_por').eq('id', id).maybeSingle();
   if (!org || org.kind !== 'fornecedor') notFound();
   const manager = canManage(await myRole(supabase, user!.id, org));
-  const { data: sub } = await supabase.from('supplier_subscriptions').select('plan, status').eq('org_id', id).maybeSingle();
-  const plan = sub?.status === 'ativa' ? sub.plan : null;
+  const { data: sub } = await supabase.from('supplier_subscriptions').select('plan, status, valida_ate').eq('org_id', id).maybeSingle();
+  const plan = planoVigente(sub, localDate(new Date(), CURRENT_RULES.timeZone));
   return { supabase, user, org, manager, catalogo: planAllows(plan, 'catalogo') };
 }

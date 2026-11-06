@@ -60,3 +60,16 @@ export function fromStripeStatus(status: string): LocalSubscriptionStatus {
 export function isSupplierPlan(x: unknown): x is SupplierPlan {
   return typeof x === 'string' && (SUPPLIER_PLANS as readonly string[]).includes(x);
 }
+
+/**
+ * O plano de fornecedor em vigor numa data: ativo, e (se tiver fim, como o catálogo de lançamento) ainda dentro dele.
+ * Repete em TypeScript o que `supplier_has_plan` decide na base de dados.
+ */
+export function planoVigente(
+  sub: { plan: SupplierPlan; status: string; valida_ate?: string | null } | null,
+  hoje: string,
+): SupplierPlan | null {
+  if (!sub || sub.status !== 'ativa') return null;
+  if (sub.valida_ate && sub.valida_ate < hoje) return null;
+  return sub.plan;
+}

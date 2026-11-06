@@ -1,3 +1,4 @@
+import { VERSAO_DE_LANCAMENTO } from '@/domain/ofertaDeLancamento';
 import 'server-only';
 import { localDate } from '@/domain/deadline';
 import { commissionInvoice, retainedGuaranteeInvoice, subscriptionInvoice, type InvoiceDraft } from '@/domain/invoicing';
@@ -41,7 +42,7 @@ export async function pendingInvoices(): Promise<InvoiceDraft[]> {
     // que muda é só a designação que vai na fatura.
     const [{ data: sub }, { data: pro }] = await Promise.all([
       db.from('supplier_subscriptions').select('plan').eq('org_id', s.org_id).maybeSingle(),
-      db.from('org_subscriptions').select('plano, periodicidade').eq('org_id', s.org_id).eq('plano', 'pro').maybeSingle(),
+      db.from('org_subscriptions').select('plano, periodicidade').eq('org_id', s.org_id).eq('plano', 'pro').neq('preco_versao', VERSAO_DE_LANCAMENTO).maybeSingle(),
     ]);
     const planLabel = sub
       ? PLAN_INFO[sub.plan].label

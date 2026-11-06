@@ -66,6 +66,18 @@ export default async function SubscriptionPage() {
           </p>
         </div>
       )}
+      {situacao.tipo === 'lancamento' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[17px] text-emerald-900">
+          <p>
+            <strong className="font-semibold">Plano Pro de lançamento, sem custo até {emPt(situacao.validaAte)}.</strong>{' '}
+            A comissão das suas propostas está {PRO_DISCOUNT_BP / 100} pontos percentuais mais baixa.
+          </p>
+          <p className="mt-1 text-emerald-800">
+            Não há cobrança nem renovação automática. Depois dessa data a conta volta ao plano gratuito, a não ser que
+            adira ao Plano Pro.
+          </p>
+        </div>
+      )}
       {situacao.tipo === 'cancelada_ate' && (
         <p className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-[17px] text-slate-800">
           <strong className="font-semibold">Subscrição cancelada.</strong> Não haverá nova cobrança. O desconto de{' '}

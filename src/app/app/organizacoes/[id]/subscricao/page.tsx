@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { formatEuros } from '@/domain/money';
-import { PLAN_INFO, planAllows, withVat } from '@/domain/subscription';
+import { localDate } from '@/domain/deadline';
+import { PLAN_INFO, planAllows, planoVigente, withVat } from '@/domain/subscription';
+import { CURRENT_RULES } from '@/domain/rules';
 import { canManage, myRole } from '@/lib/access';
 import { stripeConfigured } from '@/lib/stripe';
 import { getUser } from '@/lib/supabase/server';
@@ -23,7 +25,10 @@ export default async function SubscricaoDoFornecedorPage({ params }: { params: P
   const manager = canManage(await myRole(supabase, user!.id, org));
 
   const { data: sub } = await supabase.from('supplier_subscriptions').select('*').eq('org_id', id).maybeSingle();
-  const plan = sub?.status === 'ativa' ? sub.plan : null;
+  const hoje = localDate(new Date(), CURRENT_RULES.timeZone);
+  const plan = planoVigente(sub, hoje);
+  const emPt = (d: string) => d.split('-').reverse().join('/');
+  const delancamento = sub?.origem === 'lancamento' && plan !== null;
 
   return (
     <div className="space-y-6">
@@ -47,10 +52,17 @@ export default async function SubscricaoDoFornecedorPage({ params }: { params: P
       {plan && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <h2 className="text-[20px] font-semibold text-slate-900">Plano ativo</h2>
-          <p className="mt-1 text-[17px] text-slate-700">
-            {PLAN_INFO[plan].label} · {formatEuros(sub!.price_cents)} por mês mais IVA (
-            {formatEuros(withVat(sub!.price_cents))}).
-          </p>
+          {delancamento ? (
+            <p className="mt-1 text-[17px] text-slate-700">
+              {PLAN_INFO[plan].label} · de lançamento, sem custo até {emPt(sub!.valida_ate!)}. Não há cobrança nem renovação
+              automática: depois dessa data a empresa deixa de aparecer aos pintores, a não ser que subscreva.
+            </p>
+          ) : (
+            <p className="mt-1 text-[17px] text-slate-700">
+              {PLAN_INFO[plan].label} · {formatEuros(sub!.price_cents)} por mês mais IVA (
+              {formatEuros(withVat(sub!.price_cents))}).
+            </p>
+          )}
           {planAllows(plan, 'catalogo') ? null : (
             <p className="mt-2 max-w-[54ch] text-[17px] text-slate-600">
               Este plano não inclui catálogo: os produtos ficam guardados, mas não chegam aos pintores.

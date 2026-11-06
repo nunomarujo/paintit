@@ -2,11 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabaseConfigured } from '@/lib/supabase/env';
 import { comLimite } from '@/lib/comLimite';
+import { COOKIE_DE_ORIGEM, DIAS_DO_COOKIE, origemDoEndereco, origemParaCookie } from '@/domain/ofertaDeLancamento';
 
 const LIMITE_DA_SESSAO_MS = 5000;
 
 // Renova a sessão em cada pedido e protege a área reservada (/app).
-export async function middleware(request: NextRequest) {
+async function atualizarSessao(request: NextRequest) {
   let response = NextResponse.next({ request });
   if (!supabaseConfigured) return response;
 
@@ -37,6 +38,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   return response;
+}
+
+/**
+ * Quem chega pelo QR de um flyer (`?c=fl-pin-1`) ou pelo link de um email do CRM (`?k=…`) fica com a origem guardada durante
+ * 30 dias, para a oferta de lançamento poder ser concedida quando criar a empresa. Só se guarda um formato exato.
+ */
+export async function middleware(request: NextRequest) {
+  const resposta = await atualizarSessao(request);
+  const origem = origemDoEndereco(request.nextUrl.searchParams);
+  if (origem) {
+    resposta.cookies.set(COOKIE_DE_ORIGEM, origemParaCookie(origem), {
+      maxAge: DIAS_DO_COOKIE * 86_400,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
+  }
+  return resposta;
 }
 
 export const config = {

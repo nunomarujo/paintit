@@ -1,5 +1,6 @@
 'use server';
 
+import { aplicarOfertaDeLancamento } from '@/lib/ofertaDeLancamento';
 import { isCompanyNif, nameMatchesOfficial } from '@/domain/nif';
 import { sniffPdf } from '@/domain/fileSignature';
 import { MAX_LOGOTIPO_BYTES, cleanPhoto, sniffImage } from '@/domain/photo';
@@ -150,6 +151,9 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
     const codigoConvite = String(form.get('codigoConvite') ?? '').trim();
     if (codigoConvite) await supabase.rpc('claim_supplier_invite', { p_code: codigoConvite, p_org: data.id });
   }
+
+  // Oferta de lançamento (Plano Pro até 31/01/2027) a quem chegou pelo QR ou pelo link do CRM. Nunca impede o registo.
+  await aplicarOfertaDeLancamento(data.id, v.kind);
 
   revalidatePath('/app');
   // Condomínio criado por uma gestora: o passo seguinte é sempre a ficha do prédio (morada completa,
