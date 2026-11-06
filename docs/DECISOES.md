@@ -6444,7 +6444,7 @@ embutidas em `src/lib/pdfFonts.ts` (subconjuntos Latin, ~150 KB). **O texto da m
 **Versionamento (a regra que importa):** o PDF assinado confere-se regenerando-o, por isso a disposição não pode
 mudar para contratações já criadas. A disposição antiga (`v1`) fica intacta, fixada por um teste com o SHA-256 dos
 bytes (`contractPdf.layout.test.ts`); a nova (`v2`) só vale para `minuta_versao >= '2026-11-07'`
-(`minutaComLayoutNovo`). A migração `20261107000000_minuta_com_layout_novo` muda o valor por omissão — **aplicar
+(`minutaComLayoutNovo`). A migração `20261106200620_minuta_com_layout_novo` muda o valor por omissão — **aplicar
 depois de o código estar publicado**.
 
 **Limites conhecidos:** se as assinaturas não couberem na última página, passam sozinhas para uma página nova (sem
@@ -6659,6 +6659,8 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
   com entidades `zz-test`: dentro da data tem catálogo e aparece; passada a data não; referência fechada com a oferta e aberta
   depois de pagar; sem rasto. Avisos de segurança e desempenho sem nada novo além de índices por usar nas tabelas novas.
 
+## 06/11/2026 — Sem concelhos indicados, vale o concelho da morada da empresa
+
 ## 06/11/2026 — Revisão dos workspaces dos três perfis contra o taste-skill (ponto C)
 
 Revisão pedida pelo promotor aos workspaces de cliente, pintor e fornecedor (não à página inicial). Capturas dos
@@ -6712,10 +6714,17 @@ Pedido do promotor: «commit, push e publica em produção tudo que falte».
   `claude/quempinta-taste-skill-j9der5` (ecrãs do pintor: Hoje, Oportunidades, As minhas obras). Conflitos só nos
   registos (DECISOES), resolvidos ficando com as duas partes.
 - **Migrações que estavam só na base, agora com ficheiro:** `20261106151731` (reaplicação de
-  `reserva_so_para_avaliadores_inscritos`, igual à de 05/11) e `20261106200620_minuta_com_layout_novo`; mais
+  `reserva_so_para_avaliadores_inscritos`, igual à de 05/11) (a `20261106200620_minuta_com_layout_novo` pô-la a própria sessão que a escreveu); mais
   `20261106201651_versao_do_avaliador_search_path_outra_vez`, que volta a fixar o search_path que a reaplicação desfez.
 - **Ficou de fora:** `claude/sweet-cray-xfehwj`, porque a sessão dele está ativa e a publicar por si; tem migrações por
   aplicar e uma delas desliga os avisos de WhatsApp dos números já gravados (2 contas) até serem confirmados — não se
   aplica sem o promotor. `moloni-teste` é um ramo de ensaio («só neste ramo»). `formulario-icones` e
   `workspace-fornecedor` (01/11) são de um histórico antigo do repositório e não se juntam ao atual.
 
+Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem
+pertence a uma empresa de pintura lê as lojas dos fornecedores; clientes e outros fornecedores continuam sem as ver, e
+a morada fiscal da empresa continua reservada. Onde aparecem:
+- **Escolha de materiais no orçamento** (`MaterialPicker`): linha «Loja»/«Lojas» por baixo da entrega, com as do
+  concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
+- **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
+  concelho, um vendedor com loja nesse concelho também aparece.
