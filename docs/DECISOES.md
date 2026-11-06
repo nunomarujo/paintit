@@ -6438,9 +6438,8 @@ Decisão do promotor («sim, avança com inscrição e concelhos; o WhatsApp nã
 recomendação»), na sequência de os valores saírem da página pública:
 - **Onde:** no topo de «Avaliações › Hoje», logo abaixo do título. Nunca na página pública nem em cada oportunidade.
   O simulador continua em «Ser avaliador», depois da inscrição.
-- **Quando:** só com a pessoa **pronta** — inscrição de avaliador feita **e** a empresa ter gravado os concelhos que
-  cobre (`src/domain/prontidaoDoAvaliador.ts`, com testes). Uma lista vazia gravada quer dizer «todo o país» (é a
-  convenção da base, `private.supplier_covers`) e conta como feita; o que não conta é a empresa nunca ter escolhido.
+- **Quando:** só com a pessoa **pronta** — inscrição de avaliador feita **e** a empresa ter escolhido os concelhos
+  que cobre (`src/domain/prontidaoDoAvaliador.ts`, com testes; ver a entrada seguinte: «todo o país» só marcado).
   Quem não é responsável vê que as zonas são do responsável, sem botão.
 - **Antes disso:** a lista do que falta, por ordem — inscrição (obrigatório), concelhos (obrigatório), avisos por
   WhatsApp (recomendado, com o texto do promotor: «Para ganhar levantamentos é preciso ser o primeiro a responder.
@@ -6451,3 +6450,21 @@ recomendação»), na sequência de os valores saírem da página pública:
   levantamentos», com quanto pode ganhar. Fechada, não volta. Lembrar que já foi vista é uma conveniência deste
   navegador (`localStorage`, por pessoa); num navegador novo pode aparecer outra vez, e sem acesso ao armazenamento
   não abre.
+
+## 06/11/2026 — Concelhos dos levantamentos obrigatórios; «todo o país» só quando marcado
+
+Promotor: «a questão dos concelhos deve ser colocada e confirmada, ninguém trabalha para o país todo e se o fizer
+tem que ser explícito que o faça». Até aqui, uma empresa sem zona gravada, ou com a lista vazia, recebia
+oportunidades de **todo o país** (a convenção das entregas de produtos). Para os levantamentos passa a ser:
+- **Sem concelhos escolhidos, não chega nada:** nem oportunidades, nem reservas, nem esclarecimentos, nem convites
+  por WhatsApp. Migração `20261106150224_cobertura_explicita`: `private.supplier_covers` devolve falso sem linha, e
+  é por ela que passam todas as regras da zona; os convites por WhatsApp (`src/lib/convocatorias.ts`) fazem a mesma
+  conta (`src/domain/coberturaDaEmpresa.ts`) e a falta aparece na lista «Para começar a receber convites falta».
+- **«Todo o país» é uma caixa própria** (`supplier_survey_coverage.todo_o_pais`), com a confirmação escrita ao lado
+  («A empresa faz levantamentos em qualquer concelho do país, do continente às ilhas.»). Uma lista vazia nunca quer
+  dizer todo o país, e a base recusa gravar uma zona sem escolha.
+- **O formulário** pede pelo menos um concelho, ou a caixa marcada; o servidor valida de novo (só concelhos dos CTT).
+- **Em produção, a 06/11/2026:** dois fornecedores — um com 2 concelhos (não muda) e um que nunca os escolheu, que
+  deixa de ver oportunidades até o responsável os escolher. Nenhum tinha a lista vazia.
+- **Fica como estava:** os concelhos de **entrega de produtos** do fornecedor («Concelhos servidos», vazio = todo o
+  país). É outra regra; muda-se só se o promotor o pedir.

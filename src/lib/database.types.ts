@@ -1141,9 +1141,9 @@ export type Database = {
         Relationships: [];
       };
       supplier_survey_coverage: {
-        Row: { concelhos: string[]; org_id: string; updated_at: string };
-        Insert: { concelhos?: string[]; org_id: string };
-        Update: { concelhos?: string[] };
+        Row: { concelhos: string[]; org_id: string; todo_o_pais: boolean; updated_at: string };
+        Insert: { concelhos?: string[]; org_id: string; todo_o_pais?: boolean };
+        Update: { concelhos?: string[]; todo_o_pais?: boolean };
         Relationships: [];
       };
       survey_reviews: {

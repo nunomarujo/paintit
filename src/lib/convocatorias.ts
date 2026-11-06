@@ -15,6 +15,7 @@ import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import { referenciaDoLevantamento } from '@/domain/referencias';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { configuracaoWhatsApp, modeloDoConvite, payloadDoConvite } from '@/domain/whatsapp';
+import { cobre, zonasDefinidas, type Cobertura } from '@/domain/coberturaDaEmpresa';
 import { CENTROS_DOS_CONCELHOS } from '@/lib/centrosDosConcelhos';
 import { sendEmail } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
@@ -56,6 +57,10 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
   const pedidoDe = new Map((pedidos ?? []).map((p) => [p.id, { concelho: concelhoDoPredio.get(p.building_id) ?? '', tipo: p.tipo_obra as WorkType }]));
 
   const pessoas = await fichasDosAvaliadores(db);
+  // A zona da empresa (06/11/2026): só é convidado quem pertence a uma empresa que cobre o concelho da
+  // obra — a mesma regra que a base aplica à reserva (`private.supplier_covers`). Sem isto, o convite
+  // chegava e o «Aceito» era recusado.
+  const coberturas = await coberturasDasEmpresas(db, [...new Set(pessoas.map((p) => p.ficha.orgId))]);
 
   for (const s of abertos) {
     const pedido = pedidoDe.get(s.request_id);
@@ -72,6 +77,7 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
     const candidatos: (Candidato & { orgId: string; telemovel: string })[] = [];
     for (const p of pessoas) {
       if (jaConvidados.has(p.ficha.userId) || orgsExcluidas.has(p.ficha.orgId)) continue;
+      if (!cobre(coberturas.get(p.ficha.orgId), pedido.concelho)) continue;
       const a = anel(pedido.concelho, p.ficha.concelhoBase!, p.ficha.raioKm!, CENTROS_DOS_CONCELHOS);
       if (a == null) continue;
       candidatos.push({ ...p.candidato, anel: a, orgId: p.ficha.orgId, telemovel: p.telemovel });
@@ -142,6 +148,12 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
 
 type Admin = NonNullable<ReturnType<typeof adminClient>>;
 
+async function coberturasDasEmpresas(db: Admin, orgIds: string[]): Promise<Map<string, Cobertura>> {
+  if (orgIds.length === 0) return new Map();
+  const { data } = await db.from('supplier_survey_coverage').select('org_id, concelhos, todo_o_pais').in('org_id', orgIds);
+  return new Map((data ?? []).map((c) => [c.org_id, { todoOPais: c.todo_o_pais, concelhos: c.concelhos }]));
+}
+
 /** Quem pode ser convidado: só quem cumpre todas as condições, com o que a ordem das ondas precisa. */
 async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliador; candidato: Omit<Candidato, 'anel'>; telemovel: string }[]> {
   const { data: disp } = await db
@@ -163,6 +175,13 @@ async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliado
   ]);
   const { data: empresas } = await db.from('organizations').select('id, kind, nif').in('id', [...new Set((membros ?? []).map((m) => m.org_id))]);
   const fornecedor = new Map((empresas ?? []).filter((o) => o.kind === 'fornecedor').map((o) => [o.id, o.nif]));
+  const { data: zonas } = await db
+    .from('supplier_survey_coverage')
+    .select('org_id, concelhos, todo_o_pais')
+    .in('org_id', [...fornecedor.keys()]);
+  const zonasEscolhidas = new Set(
+    (zonas ?? []).filter((z) => zonasDefinidas({ todoOPais: z.todo_o_pais, concelhos: z.concelhos })).map((z) => z.org_id),
+  );
   const hoje = new Date().toISOString().slice(0, 10);
 
   const out: { ficha: FichaDoAvaliador; candidato: Omit<Candidato, 'anel'>; telemovel: string }[] = [];
@@ -186,6 +205,8 @@ async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliado
       whatsapp: !!d.alerta_whatsapp && !!d.telemovel_whatsapp,
       concelhoBase: d.concelho_base,
       raioKm: d.raio_km,
+      // Aqui só conta se a empresa escolheu a zona; se cobre o concelho de cada obra vê-se em cada passagem.
+      zonasDaEmpresa: zonasEscolhidas.has(membro.org_id),
       suspenso: !!d.suspenso_ate && d.suspenso_ate >= hoje,
       emCurso: minhas.filter((t) => t.estado === 'ativa').length,
     };

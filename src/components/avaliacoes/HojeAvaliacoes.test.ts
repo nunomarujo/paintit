@@ -8,11 +8,15 @@ const { HojeAvaliacoes } = await import('./HojeAvaliacoes');
 
 const visivel = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-const render = (situacao: { inscrito: boolean; zonasDefinidas: boolean; responsavel: boolean; whatsappLigado: boolean }) =>
+type Cob = { todoOPais: boolean; concelhos: string[] } | null;
+const render = (
+  situacao: { inscrito: boolean; zonasDefinidas: boolean; responsavel: boolean; whatsappLigado: boolean },
+  cobertura: Cob = null,
+) =>
   visivel(
     renderToStaticMarkup(
       React.createElement(HojeAvaliacoes, {
-        estado: { emCurso: [], concluidos: [], oportunidades: 0, comissoesDisponiveis: 0, avaliador: { userId: 'u1', situacao } },
+        estado: { emCurso: [], concluidos: [], oportunidades: 0, comissoesDisponiveis: 0, cobertura, avaliador: { userId: 'u1', situacao } },
         agoraIso: '2026-11-06T10:00:00Z',
       }),
     ),
@@ -51,5 +55,14 @@ describe('Hoje — topo do avaliador (06/11/2026)', () => {
     const t = render({ inscrito: true, zonasDefinidas: true, responsavel: true, whatsappLigado: true });
     expect(t).toContain('Quanto pode ganhar');
     expect(t).not.toContain('Inscreva o seu telemóvel');
+  });
+
+  it('a pílula da presença: sem concelhos não diz «todo o país»; só o diz quando marcado', () => {
+    const s = { inscrito: true, zonasDefinidas: false, responsavel: true, whatsappLigado: true };
+    expect(render(s, null)).toContain('Sem concelhos escolhidos');
+    expect(render(s, null)).not.toContain('todo o país');
+    expect(render(s, { todoOPais: false, concelhos: [] })).toContain('Sem concelhos escolhidos');
+    expect(render({ ...s, zonasDefinidas: true }, { todoOPais: true, concelhos: [] })).toContain('Disponível · todo o país');
+    expect(render({ ...s, zonasDefinidas: true }, { todoOPais: false, concelhos: ['Lisboa', 'Oeiras'] })).toContain('Disponível · 2 concelhos cobertos');
   });
 });

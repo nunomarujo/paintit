@@ -6,6 +6,7 @@ import { suspensaoEmCurso } from '@/domain/disponibilidade';
 import { osMeusLevantamentos } from './dados';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
+import { zonasDefinidas } from '@/domain/coberturaDaEmpresa';
 
 /**
  * Hoje — Avaliações. O início do contexto: o que há para fazer, com o prazo que conta.
@@ -33,7 +34,7 @@ export default async function HojeAvaliacoesPage({
     supabase.from('survey_payouts').select('amount_cents, estado, redemption_id').eq('vendedor_user_id', user!.id),
     // A linha é da pessoa: só ela a lê (RLS), por isso não é preciso filtrar mais.
     supabase.from('survey_availability').select('suspenso_ate, alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle(),
-    supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),
+    supabase.from('supplier_survey_coverage').select('concelhos, todo_o_pais').eq('org_id', pertenca.orgId).maybeSingle(),
     // A inscrição de avaliador é da pessoa (RLS: só a própria linha).
     supabase.from('survey_terms_acceptances').select('accepted_at').eq('user_id', user!.id).eq('version', VERSAO_AUTODECLARACAO_DO_AVALIADOR).maybeSingle(),
   ]);
@@ -54,11 +55,12 @@ export default async function HojeAvaliacoesPage({
   // curso, é ela que ocupa a banda do topo.
   const suspenso = suspensaoEmCurso(agora, presenca?.suspenso_ate);
 
-  // O que falta para receber levantamentos (06/11/2026). As zonas contam feitas quando a empresa as
-  // gravou — uma lista vazia gravada é «todo o país»; sem linha, nunca as escolheu.
+  // O que falta para receber levantamentos (06/11/2026). Os concelhos contam feitos com pelo menos um
+  // escolhido, ou com «todo o país» marcado de propósito — nunca por omissão.
+  const zona = cobertura ? { todoOPais: cobertura.todo_o_pais, concelhos: cobertura.concelhos } : null;
   const situacao = {
     inscrito: !!inscricao,
-    zonasDefinidas: !!cobertura,
+    zonasDefinidas: zonasDefinidas(zona),
     responsavel: mandaNaEmpresa(pertenca.papel as 'proprietario' | 'gestor' | 'vendedor'),
     whatsappLigado: !!(presenca?.alerta_whatsapp && presenca.telemovel_whatsapp),
   };
@@ -71,7 +73,7 @@ export default async function HojeAvaliacoesPage({
         oportunidades: naMinhaZona,
         comissoesDisponiveis: comissoes,
         suspenso,
-        concelhosCobertos: cobertura?.concelhos?.length ?? 0,
+        cobertura: zona,
         avaliador: { userId: user!.id, situacao },
       }}
       agoraIso={agora.toISOString()}

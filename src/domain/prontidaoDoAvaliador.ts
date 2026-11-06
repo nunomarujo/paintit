@@ -6,9 +6,9 @@
 //
 // 1. **Inscrição de avaliador** (obrigatória) — a autodeclaração da pessoa. Sem ela a base não deixa
 //    reservar levantamentos (`reserva_so_para_avaliadores_inscritos`).
-// 2. **Zonas da empresa** (obrigatória) — a empresa ter gravado os concelhos que cobre. Uma lista vazia
-//    gravada quer dizer «todo o país» e conta como feita; o que não conta é a empresa nunca ter
-//    escolhido. Só o responsável da empresa as grava.
+// 2. **Zonas da empresa** (obrigatória) — pelo menos um concelho escolhido, ou «Todo o país» marcado de
+//    propósito; nunca por omissão (promotor, 06/11/2026: «ninguém trabalha para o país todo, e se o fizer
+//    tem de ser explícito» — `coberturaDaEmpresa.ts`). Só o responsável da empresa as grava.
 // 3. **Avisos por WhatsApp** (recomendado, não obrigatório) — quem responde primeiro fica com o
 //    levantamento, e o WhatsApp é o aviso que chega primeiro.
 //
@@ -31,7 +31,7 @@ export interface ItemDaLista {
 
 export interface SituacaoDoAvaliador {
   inscrito: boolean;
-  /** A empresa gravou a sua zona (uma lista, ou vazia = todo o país). */
+  /** A empresa escolheu a zona: pelo menos um concelho, ou «todo o país» marcado (`zonasDefinidas`). */
   zonasDefinidas: boolean;
   /** A pessoa pode gravar as zonas da empresa. */
   responsavel: boolean;
