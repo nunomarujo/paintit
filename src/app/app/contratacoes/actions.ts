@@ -10,9 +10,9 @@ import { fromLocalDateTime } from '@/domain/deadline';
 import type { DisputeOutcome } from '@/domain/engagement';
 import { parseHundredths } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
-import type { Json } from '@/lib/database.types';
+import type { Database, Json } from '@/lib/database.types';
 import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
-import { contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
+import { caminhoDoPdfAssinado, contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
 import { verifySignature } from '@/lib/pades';
 import { pedeAviso } from '@/domain/poderes';
 import { poderesDoLado } from '@/lib/poderes';
@@ -23,6 +23,8 @@ import { adminClient } from '@/lib/supabase/admin';
 import { notifyEngagementChange, notifyReferralWon } from '@/lib/notify';
 import { settleRefunds } from '@/lib/payments';
 import { settleSurveyPayout } from '@/lib/surveys';
+
+type EngagementRow = Database['public']['Tables']['engagements']['Row'];
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 const SEM_SERVIDOR = 'Não foi possível registar a assinatura agora. Tente de novo dentro de minutos.';
@@ -53,6 +55,18 @@ async function registarVerificacao(
   if (error?.code === 'PGRST202') return null;
   return error ? SEM_SERVIDOR : null;
 }
+
+/**
+ * Quem chama gere a entidade DESTE lado? O lado e a contratação chegam do navegador (regra 10), e o PDF e a
+ * verificação seguem pela chave de serviço, que não passa pelas regras da base: confirma-se aqui, antes de
+ * escrever o que for. Sem isto, o pintor podia substituir o PDF do cliente (05/11/2026).
+ */
+async function geresOLado(supabase: Awaited<ReturnType<typeof getUser>>['supabase'], userId: string, row: EngagementRow, side: 'cliente' | 'pintor') {
+  const orgId = side === 'cliente' ? row.client_org_id : row.painter_org_id;
+  const { data: entidade } = await supabase.from('organizations').select('id, gerida_por').eq('id', orgId).maybeSingle();
+  return !!entidade && canManage(await myRole(supabase, userId, entidade));
+}
+const NAO_E_DESTE_LADO: FormState = { errors: {}, message: 'A assinatura deste lado cabe a um proprietário ou gestor da entidade.' };
 
 type PartyKind = Extract<EventKind, 'cliente_assinou' | 'cliente_desistiu' | 'pintor_assinou' | 'litigio_aberto' | 'encerrar_sem_contrato'>;
 
@@ -124,17 +138,19 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
   if (kind === 'litigio_aberto') payload.reason = reason.slice(0, 1000);
   if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
     // Prova do que foi assinado: resumo SHA-256 do texto da minuta tal como a parte o viu.
-    const { supabase } = await getUser();
+    const { supabase, user } = await getUser();
+    if (!user) return NOT_SIGNED_IN;
     const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
     if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+    if (!(await geresOLado(supabase, user.id, row, kind === 'cliente_assinou' ? 'cliente' : 'pintor'))) return NAO_E_DESTE_LADO;
     payload.documentHash = createHash('sha256').update(draftText(await loadDraft(supabase, row))).digest('hex');
     payload.metodo = 'aceitacao';
     // Também a aceitação simples (só fora de produção) passa pelo registo do servidor: a base não aceita
     // uma assinatura que ele não tenha registado.
-    const { user } = await getUser();
-    if (!user) return NOT_SIGNED_IN;
-    const semVerificacao = await registarVerificacao(engagementId, kind, user.id, payload);
+    const semVerificacao = await registarVerificacao(row.id, kind, user.id, payload);
     if (semVerificacao) return { errors: {}, message: semVerificacao };
+    const r = await record(row.id, kind, { payload });
+    return { errors: r.errors, ok: r.ok, message: r.message };
   }
   const r = await record(engagementId, kind, { payload });
   return { errors: r.errors, ok: r.ok, message: r.message };
@@ -218,14 +234,11 @@ export async function signWithPdf(
   const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
   if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
   const kind = side === 'cliente' ? 'cliente_assinou' : 'pintor_assinou';
-  // O lado e a contratação chegam do navegador (regra 10), e o PDF e a verificação seguem pela chave de
-  // serviço, que não passa pelas regras do balde: antes de escrever o que for, confirmar que quem chama gere a
-  // entidade DESTE lado. Sem isto, o pintor podia substituir o PDF do cliente (05/11/2026).
-  const ladoOrg = side === 'cliente' ? row.client_org_id : row.painter_org_id;
-  const { data: entidade } = await supabase.from('organizations').select('id, gerida_por').eq('id', ladoOrg).maybeSingle();
-  if (!entidade || !canManage(await myRole(supabase, user.id, entidade))) {
-    return { errors: {}, message: 'A assinatura deste lado cabe a um proprietário ou gestor da entidade.' };
-  }
+  if (!(await geresOLado(supabase, user.id, row, side))) return NAO_E_DESTE_LADO;
+  // Daqui para a frente, só o identificador que veio da base: o do navegador pode vir escrito de outra maneira
+  // (maiúsculas, sem hífens) e ainda assim encontrar a linha — e um PDF guardado com esse caminho ficava
+  // ilegível para as duas partes (revisão de 05/11/2026).
+  const id = row.id;
   const current = (await loadReplay(supabase, row)).replay.engagement;
   if (!availableActions(current, side).includes(kind)) return { errors: {}, message: 'Este passo não está disponível agora.' };
 
@@ -235,7 +248,7 @@ export async function signWithPdf(
       return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
     }
   }
-  const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, engagementId, 'cliente');
+  const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, row, 'cliente');
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
   const check = checkSignedPdf(uploaded, expected);
   if (!check.ok) return { errors: { pdf: check.reason } };
@@ -273,8 +286,9 @@ export async function signWithPdf(
     () => null,
   );
 
+  const resumo = createHash('sha256').update(uploaded).digest('hex');
   const payload: EngagementEvent['payload'] = {
-    documentHash: createHash('sha256').update(uploaded).digest('hex'),
+    documentHash: resumo,
     metodo: 'cmd_pdf',
     signatario: signer.name,
     identificacao: signer.serialNumber,
@@ -282,16 +296,19 @@ export async function signWithPdf(
     ...(poderes ? { poderes } : {}),
   };
   // O PDF e a verificação seguem pela chave de serviço: nenhuma das duas coisas se faz com a sessão da parte
-  // (migração 20261105233000). Substituir um PDF já carregado é seguro aqui: o passo ainda está disponível,
-  // portanto este lado ainda não assinou — é um carregamento anterior cujo registo falhou.
+  // (migração 20261105233000). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
+  // escrever os mesmos bytes, e um carregamento atrasado (uma verificação de rede lenta) cai noutro nome e
+  // nunca substitui o que foi aceite — lê-se sempre o do acontecimento (`signedPdf`).
   const admin = adminClient();
   if (!admin) return { errors: {}, message: SEM_SERVIDOR };
-  const up = await admin.storage.from('contratos').upload(`${engagementId}/${side}.pdf`, uploaded, { contentType: 'application/pdf', upsert: true });
+  const up = await admin.storage
+    .from('contratos')
+    .upload(caminhoDoPdfAssinado(id, side, resumo), uploaded, { contentType: 'application/pdf', upsert: true });
   if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado. Tente de novo dentro de minutos.' };
-  const semVerificacao = await registarVerificacao(engagementId, kind, user.id, payload);
+  const semVerificacao = await registarVerificacao(id, kind, user.id, payload);
   if (semVerificacao) return { errors: {}, message: semVerificacao };
 
-  const r = await record(engagementId, kind, { payload });
+  const r = await record(id, kind, { payload });
   if (!r.ok) return { errors: r.errors, message: r.message };
   return {
     errors: {},

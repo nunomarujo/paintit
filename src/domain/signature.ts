@@ -198,3 +198,25 @@ export function checkIncrement(original: Uint8Array, signed: Uint8Array): { ok: 
   }
   return { ok: true };
 }
+
+/**
+ * O resumo SHA-256 do PDF da assinatura aceite de um lado: a mais recente que a reconstrução não recusou e que
+ * foi feita em PDF (`cmd_pdf`). É por ele que se encontra e confere o ficheiro guardado (`signedPdf`): o nome
+ * do ficheiro é o próprio resumo, por isso um carregamento atrasado nunca toma o lugar do que foi aceite
+ * (revisão de 05/11/2026). A mais recente, e não a primeira: depois de um litígio resolvido com «retomar», o
+ * cliente assina de novo.
+ */
+export function resumoDaAssinaturaAceite(
+  events: { id: string; kind: string; payload: unknown }[],
+  recusados: ReadonlySet<string>,
+  kind: 'cliente_assinou' | 'pintor_assinou',
+): string | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const v = events[i]!;
+    if (v.kind !== kind || recusados.has(v.id)) continue;
+    const p = (v.payload ?? {}) as { metodo?: unknown; documentHash?: unknown };
+    if (p.metodo !== 'cmd_pdf') continue;
+    return typeof p.documentHash === 'string' && /^[0-9a-f]{64}$/.test(p.documentHash) ? p.documentHash : null;
+  }
+  return null;
+}

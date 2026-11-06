@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { semEnchimento } from './signature';
+import { resumoDaAssinaturaAceite, semEnchimento } from './signature';
 
 describe('o valor da assinatura dentro do espaço reservado', () => {
   it('tira o enchimento de zeros a seguir ao DER', () => {
@@ -20,5 +20,39 @@ describe('o valor da assinatura dentro do espaço reservado', () => {
 
   it('sem um SEQUENCE à cabeça, volta à regra antiga', () => {
     expect(semEnchimento('abcd0000')).toBe('abcd');
+  });
+});
+
+describe('resumoDaAssinaturaAceite: que PDF assinado se lê (05/11/2026)', () => {
+  const h = (c: string) => c.repeat(64);
+  const ev = (id: string, kind: string, payload: object) => ({ id, kind, payload });
+  const nenhum = new Set<string>();
+
+  it('a assinatura em PDF mais recente do lado pedido', () => {
+    const eventos = [
+      ev('1', 'cliente_assinou', { metodo: 'cmd_pdf', documentHash: h('a') }),
+      ev('2', 'litigio_aberto', {}),
+      ev('3', 'cliente_assinou', { metodo: 'cmd_pdf', documentHash: h('b') }),
+      ev('4', 'pintor_assinou', { metodo: 'cmd_pdf', documentHash: h('c') }),
+    ];
+    // Depois de um litígio retomado, o cliente assinou de novo: vale a segunda.
+    expect(resumoDaAssinaturaAceite(eventos, nenhum, 'cliente_assinou')).toBe(h('b'));
+    expect(resumoDaAssinaturaAceite(eventos, nenhum, 'pintor_assinou')).toBe(h('c'));
+  });
+
+  it('uma assinatura que a reconstrução recusou não conta, por mais recente que seja', () => {
+    const eventos = [
+      ev('1', 'cliente_assinou', { metodo: 'cmd_pdf', documentHash: h('a') }),
+      ev('2', 'cliente_assinou', { metodo: 'cmd_pdf', documentHash: h('f') }),
+    ];
+    expect(resumoDaAssinaturaAceite(eventos, new Set(['2']), 'cliente_assinou')).toBe(h('a'));
+  });
+
+  it('sem assinatura em PDF não há ficheiro; um resumo malformado não vira caminho', () => {
+    expect(resumoDaAssinaturaAceite([ev('1', 'cliente_assinou', { metodo: 'aceitacao', documentHash: h('a') })], nenhum, 'cliente_assinou')).toBeNull();
+    expect(resumoDaAssinaturaAceite([], nenhum, 'pintor_assinou')).toBeNull();
+    for (const mau of ['../x', h('A'), 'a'.repeat(63), 42]) {
+      expect(resumoDaAssinaturaAceite([ev('1', 'cliente_assinou', { metodo: 'cmd_pdf', documentHash: mau })], nenhum, 'cliente_assinou')).toBeNull();
+    }
   });
 });

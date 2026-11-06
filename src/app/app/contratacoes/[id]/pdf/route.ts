@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: row } = await supabase.from('engagements').select('*').eq('id', id).maybeSingle();
   if (!row) return new NextResponse('Contratação não encontrada.', { status: 404 });
 
-  const bytes = v === 'cliente' || v === 'pintor' ? await signedPdf(supabase, id, v) : await contractPdfFor(supabase, row);
+  const bytes = v === 'cliente' || v === 'pintor' ? await signedPdf(supabase, row, v) : await contractPdfFor(supabase, row);
   if (!bytes) return new NextResponse('Documento ainda não assinado.', { status: 404 });
   const ref = id.slice(0, 8).toUpperCase();
   return new NextResponse(Buffer.from(bytes), {

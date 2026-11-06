@@ -107,5 +107,25 @@ alter policy engagement_events_insert on public.engagement_events
     )
   );
 
+-- Um registo verificado vale um acontecimento: gasta-se quando o acontecimento entra. Sem isto, o mesmo
+-- payload entrava quantas vezes se quisesse pela API — cada cópia aparecia nas provas, na fila da equipa e
+-- mandava outro aviso à outra parte (revisão de 05/11/2026). Não se proíbe uma segunda assinatura do mesmo
+-- lado: depois de um litígio resolvido com «retomar», o cliente assina de novo, legitimamente.
+create function private.gastar_assinatura_verificada() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.assinaturas_verificadas where engagement_id = new.engagement_id and kind = new.kind;
+  return new;
+end $$;
+revoke all on function private.gastar_assinatura_verificada() from public, anon, authenticated;
+
+create trigger engagement_events_gasta_verificacao
+  after insert on public.engagement_events
+  for each row when (new.kind in ('cliente_assinou', 'pintor_assinou'))
+  execute function private.gastar_assinatura_verificada();
+
+-- O balde: só o servidor carrega. Os ficheiros passam a chamar-se pelo resumo SHA-256 do próprio conteúdo
+-- («<contratação>/cliente-<sha256>.pdf»), e lê-se o do acontecimento aceite: um carregamento atrasado nunca
+-- substitui o que foi verificado (src/lib/engagements.ts, `signedPdf`).
 alter policy contratos_insert on storage.objects
   with check (false);

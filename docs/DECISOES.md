@@ -5810,6 +5810,22 @@ base ainda tem a política antiga: o servidor segue sem o registo, que não abre
 código pode ir para produção antes ou depois da migração sem parar as assinaturas. Um carregamento cujo registo
 falhou já não fica preso: enquanto o passo estiver disponível, um PDF novo substitui o anterior.
 
+**Revisão independente (06/11/2026, madrugada) — dois defeitos que a correção introduziu, e corrigidos.**
+1. *O PDF guardado podia deixar de ser o verificado.* O carregamento pela chave de serviço substituía o
+   ficheiro de nome fixo, e entre a verificação (que vai à rede buscar certificados, e pode demorar) e a escrita
+   outra submissão podia registar a assinatura: o acontecimento dizia «certificado do Estado» e o ficheiro
+   guardado era outro. Agora cada PDF chama-se pelo resumo SHA-256 do próprio conteúdo
+   (`<contratação>/cliente-<sha256>.pdf`), lê-se o do acontecimento aceite pela reconstrução (o mais recente:
+   depois de um litígio resolvido com «retomar», o cliente assina de novo — `resumoDaAssinaturaAceite`, testada) e
+   o resumo é conferido antes de o ficheiro ser entregue a alguém. De caminho, deixa de falhar a segunda
+   assinatura do cliente depois de «retomar», que com o nome fixo dava «já tinha sido carregado».
+2. *Um identificador escrito de outra maneira* (maiúsculas, sem hífens) encontrava a contratação mas punha o PDF
+   num caminho que nenhuma das partes conseguia ler. Depois de carregar a linha, só se usa o identificador da base.
+E dois menores: um registo verificado passou a valer um só acontecimento (um gatilho gasta-o quando o
+acontecimento entra — antes, o mesmo payload entrava pela API quantas vezes se quisesse, cada cópia nas provas e
+num aviso à outra parte); e a aceitação simples (só fora de produção) também confirma o lado antes de registar.
+**Não se proíbe** uma segunda assinatura do mesmo lado, pela razão do «retomar».
+
 ### Rasto de avisos: de qualquer menu até ao contrato
 
 Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação

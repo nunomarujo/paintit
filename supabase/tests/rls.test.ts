@@ -1195,6 +1195,14 @@ describe('contratação', () => {
     await expect(verificar(A, 'cliente_desistiu', {}, outra.id)).rejects.toThrow(/Só assinaturas/);
     // O servidor verificou exatamente isto, para esta pessoa: entra.
     await assinar(A, forjado);
+    // E gasta-se: o mesmo payload não entra uma segunda vez pela API (cada cópia aparecia nas provas e mandava
+    // outro aviso à outra parte — revisão de 05/11/2026).
+    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    expect((await one<{ n: number }>(`select count(*)::int n from public.assinaturas_verificadas where engagement_id = $1`, [outra.id])).n).toBe(0);
+    // Uma assinatura nova do mesmo lado continua possível — com outra verificação (depois de um litígio
+    // resolvido com «retomar», o cliente assina de novo).
+    await verificar(A, 'cliente_assinou', { ...forjado, documentHash: 'e'.repeat(64) }, outra.id);
+    await assinar(A, { ...forjado, documentHash: 'e'.repeat(64) });
     await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id]);
   });
 
@@ -1646,13 +1654,15 @@ describe('contratos assinados', () => {
     // O servidor (chave de serviço), depois de verificar o PDF.
     await db.exec('set role service_role');
     try {
-      for (const f of ['cliente.pdf', 'pintor.pdf']) {
+      // O nome antigo, fixo, e o de agora, pelo resumo do conteúdo: os dois leem-se pela mesma regra.
+      for (const f of ['cliente.pdf', 'pintor.pdf', `cliente-${'a'.repeat(64)}.pdf`]) {
         await db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${f}`]);
       }
     } finally {
       await db.exec('reset role');
     }
-    expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(2);
+    expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(3);
+    expect(await as(A, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(3);
     expect(await as(B, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toEqual([]);
     expect(await as(owner, async () => (await db.query('select ref from public.request_listings where request_id = $1', [e.request_id])).rows)).toHaveLength(1);
   });
