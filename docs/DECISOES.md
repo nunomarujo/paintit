@@ -6217,3 +6217,12 @@ perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
     fez antes de publicar. **O relatório do cliente fica como estava**: as outras propostas aparecem só como
     «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
     emite continua a ser a equipa, que confirma que quem pediu é parte da obra.
+
+## 06/11/2026 — Revisão dos workspaces dos três perfis contra o taste-skill (ponto C)
+
+Revisão pedida pelo promotor aos workspaces de cliente, pintor e fornecedor (não à página inicial). Capturas dos
+ecrãs reais com dados fictícios, numa ferramenta local que não entra no repositório. Corrigido: `SeletorDeContexto`
+(Vendas / Avaliações) com raio fora da escala (`rounded-[10px]`) e altura de 40px — passa a `rounded-lg` e 44px;
+`Meteorologia` (dias de obra) tinha fundo âmbar em cada linha da lista — regra 13: o aviso fica só no texto.
+Fica por decidir com o promotor (crítica por ecrã, ver a resposta da sessão): o «Início» do pintor é o mesmo
+ecrã genérico do cliente, sem um «Hoje» próprio.
