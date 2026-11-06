@@ -6419,3 +6419,15 @@ uma resposta sem `document_id` inteiro positivo já não conta como emitida — 
 `erro`, e fica por emitir; e uma resposta com `valid` a 0 ou com `errors` é uma recusa. A linha «undefined» que ficou na
 base é de teste e tem de ser tratada à mão (apagada ou posta em `falhou`) antes de voltar a emitir, senão a fila não
 volta a mostrá-la.
+
+## 06/11/2026 — A verificação de sessão no middleware passa a ter limite de 5 s
+
+A 06/11/2026, às 12:18 (hora de Lisboa), um pedido ficou parado no middleware até a Vercel o cortar aos 25 s
+(«Your function was stopped as it did not return an initial response within 25s»). Os registos do Supabase dessa
+hora mostram as verificações de sessão a responder entre 3 e 184 ms; a do pedido cortado nunca chegou — falha de
+rede momentânea entre a Vercel e o Supabase, não um defeito da aplicação. Uma ocorrência em 6 horas.
+
+Decisão do promotor: pôr um limite. `src/lib/comLimite.ts` (testado) espera no máximo 5 s; sem resposta (ou com
+erro), o middleware deixa o pedido seguir e regista um aviso na consola, em vez de mandar a pessoa para a
+entrada — a área reservada volta a confirmar quem entrou no seu próprio layout (`src/app/app/layout.tsx`), e é aí
+que quem não entrou é mandado para `/entrar`. Nesse caso a sessão não é renovada nesse pedido; renova-se no seguinte.
