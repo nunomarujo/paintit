@@ -7,6 +7,7 @@ import { isPlatformAdmin } from '@/lib/access';
 import { engagementSide, loadReplay } from '@/lib/engagements';
 import type { Database } from '@/lib/database.types';
 import { getUser } from '@/lib/supabase/server';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 
 type EngagementRow = Database['public']['Tables']['engagements']['Row'];
 type Item = { r: EngagementRow; e: Engagement; titulo: string; passo: ProximoPasso | null; pendingPlataforma: boolean; fase: Fase };
@@ -29,6 +30,7 @@ export default async function EngagementsPage() {
   const { supabase, user } = await getUser();
   const admin = await isPlatformAdmin(supabase, user!.id);
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at', { ascending: false });
+  const possoAgir = new Set((await aMinhaEspera(user!.id)).map((c) => c.id));
   const ids = [...new Set((rows ?? []).map((r) => r.request_id))];
   const { data: pedidos } = ids.length ? await supabase.from('work_requests').select('id, titulo').in('id', ids) : { data: [] };
   const tituloDe = (id: string) => (pedidos ?? []).find((p) => p.id === id)?.titulo ?? '';
@@ -47,7 +49,9 @@ export default async function EngagementsPage() {
             titulo: tituloDe(r.request_id),
             // O passo que é desta parte (assinar, pagar, confirmar) — não qualquer ação disponível: desistir
             // está sempre à mão e não é um passo (proximoPasso.ts, 05/11/2026).
-            passo: lado === 'cliente' || lado === 'pintor' ? proximoPasso(e, lado) : null,
+            // Só a quem pode dar o passo (proprietário ou gestor da entidade): é a mesma regra do contador do
+            // menu (`aMinhaEspera`). A quem só acompanha, a lista não diz «precisa de si» (revisão de 06/11/2026).
+            passo: (lado === 'cliente' || lado === 'pintor') && possoAgir.has(r.id) ? proximoPasso(e, lado) : null,
             pendingPlataforma: admin && availableActions(e, 'plataforma').length > 0,
             fase: faseDe(e.status),
           };

@@ -69,21 +69,16 @@ revoke all on function public.registar_assinatura_verificada(uuid, public.engage
 grant execute on function public.registar_assinatura_verificada(uuid, public.engagement_event_kind, uuid, jsonb)
   to service_role;
 
--- O que a política pergunta: o servidor verificou exatamente isto, para esta pessoa?
-create function private.assinatura_verificada(p_engagement uuid, p_kind public.engagement_event_kind, p_payload jsonb)
-returns boolean
-language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.assinaturas_verificadas v
-    where v.engagement_id = p_engagement
-      and v.kind = p_kind
-      and v.actor = (select auth.uid())
-      and v.payload = p_payload
-  );
-$$;
-revoke all on function private.assinatura_verificada(uuid, public.engagement_event_kind, jsonb) from public, anon;
-grant execute on function private.assinatura_verificada(uuid, public.engagement_event_kind, jsonb) to authenticated;
+-- Quanto tempo vale um registo verificado. O servidor regista e grava o acontecimento logo a seguir (menos
+-- de um segundo); um registo mais velho é de uma tentativa que falhou, e não pode ser gasto mais tarde.
+create function private.validade_da_verificacao() returns interval
+language sql immutable set search_path = '' as $$ select interval '15 minutes' $$;
 
+-- A política continua a decidir QUEM regista cada assinatura (o papel na entidade do lado certo). A prova de
+-- QUE o servidor verificou exatamente isto vive no gatilho abaixo, e não na política, por duas razões que a
+-- revisão de 06/11/2026 encontrou: (1) a política vê todas as linhas de uma instrução antes de qualquer
+-- gatilho AFTER as gastar, e um só registo deixava entrar várias assinaturas num INSERT de várias linhas;
+-- (2) um gatilho BEFORE gasta o registo linha a linha, e a linha seguinte já não o encontra.
 alter policy engagement_events_insert on public.engagement_events
   with check (
     actor = (select auth.uid())
@@ -92,37 +87,61 @@ alter policy engagement_events_insert on public.engagement_events
       or (
         not reveal and amount_cents is null
         and (
-          (kind in ('cliente_desistiu', 'transitar', 'encerrar_sem_contrato', 'litigio_aberto')
+          (kind in ('cliente_desistiu', 'transitar', 'encerrar_sem_contrato', 'litigio_aberto', 'cliente_assinou')
             and private.can_manage_org(private.engagement_client(engagement_id)))
-          or (kind = 'litigio_aberto'
+          or (kind in ('litigio_aberto', 'pintor_assinou')
             and private.can_manage_org(private.engagement_painter(engagement_id)))
-          or (kind = 'cliente_assinou'
-            and private.can_manage_org(private.engagement_client(engagement_id))
-            and private.assinatura_verificada(engagement_id, kind, payload))
-          or (kind = 'pintor_assinou'
-            and private.can_manage_org(private.engagement_painter(engagement_id))
-            and private.assinatura_verificada(engagement_id, kind, payload))
         )
       )
     )
   );
 
--- Um registo verificado vale um acontecimento: gasta-se quando o acontecimento entra. Sem isto, o mesmo
--- payload entrava quantas vezes se quisesse pela API — cada cópia aparecia nas provas, na fila da equipa e
--- mandava outro aviso à outra parte (revisão de 05/11/2026). Não se proíbe uma segunda assinatura do mesmo
--- lado: depois de um litígio resolvido com «retomar», o cliente assina de novo, legitimamente.
+-- Gasta o registo verificado no momento em que a assinatura entra: tem de ser desta pessoa, deste lado e
+-- desta contratação, com o payload exato, e recente. Sem ele a assinatura não entra (só a equipa da
+-- plataforma passa sem registo, como passava antes). Volátil e linha a linha: num INSERT de várias linhas, a
+-- segunda já não encontra o registo que a primeira gastou. Se a política recusar a linha depois disto, a
+-- instrução inteira desfaz-se, e o registo com ela.
 create function private.gastar_assinatura_verificada() returns trigger
-language plpgsql security definer set search_path = '' as $$
+language plpgsql volatile security definer set search_path = '' as $$
 begin
-  delete from public.assinaturas_verificadas where engagement_id = new.engagement_id and kind = new.kind;
+  -- Sem sessão de utilizador (o dono da base, a chave de serviço) não há regras de acesso a aplicar — como na
+  -- política. A equipa da plataforma passa como passava. Quem chega pela API com sessão tem de ter o registo.
+  if (select auth.uid()) is null or private.is_platform_admin() then
+    return new;
+  end if;
+  delete from public.assinaturas_verificadas v
+  where v.engagement_id = new.engagement_id
+    and v.kind = new.kind
+    and v.actor = (select auth.uid())
+    and v.payload = new.payload
+    and v.verificada_em > now() - private.validade_da_verificacao();
+  if not found then
+    raise exception 'A assinatura só entra depois de o servidor verificar o PDF.' using errcode = '42501';
+  end if;
   return new;
 end $$;
 revoke all on function private.gastar_assinatura_verificada() from public, anon, authenticated;
 
 create trigger engagement_events_gasta_verificacao
-  after insert on public.engagement_events
+  before insert on public.engagement_events
   for each row when (new.kind in ('cliente_assinou', 'pintor_assinou'))
   execute function private.gastar_assinatura_verificada();
+
+-- Qualquer acontecimento da contratação apaga os registos que ficaram pendentes: o estado mudou, e o que se
+-- verificou antes já não é o que está para assinar. Sem isto, o registo de uma tentativa recusada (por
+-- exemplo, a meio de um litígio) servia mais tarde, depois de um «retomar», para o pintor assinar sobre uma
+-- versão do PDF do cliente que já não é a aceite (revisão de 06/11/2026).
+create function private.limpar_verificacoes_pendentes() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.assinaturas_verificadas where engagement_id = new.engagement_id;
+  return new;
+end $$;
+revoke all on function private.limpar_verificacoes_pendentes() from public, anon, authenticated;
+
+create trigger engagement_events_limpa_verificacoes
+  after insert on public.engagement_events
+  for each row execute function private.limpar_verificacoes_pendentes();
 
 -- O balde: só o servidor carrega. Os ficheiros passam a chamar-se pelo resumo SHA-256 do próprio conteúdo
 -- («<contratação>/cliente-<sha256>.pdf»), e lê-se o do acontecimento aceite: um carregamento atrasado nunca

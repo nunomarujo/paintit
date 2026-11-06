@@ -1159,6 +1159,8 @@ describe('contratação', () => {
         [engagementId, kind, extra.amount ?? null, extra.reveal ?? false, extra.at ?? null],
       ),
     );
+  /** Uma assinatura sem registo do servidor: recusada pelo gatilho que gasta o registo, ou pela política. */
+  const ASSINATURA_RECUSADA = /servidor verificar o PDF|row-level security/;
   /** O que o servidor faz depois de verificar o PDF: regista, com a chave de serviço, o payload exato. */
   const verificar = async (actor: string, kind: string, payload: object, engagement = engagementId) => {
     await db.exec('set role service_role');
@@ -1207,9 +1209,9 @@ describe('contratação', () => {
 
   it('só a plataforma confirma dinheiro; cada parte só regista o que lhe cabe', async () => {
     await expect(event(A, 'deposito_confirmado', { amount: 15000 })).rejects.toThrow(/row-level security/);
-    await expect(event(P, 'cliente_assinou')).rejects.toThrow(/row-level security/);
-    await expect(event(A, 'pintor_assinou')).rejects.toThrow(/row-level security/);
-    await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(/row-level security/);
+    await expect(event(P, 'cliente_assinou')).rejects.toThrow(ASSINATURA_RECUSADA);
+    await expect(event(A, 'pintor_assinou')).rejects.toThrow(ASSINATURA_RECUSADA);
+    await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(ASSINATURA_RECUSADA);
     await event(ADMIN, 'deposito_confirmado', { amount: 15000 });
     // A assinatura só entra com o registo da verificação do servidor (teste seguinte); aqui fica feita.
     await verificar(A, 'cliente_assinou', {});
@@ -1232,13 +1234,13 @@ describe('contratação', () => {
       );
     const forjado = { metodo: 'cmd_pdf', documentHash: 'f'.repeat(64), signatario: 'Alguém', cadeiaConfiavel: true };
     // Sem registo do servidor: recusado, mesmo com o papel certo.
-    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
     // Com registo, mas outro payload (ex.: a mesma assinatura com a cadeia trocada para «confiável»).
     await verificar(A, 'cliente_assinou', { ...forjado, cadeiaConfiavel: false }, outra.id);
-    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
     // Com o payload certo, mas verificado para outra pessoa — C também gere o condomínio (pela administradora).
     await verificar(A, 'cliente_assinou', forjado, outra.id);
-    await expect(assinar(C, forjado)).rejects.toThrow(/row-level security/);
+    await expect(assinar(C, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
     // Ninguém com sessão escreve ou lê o registo, nem chama a porta do servidor.
     await expect(as(A, () => db.query(`select * from public.assinaturas_verificadas`))).rejects.toThrow(/permission denied/);
     await expect(
@@ -1253,13 +1255,36 @@ describe('contratação', () => {
     await assinar(A, forjado);
     // E gasta-se: o mesmo payload não entra uma segunda vez pela API (cada cópia aparecia nas provas e mandava
     // outro aviso à outra parte — revisão de 05/11/2026).
-    await expect(assinar(A, forjado)).rejects.toThrow(/row-level security/);
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
     expect((await one<{ n: number }>(`select count(*)::int n from public.assinaturas_verificadas where engagement_id = $1`, [outra.id])).n).toBe(0);
     // Uma assinatura nova do mesmo lado continua possível — com outra verificação (depois de um litígio
     // resolvido com «retomar», o cliente assina de novo).
     await verificar(A, 'cliente_assinou', { ...forjado, documentHash: 'e'.repeat(64) }, outra.id);
     await assinar(A, { ...forjado, documentHash: 'e'.repeat(64) });
     await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id]);
+
+    // Revisão de 06/11/2026. (1) Um registo, várias linhas na mesma instrução: só a primeira o encontrava — e
+    // como a política via todas antes de o gatilho as gastar, entravam todas. Agora gasta-se linha a linha.
+    const duas = { ...forjado, documentHash: 'd'.repeat(64) };
+    await verificar(A, 'cliente_assinou', duas, outra.id);
+    await expect(
+      as(A, () =>
+        db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'cliente_assinou', $2), ($1, 'cliente_assinou', $2)`, [
+          outra.id,
+          JSON.stringify(duas),
+        ]),
+      ),
+    ).rejects.toThrow(ASSINATURA_RECUSADA);
+    expect((await one<{ n: number }>(`select count(*)::int n from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id])).n).toBe(0);
+    // (2) Um registo velho (de uma tentativa que falhou) não se gasta mais tarde.
+    await db.query(`update public.assinaturas_verificadas set verificada_em = now() - interval '20 minutes' where engagement_id = $1`, [outra.id]);
+    await expect(assinar(A, duas)).rejects.toThrow(ASSINATURA_RECUSADA);
+    // (3) Qualquer outro acontecimento da contratação apaga o que ficou pendente: o estado mudou.
+    await verificar(A, 'cliente_assinou', duas, outra.id);
+    await as(A, () => db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'litigio_aberto', '{"reason":"teste"}')`, [outra.id]));
+    expect((await one<{ n: number }>(`select count(*)::int n from public.assinaturas_verificadas where engagement_id = $1`, [outra.id])).n).toBe(0);
+    await expect(assinar(A, duas)).rejects.toThrow(ASSINATURA_RECUSADA);
+    await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'litigio_aberto'`, [outra.id]);
   });
 
   it('as partes não escolhem a hora; a plataforma pode indicar uma hora passada', async () => {
@@ -1550,7 +1575,9 @@ describe('complementos: versões, convites, avaliações e avisos', () => {
     const review = (user: string) =>
       as(user, () => db.query(`insert into public.reviews (engagement_id, qualidade, prazo, comunicacao, comentario) values ($1, 5, 4, 5, 'Bom trabalho.')`, [e.id]));
     await expect(review(A)).rejects.toThrow(/row-level security/);
-    await db.query(`insert into public.engagement_events (engagement_id, kind, actor) values ($1, 'pintor_assinou', $2)`, [e.id, ADMIN]);
+    // Como a equipa da plataforma, e não como dono da base: aqui a sessão ainda traz o utilizador do teste
+    // anterior, e uma assinatura com sessão exige o registo do servidor (ou ser da equipa).
+    await as(ADMIN, () => db.query(`insert into public.engagement_events (engagement_id, kind, actor) values ($1, 'pintor_assinou', $2)`, [e.id, ADMIN]));
     await expect(review(P2)).rejects.toThrow(/row-level security/);
     await review(A);
     const painter = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [e.id])).painter_org_id;

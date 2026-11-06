@@ -16,7 +16,7 @@ import { caminhoDoPdfAssinado, contractPdfFor, loadDraft, loadReplay, missingCon
 import { verifySignature } from '@/lib/pades';
 import { pedeAviso } from '@/domain/poderes';
 import { poderesDoLado } from '@/lib/poderes';
-import { checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
+import { checkSignedPdf, findSignatures, resumoDaAssinaturaAceite, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { getUser } from '@/lib/supabase/server';
 import { adminClient } from '@/lib/supabase/admin';
@@ -287,8 +287,13 @@ export async function signWithPdf(
   );
 
   const resumo = createHash('sha256').update(uploaded).digest('hex');
+  // O pintor assina por cima do PDF do cliente: fica escrito qual, e confere-se outra vez mesmo antes de
+  // gravar. Entre o começo deste pedido e aqui há verificações de rede que podem demorar; se entretanto o
+  // cliente assinou outra versão (um litígio retomado), esta assinatura não é sobre a que vale.
+  const sobreCliente = side === 'pintor' ? createHash('sha256').update(expected).digest('hex') : undefined;
   const payload: EngagementEvent['payload'] = {
     documentHash: resumo,
+    ...(sobreCliente ? { sobreCliente } : {}),
     metodo: 'cmd_pdf',
     signatario: signer.name,
     identificacao: signer.serialNumber,
@@ -299,6 +304,13 @@ export async function signWithPdf(
   // (migração 20261105233000). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
   // escrever os mesmos bytes, e um carregamento atrasado (uma verificação de rede lenta) cai noutro nome e
   // nunca substitui o que foi aceite — lê-se sempre o do acontecimento (`signedPdf`).
+  if (sobreCliente) {
+    const { replay: agora, events: eventosAgora } = await loadReplay(supabase, row);
+    const recusados = new Set(agora.rejected.map((r) => r.event.id));
+    if (resumoDaAssinaturaAceite(eventosAgora, recusados, 'cliente_assinou') !== sobreCliente) {
+      return { errors: { pdf: 'O contrato assinado pelo cliente mudou entretanto. Descarregue-o de novo e assine essa versão.' } };
+    }
+  }
   const admin = adminClient();
   if (!admin) return { errors: {}, message: SEM_SERVIDOR };
   const up = await admin.storage

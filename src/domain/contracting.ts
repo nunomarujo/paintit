@@ -78,6 +78,8 @@ export interface EngagementEvent {
     culpaClientePercent?: number;
     to?: string;
     documentHash?: string;
+    /** Na assinatura do pintor: o resumo SHA-256 do PDF do cliente que ele contra-assinou (06/11/2026). */
+    sobreCliente?: string;
     /** Como assinou: PDF com Chave Móvel Digital/Cartão de Cidadão, ou aceitação simples (só em testes). */
     metodo?: 'cmd_pdf' | 'aceitacao';
     signatario?: string | null;

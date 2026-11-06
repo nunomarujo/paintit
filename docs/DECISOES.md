@@ -5826,6 +5826,24 @@ acontecimento entra — antes, o mesmo payload entrava pela API quantas vezes se
 num aviso à outra parte); e a aceitação simples (só fora de produção) também confirma o lado antes de registar.
 **Não se proíbe** uma segunda assinatura do mesmo lado, pela razão do «retomar».
 
+**Segunda revisão (06/11/2026, de manhã) — sete achados confirmados, todos de gravidade baixa depois de refutados; um
+refutado.**
+1. *Registos que sobravam:* o registo de uma tentativa recusada (por exemplo, a meio de um litígio) podia gastar-se
+   mais tarde pela API, depois de um «retomar», e o pintor ficava a assinar sobre uma versão do PDF do cliente que já
+   não era a aceite. Agora qualquer outro acontecimento da contratação apaga os registos pendentes, e um registo só
+   vale 15 minutos (o servidor grava a assinatura menos de um segundo depois de o registar).
+2. *Várias assinaturas com um só registo,* num INSERT de várias linhas: a política via todas antes de o gatilho as
+   gastar. A prova passou da política para um gatilho BEFORE, que gasta o registo linha a linha — a segunda linha já
+   não o encontra. A política continua a decidir quem assina cada lado.
+3. *O pintor podia assinar sobre um PDF do cliente desatualizado* se o pedido demorasse (verificações de rede) e o
+   cliente assinasse entretanto outra versão: a assinatura do pintor guarda agora `sobreCliente` (o resumo do PDF do
+   cliente que contra-assinou), conferido de novo mesmo antes de gravar.
+4. *O contador do menu podia contar mal* com mais de 1000 acontecimentos (a API corta cada resposta às 1000 linhas):
+   lê-se por páginas, e uma página que falha não dá contagem nenhuma.
+5. *A lista e a página do contrato diziam «o próximo passo é seu»* a quem só acompanha (leitor, financeiro): agora
+   só a quem pode assinar, com a mesma regra do contador.
+Refutado: o PDF assinado pelo cliente chegar ao pintor antes da apresentação.
+
 ### Rasto de avisos: de qualquer menu até ao contrato
 
 Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação
