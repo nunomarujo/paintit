@@ -5826,6 +5826,24 @@ acontecimento entra — antes, o mesmo payload entrava pela API quantas vezes se
 num aviso à outra parte); e a aceitação simples (só fora de produção) também confirma o lado antes de registar.
 **Não se proíbe** uma segunda assinatura do mesmo lado, pela razão do «retomar».
 
+**Segunda revisão (06/11/2026, de manhã) — sete achados confirmados, todos de gravidade baixa depois de refutados; um
+refutado.**
+1. *Registos que sobravam:* o registo de uma tentativa recusada (por exemplo, a meio de um litígio) podia gastar-se
+   mais tarde pela API, depois de um «retomar», e o pintor ficava a assinar sobre uma versão do PDF do cliente que já
+   não era a aceite. Agora qualquer outro acontecimento da contratação apaga os registos pendentes, e um registo só
+   vale 15 minutos (o servidor grava a assinatura menos de um segundo depois de o registar).
+2. *Várias assinaturas com um só registo,* num INSERT de várias linhas: a política via todas antes de o gatilho as
+   gastar. A prova passou da política para um gatilho BEFORE, que gasta o registo linha a linha — a segunda linha já
+   não o encontra. A política continua a decidir quem assina cada lado.
+3. *O pintor podia assinar sobre um PDF do cliente desatualizado* se o pedido demorasse (verificações de rede) e o
+   cliente assinasse entretanto outra versão: a assinatura do pintor guarda agora `sobreCliente` (o resumo do PDF do
+   cliente que contra-assinou), conferido de novo mesmo antes de gravar.
+4. *O contador do menu podia contar mal* com mais de 1000 acontecimentos (a API corta cada resposta às 1000 linhas):
+   lê-se por páginas, e uma página que falha não dá contagem nenhuma.
+5. *A lista e a página do contrato diziam «o próximo passo é seu»* a quem só acompanha (leitor, financeiro): agora
+   só a quem pode assinar, com a mesma regra do contador.
+Refutado: o PDF assinado pelo cliente chegar ao pintor antes da apresentação.
+
 ### Rasto de avisos: de qualquer menu até ao contrato
 
 Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação
@@ -6112,3 +6130,46 @@ uma proposta); se a estimativa de litros aparece ao cliente ou só ao avaliador 
 se a ferramenta entra já no pedido (foi o que se fez, em rascunho) ou fica primeiro num ecrã de ensaio; a
 ligação da ferramenta das fachadas ao pedido; as zonas comuns. **Por validar no terreno:** 3 ou 4 plantas reais
 com uma medida conhecida e uma casa medida à fita ou a laser.
+## 06/11/2026 — A medição do cliente pela fotografia grava-se no pedido (fase 1: base, regras e ação)
+
+**Pedido do promotor:** «avança com a gravação no pedido, medido pelo cliente», sobre a decisão de 05/11/2026 (o
+cliente também mede, na ferramenta de fotografia; a zona fica com origem própria e margem, nunca confirmada).
+
+**Como fica.**
+- Origem nova `medida_pelo_cliente` («Medida pelo cliente») e coluna `margem_bps` em `request_surfaces`
+  (migração `20261106010000_medida_pelo_cliente`, **por aplicar**). Não se reutilizou `medicao`, que confirma a
+  zona sozinha, nem `medicao_cliente`, que existe na coluna antiga e a migração de 30/10 converteu em confirmada.
+- **A base garante as duas regras** — as políticas deixam quem gere o pedido escrever qualquer coluna pela API: só
+  a zona medida pelo cliente tem margem, e tem-na sempre; e fica sempre por confirmar. Testes de base, que falham
+  sem a migração.
+- A conversão é pura e testada (`src/domain/medicaoDaFotografia.ts`): área a pintar em centésimos de m², margem
+  em pontos-base **arredondada para cima**; não grava uma fachada sem contorno, com partes por medir, com área nula
+  ou absurda, nem sem margem conhecida («melhor não gravar do que gravar sem ela»).
+- Grava-se a área e a margem, **nunca a fotografia nem o desenho** (regra 6: o pintor lê as zonas do anúncio).
+- Ação `gravarMedicaoDaFotografia` (`src/app/app/pedidos/actions.ts`): numa zona existente ou numa nova; quem pode
+  gravar decide-o a base (gerir a entidade, ou ser o avaliador do pedido, com o pedido em rascunho); uma gravação
+  recusada sem erro (nenhuma linha) não diz «Guardado»; a autoria passa a quem mediu.
+- O formulário manual recusa a origem nova. Uma zona medida pelo cliente editada à mão sem mudar a área continua a
+  ser a mesma medição («manter»); com a área mudada perde a margem e passa à origem escolhida.
+- A ferramenta entrega o resultado do passo 4 a quem a abre (`aoMudarMedicao`), só durante o passo 4 e nunca a meio
+  de um recálculo da margem.
+
+**Revisão adversarial (06/11/2026), sete correções, nenhum achado refutado.**
+1. *Uma fachada com varandas nunca se gravava:* a lista do que falta medir trazia sempre «faces de dentro das
+   varandas (decisão 8.2)», que espera pelo promotor e não por quem mede. Passa à parte (`porDecidir`, a constante
+   `FACES_DE_DENTRO_DAS_VARANDAS`): não impede gravar, e a mensagem diz que essas faces ficam de fora.
+2. *Gravar numa zona existente com quantidade 3 triplicava a área medida* sem o dizer: a medição grava sempre
+   `quantidade = 1` (a ferramenta mede uma fachada).
+3. *A restrição da margem deixava passar uma margem numa zona sem origem* (`=` com nulo dá nulo, e uma restrição
+   nula passa): agora `is not distinct from`, com teste.
+4. *Mudar à mão a área de uma zona medida pela fotografia, com «manter»,* passava-a a estimativa em silêncio: agora
+   pergunta de onde vem o número novo.
+5. *A ferramenta podia avisar o anfitrião em ciclo* (uma função nova a cada render): a função fica numa ref e só se
+   avisa quando a medição muda.
+6. *O texto gravado da margem podia diferir do que o ecrã mostra:* `margemEmTexto` segue a regra do passo 4 (uma
+   casa, nunca abaixo de 0,1 %).
+7. *O relatório para a assembleia lia a origem antiga* e dizia «estimativa» a uma medição: lê a nova.
+
+**Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
+abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
+na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».

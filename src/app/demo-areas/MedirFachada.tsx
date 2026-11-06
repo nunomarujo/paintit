@@ -17,6 +17,7 @@ import {
 } from '@/domain/homografia';
 import {
   AREA_MINIMA_VAO_M2,
+  FACES_DE_DENTRO_DAS_VARANDAS,
   areaDaZona,
   arestasPerto,
   deslocarArestas,
@@ -39,6 +40,7 @@ import {
 } from '@/domain/fachadaMedida';
 import { calibracoesMexidas, margemCombinada, margemNasCalibracoes, type MargemDaArea } from '@/domain/margemDaArea';
 import { Dica } from '@/components/Dica';
+import type { MedicaoDaFotografia } from '@/domain/medicaoDaFotografia';
 import {
   concordancia,
   fraseDaInclinacao,
@@ -70,6 +72,7 @@ import {
   centroNaCalibracao,
   comoReduzirAMargem,
   contornoNaCalibracao,
+  margemRelativa,
   pintavelNaCalibracao,
   textoDaMargem,
   zonasNaCalibracao,
@@ -91,7 +94,9 @@ import {
  * 4. Áreas e volume — `areasDaFachada` (`fachadaMedida.ts`) dá as áreas; o volume 3D usa a frente e
  *    a altura medidas.
  *
- * Tudo em estado local do browser: nada é gravado, nada sai do aparelho.
+ * Tudo em estado local do browser: nada é gravado, nada sai do aparelho. Quem a abre dentro do pedido
+ * (`aoMudarMedicao`, 06/11/2026) recebe só o resultado do passo 4 — a área a pintar, o que falta medir e
+ * a margem —, nunca a fotografia nem o desenho: é isso que se grava na zona (`zonaDaMedicao`).
  */
 
 /** Lado maior da imagem de trabalho: fotografias maiores reduzem-se (memória e velocidade). */
@@ -359,7 +364,13 @@ interface FachadaGuardada {
 /** Como se trata a cobertura de um corpo saliente sem telha (promotor, 04/11/2026). */
 const IMPERMEABILIZACAO = ['Só pintura', 'Membrana líquida', 'Tela asfáltica', 'Outra, a definir com o pintor'] as const;
 
-export function MedirFachada() {
+export function MedirFachada({
+  aoMudarMedicao,
+}: {
+  /** O resultado do passo 4 da fachada aberta, para quem a grava no pedido; `null` fora do passo 4 ou
+   * enquanto a margem se recalcula (um número a meio não se grava). */
+  aoMudarMedicao?: (m: MedicaoDaFotografia | null) => void;
+} = {}) {
   const [passo, setPasso] = useState(1);
   const [foto, setFoto] = useState<Foto | null>(null);
   const [aCarregar, setACarregar] = useState(false);
@@ -668,6 +679,29 @@ export function MedirFachada() {
         : null,
     [passo, mexidas, zonasEm, centroEm, temContornoDesenhado, salienciaDaMargem, salienciaVarandaDaMargem, opcoesDaMargem],
   );
+
+  // A medição para o pedido. A margem é a mesma que o ecrã mostra (`margemRelativa` sobre a área à vista).
+  // O que espera pela decisão 8.2 (faces de dentro das varandas) não é coisa que quem mede possa medir: vai
+  // à parte e não impede gravar. A função de quem a abre fica numa ref — uma função nova a cada render do
+  // anfitrião não pode voltar a disparar isto — e só se avisa quando a medição muda mesmo.
+  const aoMudarMedicaoRef = useRef(aoMudarMedicao);
+  aoMudarMedicaoRef.current = aoMudarMedicao;
+  const medicaoParaOPedido = useMemo<MedicaoDaFotografia | null>(
+    () =>
+      passo !== 4 || margemAtrasada
+        ? null
+        : {
+            temContorno: resultado.temContorno,
+            pintavelM2: resultado.pintavelM2,
+            porMedir: resultado.porMedir.filter((x) => x !== FACES_DE_DENTRO_DAS_VARANDAS),
+            porDecidir: resultado.porMedir.filter((x) => x === FACES_DE_DENTRO_DAS_VARANDAS),
+            margemRelativa: margemAPintar ? margemRelativa(margemAPintar) : null,
+          },
+    [passo, margemAtrasada, resultado, margemAPintar],
+  );
+  useEffect(() => {
+    aoMudarMedicaoRef.current?.(medicaoParaOPedido);
+  }, [medicaoParaOPedido]);
 
   const recomecar = () => {
     setPasso(1);

@@ -16,11 +16,15 @@ import {
   parseSurface,
   primeiraMedicao,
   publishBlockers,
+  SURFACE_KINDS,
+  surfaceArea,
   type Participacao,
   type SurfaceInput,
+  type SurfaceKind,
 } from '@/domain/request';
 import { paraZona } from '@/lib/requests';
 import { colunasDasCaleiras } from '@/domain/caleiras';
+import { margemEmTexto, zonaDaMedicao, type MedicaoDaFotografia } from '@/domain/medicaoDaFotografia';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -218,14 +222,31 @@ export async function updateSurface(
   if (refused) return refused;
   const { data: zonaActual } = await supabase
     .from('request_surfaces')
-    .select('origem_quantidade')
+    .select('origem_quantidade, area_cm2')
     .eq('id', surfaceId)
     .eq('request_id', requestId)
     .maybeSingle();
+  // Uma zona medida pelo cliente na fotografia (06/11/2026). O editor não a deixa escolher à mão — vem só
+  // da ferramenta, com a margem. Editada sem mexer na área (o nome, os trabalhos), continua a ser a mesma
+  // medição: mantém a origem e a margem. Com a área mudada à mão, deixa de o ser: passa à origem que o
+  // editor enviou e perde a margem — a base exige que só a medição da fotografia tenha margem.
+  const eraDaFotografia = zonaActual?.origem_quantidade === 'medida_pelo_cliente';
+  const pedeManter = eraDaFotografia && form.get('origemQuantidade') === 'manter';
+  const manter = pedeManter && surfaceArea(v) === zonaActual?.area_cm2;
+  // Pediu para manter a medição, mas a área mudou: já não é a medição da fotografia. Em vez de a passar a
+  // «estimativa» em silêncio (e dizer «Guardado»), pergunta-se de onde vem o número novo.
+  if (pedeManter && !manter) {
+    return { errors: { origemQuantidade: 'A área mudou, por isso deixou de ser a medição da fotografia: indique de onde vem o número novo.' } };
+  }
   const { error } = await supabase
     .from('request_surfaces')
     .update({
       ...colunasDaZona(v),
+      ...(manter
+        ? { origem_quantidade: 'medida_pelo_cliente' as const, confirmacao: 'por_confirmar' as const }
+        : eraDaFotografia
+          ? { margem_bps: null }
+          : {}),
       ...(primeiraMedicao(zonaActual?.origem_quantidade ?? null)
         ? { registado_por: user.id, registado_em: new Date().toISOString() }
         : {}),
@@ -235,6 +256,87 @@ export async function updateSurface(
   if (error) return { errors: {}, message: 'Não foi possível guardar. O pedido tem de estar em rascunho.' };
   revalidarPedido(requestId);
   return { errors: {}, ok: true, message: 'Guardado.' };
+}
+
+/**
+ * Grava no pedido a medição de uma fachada feita na ferramenta de fotografia (06/11/2026).
+ *
+ * A zona fica «medida pelo cliente», com a margem de erro, e por confirmar (decisão do promotor de
+ * 05/11/2026; a base garante-o, migração 20261106010000). Vai a área a pintar e a margem — nunca a
+ * fotografia nem o desenho sobre ela (regra 6). As regras da conversão estão em `zonaDaMedicao`.
+ *
+ * Tudo isto chega do navegador (regra 10): o pedido e a zona ligados, a medição no corpo. A medição é
+ * do aparelho de quem a fez, por natureza — o que se garante aqui é que é plausível, que vai rotulada
+ * como o que é, com a margem que a acompanha. Quem pode gravar decide-o a base (gerir a entidade do
+ * pedido, ou ser o avaliador dele, e o pedido em rascunho); a zona tem de ser deste pedido. Uma
+ * gravação que a base recusou em silêncio (nenhuma linha) não diz «Guardado».
+ *
+ * A autoria passa a ser de quem mediu: é um número novo, desta pessoa — ao contrário da edição manual,
+ * que conserva quem mediu antes (`primeiraMedicao`).
+ */
+export async function gravarMedicaoDaFotografia(
+  requestId: string,
+  zona: { id: string } | { nova: { kind: string; descricao: string | null } },
+  medicao: MedicaoDaFotografia,
+): Promise<FormState> {
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  const z = zonaDaMedicao({
+    temContorno: medicao?.temContorno === true,
+    pintavelM2: Number(medicao?.pintavelM2),
+    porMedir: Array.isArray(medicao?.porMedir) ? medicao.porMedir.map(String).slice(0, 20) : ['a medição chegou incompleta'],
+    porDecidir: Array.isArray(medicao?.porDecidir) ? medicao.porDecidir.map(String).slice(0, 20) : [],
+    margemRelativa: typeof medicao?.margemRelativa === 'number' ? medicao.margemRelativa : null,
+  });
+  if (!z.ok) return { errors: {}, message: z.motivo };
+
+  const colunas = {
+    area_direta_cm2: z.areaDiretaCm2,
+    largura_cm: null,
+    altura_cm: null,
+    vaos_cm2: null,
+    // A ferramenta mede uma fachada: a área a pintar é a desta zona, uma vez. Numa zona que tinha quantidade
+    // 3 (três fachadas iguais, escritas à mão), manter o 3 triplicava a área medida sem ninguém o dizer.
+    quantidade: 1,
+    origem_quantidade: 'medida_pelo_cliente' as const,
+    confirmacao: 'por_confirmar' as const,
+    margem_bps: z.margemBps,
+    registado_por: user.id,
+    registado_em: new Date().toISOString(),
+  };
+  const naoGravou: FormState = {
+    errors: {},
+    message: 'Não foi possível gravar a medição. O pedido tem de estar em rascunho, e só quem o gere o pode alterar.',
+  };
+
+  if ('id' in zona) {
+    if (typeof zona.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(zona.id)) return { errors: {}, message: 'Zona inválida.' };
+    const { data, error } = await supabase
+      .from('request_surfaces')
+      .update(colunas)
+      .eq('id', zona.id)
+      .eq('request_id', requestId)
+      .select('id');
+    if (error || !data?.length) return naoGravou;
+  } else {
+    const kind = String(zona?.nova?.kind ?? '');
+    if (!(SURFACE_KINDS as readonly string[]).includes(kind)) return { errors: {}, message: 'Escolha o tipo da zona.' };
+    const descricao = String(zona.nova.descricao ?? '').trim().slice(0, 200) || null;
+    const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao });
+    if (refused) return refused;
+    const { data, error } = await supabase
+      .from('request_surfaces')
+      .insert({ request_id: requestId, kind: kind as SurfaceKind, descricao, origem: 'estimativa', ...colunas })
+      .select('id');
+    if (error || !data?.length) return naoGravou;
+  }
+  revalidarPedido(requestId);
+  const foraDaArea = medicao?.porDecidir?.length ? ' Não inclui as faces de dentro das varandas, que ficam à parte.' : '';
+  return {
+    errors: {},
+    ok: true,
+    message: `Gravado: ${(z.areaDiretaCm2 / 100).toLocaleString('pt-PT')} m², ${margemEmTexto(z.margemBps)}, por confirmar no local.${foraDaArea}`,
+  };
 }
 
 export async function deleteSurface(requestId: string, surfaceId: string) {

@@ -264,7 +264,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
 
       {vezDeAssinar && (
         <section id="assinar" className="scroll-mt-24 rounded-2xl border-2 border-tinta-900 bg-white p-5 sm:p-6">
-          <p className="text-[13px] font-semibold text-slate-500">O próximo passo é seu</p>
+          <p className="text-[13px] font-semibold text-slate-500">{manager ? 'O próximo passo é seu' : 'A seguir, deste lado'}</p>
           <h2 className="mt-1 text-[20px] font-semibold leading-tight">Assinar o contrato</h2>
           {passo?.ate && (
             <p className="mt-1 text-[17px] text-slate-700">

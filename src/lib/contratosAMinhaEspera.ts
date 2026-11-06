@@ -12,6 +12,8 @@ type Client = SupabaseClient<Database>;
 type EngagementRow = Database['public']['Tables']['engagements']['Row'];
 type EventRow = Database['public']['Tables']['engagement_events']['Row'];
 
+const PAGINA = 1000;
+
 export interface ContratoAMinhaEspera {
   id: string;
   requestId: string;
@@ -51,13 +53,29 @@ export async function contratosAMinhaEspera(supabase: Client, userId: string, no
     if (!mais?.length) break;
     for (const r of mais) porId.set(r.id, r);
   }
-  const { data: eventos } = await supabase
-    .from('engagement_events')
-    .select('*')
-    .in('engagement_id', [...porId.keys()])
-    .order('at');
+  // Por páginas: o servidor da API corta cada resposta às 1000 linhas, e uma lista cortada reconstruía
+  // contratações num estado antigo — o contador dizia «assinar» a um contrato já assinado (revisão de
+  // 06/11/2026). Os identificadores vão em grupos, para o endereço do pedido não crescer sem fim.
+  const eventos: EventRow[] = [];
+  const ids = [...porId.keys()];
+  for (let g = 0; g < ids.length; g += 100) {
+    const grupo = ids.slice(g, g + 100);
+    for (let desde = 0; ; desde += PAGINA) {
+      const { data, error } = await supabase
+        .from('engagement_events')
+        .select('*')
+        .in('engagement_id', grupo)
+        .order('at')
+        .order('id')
+        .range(desde, desde + PAGINA - 1);
+      // Uma página que falha não pode dar uma contagem errada: sem os acontecimentos todos, não se conta.
+      if (error) throw error;
+      eventos.push(...(data ?? []));
+      if ((data ?? []).length < PAGINA) break;
+    }
+  }
   const doContrato = new Map<string, EventRow[]>();
-  for (const v of eventos ?? []) doContrato.set(v.engagement_id, [...(doContrato.get(v.engagement_id) ?? []), v]);
+  for (const v of eventos) doContrato.set(v.engagement_id, [...(doContrato.get(v.engagement_id) ?? []), v]);
 
   const feitas = new Map<string, Replay>();
   const reconstruir = (r: EngagementRow, fundo = 0): Replay => {
