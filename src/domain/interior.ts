@@ -153,7 +153,8 @@ export function areasDaDivisao(
     return {
       paredesM2: d.pintarParedes && positivo(d.areaParedesManualM2) ? arred(d.areaParedesManualM2) : null,
       tetoM2: d.pintarTeto && positivo(d.areaTetoManualM2) ? arred(d.areaTetoManualM2) : null,
-      certeza: 'declarada',
+      // As escadas não têm regra de medição: a área escrita à mão é «a olho», e diz-se (promotor, 06/11/2026).
+      certeza: d.tipo === 'escadas' ? 'estimada' : 'declarada',
       falta: [
         ...(d.pintarParedes && !positivo(d.areaParedesManualM2) ? ['área das paredes'] : []),
         ...(d.pintarTeto && !positivo(d.areaTetoManualM2) ? ['área do teto'] : []),
@@ -164,7 +165,13 @@ export function areasDaDivisao(
   // As escadas ficam por medir até haver regra própria (promotor, 06/11/2026): as paredes de uma caixa de
   // escadas não são perímetro × pé-direito, e uma conta errada é pior do que nenhuma.
   if (d.tipo === 'escadas') {
-    return { paredesM2: null, tetoM2: null, certeza: 'desconhecida', falta: d.pintarParedes || d.pintarTeto ? ['regra de medição das escadas (por definir)'] : [], vaosDescontadosM2: 0 };
+    return {
+      paredesM2: null,
+      tetoM2: null,
+      certeza: 'desconhecida',
+      falta: d.pintarParedes || d.pintarTeto ? ['regra de medição das escadas (por definir); em «Escrever as áreas» pode indicar-se uma estimativa'] : [],
+      vaosDescontadosM2: 0,
+    };
   }
   const cotas = o.certezaDasCotas ?? (modo === 'planta' ? 'estimada' : 'declarada');
   const falta: string[] = [];

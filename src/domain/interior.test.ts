@@ -216,3 +216,14 @@ describe('a declaração das zonas comuns', () => {
     expect(f[0]).toBe('Zonas comuns — Átrio, Escadas; paredes 40 m²; 1 divisão por medir.');
   });
 });
+
+describe('escadas escritas à mão (06/11/2026)', () => {
+  it('a área das escadas escrita à mão fica como estimativa; as outras divisões, como medidas', () => {
+    expect(areasDaDivisao(div({ tipo: 'escadas', areaParedesManualM2: 60 }), geral, 'manual')).toMatchObject({ paredesM2: 60, certeza: 'estimada' });
+    expect(areasDaDivisao(div({ tipo: 'atrio', areaParedesManualM2: 30 }), geral, 'manual')).toMatchObject({ certeza: 'declarada' });
+  });
+  it('o total com escadas a olho fica estimado', () => {
+    const t = totalDoInterior([div({ tipo: 'atrio', areaParedesManualM2: 30 }), div({ tipo: 'escadas', areaParedesManualM2: 60 })], geral, 'manual');
+    expect(t).toMatchObject({ paredesM2: 90, certeza: 'estimada' });
+  });
+});

@@ -6378,6 +6378,34 @@ perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
     «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
     emite continua a ser a equipa, que confirma que quem pediu é parte da obra.
 
+## 06/11/2026 — Escadas «a olho»: a área escrita à mão fica como estimativa
+
+As escadas das zonas comuns não têm regra de medição (continuam «Por medir» quando se indicam medidas ou se
+desenha na planta). Decisão do promotor: em «Escrever as áreas», a área das escadas pode ser indicada «a olho» e
+fica marcada como **estimativa** — e com ela o total das paredes, para o pintor saber que não foi medida. As outras
+divisões escritas à mão continuam como medidas. A regra de medição própria das escadas continua por fazer.
+
+## 06/11/2026 — Páginas públicas, objetivos lidos da descrição e «Guardar e continuar»
+
+Pedidos do promotor, a ver o site:
+- **Fornecedores:** «Descontos para pintores — personalizáveis: por perfil ou caso a caso» (impessoal, regra 12,
+  confirmado pelo promotor). Topo: «Sem custo para os vendedores. Caso a empresa queira, pode subscrever a presença
+  no catálogo.»
+- **Avaliador, na página pública: sem valores nem percentagens.** Fica «Este trabalho tem remuneração elevada», e
+  os valores conhecem-se depois do registo e da confirmação da atividade (o simulador continua na área do
+  fornecedor, só depois da inscrição). A inscrição traz o convite ao WhatsApp: «Para ganhar levantamentos é preciso
+  ser o primeiro a responder…», no site e no ecrã «Ser avaliador», com o mesmo componente de consentimento.
+- **Empresas de pintura:** orçamentar é gratuito, para os pedidos da plataforma e para os clientes próprios; o
+  logotipo e os contactos no orçamento são uma opção, dita como do plano Pro (o promotor esclareceu que o gratuito é
+  criar orçamentos). Ferramentas: gestão de obra, stocks e consumíveis, catálogo de produtos e descontos, e
+  **medir a cor de uma parede — «Em breve»**, também assim em `/app/obras`. Nota: a plataforma não cobra
+  comissão aos fornecedores; os descontos combinados podem manter-se, convidando o fornecedor a aderir.
+- **Objetivos do pedido lidos da descrição** (`objectivosDaDescricao.ts`): as pastilhas acendem com palavras
+  aproximadas ou relacionadas (salitre, bolor, rachada, infiltrações, capoto, aconselhamento…), sem acentos nem
+  maiúsculas. Continuam a não marcar trabalhos.
+- **«Guardar e continuar»** passa ao passo seguinte depois de gravar; com erro, fica onde está.
+- As melhorias à ferramenta das fachadas (desfazer, recorte, instruções ao lado, janela redimensionável, gravar e
+  retomar, deteção) ficam para a sessão que a está a ligar ao pedido (prompt entregue ao promotor).
 ## 06/11/2026 — A primeira emissão na Moloni deu «emitido» com o número «undefined»
 
 Primeira emissão a sério (conta de testes «Quem Pinta TESTES API», fatura da comissão de «Pintor Teste Lda», 188,40 €):

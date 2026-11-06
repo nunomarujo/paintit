@@ -17,10 +17,11 @@ import {
 } from '@/domain/request';
 import { useFormAction } from '@/components/useFormAction';
 import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
-import { useSeccaoActiva } from '@/app/app/pedidos/[id]/PedidoEmSeccoes';
+import { useIrParaSeccao, useSeccaoActiva } from '@/app/app/pedidos/[id]/PedidoEmSeccoes';
 import { EscolherProdutos, type ProdutoEscolhivel } from '@/components/EscolherProdutos';
 import { CamposDasCaleiras } from './CamposDasCaleiras';
 import { EscolherCor } from '@/components/EscolherCor';
+import { objectivosNaDescricao } from '@/domain/objectivosDaDescricao';
 import { referenciaDaPaleta, type CorDaPaleta } from '@/domain/corDaPintura';
 import type { Preference } from '@/domain/reference';
 
@@ -75,6 +76,20 @@ const FRAC_MAX = 0.75;
 export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [], paleta = [] }: Props) {
   const seccao = useSeccaoActiva();
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
+  // «Guardar e continuar» avança para o passo seguinte depois de gravar (promotor, 06/11/2026). Só esse
+  // botão, e só com a gravação confirmada: com erro, fica-se onde está, com o que se escreveu.
+  const irPara = useIrParaSeccao();
+  const continuar = useRef(false);
+  useEffect(() => {
+    if (!continuar.current || pending) return;
+    if (state.ok) {
+      continuar.current = false;
+      irPara('zonas');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (Object.keys(state.errors ?? {}).length > 0 || state.message) {
+      continuar.current = false;
+    }
+  }, [state, pending, irPara]);
   const e = state.errors;
   // Pedidos criados antes de 28/10/2026 só têm o tipo principal; valem por uma escolha de um só tipo.
   const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
@@ -364,7 +379,14 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
       {!disabled && (
         <div className="flex flex-wrap items-center justify-end gap-3">
           {seccao !== 'publicar' && (
-            <button type="submit" disabled={pending} className="btn-primary btn-lg">
+            <button
+              type="submit"
+              disabled={pending}
+              className="btn-primary btn-lg"
+              onClick={() => {
+                continuar.current = !!initial && seccao !== null;
+              }}
+            >
               {pending ? 'A guardar…' : initial ? 'Guardar e continuar' : 'Continuar para medidas e fotografias'}
               {!pending && <span aria-hidden>→</span>}
             </button>
@@ -601,14 +623,17 @@ function Icone({ nome, className }: { nome: NomeDoIcone; className?: string }) {
  * no levantamento. A pastilha fica assinalada enquanto a frase estiver na descrição.
  */
 const OBJECTIVOS = [
-  ['Renovar pintura', 'Queremos renovar a pintura.'],
-  ['Fissuras', 'Há fissuras e tinta a descascar.'],
-  ['Humidade', 'Há sinais de humidade.'],
-  ['Isolamento', 'Gostaríamos de melhorar o isolamento.'],
-  ['Não sei', 'Ainda não sabemos qual é a solução e precisamos de aconselhamento.'],
+  ['Renovar pintura', 'Queremos renovar a pintura.', 'renovar'],
+  ['Fissuras', 'Há fissuras e tinta a descascar.', 'fissuras'],
+  ['Humidade', 'Há sinais de humidade.', 'humidade'],
+  ['Isolamento', 'Gostaríamos de melhorar o isolamento.', 'isolamento'],
+  ['Não sei', 'Ainda não sabemos qual é a solução e precisamos de aconselhamento.', 'nao_sei'],
 ] as const;
 
 function Objectivos({ descricao, setDescricao }: { descricao: string; setDescricao: (v: string) => void }) {
+  // Também acende quando a descrição fala do mesmo por outras palavras (06/11/2026): «salitre», «bolor»,
+  // «rachada»… Acesa assim, tocar-lhe escreve a frase; com a frase escrita, tocar-lhe tira-a.
+  const detetados = objectivosNaDescricao(descricao);
   const alterna = (frase: string) => {
     if (descricao.includes(frase)) {
       setDescricao(descricao.replace(frase, '').replace(/\s{2,}/g, ' ').trim());
@@ -622,8 +647,8 @@ function Objectivos({ descricao, setDescricao }: { descricao: string; setDescric
         Qual é o principal objetivo? <span className="font-normal text-slate-500">(pode escolher vários)</span>
       </legend>
       <div className="mt-2 flex flex-wrap gap-2">
-        {OBJECTIVOS.map(([rotulo, frase]) => {
-          const activo = descricao.includes(frase);
+        {OBJECTIVOS.map(([rotulo, frase, chave]) => {
+          const activo = descricao.includes(frase) || detetados.has(chave);
           return (
             <button
               key={rotulo}
@@ -644,7 +669,9 @@ function Objectivos({ descricao, setDescricao }: { descricao: string; setDescric
           );
         })}
       </div>
-      <p className="mt-2 text-[13px] text-slate-500">Cada escolha escreve uma frase na descrição, para a rever e completar.</p>
+      <p className="mt-2 text-[13px] text-slate-500">
+        Cada escolha escreve uma frase na descrição, para a rever e completar. O que a descrição já diz por outras palavras aparece assinalado.
+      </p>
     </fieldset>
   );
 }
