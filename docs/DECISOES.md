@@ -6496,3 +6496,13 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
   `crm_fundacao` (ainda por aplicar).
 - **Não verificado com dados reais:** o ambiente de desenvolvimento não alcança o Overpass; a primeira pesquisa real
   faz-se na aplicação, depois de a migração estar aplicada. IMPIC e nif.pt ficam para a seguir.
+
+### 06/11/2026 — CRM: migração aplicada; email a empresas validado
+
+- **Aplicada à base real** (`phkfrabrjqbpnmocrrvj`, conector «QuemP»), registada como `20261106154252_crm_fundacao`; o
+  ficheiro foi renomeado para a versão registada e ganhou o índice de `crm_envios.aprovado_por`. Verificado dentro de um
+  bloco que reverte: o gatilho recusou o envio a pessoa singular e aceitou-o a coletiva; contagens finais 1/0/0/0
+  (zonas/contactos/envios/eventos), sem rasto. Avisos de segurança: nada das tabelas novas.
+- **Validação jurídica:** o promotor comunicou, a 06/11/2026, que o email a empresas foi validado com o jurista. Fica
+  registado como declaração do promotor; o parecer escrito não está no repositório.
+- **Prompt para configurar o domínio de envio:** `docs/PROMPT_RESEND_DNS.md`.

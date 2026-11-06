@@ -45,6 +45,7 @@ create table public.crm_envios (
   unique (contacto_id, campanha_id)
 );
 create index crm_envios_contacto_idx on public.crm_envios (contacto_id);
+create index crm_envios_aprovado_por_idx on public.crm_envios (aprovado_por);
 
 create table public.crm_eventos (
   id uuid primary key default gen_random_uuid(),

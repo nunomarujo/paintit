@@ -237,7 +237,7 @@ export type Database = {
           },
         ];
       };
-      // Migração `crm_fundacao` (06/11/2026). Escrita à mão enquanto não for aplicada à base real; regenerar depois.
+      // Migração `crm_fundacao` (06/11/2026), aplicada à base real. Escrita à mão: coincide coluna a coluna com a migração.
       crm_zonas: {
         Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string };
         Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string };
