@@ -263,6 +263,7 @@ export type Database = {
           cae: string | null;
           cae_atividade: string | null;
           codigo_postal: string | null;
+          concelho: string | null;
           created_at: string;
           created_by: string;
           email_contacto: string | null;
@@ -286,6 +287,7 @@ export type Database = {
           cae?: string | null;
           cae_atividade?: string | null;
           codigo_postal?: string | null;
+          concelho?: string | null;
           created_at?: string;
           created_by?: string;
           email_contacto?: string | null;
@@ -1491,6 +1493,7 @@ export type Database = {
           incluida: boolean;
           minimo_cents: number | null;
           org_id: string;
+          todo_o_pais: boolean;
         };
         Insert: {
           concelhos?: string[];
@@ -1499,6 +1502,7 @@ export type Database = {
           incluida?: boolean;
           minimo_cents?: number | null;
           org_id: string;
+          todo_o_pais?: boolean;
         };
         Update: Partial<Database['public']['Tables']['supplier_delivery']['Insert']>;
         Relationships: [];

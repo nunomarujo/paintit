@@ -105,10 +105,14 @@ describe('descontos e entregas dos fornecedores', () => {
   it('entrega por concelho, incluída acima do mínimo', () => {
     const d = [
       { concelhos: ['Lisboa', 'Oeiras'], incluida: true, custo: null, minimo: 50000, condicoes: '' },
-      { concelhos: [], incluida: false, custo: 4000, minimo: null, condicoes: 'Restante país, 48 h' },
+      { concelhos: [], todoOPais: true, incluida: false, custo: 4000, minimo: null, condicoes: 'Restante país, 48 h' },
     ];
     expect(deliveryFor(d, 'lisboa', 60000)).toEqual({ kind: 'incluida' });
     expect(deliveryFor(d, 'Lisboa', 10000)).toEqual({ kind: 'paga', custo: 4000, condicoes: 'Restante país, 48 h' });
     expect(deliveryFor(d.slice(0, 1), 'Porto', 60000)).toEqual({ kind: 'sem_entrega' });
+  });
+
+  it('uma lista vazia sem «todo o país» não entrega em lado nenhum (06/11/2026)', () => {
+    expect(deliveryFor([{ concelhos: [], incluida: true, custo: null, minimo: null, condicoes: '' }], 'Porto', 60000)).toEqual({ kind: 'sem_entrega' });
   });
 });

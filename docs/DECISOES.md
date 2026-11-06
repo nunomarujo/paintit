@@ -6468,3 +6468,20 @@ oportunidades de **todo o país** (a convenção das entregas de produtos). Para
   deixa de ver oportunidades até o responsável os escolher. Nenhum tinha a lista vazia.
 - **Fica como estava:** os concelhos de **entrega de produtos** do fornecedor («Concelhos servidos», vazio = todo o
   país). É outra regra; muda-se só se o promotor o pedir.
+
+## 06/11/2026 — Sem concelhos indicados, vale o concelho da morada da empresa
+
+Promotor, a seguir à entrada anterior: «quando não indicados devem ficar associados à morada registada da empresa».
+- **`organizations.concelho`** (migração `20261106155820_concelho_da_morada_da_empresa`): o concelho da morada
+  fiscal, tirado do código postal pelo servidor sempre que os dados da empresa são gravados (base dos CTT, a mesma da
+  morada; com o serviço em baixo não se apaga o que já lá estava). Os dois fornecedores existentes ficaram com
+  «Viana do Castelo», lido dos seus códigos postais a 06/11/2026; as outras entidades preenchem-no na próxima gravação.
+- **Levantamentos:** sem zona escolhida, a empresa cobre o concelho da sua morada (`private.supplier_covers` e
+  `zonaEfetiva` em `coberturaDaEmpresa.ts`); a zona escolhida manda sobre a morada. Sem zona e sem morada, nada. O Hoje
+  diz «Disponível · Viana do Castelo (morada da empresa)» e, no cartão, «Os levantamentos chegam de …, o concelho da
+  morada da empresa», com a ligação para escolher outros. Gravar o formulário sem concelhos grava o da morada.
+- **Entregas de produtos** (pergunta da sessão, respondida aqui): «Todo o país» passa a ser uma caixa marcada
+  (`supplier_delivery.todo_o_pais`); sem concelhos, a condição fica com o concelho da morada; a base recusa uma condição
+  sem escolha. A lista vazia deixou de querer dizer todo o país também em `deliveryFor`.
+- **«Loja»:** a aplicação ainda não guarda lojas nem pontos de venda dos fornecedores — só a morada da empresa. Se uma
+  empresa tiver lojas noutros concelhos, por agora escolhe-os à mão; guardar lojas fica em aberto.

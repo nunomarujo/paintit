@@ -105,7 +105,7 @@ export interface FichaDoAvaliador {
   whatsapp: boolean;
   concelhoBase: string | null;
   raioKm: number | null;
-  /** A empresa escolheu os concelhos que cobre (ou «todo o país», marcado): `coberturaDaEmpresa.ts`. */
+  /** A empresa tem uma zona: concelhos escolhidos, «todo o país» marcado, ou o da morada (`zonaEfetiva`). */
   zonasDaEmpresa: boolean;
   /** Suspenso em «Disponibilidade» hoje. */
   suspenso: boolean;
@@ -125,7 +125,7 @@ export function motivosDeInelegibilidade(f: FichaDoAvaliador, regras: RegrasDaCo
   if (!f.whatsapp) m.push('Falta ligar o WhatsApp, com um telemóvel pessoal.');
   if (!f.concelhoBase) m.push('Falta o concelho base.');
   if (f.raioKm == null || !regras.raiosKm.includes(f.raioKm)) m.push('Falta o raio de deslocação.');
-  if (!f.zonasDaEmpresa) m.push('Falta a empresa escolher os concelhos onde faz levantamentos (o responsável, em «Zonas cobertas pela empresa»).');
+  if (!f.zonasDaEmpresa) m.push('Falta a zona da empresa: o responsável escolher os concelhos, ou pôr a morada com código postal nos dados da empresa.');
   if (f.suspenso) m.push('A presença está suspensa.');
   if (f.emCurso >= regras.maximoEmCurso) m.push(`Já tem ${f.emCurso} levantamentos em curso: novos convites voltam quando um terminar.`);
   return m;

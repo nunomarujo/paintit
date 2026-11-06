@@ -85,7 +85,7 @@ export async function materialOptions(
     const q = deliveryFor(
       (deliveries ?? [])
         .filter((x) => x.org_id === p.org_id)
-        .map((x) => ({ concelhos: x.concelhos, incluida: x.incluida, custo: x.custo_cents, minimo: x.minimo_cents, condicoes: x.condicoes })),
+        .map((x) => ({ concelhos: x.concelhos, todoOPais: x.todo_o_pais, incluida: x.incluida, custo: x.custo_cents, minimo: x.minimo_cents, condicoes: x.condicoes })),
       obra.concelho,
       final ?? 0,
     );
