@@ -1,6 +1,7 @@
 'use server';
 
 import { lerCobertura } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
@@ -172,9 +173,8 @@ export async function addDelivery(orgId: string, _prev: FormState, form: FormDat
   if (Number.isNaN(custo) || Number.isNaN(minimo)) return { errors: { custo: 'Valores em euros.' } };
   const incluida = form.get('incluida') === 'sim';
   const { supabase } = await getUser();
-  // Concelhos servidos (06/11/2026): sem escolha, o da morada da empresa; «todo o país» só marcado.
-  const { data: empresa } = await supabase.from('organizations').select('concelho').eq('id', orgId).maybeSingle();
-  const zona = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), empresa?.concelho);
+  // Concelhos servidos (06/11/2026): sem escolha, os da morada e das lojas da empresa; «todo o país» só marcado.
+  const zona = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), await porOmissaoDaEmpresa(supabase, orgId));
   if ('erro' in zona) return { errors: { concelhos: zona.erro } };
   const { error } = await supabase.from('supplier_delivery').insert({
     org_id: orgId,

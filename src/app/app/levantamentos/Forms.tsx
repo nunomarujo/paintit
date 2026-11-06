@@ -22,12 +22,13 @@ export function CoverageForm({
   orgId,
   initial,
   todoOPais = false,
-  concelhoDaEmpresa = null,
+  semEscolha = null,
 }: {
   orgId: string;
   initial: string[];
   todoOPais?: boolean;
-  concelhoDaEmpresa?: string | null;
+  /** O que vale sem escolha: «Viana do Castelo (morada da empresa)». */
+  semEscolha?: string | null;
 }) {
   const { state, pending, formProps } = useFormAction<FormState>(setSurveyCoverage.bind(null, orgId), { errors: {} });
   // «Todo o país» é uma escolha explícita, com a confirmação escrita ao lado — nunca o que fica quando a
@@ -40,8 +41,8 @@ export function CoverageForm({
           name="concelhos"
           label="Concelhos"
           hint={
-            concelhoDaEmpresa
-              ? `Só chegam oportunidades dos concelhos escolhidos. Sem nenhum, fica o da morada da empresa: ${concelhoDaEmpresa}.`
+            semEscolha
+              ? `Só chegam oportunidades dos concelhos escolhidos. Sem nenhum, ficam ${semEscolha}.`
               : 'Pelo menos um. Só chegam oportunidades dos concelhos escolhidos.'
           }
         >

@@ -6,7 +6,7 @@ import { declaracaoDasCaleiras, caleirasDaLinha } from '@/domain/caleiras';
 import { elementosEmVigor } from '@/lib/elementosDoContrato';
 import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
 import { AVISO_DA_COR } from '@/domain/corDaPintura';
-import { contractDraft, minutaComElementos, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { contractDraft, minutaComElementos, minutaComLayoutNovo, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { toEngagementRecord } from '@/domain/engagementRecord';
 import { resumoDaAssinaturaAceite } from '@/domain/signature';
 import { formatEuros, percentOf } from '@/domain/money';
@@ -165,7 +165,12 @@ function declaradoNoPedido(listing: Database['public']['Tables']['request_listin
 export async function contractPdfFor(supabase: Client, row: EngagementRow): Promise<Uint8Array> {
   // v1: o cliente assinava antes da apresentação, por isso sem identidades; v2: já se conhecem.
   const anonymous = RULES_BY_VERSION[row.rules_version]?.flow !== 'v2';
-  return contractPdf(await loadDraft(supabase, row, { anonymous }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
+  return contractPdf(
+    await loadDraft(supabase, row, { anonymous }),
+    new Date(row.created_at),
+    row.id.slice(0, 8).toUpperCase(),
+    minutaComLayoutNovo(row.minuta_versao) ? 'v2' : 'v1',
+  );
 }
 
 /** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261106083458). */

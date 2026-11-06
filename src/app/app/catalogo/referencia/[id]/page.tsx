@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { lojasParaOPintor } from '@/domain/lojas';
 import { notFound } from 'next/navigation';
 import { ProductGuide } from '@/components/ProductGuide';
 import { ProductPhotoZoom } from '@/components/ProductPhotoZoom';
@@ -37,16 +38,34 @@ export default async function ReferencePage({
   const withPlan = new Set(active ?? []);
   const sellerProducts = (products ?? []).filter((p) => withPlan.has(p.org_id));
   const orgIds = [...new Set(sellerProducts.map((p) => p.org_id))];
-  const [{ data: orgs }, { data: delivery }] = orgIds.length
+  // As lojas (06/11/2026) só chegam a quem é pintor (RLS); para os outros a lista vem vazia.
+  const [{ data: orgs }, { data: delivery }, { data: lojas }] = orgIds.length
     ? await Promise.all([
         supabase.from('organizations').select('id, nome, localidade').in('id', orgIds),
         supabase.from('supplier_delivery').select('org_id, concelhos, condicoes, todo_o_pais').in('org_id', orgIds),
+        supabase.from('supplier_stores').select('org_id, nome, morada, codigo_postal, localidade, concelho').in('org_id', orgIds),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
   const place = (concelho ?? '').trim().toLowerCase();
   const sellers = (orgs ?? [])
-    .map((o) => ({ ...o, entrega: (delivery ?? []).find((d) => d.org_id === o.id), items: sellerProducts.filter((p) => p.org_id === o.id) }))
-    .filter((o) => !place || o.localidade?.toLowerCase() === place || o.entrega?.todo_o_pais || o.entrega?.concelhos.some((c) => c.toLowerCase() === place));
+    .map((o) => {
+      const minhas = (lojas ?? []).filter((l) => l.org_id === o.id);
+      return {
+        ...o,
+        entrega: (delivery ?? []).find((d) => d.org_id === o.id),
+        items: sellerProducts.filter((p) => p.org_id === o.id),
+        lojas: lojasParaOPintor(minhas, concelho),
+        lojaAqui: minhas.some((l) => (l.concelho ?? '').toLowerCase() === place),
+      };
+    })
+    .filter(
+      (o) =>
+        !place ||
+        o.localidade?.toLowerCase() === place ||
+        o.lojaAqui ||
+        o.entrega?.todo_o_pais ||
+        o.entrega?.concelhos.some((c) => c.toLowerCase() === place),
+    );
   const isBoard = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
   const pl = isBoard ? refPerM2(r) : refPerLitre(r);
   const guia = productGuide({
@@ -191,6 +210,11 @@ export default async function ReferencePage({
                   </span>
                 ))}
                 {s.entrega && <span className="block text-[15px] text-slate-500">Entrega: {s.entrega.condicoes || (s.entrega.todo_o_pais ? 'todo o país' : s.entrega.concelhos.join(', '))}</span>}
+                {s.lojas.map((l) => (
+                  <span key={l} className="block text-[15px] text-slate-600">
+                    Loja: {l}
+                  </span>
+                ))}
               </li>
             ))}
           </ul>

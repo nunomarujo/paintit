@@ -106,6 +106,18 @@ export function MaterialPicker({ options }: { options: MaterialOption[] }) {
                       <dd>{o.precoComDesconto ?? '—'}</dd>
                       <dt className="text-slate-500">Entrega</dt>
                       <dd>{o.entrega}</dd>
+                      {o.lojas.length > 0 && (
+                        <>
+                          <dt className="text-slate-500">{o.lojas.length === 1 ? 'Loja' : 'Lojas'}</dt>
+                          <dd>
+                            {o.lojas.map((l) => (
+                              <span key={l} className="block">
+                                {l}
+                              </span>
+                            ))}
+                          </dd>
+                        </>
+                      )}
                       <dt className="text-slate-500">Fornecedor</dt>
                       <dd>
                         {o.fornecedor.nome}

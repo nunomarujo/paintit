@@ -2753,6 +2753,32 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query(`update public.organizations set concelho = 'Braga' where id = $1`, [org]);
     expect(await cobre('Braga')).toBe(true);
     expect(await cobre('Lisboa')).toBe(false);
+    // Uma loja noutro concelho junta-se à morada (06/11/2026).
+    await as(SEMZONA, () =>
+      db.query(
+        `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, concelho, created_by)
+           values ($1, 'Loja do Porto', 'Rua de Santa Catarina, 1', '4000-001', 'Porto', 'Porto', $2)`,
+        [org, SEMZONA],
+      ),
+    );
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Braga')).toBe(true);
+    // As lojas veem-se pela empresa, pela plataforma e pelos pintores (06/11/2026); por mais ninguém.
+    expect(await as(B, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([]);
+    const PINTOR = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado nos testes das propostas
+    expect(await as(PINTOR, async () => (await db.query('select nome from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([
+      { nome: 'Loja do Porto' },
+    ]);
+    expect(await as(SEMZONA, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toHaveLength(1);
+    // Quem não gere a empresa não acrescenta lojas.
+    await expect(
+      as(B, () =>
+        db.query(
+          `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, created_by) values ($1, 'X', 'Rua X', '4000-001', 'Porto', $2)`,
+          [org, B],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
     // Uma lista vazia sem «todo o país» nem se grava.
     await expect(
       as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{}')`, [org])),

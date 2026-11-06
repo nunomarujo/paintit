@@ -175,10 +175,10 @@ export function DiscountForm({
   );
 }
 
-export function DeliveryForm({ orgId, concelhoDaEmpresa = null }: { orgId: string; concelhoDaEmpresa?: string | null }) {
+export function DeliveryForm({ orgId, semEscolha = null }: { orgId: string; /** «Viana do Castelo (morada da empresa)». */ semEscolha?: string | null }) {
   const { state, pending, formProps } = useFormAction<FormState>(addDelivery.bind(null, orgId), { errors: {} }, { resetOnSuccess: true });
   const e = state.errors;
-  // «Todo o país» só marcado; sem concelhos, o da morada da empresa (promotor, 06/11/2026).
+  // «Todo o país» só marcado; sem concelhos, os da morada e das lojas da empresa (promotor, 06/11/2026).
   const [todo, setTodo] = useState(false);
   return (
     <form {...formProps} className="space-y-4">
@@ -188,7 +188,7 @@ export function DeliveryForm({ orgId, concelhoDaEmpresa = null }: { orgId: strin
           name="concelhos"
           label="Concelhos servidos"
           error={e.concelhos}
-          hint={concelhoDaEmpresa ? `Sem nenhum escolhido, fica o da morada da empresa: ${concelhoDaEmpresa}.` : 'Pelo menos um.'}
+          hint={semEscolha ? `Sem nenhum escolhido, ficam ${semEscolha}.` : 'Pelo menos um.'}
         >
           <ConcelhosPicker name="concelhos" />
         </Field>

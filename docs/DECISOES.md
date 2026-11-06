@@ -6561,6 +6561,24 @@ erro), o middleware deixa o pedido seguir e regista um aviso na consola, em vez 
 entrada — a área reservada volta a confirmar quem entrou no seu próprio layout (`src/app/app/layout.tsx`), e é aí
 que quem não entrou é mandado para `/entrar`. Nesse caso a sessão não é renovada nesse pedido; renova-se no seguinte.
 
+
+## 07/11/2026 — PDF do contrato: disposição nova, versionada
+
+**Pedido do promotor:** as minutas/contratos em PDF eram feios, de formatação fraca; deixou um exemplo
+(`Contrato_QuemPinta_ENSAIO01.pdf`) do que a aplicação deve conseguir. **Feito:** `src/lib/contractPdfV2.ts` —
+cabeçalho com a marca e a referência, título em serifa (Noto Serif), secções com o número a cor, as partes lado a
+lado, o preço em caixa, quadros de assinatura e rodapé «Página n de N». Fontes Inter e Noto Serif (SIL OFL 1.1)
+embutidas em `src/lib/pdfFonts.ts` (subconjuntos Latin, ~150 KB). **O texto da minuta não mudou.**
+
+**Versionamento (a regra que importa):** o PDF assinado confere-se regenerando-o, por isso a disposição não pode
+mudar para contratações já criadas. A disposição antiga (`v1`) fica intacta, fixada por um teste com o SHA-256 dos
+bytes (`contractPdf.layout.test.ts`); a nova (`v2`) só vale para `minuta_versao >= '2026-11-07'`
+(`minutaComLayoutNovo`). A migração `20261107000000_minuta_com_layout_novo` muda o valor por omissão — **aplicar
+depois de o código estar publicado**.
+
+**Limites conhecidos:** se as assinaturas não couberem na última página, passam sozinhas para uma página nova (sem
+texto do contrato). O destaque a negrito de «Rótulo:» é por padrão do texto, não por estrutura.
+
 ## 06/11/2026 — O cartão «Quanto pode ganhar» do avaliador vai para o topo de «Avaliações › Hoje»
 
 Decisão do promotor («sim, avança com inscrição e concelhos; o WhatsApp não é obrigatório, mas deve aparecer a
@@ -6689,3 +6707,29 @@ artigo parecem inválidos porque são de outra empresa). **Feito:** a emissão c
 quais há. **Atenção, perigo:** em **produção** as `MOLONI_*` são as da empresa REAL (de 20/10/2026) e a base é a mesma: um
 «Emitir» em produção cria uma fatura REAL, que não se apaga. A linha «Pintor Teste Lda» está na fila de produção. Emitir só
 no deploy do ramo `moloni-teste`.
+- **«Loja»:** ver a entrada seguinte (registo de lojas, 06/11/2026).
+
+## 06/11/2026 — Registo de lojas do fornecedor
+
+Promotor: «sim, avança com o registo de lojas».
+- **Tabela `supplier_stores`** (migrações `20261106165506_lojas_do_fornecedor` e `20261106165537_lojas_indice_created_by`):
+  nome, morada, código postal, localidade e concelho. O concelho tira-o o servidor do código postal, como o da empresa;
+  a morada confere-se com a base dos CTT. Grava e remove quem gere a empresa fornecedora; veem a empresa e a plataforma.
+- **Onde:** dados da empresa do fornecedor (`/app/organizacoes/<id>`, separador Dados), secção «Lojas».
+- **Para que serve, por agora:** os concelhos por omissão. Sem concelhos indicados, de levantamento ou de entrega, valem
+  o da morada da empresa **e** os das lojas (`concelhosPorOmissao` em `coberturaDaEmpresa.ts`, `private.supplier_covers`,
+  os convites por WhatsApp). O ecrã diz de onde vêm: «Viana do Castelo e Braga (morada e lojas da empresa)».
+- **Aos pintores:** decidido a seguir — ver a entrada «As lojas veem-se pelos pintores».
+- **Base real, de passagem:** uma migração reaplicada por outra sessão (`20261106151731`, mesmo nome da de 05/11) tinha
+  desfeito a correção `20261105094822` (search_path de `private.versao_da_autodeclaracao_do_avaliador`); a correção,
+  que já estava no repositório, foi reposta e o aviso de segurança voltou a zero.
+
+## 06/11/2026 — As lojas do fornecedor veem-se pelos pintores
+
+Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem
+pertence a uma empresa de pintura lê as lojas dos fornecedores; clientes e outros fornecedores continuam sem as ver, e
+a morada fiscal da empresa continua reservada. Onde aparecem:
+- **Escolha de materiais no orçamento** (`MaterialPicker`): linha «Loja»/«Lojas» por baixo da entrega, com as do
+  concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
+- **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
+  concelho, um vendedor com loja nesse concelho também aparece.

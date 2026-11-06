@@ -148,16 +148,18 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
 
 type Admin = NonNullable<ReturnType<typeof adminClient>>;
 
-/** A zona que vale para cada empresa: a escolhida ou, sem ela, o concelho da morada (`zonaEfetiva`). */
+/** A zona que vale para cada empresa: a escolhida ou, sem ela, os concelhos da morada e das lojas (`zonaEfetiva`). */
 async function coberturasDasEmpresas(db: Admin, orgIds: string[]): Promise<Map<string, Cobertura | null>> {
   if (orgIds.length === 0) return new Map();
-  const [{ data }, { data: empresas }] = await Promise.all([
+  const [{ data }, { data: empresas }, { data: lojas }] = await Promise.all([
     db.from('supplier_survey_coverage').select('org_id, concelhos, todo_o_pais').in('org_id', orgIds),
     db.from('organizations').select('id, concelho').in('id', orgIds),
+    db.from('supplier_stores').select('org_id, concelho').in('org_id', orgIds),
   ]);
   const escolhida = new Map((data ?? []).map((c) => [c.org_id, { todoOPais: c.todo_o_pais, concelhos: c.concelhos }]));
   const morada = new Map((empresas ?? []).map((o) => [o.id, o.concelho]));
-  return new Map(orgIds.map((id) => [id, zonaEfetiva(escolhida.get(id), morada.get(id)).cobertura]));
+  const lojasDe = (id: string) => (lojas ?? []).filter((l) => l.org_id === id).map((l) => l.concelho);
+  return new Map(orgIds.map((id) => [id, zonaEfetiva(escolhida.get(id), { morada: morada.get(id) ?? null, lojas: lojasDe(id) }).cobertura]));
 }
 
 /** Quem pode ser convidado: só quem cumpre todas as condições, com o que a ordem das ondas precisa. */
