@@ -448,6 +448,55 @@ describe('tipos de obra e datas indicativas', () => {
   });
 });
 
+describe('caleiras (06/11/2026)', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1';
+  let buildingId: string;
+  beforeAll(async () => {
+    buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+  });
+  const criar = (tipos: string, intervencao: string | null, metros: number | null, estado: string | null = null) =>
+    as(A, () =>
+      one<{ id: string; tipo_obra: string }>(
+        `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, tipos_obra, descricao, prazo_propostas,
+           caleiras_estado, caleiras_intervencao, caleiras_metros_substituir_cm, caleiras_comprimento_cm)
+         values ($1, $2, 'Caleiras', 'fachadas', $3::public.work_type[], 'Caleiras com ferrugem no tardoz, a substituir em parte.', current_date + 10, $4, $5, $6, 2400)
+         returning id, tipo_obra`,
+        [condo, buildingId, tipos, estado, intervencao, metros],
+      ),
+    );
+
+  it('caleiras vai para o fim: com outro tipo, o principal não muda', async () => {
+    expect((await criar('{caleiras,fachadas}', 'apenas_limpar', null)).tipo_obra).toBe('fachadas');
+    expect((await criar('{caleiras}', 'apenas_limpar', null)).tipo_obra).toBe('caleiras');
+  });
+
+  it('«Substituir partes» exige os metros, e os metros só existem com ela', async () => {
+    await expect(criar('{caleiras}', 'substituir_partes', null)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', 'apenas_limpar', 650)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', null, 650)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', 'substituir_partes', 0)).rejects.toThrow();
+    await expect(criar('{caleiras}', 'substituir_partes', 650)).resolves.toBeTruthy();
+  });
+
+  it('valores fora das listas são recusados pela base', async () => {
+    await expect(criar('{caleiras}', 'pintar_de_azul', null)).rejects.toThrow();
+    await expect(criar('{caleiras}', 'renovar', null, 'excelente')).rejects.toThrow();
+  });
+
+  it('publicado: o pintor lê o que o cliente declarou, no anúncio', async () => {
+    const r = await criar('{caleiras}', 'substituir_partes', 650, 'ferrugem');
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 10000)`, [r.id]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [r.id]));
+    const l = await as(P, () =>
+      one<{ caleiras_estado: string; caleiras_intervencao: string; caleiras_metros_substituir_cm: number; caleiras_comprimento_cm: number }>(
+        'select caleiras_estado, caleiras_intervencao, caleiras_metros_substituir_cm, caleiras_comprimento_cm from public.request_listings where request_id = $1',
+        [r.id],
+      ),
+    );
+    expect(l).toEqual({ caleiras_estado: 'ferrugem', caleiras_intervencao: 'substituir_partes', caleiras_metros_substituir_cm: 650, caleiras_comprimento_cm: 2400 });
+  });
+});
+
 describe('fotografias do pedido', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
   let requestId: string;

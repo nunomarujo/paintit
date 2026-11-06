@@ -20,6 +20,7 @@ import {
   type SurfaceInput,
 } from '@/domain/request';
 import { paraZona } from '@/lib/requests';
+import { colunasDasCaleiras } from '@/domain/caleiras';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -58,6 +59,10 @@ function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>
     execucao_ate: v.execucaoAte,
     ocupacao_via_publica: v.ocupacaoViaPublica,
     trabalhos_modo: v.trabalhosModo,
+    // As colunas das caleiras (migração `caleiras`) só vão quando há caleiras agora ou havia antes
+    // (campo escondido do formulário): um pedido sem caleiras grava-se igual com ou sem a migração
+    // aplicada, e desmarcar o tipo limpa o que lá estava.
+    ...(v.tiposObra.includes('caleiras') || form.get('caleirasAntes') === '1' ? colunasDasCaleiras(v.caleiras) : {}),
   };
 }
 

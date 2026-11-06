@@ -31,7 +31,7 @@ type DocStatus = 'submetido' | 'em_validacao' | 'aprovado' | 'rejeitado' | 'expi
 type MemberRole = 'proprietario' | 'gestor' | 'financeiro' | 'leitor' | 'vendedor';
 type OrgKind = 'condominio' | 'administradora' | 'particular' | 'pintor' | 'fornecedor';
 type RequestStatus = 'rascunho' | 'publicado' | 'encerrado' | 'cancelado';
-type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior';
+type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior' | 'caleiras';
 type SurfaceKind =
   | 'fachada'
   | 'empena'
@@ -379,6 +379,10 @@ export type Database = {
           version: number;
           ocupacao_via_publica: ViaPublica;
           trabalhos_modo: string;
+          caleiras_estado: string | null;
+          caleiras_intervencao: string | null;
+          caleiras_metros_substituir_cm: number | null;
+          caleiras_comprimento_cm: number | null;
         };
         Insert: {
           produtos_preferidos?: Json;
@@ -406,6 +410,10 @@ export type Database = {
           version?: number;
           ocupacao_via_publica?: ViaPublica;
           trabalhos_modo?: string;
+          caleiras_estado?: string | null;
+          caleiras_intervencao?: string | null;
+          caleiras_metros_substituir_cm?: number | null;
+          caleiras_comprimento_cm?: number | null;
         };
         Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
         Relationships: [
@@ -438,6 +446,7 @@ export type Database = {
           referral_discount_bp: number;
           request_id: string;
           rules_version: string;
+          minuta_versao: string | null;
         };
         Insert: never;
         Update: never;
@@ -2092,6 +2101,10 @@ export type Database = {
           version: number;
           ocupacao_via_publica: ViaPublica;
           trabalhos_modo: string;
+          caleiras_estado: string | null;
+          caleiras_intervencao: string | null;
+          caleiras_metros_substituir_cm: number | null;
+          caleiras_comprimento_cm: number | null;
         };
         // Escrita só pelo gatilho de publicação (a base de dados recusa o resto).
         Insert: Partial<Database['public']['Tables']['request_listings']['Row']>;

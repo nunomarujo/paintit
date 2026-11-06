@@ -16,6 +16,7 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 | O quê | Onde | O que fecha |
 |---|---|---|
+| Publicar o ramo `claude/wizardly-ride-0mfpyl` (06/11/2026) e aplicar, **no mesmo momento**, as migrações de 06/11/2026 (`20261106*`) | dizer «sim»; a sessão aplica e publica | sem as migrações, o tipo «Caleiras» dá erro ao gravar; a `minuta_versionada` tem de entrar com o código (`DECISOES.md` 06/11/2026) |
 | Rever em produção os ecrãs novos do workspace (Hoje, Levantamentos, Produtos e preços, Regras comerciais, Empresa) | quempinta.pt | dizer o que não está como se queria |
 | Correr a limpeza dos resíduos de ensaio | `painel-limpeza-dos-ensaios.sql`, primeiro em ensaio (`a_serio := false`), depois a sério | antes de a Stripe passar a modo real |
 | Apagar 2 fotografias SIMULACAO | conta `info@quempinta.pt`, pedido «SIMULACAO Pintura das fachadas e caixa de escadas» | apagar na aplicação |
@@ -95,6 +96,8 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Página do Pro: adenda e diário | A página vende-os como do Pro, mas estão abertos a todas as empresas desde 25/10/2026. Fechá-los ao Pro, tirá-los da lista, ou escrevê-los como «também no gratuito»? | `DECISOES.md` 06/11/2026, «Subscrição: opção 3» |
+| Caleiras: opções de «estado» | Gravadas como proposta: bom estado, desgaste ou tinta a descascar, ferrugem, furos ou partes partidas, não sei. Confirmar ou corrigir | `DECISOES.md` 06/11/2026, «Caleiras» |
+| Caleiras: comprimento total | Pedido como facultativo (base de um preço por metro linear). Manter, tornar obrigatório ou tirar? | `DECISOES.md` 06/11/2026, «Caleiras» |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)

@@ -5896,3 +5896,34 @@ disponível»; o diário de obra e a adenda (trabalhos a mais) passam a produç�
 
 Resultado: `BENEFICIOS_PRO` não muda (2 em «a chegar»: as duas linhas das obras públicas); um teste novo
 fixa o Cofre, a adenda e o diário em «Já disponível».
+
+## 06/11/2026 — Caleiras passam a tipo de obra orçamentável; a minuta passa a ter versão
+
+**Pedido do promotor:** «Caleiras» em «O que pretende fazer?», com o estado e o que se pretende
+(renovar; substituir partes, com os metros; apenas limpar; limpar e pintar), no contrato e no orçamento.
+
+**Como.** Seguiu-se o precedente do capoto: a especialidade que estava só *registada* na ficha do prédio
+(`buildingNeeds.ts`) passa a orçamentável. `caleiras` entra no **fim** de `WORK_TYPES` e do enum
+`work_type` (a ordem decide o tipo principal; no fim, nenhum pedido existente muda). **Não é um
+`SurfaceKind`**: as caleiras medem-se em metros, não em m², e não entram na soma das áreas nem no volume.
+O campo próprio (`CamposDasCaleiras.tsx`) só aparece com o tipo marcado; o servidor (`parseCaleiras`) e a
+base (`check`) validam as opções e os metros (positivos, até 2 km, «substituir» exige-os e só ela os tem,
+nunca mais do que o comprimento total). Metros em centésimos de metro, inteiros. Os valores vão para o
+anúncio na publicação, pelo gatilho que já copia o resto. O pintor vê-os em «Declarado pelo cliente» e
+orçamenta em `ml` (unidade que já existia em `proposal.ts`); não os pode alterar.
+
+**Por confirmar pelo promotor (gravado como proposta):** as opções de «estado» — *bom estado*, *desgaste
+ou tinta a descascar*, *ferrugem*, *furos ou partes partidas*, *não sei* — e se interessa o comprimento
+total (pedido como facultativo).
+
+**A minuta passa a ter versão (`engagements.minuta_versao`).** O PDF do contrato gera-se de novo a partir
+dos dados e os bytes têm de bater com o que cada parte assinou. Mudar o texto para toda a gente faria o
+pintor assinar um documento diferente do do cliente numa contratação já a meio. Por isso o texto novo
+(o declarado no pedido; depois, os elementos das partes e a cláusula de alteração) só vale para as
+contratações criadas com a versão `2026-11-06`; as existentes ficam com a coluna vazia e o texto de
+sempre, fixado byte a byte em `minuta.test.ts` (impressão digital tirada do código de 05/11/2026). A
+migração aplica-se **no momento da publicação**: uma contratação criada entre uma e outra receberia a
+versão nova com o código antigo.
+
+**Contratos já assinados não mudam:** o PDF assinado é o guardado e conferido pelo resumo (91d3075), e o
+texto das contratações antigas não muda.
