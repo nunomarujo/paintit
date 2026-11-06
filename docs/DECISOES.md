@@ -5896,6 +5896,22 @@ cliente também mede, na ferramenta de fotografia; a zona fica com origem própr
 - A ferramenta entrega o resultado do passo 4 a quem a abre (`aoMudarMedicao`), só durante o passo 4 e nunca a meio
   de um recálculo da margem.
 
+**Revisão adversarial (06/11/2026), sete correções, nenhum achado refutado.**
+1. *Uma fachada com varandas nunca se gravava:* a lista do que falta medir trazia sempre «faces de dentro das
+   varandas (decisão 8.2)», que espera pelo promotor e não por quem mede. Passa à parte (`porDecidir`, a constante
+   `FACES_DE_DENTRO_DAS_VARANDAS`): não impede gravar, e a mensagem diz que essas faces ficam de fora.
+2. *Gravar numa zona existente com quantidade 3 triplicava a área medida* sem o dizer: a medição grava sempre
+   `quantidade = 1` (a ferramenta mede uma fachada).
+3. *A restrição da margem deixava passar uma margem numa zona sem origem* (`=` com nulo dá nulo, e uma restrição
+   nula passa): agora `is not distinct from`, com teste.
+4. *Mudar à mão a área de uma zona medida pela fotografia, com «manter»,* passava-a a estimativa em silêncio: agora
+   pergunta de onde vem o número novo.
+5. *A ferramenta podia avisar o anfitrião em ciclo* (uma função nova a cada render): a função fica numa ref e só se
+   avisa quando a medição muda.
+6. *O texto gravado da margem podia diferir do que o ecrã mostra:* `margemEmTexto` segue a regra do passo 4 (uma
+   casa, nunca abaixo de 0,1 %).
+7. *O relatório para a assembleia lia a origem antiga* e dizia «estimativa» a uma medição: lê a nova.
+
 **Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
 abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
 na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».

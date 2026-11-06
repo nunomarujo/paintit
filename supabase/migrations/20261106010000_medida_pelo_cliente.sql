@@ -28,7 +28,9 @@ alter table public.request_surfaces
   add column if not exists margem_bps int check (margem_bps is null or margem_bps between 1 and 10000);
 
 alter table public.request_surfaces add constraint request_surfaces_margem_so_da_medida_do_cliente check (
-  (origem_quantidade = 'medida_pelo_cliente') = (margem_bps is not null)
+  -- «is not distinct from», e não «=»: com a origem nula, «=» dava nulo e a restrição deixava passar uma margem
+  -- numa zona que ninguém mediu (revisão de 06/11/2026).
+  (origem_quantidade is not distinct from 'medida_pelo_cliente') = (margem_bps is not null)
 );
 alter table public.request_surfaces add constraint request_surfaces_medida_do_cliente_por_confirmar check (
   origem_quantidade is distinct from 'medida_pelo_cliente' or confirmacao = 'por_confirmar'

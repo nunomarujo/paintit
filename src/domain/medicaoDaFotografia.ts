@@ -20,8 +20,11 @@ export interface MedicaoDaFotografia {
   temContorno: boolean;
   /** Área a pintar, em m², como a ferramenta a mostra (`ResultadoFachada.pintavelM2`). */
   pintavelM2: number;
-  /** O que a ferramenta ainda dá por medir (profundidade das marquises, por exemplo). */
+  /** O que ainda falta medir e quem mede pode medir (a saliência das marquises, por exemplo): impede gravar. */
   porMedir: readonly string[];
+  /** O que fica de fora à espera de uma decisão da plataforma (as faces de dentro das varandas, 8.2): não
+   * impede gravar — a área da fachada está completa sem isso —, mas diz-se ao gravar. */
+  porDecidir?: readonly string[];
   /** Margem relativa da área a pintar (0,021 = ± 2,1 %), ou `null` quando a ferramenta não a sabe. */
   margemRelativa: number | null;
 }
@@ -54,12 +57,13 @@ export function zonaDaMedicao(m: MedicaoDaFotografia): ZonaDaMedicao {
   return { ok: true, areaDiretaCm2, margemBps };
 }
 
-/** «± 6 %», «± 1,7 %» — como a margem se lê no cartão da zona e no anúncio. */
+/**
+ * «± 6,0 %», «± 1,7 %» — como a margem se lê no cartão da zona e no anúncio. Arredonda à décima como a
+ * ferramenta mostra no passo 4 (`umaCasa`), para o número gravado e o visto serem o mesmo; os pontos-base
+ * guardados já vêm arredondados para cima.
+ */
 export function margemEmTexto(bps: number): string {
-  const pct = bps / 100;
-  const casas = pct < 10 && !Number.isInteger(pct) ? 1 : 0;
-  // Para cima também ao mostrar: 1,71 % lê-se «± 1,8 %», nunca «± 1,7 %».
-  const fator = 10 ** casas;
-  const arred = Math.ceil(pct * fator - 1e-9) / fator;
-  return `± ${arred.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: casas })} %`;
+  // Uma casa, e nunca abaixo de 0,1: «± 0,0 %» diria que não há erro nenhum (a mesma regra de `umaCasa`).
+  const pct = Math.max(0.1, Math.round(bps / 10) / 10);
+  return `± ${pct.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 }

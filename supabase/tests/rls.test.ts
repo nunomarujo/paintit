@@ -416,6 +416,8 @@ describe('zona medida pelo cliente na fotografia (06/11/2026)', () => {
     await expect(zona('origem_quantidade, confirmacao', ['medida_pelo_cliente', 'por_confirmar'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
     await expect(zona('origem_quantidade, margem_bps', ['estimativa', 300])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
     await expect(zona('origem_quantidade, margem_bps, confirmacao', ['medicao', 300, 'confirmada'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    // Nem numa zona sem origem (por levantar): com «=» em vez de «is not distinct from», passava.
+    await expect(zona('margem_bps', [300])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
   });
 
   it('nunca confirmada — nem ao entrar, nem depois, pela API', async () => {

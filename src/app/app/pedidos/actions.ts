@@ -226,7 +226,13 @@ export async function updateSurface(
   // medição: mantém a origem e a margem. Com a área mudada à mão, deixa de o ser: passa à origem que o
   // editor enviou e perde a margem — a base exige que só a medição da fotografia tenha margem.
   const eraDaFotografia = zonaActual?.origem_quantidade === 'medida_pelo_cliente';
-  const manter = eraDaFotografia && form.get('origemQuantidade') === 'manter' && surfaceArea(v) === zonaActual?.area_cm2;
+  const pedeManter = eraDaFotografia && form.get('origemQuantidade') === 'manter';
+  const manter = pedeManter && surfaceArea(v) === zonaActual?.area_cm2;
+  // Pediu para manter a medição, mas a área mudou: já não é a medição da fotografia. Em vez de a passar a
+  // «estimativa» em silêncio (e dizer «Guardado»), pergunta-se de onde vem o número novo.
+  if (pedeManter && !manter) {
+    return { errors: { origemQuantidade: 'A área mudou, por isso deixou de ser a medição da fotografia: indique de onde vem o número novo.' } };
+  }
   const { error } = await supabase
     .from('request_surfaces')
     .update({
@@ -274,6 +280,7 @@ export async function gravarMedicaoDaFotografia(
     temContorno: medicao?.temContorno === true,
     pintavelM2: Number(medicao?.pintavelM2),
     porMedir: Array.isArray(medicao?.porMedir) ? medicao.porMedir.map(String).slice(0, 20) : ['a medição chegou incompleta'],
+    porDecidir: Array.isArray(medicao?.porDecidir) ? medicao.porDecidir.map(String).slice(0, 20) : [],
     margemRelativa: typeof medicao?.margemRelativa === 'number' ? medicao.margemRelativa : null,
   });
   if (!z.ok) return { errors: {}, message: z.motivo };
@@ -283,6 +290,9 @@ export async function gravarMedicaoDaFotografia(
     largura_cm: null,
     altura_cm: null,
     vaos_cm2: null,
+    // A ferramenta mede uma fachada: a área a pintar é a desta zona, uma vez. Numa zona que tinha quantidade
+    // 3 (três fachadas iguais, escritas à mão), manter o 3 triplicava a área medida sem ninguém o dizer.
+    quantidade: 1,
     origem_quantidade: 'medida_pelo_cliente' as const,
     confirmacao: 'por_confirmar' as const,
     margem_bps: z.margemBps,
@@ -311,12 +321,17 @@ export async function gravarMedicaoDaFotografia(
     if (refused) return refused;
     const { data, error } = await supabase
       .from('request_surfaces')
-      .insert({ request_id: requestId, kind: kind as SurfaceKind, descricao, quantidade: 1, origem: 'estimativa', ...colunas })
+      .insert({ request_id: requestId, kind: kind as SurfaceKind, descricao, origem: 'estimativa', ...colunas })
       .select('id');
     if (error || !data?.length) return naoGravou;
   }
   revalidarPedido(requestId);
-  return { errors: {}, ok: true, message: `Gravado: ${(z.areaDiretaCm2 / 100).toLocaleString('pt-PT')} m², ${margemEmTexto(z.margemBps)}, por confirmar no local.` };
+  const foraDaArea = medicao?.porDecidir?.length ? ' Não inclui as faces de dentro das varandas, que ficam à parte.' : '';
+  return {
+    errors: {},
+    ok: true,
+    message: `Gravado: ${(z.areaDiretaCm2 / 100).toLocaleString('pt-PT')} m², ${margemEmTexto(z.margemBps)}, por confirmar no local.${foraDaArea}`,
+  };
 }
 
 export async function deleteSurface(requestId: string, surfaceId: string) {

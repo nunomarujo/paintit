@@ -32,12 +32,21 @@ describe('zonaDaMedicao: a medição pela fotografia como zona do pedido (06/11/
   });
 });
 
+describe('as faces de dentro das varandas não impedem gravar (revisão de 06/11/2026)', () => {
+  it('uma fachada com varandas grava-se: essas faces esperam pela decisão 8.2, não pelo cliente', () => {
+    const r = zonaDaMedicao({ ...boa, porMedir: [], porDecidir: ['faces de dentro das varandas (por decidir — decisão 8.2)'] });
+    expect(r.ok).toBe(true);
+  });
+});
+
 describe('margemEmTexto', () => {
-  it('lê-se como na ferramenta, e também para cima', () => {
+  it('lê-se como na ferramenta: à décima, o mesmo número do passo 4', () => {
     expect(margemEmTexto(170)).toBe('± 1,7 %');
-    expect(margemEmTexto(171)).toBe('± 1,8 %');
-    expect(margemEmTexto(600)).toBe('± 6 %');
-    expect(margemEmTexto(1250)).toBe('± 13 %');
+    expect(margemEmTexto(171)).toBe('± 1,7 %');
+    expect(margemEmTexto(175)).toBe('± 1,8 %');
+    expect(margemEmTexto(600)).toBe('± 6,0 %');
+    expect(margemEmTexto(1250)).toBe('± 12,5 %');
+    expect(margemEmTexto(950)).toBe('± 9,5 %');
     expect(margemEmTexto(1)).toBe('± 0,1 %');
   });
 });

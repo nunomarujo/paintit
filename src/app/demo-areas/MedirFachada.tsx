@@ -17,6 +17,7 @@ import {
 } from '@/domain/homografia';
 import {
   AREA_MINIMA_VAO_M2,
+  FACES_DE_DENTRO_DAS_VARANDAS,
   areaDaZona,
   arestasPerto,
   deslocarArestas,
@@ -680,19 +681,27 @@ export function MedirFachada({
   );
 
   // A medição para o pedido. A margem é a mesma que o ecrã mostra (`margemRelativa` sobre a área à vista).
+  // O que espera pela decisão 8.2 (faces de dentro das varandas) não é coisa que quem mede possa medir: vai
+  // à parte e não impede gravar. A função de quem a abre fica numa ref — uma função nova a cada render do
+  // anfitrião não pode voltar a disparar isto — e só se avisa quando a medição muda mesmo.
+  const aoMudarMedicaoRef = useRef(aoMudarMedicao);
+  aoMudarMedicaoRef.current = aoMudarMedicao;
+  const medicaoParaOPedido = useMemo<MedicaoDaFotografia | null>(
+    () =>
+      passo !== 4 || margemAtrasada
+        ? null
+        : {
+            temContorno: resultado.temContorno,
+            pintavelM2: resultado.pintavelM2,
+            porMedir: resultado.porMedir.filter((x) => x !== FACES_DE_DENTRO_DAS_VARANDAS),
+            porDecidir: resultado.porMedir.filter((x) => x === FACES_DE_DENTRO_DAS_VARANDAS),
+            margemRelativa: margemAPintar ? margemRelativa(margemAPintar) : null,
+          },
+    [passo, margemAtrasada, resultado, margemAPintar],
+  );
   useEffect(() => {
-    if (!aoMudarMedicao) return;
-    if (passo !== 4 || margemAtrasada) {
-      aoMudarMedicao(null);
-      return;
-    }
-    aoMudarMedicao({
-      temContorno: resultado.temContorno,
-      pintavelM2: resultado.pintavelM2,
-      porMedir: resultado.porMedir,
-      margemRelativa: margemAPintar ? margemRelativa(margemAPintar) : null,
-    });
-  }, [aoMudarMedicao, passo, margemAtrasada, resultado, margemAPintar]);
+    aoMudarMedicaoRef.current?.(medicaoParaOPedido);
+  }, [medicaoParaOPedido]);
 
   const recomecar = () => {
     setPasso(1);
