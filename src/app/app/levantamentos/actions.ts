@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { lerCobertura, resumoDaCobertura } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import type { FormState } from '@/app/app/actions';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { notifyVisitaAgendada } from '@/lib/notify';
@@ -143,10 +145,16 @@ export async function claimClarification(clarificationId: string, orgId: string)
 export async function setSurveyCoverage(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
-  const concelhos = form.getAll('concelhos').map((c) => String(c).trim()).filter(Boolean);
-  const { error } = await supabase.from('supplier_survey_coverage').upsert({ org_id: orgId, concelhos }, { onConflict: 'org_id' });
+  // Concelhos obrigatórios; «todo o país» só marcado (06/11/2026, `src/domain/coberturaDaEmpresa.ts`).
+  // Sem concelhos escolhidos, gravam-se os da morada e das lojas da empresa (06/11/2026) — nunca «todo o país».
+  const lido = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), await porOmissaoDaEmpresa(supabase, orgId));
+  if ('erro' in lido) return { errors: { concelhos: lido.erro }, message: lido.erro };
+  const { error } = await supabase
+    .from('supplier_survey_coverage')
+    .upsert({ org_id: orgId, concelhos: [...lido.value.concelhos], todo_o_pais: lido.value.todoOPais }, { onConflict: 'org_id' });
   if (error) return { errors: {}, message: 'Não foi possível guardar.' };
   revalidatePath(path);
-  return { errors: {}, ok: true, message: 'Zonas guardadas.' };
+  revalidatePath('/app/avaliacoes', 'layout');
+  return { errors: {}, ok: true, message: lido.value.todoOPais ? 'Guardado: todo o país.' : `Guardado: ${resumoDaCobertura(lido.value)}.` };
 }
 

@@ -7,6 +7,8 @@ import { Disponibilidade } from './Formulario';
 import { ConvitesWhatsApp } from './Convites';
 import { PreVisualizacaoDoConvite, RegrasDosConvites } from './PreVisualizacao';
 import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { concelhosPorOmissao, descricaoPorOmissao, zonaEfetiva } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { motivosDeInelegibilidade } from '@/domain/convocatoria';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
@@ -47,7 +49,7 @@ export default async function DisponibilidadePage() {
         .select('suspenso_ate, alerta_email, alerta_whatsapp, telemovel_whatsapp, concelho_base, raio_km')
         .eq('user_id', user!.id)
         .maybeSingle(),
-      supabase.from('supplier_survey_coverage').select('concelhos').eq('org_id', pertenca.orgId).maybeSingle(),
+      supabase.from('supplier_survey_coverage').select('concelhos, todo_o_pais').eq('org_id', pertenca.orgId).maybeSingle(),
       supabase.from('organizations').select('nif').eq('id', pertenca.orgId).maybeSingle(),
       supabase.from('profiles').select('nome').eq('user_id', user!.id).maybeSingle(),
       supabase
@@ -59,6 +61,9 @@ export default async function DisponibilidadePage() {
       supabase.from('survey_invites').select('id, estado, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(10),
     ]);
 
+  const zona = cobertura ? { todoOPais: cobertura.todo_o_pais, concelhos: cobertura.concelhos } : null;
+  const porOmissao = await porOmissaoDaEmpresa(supabase, pertenca.orgId);
+  const efetiva = zonaEfetiva(zona, porOmissao);
   const versoes = new Set((termos ?? []).map((t) => t.version));
   const falta = motivosDeInelegibilidade({
     userId: user!.id,
@@ -70,6 +75,7 @@ export default async function DisponibilidadePage() {
     whatsapp: !!minha?.alerta_whatsapp && !!minha?.telemovel_whatsapp,
     concelhoBase: minha?.concelho_base ?? null,
     raioKm: minha?.raio_km ?? null,
+    zonasDaEmpresa: efetiva.origem !== 'nenhuma',
     suspenso: !!minha?.suspenso_ate && minha.suspenso_ate >= hoje,
     emCurso: emCurso ?? 0,
   });
@@ -156,28 +162,37 @@ export default async function DisponibilidadePage() {
           Zonas cobertas pela empresa
         </h2>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
-          Concelhos onde a empresa tem avaliadores. Vazio: todo o país. Só aparecem oportunidades destes
-          concelhos.
+          Concelhos onde a empresa tem avaliadores. Só chegam oportunidades destes concelhos; sem nenhum escolhido,
+          valem os da morada e das lojas da empresa.
         </p>
+        {efetiva.origem === 'morada' && (
+          <p className="mt-2 max-w-[54ch] text-[17px] text-slate-800">
+            Por agora: <span className="font-semibold">{descricaoPorOmissao(porOmissao)}</span>.
+          </p>
+        )}
         {responsavel ? (
           <div className="mt-4">
-            <CoverageForm orgId={pertenca.orgId} initial={cobertura?.concelhos ?? []} />
+            <CoverageForm orgId={pertenca.orgId} initial={zona?.concelhos ? [...zona.concelhos] : []} todoOPais={zona?.todoOPais ?? false} semEscolha={concelhosPorOmissao(porOmissao).length ? descricaoPorOmissao(porOmissao) : null} />
           </div>
         ) : (
           <>
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {(cobertura?.concelhos ?? []).length === 0 ? (
-                <li className="text-[17px] text-slate-600">Todo o país.</li>
-              ) : (
-                (cobertura?.concelhos ?? []).map((c) => (
+            {efetiva.origem === 'nenhuma' ? (
+              <p className="mt-4 text-[17px] font-medium text-amber-800">
+                Ainda sem concelhos escolhidos, e a empresa não tem morada nem lojas com código postal.
+              </p>
+            ) : efetiva.origem === 'morada' ? null : zona!.todoOPais ? (
+              <p className="mt-4 text-[17px] text-slate-800">Todo o país.</p>
+            ) : (
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {zona!.concelhos.map((c) => (
                   <li key={c} className="rounded-lg bg-marca-tag px-3 py-1.5 text-[15px] text-slate-800">
                     {c}
                   </li>
-                ))
-              )}
-            </ul>
+                ))}
+              </ul>
+            )}
             <p className="mt-3 max-w-[54ch] text-[15px] text-slate-600">
-              Para alargar a zona, falar com o responsável da empresa.
+              Quem escolhe os concelhos é o responsável da empresa.
             </p>
           </>
         )}

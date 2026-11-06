@@ -1,5 +1,7 @@
 'use server';
 
+import { lerCobertura } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
@@ -166,15 +168,18 @@ export async function deleteDiscount(orgId: string, id: string) {
 }
 
 export async function addDelivery(orgId: string, _prev: FormState, form: FormData): Promise<FormState> {
-  const concelhos = form.getAll('concelhos').map((c) => String(c).trim()).filter(Boolean);
   const custo = parseHundredths(form.get('custo'));
   const minimo = parseHundredths(form.get('minimo'));
   if (Number.isNaN(custo) || Number.isNaN(minimo)) return { errors: { custo: 'Valores em euros.' } };
   const incluida = form.get('incluida') === 'sim';
   const { supabase } = await getUser();
+  // Concelhos servidos (06/11/2026): sem escolha, os da morada e das lojas da empresa; «todo o país» só marcado.
+  const zona = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), await porOmissaoDaEmpresa(supabase, orgId));
+  if ('erro' in zona) return { errors: { concelhos: zona.erro } };
   const { error } = await supabase.from('supplier_delivery').insert({
     org_id: orgId,
-    concelhos,
+    concelhos: [...zona.value.concelhos],
+    todo_o_pais: zona.value.todoOPais,
     incluida,
     custo_cents: incluida ? null : custo,
     minimo_cents: minimo,

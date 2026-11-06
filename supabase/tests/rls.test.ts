@@ -79,6 +79,15 @@ async function inscreverComoAvaliador(userId: string) {
   );
 }
 
+/** Os concelhos da empresa (06/11/2026): sem eles não chegam oportunidades. «todo» = todo o país, marcado. */
+async function cobrir(orgId: string, zona: string[] | 'todo') {
+  await db.query(
+    `insert into public.supplier_survey_coverage (org_id, concelhos, todo_o_pais) values ($1, $2, $3)
+       on conflict (org_id) do update set concelhos = excluded.concelhos, todo_o_pais = excluded.todo_o_pais`,
+    [orgId, zona === 'todo' ? [] : zona, zona === 'todo'],
+  );
+}
+
 beforeAll(async () => {
   db = await baseComMigracoes();
   for (const u of [A, B, C, D, ADMIN]) {
@@ -1740,6 +1749,10 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     ).rejects.toThrow(/row-level security/);
     await as(F, () => db.query(`insert into public.supplier_discounts (org_id, tipo, max_area_cm2, desconto_bps) values ($1, 'primario', 100000, 1000)`, [supplier]));
     await as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida, minimo_cents) values ($1, '{Lisboa}', true, 50000)`, [supplier]));
+    // Uma condição de entrega sem concelhos e sem «todo o país» já não se grava (06/11/2026).
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida) values ($1, '{}', true)`, [supplier])),
+    ).rejects.toThrow(/supplier_delivery_escolhida/);
     expect(await as(B, async () => (await db.query('select id from public.supplier_discounts')).rows)).toHaveLength(1);
   });
 
@@ -2621,6 +2634,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [VEND, email(VEND)]);
     await inscreverComoAvaliador(VEND);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Levantamento Lda', '610000004')).id;
+    await cobrir(vendorOrg, ['Lisboa', 'Oeiras']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
     requestId = (
@@ -2657,6 +2671,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
     await inscreverComoAvaliador(OTHERVEND);
     const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
+    await cobrir(other, 'todo');
     await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
   });
 
@@ -2667,6 +2682,58 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await expect(as(NAOINSCRITO, () => db.query('select public.reserve_survey($1, $2)', [surveyId, org]))).rejects.toThrow(
       /inscrição como avaliador/,
     );
+  });
+
+  it('concelhos obrigatórios (06/11/2026): sem zona não cobre nada, e «todo o país» só quando marcado', async () => {
+    const SEMZONA = '00000000-0000-4000-8000-00000000c0c1';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [SEMZONA, email(SEMZONA)]);
+    const org = (await createOrg(SEMZONA, 'fornecedor', 'Sem Zona Lda', '610000098')).id;
+    const cobre = async (concelho: string) =>
+      (await one<{ c: boolean }>('select private.supplier_covers($1, $2) as c', [org, concelho])).c;
+    // Sem linha e sem morada: não cobre (antes cobria todo o país).
+    expect(await cobre('Lisboa')).toBe(false);
+    // Sem linha, com morada: cobre o concelho da morada da empresa, e só esse.
+    await db.query(`update public.organizations set concelho = 'Braga' where id = $1`, [org]);
+    expect(await cobre('Braga')).toBe(true);
+    expect(await cobre('Lisboa')).toBe(false);
+    // Uma loja noutro concelho junta-se à morada (06/11/2026).
+    await as(SEMZONA, () =>
+      db.query(
+        `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, concelho, created_by)
+           values ($1, 'Loja do Porto', 'Rua de Santa Catarina, 1', '4000-001', 'Porto', 'Porto', $2)`,
+        [org, SEMZONA],
+      ),
+    );
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Braga')).toBe(true);
+    // As lojas veem-se pela empresa, pela plataforma e pelos pintores (06/11/2026); por mais ninguém.
+    expect(await as(B, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([]);
+    const PINTOR = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado nos testes das propostas
+    expect(await as(PINTOR, async () => (await db.query('select nome from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([
+      { nome: 'Loja do Porto' },
+    ]);
+    expect(await as(SEMZONA, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toHaveLength(1);
+    // Quem não gere a empresa não acrescenta lojas.
+    await expect(
+      as(B, () =>
+        db.query(
+          `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, created_by) values ($1, 'X', 'Rua X', '4000-001', 'Porto', $2)`,
+          [org, B],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    // Uma lista vazia sem «todo o país» nem se grava.
+    await expect(
+      as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{}')`, [org])),
+    ).rejects.toThrow(/supplier_survey_coverage_escolhida/);
+    // Uma lista cobre os seus concelhos e mais nenhum.
+    await as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{Porto}')`, [org]));
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Lisboa')).toBe(false);
+    expect(await cobre('Braga')).toBe(false); // a zona escolhida manda sobre a morada
+    // «Todo o país», marcado.
+    await as(SEMZONA, () => db.query(`update public.supplier_survey_coverage set concelhos = '{}', todo_o_pais = true where org_id = $1`, [org]));
+    expect(await cobre('Lisboa')).toBe(true);
   });
 
   it('reservar abre a tentativa 1, com os três prazos escritos de uma vez', async () => {
@@ -3226,8 +3293,10 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     await inscreverComoAvaliador(VEND);
     await inscreverComoAvaliador(VEND2);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Esclarecimento Lda', '610000055')).id;
+    await cobrir(vendorOrg, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     vendor2Org = (await createOrg(VEND2, 'fornecedor', 'Tintas do Esclarecimento Dois Lda', '610000063')).id;
+    await cobrir(vendor2Org, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendor2Org, VEND2]);
     await createOrg(CP, 'pintor', 'Pinturas do Esclarecimento Lda', '610000071');
     await createOrg(CP2, 'pintor', 'Pinturas do Esclarecimento Dois Lda', '610000080');

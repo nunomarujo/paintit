@@ -263,6 +263,7 @@ export type Database = {
           cae: string | null;
           cae_atividade: string | null;
           codigo_postal: string | null;
+          concelho: string | null;
           created_at: string;
           created_by: string;
           email_contacto: string | null;
@@ -286,6 +287,7 @@ export type Database = {
           cae?: string | null;
           cae_atividade?: string | null;
           codigo_postal?: string | null;
+          concelho?: string | null;
           created_at?: string;
           created_by?: string;
           email_contacto?: string | null;
@@ -1140,10 +1142,34 @@ export type Database = {
         Update: { whatsapp_estado?: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro?: string | null; whatsapp_em?: string | null };
         Relationships: [];
       };
+      supplier_stores: {
+        Row: {
+          codigo_postal: string;
+          concelho: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          localidade: string;
+          morada: string;
+          nome: string;
+          org_id: string;
+        };
+        Insert: {
+          codigo_postal: string;
+          concelho?: string | null;
+          created_by: string;
+          localidade: string;
+          morada: string;
+          nome: string;
+          org_id: string;
+        };
+        Update: { codigo_postal?: string; concelho?: string | null; localidade?: string; morada?: string; nome?: string };
+        Relationships: [];
+      };
       supplier_survey_coverage: {
-        Row: { concelhos: string[]; org_id: string; updated_at: string };
-        Insert: { concelhos?: string[]; org_id: string };
-        Update: { concelhos?: string[] };
+        Row: { concelhos: string[]; org_id: string; todo_o_pais: boolean; updated_at: string };
+        Insert: { concelhos?: string[]; org_id: string; todo_o_pais?: boolean };
+        Update: { concelhos?: string[]; todo_o_pais?: boolean };
         Relationships: [];
       };
       survey_reviews: {
@@ -1491,6 +1517,7 @@ export type Database = {
           incluida: boolean;
           minimo_cents: number | null;
           org_id: string;
+          todo_o_pais: boolean;
         };
         Insert: {
           concelhos?: string[];
@@ -1499,6 +1526,7 @@ export type Database = {
           incluida?: boolean;
           minimo_cents?: number | null;
           org_id: string;
+          todo_o_pais?: boolean;
         };
         Update: Partial<Database['public']['Tables']['supplier_delivery']['Insert']>;
         Relationships: [];

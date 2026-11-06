@@ -1,4 +1,5 @@
 import 'server-only';
+import { lojasParaOPintor } from '@/domain/lojas';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   APPLICATION_LABELS,
@@ -29,6 +30,8 @@ export interface MaterialOption {
   ofertas: string[];
   precoComDesconto: string | null;
   entrega: string;
+  /** As lojas do fornecedor, onde se levanta o material (06/11/2026); as do concelho da obra primeiro. */
+  lojas: string[];
 }
 
 /**
@@ -48,6 +51,8 @@ export async function materialOptions(
     supabase.from('organizations').select('id, nome, email_contacto, telefone').eq('kind', 'fornecedor'),
     supabase.from('supplier_reviews').select('supplier_org_id, produto, entrega, atendimento'),
   ]);
+  // As lojas veem-se só por pintores (RLS, `lojas_visiveis_aos_pintores`): este ecrã é o do orçamento do pintor.
+  const { data: lojas } = await supabase.from('supplier_stores').select('org_id, nome, morada, codigo_postal, localidade, concelho');
   const { data: orders } = obra.painterOrgId
     ? await supabase.from('material_orders').select('supplier_org_id').eq('painter_org_id', obra.painterOrgId).eq('estado', 'entregue')
     : { data: [] };
@@ -85,7 +90,7 @@ export async function materialOptions(
     const q = deliveryFor(
       (deliveries ?? [])
         .filter((x) => x.org_id === p.org_id)
-        .map((x) => ({ concelhos: x.concelhos, incluida: x.incluida, custo: x.custo_cents, minimo: x.minimo_cents, condicoes: x.condicoes })),
+        .map((x) => ({ concelhos: x.concelhos, todoOPais: x.todo_o_pais, incluida: x.incluida, custo: x.custo_cents, minimo: x.minimo_cents, condicoes: x.condicoes })),
       obra.concelho,
       final ?? 0,
     );
@@ -124,6 +129,7 @@ export async function materialOptions(
           : q.kind === 'paga'
             ? `Entrega paga${q.custo !== null ? ` (${formatEuros(q.custo)})` : ''}${q.condicoes ? `: ${q.condicoes}` : ''}`
             : `Sem entrega em ${obra.concelho}: levantamento no fornecedor`,
+      lojas: lojasParaOPintor((lojas ?? []).filter((l) => l.org_id === p.org_id), obra.concelho),
     }];
   });
   return options.sort((a, b) => b[0] - a[0]).map(([, o]) => o);
