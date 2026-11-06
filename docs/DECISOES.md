@@ -6226,3 +6226,19 @@ ecrãs reais com dados fictícios, numa ferramenta local que não entra no repos
 `Meteorologia` (dias de obra) tinha fundo âmbar em cada linha da lista — regra 13: o aviso fica só no texto.
 Fica por decidir com o promotor (crítica por ecrã, ver a resposta da sessão): o «Início» do pintor é o mesmo
 ecrã genérico do cliente, sem um «Hoje» próprio.
+
+## 06/11/2026 — «Hoje» do pintor
+
+O Início do pintor era o ecrã genérico do cliente («Pedidos em curso», «As suas entidades»), enquanto o do
+fornecedor já tinha um «Hoje» com ação. A pedido do promotor, o pintor ganha o seu (`InicioDoPintor.tsx`),
+para contas só de pintor; as outras contas mantêm o Início anterior.
+
+Pergunta do ecrã: o que pede ação desta empresa hoje? Ordem: **o que espera por si** (contratos a assinar,
+pagar ou confirmar; a única banda de cor, no topo; sem nada, o quadro fica e di-lo); **prazos a fechar**
+(pedidos abertos que terminam em 7 dias e em que a empresa ainda não enviou proposta; o rascunho à frente a
+igualdade; âmbar em texto até 3 dias); **a decorrer** (orçamentos por enviar, propostas à espera de resposta,
+pedidos abertos por propor, obras em curso, em algarismos tabulares); **obras em curso**; **documentos a
+caducar** só quando algum caduca em 30 dias (âmbar o que ainda se resolve, vermelho o que já caducou); avisos.
+As escolhas vivem em `src/domain/hojeDoPintor.ts`, com testes. O bloco «Avisos» passou a componente comum
+(`AvisosDoInicio.tsx`). Visto com dados fictícios no computador e no telemóvel (390px: sem deslocamento
+horizontal, sem alvos abaixo de 44px); não visto com dados reais.
