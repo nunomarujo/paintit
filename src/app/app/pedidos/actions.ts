@@ -181,10 +181,14 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
     .select('id');
   if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
   const face = faceDoFormulario(form, v.kind);
-  if (face !== undefined && data?.[0]) await gravarFaceDaZona(supabase, requestId, data[0].id, face);
+  // O lado vai à parte (a coluna pode não estar aplicada): se não gravou, diz-se — o lado escolhido não se perde em silêncio.
+  const faceGravada = face === undefined || !data?.[0] ? true : await gravarFaceDaZona(supabase, requestId, data[0].id, face);
   revalidarPedido(requestId);
-  return { errors: {}, ok: true };
+  return { errors: {}, ok: true, ...(faceGravada ? {} : { message: MENSAGEM_DO_LADO_NAO_GUARDADO, lerAntesDeFechar: true }) };
 }
+
+/** O que se diz quando a zona ficou gravada mas o lado do prédio não (a coluna `face_do_predio` por aplicar). */
+const MENSAGEM_DO_LADO_NAO_GUARDADO = 'Guardado, mas o lado do prédio ainda não se guarda: o desenho usa a ordem das zonas.';
 
 /** Os tipos de zona que ocupam um lado da planta do prédio: os alçados e as varandas. */
 const TIPOS_COM_LADO: readonly SurfaceKind[] = ['fachada', 'empena', 'varandas'];
@@ -302,7 +306,8 @@ export async function updateSurface(
   return {
     errors: {},
     ok: true,
-    message: faceGravada ? 'Guardado.' : 'Guardado, mas o lado do prédio ainda não se guarda: o desenho usa a ordem das zonas.',
+    message: faceGravada ? 'Guardado.' : MENSAGEM_DO_LADO_NAO_GUARDADO,
+    ...(faceGravada ? {} : { lerAntesDeFechar: true }),
   };
 }
 

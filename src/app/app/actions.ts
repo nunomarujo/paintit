@@ -65,7 +65,11 @@ function buildingColumns(v: BuildingInput) {
   };
 }
 
-export type FormState = { errors: FieldErrors; message?: string; ok?: boolean; strike?: StrikeInfo };
+/**
+ * `lerAntesDeFechar`: gravou (`ok`), mas houve algo a dizer que quem grava tem de ler — o ecrã não se fecha sozinho
+ * (o lado do prédio de uma zona que a base ainda não guarda, 06/11/2026).
+ */
+export type FormState = { errors: FieldErrors; message?: string; ok?: boolean; lerAntesDeFechar?: boolean; strike?: StrikeInfo };
 
 /** A morada tem de existir: rua do código postal indicado (base dos CTT). */
 async function addressErrors(morada: string | null, cp: string | null, moradaField: string): Promise<FieldErrors> {

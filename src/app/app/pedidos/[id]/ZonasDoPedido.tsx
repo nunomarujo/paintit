@@ -30,6 +30,9 @@ import {
 } from '@/domain/request';
 import { aceitaMedicaoDaFotografia, medeSeNaFotografia, origemEmTexto } from '@/domain/medicaoDaFotografia';
 import { contaDaZona, nomeDaZona } from '@/domain/respostaDasZonas';
+import type { Forma } from '@/domain/volume';
+import { MiniaturaDoLado } from './PlantaDoPredio';
+import type { LugarDaZona } from '@/domain/prancheta';
 
 /**
  * As zonas do pedido: o cartão de cada uma (no quadro do passo 2) e o editor que se abre na gaveta.
@@ -217,6 +220,18 @@ export function estadoNoDesenho(z: Pick<ZonaNaLista, 'participacao'>, aberta: bo
   return z.participacao;
 }
 
+export type MotivoDaOcultacao = NonNullable<LugarDaZona['oculta']>;
+
+/**
+ * Porque é que a zona não tem número nesta vista. «De lado» e «atrás» eram ambos «Atrás»: uma parede de perfil ainda se
+ * vê como uma tira estreita, e dizer que estava atrás era dizer ao cliente que o desenho tinha um erro (revisão, 06/11/2026).
+ */
+export const FRASE_DA_OCULTACAO: Record<MotivoDaOcultacao, string> = {
+  atras: 'Atrás, nesta vista.',
+  de_lado: 'De lado, nesta vista.',
+  tapada: 'Tapada, nesta vista.',
+};
+
 /**
  * Uma zona como cartão: o número, o nome, a área e o estado. Carregar no nome abre o editor; o cartão
  * inteiro é a área do clique (o `after` do botão estica-se a ele), e as decisões que faltam — incluir
@@ -251,7 +266,7 @@ export function CartaoDaZona({
    * A zona tem sítio no prédio, mas a face dela fica atrás nesta vista e o desenho não lhe pôs número:
    * o cartão di-lo e oferece rodar até à vista mais próxima onde se vê.
    */
-  aoVerNoDesenho?: { aoVer: () => void; semVista: boolean };
+  aoVerNoDesenho?: { aoVer: () => void; semVista: boolean; motivo: MotivoDaOcultacao };
 }) {
   const fora = z.participacao === 'excluida';
   const conta = contaNoCartao(z);
@@ -303,7 +318,7 @@ export function CartaoDaZona({
             // Por cima do `after` do nome: z-10. Neutro (cinzento): não é um aviso, é só a face que está atrás.
             <div className="relative z-10 -mb-1 -ml-4 mt-0.5 flex flex-wrap items-center">
               <span className="pl-4 text-[15px] text-slate-600">
-                {aoVerNoDesenho.semVista ? 'Nenhuma vista do desenho a mostra.' : 'Atrás, nesta vista.'}
+                {aoVerNoDesenho.semVista ? 'Nenhuma vista do desenho a mostra.' : FRASE_DA_OCULTACAO[aoVerNoDesenho.motivo]}
               </span>
               {!aoVerNoDesenho.semVista && (
                 <button type="button" onClick={aoVerNoDesenho.aoVer} className="btn-quiet btn-sm">
@@ -413,6 +428,7 @@ export function EditorDaZona({
   aoFechar,
   medir,
   lados,
+  forma = null,
   faceDaZona = null,
 }: {
   requestId: string;
@@ -426,6 +442,8 @@ export function EditorDaZona({
    * eles (com um só alçado o desenho é uma laje) o campo não aparece: o lado escolhe-se quando há planta.
    */
   lados?: { id: string; label: string; ocupado: boolean }[];
+  /** A planta do desenho, para a miniatura do lado escolhido. */
+  forma?: Forma | null;
   /** O lado que a zona já guardou; nulo: o desenho escolhe o lado livre. */
   faceDaZona?: string | null;
   /** Abre a ferramenta de levantamento já com esta zona escolhida (quem pode editar o pedido); numa zona
@@ -450,6 +468,7 @@ export function EditorDaZona({
   const [aRemover, setARemover] = useState(false);
   const [participacao, setParticipacao] = useState<Participacao>(zona?.participacao ?? 'incluida');
   const [tipoEscolhido, setTipoEscolhido] = useState<SurfaceKind>(zona?.kind ?? tipo ?? 'fachada');
+  const [ladoEscolhido, setLadoEscolhido] = useState(faceDaZona && lados?.some((l) => l.id === faceDaZona) ? faceDaZona : '');
   const [como, setComo] = useState<ComoMedir>(zona ? comoFoiMedida(zona) : 'area');
   const [area, setArea] = useState(emMetros(zona?.areaDiretaCm2));
   const [largura, setLargura] = useState(emMetros(zona?.larguraCm));
@@ -465,7 +484,9 @@ export function EditorDaZona({
   const origemEfetiva: OrigemDaQuantidade = origem === 'manter' ? 'medida_pelo_cliente' : origem;
   const e = state.errors;
   // Fecha-se sozinho quando gravou: ficar aberto depois de guardar parece que não guardou.
-  if (state.ok && !pending) setTimeout(aoFechar, 0);
+  // Salvo quando gravou com um aviso a ler (o lado do prédio que a base ainda não guarda): aí fica, a dizê-lo.
+  const comAviso = !!state.ok && !!state.lerAntesDeFechar;
+  if (state.ok && !comAviso && !pending) setTimeout(aoFechar, 0);
 
   const q = /^\d+$/.test(quantidade.trim()) && Number(quantidade) >= 1 ? Number(quantidade) : 1;
   const conta =
@@ -522,20 +543,28 @@ export function EditorDaZona({
               rotulo="Lado do prédio"
               ajuda={tipoEscolhido === 'varandas' ? 'Onde assentam as varandas no desenho.' : 'Onde fica este alçado no desenho.'}
             >
-              <select
-                id={`${idDoFormulario}-face`}
-                name="face"
-                defaultValue={faceDaZona && lados.some((l) => l.id === faceDaZona) ? faceDaZona : ''}
-                className="campo bg-white"
-              >
-                <option value="">O desenho escolhe o lado livre</option>
-                {lados.map((l) => (
-                  <option key={l.id} value={l.id} disabled={l.ocupado && tipoEscolhido !== 'varandas'}>
-                    {l.label}
-                    {l.ocupado && tipoEscolhido !== 'varandas' ? ' — já tem alçado' : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-3">
+                <MiniaturaDoLado
+                  forma={forma ?? 'I'}
+                  lado={ladoEscolhido || null}
+                  ocupados={lados.filter((l) => l.ocupado).map((l) => l.id)}
+                />
+                <select
+                  id={`${idDoFormulario}-face`}
+                  name="face"
+                  value={ladoEscolhido}
+                  onChange={(ev) => setLadoEscolhido(ev.target.value)}
+                  className="campo min-w-0 flex-1 bg-white"
+                >
+                  <option value="">O desenho escolhe o lado livre</option>
+                  {lados.map((l) => (
+                    <option key={l.id} value={l.id} disabled={l.ocupado && tipoEscolhido !== 'varandas'}>
+                      {l.label}
+                      {l.ocupado && tipoEscolhido !== 'varandas' ? ' — já tem alçado' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </Campo>
           )}
 
@@ -667,7 +696,9 @@ export function EditorDaZona({
                   onChange={(ev) => setOrigem(ev.target.value as OrigemDaQuantidade | 'manter')}
                   className="campo bg-white"
                 >
-                  {medidaPeloCliente && <option value="manter">{origemEmTexto('medida_pelo_cliente', zona?.margemBps)}, na fotografia</option>}
+                  {medidaPeloCliente && (
+                    <option value="manter">{origemEmTexto('medida_pelo_cliente', zona?.margemBps)}, na fotografia</option>
+                  )}
                   {ORIGENS_ESCOLHIVEIS.map((o) => (
                     <option key={o} value={o}>
                       {ORIGEM_DA_QUANTIDADE_LABELS[o]}
@@ -736,16 +767,12 @@ export function EditorDaZona({
                   <label
                     key={p}
                     className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border px-3 text-[17px] ${
-                      participacao === p ? 'border-tinta-600 bg-tinta-50 font-medium text-tinta-900' : 'border-slate-300 bg-white text-slate-700'
+                      participacao === p
+                        ? 'border-tinta-600 bg-tinta-50 font-medium text-tinta-900'
+                        : 'border-slate-300 bg-white text-slate-700'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="participacao"
-                      value={p}
-                      checked={participacao === p}
-                      onChange={() => setParticipacao(p)}
-                    />
+                    <input type="radio" name="participacao" value={p} checked={participacao === p} onChange={() => setParticipacao(p)} />
                     {PARTICIPACAO_NO_EDITOR[p]}
                   </label>
                 ))}
@@ -771,11 +798,20 @@ export function EditorDaZona({
             </fieldset>
           )}
 
-          <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
+          {comAviso && !pending ? (
+            <p role="status" className="text-[17px] text-amber-900">
+              {state.message}
+            </p>
+          ) : (
+            <EstadoDeGravacao pending={pending} ok={state.ok} mensagem={state.message} repetir={repetir} />
+          )}
         </form>
         {zona && (
           // O que apaga fica à parte, no fim, e pede confirmação com o nome da zona (guia, §8.2).
-          <section aria-label="Remover a zona" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3">
+          <section
+            aria-label="Remover a zona"
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3"
+          >
             <p className="text-[15px] text-slate-600">Remover apaga a zona e as medidas dela.</p>
             <button
               type="button"
@@ -800,12 +836,21 @@ export function EditorDaZona({
         )}
       </div>
       <footer className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3">
-        <button type="submit" form={idDoFormulario} disabled={pending || aRemover} className="btn-primary">
-          Guardar zona
-        </button>
-        <button type="button" onClick={aoFechar} className="btn-quiet">
-          Cancelar
-        </button>
+        {comAviso ? (
+          // A zona já está gravada: guardar outra vez, numa zona nova, acrescentava-a duas vezes.
+          <button type="button" onClick={aoFechar} className="btn-primary">
+            Fechar
+          </button>
+        ) : (
+          <>
+            <button type="submit" form={idDoFormulario} disabled={pending || aRemover} className="btn-primary">
+              Guardar zona
+            </button>
+            <button type="button" onClick={aoFechar} className="btn-quiet">
+              Cancelar
+            </button>
+          </>
+        )}
       </footer>
       {confirmacao}
     </>

@@ -198,6 +198,10 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   (`guardarFormaDoPredio` grava no cadastro: só se viu a recusa sem sessão) e a escolher o lado de um alçado; (3) o
   promotor decidir se quer o «+ Empena» de volta no desenho do pedido vazio (saiu: a laje não tem parede lateral onde
   caiba); (4) a escolha da planta no ecrã do avaliador, que hoje só a vê (não gere o prédio).
+  **Revisão independente de 06/11/2026 corrigida** (cotas fora do prédio, «de lado» ≠ «atrás», nesga livre do U, lado do
+  editor, `addSurface` a avisar, foco e leitor de ecrã, sombra, lados por entregar, altura da página; ver o fim da entrada
+  em `DECISOES.md`) — **por publicar**. Fica: o desenho passa ao modo lista a certos ângulos de um U a 1140 px (a página
+  muda de altura aí), e a cota da frente omite-se a ~80° em L, U e T.
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 
