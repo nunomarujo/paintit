@@ -6204,7 +6204,7 @@ perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
 7. **Zonas comuns usam a ferramenta do interior** (paredes e tetos), com divisões próprias: átrio, patamar,
    corredor comum, escadas. **As escadas ficam sempre «Por medir»** até haver regra própria (o servidor não
    calcula nada para elas, digam-se as medidas que se disserem). A lista de zonas mantém-se no outro separador,
-   onde vivem as zonas comuns já gravadas. Migração `zonas_comuns_e_relatorio_do_pintor`.
+   onde vivem as zonas comuns já gravadas. Migração `20261106091521_zonas_comuns_e_relatorio_do_pintor`, aplicada e publicada a 06/11/2026.
 8. **O comprovativo do cliente não marca a tranche como recebida**; quem confirma é o pintor. Confirmado.
 9. **SMS: não**, por agora; o código de 6 algarismos por email basta.
 10. **IBAN:** só português por agora; estrangeiro (SEPA) só se aparecer um caso real.
