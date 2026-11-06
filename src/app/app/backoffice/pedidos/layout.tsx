@@ -14,6 +14,7 @@ export default async function RequestsLayout({ children }: { children: ReactNode
         { href: '/app/backoffice/pedidos', label: 'Com poucas propostas' },
         { href: '/app/backoffice/pedidos/denuncias', label: 'Denúncias', count: c.denuncias },
         { href: '/app/backoffice/pedidos/fotografias', label: 'Fotografias por rever', count: c.fotografias },
+        { href: '/app/backoffice/pedidos/relatorios', label: 'Relatórios do percurso' },
       ]}
     >
       {children}

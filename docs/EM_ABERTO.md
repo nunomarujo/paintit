@@ -108,6 +108,9 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | Obra que ninguém declarou concluída | Os registos ficam sem limite. Que limite máximo? (com o jurista) | idem |
 | Conta encerrada durante o período de conservação | Proposta: registos mantidos, acesso só às partes e à equipa. Validar com o jurista | idem |
 | Jurista: conservação vs. prazo legal de 5 anos | Garantia de 2 anos + 24 meses = 4 anos, abaixo dos 5 do art. 1225.º CC citado no contrato. Conservar pelo prazo mais longo? Valor da prova junta por uma só parte; papel de «terceira isenta» | idem |
+| Relatório do percurso: o pintor também pede? | Hoje só o cliente pede (e a equipa emite a versão completa) | `DECISOES.md` 06/11/2026, «registo do percurso negocial» |
+| Relatório do cliente: pintores que não ganharam | Hoje aparecem como «Pintor A/B», só com o estado da proposta. Mostrar mais? | idem |
+| Jurista: registo e relatório | Conservação e prazo; RGPD face a um registo que não se apaga; conteúdo a entregar; entrega gratuita | idem |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)

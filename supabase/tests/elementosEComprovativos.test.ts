@@ -252,3 +252,80 @@ describe('conclusão da obra e garantia (06/11/2026)', () => {
     expect(await as(CLIENTE, async () => (await db.query('select id from public.garantias_calculadas')).rows.length)).toBe(1);
   });
 });
+
+describe('registo do percurso negocial (06/11/2026)', () => {
+  const tipos = async (filtro: string, v: unknown) =>
+    (await db.query<{ tipo: string }>(`select tipo from public.registo_da_obra where ${filtro} = $1 order by ordem`, [v])).rows.map((r) => r.tipo);
+
+  it('cada passo fica registado, por ordem, com a data do servidor', async () => {
+    // Os acontecimentos do ensaio entraram com os gatilhos desligados (ver `evento`); este entra com eles.
+    const nova = await contratacao('2026-11-06');
+    await db.query(`insert into public.engagement_events (engagement_id, kind, amount_cents) values ($1, 'deposito_confirmado', 3000)`, [nova]);
+    expect(await tipos('engagement_id', nova)).toEqual(['contratacao_criada', 'contratacao_evento']);
+    const t = await tipos('engagement_id', aberta);
+    expect(t).toEqual(expect.arrayContaining(['contratacao_criada', 'elemento_alterado', 'comprovativo', 'conclusao', 'garantia']));
+    expect(await tipos('org_id', c)).toContain('conta_aberta');
+  });
+
+  it('o IBAN vai mascarado para o registo', async () => {
+    const r = await db.query<{ v: string }>(`select dados->>'valor' as v from public.registo_da_obra where tipo = 'elemento_alterado' and dados->>'campo' = 'iban'`);
+    expect(r.rows.length).toBeGreaterThan(0);
+    for (const x of r.rows) expect(x.v).not.toContain('0002012312345678');
+  });
+
+  it('ninguém o reescreve nem o apaga, nem a chave de serviço; ninguém escreve nele diretamente', async () => {
+    await expect(servico(() => db.query(`update public.registo_da_obra set tipo = 'outro' where engagement_id = $1`, [aberta]))).rejects.toThrow(/só de acrescentar/);
+    await expect(servico(() => db.query(`delete from public.registo_da_obra where engagement_id = $1`, [aberta]))).rejects.toThrow(/só de acrescentar/);
+    await expect(as(CLIENTE, () => db.query(`insert into public.registo_da_obra (tipo) values ('inventado')`))).rejects.toThrow(/permission denied/);
+  });
+
+  it('só a equipa o lê', async () => {
+    expect(await as(CLIENTE, async () => (await db.query('select id from public.registo_da_obra')).rows.length)).toBe(0);
+    expect(await as(EQUIPA, async () => (await db.query('select id from public.registo_da_obra')).rows.length)).toBeGreaterThan(0);
+  });
+
+  it('apagar um pedido em rascunho com propostas não apaga o rasto: o essencial fica copiado', async () => {
+    const b = (await one<{ id: string }>('select building_id as id from public.work_requests where org_id = $1 limit 1', [c])).id;
+    const r = (await one<{ id: string }>(`insert into public.work_requests (org_id, building_id, titulo, tipo_obra) values ($1, $2, 'zz-test a apagar', 'fachadas') returning id`, [c, b])).id;
+    await db.exec(`set session_replication_role = replica`);
+    await db.query(`insert into public.proposals (request_id, painter_org_id, status, base_cents) values ($1, $2, 'submetida', 50000)`, [r, p]);
+    await db.exec(`set session_replication_role = origin`);
+    await db.query('delete from public.work_requests where id = $1', [r]);
+    expect(await one<{ n: number }>('select count(*)::int as n from public.work_requests where id = $1', [r])).toEqual({ n: 0 });
+    const t = await tipos('request_id', r);
+    expect(t[0]).toBe('pedido_criado');
+    expect(t).toContain('pedido_apagado');
+    expect(t).toContain('proposta_apagada');
+    const copia = await one<{ base: string }>(`select dados->>'base_cents' as base from public.registo_da_obra where request_id = $1 and tipo = 'proposta_apagada'`, [r]);
+    expect(copia.base).toBe('50000');
+  });
+
+  it('o relatório pede-o quem gere a entidade cliente do pedido; outro não', async () => {
+    const r = (await one<{ request_id: string }>('select request_id from public.engagements where id = $1', [aberta])).request_id;
+    await as(CLIENTE, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo) values ($1, $2, 'litigio')`, [r, c]));
+    await expect(as(PINTOR, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo) values ($1, $2, 'litigio')`, [r, c]))).rejects.toThrow(/row-level security/);
+    await expect(as(PINTOR, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo) values ($1, $2, 'litigio')`, [r, p]))).rejects.toThrow(/entidade que fez o pedido|row-level/);
+    expect(await tipos('request_id', r)).toContain('relatorio_pedido');
+  });
+
+  it('o relatório emitido não muda; o do cliente só o lê a entidade que o pediu e a equipa', async () => {
+    const r = (await one<{ request_id: string }>('select request_id from public.engagements where id = $1', [aberta])).request_id;
+    const pedido = (await one<{ id: string }>('select id from public.pedidos_de_relatorio where request_id = $1', [r])).id;
+    await servico(() =>
+      db.query(
+        `insert into public.relatorios_do_percurso (request_id, pedido_id, destinatario, versao, conteudo, sha256, emitido_por) values ($1, $2, 'cliente', 1, 'texto', $3, $4),
+                ($1, null, 'backoffice', 1, 'texto completo', $3, $4)`,
+        [r, pedido, 'b'.repeat(64), EQUIPA],
+      ),
+    );
+    await expect(servico(() => db.query(`update public.relatorios_do_percurso set conteudo = 'outro' where request_id = $1`, [r]))).rejects.toThrow(/só de acrescentar/);
+    await expect(
+      servico(() => db.query(`insert into public.relatorios_do_percurso (request_id, destinatario, versao, conteudo, sha256, emitido_por) values ($1, 'cliente', 2, 'x', $2, $3)`, [r, 'b'.repeat(64), EQUIPA])),
+    ).rejects.toThrow(/cliente_tem_pedido/);
+    const ler = (u: string) => as(u, async () => (await db.query<{ destinatario: string }>('select destinatario from public.relatorios_do_percurso where request_id = $1', [r])).rows.map((x) => x.destinatario));
+    expect(await ler(CLIENTE)).toEqual(['cliente']);
+    expect(await ler(PINTOR)).toEqual([]);
+    expect((await ler(EQUIPA)).sort()).toEqual(['backoffice', 'cliente']);
+    expect(await tipos('request_id', r)).toEqual(expect.arrayContaining(['relatorio_emitido', 'relatorio_entregue']));
+  });
+});

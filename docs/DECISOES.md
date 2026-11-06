@@ -6005,3 +6005,50 @@ quem tem razão.
 **Alerta para o promotor e para o jurista, tal como está:** a garantia contratual pode ser curta (2 anos, por
 exemplo); com mais 24 meses são 4 anos — e o texto do contrato já cita um prazo legal de cinco anos. A pergunta
 ao jurista é se a conservação deve seguir o prazo mais longo. Não se decidiu.
+
+## 06/11/2026 — O registo do percurso negocial de cada obra, e o relatório gratuito ao cliente
+
+Pedido do promotor: manter o percurso negocial de cada obra desde a abertura de conta (pedido de orçamentos,
+quais foram a «jogo», quem ganhou e em que condições, adendas…), disponível ao backoffice e entregue ao
+cliente, **gratuitamente**, se o pedir por motivos de prova em litígio ou disputa de consumo.
+
+**Auditoria — o que se perdia até aqui** (migração `registo_da_obra`, cabeçalho):
+1. Um pedido em rascunho apaga-se, e leva em cascata propostas, versões, mensagens, fotografias, zonas, anúncio
+   e relatório de propostas — e um pedido publicado que volta a rascunho passa a poder ser apagado, com as
+   propostas já submetidas.
+2. Apagar um prédio apaga os pedidos dele em qualquer estado (exceto com contratação, que trava).
+3. Apagar uma entidade (`delete_organization`, só sem histórico próprio) leva os seus rascunhos — incluindo um
+   pedido que voltou a rascunho com propostas de outros pintores.
+Já travavam: a contratação e os seus acontecimentos, e os registos de 06/11 (elementos, comprovativos,
+conclusão, garantia), todos `restrict`.
+
+**Daqui em diante:** um registo só de acrescentar, `registo_da_obra`, escrito por gatilhos com a data do servidor
+e **sem chaves estrangeiras** (sobrevive ao apagamento do que regista). Regista: abertura de conta e quem entra
+na entidade; criação, mudanças de estado e publicação do pedido; cada estado das propostas com as condições
+(preço, IVA, adiantamento, plano de pagamentos, duração, início, garantia) e as versões; o relatório de
+comparação (quais entraram); a contratação e todos os seus acontecimentos (com a impressão digital do documento
+assinado); as adendas; os elementos do contrato (IBAN mascarado) e a impressão digital de cada nova versão do
+contrato por assinar; os comprovativos; a conclusão e a garantia; o pedido, a emissão e a entrega do relatório.
+**Antes de um apagamento**, o gatilho copia a linha inteira para o registo (pedido e propostas que já tinham
+saído de rascunho). Ninguém o reescreve nem o apaga — nem a chave de serviço. Só a equipa o lê. Escolheu-se
+copiar em vez de trocar o apagamento por arquivo: não muda nenhum ecrã nem nenhuma regra de quem pode apagar
+o quê, e o que se prova fica num só sítio. Os avisos enviados (`toques`, `avisos_por_email`) continuam nas
+suas tabelas e não se copiam (não se apagam com o pedido).
+
+**O relatório** (`src/domain/percursoNegocial.ts`, `relatorios_do_percurso`): tirado do registo, por ordem, com
+as datas do servidor, resumido (SHA-256) e guardado uma vez, sem nunca mudar; emitir outra vez é uma versão nova.
+Duas versões geradas cada uma por inteiro: a **completa** (backoffice) e a **do cliente**, sem o que a
+plataforma cobra ao pintor (nenhum valor dos acontecimentos da contratação; «confirmação do pintor») e sem a
+identidade dos pintores que não ganharam («Pintor A», «Pintor B»), de quem só se diz o estado da proposta.
+O texto diz o que o relatório é — um registo do que aconteceu na plataforma, com datas — e **não** diz que tem
+valor de prova.
+
+**Como se pede:** na página do pedido, em Documentos, «Pedir o relatório desta obra», com o motivo (litígio,
+disputa de consumo, outro). Gratuito, sem subscrição. A equipa emite em Backoffice › Pedidos › Relatórios do
+percurso; para o cliente, a aplicação confirma antes que quem pediu é, hoje, pessoa da entidade que fez o
+pedido. O cliente é avisado por email e lê o relatório na página do pedido.
+
+**Por responder pelo promotor:** (a) o pintor também pode pedir o relatório da sua obra? (b) o relatório do
+cliente pode mostrar os pintores que não ganharam, ou fica como está? **Para o jurista:** conservação deste
+registo e por quanto tempo; direito ao apagamento (RGPD) face a um registo que não se apaga; o que entregar ao
+cliente; a entrega gratuita a pedido.

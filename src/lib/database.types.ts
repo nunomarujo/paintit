@@ -2150,6 +2150,24 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      registo_da_obra: {
+        Row: { id: string; ordem: number; request_id: string | null; engagement_id: string | null; org_id: string | null; painter_org_id: string | null; tipo: string; dados: Json; autor: string | null; criado_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      pedidos_de_relatorio: {
+        Row: { id: string; request_id: string; org_id: string; motivo: string; nota: string | null; pedido_por: string; pedido_em: string };
+        Insert: { id?: string; request_id: string; org_id: string; motivo: string; nota?: string | null; pedido_por?: string; pedido_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      relatorios_do_percurso: {
+        Row: { id: string; request_id: string; pedido_id: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em: string };
+        Insert: { id?: string; request_id: string; pedido_id?: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em?: string };
+        Update: never;
+        Relationships: [];
+      };
       promo_codes: {
         Row: { active: boolean; code: string; created_at: string; created_by: string; discount_bps: number; id: string; max_uses: number | null; notas: string | null; uses: number; valid_until: string | null };
         Insert: {
@@ -2318,6 +2336,8 @@ export type Database = {
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };
       delete_organization: { Args: { p_org: string }; Returns: undefined };
+      // Só a chave de serviço: a impressão digital do contrato por assinar, depois de cada alteração (06/11/2026).
+      registar_versao_da_minuta: { Args: { p_engagement: string; p_sha256: string }; Returns: undefined };
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };

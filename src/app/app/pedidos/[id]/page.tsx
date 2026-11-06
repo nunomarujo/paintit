@@ -42,6 +42,7 @@ import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { Dica } from '@/components/Dica';
 import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
+import { PedirRelatorio } from './PedirRelatorio';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   rascunho: { label: 'Rascunho', className: 'bg-slate-100 text-slate-700' },
@@ -103,6 +104,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
+  // Relatório do percurso negocial (06/11/2026): o que já foi entregue e o que está pedido. Sem a migração,
+  // as consultas falham sozinhas e a secção fica só com o botão.
+  const [{ data: relatoriosEntregues }, { data: relatoriosPedidos }] = draft
+    ? [{ data: [] }, { data: [] }]
+    : await Promise.all([
+        supabase.from('relatorios_do_percurso').select('id, versao, emitido_em').eq('request_id', id).eq('destinatario', 'cliente').order('versao', { ascending: false }),
+        supabase.from('pedidos_de_relatorio').select('id, pedido_em').eq('request_id', id).order('pedido_em', { ascending: false }),
+      ]);
   const pt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '');
   // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
   // (`propostas_entregues`); isto é só o que o ecrã diz, e conta os dias da mesma maneira.
@@ -653,6 +662,33 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                   <Link href={`/app/pedidos/${req.id}/dossie`} className="mt-1 inline-flex min-h-[44px] items-center text-[17px] font-semibold text-tinta-600 hover:underline">
                     Dossiê do pedido, para imprimir
                   </Link>
+                </section>
+                <section className={card}>
+                  <h2 className="font-semibold">Relatório do percurso negocial</h2>
+                  <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+                    Um registo do que aconteceu na plataforma nesta obra, por ordem e com datas: o pedido, as propostas, a escolha, o contrato, os
+                    pagamentos registados e as adendas. Pode ser pedido, sem custo, por exemplo para um litígio ou uma disputa de consumo; a
+                    equipa da plataforma confirma o pedido e emite-o aqui.
+                  </p>
+                  {(relatoriosEntregues ?? []).length > 0 && (
+                    <ul className="mt-3 space-y-1">
+                      {(relatoriosEntregues ?? []).map((r) => (
+                        <li key={r.id}>
+                          <Link href={`/app/pedidos/${req.id}/relatorio/${r.id}`} className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-tinta-600 hover:underline">
+                            Versão {r.versao}, emitida a {new Date(r.emitido_em).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' })}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {(relatoriosPedidos ?? []).length > (relatoriosEntregues ?? []).length && (
+                    <p className="mt-3 text-[17px] text-slate-700">Há um pedido de relatório à espera da equipa da plataforma.</p>
+                  )}
+                  {manager && (
+                    <div className="mt-4">
+                      <PedirRelatorio requestId={req.id} />
+                    </div>
+                  )}
                 </section>
                 {oQueOsPintoresVeem}
               </div>

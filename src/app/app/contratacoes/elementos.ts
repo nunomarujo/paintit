@@ -25,6 +25,8 @@ import type { Database } from '@/lib/database.types';
 import { canManage, myRole } from '@/lib/access';
 import { elementosEmVigor, novoCodigo, resumoDoCodigo, resumosIguais } from '@/lib/elementosDoContrato';
 import { recipients, sendEmail } from '@/lib/notify';
+import { draftText } from '@/domain/contracting';
+import { loadDraft } from '@/lib/engagements';
 import { adminClient } from '@/lib/supabase/admin';
 import { getUser } from '@/lib/supabase/server';
 
@@ -99,6 +101,10 @@ async function gravar(
   const { error } = await db.from('elementos_do_contrato').insert({ engagement_id: row.id, lado, campo, valor, validacao, criado_por: userId });
   // A razão da base vem em texto; não leva o valor (o gatilho só diz o prazo).
   if (error) return { errors: {}, message: /assinatura/.test(error.message) ? FECHADO.message : 'Não foi possível registar a alteração.' };
+  // A versão do contrato por assinar mudou: a impressão digital do texto novo vai para o registo da obra
+  // (o PDF gera-se sempre dos dados; cada versão anterior reconstitui-se do histórico).
+  const sha = createHash('sha256').update(draftText(await loadDraft(db, row))).digest('hex');
+  await db.rpc('registar_versao_da_minuta', { p_engagement: row.id, p_sha256: sha });
   await avisarOutraParte(row, lado, campo, valor);
   revalidatePath(`/app/contratacoes/${row.id}`);
   return { errors: {}, ok: true, message: `${CAMPO_LABELS[campo]} registado. A outra parte foi avisada.` };
