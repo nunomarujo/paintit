@@ -193,4 +193,24 @@ export async function listarEmpresasMoloni(): Promise<{ company_id: number; nome
   return (Array.isArray(lista) ? lista : []).map((c) => ({ company_id: c.company_id, nome: c.name ?? '', vat: c.vat ?? '' }));
 }
 
+/** Ensaio: o que a API vê na empresa configurada, para confirmar os identificadores (séries, impostos, clientes). */
+export async function diagnosticoMoloni() {
+  const tenta = async (nome: string, f: () => Promise<unknown>) => {
+    try {
+      return { [nome]: await f() };
+    } catch (e) {
+      return { [nome]: { erro: e instanceof Error ? e.message : String(e) } };
+    }
+  };
+  const resumo = (v: unknown, campos: string[]) => (Array.isArray(v) ? v.slice(0, 40).map((x) => Object.fromEntries(campos.map((c) => [c, (x as Record<string, unknown>)[c]]))) : v);
+  const partes = await Promise.all([
+    tenta('configuracao', async () => ({ company_id: env('MOLONI_COMPANY_ID'), document_set_id: env('MOLONI_DOCUMENT_SET_ID'), tax_id: env('MOLONI_TAX_ID_NORMAL'), consumidor_final: env('MOLONI_FINAL_CONSUMER_CUSTOMER_ID') })),
+    tenta('series', async () => resumo(await call<unknown>('documentSets/getAll', {}), ['document_set_id', 'name', 'active_by_default'])),
+    tenta('impostos', async () => resumo(await call<unknown>('taxes/getAll', {}), ['tax_id', 'name', 'value', 'fiscal_zone', 'saft_type', 'active_by_default'])),
+    tenta('clientes', async () => resumo(await call<unknown>('customers/getAll', { qty: 20, offset: 0 }), ['customer_id', 'name', 'vat', 'number'])),
+    tenta('cliente_500000000', async () => await call<unknown>('customers/getByVat', { vat: '500000000' })),
+  ]);
+  return Object.assign({}, ...partes);
+}
+
 export const draftTotal = invoiceTotal;
