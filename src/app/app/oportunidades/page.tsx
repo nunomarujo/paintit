@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { WORK_TYPES, WORK_TYPE_LABELS, formatArea, fraseDePrazo, urgenciaPrazo, type WorkType } from '@/domain/request';
+import { Dica } from '@/components/Dica';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 
@@ -53,13 +54,27 @@ export default async function OpportunitiesPage({
   const prazos = new Map(sortedListings.map((l) => [l.request_id, urgenciaPrazo(l.prazo_propostas, hoje)]));
   const terminamHoje = sortedListings.filter((l) => prazos.get(l.request_id)!.nivel === 'hoje');
 
+  const comPropostaNossa = sortedListings.filter((l) => status.has(l.request_id)).length;
+  const aFechar = sortedListings.filter((l) => prazos.get(l.request_id)!.nivel !== 'normal').length;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[26px] leading-tight font-semibold">Oportunidades</h1>
+        <h1 className="text-[26px] leading-tight font-semibold">
+          Oportunidades
+          <span className="ml-1 align-middle">
+            <Dica rotulo="Quem vê os pedidos">
+              Pedidos abertos, sem identificação do cliente nem morada. Os contactos são trocados só depois da escolha e da apresentação.
+            </Dica>
+          </span>
+        </h1>
+        {/* Os números seguem a vista: mudam com os filtros (guia, §11). */}
         <p className="mt-1 text-[17px] text-slate-600">
-          Pedidos abertos, sem identificação do cliente nem morada. Os contactos são trocados só depois da escolha e da
-          apresentação.
+          {sortedListings.length === 0
+            ? 'Nenhum pedido aberto.'
+            : `${sortedListings.length} ${sortedListings.length === 1 ? 'pedido aberto' : 'pedidos abertos'}` +
+              (aFechar > 0 ? ` · ${aFechar} a fechar em 3 dias` : '') +
+              (comPropostaNossa > 0 ? ` · ${comPropostaNossa} com proposta sua` : '')}
         </p>
       </div>
 
@@ -74,9 +89,9 @@ export default async function OpportunitiesPage({
       )}
 
       <form className="flex flex-wrap items-end gap-3 text-[17px]">
-        <label>
-          Tipo de obra
-          <select name="tipo" defaultValue={tipo ?? ''} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2">
+        <label className="w-full sm:w-auto">
+          <span className="text-slate-600">Tipo de obra</span>
+          <select name="tipo" defaultValue={tipo ?? ''} className="campo mt-1 sm:w-56">
             <option value="">Todos</option>
             {WORK_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -85,9 +100,9 @@ export default async function OpportunitiesPage({
             ))}
           </select>
         </label>
-        <label>
-          Zona
-          <select name="zona" defaultValue={zona ?? ''} className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2">
+        <label className="w-full sm:w-auto">
+          <span className="text-slate-600">Zona</span>
+          <select name="zona" defaultValue={zona ?? ''} className="campo mt-1 sm:w-72">
             <option value="">Todo o país</option>
             <option value="minha" disabled={zonas.length === 0}>
               As minhas zonas de serviço{zonas.length === 0 ? ' (por definir)' : ''}
@@ -100,37 +115,55 @@ export default async function OpportunitiesPage({
       </form>
 
       {!listings || listings.length === 0 ? (
-        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px] text-slate-600">Não há pedidos abertos com estes filtros.</p>
+        <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-[17px] text-slate-600">
+          Não há pedidos abertos com estes filtros.
+        </p>
       ) : (
-        <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white xl:grid xl:grid-cols-2 xl:divide-y-0 xl:gap-x-px xl:bg-slate-200">
-          {sortedListings.map((l) => (
-            <li key={l.request_id}>
-              <Link href={`/app/oportunidades/${l.request_id}`} className="flex flex-wrap justify-between gap-2 p-4 hover:bg-slate-50">
-                <span>
-                  <span className="font-semibold">
-                    {WORK_TYPE_LABELS[l.tipo_obra]} · {l.concelho}
-                  </span>
-                  {invited.has(l.request_id) && (
-                    <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Convidado</span>
-                  )}
-                  <span className="block text-[17px] text-slate-600">
-                    Pedido {l.ref} · {formatArea(l.area_total_cm2)}
-                    {l.pisos !== null ? ` · ${l.pisos} pisos` : ''}
-                  </span>
-                </span>
-                <span className="text-right text-[17px] text-slate-500">
-                  Propostas até {l.prazo_propostas.split('-').reverse().join('/')}
-                  <span className={`block ${prazos.get(l.request_id)!.nivel === 'hoje' ? 'font-semibold text-amber-800' : prazos.get(l.request_id)!.nivel === 'atencao' ? 'text-amber-700' : 'text-slate-500'}`}>
-                    {fraseDePrazo(prazos.get(l.request_id)!)}
-                  </span>
-                  {status.has(l.request_id) && (
-                    <span className="block font-medium text-tinta-700">{PROPOSAL_LABEL[status.get(l.request_id)!]}</span>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          {/* Cabeçalho de colunas só em ecrã largo: 13px, cinzento, sem faixa (guia, §7.2). */}
+          <div className="hidden grid-cols-[minmax(0,1fr)_7rem_11rem] gap-4 border-b border-slate-200 px-5 py-2 text-[13px] text-slate-600 md:grid">
+            <span>Pedido</span>
+            <span className="text-right">Área</span>
+            <span className="text-right">Propostas até</span>
+          </div>
+          <ul className="divide-y divide-slate-200">
+            {sortedListings.map((l) => {
+              const prazo = prazos.get(l.request_id)!;
+              return (
+                <li key={l.request_id}>
+                  <Link
+                    href={`/app/oportunidades/${l.request_id}`}
+                    className="grid min-h-[44px] grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 hover:bg-slate-50 focus-visible:bg-slate-50 md:grid-cols-[minmax(0,1fr)_7rem_11rem]"
+                  >
+                    <span className="col-span-2 min-w-0 md:col-span-1">
+                      <span className="block font-semibold text-slate-900">
+                        {WORK_TYPE_LABELS[l.tipo_obra]} · {l.concelho}
+                        {invited.has(l.request_id) && (
+                          <span className="ml-2 rounded-full bg-tinta-100 px-2 py-0.5 text-[15px] font-semibold text-tinta-900">Convidado</span>
+                        )}
+                      </span>
+                      <span className="block text-[15px] text-slate-600">
+                        Pedido {l.ref}
+                        {l.pisos !== null ? ` · ${l.pisos} ${l.pisos === 1 ? 'piso' : 'pisos'}` : ''}
+                        {status.has(l.request_id) && (
+                          <span className="font-semibold text-tinta-700"> · {PROPOSAL_LABEL[status.get(l.request_id)!]}</span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="text-[17px] tabular-nums text-slate-900 md:text-right">{formatArea(l.area_total_cm2)}</span>
+                    <span className="text-right text-[15px] tabular-nums text-slate-600">
+                      <span className="block text-[17px] text-slate-900">{l.prazo_propostas.split('-').reverse().join('/')}</span>
+                      {/* Alarme em texto dentro de lista, nunca fundo de cor (regra 13). */}
+                      <span className={prazo.nivel === 'hoje' ? 'font-semibold text-amber-800' : prazo.nivel === 'atencao' ? 'text-amber-800' : ''}>
+                        {fraseDePrazo(prazo)}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
     </div>
   );

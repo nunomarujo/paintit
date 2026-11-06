@@ -6242,3 +6242,13 @@ caducar** só quando algum caduca em 30 dias (âmbar o que ainda se resolve, ver
 As escolhas vivem em `src/domain/hojeDoPintor.ts`, com testes. O bloco «Avisos» passou a componente comum
 (`AvisosDoInicio.tsx`). Visto com dados fictícios no computador e no telemóvel (390px: sem deslocamento
 horizontal, sem alvos abaixo de 44px); não visto com dados reais.
+
+## 06/11/2026 — Oportunidades do pintor: lista em colunas
+
+A lista era um bloco cinzento em duas colunas de texto corrido («· Porto», área e prazo misturados na mesma
+linha). Passa a **uma lista de linhas** num cartão: identidade à esquerda (tipo · concelho, pedido, pisos, a
+proposta da empresa se houver), **área** e **propostas até** em colunas à direita, em algarismos tabulares, com
+cabeçalho de 13px sem faixa; no telemóvel a área e o prazo ficam lado a lado. O aviso de prazo é texto âmbar
+(nunca fundo, regra 13). A frase longa sobre anonimato passou para um (i) e uma linha diz o que a vista tem
+(«7 pedidos abertos · 3 a fechar em 3 dias · 2 com proposta sua»), que muda com os filtros. Os campos usam
+`campo` (regra 17). Visto com dados fictícios no computador e no telemóvel (sem deslocamento, sem alvos < 44px).
