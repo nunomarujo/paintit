@@ -1,11 +1,13 @@
 /**
  * Textos dos emails das campanhas do CRM (promotor, 06/11/2026). Isto é o RASCUNHO inicial de cada campanha: o texto que
  * vale é o guardado em `crm_campanhas`, que só envia depois de o promotor o aprovar. Aqui só se escrevem factos que a
- * plataforma já cumpre: propostas abertas em simultâneo, contrato assinado na plataforma, e nada de números de propostas.
- * Regra 15: ao cliente nunca se fala de comissão; a oferta de comissão é só para pintores e fornecedores.
+ * plataforma já cumpre (ver `BENEFICIOS_PRO` em `painterPlan.ts`) e as condições da campanha de lançamento, lidas de
+ * `CAMPANHA_DE_LANCAMENTO`, o mesmo sítio dos flyers. Nunca números de propostas; regra 15: nunca comissão ao cliente,
+ * nem percentagens a quem ainda não aceitou os termos do pintor.
  */
 
 import { COMPANY } from '@/config/company';
+import { CAMPANHA_DE_LANCAMENTO } from './campanhas';
 import { BRAND } from '@/config/brand';
 
 export interface TextoDeCampanha {
@@ -15,27 +17,31 @@ export interface TextoDeCampanha {
   cta: string;
 }
 
+const ATE = CAMPANHA_DE_LANCAMENTO.ateEmPalavras;
+
 export const TEXTOS_INICIAIS: Record<string, TextoDeCampanha> = {
   'pintor-1': {
-    assunto: 'Orçamentar obras de pintura sem perder tempo',
+    assunto: 'Plano Pro grátis até 31 de janeiro, para empresas de pintura',
     corpo: `Bom dia, {nome}.
 
-Sou o Nuno, da Quem Pinta, uma plataforma portuguesa onde condomínios e particulares descrevem a obra e pintores verificados enviam o seu orçamento. Estamos a abrir em Viana do Castelo.
+Sou o Nuno, da Quem Pinta, uma ferramenta de orçamentação e gestão de obra para empresas de pintura, com marketplace incluído. Estamos a abrir em Viana do Castelo.
 
-A plataforma ajuda a montar o orçamento a partir das medidas do pedido, e as propostas só são abertas ao cliente no fim do prazo, todas ao mesmo tempo: ninguém ganha por entregar primeiro.
+Até ${ATE}, o Plano Pro não tem custo para as empresas que aderirem por este email. Inclui orçamentos com o seu logótipo e contactos, prontos a exportar ou a enviar aos seus clientes; o seguimento automático dos orçamentos enviados; o cofre de documentos, com aviso antes de caducarem; adendas de trabalhos a mais aceites pelo cliente num clique; o diário fotográfico da obra; e desconto na comissão das obras ganhas pelo marketplace.
 
-Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão da plataforma.`,
-    cta: 'Ver como funciona',
+Os orçamentos para os seus clientes próprios não pagam comissão.
+
+Se aderir mais tarde, indique o código {codigo}.`,
+    cta: 'Experimentar o Plano Pro',
   },
   'pintor-2': {
-    assunto: 'Obras de pintura na sua zona, com contrato assinado na plataforma',
+    assunto: 'Obras de pintura na sua zona, e orçamentos com o seu logótipo',
     corpo: `Bom dia, {nome}.
 
-Sou o Nuno, da Quem Pinta. Condomínios e particulares publicam aqui as obras de pintura que querem orçamentar, e os pintores verificados da zona respondem com a sua proposta.
+Sou o Nuno, da Quem Pinta. Condomínios e particulares publicam aqui as obras de pintura que querem orçamentar, e as empresas verificadas respondem com a sua proposta. Quando o cliente escolhe, o contrato assina-se na própria plataforma, pelas duas partes.
 
-Quando o cliente escolhe, o contrato assina-se na própria plataforma, pelas duas partes. Não há contactos soltos nem propostas perdidas em conversas.
+Até ${ATE}, o Plano Pro não tem custo para as empresas que aderirem por este email: orçamentos com o seu logótipo e contactos, que pode exportar ou enviar aos seus clientes, cofre de documentos, adendas aceites pelo cliente e diário de obra.
 
-Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão da plataforma.`,
+Se aderir mais tarde, indique o código {codigo}.`,
     cta: 'Ver as obras da zona',
   },
   'fornecedor-1': {
@@ -44,20 +50,20 @@ Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão
 
 Sou o Nuno, da Quem Pinta. Quando um pintor monta um orçamento na plataforma, escolhe os produtos de um catálogo. Os fornecedores que lá estão aparecem no momento em que a escolha é feita.
 
-Estamos a abrir em Viana do Castelo e a convidar as lojas e distribuidores de tintas da zona.
+Estamos a abrir em Viana do Castelo. Até ${ATE}, a presença no catálogo não tem subscrição para os fornecedores que aderirem por este email.
 
-Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão da plataforma.`,
+Se aderir mais tarde, indique o código {codigo}.`,
     cta: 'Ver como entrar no catálogo',
   },
   'fornecedor-2': {
     assunto: 'Quem vê a obra primeiro vende a tinta',
     corpo: `Bom dia, {nome}.
 
-Sou o Nuno, da Quem Pinta. Antes de um pintor orçamentar, alguém tem de ver a obra e medi-la. Na plataforma, os fornecedores podem ser avaliadores desses levantamentos na sua zona.
+Sou o Nuno, da Quem Pinta. Antes de um pintor orçamentar, alguém tem de ver a obra e medi-la. Na plataforma, os fornecedores podem ser avaliadores desses levantamentos na sua zona. Quem vê a obra primeiro conhece o que vai ser preciso.
 
-Quem vê a obra primeiro conhece o que vai ser preciso. Estamos a abrir em Viana do Castelo.
+Estamos a abrir em Viana do Castelo. Até ${ATE}, a presença no catálogo não tem subscrição para os fornecedores que aderirem por este email.
 
-Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão da plataforma.`,
+Se aderir mais tarde, indique o código {codigo}.`,
     cta: 'Ver como ser avaliador',
   },
   'condominio-1': {
@@ -66,9 +72,9 @@ Quem se registar com o código {codigo} tem 5% de desconto na primeira comissão
 
 Sou o Nuno, da Quem Pinta. Para quem administra condomínios: descreve-se a obra uma vez e pintores verificados enviam as suas propostas, que só são abertas no fim do prazo, todas ao mesmo tempo.
 
-Cada proposta fica comparável com as outras, e a plataforma gera um relatório pronto para levar à assembleia. Estamos a abrir em Viana do Castelo.
+Cada proposta fica comparável com as outras, e a plataforma gera um relatório pronto para levar à assembleia. Estamos a abrir em Viana do Castelo. Até ${ATE}, o relatório e o acesso dos condóminos não têm custo para os prédios registados por este email.
 
-Para os prédios que registar com o código {codigo}, o relatório e o acesso dos condóminos não têm custo.`,
+Se registar mais tarde, indique o código {codigo}.`,
     cta: 'Ver um exemplo de relatório',
   },
   'condominio-2': {
@@ -77,9 +83,9 @@ Para os prédios que registar com o código {codigo}, o relatório e o acesso do
 
 Sou o Nuno, da Quem Pinta. Na plataforma, os condóminos de um prédio podem ver as propostas de pintura e votar, e a administração fica com o resultado registado.
 
-Estamos a abrir em Viana do Castelo e a convidar as administradoras da zona.
+Estamos a abrir em Viana do Castelo. Até ${ATE}, o relatório e o acesso dos condóminos não têm custo para os prédios registados por este email.
 
-Para os prédios que registar com o código {codigo}, o relatório e o acesso dos condóminos não têm custo.`,
+Se registar mais tarde, indique o código {codigo}.`,
     cta: 'Ver como funciona',
   },
 };

@@ -59,7 +59,7 @@ export default async function CrmPage() {
           </ul>
         )}
         <p className="mt-2 max-w-[54ch] text-[15px] text-slate-600">
-          O código de desconto no texto só se cumpre quando o registo o ler e aplicar: confirmar isso antes de aprovar as campanhas de pintores e fornecedores.
+          A oferta («Plano Pro» grátis, catálogo sem subscrição, relatório sem custo) só se cumpre quando o registo ler o código do link e a conceder: não aprovar nenhuma campanha antes de isso estar construído.
         </p>
       </section>
 

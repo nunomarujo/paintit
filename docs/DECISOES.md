@@ -6542,3 +6542,17 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 - **Dossier** (`crm_dossier`) e estratégia em `docs/CRM_ESTRATEGIA.md`. A fonte do dossier (o «founder-skill») está por indicar.
 - Migração `20261106165113_crm_campanhas_e_dossier` aplicada e verificada (campanha não aprovada recusada, aprovada envia,
   em correção recusada; sem rasto).
+
+### 06/11/2026 — CRM: a oferta passa a ser a campanha de lançamento (Plano Pro grátis até 31/01/2027)
+
+- O promotor, vendo o flyer de pintores («Plano Pro gratuito até 2027, pelo QR»), indicou esse tipo de oferta como o que
+  pode funcionar, e pediu que se dissesse o que o Pro oferece. **Substitui os «5% na primeira comissão»**, que eram fracos
+  (o Pro já inclui desconto na comissão) e que o texto tinha de prometer com um número.
+- **Pintores:** Plano Pro sem custo até 31/01/2027 para quem aderir pelo email. Texto com o que o Pro inclui hoje
+  (`BENEFICIOS_PRO`): orçamentos com logótipo e contactos, exportar ou enviar aos clientes, seguimento automático dos
+  orçamentos, cofre de documentos com aviso, adendas de trabalhos a mais aceites num clique, diário fotográfico e desconto
+  na comissão do marketplace; clientes próprios sem comissão. **Fornecedores:** presença no catálogo sem subscrição.
+  **Administradoras:** relatório e acesso dos condóminos sem custo. Datas e condições lidas de `CAMPANHA_DE_LANCAMENTO`.
+- **Sem percentagens nem valores de comissão nos emails** (regra 15; o pintor só os vê depois de aceitar os termos): teste.
+- **Por construir antes de aprovar qualquer campanha:** quem chega pelo link (`k`) ou pelo QR (`c`) tem de ficar com a
+  oferta concedida. Hoje o Pro só se obtém por pagamento (Stripe) ou por cortesia manual em SQL; nada lê `k` nem `c`.
