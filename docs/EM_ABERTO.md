@@ -43,8 +43,9 @@ publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver 
 (`zz-test-convocatoria`, concelho de Viana do Castelo, levantamento n.º 1012) fez sair a **1.ª onda** ao minuto seguinte
 para o único avaliador elegível (a empresa Exotictarget), entregue no telemóvel de teste. Antes disso a convocatória
 respondia «sem candidatos» aos levantamentos antigos de teste porque a empresa tinha as reservas dessas ofertas
-**libertadas** (excluída delas). Por ver: o «Aceito» no telemóvel (reserva) e a 2.ª onda, 60 minutos úteis depois (só
-se vê com mais de um avaliador). Depois do teste, apagar as entidades `zz-test-convocatoria-*`; (2) o modelo `avaliador_nova_oportunidade` foi
+**libertadas** (excluída delas). O «Aceito» foi respondido 8 segundos depois e o levantamento ficou **reservado**: o circuito (onda → convite →
+«Aceito» → reserva → resposta) passou de ponta a ponta com a convocatória a sério. Os dados de teste foram apagados. Por
+ver: a 2.ª onda, 60 minutos úteis depois (só se vê com mais de um avaliador elegível); (2) o modelo `avaliador_nova_oportunidade` foi
 **reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa). A 05/11/2026,
 18:58, a Meta enviou «pedido para atualizar a categoria de UTILITY para MARKETING aprovado… podes continuar a
 enviar mensagens com este modelo»: o modelo **funciona, como Marketing**. Não foi um recurso ganho — se o custo
