@@ -6484,3 +6484,15 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 - **Porta legal na base:** um gatilho recusa envios a quem não é pessoa coletiva ou já desistiu (Lei 41/2004,
   art. 13.º-A). Clientes particulares ficam fora do email frio. Validação jurídica final por fazer.
 - **Fora desta entrega:** descoberta de contactos, envio, receção de respostas, uso do `?c=` na adesão.
+
+### 06/11/2026 — CRM: descoberta de contactos
+
+- **Fonte:** OpenStreetMap (Overpass), só o que é público e aberto (ODbL, atribuição em `fonte`): `craft=painter` (pintores),
+  `shop=paint` (fornecedores), `office=property_management` (administradoras). Google Maps fora, por termos de uso.
+- **Pessoa coletiva só com forma societária no nome** (Lda, S.A., Unipessoal…); na dúvida fica `false` e a base recusa o
+  envio. Contactos sem email guardam-se na mesma (telefone, website) para outra via.
+- **Construído:** `src/domain/crmDescoberta.ts` (puro, testado), `src/lib/crmDescoberta.ts` (pedido ao Overpass, com
+  servidor de reserva), botão «Pesquisar contactos» por zona. Colunas `telefone` e `website` acrescentadas à migração
+  `crm_fundacao` (ainda por aplicar).
+- **Não verificado com dados reais:** o ambiente de desenvolvimento não alcança o Overpass; a primeira pesquisa real
+  faz-se na aplicação, depois de a migração estar aplicada. IMPIC e nif.pt ficam para a seguir.

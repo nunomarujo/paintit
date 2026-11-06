@@ -1,5 +1,6 @@
 import { FLYERS } from '@/domain/campanhas';
 import { decidirCampanha, sequenciaDeCampanhas, type Resultados } from '@/domain/crm';
+import { Descobrir } from './Descobrir';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -69,6 +70,7 @@ export default async function CrmPage() {
                     ))}
                   </dl>
                   {dela.length > 0 && <p className="mt-3 text-[15px] text-slate-600">{decisao.motivo}</p>}
+                  <Descobrir zonaId={z.id} />
                 </li>
               );
             })}

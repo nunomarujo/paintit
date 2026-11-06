@@ -245,9 +245,9 @@ export type Database = {
         Relationships: [];
       };
       crm_contactos: {
-        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string };
-        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
-        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
+        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; telefone: string | null; website: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string };
+        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; telefone?: string | null; website?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
+        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; telefone?: string | null; website?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
         Relationships: [];
       };
       crm_envios: {

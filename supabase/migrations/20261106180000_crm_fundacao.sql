@@ -22,6 +22,8 @@ create table public.crm_contactos (
   tipo text not null check (tipo in ('pintor', 'fornecedor', 'administradora')),
   nome text not null check (length(btrim(nome)) > 0),
   email text check (email is null or email ~ '^[^\s@]+@[^\s@]+\.[^\s@]+$'),
+  telefone text,
+  website text,
   fonte text not null check (length(btrim(fonte)) > 0),
   -- Só pessoas coletivas recebem email frio. Empresário em nome individual conta como singular.
   pessoa_coletiva boolean not null default false,
