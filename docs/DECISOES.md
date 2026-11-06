@@ -6173,3 +6173,12 @@ cliente também mede, na ferramenta de fotografia; a zona fica com origem própr
 **Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
 abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
 na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».
+
+## 06/11/2026 — A paleta QP está aprovada
+
+O promotor aprovou a paleta própria da Quem Pinta tal como foi proposta: as 60 cores `QP-001` a `QP-060`, com os
+nomes, os tons e as oito famílias que estão na migração `20261106084200_interior_e_cores` (já aplicada e em
+produção). É a tabela de cores da aplicação; RAL, NCS e Pantone não entram (precisariam de licença da RAL gGmbH ou
+da NCS Colour AB, e ninguém a pediu). Quem souber um código desses continua a poder escrevê-lo no campo, como texto.
+Mudar, acrescentar ou desativar uma cor faz-se pela equipa (`paleta_cores`, escrita só da equipa); desativar
+(`ativa = false`) em vez de apagar, porque há referências gravadas em pedidos e contratos.
