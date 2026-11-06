@@ -10,6 +10,9 @@ import {
   proximoNumero,
   separadoresDoPasso,
   totalDoInterior,
+  divisoesAOferecer,
+  vaoDesconta,
+  lerInterior,
   type Divisao,
 } from './interior';
 
@@ -31,10 +34,10 @@ const geral = { metros: 2.6, aceiteComoCorrente: false };
 
 describe('interior: paredes = perímetro × pé-direito − vãos', () => {
   it('um quarto de 4 × 3 com 2,6 m: 36,4 m² de paredes', () => {
-    expect(areasDaDivisao(div(), geral, 'desenho')).toEqual({ paredesM2: 36.4, tetoM2: null, certeza: 'declarada', falta: [] });
+    expect(areasDaDivisao(div(), geral, 'desenho')).toEqual({ paredesM2: 36.4, tetoM2: null, certeza: 'declarada', falta: [], vaosDescontadosM2: 0 });
   });
 
-  it('vãos: só os maiores do que o mínimo descontam (o valor é parâmetro, por decidir)', () => {
+  it('vãos: só os maiores do que o mínimo descontam (o valor é parâmetro; 1 m² decidido a 06/11/2026)', () => {
     const porta = { larguraM: 0.8, alturaM: 2, quantidade: 1 }; // 1,6 m²
     const postigo = { larguraM: 0.5, alturaM: 0.5, quantidade: 2 }; // 0,25 m² cada
     expect(areasDaDivisao(div({ vaos: [porta, postigo] }), geral, 'desenho').paredesM2).toBe(34.8);
@@ -99,16 +102,45 @@ describe('planta à escala', () => {
 
 describe('separadores do passo «Medidas e fotografias»', () => {
   it('interior e exterior: Alçados e Interior', () => {
-    expect(separadoresDoPasso(['fachadas', 'interior'])).toEqual({ modo: 'separadores', primeiro: 'Alçados' });
-    expect(separadoresDoPasso(['moradia', 'interior', 'caleiras'])).toEqual({ modo: 'separadores', primeiro: 'Alçados' });
+    expect(separadoresDoPasso(['fachadas', 'interior'])).toMatchObject({ modo: 'separadores', primeiro: 'Alçados', rotuloInterior: 'Interior da habitação' });
+    expect(separadoresDoPasso(['moradia', 'interior', 'caleiras'])).toMatchObject({ modo: 'separadores', primeiro: 'Alçados' });
   });
   it('só interior: sem separadores', () => {
-    expect(separadoresDoPasso(['interior'])).toEqual({ modo: 'so_interior' });
-    expect(separadoresDoPasso(['interior', 'caleiras'])).toEqual({ modo: 'so_interior' });
+    expect(separadoresDoPasso(['interior'])).toMatchObject({ modo: 'so_interior', habitacao: true, comuns: false });
+    expect(separadoresDoPasso(['interior', 'caleiras'])).toMatchObject({ modo: 'so_interior' });
   });
-  it('sem interior: como sempre; zonas comuns não se mexem', () => {
-    expect(separadoresDoPasso(['fachadas'])).toEqual({ modo: 'so_zonas' });
-    expect(separadoresDoPasso(['zonas_comuns', 'interior'])).toEqual({ modo: 'separadores', primeiro: 'Zonas e medidas' });
+  it('sem interior nem zonas comuns: como sempre', () => {
+    expect(separadoresDoPasso(['fachadas'])).toMatchObject({ modo: 'so_zonas' });
+  });
+  it('zonas comuns usam a ferramenta do interior, com a lista de zonas ao lado (06/11/2026)', () => {
+    expect(separadoresDoPasso(['zonas_comuns'])).toMatchObject({ modo: 'separadores', primeiro: 'Zonas e medidas', rotuloInterior: 'Zonas comuns: paredes e tetos', comuns: true, habitacao: false });
+    expect(separadoresDoPasso(['zonas_comuns', 'interior'])).toMatchObject({ rotuloInterior: 'Interior e zonas comuns' });
+    expect(divisoesAOferecer({ habitacao: false, comuns: true })).toEqual(['atrio', 'patamar', 'corredor_comum', 'escadas']);
+    expect(divisoesAOferecer({ habitacao: true, comuns: false })).not.toContain('escadas');
+  });
+  it('as escadas ficam sempre por medir, digam-se as medidas que se disserem', () => {
+    const a = areasDaDivisao(div({ tipo: 'escadas', comprimentoM: 4, larguraM: 3, pintarTeto: true }), geral, 'desenho');
+    expect(a).toMatchObject({ paredesM2: null, tetoM2: null, certeza: 'desconhecida' });
+    expect(a.falta[0]).toMatch(/escadas/);
+  });
+});
+
+describe('vãos marcados à mão (06/11/2026)', () => {
+  const pequeno = { larguraM: 0.5, alturaM: 0.5, quantidade: 1 }; // 0,25 m²
+  const porta = { larguraM: 0.8, alturaM: 2, quantidade: 1 }; // 1,6 m²
+  it('à mão manda sobre a regra dos 1 m², nos dois sentidos', () => {
+    expect(vaoDesconta(pequeno)).toBe(false);
+    expect(vaoDesconta({ ...pequeno, descontar: 'sim' })).toBe(true);
+    expect(vaoDesconta({ ...porta, descontar: 'nao' })).toBe(false);
+  });
+  it('mostra quanto se descontou', () => {
+    const a = areasDaDivisao(div({ vaos: [porta, { ...pequeno, descontar: 'sim' }] }), geral, 'desenho');
+    expect(a.vaosDescontadosM2).toBe(1.85);
+    expect(a.paredesM2).toBe(34.55);
+  });
+  it('o servidor lê a escolha; o que não for sim nem não é automático', () => {
+    const r = lerInterior({ modo: 'desenho', peDireitoM: 2.6, divisoes: [{ tipo: 'sala', numero: 1, vaos: [{ larguraM: 0.5, alturaM: 0.5, quantidade: 1, descontar: 'sim' }, { larguraM: 1, alturaM: 2, quantidade: 1, descontar: 'talvez' }] }] });
+    expect(r.value?.divisoes[0]?.vaos.map((v) => v.descontar)).toEqual(['sim', 'auto']);
   });
 });
 
@@ -132,7 +164,6 @@ describe('nomes e leitura', () => {
   });
 });
 
-import { lerInterior } from './interior';
 describe('o que o ecrã envia, validado no servidor', () => {
   const ok = { modo: 'desenho', peDireitoM: 2.6, divisoes: [{ tipo: 'sala', numero: 1, comprimentoM: 5, larguraM: 4, vaos: [{ larguraM: 0.9, alturaM: 2, quantidade: 1 }] }] };
   it('aceita o que é válido', () => {
@@ -170,5 +201,18 @@ describe('a declaração gravada (contrato e anúncio)', () => {
   });
   it('nada a pintar, nada a declarar', () => {
     expect(declaracaoDasDivisoesGravadas([g({ pintar_paredes: false })], 'x')).toEqual([]);
+  });
+});
+
+describe('a declaração das zonas comuns', () => {
+  it('diz «Zonas comuns» e as escadas ficam por medir', () => {
+    const f = declaracaoDasDivisoesGravadas(
+      [
+        { tipo: 'atrio', numero: 1, pintar_paredes: true, pintar_teto: false, area_paredes_cm2: 4000, area_teto_cm2: null, pe_direito_cm: null, cor_referencia: null, certeza: 'declarada' },
+        { tipo: 'escadas', numero: 1, pintar_paredes: true, pintar_teto: false, area_paredes_cm2: null, area_teto_cm2: null, pe_direito_cm: null, cor_referencia: null, certeza: 'desconhecida' },
+      ],
+      'x',
+    );
+    expect(f[0]).toBe('Zonas comuns — Átrio, Escadas; paredes 40 m²; 1 divisão por medir.');
   });
 });

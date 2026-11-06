@@ -119,3 +119,30 @@ export function calcularGarantia(inicio: string | null, anos: number | null): Ga
 
 /** A data em que a garantia começa: só com a conclusão confirmada pelas duas partes. */
 export const inicioDaGarantia = (e: EstadoDaConclusao): string | null => (e.estado === 'confirmada' ? e.dataConclusao : null);
+
+export interface PassoComId extends PassoRegistado {
+  id: string;
+  engagementId: string;
+}
+
+/**
+ * Os lembretes que se devem hoje (decisão do promotor, 06/11/2026: lembrete ao 7.º dia). Para cada
+ * contratação cuja conclusão está por confirmar, a declaração mais recente com 7 dias ou mais pede um
+ * lembrete à outra parte. A chave do lembrete é a declaração: a tarefa diária regista-o em `toques` e
+ * nunca o envia duas vezes; uma nova declaração tem o seu próprio lembrete.
+ */
+export function lembretesDaConclusao(passos: readonly PassoComId[], agora: Date): { declaracaoId: string; engagementId: string; para: Lado }[] {
+  const porContratacao = new Map<string, PassoComId[]>();
+  for (const p of passos) porContratacao.set(p.engagementId, [...(porContratacao.get(p.engagementId) ?? []), p]);
+  const devidos: { declaracaoId: string; engagementId: string; para: Lado }[] = [];
+  for (const [engagementId, lista] of porContratacao) {
+    const e = estadoDaConclusao(lista, agora);
+    if (e.estado !== 'por_confirmar') continue;
+    const declaracao = [...lista].filter((p) => p.passo === 'declarou' && p.dataConclusao).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))[0];
+    if (!declaracao) continue;
+    if (agora.getTime() - Date.parse(declaracao.criadoEm) >= DIAS_DO_LEMBRETE * 86_400_000) {
+      devidos.push({ declaracaoId: declaracao.id, engagementId, para: declaracao.lado === 'cliente' ? 'pintor' : 'cliente' });
+    }
+  }
+  return devidos;
+}

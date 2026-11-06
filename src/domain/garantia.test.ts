@@ -56,3 +56,19 @@ describe('garantia e conservação', () => {
     expect(calcularGarantia('2026-11-01', null)).toBeNull();
   });
 });
+
+import { lembretesDaConclusao } from './garantia';
+describe('lembrete ao 7.º dia (06/11/2026)', () => {
+  const dec = { id: 'd1', engagementId: 'e1', lado: 'pintor' as const, passo: 'declarou' as const, dataConclusao: '2026-11-01', criadoEm: '2026-11-01T10:00:00Z' };
+  it('antes dos 7 dias, nada; a partir daí, à outra parte', () => {
+    expect(lembretesDaConclusao([dec], new Date('2026-11-07T10:00:00Z'))).toEqual([]);
+    expect(lembretesDaConclusao([dec], new Date('2026-11-08T10:00:00Z'))).toEqual([{ declaracaoId: 'd1', engagementId: 'e1', para: 'cliente' }]);
+  });
+  it('confirmada, contestada ou passada dos 15 dias: sem lembrete', () => {
+    const conf = { ...dec, id: 'c1', lado: 'cliente' as const, passo: 'confirmou' as const, dataConclusao: null, criadoEm: '2026-11-02T10:00:00Z' };
+    expect(lembretesDaConclusao([dec, conf], new Date('2026-11-08T10:00:00Z'))).toEqual([]);
+    const disc = { ...conf, passo: 'discordou' as const };
+    expect(lembretesDaConclusao([dec, disc], new Date('2026-11-08T10:00:00Z'))).toEqual([]);
+    expect(lembretesDaConclusao([dec], new Date('2026-11-17T10:00:00Z'))).toEqual([]);
+  });
+});

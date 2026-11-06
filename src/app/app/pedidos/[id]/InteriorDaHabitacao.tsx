@@ -13,7 +13,9 @@ import {
   MODO_INTERIOR_LABELS,
   TIPOS_DE_DIVISAO,
   TIPO_DE_DIVISAO_LABELS,
+  VAO_MINIMO_INTERIOR_M2,
   areasDaDivisao,
+  vaoDesconta,
   divisaoDaPlanta,
   escalaDaPlanta,
   lerMetros,
@@ -94,6 +96,7 @@ export function InteriorDaHabitacao({
   coresDeFabricante,
   materiais,
   podeEditar,
+  oferecer = [...TIPOS_DE_DIVISAO],
 }: {
   requestId: string;
   inicial: InteriorInicial;
@@ -101,12 +104,14 @@ export function InteriorDaHabitacao({
   coresDeFabricante: CorDeFabricante[];
   materiais: MaterialDeReferencia[];
   podeEditar: boolean;
+  /** As divisões que se podem acrescentar: as da habitação, as das zonas comuns, ou ambas (`divisoesAOferecer`). */
+  oferecer?: TipoDeDivisao[];
 }) {
   const [modo, setModo] = useState<ModoInterior>(inicial.modo ?? 'desenho');
   const [pe, setPe] = useState<number | null>(inicial.peDireitoM);
   const [corrente, setCorrente] = useState(inicial.aceiteComoCorrente);
   const [divisoes, setDivisoes] = useState<DivisaoEnviada[]>(inicial.divisoes);
-  const [tipoNovo, setTipoNovo] = useState<TipoDeDivisao>('sala');
+  const [tipoNovo, setTipoNovo] = useState<TipoDeDivisao>(oferecer[0] ?? 'sala');
   const chave = (d: Pick<DivisaoEnviada, 'tipo' | 'numero'>) => `${d.tipo}.${d.numero}`;
   // Divisões irregulares: indicam o perímetro em vez de comprimento × largura.
   const [irregulares, setIrregulares] = useState(() => new Set(inicial.divisoes.filter((d) => d.perimetroM !== null && d.comprimentoM === null).map(chave)));
@@ -332,8 +337,14 @@ export function InteriorDaHabitacao({
                       </div>
                       <div className="space-y-2">
                         <p className="text-[15px] font-medium text-slate-700">
-                          Portas e janelas <span className="font-normal text-slate-600">(só se descontam as indicadas)</span>
+                          Portas e janelas{' '}
+                          <span className="font-normal text-slate-600">
+                            (só se descontam as indicadas; sozinhas, as maiores do que {String(VAO_MINIMO_INTERIOR_M2).replace('.', ',')} m²)
+                          </span>
                         </p>
+                        {a.vaosDescontadosM2 > 0 && (
+                          <p className="text-[15px] text-slate-700 [font-variant-numeric:tabular-nums]">Descontado das paredes: {m2(a.vaosDescontadosM2)}.</p>
+                        )}
                         {d.vaos.map((v, k) => (
                           <div key={k} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
                             <Metros rotulo="Largura" valor={v.larguraM} max={20} onChange={(x) => mudar(i, { vaos: d.vaos.map((w, j) => (j === k ? { ...w, larguraM: x ?? 0 } : w)) })} />
@@ -352,6 +363,19 @@ export function InteriorDaHabitacao({
                             <button type="button" className="btn-quiet btn-sm" onClick={() => mudar(i, { vaos: d.vaos.filter((_, j) => j !== k) })}>
                               Tirar
                             </button>
+                            <label className="col-span-4 flex flex-wrap items-center gap-2 text-[15px] text-slate-700">
+                              Descontar este vão:
+                              <select
+                                className="campo w-auto"
+                                value={v.descontar ?? 'auto'}
+                                onChange={(e) => mudar(i, { vaos: d.vaos.map((w, j) => (j === k ? { ...w, descontar: e.target.value as 'auto' | 'sim' | 'nao' } : w)) })}
+                              >
+                                <option value="auto">Automático (maior do que {String(VAO_MINIMO_INTERIOR_M2).replace('.', ',')} m²)</option>
+                                <option value="sim">Sim</option>
+                                <option value="nao">Não</option>
+                              </select>
+                              <span className="text-slate-600">{vaoDesconta(v) ? 'descontado' : 'não descontado'}</span>
+                            </label>
                           </div>
                         ))}
                         <button type="button" className="btn-quiet btn-sm" onClick={() => mudar(i, { vaos: [...d.vaos, { larguraM: 0.8, alturaM: 2, quantidade: 1 }] })}>
@@ -389,7 +413,7 @@ export function InteriorDaHabitacao({
             <label className="text-[15px] font-medium text-slate-700">
               Divisão
               <select className="campo mt-1" value={tipoNovo} onChange={(e) => setTipoNovo(e.target.value as TipoDeDivisao)}>
-                {TIPOS_DE_DIVISAO.map((t) => (
+                {oferecer.map((t) => (
                   <option key={t} value={t}>
                     {TIPO_DE_DIVISAO_LABELS[t]}
                   </option>

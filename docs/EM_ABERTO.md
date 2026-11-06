@@ -93,27 +93,14 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
 | Página do Pro: adenda e diário | A página vende-os como do Pro, mas estão abertos a todas as empresas desde 25/10/2026. Fechá-los ao Pro, tirá-los da lista, ou escrevê-los como «também no gratuito»? | `DECISOES.md` 06/11/2026, «Subscrição: opção 3» |
-| Caleiras: opções de «estado» | Gravadas como proposta: bom estado, desgaste ou tinta a descascar, ferrugem, furos ou partes partidas, não sei. Confirmar ou corrigir | `DECISOES.md` 06/11/2026, «Caleiras» |
-| Caleiras: comprimento total | Pedido como facultativo (base de um preço por metro linear). Manter, tornar obrigatório ou tirar? | `DECISOES.md` 06/11/2026, «Caleiras» |
-| Telefone no contrato: validar por SMS? | Hoje regista-se sem validação (só o email tem código). SMS tem custo por mensagem | `DECISOES.md` 06/11/2026, «IBAN, contactos e comprovativos» |
-| IBAN estrangeiro | Só se aceita IBAN português (PT50). Há clientes ou pintores com conta noutro país? | idem |
-| Comprovativo vs. confirmação do pintor | O comprovativo do cliente não marca a tranche como recebida; é o pintor que confirma. Confirmar | idem |
+| IBAN estrangeiro | Decidido: só português por agora; SEPA só com um caso real. **Há já algum cliente ou pintor com conta noutro país?** | idem |
 | Jurista: elementos do contrato | Redação da cláusula 4-A; histórico que não se apaga e direito ao apagamento (RGPD); valor dos comprovativos como prova. Acrescentar ao documento de questões jurídicas (Claude Docs) | idem |
-| Conclusão da obra: prazo para confirmar | Proposta: 15 dias, lembrete aos 7 (o lembrete ainda não está ligado à tarefa diária). Confirmar | `DECISOES.md` 06/11/2026, «Conclusão da obra» |
-| Conclusão: discordar com razão | Construído como proposta (fica registado, sem julgamento). Confirmar | idem |
-| Conclusão: ação própria ou estado do diário | Construída a ação «Declarar a obra concluída»; o estado `concluida` do diário não conta. Confirmar | idem |
-| Obra que ninguém declarou concluída | Os registos ficam sem limite. Que limite máximo? (com o jurista) | idem |
+| Obra que ninguém declarou concluída | Os registos não se apagam. O limite máximo decide-se com o jurista | idem |
 | Conta encerrada durante o período de conservação | Proposta: registos mantidos, acesso só às partes e à equipa. Validar com o jurista | idem |
 | Jurista: conservação vs. prazo legal de 5 anos | Garantia de 2 anos + 24 meses = 4 anos, abaixo dos 5 do art. 1225.º CC citado no contrato. Conservar pelo prazo mais longo? Valor da prova junta por uma só parte; papel de «terceira isenta» | idem |
-| Relatório do percurso: o pintor também pede? | Hoje só o cliente pede (e a equipa emite a versão completa) | `DECISOES.md` 06/11/2026, «registo do percurso negocial» |
-| Relatório do cliente: pintores que não ganharam | Hoje aparecem como «Pintor A/B», só com o estado da proposta. Mostrar mais? | idem |
 | Jurista: registo e relatório | Conservação e prazo; RGPD face a um registo que não se apaga; conteúdo a entregar; entrega gratuita | idem |
-| Interior: vãos | Só descontam os maiores do que 1 m² (provisório, a regra das fachadas). Ou descontam sempre? | `DECISOES.md` 06/11/2026, «Interior da habitação» |
-| Interior: estimativa de litros | Aparece a quem preenche (cliente ou avaliador). Só ao avaliador? | idem |
-| Interior: no pedido ou primeiro em ensaio | Entrou já no pedido (em rascunho). Preferia primeiro um ecrã de ensaio como `/demo-areas`? | idem |
-| Fachadas: ligar `/demo-areas` ao pedido | A ferramenta existe mas não grava no pedido. Entra numa próxima sessão? É só do avaliador ou também do cliente? | idem |
-| Zonas comuns e o interior | As zonas comuns usam esta ferramenta? Hoje continuam na lista de zonas | idem |
-| Interior: plantas reais para ensaio | 3 ou 4 plantas com uma parede de medida conhecida, e uma casa medida à fita ou laser | promotor |
+| Fachadas: ligar `/demo-areas` ao pedido | Decidido: próxima sessão (a da «Medição de zonas»), e o cliente também mede (decisão de 05/11/2026). Falta construir o botão do passo 2 | idem |
+| Interior: plantas reais para ensaio | 3 ou 4 plantas com uma parede de medida conhecida, e uma casa medida à fita ou laser. Até lá, o interior não se anuncia aos clientes | promotor |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)
@@ -195,6 +182,8 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 
 ## 3. Por construir (já decidido, ainda não feito)
+
+- **Escadas das zonas comuns:** uma regra de medição própria (hoje ficam «Por medir»), decisão do promotor de 06/11/2026.
 
 - **Poderes de quem assina (05/11/2026), o que fica da versão manual** (`DECISOES.md`, «Poderes de quem assina»):
   a leitura automática da certidão, só depois da autorização do IRN (secção 1); o **SCAP** (assinatura com o

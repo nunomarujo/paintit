@@ -329,3 +329,34 @@ describe('registo do percurso negocial (06/11/2026)', () => {
     expect(await tipos('request_id', r)).toEqual(expect.arrayContaining(['relatorio_emitido', 'relatorio_entregue']));
   });
 });
+
+describe('respostas de 06/11/2026: zonas comuns e o relatório do pintor', () => {
+  it('as divisões das zonas comuns gravam-se; outras não', async () => {
+    const r = (await one<{ request_id: string }>('select request_id from public.engagements where id = $1', [aberta])).request_id;
+    await db.query(`insert into public.request_rooms (request_id, tipo, numero) values ($1, 'atrio', 1), ($1, 'escadas', 1)`, [r]);
+    await expect(db.query(`insert into public.request_rooms (request_id, tipo, numero) values ($1, 'garagem', 1)`, [r])).rejects.toThrow(/request_rooms_tipo_check/);
+  });
+
+  it('o pintor contratado pede o relatório da sua obra; outro pintor não; o cliente não pede pelo lado do pintor', async () => {
+    const r = (await one<{ request_id: string }>('select request_id from public.engagements where id = $1', [aberta])).request_id;
+    await as(PINTOR, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo, lado) values ($1, $2, 'litigio', 'pintor')`, [r, p]));
+    await expect(as(CLIENTE, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo, lado) values ($1, $2, 'litigio', 'pintor')`, [r, p]))).rejects.toThrow(/row-level security/);
+    await expect(as(CLIENTE, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo, lado) values ($1, $2, 'litigio', 'pintor')`, [r, c]))).rejects.toThrow(/pintor contratado/);
+    await expect(as(PINTOR, () => db.query(`insert into public.pedidos_de_relatorio (request_id, org_id, motivo, lado) values ($1, $2, 'litigio', 'cliente')`, [r, p]))).rejects.toThrow(/entidade que fez o pedido/);
+  });
+
+  it('o relatório do pintor só o lê a empresa que o pediu e a equipa', async () => {
+    const r = (await one<{ request_id: string }>('select request_id from public.engagements where id = $1', [aberta])).request_id;
+    const pedido = (await one<{ id: string }>(`select id from public.pedidos_de_relatorio where request_id = $1 and lado = 'pintor'`, [r])).id;
+    await servico(() =>
+      db.query(`insert into public.relatorios_do_percurso (request_id, pedido_id, destinatario, versao, conteudo, sha256, emitido_por) values ($1, $2, 'pintor', 1, 'x', $3, $4)`, [r, pedido, 'c'.repeat(64), EQUIPA]),
+    );
+    const ler = (u: string) => as(u, async () => (await db.query<{ d: string }>(`select destinatario as d from public.relatorios_do_percurso where request_id = $1 and destinatario = 'pintor'`, [r])).rows.length);
+    expect(await ler(PINTOR)).toBe(1);
+    expect(await ler(CLIENTE)).toBe(0);
+    expect(await ler(EQUIPA)).toBe(1);
+    await expect(
+      servico(() => db.query(`insert into public.relatorios_do_percurso (request_id, destinatario, versao, conteudo, sha256, emitido_por) values ($1, 'pintor', 2, 'x', $2, $3)`, [r, 'c'.repeat(64), EQUIPA])),
+    ).rejects.toThrow(/cliente_tem_pedido/);
+  });
+});

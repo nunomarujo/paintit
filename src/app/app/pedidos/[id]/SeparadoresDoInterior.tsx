@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
  * «Alçados» (a lista de zonas de sempre) e «Interior da habitação». Esconde-se, não se desmonta: mudar de
  * separador não perde o que está escrito. Quem decide se há separadores é `separadoresDoPasso`.
  */
-export function SeparadoresDoInterior({ primeiro, zonas, interior }: { primeiro: string; zonas: ReactNode; interior: ReactNode }) {
+export function SeparadoresDoInterior({ primeiro, segundo = 'Interior da habitação', zonas, interior }: { primeiro: string; segundo?: string; zonas: ReactNode; interior: ReactNode }) {
   const [activo, setActivo] = useState<'zonas' | 'interior'>('zonas');
   return (
     <div>
@@ -15,7 +15,7 @@ export function SeparadoresDoInterior({ primeiro, zonas, interior }: { primeiro:
         {(
           [
             ['zonas', primeiro],
-            ['interior', 'Interior da habitação'],
+            ['interior', segundo],
           ] as const
         ).map(([id, nome]) => (
           <button key={id} type="button" role="tab" aria-selected={activo === id} className={activo === id ? 'btn-primary btn-sm' : 'btn-quiet btn-sm'} onClick={() => setActivo(id)}>

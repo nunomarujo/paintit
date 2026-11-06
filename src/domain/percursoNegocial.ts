@@ -9,6 +9,9 @@ import { formatEuros } from './money';
 //
 // **Duas versões, gerada cada uma por inteiro** (nunca uma filtrada à saída da outra):
 // - **backoffice:** tudo o que o registo tem;
+// - **pintor** (o pintor contratado, decisão do promotor de 06/11/2026): sem o que a plataforma lhe cobrou
+//   (nenhum valor dos acontecimentos da contratação) e sem nada das outras propostas; sem o que o cliente
+//   fez antes de publicar (rascunhos, nome interno do pedido) nem a abertura de conta dele;
 // - **cliente:** sem o que a plataforma cobra ao pintor (regra 15 — nenhum valor dos acontecimentos da
 //   contratação, e «confirmação do pintor» em vez de comissão) e **sem a identidade dos pintores que não
 //   ganharam** (dados de terceiros: «Pintor A», «Pintor B», como `relatorios_de_propostas_fichas`); das
@@ -17,7 +20,7 @@ import { formatEuros } from './money';
 // O texto diz o que o relatório é — um registo do que aconteceu na plataforma, com datas — e não diz que
 // tem valor de prova perante um tribunal.
 
-export type Destinatario = 'backoffice' | 'cliente';
+export type Destinatario = 'backoffice' | 'cliente' | 'pintor';
 
 export interface EventoDoRegisto {
   ordem: number;
@@ -52,11 +55,11 @@ const ESTADOS_DA_PROPOSTA: Record<string, string> = {
   falhada: 'sem efeito',
 };
 /** Os acontecimentos da contratação, nas palavras de cada versão (regra 15 na do cliente). */
-const EVENTOS: Record<string, { backoffice: string; cliente: string }> = {
+const EVENTOS: Record<string, { backoffice: string; cliente: string; pintor?: string }> = {
   deposito_confirmado: { backoffice: 'Caução do cliente confirmada pelo parceiro de pagamentos', cliente: 'Caução do dono da obra confirmada' },
   cliente_assinou: { backoffice: 'O cliente assinou o contrato', cliente: 'O dono da obra assinou o contrato' },
   fee_recebido: { backoffice: 'Comissão do pintor recebida: as partes ficam a conhecer-se', cliente: 'Confirmação do pintor registada: as partes ficam a conhecer-se' },
-  pintor_assinou: { backoffice: 'O pintor assinou: contrato celebrado', cliente: 'O empreiteiro assinou: contrato celebrado' },
+  pintor_assinou: { backoffice: 'O pintor assinou: contrato celebrado', cliente: 'O empreiteiro assinou: contrato celebrado', pintor: 'O empreiteiro assinou: contrato celebrado' },
   cliente_desistiu: { backoffice: 'O cliente desistiu', cliente: 'O dono da obra desistiu' },
   litigio_aberto: { backoffice: 'Litígio aberto', cliente: 'Litígio aberto' },
   litigio_resolvido: { backoffice: 'Litígio resolvido pela plataforma', cliente: 'Litígio encerrado' },
@@ -102,7 +105,14 @@ function condicoes(dados: Record<string, unknown>): string {
 /** Uma linha por acontecimento; `null` para o que esta versão não mostra. */
 function linha(e: EventoDoRegisto, d: DadosDoRelatorio, quem: (o: string | null) => string): string | null {
   const x = e.dados;
-  const cliente = d.destinatario === 'cliente';
+  const pintor = d.destinatario === 'pintor';
+  // A versão do pintor é a do cliente, sem as outras propostas e sem o que o cliente fez antes de publicar.
+  if (pintor) {
+    const deOutroPintor = e.painterOrgId !== null && e.painterOrgId !== d.vencedorOrgId;
+    if (deOutroPintor || ['comparacao', 'pedido_criado', 'pedido_estado', 'membro_entrou'].includes(e.tipo)) return null;
+    if (e.tipo === 'conta_aberta' && e.orgId !== d.vencedorOrgId) return null;
+  }
+  const cliente = d.destinatario === 'cliente' || pintor;
   const doVencedor = e.painterOrgId !== null && e.painterOrgId === d.vencedorOrgId;
   switch (e.tipo) {
     case 'conta_aberta':
@@ -136,7 +146,8 @@ function linha(e: EventoDoRegisto, d: DadosDoRelatorio, quem: (o: string | null)
       }${typeof x.garantia_anos === 'number' ? `, garantia ${x.garantia_anos} anos` : ''}.`;
     case 'contratacao_evento': {
       const k = String(x.kind);
-      const rotulo = EVENTOS[k]?.[d.destinatario] ?? k;
+      const rotulos = EVENTOS[k] as { backoffice: string; cliente: string; pintor?: string } | undefined;
+      const rotulo = (d.destinatario === 'pintor' ? (rotulos?.pintor ?? rotulos?.cliente) : rotulos?.[d.destinatario]) ?? k;
       // Na versão do cliente nenhum valor destes acontecimentos: um deles é a comissão do pintor (regra 15).
       const valor = !cliente && euros(x.amount_cents) ? ` (${euros(x.amount_cents)})` : '';
       const hash = txt(x.documentHash) ? ` Impressão digital do documento assinado: ${x.documentHash}.` : '';
@@ -164,11 +175,11 @@ function linha(e: EventoDoRegisto, d: DadosDoRelatorio, quem: (o: string | null)
     case 'garantia':
       return `Garantia contratual de ${x.anos} anos, de ${dia(x.inicio)} a ${dia(x.fim_garantia)}; registos guardados até ${dia(x.fim_conservacao)}.`;
     case 'relatorio_pedido':
-      return `Pedido deste relatório pelo dono da obra (motivo: ${MOTIVOS[String(x.motivo)] ?? x.motivo}).`;
+      return `Pedido deste relatório pelo ${x.lado === 'pintor' ? 'empreiteiro' : 'dono da obra'} (motivo: ${MOTIVOS[String(x.motivo)] ?? x.motivo}).`;
     case 'relatorio_emitido':
-      return `Relatório emitido (${x.destinatario === 'cliente' ? 'para o dono da obra' : 'para a equipa'}, versão ${x.versao}, impressão digital ${x.sha256}).`;
+      return `Relatório emitido (${x.destinatario === 'cliente' ? 'para o dono da obra' : x.destinatario === 'pintor' ? 'para o empreiteiro' : 'para a equipa'}, versão ${x.versao}, impressão digital ${x.sha256}).`;
     case 'relatorio_entregue':
-      return 'Relatório disponibilizado ao dono da obra na aplicação.';
+      return `Relatório disponibilizado ${x.destinatario === 'pintor' ? 'ao empreiteiro' : 'ao dono da obra'} na aplicação.`;
     default:
       return cliente ? null : `${e.tipo}.`;
   }
@@ -186,7 +197,9 @@ export function relatorioDoPercurso(d: DadosDoRelatorio): string {
     .filter((l): l is string => !!l);
   return [
     `Relatório do percurso negocial — obra ${d.ref}`,
-    `Versão ${d.versao}, emitida a ${quando(d.emitidoEm.toISOString())}, ${d.destinatario === 'cliente' ? 'para o dono da obra' : 'para a equipa da plataforma'}.`,
+    `Versão ${d.versao}, emitida a ${quando(d.emitidoEm.toISOString())}, ${
+      d.destinatario === 'cliente' ? 'para o dono da obra' : d.destinatario === 'pintor' ? 'para o empreiteiro' : 'para a equipa da plataforma'
+    }.`,
     'Este relatório é um registo do que aconteceu na plataforma, por ordem, com as datas e horas do servidor (hora de Lisboa).',
     ...(d.destinatario === 'cliente' ? ['Os pintores cujas propostas não foram escolhidas aparecem identificados por uma letra.'] : []),
     '',

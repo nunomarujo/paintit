@@ -27,7 +27,25 @@ export const MODO_INTERIOR_LABELS: Record<ModoInterior, string> = {
   manual: 'Escrever as áreas',
 };
 
-export const TIPOS_DE_DIVISAO = ['sala', 'quarto', 'cozinha', 'wc', 'corredor', 'hall', 'escritorio', 'arrumos', 'marquise', 'outra'] as const;
+export const TIPOS_DE_DIVISAO = [
+  'sala',
+  'quarto',
+  'cozinha',
+  'wc',
+  'corredor',
+  'hall',
+  'escritorio',
+  'arrumos',
+  'marquise',
+  'outra',
+  // Zonas comuns de um prédio (decisão do promotor, 06/11/2026): usam a mesma ferramenta, paredes e tetos.
+  'atrio',
+  'patamar',
+  'corredor_comum',
+  'escadas',
+] as const;
+/** As divisões das zonas comuns. As restantes são da habitação. */
+export const DIVISOES_DAS_ZONAS_COMUNS: readonly string[] = ['atrio', 'patamar', 'corredor_comum', 'escadas'];
 export type TipoDeDivisao = (typeof TIPOS_DE_DIVISAO)[number];
 export const TIPO_DE_DIVISAO_LABELS: Record<TipoDeDivisao, string> = {
   sala: 'Sala',
@@ -40,13 +58,17 @@ export const TIPO_DE_DIVISAO_LABELS: Record<TipoDeDivisao, string> = {
   arrumos: 'Arrumos',
   marquise: 'Marquise',
   outra: 'Outra divisão',
+  atrio: 'Átrio',
+  patamar: 'Patamar',
+  corredor_comum: 'Corredor comum',
+  escadas: 'Escadas',
 };
 export const isTipoDeDivisao = (v: unknown): v is TipoDeDivisao => typeof v === 'string' && (TIPOS_DE_DIVISAO as readonly string[]).includes(v);
 
 /**
- * Vãos que ficam por descontar: só os maiores do que isto (m²). **Provisório, por decidir pelo promotor**
- * (06/11/2026): o valor é o das fachadas (`AREA_MINIMA_VAO_M2` em `fachadaMedida.ts`); a alternativa é
- * descontar sempre (0). Mudar aqui muda o cálculo; o valor usado guarda-se com cada divisão.
+ * Vãos que se descontam sozinhos: só os maiores do que isto (m²). **Decidido pelo promotor a 06/11/2026**:
+ * o mesmo das fachadas (`AREA_MINIMA_VAO_M2` em `fachadaMedida.ts`), e quem preenche pode marcar à mão um
+ * vão para descontar ou não (`Vao.descontar`). O valor usado guarda-se com cada divisão.
  */
 export const VAO_MINIMO_INTERIOR_M2 = 1;
 
@@ -54,6 +76,18 @@ export interface Vao {
   larguraM: number;
   alturaM: number;
   quantidade: number;
+  /**
+   * Quem decide se este vão se desconta (decisão do promotor, 06/11/2026): `auto` segue a regra dos 1 m²;
+   * `sim` e `nao` são a escolha à mão de quem preenche. Sem o campo (gravações antigas), `auto`.
+   */
+  descontar?: 'auto' | 'sim' | 'nao';
+}
+
+/** Este vão desconta-se? A escolha à mão manda; sem ela, só os maiores do que o mínimo. */
+export function vaoDesconta(v: Vao, vaoMinimoM2: number = VAO_MINIMO_INTERIOR_M2): boolean {
+  if (v.descontar === 'sim') return true;
+  if (v.descontar === 'nao') return false;
+  return v.larguraM * v.alturaM > vaoMinimoM2;
 }
 
 export interface Divisao {
@@ -98,6 +132,8 @@ export interface AreaCalculada {
   certeza: Certeza;
   /** O que falta para calcular, em palavras. */
   falta: string[];
+  /** A área de vãos que se descontou das paredes (m²), para se mostrar o que saiu. */
+  vaosDescontadosM2: number;
 }
 
 const arred = (n: number) => Math.round(n * 100) / 100;
@@ -122,7 +158,13 @@ export function areasDaDivisao(
         ...(d.pintarParedes && !positivo(d.areaParedesManualM2) ? ['área das paredes'] : []),
         ...(d.pintarTeto && !positivo(d.areaTetoManualM2) ? ['área do teto'] : []),
       ],
+      vaosDescontadosM2: 0,
     };
+  }
+  // As escadas ficam por medir até haver regra própria (promotor, 06/11/2026): as paredes de uma caixa de
+  // escadas não são perímetro × pé-direito, e uma conta errada é pior do que nenhuma.
+  if (d.tipo === 'escadas') {
+    return { paredesM2: null, tetoM2: null, certeza: 'desconhecida', falta: d.pintarParedes || d.pintarTeto ? ['regra de medição das escadas (por definir)'] : [], vaosDescontadosM2: 0 };
   }
   const cotas = o.certezaDasCotas ?? (modo === 'planta' ? 'estimada' : 'declarada');
   const falta: string[] = [];
@@ -134,11 +176,14 @@ export function areasDaDivisao(
   const certezaPe: Certeza = peProprio ? 'declarada' : geral.aceiteComoCorrente ? 'estimada' : 'declarada';
 
   let paredes: number | null = null;
+  let vaosDescontados = 0;
   if (d.pintarParedes && perimetro !== null && pe !== null) {
-    const vaos = d.vaos
-      .filter((v) => positivo(v.larguraM) && positivo(v.alturaM) && positivo(v.quantidade))
-      .reduce((s, v) => s + (v.larguraM * v.alturaM > vaoMinimo ? v.larguraM * v.alturaM * Math.round(v.quantidade) : 0), 0);
-    paredes = Math.max(0, arred(perimetro * pe - vaos));
+    vaosDescontados = arred(
+      d.vaos
+        .filter((v) => positivo(v.larguraM) && positivo(v.alturaM) && positivo(v.quantidade))
+        .reduce((s, v) => s + (vaoDesconta(v, vaoMinimo) ? v.larguraM * v.alturaM * Math.round(v.quantidade) : 0), 0),
+    );
+    paredes = Math.max(0, arred(perimetro * pe - vaosDescontados));
   }
   const teto = d.pintarTeto && positivo(d.comprimentoM) && positivo(d.larguraM) ? arred(d.comprimentoM * d.larguraM) : null;
   if (d.pintarTeto && teto === null) falta.push(positivo(d.perimetroM) ? 'comprimento e largura (para o teto)' : 'medidas do teto');
@@ -147,6 +192,7 @@ export function areasDaDivisao(
     tetoM2: teto,
     certeza: piorCerteza(cotas, d.pintarParedes ? certezaPe : 'declarada'),
     falta: d.pintarParedes || d.pintarTeto ? falta : [],
+    vaosDescontadosM2: vaosDescontados,
   };
 }
 
@@ -210,21 +256,39 @@ export function divisaoDaPlanta(c1: PontoPx, c2: PontoPx, escala: number, refere
 
 const EXTERIORES: readonly WorkType[] = ['fachadas', 'muros', 'moradia'];
 
+export interface PassoDasMedidas {
+  modo: 'so_zonas' | 'so_interior' | 'separadores';
+  /** O nome do separador da lista de zonas. */
+  primeiro?: string;
+  /** O nome do separador (ou da área) da ferramenta do interior. */
+  rotuloInterior?: string;
+  /** Que divisões a ferramenta oferece: as da habitação, as das zonas comuns, ou ambas. */
+  habitacao: boolean;
+  comuns: boolean;
+}
+
 /**
- * - interior **e** algum exterior (fachadas, muros, moradia): dois separadores, «Alçados» e «Interior da
- *   habitação»;
- * - interior sem exterior e sem zonas comuns: sem separadores, só o interior;
- * - sem interior: como sempre (só as zonas).
- * As zonas comuns (escadas e átrio) o promotor não mencionou: continuam na lista de zonas de sempre. Com
- * interior e zonas comuns, os separadores aparecem com «Zonas e medidas» no primeiro (pergunta em aberto:
- * as zonas comuns usam esta ferramenta?).
+ * - interior **e** algum exterior (fachadas, muros, moradia): «Alçados» e «Interior da habitação»;
+ * - só interior: sem separadores, só a ferramenta do interior;
+ * - zonas comuns (decisão do promotor, 06/11/2026): usam também a ferramenta do interior, para paredes e
+ *   tetos, com divisões próprias (átrio, patamar, corredor comum, escadas). A lista de zonas mantém-se no
+ *   outro separador, porque as zonas comuns já gravadas vivem lá;
+ * - sem interior nem zonas comuns: como sempre (só as zonas).
  */
-export function separadoresDoPasso(tipos: readonly WorkType[]): { modo: 'so_zonas' | 'so_interior' | 'separadores'; primeiro?: string } {
-  if (!tipos.includes('interior')) return { modo: 'so_zonas' };
+export function separadoresDoPasso(tipos: readonly WorkType[]): PassoDasMedidas {
+  const habitacao = tipos.includes('interior');
+  const comuns = tipos.includes('zonas_comuns');
+  if (!habitacao && !comuns) return { modo: 'so_zonas', habitacao, comuns };
+  const rotuloInterior = habitacao && comuns ? 'Interior e zonas comuns' : habitacao ? 'Interior da habitação' : 'Zonas comuns: paredes e tetos';
   const exterior = tipos.some((t) => EXTERIORES.includes(t));
-  if (exterior) return { modo: 'separadores', primeiro: 'Alçados' };
-  if (tipos.includes('zonas_comuns')) return { modo: 'separadores', primeiro: 'Zonas e medidas' };
-  return { modo: 'so_interior' };
+  if (exterior) return { modo: 'separadores', primeiro: 'Alçados', rotuloInterior, habitacao, comuns };
+  if (comuns) return { modo: 'separadores', primeiro: 'Zonas e medidas', rotuloInterior, habitacao, comuns };
+  return { modo: 'so_interior', rotuloInterior, habitacao, comuns };
+}
+
+/** As divisões a oferecer no «Acrescentar divisão», conforme os tipos de obra do pedido. */
+export function divisoesAOferecer(p: Pick<PassoDasMedidas, 'habitacao' | 'comuns'>): TipoDeDivisao[] {
+  return TIPOS_DE_DIVISAO.filter((t) => (DIVISOES_DAS_ZONAS_COMUNS.includes(t) ? p.comuns : p.habitacao));
 }
 
 // --- Leitura do que o formulário envia ------------------------------------------------
@@ -314,7 +378,8 @@ export function lerInterior(bruto: unknown): { value?: InteriorEnviado; erro?: s
       const av = w ? numOuNull(w.alturaM, 10) : 'erro';
       const q = w ? Number(w.quantidade) : NaN;
       if (typeof lv !== 'number' || typeof av !== 'number' || !Number.isInteger(q) || q < 1 || q > 50) return { erro: 'Um vão tem medidas inválidas.' };
-      vaos.push({ larguraM: lv, alturaM: av, quantidade: q });
+      const descontar = w && (w.descontar === 'sim' || w.descontar === 'nao') ? w.descontar : 'auto';
+      vaos.push({ larguraM: lv, alturaM: av, quantidade: q, descontar });
     }
     const cor = typeof d.corReferencia === 'string' ? d.corReferencia.replace(/\s+/g, ' ').trim().slice(0, 120) || null : null;
     const hex = typeof d.corHex === 'string' && /^#[0-9a-f]{6}$/i.test(d.corHex) ? d.corHex.toLowerCase() : null;
@@ -368,8 +433,10 @@ export function declaracaoDasDivisoesGravadas(rows: readonly DivisaoGravada[], a
   const porMedir = aPintar.filter((r) => (r.pintar_paredes && r.area_paredes_cm2 === null) || (r.pintar_teto && r.area_teto_cm2 === null)).length;
   const estimada = aPintar.some((r) => r.certeza === 'estimada');
   const fmt = (n: number) => `${n.toLocaleString('pt-PT', { maximumFractionDigits: 2 })} m²`;
+  const comuns = aPintar.filter((r) => DIVISOES_DAS_ZONAS_COMUNS.includes(r.tipo)).length;
+  const titulo = comuns === 0 ? 'Interior da habitação' : comuns === aPintar.length ? 'Zonas comuns' : 'Interior e zonas comuns';
   const frases = [
-    `Interior da habitação — ${aPintar.map(nome).join(', ')}; paredes ${fmt(paredes)}${tetos > 0 ? `; tetos ${fmt(tetos)}` : ''}${
+    `${titulo} — ${aPintar.map(nome).join(', ')}; paredes ${fmt(paredes)}${tetos > 0 ? `; tetos ${fmt(tetos)}` : ''}${
       porMedir > 0 ? `; ${porMedir} ${porMedir === 1 ? 'divisão por medir' : 'divisões por medir'}` : ''
     }${estimada ? ' (áreas estimadas)' : ''}.`,
   ];

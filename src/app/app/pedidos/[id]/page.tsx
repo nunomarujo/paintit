@@ -45,7 +45,7 @@ import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
 import { PedirRelatorio } from './PedirRelatorio';
 import { InteriorDaHabitacao } from './InteriorDaHabitacao';
 import { SeparadoresDoInterior } from './SeparadoresDoInterior';
-import { separadoresDoPasso } from '@/domain/interior';
+import { divisoesAOferecer, separadoresDoPasso } from '@/domain/interior';
 import { coresDoFabricante } from '@/domain/corDaPintura';
 import { interiorInicial, paraMaterial } from '@/lib/interior';
 import type { WorkType } from '@/domain/request';
@@ -328,6 +328,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       paleta={paletaRows ?? []}
       coresDeFabricante={materiaisInterior.flatMap((r) => coresDoFabricante(r.cores).map((cor) => ({ marca: r.marca, cor }))).slice(0, 300)}
       materiais={materiaisInterior.map(paraMaterial)}
+      oferecer={divisoesAOferecer(passoDasMedidas)}
     />
   ) : null;
 
@@ -440,7 +441,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
       ),
   };
   if (passoDasMedidas.modo === 'so_interior') slots.zonas = interiorSlot!;
-  else if (passoDasMedidas.modo === 'separadores') slots.zonas = <SeparadoresDoInterior primeiro={passoDasMedidas.primeiro!} zonas={slots.zonas} interior={interiorSlot} />;
+  else if (passoDasMedidas.modo === 'separadores') slots.zonas = <SeparadoresDoInterior primeiro={passoDasMedidas.primeiro!} segundo={passoDasMedidas.rotuloInterior} zonas={slots.zonas} interior={interiorSlot} />;
 
 
   // ── Pedido publicado (ou encerrado): página de acompanhamento, não de preparação ────────────

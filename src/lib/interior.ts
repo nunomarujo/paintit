@@ -21,10 +21,11 @@ export function divisoesDasLinhas(rows: readonly Room[]): DivisaoEnviada[] {
       larguraM: m(r.largura_cm),
       perimetroM: m(r.perimetro_cm),
       peDireitoM: m(r.pe_direito_cm),
-      vaos: (Array.isArray(r.vaos) ? (r.vaos as { largura_cm?: number; altura_cm?: number; quantidade?: number }[]) : []).map((v) => ({
+      vaos: (Array.isArray(r.vaos) ? (r.vaos as { largura_cm?: number; altura_cm?: number; quantidade?: number; descontar?: string }[]) : []).map((v) => ({
         larguraM: (v.largura_cm ?? 0) / 100,
         alturaM: (v.altura_cm ?? 0) / 100,
         quantidade: v.quantidade ?? 1,
+        descontar: v.descontar === 'sim' || v.descontar === 'nao' ? v.descontar : 'auto',
       })),
       pintarParedes: r.pintar_paredes,
       pintarTeto: r.pintar_teto,
