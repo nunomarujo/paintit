@@ -6704,3 +6704,18 @@ colunas à direita em algarismos tabulares com cabeçalho de 13px (propostas at�
 e o que há por fazer em texto âmbar. O nome da entidade só aparece se a conta tiver mais de uma. O «Precisa de si»
 virou uma frase sob o título (o cartão repetia a obra que a lista já mostra), e «O que o protege» passou para um
 (i). Visto com dados fictícios, computador e telemóvel (sem deslocamento, sem alvos < 44px); não visto com dados reais.
+
+## 06/11/2026 — Publicar o que faltava: o que entrou e o que ficou
+
+Pedido do promotor: «commit, push e publica em produção tudo que falte».
+- **Entraram:** `claude/eloquent-darwin-cayk66` (CRM e ofertas de lançamento; as cinco migrações já estavam na base) e
+  `claude/quempinta-taste-skill-j9der5` (ecrãs do pintor: Hoje, Oportunidades, As minhas obras). Conflitos só nos
+  registos (DECISOES), resolvidos ficando com as duas partes.
+- **Migrações que estavam só na base, agora com ficheiro:** `20261106151731` (reaplicação de
+  `reserva_so_para_avaliadores_inscritos`, igual à de 05/11) e `20261106200620_minuta_com_layout_novo`; mais
+  `20261106201651_versao_do_avaliador_search_path_outra_vez`, que volta a fixar o search_path que a reaplicação desfez.
+- **Ficou de fora:** `claude/sweet-cray-xfehwj`, porque a sessão dele está ativa e a publicar por si; tem migrações por
+  aplicar e uma delas desliga os avisos de WhatsApp dos números já gravados (2 contas) até serem confirmados — não se
+  aplica sem o promotor. `moloni-teste` é um ramo de ensaio («só neste ramo»). `formulario-icones` e
+  `workspace-fornecedor` (01/11) são de um histórico antigo do repositório e não se juntam ao atual.
+
