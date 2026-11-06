@@ -6431,3 +6431,23 @@ Decisão do promotor: pôr um limite. `src/lib/comLimite.ts` (testado) espera no
 erro), o middleware deixa o pedido seguir e regista um aviso na consola, em vez de mandar a pessoa para a
 entrada — a área reservada volta a confirmar quem entrou no seu próprio layout (`src/app/app/layout.tsx`), e é aí
 que quem não entrou é mandado para `/entrar`. Nesse caso a sessão não é renovada nesse pedido; renova-se no seguinte.
+
+## 06/11/2026 — O cartão «Quanto pode ganhar» do avaliador vai para o topo de «Avaliações › Hoje»
+
+Decisão do promotor («sim, avança com inscrição e concelhos; o WhatsApp não é obrigatório, mas deve aparecer a
+recomendação»), na sequência de os valores saírem da página pública:
+- **Onde:** no topo de «Avaliações › Hoje», logo abaixo do título. Nunca na página pública nem em cada oportunidade.
+  O simulador continua em «Ser avaliador», depois da inscrição.
+- **Quando:** só com a pessoa **pronta** — inscrição de avaliador feita **e** a empresa ter gravado os concelhos que
+  cobre (`src/domain/prontidaoDoAvaliador.ts`, com testes). Uma lista vazia gravada quer dizer «todo o país» (é a
+  convenção da base, `private.supplier_covers`) e conta como feita; o que não conta é a empresa nunca ter escolhido.
+  Quem não é responsável vê que as zonas são do responsável, sem botão.
+- **Antes disso:** a lista do que falta, por ordem — inscrição (obrigatório), concelhos (obrigatório), avisos por
+  WhatsApp (recomendado, com o texto do promotor: «Para ganhar levantamentos é preciso ser o primeiro a responder.
+  Inscreva o seu telemóvel para receber por WhatsApp os avisos de novas ofertas. É gratuito.»).
+- **Depois:** o intervalo para uma obra de 45 000 € sem IVA (450 € a 1 215 €) e a banda de 1% a 2,7%, lidos do
+  domínio e nunca escritos no ecrã; se o WhatsApp estiver desligado, a recomendação e o botão «Ligar os avisos».
+- **Uma janela, uma vez:** a primeira vez que «Hoje» abre com a pessoa pronta, aparece «Tudo pronto para receber
+  levantamentos», com quanto pode ganhar. Fechada, não volta. Lembrar que já foi vista é uma conveniência deste
+  navegador (`localStorage`, por pessoa); num navegador novo pode aparecer outra vez, e sem acesso ao armazenamento
+  não abre.
