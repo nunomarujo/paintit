@@ -6252,3 +6252,14 @@ cabeçalho de 13px sem faixa; no telemóvel a área e o prazo ficam lado a lado.
 (nunca fundo, regra 13). A frase longa sobre anonimato passou para um (i) e uma linha diz o que a vista tem
 («7 pedidos abertos · 3 a fechar em 3 dias · 2 com proposta sua»), que muda com os filtros. Os campos usam
 `campo` (regra 17). Visto com dados fictícios no computador e no telemóvel (sem deslocamento, sem alvos < 44px).
+
+## 06/11/2026 — «As minhas obras» do cliente: uma lista por fase
+
+A página tinha um painel lateral (cartão marinho «Precisa de si», «Em números», «O que o protege») e, à direita,
+uma grelha de cartões por fase que deixava metade do ecrã vazio quando uma fase tinha uma só obra; a mesma
+entidade repetia-se em todos os cartões e os números do painel diziam o que os títulos dos grupos já diziam.
+Passa a **uma lista por fase, em largura total**: título da fase com a contagem (sem pílula acima do título),
+colunas à direita em algarismos tabulares com cabeçalho de 13px (propostas até / abrem; propostas / por fazer),
+e o que há por fazer em texto âmbar. O nome da entidade só aparece se a conta tiver mais de uma. O «Precisa de si»
+virou uma frase sob o título (o cartão repetia a obra que a lista já mostra), e «O que o protege» passou para um
+(i). Visto com dados fictícios, computador e telemóvel (sem deslocamento, sem alvos < 44px); não visto com dados reais.
