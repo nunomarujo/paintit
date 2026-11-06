@@ -6483,5 +6483,20 @@ Promotor, a seguir à entrada anterior: «quando não indicados devem ficar asso
 - **Entregas de produtos** (pergunta da sessão, respondida aqui): «Todo o país» passa a ser uma caixa marcada
   (`supplier_delivery.todo_o_pais`); sem concelhos, a condição fica com o concelho da morada; a base recusa uma condição
   sem escolha. A lista vazia deixou de querer dizer todo o país também em `deliveryFor`.
-- **«Loja»:** a aplicação ainda não guarda lojas nem pontos de venda dos fornecedores — só a morada da empresa. Se uma
-  empresa tiver lojas noutros concelhos, por agora escolhe-os à mão; guardar lojas fica em aberto.
+- **«Loja»:** ver a entrada seguinte (registo de lojas, 06/11/2026).
+
+## 06/11/2026 — Registo de lojas do fornecedor
+
+Promotor: «sim, avança com o registo de lojas».
+- **Tabela `supplier_stores`** (migrações `20261106165506_lojas_do_fornecedor` e `20261106165537_lojas_indice_created_by`):
+  nome, morada, código postal, localidade e concelho. O concelho tira-o o servidor do código postal, como o da empresa;
+  a morada confere-se com a base dos CTT. Grava e remove quem gere a empresa fornecedora; veem a empresa e a plataforma.
+- **Onde:** dados da empresa do fornecedor (`/app/organizacoes/<id>`, separador Dados), secção «Lojas».
+- **Para que serve, por agora:** os concelhos por omissão. Sem concelhos indicados, de levantamento ou de entrega, valem
+  o da morada da empresa **e** os das lojas (`concelhosPorOmissao` em `coberturaDaEmpresa.ts`, `private.supplier_covers`,
+  os convites por WhatsApp). O ecrã diz de onde vêm: «Viana do Castelo e Braga (morada e lojas da empresa)».
+- **Fica para depois (decisão do promotor):** mostrar a morada das lojas aos pintores (para levantar encomendas) — hoje
+  não sai da empresa.
+- **Base real, de passagem:** uma migração reaplicada por outra sessão (`20261106151731`, mesmo nome da de 05/11) tinha
+  desfeito a correção `20261105094822` (search_path de `private.versao_da_autodeclaracao_do_avaliador`); a correção,
+  que já estava no repositório, foi reposta e o aviso de segurança voltou a zero.

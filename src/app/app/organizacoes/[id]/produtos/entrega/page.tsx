@@ -2,6 +2,8 @@ import { deleteDelivery } from '@/app/app/catalogo/actions';
 import { ProdutosEPrecos } from '@/components/vendas/ProdutosEPrecos';
 import { formatEuros } from '@/domain/money';
 import { contextoDoCatalogo } from '../dados';
+import { concelhosPorOmissao, descricaoPorOmissao } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { DeliveryForm } from '../SupplierRules';
 
 /** Produtos e preços — separador «Entrega em obra». */
@@ -9,10 +11,11 @@ export default async function EntregaPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const { supabase, manager, catalogo } = await contextoDoCatalogo(id);
 
-  const [{ data: deliveries }, { data: empresa }] = await Promise.all([
+  const [{ data: deliveries }, porOmissao] = await Promise.all([
     supabase.from('supplier_delivery').select('*').eq('org_id', id).order('created_at'),
-    supabase.from('organizations').select('concelho').eq('id', id).maybeSingle(),
+    porOmissaoDaEmpresa(supabase, id),
   ]);
+  const semEscolha = concelhosPorOmissao(porOmissao).length > 0 ? descricaoPorOmissao(porOmissao) : null;
 
   return (
     <ProdutosEPrecos
@@ -69,7 +72,7 @@ export default async function EntregaPage({ params }: { params: Promise<{ id: st
             <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
               <h2 className="text-[20px] font-semibold text-slate-900">Acrescentar condições</h2>
               <div className="mt-4">
-                <DeliveryForm orgId={id} concelhoDaEmpresa={empresa?.concelho ?? null} />
+                <DeliveryForm orgId={id} semEscolha={semEscolha} />
               </div>
             </section>
           )}

@@ -6,7 +6,8 @@ import { suspensaoEmCurso } from '@/domain/disponibilidade';
 import { osMeusLevantamentos } from './dados';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
-import { zonaEfetiva } from '@/domain/coberturaDaEmpresa';
+import { descricaoPorOmissao, zonaEfetiva } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 
 /**
  * Hoje — Avaliações. O início do contexto: o que há para fazer, com o prazo que conta.
@@ -27,7 +28,7 @@ export default async function HojeAvaliacoesPage({
   // estados por resolver, cada um com a sua ação. Antes, isto era um 404 (01/11/2026).
   if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
 
-  const [{ emCurso, concluidos }, { data: abertos }, { data: payouts }, { data: presenca }, { data: cobertura }, { data: inscricao }, { data: empresa }] = await Promise.all([
+  const [{ emCurso, concluidos }, { data: abertos }, { data: payouts }, { data: presenca }, { data: cobertura }, { data: inscricao }, porOmissao] = await Promise.all([
     osMeusLevantamentos(supabase, user!.id),
     supabase.from('request_surveys').select('id').eq('status', 'aberto'),
     // As comissões são da pessoa (05/11/2026): só as suas, nunca as da empresa.
@@ -37,7 +38,7 @@ export default async function HojeAvaliacoesPage({
     supabase.from('supplier_survey_coverage').select('concelhos, todo_o_pais').eq('org_id', pertenca.orgId).maybeSingle(),
     // A inscrição de avaliador é da pessoa (RLS: só a própria linha).
     supabase.from('survey_terms_acceptances').select('accepted_at').eq('user_id', user!.id).eq('version', VERSAO_AUTODECLARACAO_DO_AVALIADOR).maybeSingle(),
-    supabase.from('organizations').select('concelho').eq('id', pertenca.orgId).maybeSingle(),
+    porOmissaoDaEmpresa(supabase, pertenca.orgId),
   ]);
 
   // Oportunidades: só contam as que a pré-visualização deixa ver, que são as da zona coberta (regra 6).
@@ -57,13 +58,13 @@ export default async function HojeAvaliacoesPage({
   const suspenso = suspensaoEmCurso(agora, presenca?.suspenso_ate);
 
   // O que falta para receber levantamentos (06/11/2026). A zona é a escolhida (pelo menos um concelho, ou
-  // «todo o país» marcado) ou, sem escolha, o concelho da morada da empresa — nunca «todo o país» por omissão.
+  // «todo o país» marcado) ou, sem escolha, os da morada e das lojas da empresa — nunca «todo o país» por omissão.
   const zona = cobertura ? { todoOPais: cobertura.todo_o_pais, concelhos: cobertura.concelhos } : null;
-  const efetiva = zonaEfetiva(zona, empresa?.concelho);
+  const efetiva = zonaEfetiva(zona, porOmissao);
   const situacao = {
     inscrito: !!inscricao,
     zonasDefinidas: efetiva.origem !== 'nenhuma',
-    zonaDaMorada: efetiva.origem === 'morada' ? empresa!.concelho : null,
+    zonaDaMorada: efetiva.origem === 'morada' ? descricaoPorOmissao(porOmissao) : null,
     responsavel: mandaNaEmpresa(pertenca.papel as 'proprietario' | 'gestor' | 'vendedor'),
     whatsappLigado: !!(presenca?.alerta_whatsapp && presenca.telemovel_whatsapp),
   };
@@ -77,7 +78,7 @@ export default async function HojeAvaliacoesPage({
         comissoesDisponiveis: comissoes,
         suspenso,
         cobertura: zona,
-        concelhoDaEmpresa: empresa?.concelho ?? null,
+        porOmissao,
         avaliador: { userId: user!.id, situacao },
       }}
       agoraIso={agora.toISOString()}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cobre, lerCobertura, resumoDaCobertura, zonaEfetiva, zonasDefinidas } from './coberturaDaEmpresa';
+import { cobre, concelhosPorOmissao, lerCobertura, resumoDaCobertura, zonaEfetiva, zonasDefinidas } from './coberturaDaEmpresa';
 
 describe('cobertura da empresa (06/11/2026: concelhos obrigatórios, «todo o país» explícito)', () => {
   it('sem zona gravada, ou com a lista vazia, não cobre nada', () => {
@@ -47,5 +47,16 @@ describe('cobertura da empresa (06/11/2026: concelhos obrigatórios, «todo o pa
     expect(lerCobertura(false, ['Lisboa', 'Lisboa', ' Oeiras '])).toEqual({ value: { todoOPais: false, concelhos: ['Lisboa', 'Oeiras'] } });
     expect(lerCobertura(false, ['Lisboa', 'Atlântida'])).toEqual({ erro: expect.stringMatching(/Atlântida/) });
     expect(lerCobertura(true, ['Lisboa'])).toEqual({ value: { todoOPais: true, concelhos: [] } });
+  });
+
+  it('as lojas juntam-se à morada nos concelhos por omissão (06/11/2026)', () => {
+    const p = { morada: 'Viana do Castelo', lojas: ['Braga', 'Viana do Castelo', null] };
+    expect(concelhosPorOmissao(p)).toEqual(['Viana do Castelo', 'Braga']);
+    expect(cobre(null, 'Braga', p)).toBe(true);
+    expect(cobre(null, 'Porto', p)).toBe(false);
+    expect(resumoDaCobertura(null, p)).toBe('Viana do Castelo e Braga (morada e lojas da empresa)');
+    // Só lojas, sem morada.
+    expect(zonaEfetiva(null, { morada: null, lojas: ['Porto'] }).origem).toBe('morada');
+    expect(lerCobertura(false, [], p)).toEqual({ value: { todoOPais: false, concelhos: ['Viana do Castelo', 'Braga'] } });
   });
 });

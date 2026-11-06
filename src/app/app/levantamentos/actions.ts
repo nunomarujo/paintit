@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { lerCobertura, resumoDaCobertura } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import type { FormState } from '@/app/app/actions';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { notifyVisitaAgendada } from '@/lib/notify';
@@ -145,9 +146,8 @@ export async function setSurveyCoverage(orgId: string, _prev: FormState, form: F
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
   // Concelhos obrigatórios; «todo o país» só marcado (06/11/2026, `src/domain/coberturaDaEmpresa.ts`).
-  // Sem concelhos escolhidos, grava-se o da morada da empresa (06/11/2026) — nunca «todo o país».
-  const { data: empresa } = await supabase.from('organizations').select('concelho').eq('id', orgId).maybeSingle();
-  const lido = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), empresa?.concelho);
+  // Sem concelhos escolhidos, gravam-se os da morada e das lojas da empresa (06/11/2026) — nunca «todo o país».
+  const lido = lerCobertura(form.get('todo_o_pais') === 'on', form.getAll('concelhos').map(String), await porOmissaoDaEmpresa(supabase, orgId));
   if ('erro' in lido) return { errors: { concelhos: lido.erro }, message: lido.erro };
   const { error } = await supabase
     .from('supplier_survey_coverage')

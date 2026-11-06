@@ -33,7 +33,7 @@ export interface SituacaoDoAvaliador {
   inscrito: boolean;
   /** Há uma zona que vale: a escolhida, ou o concelho da morada da empresa (`zonaEfetiva`). */
   zonasDefinidas: boolean;
-  /** Quando a zona é a da morada (nada escolhido): o concelho, para o ecrã o dizer. */
+  /** Quando a zona é a por omissão (nada escolhido): «Viana do Castelo (morada da empresa)», para o ecrã o dizer. */
   zonaDaMorada?: string | null;
   /** A pessoa pode gravar as zonas da empresa. */
   responsavel: boolean;
@@ -63,7 +63,7 @@ export function listaDoAvaliador(s: SituacaoDoAvaliador): ItemDaLista[] {
       href: '/app/avaliacoes/disponibilidade',
       acao: s.responsavel ? 'Escolher os concelhos' : null,
       nota: s.responsavel
-        ? 'Os concelhos onde a empresa vai à obra. Sem escolha vale o da morada da empresa, que ainda não tem código postal.'
+        ? 'Os concelhos onde a empresa vai à obra. Sem escolha valem os da morada e das lojas da empresa, que ainda não têm código postal.'
         : 'Quem os escolhe é o responsável da empresa. Até lá não chegam oportunidades.',
     },
     {

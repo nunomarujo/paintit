@@ -7,7 +7,8 @@ import { Disponibilidade } from './Formulario';
 import { ConvitesWhatsApp } from './Convites';
 import { PreVisualizacaoDoConvite, RegrasDosConvites } from './PreVisualizacao';
 import { configuracaoWhatsApp } from '@/domain/whatsapp';
-import { zonaEfetiva } from '@/domain/coberturaDaEmpresa';
+import { concelhosPorOmissao, descricaoPorOmissao, zonaEfetiva } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { motivosDeInelegibilidade } from '@/domain/convocatoria';
 import { VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/avaliador';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
@@ -49,7 +50,7 @@ export default async function DisponibilidadePage() {
         .eq('user_id', user!.id)
         .maybeSingle(),
       supabase.from('supplier_survey_coverage').select('concelhos, todo_o_pais').eq('org_id', pertenca.orgId).maybeSingle(),
-      supabase.from('organizations').select('nif, concelho').eq('id', pertenca.orgId).maybeSingle(),
+      supabase.from('organizations').select('nif').eq('id', pertenca.orgId).maybeSingle(),
       supabase.from('profiles').select('nome').eq('user_id', user!.id).maybeSingle(),
       supabase
         .from('survey_terms_acceptances')
@@ -61,7 +62,8 @@ export default async function DisponibilidadePage() {
     ]);
 
   const zona = cobertura ? { todoOPais: cobertura.todo_o_pais, concelhos: cobertura.concelhos } : null;
-  const efetiva = zonaEfetiva(zona, empresa?.concelho);
+  const porOmissao = await porOmissaoDaEmpresa(supabase, pertenca.orgId);
+  const efetiva = zonaEfetiva(zona, porOmissao);
   const versoes = new Set((termos ?? []).map((t) => t.version));
   const falta = motivosDeInelegibilidade({
     userId: user!.id,
@@ -161,22 +163,22 @@ export default async function DisponibilidadePage() {
         </h2>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
           Concelhos onde a empresa tem avaliadores. Só chegam oportunidades destes concelhos; sem nenhum escolhido,
-          vale o concelho da morada da empresa.
+          valem os da morada e das lojas da empresa.
         </p>
         {efetiva.origem === 'morada' && (
           <p className="mt-2 max-w-[54ch] text-[17px] text-slate-800">
-            Por agora: <span className="font-semibold">{empresa!.concelho}</span>, o concelho da morada da empresa.
+            Por agora: <span className="font-semibold">{descricaoPorOmissao(porOmissao)}</span>.
           </p>
         )}
         {responsavel ? (
           <div className="mt-4">
-            <CoverageForm orgId={pertenca.orgId} initial={zona?.concelhos ? [...zona.concelhos] : []} todoOPais={zona?.todoOPais ?? false} concelhoDaEmpresa={empresa?.concelho ?? null} />
+            <CoverageForm orgId={pertenca.orgId} initial={zona?.concelhos ? [...zona.concelhos] : []} todoOPais={zona?.todoOPais ?? false} semEscolha={concelhosPorOmissao(porOmissao).length ? descricaoPorOmissao(porOmissao) : null} />
           </div>
         ) : (
           <>
             {efetiva.origem === 'nenhuma' ? (
               <p className="mt-4 text-[17px] font-medium text-amber-800">
-                Ainda sem concelhos escolhidos, e a empresa não tem morada com código postal.
+                Ainda sem concelhos escolhidos, e a empresa não tem morada nem lojas com código postal.
               </p>
             ) : efetiva.origem === 'morada' ? null : zona!.todoOPais ? (
               <p className="mt-4 text-[17px] text-slate-800">Todo o país.</p>
