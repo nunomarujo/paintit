@@ -3,13 +3,10 @@ import type { Metadata } from 'next';
 import { CONTEUDO_DE_PERFIL, DEMO_DE_PERFIL, toOrg } from '@/components/landing/perfis';
 import { PaginaDePerfil } from '@/components/landing/PaginaDePerfil';
 import { Revelar } from '@/components/landing/Revelar';
-import { VALOR_DE_EXEMPLO_CENTS, percentagemEmPalavras, simularGanho } from '@/domain/avaliador';
-import { formatEuros } from '@/domain/money';
-import { SURVEYOR_SHARE_OF_VALUE_BP_MAX, SURVEYOR_SHARE_OF_VALUE_BP_MIN } from '@/domain/survey';
 import { BRAND } from '@/config/brand';
 
 const intro =
-  'Chegue ao pintor antes de a obra estar decidida, recomende o produto certo para aquela fachada, e seja reconhecido por isso. Sem custo para o vendedor; a empresa subscreve só a presença no catálogo.';
+  'Chegue ao pintor antes de a obra estar decidida, recomende o produto certo para aquela fachada, e seja reconhecido por isso. Sem custo para os vendedores. Caso a empresa queira, pode subscrever a presença no catálogo.';
 
 export const metadata: Metadata = {
   title: `Fornecedores de tintas — ${BRAND.name}`,
@@ -98,8 +95,7 @@ export default function Page() {
         </div>
       </Revelar>
 
-      {/* GANHAR DUAS VEZES — a figura do avaliador (promotor, 02/11/2026). Os números saem da regra
-          real (src/domain/avaliador.ts, survey.ts): banda de 1% a 2,7% do valor adjudicado. */}
+      {/* GANHAR DUAS VEZES — a figura do avaliador (promotor, 02/11/2026). */}
       <Revelar as="section" className="mx-auto max-w-[120rem] px-5 sm:px-10 lg:px-14 py-10" id="avaliador">
         <div className="grid gap-8 rounded-[28px] bg-lima p-6 text-tinta-900 sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
           <div>
@@ -122,15 +118,16 @@ export default function Page() {
               </li>
             </ul>
           </div>
+          {/* Sem valores nem percentagens na página pública (promotor, 06/11/2026): os números do ganho
+              mostram-se depois do registo e da confirmação da atividade, na área do fornecedor. */}
           <div className="rounded-[24px] bg-tinta-900 p-6 text-white sm:p-8">
-            <p className="text-[44px] font-medium leading-none tracking-[-0.03em] tabular-nums">
-              {formatEuros(simularGanho(VALOR_DE_EXEMPLO_CENTS).minimoCents)} a {formatEuros(simularGanho(VALOR_DE_EXEMPLO_CENTS).maximoCents)}
+            <p className="text-[34px] font-medium leading-[1.05] tracking-[-0.03em] sm:text-[44px]">Este trabalho tem remuneração elevada.</p>
+            <p className="mt-3 text-[17px] text-tinta-100">
+              Os valores conhecem-se depois do registo na plataforma e da confirmação da atividade.
             </p>
-            <p className="mt-3 text-[17px] text-tinta-100">Numa obra adjudicada por {formatEuros(VALOR_DE_EXEMPLO_CENTS)}, sem IVA.</p>
-            <p className="mt-2 text-[17px] text-tinta-100">
-              De {percentagemEmPalavras(SURVEYOR_SHARE_OF_VALUE_BP_MIN)} a {percentagemEmPalavras(SURVEYOR_SHARE_OF_VALUE_BP_MAX)} do valor,
-              conforme a qualificação: a 2%, {formatEuros(90_000)}. Sobe com as avaliações dos clientes e dos pintores; o
-              simulador na área de fornecedor mostra a sua posição.
+            <p className="mt-4 text-[17px] text-tinta-100">
+              Para ganhar levantamentos é preciso ser o primeiro a responder. Na inscrição, é possível indicar o telemóvel para
+              receber por WhatsApp os avisos de novas ofertas. É gratuito.
             </p>
             <Link href={toOrg('fornecedor')} className="btn-primary btn-lg mt-6 bg-lima text-tinta-900 hover:bg-white">
               Inscrever-me como avaliador

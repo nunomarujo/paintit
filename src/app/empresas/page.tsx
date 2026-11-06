@@ -24,16 +24,21 @@ const tempos = [
   { n: 'Do terceiro em diante', t: '≈ 5 min', d: 'Escolhe-se a obra, aplicam-se os modelos, confirma-se. Sai um documento A4 detalhado, com rigor.' },
 ];
 
-const ferramentas = [
+// A lista das ferramentas (promotor, 06/11/2026): orçamentar é gratuito, para os pedidos da plataforma e
+// para os clientes próprios; a medição da cor de uma parede está anunciada como «em breve», tal como na
+// aplicação. O asterisco dos descontos remete para a nota sobre os fornecedores, por baixo da lista.
+const ferramentas: { t: string; d: string; emBreve?: boolean }[] = [
+  {
+    t: 'Orçamentos gratuitos, para tudo',
+    d: 'Para concorrer aos pedidos da plataforma e para as obras dos seus próprios clientes. Há também a opção de o orçamento levar o logotipo e os contactos da empresa (no plano Pro).',
+  },
   { t: 'Modelos próprios', d: 'Condições, trabalhos e produtos habituais guardados uma vez e reutilizados em cada orçamento.' },
-  { t: 'Produtos do catálogo', d: 'Sugestões de produto reais, com ficha técnica e preço de referência do fornecedor, no campo certo.' },
   { t: 'Documento A4 automático', d: 'O orçamento sai pronto a enviar, com o aspeto de sempre — sem Word nem Excel.' },
+  { t: 'Gestão de obra', d: 'Diário com fotografias, equipa e horas, fases e trabalhos a mais, com prova — mesmo em obras que não vieram da plataforma.' },
+  { t: 'Stocks e consumíveis', d: 'Materiais comprados, gastos e o que sobrou, obra a obra.' },
+  { t: 'Catálogo de produtos e descontos*', d: 'Produtos reais, com ficha técnica e preço de referência, e as condições comerciais de cada fornecedor aplicadas sozinhas.' },
+  { t: 'Medir a cor de uma parede', d: 'Com o telemóvel, para encontrar a tinta mais próxima da cor que lá está.', emBreve: true },
   { t: 'Orçamentos fora do mercado', d: 'Para os clientes próprios, com seguimento automático por email. A ferramenta é sua, não só da plataforma.' },
-  { t: 'Diário de obra com fotografias', d: 'Dois toques por dia. O registo do que foi feito, para si e para mostrar ao cliente.' },
-  { t: 'Equipa e horas', d: 'Quem esteve em obra e quantas horas, por pessoa e por dia.' },
-  { t: 'Contas e consumíveis', d: 'Despesas, materiais gastos e o que sobrou, obra a obra.' },
-  { t: 'Trabalhos a mais', d: 'O que apareceu depois de assinar, registado e orçamentado à parte, com prova.' },
-  { t: 'Descontos de fornecedores', d: 'Condições comerciais automáticas por fornecedor, e desconto na comissão por referências.' },
 ];
 
 /** Página própria do pintor, fora da página inicial desde 01/11/2026 (ver `PaginaDePerfil`). */
@@ -75,7 +80,8 @@ export default function Page() {
             ))}
           </ol>
           <p className="mt-8 text-[15px] text-tinta-200">
-            Tempos habituais numa obra de fachada com cerca de dez trabalhos. Sem custo: orçamentar nunca se paga.
+            Tempos habituais numa obra de fachada com cerca de dez trabalhos. Sem custo: orçamentar nunca se paga — nem
+            para os pedidos da plataforma, nem para as obras dos seus próprios clientes.
           </p>
         </div>
         </div>
@@ -102,14 +108,24 @@ export default function Page() {
             className="mt-8 hidden h-auto w-full rounded-2xl object-cover lg:block"
           />
         </div>
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {ferramentas.map((f) => (
-            <li key={f.t} className="flex flex-col gap-1.5 rounded-[24px] bg-paper p-6">
-              <span className="text-[17px] font-bold text-tinta-900">{f.t}</span>
-              <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {ferramentas.map((f) => (
+              <li key={f.t} className="flex flex-col gap-1.5 rounded-[24px] bg-paper p-6">
+                <span className="flex flex-wrap items-baseline gap-2 text-[17px] font-bold text-tinta-900">
+                  {f.t}
+                  {f.emBreve && <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold text-marca-ink-soft">Em breve</span>}
+                </span>
+                <span className="text-[17px] leading-relaxed text-slate-600">{f.d}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 max-w-[62ch] text-[15px] leading-relaxed text-slate-600">
+            * A {BRAND.name} não cobra qualquer comissão aos fornecedores de tintas e materiais. Os descontos que já tem com
+            os seus fornecedores podem manter-se iguais: convide o seu fornecedor a aderir e a pôr na plataforma o preço
+            combinado consigo.
+          </p>
+        </div>
       </Revelar>
     </PaginaDePerfil>
   );

@@ -288,7 +288,7 @@ export default function Home() {
               href: '/fornecedores',
               titulo: 'Fornecedor de tintas?',
               frase: 'Venda mais. E venda acertado.',
-              texto: 'Chegue ao pintor antes de a obra estar decidida, recomende o produto certo para aquela fachada, e seja reconhecido por isso. Sem custo para o vendedor.',
+              texto: 'Chegue ao pintor antes de a obra estar decidida, recomende o produto certo para aquela fachada, e seja reconhecido por isso. Sem custo para os vendedores.',
               cta: 'Ver como funciona para fornecedores',
               img: '/img/maquina-de-tinta.webp',
               alt: 'Máquina de afinação a deitar corante azul num balde de tinta branca, numa loja',
