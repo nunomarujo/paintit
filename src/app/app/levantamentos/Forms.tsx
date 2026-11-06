@@ -18,7 +18,18 @@ const msg = (s: FormState) => {
   ) : null;
 };
 
-export function CoverageForm({ orgId, initial, todoOPais = false }: { orgId: string; initial: string[]; todoOPais?: boolean }) {
+export function CoverageForm({
+  orgId,
+  initial,
+  todoOPais = false,
+  semEscolha = null,
+}: {
+  orgId: string;
+  initial: string[];
+  todoOPais?: boolean;
+  /** O que vale sem escolha: «Viana do Castelo (morada da empresa)». */
+  semEscolha?: string | null;
+}) {
   const { state, pending, formProps } = useFormAction<FormState>(setSurveyCoverage.bind(null, orgId), { errors: {} });
   // «Todo o país» é uma escolha explícita, com a confirmação escrita ao lado — nunca o que fica quando a
   // lista está vazia (promotor, 06/11/2026).
@@ -26,7 +37,15 @@ export function CoverageForm({ orgId, initial, todoOPais = false }: { orgId: str
   return (
     <form {...formProps} className="space-y-4">
       {!todo && (
-        <Field name="concelhos" label="Concelhos" hint="Pelo menos um. Só chegam oportunidades dos concelhos escolhidos.">
+        <Field
+          name="concelhos"
+          label="Concelhos"
+          hint={
+            semEscolha
+              ? `Só chegam oportunidades dos concelhos escolhidos. Sem nenhum, ficam ${semEscolha}.`
+              : 'Pelo menos um. Só chegam oportunidades dos concelhos escolhidos.'
+          }
+        >
           <ConcelhosPicker name="concelhos" defaultValue={initial} />
         </Field>
       )}

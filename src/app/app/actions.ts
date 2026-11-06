@@ -30,6 +30,7 @@ import { isBuildingNeed } from '@/domain/buildingNeeds';
 import type { StrikeInfo } from '@/domain/strikes';
 import type { Database } from '@/lib/database.types';
 import { lookupPostalCode } from '@/lib/postalCodes';
+import { concelhoConhecido } from '@/domain/coberturaDaEmpresa';
 import { getUser } from '@/lib/supabase/server';
 
 function orgColumns(v: OrganizationInput) {
@@ -78,6 +79,17 @@ async function addressErrors(morada: string | null, cp: string | null, moradaFie
   return info ? { [moradaField]: problem } : { codigoPostal: problem };
 }
 
+/**
+ * O concelho da morada da empresa, tirado do código postal (CTT) — é o que vale quando a empresa não indica
+ * concelhos de levantamento ou de entrega (promotor, 06/11/2026). `{}` quando o serviço está em baixo: não
+ * se apaga um concelho já conhecido por falta de resposta.
+ */
+async function concelhoDaMorada(cp: string | null): Promise<{ concelho?: string | null }> {
+  if (!cp) return { concelho: null };
+  const info = await lookupPostalCode(cp);
+  if (info === 'indisponivel') return {};
+  return { concelho: concelhoConhecido(info?.concelho) };
+}
 
 /**
  * Confirma o NIPC e o nome na nif.pt (só pessoas coletivas; sem chave ou com o serviço em baixo, não
@@ -111,7 +123,7 @@ export async function createOrganization(_prev: FormState, form: FormData): Prom
   const v = parsed.value;
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ kind: v.kind, ...orgColumns(v), cae: nif.cae, cae_atividade: nif.atividade, created_by: user.id })
+    .insert({ kind: v.kind, ...orgColumns(v), ...(await concelhoDaMorada(v.codigoPostal)), cae: nif.cae, cae_atividade: nif.atividade, created_by: user.id })
     .select('id')
     .single();
   if (error || !data) {
@@ -187,7 +199,7 @@ export async function updateOrganization(orgId: string, _prev: FormState, form: 
   // O tipo de entidade não muda depois de criada; .select() confirma que a RLS deixou alterar.
   const { data, error } = await supabase
     .from('organizations')
-    .update({ ...orgColumns(parsed.value), ...caePatch })
+    .update({ ...orgColumns(parsed.value), ...(await concelhoDaMorada(parsed.value.codigoPostal)), ...caePatch })
     .eq('id', orgId)
     .select('id');
   if (error || !data || data.length === 0) {

@@ -6,7 +6,7 @@ import { percentagemEmPalavras, simularGanho, VALOR_DE_EXEMPLO_CENTS } from '@/d
 import { listaDoAvaliador, prontoParaLevantamentos, RECOMENDACAO_WHATSAPP, type SituacaoDoAvaliador } from '@/domain/prontidaoDoAvaliador';
 import { SURVEYOR_SHARE_OF_VALUE_BP_MAX, SURVEYOR_SHARE_OF_VALUE_BP_MIN } from '@/domain/survey';
 import { JanelaDePronto } from './JanelaDePronto';
-import { resumoDaCobertura, zonasDefinidas, type Cobertura } from '@/domain/coberturaDaEmpresa';
+import { resumoDaCobertura, zonaEfetiva, type Cobertura, type PorOmissao } from '@/domain/coberturaDaEmpresa';
 import { LinhaDeLevantamento, type LevantamentoNaLista } from './LinhaDeLevantamento';
 
 /**
@@ -35,6 +35,8 @@ export type EstadoDeHoje = {
   suspenso?: Suspensao | null;
   /** A zona da empresa; `null` = nunca escolhida (06/11/2026: sem zona não chegam oportunidades). */
   cobertura?: Cobertura | null;
+  /** Os concelhos da morada e das lojas da empresa: valem quando a empresa não escolheu concelhos. */
+  porOmissao?: PorOmissao;
   /** O que falta para receber levantamentos e, quando está tudo, quanto pode ganhar (06/11/2026). */
   avaliador?: { userId: string; situacao: SituacaoDoAvaliador };
 };
@@ -105,6 +107,14 @@ function Avaliador({ userId, situacao }: { userId: string; situacao: SituacaoDoA
           <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">
             {exemplo} {banda}, conforme a qualificação.
           </p>
+          {situacao.zonaDaMorada && (
+            <p className="mt-3 max-w-[54ch] text-[15px] text-slate-700">
+              Sem concelhos escolhidos, os levantamentos chegam de {situacao.zonaDaMorada}.{' '}
+              <Link href="/app/avaliacoes/disponibilidade" className="ligacao">
+                {situacao.responsavel ? 'Escolher outros concelhos' : 'Ver as zonas'}
+              </Link>
+            </p>
+          )}
           {!situacao.whatsappLigado && <p className="mt-3 max-w-[54ch] text-[15px] text-slate-700">{RECOMENDACAO_WHATSAPP}</p>}
         </div>
         <div className="flex shrink-0 flex-wrap gap-3">
@@ -170,7 +180,15 @@ function Avaliador({ userId, situacao }: { userId: string; situacao: SituacaoDoA
 }
 
 /** A presença da pessoa, numa pílula: disponível (com a cobertura) ou suspensa até uma data. */
-function Presenca({ suspenso, cobertura }: { suspenso: Suspensao | null | undefined; cobertura: Cobertura | null | undefined }) {
+function Presenca({
+  suspenso,
+  cobertura,
+  porOmissao,
+}: {
+  suspenso: Suspensao | null | undefined;
+  cobertura: Cobertura | null | undefined;
+  porOmissao: PorOmissao;
+}) {
   if (suspenso) {
     return (
       <Link
@@ -182,14 +200,14 @@ function Presenca({ suspenso, cobertura }: { suspenso: Suspensao | null | undefi
       </Link>
     );
   }
-  const comZona = zonasDefinidas(cobertura);
+  const comZona = zonaEfetiva(cobertura, porOmissao).origem !== 'nenhuma';
   return (
     <Link
       href="/app/avaliacoes/disponibilidade"
       className={`inline-flex min-h-[44px] items-center gap-2 rounded-full bg-tinta-100 px-4 text-[15px] font-semibold ${comZona ? 'text-tinta-700' : 'text-amber-800'}`}
     >
       <span aria-hidden="true" className={`h-2 w-2 rounded-full ${comZona ? 'bg-tinta-600' : 'bg-amber-500'}`} />
-      {comZona ? `Disponível · ${resumoDaCobertura(cobertura)}` : 'Sem concelhos escolhidos'}
+      {comZona ? `Disponível · ${resumoDaCobertura(cobertura, porOmissao)}` : 'Sem concelhos escolhidos'}
     </Link>
   );
 }
@@ -220,7 +238,7 @@ export function HojeAvaliacoes({
           <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-0.025em] text-slate-900">Hoje</h1>
           <p className="mt-1 text-[17px] text-slate-600">{diaPorExtenso(agora)}</p>
         </div>
-        <Presenca suspenso={estado.suspenso} cobertura={estado.cobertura} />
+        <Presenca suspenso={estado.suspenso} cobertura={estado.cobertura} porOmissao={estado.porOmissao} />
       </div>
 
       {estado.avaliador && <Avaliador userId={estado.avaliador.userId} situacao={estado.avaliador.situacao} />}

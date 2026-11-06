@@ -15,7 +15,7 @@ import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import { referenciaDoLevantamento } from '@/domain/referencias';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { configuracaoWhatsApp, modeloDoConvite, payloadDoConvite } from '@/domain/whatsapp';
-import { cobre, zonasDefinidas, type Cobertura } from '@/domain/coberturaDaEmpresa';
+import { cobre, zonaEfetiva, type Cobertura } from '@/domain/coberturaDaEmpresa';
 import { CENTROS_DOS_CONCELHOS } from '@/lib/centrosDosConcelhos';
 import { sendEmail } from '@/lib/notify';
 import { adminClient } from '@/lib/supabase/admin';
@@ -77,7 +77,7 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
     const candidatos: (Candidato & { orgId: string; telemovel: string })[] = [];
     for (const p of pessoas) {
       if (jaConvidados.has(p.ficha.userId) || orgsExcluidas.has(p.ficha.orgId)) continue;
-      if (!cobre(coberturas.get(p.ficha.orgId), pedido.concelho)) continue;
+      if (!cobre(coberturas.get(p.ficha.orgId), pedido.concelho)) continue; // já é a zona efetiva
       const a = anel(pedido.concelho, p.ficha.concelhoBase!, p.ficha.raioKm!, CENTROS_DOS_CONCELHOS);
       if (a == null) continue;
       candidatos.push({ ...p.candidato, anel: a, orgId: p.ficha.orgId, telemovel: p.telemovel });
@@ -148,10 +148,18 @@ export async function avancarConvocatorias(agora = new Date()): Promise<ResumoDa
 
 type Admin = NonNullable<ReturnType<typeof adminClient>>;
 
-async function coberturasDasEmpresas(db: Admin, orgIds: string[]): Promise<Map<string, Cobertura>> {
+/** A zona que vale para cada empresa: a escolhida ou, sem ela, os concelhos da morada e das lojas (`zonaEfetiva`). */
+async function coberturasDasEmpresas(db: Admin, orgIds: string[]): Promise<Map<string, Cobertura | null>> {
   if (orgIds.length === 0) return new Map();
-  const { data } = await db.from('supplier_survey_coverage').select('org_id, concelhos, todo_o_pais').in('org_id', orgIds);
-  return new Map((data ?? []).map((c) => [c.org_id, { todoOPais: c.todo_o_pais, concelhos: c.concelhos }]));
+  const [{ data }, { data: empresas }, { data: lojas }] = await Promise.all([
+    db.from('supplier_survey_coverage').select('org_id, concelhos, todo_o_pais').in('org_id', orgIds),
+    db.from('organizations').select('id, concelho').in('id', orgIds),
+    db.from('supplier_stores').select('org_id, concelho').in('org_id', orgIds),
+  ]);
+  const escolhida = new Map((data ?? []).map((c) => [c.org_id, { todoOPais: c.todo_o_pais, concelhos: c.concelhos }]));
+  const morada = new Map((empresas ?? []).map((o) => [o.id, o.concelho]));
+  const lojasDe = (id: string) => (lojas ?? []).filter((l) => l.org_id === id).map((l) => l.concelho);
+  return new Map(orgIds.map((id) => [id, zonaEfetiva(escolhida.get(id), { morada: morada.get(id) ?? null, lojas: lojasDe(id) }).cobertura]));
 }
 
 /** Quem pode ser convidado: só quem cumpre todas as condições, com o que a ordem das ondas precisa. */
@@ -175,13 +183,8 @@ async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliado
   ]);
   const { data: empresas } = await db.from('organizations').select('id, kind, nif').in('id', [...new Set((membros ?? []).map((m) => m.org_id))]);
   const fornecedor = new Map((empresas ?? []).filter((o) => o.kind === 'fornecedor').map((o) => [o.id, o.nif]));
-  const { data: zonas } = await db
-    .from('supplier_survey_coverage')
-    .select('org_id, concelhos, todo_o_pais')
-    .in('org_id', [...fornecedor.keys()]);
-  const zonasEscolhidas = new Set(
-    (zonas ?? []).filter((z) => zonasDefinidas({ todoOPais: z.todo_o_pais, concelhos: z.concelhos })).map((z) => z.org_id),
-  );
+  const zonasDasEmpresas = await coberturasDasEmpresas(db, [...fornecedor.keys()]);
+  const zonasEscolhidas = new Set([...zonasDasEmpresas].filter(([, z]) => z !== null).map(([id]) => id));
   const hoje = new Date().toISOString().slice(0, 10);
 
   const out: { ficha: FichaDoAvaliador; candidato: Omit<Candidato, 'anel'>; telemovel: string }[] = [];
@@ -205,7 +208,8 @@ async function fichasDosAvaliadores(db: Admin): Promise<{ ficha: FichaDoAvaliado
       whatsapp: !!d.alerta_whatsapp && !!d.telemovel_whatsapp,
       concelhoBase: d.concelho_base,
       raioKm: d.raio_km,
-      // Aqui só conta se a empresa escolheu a zona; se cobre o concelho de cada obra vê-se em cada passagem.
+      // Aqui só conta se a empresa tem uma zona (escolhida ou a da morada); se cobre o concelho de cada obra
+      // vê-se em cada passagem.
       zonasDaEmpresa: zonasEscolhidas.has(membro.org_id),
       suspenso: !!d.suspenso_ate && d.suspenso_ate >= hoje,
       emCurso: minhas.filter((t) => t.estado === 'ativa').length,

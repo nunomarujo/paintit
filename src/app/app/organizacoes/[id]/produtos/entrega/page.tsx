@@ -2,6 +2,8 @@ import { deleteDelivery } from '@/app/app/catalogo/actions';
 import { ProdutosEPrecos } from '@/components/vendas/ProdutosEPrecos';
 import { formatEuros } from '@/domain/money';
 import { contextoDoCatalogo } from '../dados';
+import { concelhosPorOmissao, descricaoPorOmissao } from '@/domain/coberturaDaEmpresa';
+import { porOmissaoDaEmpresa } from '@/lib/lojas';
 import { DeliveryForm } from '../SupplierRules';
 
 /** Produtos e preços — separador «Entrega em obra». */
@@ -9,11 +11,11 @@ export default async function EntregaPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const { supabase, manager, catalogo } = await contextoDoCatalogo(id);
 
-  const { data: deliveries } = await supabase
-    .from('supplier_delivery')
-    .select('*')
-    .eq('org_id', id)
-    .order('created_at');
+  const [{ data: deliveries }, porOmissao] = await Promise.all([
+    supabase.from('supplier_delivery').select('*').eq('org_id', id).order('created_at'),
+    porOmissaoDaEmpresa(supabase, id),
+  ]);
+  const semEscolha = concelhosPorOmissao(porOmissao).length > 0 ? descricaoPorOmissao(porOmissao) : null;
 
   return (
     <ProdutosEPrecos
@@ -41,7 +43,7 @@ export default async function EntregaPage({ params }: { params: Promise<{ id: st
                   >
                     <span className="min-w-0">
                       <span className="block font-semibold text-slate-900">
-                        {d.concelhos.length ? d.concelhos.join(', ') : 'Todo o país'}
+                        {d.todo_o_pais ? 'Todo o país' : d.concelhos.join(', ')}
                       </span>
                       <span className="block text-[15px] text-slate-600">
                         {[
@@ -70,7 +72,7 @@ export default async function EntregaPage({ params }: { params: Promise<{ id: st
             <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
               <h2 className="text-[20px] font-semibold text-slate-900">Acrescentar condições</h2>
               <div className="mt-4">
-                <DeliveryForm orgId={id} />
+                <DeliveryForm orgId={id} semEscolha={semEscolha} />
               </div>
             </section>
           )}

@@ -7,8 +7,8 @@
 // 1. **Inscrição de avaliador** (obrigatória) — a autodeclaração da pessoa. Sem ela a base não deixa
 //    reservar levantamentos (`reserva_so_para_avaliadores_inscritos`).
 // 2. **Zonas da empresa** (obrigatória) — pelo menos um concelho escolhido, ou «Todo o país» marcado de
-//    propósito; nunca por omissão (promotor, 06/11/2026: «ninguém trabalha para o país todo, e se o fizer
-//    tem de ser explícito» — `coberturaDaEmpresa.ts`). Só o responsável da empresa as grava.
+//    propósito; sem escolha, o concelho da morada da empresa (promotor, 06/11/2026 —
+//    `coberturaDaEmpresa.ts`). Nunca «todo o país» por omissão. Só o responsável da empresa as grava.
 // 3. **Avisos por WhatsApp** (recomendado, não obrigatório) — quem responde primeiro fica com o
 //    levantamento, e o WhatsApp é o aviso que chega primeiro.
 //
@@ -31,8 +31,10 @@ export interface ItemDaLista {
 
 export interface SituacaoDoAvaliador {
   inscrito: boolean;
-  /** A empresa escolheu a zona: pelo menos um concelho, ou «todo o país» marcado (`zonasDefinidas`). */
+  /** Há uma zona que vale: a escolhida, ou o concelho da morada da empresa (`zonaEfetiva`). */
   zonasDefinidas: boolean;
+  /** Quando a zona é a por omissão (nada escolhido): «Viana do Castelo (morada da empresa)», para o ecrã o dizer. */
+  zonaDaMorada?: string | null;
   /** A pessoa pode gravar as zonas da empresa. */
   responsavel: boolean;
   whatsappLigado: boolean;
@@ -61,7 +63,7 @@ export function listaDoAvaliador(s: SituacaoDoAvaliador): ItemDaLista[] {
       href: '/app/avaliacoes/disponibilidade',
       acao: s.responsavel ? 'Escolher os concelhos' : null,
       nota: s.responsavel
-        ? 'Os concelhos onde a empresa vai à obra. Só chegam oportunidades destes concelhos.'
+        ? 'Os concelhos onde a empresa vai à obra. Sem escolha valem os da morada e das lojas da empresa, que ainda não têm código postal.'
         : 'Quem os escolhe é o responsável da empresa. Até lá não chegam oportunidades.',
     },
     {
