@@ -1,5 +1,6 @@
 import {
   ORIGEM_ANTIGA_PARA_NOVA,
+  ORIGENS_DA_QUANTIDADE,
   type AreaSource,
   type Confirmacao,
   type OrigemDaQuantidade,
@@ -25,6 +26,7 @@ export interface LinhaDeSuperficie {
   origem_quantidade?: string | null;
   confirmacao?: string | null;
   origem?: string | null;
+  margem_bps?: number | null;
 }
 
 const umDe = <T extends string>(valores: readonly T[], v: unknown, omissao: T): T =>
@@ -32,7 +34,9 @@ const umDe = <T extends string>(valores: readonly T[], v: unknown, omissao: T): 
 
 export function paraZona(s: LinhaDeSuperficie): ZonaDoPedido {
   const participacao = umDe(['incluida', 'por_decidir', 'excluida'] as const, s.participacao, 'incluida' as Participacao);
-  const origemNova = umDe(['medicao', 'estimativa', 'documento'] as const, s.origem_quantidade, '' as OrigemDaQuantidade);
+  // A lista do domínio, e não uma cópia: uma origem nova que faltasse aqui lia-se como a antiga — uma zona
+  // medida pelo cliente passava a «estimativa» sem ninguém dar por isso.
+  const origemNova = umDe(ORIGENS_DA_QUANTIDADE, s.origem_quantidade, '' as OrigemDaQuantidade);
   const antiga = umDe(['estimativa', 'medicao_cliente', 'planta'] as const, s.origem, 'estimativa' as AreaSource);
   return {
     areaCm2: s.area_cm2 ?? 0,
@@ -41,5 +45,6 @@ export function paraZona(s: LinhaDeSuperficie): ZonaDoPedido {
     // Sem resposta, uma quantidade está por confirmar. Dá-la por confirmada seria afirmar que
     // alguém a foi ver ao local — exactamente o que não se sabe.
     confirmacao: umDe(['por_confirmar', 'confirmada'] as const, s.confirmacao, 'por_confirmar' as Confirmacao),
+    margemBps: typeof s.margem_bps === 'number' ? s.margem_bps : null,
   };
 }

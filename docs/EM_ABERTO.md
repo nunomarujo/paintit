@@ -23,6 +23,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
+| Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
+| Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
 
 ## 1b. WhatsApp — passos do promotor (02/11/2026)
@@ -90,6 +92,15 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | «Anos de experiência» no relatório de propostas | Sem campo próprio em lugar nenhum (proposta nem perfil da empresa) — de onde vem o número? Novo campo na proposta? No perfil? Auto-declarado ou verificado? Até à decisão, a coluna mostra «Não disponível» em todas as propostas (desenho transparente, não erro) | Construído e aplicado 02/11/2026, `src/domain/relatorioCongelado.ts` |
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
+| Página do Pro: adenda e diário | A página vende-os como do Pro, mas estão abertos a todas as empresas desde 25/10/2026. Fechá-los ao Pro, tirá-los da lista, ou escrevê-los como «também no gratuito»? | `DECISOES.md` 06/11/2026, «Subscrição: opção 3» |
+| IBAN estrangeiro | Decidido: só português por agora. Ainda não há nenhum caso (promotor, 06/11/2026), mas pode vir a haver clientes com conta noutro país: quando aparecer o primeiro, aceitar IBAN SEPA do lado do cliente (o algarismo de controlo é o mesmo cálculo para todos os países) | idem |
+| Jurista: elementos do contrato | Redação da cláusula 4-A; histórico que não se apaga e direito ao apagamento (RGPD); valor dos comprovativos como prova. Acrescentar ao documento de questões jurídicas (Claude Docs) | idem |
+| Obra que ninguém declarou concluída | Os registos não se apagam. O limite máximo decide-se com o jurista | idem |
+| Conta encerrada durante o período de conservação | Proposta: registos mantidos, acesso só às partes e à equipa. Validar com o jurista | idem |
+| Jurista: conservação vs. prazo legal de 5 anos | Garantia de 2 anos + 24 meses = 4 anos, abaixo dos 5 do art. 1225.º CC citado no contrato. Conservar pelo prazo mais longo? Valor da prova junta por uma só parte; papel de «terceira isenta» | idem |
+| Jurista: registo e relatório | Conservação e prazo; RGPD face a um registo que não se apaga; conteúdo a entregar; entrega gratuita | idem |
+| Fachadas: ligar `/demo-areas` ao pedido | Decidido: próxima sessão (a da «Medição de zonas»), e o cliente também mede (decisão de 05/11/2026). Falta construir o botão do passo 2 | idem |
+| Interior: plantas reais para ensaio | 3 ou 4 plantas com uma parede de medida conhecida, e uma casa medida à fita ou laser. Até lá, o interior não se anuncia aos clientes | promotor |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)
@@ -126,11 +137,12 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   distorção de uma grande angular, um tubo de queda até ~0,35° numa empena com uma esquina escondida,
   ~0,9 s num telemóvel lento, e a margem continua sem ver erros sistemáticos (uma vertical do passo 2 fora
   da aresta). A validação a laser (acima) diz se o ganho se aguenta em obra.
-- **Por decidir pelo promotor:** a ferramenta é só do avaliador, ou também uma estimativa feita pelo
-  cliente? (pergunta do documento «Medir fachadas a partir de uma fotografia: o que existe»).
+- *Decidido pelo promotor a 05/11/2026:* também o cliente mede — e uma zona medida por ele fica com origem
+  própria, **«medida pelo cliente»**, e com a margem de erro (± %), nunca «confirmada» (DECISOES 05/11/2026,
+  «Passo 2 do pedido: a proposta B»).
 - O (i) dentro dos rótulos dos formulários (`Field.tsx`) tem 16 px, abaixo dos 44 px da regra 17:
   um alvo maior tapava o campo. Dívida declarada.
-- Ligar ao fluxo real (hoje não grava nada: tudo em estado local do browser).
+- Ligar ao fluxo real: *feito a 06/11/2026, fases 1 e 2* (base, regras, ação; o botão do passo 2 grava, a quem pode editar, e a margem aparece no cartão, na barra e ao pintor — `DECISOES.md` 06/11/2026). A migração `20261106083508` já está aplicada (06/11/2026). Fica: ver uma gravação de ponta a ponta na base real com um utilizador `zz-test-*` (a linha «Gravado: …» a sair quando a zona muda por outro caminho só se vê aí: a página de ensaio não tem base).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
   pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
@@ -148,7 +160,46 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - A linha "valor de `INCLINACAO_TIPICA_GRAUS_PROPOSTA`" da secção 2 deixou de travar o ecrã: era do
   motor de `retificarZona`, que já não está em uso.
 
+### O passo 2 do pedido, «Medidas e fotografias» (05/11/2026)
+
+**Feito:** a proposta B, «o prédio ao centro», escolhida pelo promotor, com as oito correções do juiz
+(DECISOES 05/11/2026). O desenho com as zonas numeradas; o modo lista como base e as chamadas só em
+contentores de 1040 px ou mais, com a regra das ligações numa função testada (`src/domain/chamadas.ts`); a
+barra medido/estimado; a conta ao vivo no editor; o que falta, acionável; as fotografias pela zona. A
+entrada da ferramenta de levantamento («Medir na fotografia», numa janela grande) aparece a quem pode editar o
+pedido e grava a medição na zona (06/11/2026, ver abaixo).
+Revisto por céticos (05–06/11/2026) e corrigido no mesmo commit: gaveta com um só modo de gravar e remover
+com confirmação; título e frase do que falta coerentes nos casos-limite; ligações que não atravessam a zona
+de outro número; palco cinzento a toda a largura; desenho tocável e «+ Fachada/Empena/Varandas» no prédio
+vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
+
+**Por fazer:**
+- *Feito a 06/11/2026:* **ligar a ferramenta ao pedido** — a medição volta para a zona escolhida (ou uma nova),
+  «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
+  (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
+  gravação verificada na base real, de ponta a ponta.
+- Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
+  regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
+
 ## 3. Por construir (já decidido, ainda não feito)
+
+- **Escadas das zonas comuns:** uma regra de medição própria (hoje ficam «Por medir» com medidas ou planta; escritas à mão, ficam como estimativa), decisão do promotor de 06/11/2026.
+
+- **Poderes de quem assina (05/11/2026), o que fica da versão manual** (`DECISOES.md`, «Poderes de quem assina»):
+  a leitura automática da certidão, só depois da autorização do IRN (secção 1); o **SCAP** (assinatura com o
+  atributo profissional «gerente», que provaria a qualidade de quem assina e não só o nome); a **LTV** (carimbo
+  temporal e revogação embebidos no PDF); procuradores (quem assina por procuração dá «não consta»); avisar a
+  entidade antes de a certidão registada caducar (hoje vê-se no ecrã e na fila da equipa, sem aviso por email);
+  o cofre de documentos do pintor (`/app/obras`, `src/domain/dossier.ts`) ainda não conta o código de acesso
+  como certidão (a lista do que falta, na página da entidade, já conta).
+
+- **Assinatura no telemóvel (05/11/2026):** confirmar o endereço da ferramenta web de assinatura com a Chave Móvel
+  Digital (o ecrã liga ao guia oficial do gov.pt, que não deu para ler daqui) e **provar com um PDF real** que o
+  ficheiro assinado nesse serviço passa na nossa verificação (o mesmo documento, só com a assinatura acrescentada).
+  Junta-se ao ensaio de assinatura da secção 1. Até lá, o caminho do telemóvel está no ecrã sem ter sido ensaiado.
+- **Rasto de avisos (05/11/2026), o que ficou para depois:** o contador do menu conta todos os passos do contrato
+  (caução, confirmação, assinatura); se se quiser só a assinatura, é uma linha em `layout.tsx`. Os avisos do
+  contrato por WhatsApp saem só na vez de assinar; os outros passos seguem pelo modelo genérico, quando existir.
 
 - **Impermeabilização das coberturas de corpos salientes sem telha (promotor, 04/11/2026)** — sempre
   que haja corpos salientes sem telha (marquises, palas, varandas cobertas em laje), perguntar ao
@@ -180,6 +231,13 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 - Assinaturas (`src/lib/pades.ts`, `DECISOES.md` 05/11/2026): as entidades de **autenticação** do cartão também encadeiam nas âncoras, e um PDF assinado com a chave de autenticação passaria por assinatura de confiança (falta verificar o não-repúdio do signatário, com um certificado real para não recusar assinaturas legítimas); quem forja pode forçar «por confirmar» com um AIA que não responde, e o servidor segue os endereços AIA/OCSP que o certificado traz.
 
 - `src/lib/database.types.ts` atrasado, com entradas escritas à mão; regenerar traz dezenas de erros de tipos.
+- **Acontecimentos de assinatura inseridos à mão (achado a 05/11/2026):** a política `engagement_events_insert`
+  deixa quem gere a entidade inserir `cliente_assinou`/`pintor_assinou` diretamente pela API, sem PDF, e com o
+  `payload` que quiser — incluindo `cadeiaConfiavel: true` e um `poderes` «confere». A ação do servidor faz as
+  verificações, a base não. Fechar com uma porta só de serviço (ou uma função que receba o PDF) para as
+  assinaturas.
+- Página da contratação (`src/app/app/contratacoes/[id]/page.tsx`): a secção «Trabalhos a mais» aparece duas
+  vezes (uma antes do título, outra depois). Visto a 05/11/2026, não corrigido nesse commit.
 - 31 botões e ligações com geometria feita à mão, fora do percurso do fornecedor (inventário congelado em `alvosDeToque.test.ts`; só pode descer).
 - Avisos da base, a confirmar caso a caso: três tabelas com RLS ligado e sem políticas (`avisos_por_email`, `moloni_token`, `toques` — esperado se só o servidor lhes acede; confirmar `toques`); 43 funções que um utilizador autenticado pode executar (por desenho, cada uma verifica quem chama); 20 chaves estrangeiras sem índice; 46 índices por usar (base ainda quase vazia); 5 tabelas com políticas permissivas duplicadas (`DECISOES.md` «Notas técnicas em aberto»); `pg_net` no esquema público.
 

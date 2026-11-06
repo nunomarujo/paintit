@@ -175,3 +175,12 @@ em nome da pessoa → resposta «Levantamento reservado…» entregue e lida. Do
 caracteres no identificador da mensagem recusava, em silêncio, a linha das mensagens **recebidas** (os
 `wamid` delas são mais compridos): passou a 255 (`20261105203307`); (2) até a aplicação estar subscrita à
 conta (secção acima) nada disto chega. O texto do modelo na Meta continua «Marketing», em revisão.
+
+## O contrato pronto para assinar (05/11/2026)
+
+Modelo `contrato_para_assinar` (Utilidade, Português de Portugal): {{1}} a referência da obra; botão «Visitar
+website», «Abrir o contrato», com o identificador da contratação no fim de `https://quempinta.pt/app/contratacoes/{{1}}`.
+Sai no mesmo momento do email, quando é a vez de uma parte assinar, a quem pode assinar pela entidade e deu o
+consentimento e o número (`survey_availability`, a preferência de toda a aplicação; liga-se no Perfil e na página do
+contrato). Só sai com `WHATSAPP_MODELO_CONTRATO` na Vercel, depois de a Meta aprovar o modelo. Código:
+`contratoParaAssinarPorWhatsApp` em `src/lib/notify.ts`; botão de ligação em `corpoDoModelo` (`src/domain/whatsapp.ts`).

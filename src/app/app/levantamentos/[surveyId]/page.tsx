@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Fotografias } from '@/app/app/pedidos/[id]/Fotografias';
 import { ZonasComVolume } from '@/app/app/pedidos/[id]/ZonasComVolume';
 import { paraZona } from '@/lib/requests';
-import { SURFACE_KIND_LABELS, formatArea } from '@/domain/request';
+import { SURFACE_KIND_LABELS } from '@/domain/request';
 import { CURRENT_SURVEY_TERMS_VERSION } from '@/domain/surveyTerms';
 import { surveyPendings } from '@/domain/surveyPendings';
 import { surveyorEarningView } from '@/lib/surveys';
@@ -94,7 +94,6 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
     .select('zona_id', { head: true, count: 'exact' })
     .eq('request_id', request.id)
     .limit(1);
-  const total = list.reduce((n, s) => n + s.area_cm2, 0);
   const done = survey.status === 'concluido';
 
   // Pedido de esclarecimento desta obra (migração 20261024010647): a tentativa mais recente, com a lista
@@ -165,12 +164,8 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
         levantamento={
           <>
       <section className={card}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="superficies" className="scroll-mt-4 font-semibold">Zonas e medidas</h2>
-          <span className="text-[17px] text-slate-600">
-            {list.length === 0 ? 'Área por levantar' : `Total: ${formatArea(total)}`}
-          </span>
-        </div>
+        {/* O total e o que falta vêm do próprio quadro das zonas (passo 2 do cliente, 05/11/2026). */}
+        <h2 id="superficies" className="scroll-mt-4 font-semibold">Zonas e medidas</h2>
         {/*
           O mesmo editor do cliente, e não o formulário antigo de dez campos de uma vez. Quem está
           no prédio tem o telemóvel numa mão e a fita métrica na outra: uma pergunta de cada vez é
@@ -196,10 +191,14 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
               participacao: paraZona(s).participacao,
               origemDaQuantidade: paraZona(s).origemDaQuantidade,
               confirmacao: paraZona(s).confirmacao,
+              margemBps: paraZona(s).margemBps,
               trabalhos: s.trabalhos,
             }))}
             modo="iguais"
             podeEditar={!done}
+            // O avaliador mede no local, e o que mede fica confirmado. A ferramenta da fotografia grava
+            // «medida pelo cliente», que não é o que ele faz: aqui não se oferece (06/11/2026).
+            medirNaFotografia={false}
             doCliente={false}
             predio={{
               buildingId: request.building_id,

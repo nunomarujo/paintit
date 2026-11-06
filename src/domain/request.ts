@@ -1,11 +1,14 @@
 import type { FieldErrors } from './organization';
+import { parseCaleiras, type Caleiras } from './caleiras';
 
 // Pedido de orçamento: a obra descrita pelo cliente sobre um prédio, com as
 // superfícies a pintar e as respetivas áreas. Antes da apresentação, os
 // pintores só veem o anúncio anónimo: concelho, características gerais,
 // superfícies, áreas, trabalhos e prazos. Nunca a morada nem a identidade.
 
-export const WORK_TYPES = ['fachadas', 'zonas_comuns', 'muros', 'moradia', 'interior'] as const;
+// «caleiras» entrou a 06/11/2026 e vai no fim de propósito: a ordem decide o tipo principal
+// (`tipoPrincipal`) e é também a do enum `work_type` na base, onde o valor novo só pode ir para o fim.
+export const WORK_TYPES = ['fachadas', 'zonas_comuns', 'muros', 'moradia', 'interior', 'caleiras'] as const;
 export type WorkType = (typeof WORK_TYPES)[number];
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   fachadas: 'Fachadas e varandas',
@@ -13,6 +16,7 @@ export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   muros: 'Muros e vedações',
   moradia: 'Moradia (exterior)',
   interior: 'Interior de habitação',
+  caleiras: 'Caleiras',
 };
 
 /**
@@ -126,13 +130,23 @@ export const PARTICIPACAO_LABELS: Record<Participacao, string> = {
   excluida: 'Excluída deste pedido',
 };
 
-export const ORIGENS_DA_QUANTIDADE = ['medicao', 'estimativa', 'documento'] as const;
+/**
+ * `medida_pelo_cliente` (06/11/2026): a área que o cliente mediu na ferramenta de fotografia, com a sua
+ * margem de erro (`margem_bps`). Decisão do promotor de 05/11/2026, que põe o «quem» de volta na origem —
+ * ao contrário do resto da tabela acima — porque o que o pintor precisa de saber é exatamente isso: um
+ * número tirado de uma fotografia pelo cliente, com a margem que a ferramenta calculou. Nunca confirma a
+ * zona, e só entra pela ação da fotografia: o formulário manual recusa-a (`parseSurface`).
+ */
+export const ORIGENS_DA_QUANTIDADE = ['medicao', 'estimativa', 'documento', 'medida_pelo_cliente'] as const;
 export type OrigemDaQuantidade = (typeof ORIGENS_DA_QUANTIDADE)[number];
 export const ORIGEM_DA_QUANTIDADE_LABELS: Record<OrigemDaQuantidade, string> = {
   medicao: 'Medição',
   estimativa: 'Estimativa',
   documento: 'Documento existente',
+  medida_pelo_cliente: 'Medida pelo cliente',
 };
+/** As origens que se escolhem à mão no editor da zona. A medição pela fotografia vem só da ferramenta. */
+export const ORIGENS_ESCOLHIVEIS: readonly OrigemDaQuantidade[] = ['medicao', 'estimativa', 'documento'];
 
 export const CONFIRMACOES = ['por_confirmar', 'confirmada'] as const;
 export type Confirmacao = (typeof CONFIRMACOES)[number];
@@ -147,6 +161,8 @@ export interface ZonaDoPedido {
   participacao: Participacao;
   origemDaQuantidade: OrigemDaQuantidade | null;
   confirmacao: Confirmacao;
+  /** Margem de erro em pontos-base, só nas zonas medidas pelo cliente na fotografia. */
+  margemBps?: number | null;
 }
 
 export interface ResumoDasZonas {
@@ -344,6 +360,9 @@ export function parseSurface(form: FormData): { value?: SurfaceInput; errors: Fi
   // «Não sei as medidas» guarda a zona sem números nenhuns: por levantar.
   const semMedidas = como === 'nao_sei';
   const origemNova = String(form.get('origemQuantidade') ?? '');
+  // A medição pela fotografia só entra pela ação da ferramenta, com a margem que ela calculou: escrita à
+  // mão, seria uma «medida pelo cliente» sem margem nenhuma (regra 10 — o formulário vem do navegador).
+  if (origemNova === 'medida_pelo_cliente') return { errors: { origemQuantidade: 'Esta origem vem só da medição pela fotografia.' } };
   const value: SurfaceInput = {
     kind: kind as SurfaceKind,
     descricao: String(form.get('descricao') ?? '').trim() || null,
@@ -527,6 +546,8 @@ export interface RequestInput {
   ocupacaoViaPublica: ViaPublica;
   trabalhosModo: WorksMode;
   datasFlexiveis: DataFlexivel[];
+  /** Vazio sem o tipo «Caleiras» (`caleiras.ts`). */
+  caleiras: Caleiras;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -556,6 +577,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
   if (dates.execucaoDesde && dates.execucaoAte && dates.execucaoAte < dates.execucaoDesde) {
     errors.execucaoAte = 'Tem de ser depois do início.';
   }
+  const caleiras = parseCaleiras(get, tiposObra.includes('caleiras'));
+  Object.assign(errors, caleiras.errors);
   if (Object.keys(errors).length > 0) return { errors };
   return {
     errors,
@@ -573,6 +596,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
       ocupacaoViaPublica: via as ViaPublica,
       trabalhosModo: modo as WorksMode,
       datasFlexiveis: [...new Set(flexiveis)],
+      caleiras: caleiras.value,
     },
   };
 }

@@ -26,6 +26,9 @@ export const SUPABASE_STUB = `
   alter table storage.objects enable row level security;
   grant usage on schema storage to authenticated;
   grant select, insert, delete on storage.objects to authenticated;
+  -- No Supabase a chave de serviço chega a tudo; aqui, ao armazenamento, onde há carregamentos só dela.
+  grant usage on schema storage to service_role;
+  grant all on storage.objects to service_role;
   grant usage on schema public to anon, authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated;
 `;

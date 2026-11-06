@@ -27,30 +27,21 @@ export function PhotoInstructions() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => ref.current?.showModal()}
-        className="rounded-lg border border-tinta-600 px-3 py-1.5 text-sm font-semibold text-tinta-700 hover:bg-tinta-50"
-      >
-        Instruções das fotografias
+      <button type="button" onClick={() => ref.current?.showModal()} className="btn-quiet btn-sm">
+        Como fotografar
       </button>
 
       <dialog
         ref={ref}
-        className="w-[min(34rem,92vw)] rounded-2xl p-0 backdrop:bg-slate-900/40"
+        className="w-[min(34rem,calc(100vw-32px))] rounded-2xl p-0 text-slate-900 backdrop:bg-tinta-900/45"
         aria-labelledby="instrucoes-fotos-titulo"
       >
         <div className="space-y-5 p-6">
           <div className="flex items-start justify-between gap-4">
-            <h2 id="instrucoes-fotos-titulo" className="text-lg font-semibold">
+            <h2 id="instrucoes-fotos-titulo" className="text-[20px] font-semibold text-tinta-900">
               Como fotografar a obra
             </h2>
-            <button
-              type="button"
-              onClick={() => ref.current?.close()}
-              aria-label="Fechar"
-              className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
-            >
+            <button type="button" onClick={() => ref.current?.close()} aria-label="Fechar" className="btn-quiet h-11 w-11 shrink-0 px-0 text-slate-600">
               <ICONES.fechar className="h-[18px] w-[18px]" />
             </button>
           </div>
@@ -72,16 +63,12 @@ export function PhotoInstructions() {
             tone="danger"
           />
 
-          <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+          <p className="rounded-lg bg-slate-50 p-3 text-[13px] text-slate-600">
             A aplicação apaga a localização e a data guardadas dentro do ficheiro. O que ela não consegue
             apagar é o que estiver <em>dentro</em> da imagem — isso depende de si.
           </p>
 
-          <button
-            type="button"
-            onClick={() => ref.current?.close()}
-            className="rounded-lg bg-tinta-600 px-5 py-2 text-sm font-semibold text-white hover:bg-tinta-700"
-          >
+          <button type="button" onClick={() => ref.current?.close()} className="btn-primary">
             Percebi
           </button>
         </div>
@@ -95,8 +82,8 @@ function Rule({ drawing, title, text, tone }: { drawing: React.ReactNode; title:
     <div className="flex gap-4">
       <div className="shrink-0">{drawing}</div>
       <div>
-        <p className={`text-sm font-semibold ${tone === 'danger' ? 'text-red-800' : 'text-slate-800'}`}>{title}</p>
-        <p className="mt-0.5 text-sm text-slate-600">{text}</p>
+        <p className={`text-[15px] font-semibold ${tone === 'danger' ? 'text-amber-800' : 'text-tinta-900'}`}>{title}</p>
+        <p className="mt-0.5 text-[15px] text-slate-600">{text}</p>
       </div>
     </div>
   );
@@ -136,19 +123,19 @@ function CloseUpShot() {
 
 function ForbiddenShot() {
   return (
-    <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden className="rounded-lg bg-red-50">
-      <rect x="4" y="4" width="64" height="64" rx="4" fill="none" className="stroke-red-300" strokeWidth="1.5" />
+    <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden className="rounded-lg bg-amber-50">
+      <rect x="4" y="4" width="64" height="64" rx="4" fill="none" className="stroke-amber-200" strokeWidth="1.5" />
       {/* porta com número e placa de rua */}
-      <rect x="14" y="26" width="20" height="34" rx="2" className="fill-white stroke-red-400" strokeWidth="1.5" />
-      <circle cx="30" cy="44" r="1.6" className="fill-red-400" />
-      <rect x="18" y="30" width="12" height="7" rx="1" className="fill-red-100 stroke-red-400" strokeWidth="1" />
-      <text x="24" y="36" textAnchor="middle" className="fill-red-700 text-[6px] font-bold">
+      <rect x="14" y="26" width="20" height="34" rx="2" className="fill-white stroke-amber-700" strokeWidth="1.5" />
+      <circle cx="30" cy="44" r="1.6" className="fill-amber-700" />
+      <rect x="18" y="30" width="12" height="7" rx="1" className="fill-amber-100 stroke-amber-700" strokeWidth="1" />
+      <text x="24" y="36" textAnchor="middle" className="fill-amber-800 text-[6px] font-bold">
         14
       </text>
-      <rect x="42" y="18" width="20" height="9" rx="1" className="fill-white stroke-red-400" strokeWidth="1.5" />
-      <path d="M46 23h12" className="stroke-red-400" strokeWidth="1.5" />
+      <rect x="42" y="18" width="20" height="9" rx="1" className="fill-white stroke-amber-700" strokeWidth="1.5" />
+      <path d="M46 23h12" className="stroke-amber-700" strokeWidth="1.5" />
       {/* risco por cima */}
-      <path d="M10 62 62 10" className="stroke-red-600" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M10 62 62 10" className="stroke-amber-800" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   );
 }

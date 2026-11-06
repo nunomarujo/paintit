@@ -23,6 +23,12 @@ export function isValidNif(input: string): boolean {
 /** Pessoa coletiva (NIPC): começa por 5, 6, 8 ou 9. Só nestas o nome é público e comparável. */
 export const isCompanyNif = (nif: string) => /^[5689]/.test(normalizeNif(nif));
 
+/** Sociedade (NIPC a começar por 5): tem certidão permanente e um órgão com poderes para a obrigar. */
+export const isSociedadeNif = (nif: string | null | undefined) => normalizeNif(nif ?? '').startsWith('5');
+
+/** Pessoa singular (1, 2, 3, ou 45 nos não residentes): um empresário em nome individual obriga-se a si próprio. */
+export const isPessoaSingularNif = (nif: string | null | undefined) => /^(?:[123]|45)/.test(normalizeNif(nif ?? ''));
+
 const LEGAL_WORDS = new Set(['lda', 'limitada', 'unipessoal', 'sa', 'sociedade', 'anonima', 'de', 'do', 'da', 'dos', 'das', 'e', 'the']);
 
 const nameWords = (s: string) =>

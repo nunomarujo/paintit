@@ -1,4 +1,5 @@
 import { VolumeViewer } from '@/components/VolumeViewer';
+import { origemParaOPintor } from '@/domain/medicaoDaFotografia';
 import { BUILDING_KIND_LABELS, type BuildingKind } from '@/domain/organization';
 import type { Fachada, Forma } from '@/domain/volume';
 import {
@@ -6,8 +7,10 @@ import {
   SURFACE_KIND_LABELS,
   etiquetaDosTipos,
   formatArea,
+  type Confirmacao,
   type DataFlexivel,
   type DesiredWork,
+  type OrigemDaQuantidade,
   type SurfaceKind,
   type WorkType,
 } from '@/domain/request';
@@ -34,7 +37,22 @@ export interface ListingView {
   prazoPropostas: string | null;
   execucaoDesde: string | null;
   execucaoAte: string | null;
-  surfaces: { id?: string; kind: SurfaceKind; descricao: string | null; area: number; trabalhos?: string[] | null }[];
+  surfaces: {
+    id?: string;
+    kind: SurfaceKind;
+    descricao: string | null;
+    area: number;
+    trabalhos?: string[] | null;
+    /**
+     * De onde vem a área e se está confirmada, em todas as zonas — «Estimativa · por confirmar», «Medida
+     * pelo cliente ± 1,7 % · por confirmar» (06/11/2026): o pintor orça sobre esse número e precisa de saber
+     * quanto ele vale. Só numa não chegava: a estimativa, sem rótulo, parecia mais fiável do que a medição
+     * com margem. Nunca a fotografia nem o desenho (regra 6): só o rótulo, a margem e o estado.
+     */
+    origemDaQuantidade?: OrigemDaQuantidade | null;
+    margemBps?: number | null;
+    confirmacao?: Confirmacao | null;
+  }[];
   /** Os trabalhos são iguais em todas as zonas? */
   trabalhosModo?: 'iguais' | 'diferencas' | 'nao_sei';
   ocupacaoViaPublica?: 'sim' | 'nao' | 'a_avaliar';
@@ -189,7 +207,12 @@ export function ListingPreview({ l }: { l: ListingView }) {
                     </span>
                   )}
                 </td>
-                <td className="py-1 text-right">{formatArea(s.area)}</td>
+                <td className="py-1 text-right align-top">
+                  <span className="tabular-nums">{formatArea(s.area)}</span>
+                  {origemParaOPintor(s.origemDaQuantidade, s.margemBps, s.confirmacao) && (
+                    <span className="block text-[15px] text-slate-600">{origemParaOPintor(s.origemDaQuantidade, s.margemBps, s.confirmacao)}</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -669,10 +669,18 @@ export function areasDaFachada(zonas: Zona[], opcoes: OpcoesFachada = {}): Resul
     coberturasSalientes: { existem: marquises.length > 0, areaM2: saliencia ? arred(coberturaM2) : null },
     porMedir: [
       ...(marquises.length > 0 && !saliencia ? ['saliência das marquises (paredes laterais, tecto e cobertura)'] : []),
-      ...(varandas.length > 0 ? ['faces de dentro das varandas (por decidir — decisão 8.2)'] : []),
+      ...(varandas.length > 0 ? [FACES_DE_DENTRO_DAS_VARANDAS] : []),
     ],
   };
 }
+
+/**
+ * O que fica por medir à espera de uma decisão da plataforma, e não de quem mede: as faces de dentro das
+ * varandas (tetos, guardas por dentro, paredes do recuo) esperam pela decisão 8.2 do promotor. A medição
+ * do cliente grava-se sem elas (`medicaoDaFotografia.ts`) — não as pode medir, e a área da fachada está
+ * completa sem elas.
+ */
+export const FACES_DE_DENTRO_DAS_VARANDAS = 'faces de dentro das varandas (por decidir — decisão 8.2)';
 
 /** Distância habitual entre pisos em habitação (pé-direito livre de ~2,5–2,9 m mais a laje). */
 export const ENTRE_PISOS_HABITUAL_M = { min: 2.7, max: 3.2 } as const;

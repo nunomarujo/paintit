@@ -142,6 +142,14 @@ export default async function WorksitesPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
+      {/* Anunciada na página das empresas de pintura (06/11/2026); aqui, o mesmo «em breve», sem nada que se toque. */}
+      {org && (
+        <p className="text-[15px] text-slate-600">
+          <span className="rounded-full bg-marca-tag px-2 py-0.5 text-[13px] font-semibold text-marca-ink-soft">Em breve</span>{' '}
+          Medir a cor de uma parede com o telemóvel e encontrar a tinta mais próxima.
+        </p>
+      )}
+
       {repor.length > 0 && (
         // Sem fundo de cor: já há a banda de atenção no ecrã do dia, e a regra da casa é uma só por
         // ecrã. Aqui o alarme é a palavra, não o fundo.

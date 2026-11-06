@@ -28,7 +28,9 @@ export default function Page() {
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 text-[17px]">
-          <h2 className="font-semibold">Descontos para pintores</h2>
+          <h2 className="font-semibold">
+            Descontos para pintores <span className="font-normal text-slate-600">— personalizáveis: por perfil ou caso a caso</span>
+          </h2>
           <ul className="mt-3 divide-y divide-slate-100">
             {DISCOUNTS.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">

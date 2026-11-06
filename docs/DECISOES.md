@@ -5687,3 +5687,747 @@ Mudou: o envio (`src/lib/whatsapp.ts`), a receção (`/api/whatsapp`, assinatura
 variáveis (`WHATSAPP_*`, sem `TWILIO_*`). Não mudou: ondas, reserva atómica (`aceitar_convite`), ecrã do
 avaliador, modelos aprovados e número. O botão passou a levar o id do convite. Fica inativo até as quatro
 chaves da Meta estarem na Vercel (passos em `docs/WHATSAPP.md`).
+
+## 05/11/2026 — Passo 2 do pedido: a proposta B, «o prédio ao centro»; e uma zona medida pelo cliente fica «medida pelo cliente», com margem
+
+**A escolha.** Para o passo 2 do pedido («Medidas e fotografias») foram feitas duas maquetas: a A, «a lista
+que se trabalha» (uma faixa com o total, uma lista de linhas, o prédio e as fotografias numa coluna à
+direita), e a B, «o prédio ao centro» (o desenho do prédio a toda a largura, com as zonas pintadas e
+numeradas e os cartões à volta, ligados ao número). O promotor escolheu a **B**: «construir algo bonito e
+fácil de trabalhar, prático, respirável, preferencialmente tudo num só ecrã», com uma opção que abre «um
+popup grande com a ferramenta de levantamento de área de obra». Porquê a B: é a que faz do prédio o objeto
+do ecrã — quem não é do ofício vê que «empena» é aquela parede, e que as varandas estão por decidir — e é a
+que tem um sítio natural para a ferramenta.
+
+**As correções do juiz, todas feitas** (`src/app/app/pedidos/[id]/`):
+
+1. **O modo lista é a base**: o desenho de um lado e os cartões numerados empilhados do outro (um por cima
+   do outro no telemóvel). As **chamadas** — os cartões à volta do desenho, ligados ao número — só entram
+   por *container query* a partir de 1040 px de contentor (`globals.css`), com seis zonas ou menos, todas
+   com sítio no desenho, e só se a disposição cumprir a regra do ponto 2; senão, fica a lista. As zonas que
+   o volume não mostra (escadas e átrio, interiores, tetos, outra; uma segunda fachada, que o desenho não
+   sabe qual é) vão para **«Fora do desenho»**, sem número. Os dois modos estão no HTML e o CSS escolhe:
+   o primeiro ecrã vem certo sem medir nada no servidor.
+2. **As ligações nunca cruzam cotas nem cortam faces na diagonal** — e isto é uma função pura com testes
+   (`src/domain/chamadas.ts`, `disporChamadas` e `problemasDasLigacoes`): só troços horizontais e
+   verticais, os verticais no corredor entre a coluna e o desenho; nenhuma ligação passa por uma cota, pelo
+   texto de uma cota, por outro número, nem por outra ligação. Para haver espaço, as cotas mudaram de sítio
+   (`src/domain/prancheta.ts`): a frente mede-se na aresta de trás do telhado (o mesmo comprimento), o fundo
+   na aresta esquerda do telhado, a altura na aresta vertical de trás — tudo por cima e atrás, onde nenhuma
+   ligação precisa de ir. Uma medida de olho escreve-se «≈ 12 m». A **hachura «por decidir»** passou a
+   contorno tracejado (1 px, sem engrossar com a escala) sobre fundo pálido; o **cobalto cheio** é só da zona
+   aberta ou apontada.
+3. **Da proposta A**: a barra fina medido/estimado debaixo do total (118 m² em cobalto, 98 m² em cobalto
+   pálido, com rótulos); a **conta ao vivo** no editor («10 × 11,2 − 14 = 98 m²», e «estimativa, fica por
+   confirmar»), escrita por `contaDaZona` (`src/domain/respostaDasZonas.ts`) e testada contra `surfaceArea`
+   — por isso as varandas são «6 × 1 m²»; as excluídas no fim, sob **«Fora do pedido»**, a cinzento, com «—»
+   na área; e, no pedido vazio, **uma frase por tipo de zona** («A parede lateral sem janelas, à vista ou
+   encostada ao prédio do lado»).
+4. **O que falta é acionável**: «Falta confirmar 98 m² (empena lado norte) e decidir as varandas» — cada nome
+   é um botão; «as varandas» leva ao cartão e põe-lhe o foco; «empena lado norte» abre a edição da zona, e,
+   na gaveta, para a equipa, o «Medir na fotografia» já com essa zona escolhida.
+5. **Regra 12** nos textos: «Como indicar as dimensões», «De onde vem este número», «Nome da zona».
+6. **Botão desativado legível** (`.btn-desativado`, `globals.css`): contorno, texto a 6,8:1, e a razão ao
+   lado a 15 px.
+7. **Contas coerentes**: «em 2 das 4 zonas» quando há zonas que não contam; a lista do que falta só lista o
+   que falta, e nunca diz «nenhuma» (um muro por levantar mas excluído não falta a ninguém). Testado em
+   `respostaDasZonas.test.ts`.
+8. **O primeiro ecrã**: «+ Acrescentar zona» e «Medir na fotografia» estão na linha da resposta, à direita do
+   total (no telemóvel, por baixo do desenho), para não gastar altura por baixo do «Voltar», do título e
+   do percurso.
+
+O editor de uma zona abre numa **gaveta** à direita (`<dialog>` nativo: foco preso, Escape fecha, o foco volta
+a quem abriu; ecrã inteiro no telemóvel), com o desenho à vista e a zona acesa. Nada se perdeu do que havia:
+editar por dimensões, área, quantidade, origem e trabalhos por zona; incluir, por decidir e excluir
+(`setParticipacaoDaZona`, agora com as três); remover; acrescentar; as medidas do prédio (que mudam o
+desenho enquanto se escrevem); as fotografias (várias de uma vez, geral ou pormenor, zona, legenda, estado
+da revisão — agrupadas pela zona, com o número do desenho, uma linha por fotografia com a legenda, o estado e
+a nota da revisão; a legenda e a zona editam-se numa janela); o modo recolhido com visita pedida; só leitura
+sem gestão. As *server actions* não mudaram de assinatura.
+De passagem: o (i) dentro de um `<p>` dava erro de hidratação no slot das fotografias, nas medidas do prédio
+e no percurso — passaram a `<div>`; e o percurso, no telemóvel, já não espreme o texto contra o botão.
+
+**A revisão dos céticos (05–06/11/2026).** A primeira versão tinha doze erros, todos corrigidos neste mesmo
+commit:
+
+- **A gaveta tem um só modo de gravar** (guia §8.2): «No pedido: Incluída / Por decidir / Fora do pedido»
+  passou para dentro do formulário e grava com «Guardar zona» (que chama `updateSurface` e, se a
+  participação mudou, `setParticipacaoDaZona`). «Remover a zona» fica à parte, no fim, **pede confirmação**
+  com o nome da zona, e fecha a gaveta; e a gaveta fecha-se sozinha quando a zona aberta deixa de existir —
+  antes passava a «Nova zona» com os números da apagada, e «Guardar» voltava a criá-la.
+- **O título conta só o que soma** (`tituloDaResposta`, testado): «118 m² a pintar, em 1 das 3 zonas» com
+  duas por levantar; «Por levantar · 1 zona a pintar, ainda sem medidas»; «0 m² a pintar: 1 zona por
+  decidir»; nunca «em 0 das 1 zona». A barra ganhou um troço tracejado para as zonas sem medidas («2 zonas
+  sem medidas»): já não fica toda a cobalto com zonas por medir.
+- **A frase do que falta é português** (`fraseDoQueFalta`, testada): os nomes levam artigo («levantar a
+  empena lado norte e o tardoz»; uma palavra que não se conhece fica «a zona «…»»), e uma lista cujos
+  itens já têm «e» separa-se com ponto e vírgula («(empena lado norte; escadas e átrio)»).
+- **As ligações não atravessam a zona de outro número** (`problemasDasLigacoes`, nova regra com testes
+  num prédio em L e num de 12 pisos): só o bocado que leva a uma zona assente noutra (as varandas sobre a
+  fachada), até 56 px e nunca mais de um terço da largura dessa zona. As cotas afastam-se até não assentarem
+  no prédio (o «≈ 12 m» em cima da asa do L).
+- **O palco das chamadas** é cinzento a toda a largura, com os cartões por cima (maqueta B); a coluna dos
+  cartões arruma-se dentro da altura do desenho em vez de a esticar (sem os vazios de 230 px); as
+  **excluídas ficam em «Fora do pedido»** também com chamadas — no fundo de uma coluna quando lá cabem, por
+  baixo do palco quando não. A secção das zonas desceu de 763 px para ~365 px a 1440.
+- **No telemóvel** as cotas saem do desenho para uma linha por baixo (o prédio fica ~1,5× maior) e os dois
+  botões vão para debaixo do desenho, que começa logo a seguir ao total.
+- **O desenho responde ao toque**: cada número é um botão (alvo de 44 px) que abre a zona, e cada face abre
+  a zona que a pinta. No pedido vazio, «+ Fachada», «+ Empena» e «+ Varandas» estão pousados no próprio
+  prédio, como na maqueta B, e a lista com uma frase por tipo fica ao lado.
+- **«Confirmar a empena» abre a edição da zona também para a equipa** (na gaveta está o «Medir na
+  fotografia», com a zona já escolhida); só quem não pode editar vai direto à ferramenta.
+- **As fotografias só de leitura** voltaram a mostrar, por fotografia, a legenda, o estado da revisão e a
+  nota de uma recusada, em âmbar (`Fotografias.test.ts`).
+
+**Decisão do promotor: «medida pelo cliente», com margem.** Uma zona que o cliente meça na ferramenta de
+levantamento fica com **origem própria, «medida pelo cliente»**, e com a **margem de erro** da medição
+(± %) — **nunca «confirmada»**. É uma medição a partir de uma fotografia, e a margem diz quanto vale; o
+pintor conta com ela como conta com uma estimativa honesta. Entra quando a ferramenta for ligada ao pedido
+(próxima tarefa, com migração: a origem nova e a margem por zona). Até lá:
+
+**A ferramenta só aparece à equipa.** «Medir na fotografia» abre uma janela grande, «Levantamento da área
+da obra», com a ferramenta verdadeira de `/demo-areas` (`MedirFachada`, importada sem SSR e só quando a
+janela abre) e um quadro «Do prédio, para conferir» (frente, fundo, altura). O resultado ainda não volta
+para o pedido: o botão só aparece a quem está em `platform_admins` (`isPlatformAdmin`), e a janela di-lo
+numa linha — quando voltar, a zona fica «medida pelo cliente», com a margem. O «Usar esta medição» está
+desativado, com a razão ao lado.
+
+## 05/11/2026 — Poderes de quem assina: a certidão permanente lida à mão, e um aviso bem à vista
+
+**Decisão do promotor.** Verificar se quem assina um contrato tem poderes para obrigar a entidade; mesmo que
+não impeça, avisar bem à vista. Regras em `src/domain/poderes.ts` (58 testes), base em
+`supabase/migrations/20261106083428_poderes_de_representacao.sql` (19 testes de acesso, utilizador a utilizador).
+
+**Porque é manual.** Ler a certidão permanente de forma automática (ir ao portal com o código e ler a página) é
+proibido sem autorização do IRN: Termos de utilização do portal registo.justica.gov.pt, §4. O pedido de
+autorização segue por email (`docs/EM_ABERTO.md`). Até haver resposta:
+1. a empresa entrega o **código de acesso** da certidão (12 algarismos, NNNN-NNNN-NNNN). Pela Portaria
+   285/2012, art. 6.º, n.º 2, entregar o código equivale a entregar a certidão — por isso o código satisfaz o
+   documento «Certidão permanente» na lista do que falta, tal como o ficheiro;
+2. a equipa da plataforma abre a certidão no portal e regista (Entidades › Poderes de representação): quem
+   tem poderes (nome, cargo, NIF opcional), a forma de obrigar tal como está escrita, quantas assinaturas
+   obrigam (1, 2, ou «a confirmar» quando o texto é invulgar) e a data «válida até».
+
+**A quem se aplica.**
+- Pintor que seja sociedade (NIF/NIPC a começar por 5): a certidão passa a ser pedida (`expectedDocs`).
+  Administradoras e fornecedores já a tinham em `EXPECTED_DOCS`.
+- Condomínio: a equipa regista o administrador a partir da **ata de nomeação**, na mesma tabela (fonte
+  «ata»), e o «válido até» é o fim do mandato.
+- Particular e empresário em nome individual (NIF 1, 2, 3 ou 45): compara-se com o nome do titular da conta
+  (o proprietário da entidade).
+- Pintor com outro tipo de NIF (6, 7, 8, 9): «não se aplica».
+
+**Na assinatura.** Em `signWithPdf`, depois de todas as verificações que já existiam e **sem nunca recusar por
+isto**, calcula-se o resultado para o lado que assina — confere, provável, não consta, faltam assinaturas, sem
+leitura, caducada, por confirmar; num particular, confere ou não confere — e guarda-se no acontecimento
+(`payload.poderes`: só o resultado e o texto). Quem assina recebe o aviso logo na confirmação. A página da
+contratação mostra às duas partes e à equipa **uma banda âmbar no topo** sempre que uma assinatura registada
+tem um resultado que não seja «confere», «confere com o titular» ou «não se aplica» (o «provável» também
+avisa). O aviso do certificado por confirmar, que era uma segunda caixa, vermelha, no histórico, passou para
+a mesma banda: regra 13, uma banda por ecrã, âmbar porque se resolve. No backoffice, Contratações ›
+Assinaturas mostra o resultado de cada assinatura em PDF.
+
+**A comparação.** Pelo nome normalizado: maiúsculas, sem acentos (a certidão escreve «JOÃO LUIS», o cartão
+«João Luís»), sem DE/DA/DO/DOS/DAS/E/D'. «Confere» quando as palavras são as mesmas, por qualquer ordem;
+«provável» quando o primeiro e o último nome são iguais e um nome está contido no outro. A mesma pessoa a
+assinar duas vezes conta uma vez, e cada pessoa da certidão serve a um só signatário — escolhe-se o
+emparelhamento com mais pares, não o primeiro que aparece. «Faltam assinaturas» quando a forma de obrigar
+exige duas e só uma pessoa da lista assinou.
+
+**O que se guarda e quem o vê (RGPD: minimização).**
+- O código dá acesso a dados pessoais de terceiros (moradas, estado civil dos sócios…): é um segredo. Vive
+  numa tabela só sua (`certidao_codigos`) que **só a equipa lê**; só quem gere a entidade o define, e só pela
+  função; nunca aparece em mensagens, registos ou acontecimentos, e o ecrã não o volta a mostrar — no lugar
+  dele fica «Guardado · por ler pela equipa» ou «Lida pela equipa a … · válida até …». Trocar o código põe a
+  leitura por fazer (o mesmo código outra vez não mexe em nada).
+- Da certidão guarda-se só nome, cargo e NIF (opcional) de quem tem poderes, a forma de obrigar, o número de
+  assinaturas, a validade, e quando e por quem foi lida.
+- **Quem gere a entidade vê os nomes e os cargos registados** — decidido nesta sessão, à pergunta «a entidade
+  precisa de ver os nomes de volta?». São dados do seu próprio registo, que ela própria entregou, e vê-los é
+  a única maneira de dar por um erro de transcrição antes de assinar um contrato, e não depois, num aviso que
+  a outra parte também lê. O NIF fica registado mas não se mostra. Os outros membros (financeiro, avaliador,
+  leitor) veem só o estado — que não tem dados pessoais e lhes diz se a certidão ainda falta.
+- A outra parte de uma contratação vê só o resultado (regra 6). Os textos não levam nomes, datas nem a forma
+  de obrigar; um teste percorre os cenários e falha se aparecer algum.
+
+**Limites, ditos às claras.**
+- **Só pelo nome.** O certificado do Cartão de Cidadão e da Chave Móvel Digital traz o nome completo e o n.º
+  de identificação civil, mas não o NIF, e a certidão não traz o n.º de identificação civil. Um «confere» é
+  um indício, não uma prova, e nenhum texto diz «verificado». Homónimos passam; um apelido que o cartão tem e
+  a certidão não (ou ao contrário) dá «provável»; um nome escrito de outra maneira pode dar «não consta».
+- **A forma de obrigar é texto livre.** O número de assinaturas é a leitura que a equipa faz dela; formas
+  invulgares (gerentes de categorias diferentes, um gerente com um procurador, limites de valor) ficam «a
+  confirmar», e a assinatura fica «por confirmar».
+- **Procuradores** não estão cobertos: quem assina por procuração dá «não consta».
+- **Administrador de condomínio que é uma empresa:** a equipa regista à mão as pessoas que a obrigam.
+- **SCAP** (a assinatura com o atributo profissional «gerente», que provaria a qualidade de quem assina) e
+  **LTV** (carimbo temporal e revogação embebidos no PDF, para a assinatura se validar daqui a anos) ainda não
+  tratados.
+- O resultado é o do **momento** da assinatura: uma leitura registada depois não o muda.
+- O acontecimento de uma assinatura pode ser inserido diretamente pela API por quem gere a entidade — a
+  política de `engagement_events` não exige o PDF, e isto vale igualmente para `cadeiaConfiavel`. Já existia
+  antes desta decisão; ficou registado em `docs/EM_ABERTO.md` (dívida técnica).
+- **Migração por aplicar — tudo ou nada.** Publicar o código antes da migração não liga metade da
+  funcionalidade: enquanto as tabelas novas não existem, nenhuma assinatura grava resultado, em nenhum regime —
+  incluindo particulares e empresários em nome individual, cuja comparação com o titular da conta só lê tabelas
+  que já existiam e, na primeira versão deste commit, gravava (achado de uma revisão cética: um perfil «Rui»
+  contra o certificado «RUI MIGUEL SANTOS MOTA» punha a banda âmbar à outra parte antes de a funcionalidade
+  estar ligada). E a página da entidade fica como estava: sem o bloco do código e sem pedir a certidão ao pintor
+  sociedade, que de outro modo a veria em falta sem a alternativa do código. Porquê tudo ou nada e não ligar já
+  a parte que funciona: um aviso que a outra parte lê não deve aparecer antes de o promotor ligar a
+  funcionalidade de propósito, ao aplicar a migração; e pedir um documento novo sem a forma mais simples de o
+  entregar acrescenta peso sem necessidade. A equipa já vê o menu novo (Entidades › Poderes de
+  representação), cuja fila diz que falta a migração. A única mudança visível para as partes antes da migração
+  é que o aviso do certificado por confirmar, que já existia, passou da caixa vermelha no histórico para a
+  banda âmbar do topo. Regra em `src/lib/poderes.ts` (`poderesDoLado`, `faltasDaEntidade`), testes em
+  `src/lib/poderes.test.ts`.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros, os mesmos 28 avisos), `npm test` (2031
+testes, com as migrações em memória; 99 deles novos — 58 do domínio, 19 de acesso, 22 do «tudo ou nada») e `npm run build`. Os ficheiros novos passam o prettier
+(`--print-width 140 --single-quote`); os que já existiam ficaram no estilo em que estavam. **Não visto num
+navegador**: os ecrãs estão atrás de sessão, e a migração não está na base real.
+
+## 05/11/2026 (noite) — A assinatura só entra pelo servidor; o rasto de avisos até ao contrato; o contrato por WhatsApp
+
+### Falha fechada: registar «assinou» pela API, sem PDF
+
+Encontrada na revisão da verificação de poderes, e anterior a ela. A política `engagement_events_insert` deixava
+quem gere uma das entidades registar `cliente_assinou` ou `pintor_assinou` diretamente pela API, com a sessão do
+próprio, sem PDF nenhum e com o `payload` que quisesse (`metodo: 'cmd_pdf'`, `cadeiaConfiavel: true`, poderes
+«confere»). Todas as verificações do PDF viviam só no servidor. Também o balde `contratos` aceitava da parte um
+ficheiro qualquer, que o pintor depois descarregava como «o contrato assinado pelo cliente». **Sem exposição:** não
+há em produção acontecimentos de assinatura fora do percurso do servidor (consulta de 05/11/2026).
+
+**A correção** (migração `20261106083458_assinatura_so_pelo_servidor`, aplicada a 06/11/2026): a base continua a decidir
+**quem** regista (a política de sempre: papel na entidade do lado certo e `actor = auth.uid()`) e passa a exigir a
+prova de **que** o servidor verificou. Depois de verificar o PDF, o servidor regista com a chave de serviço o
+`payload` exato do acontecimento (`registar_assinatura_verificada`, só executável pela chave de serviço; tabela
+`assinaturas_verificadas`, que ninguém com sessão lê nem escreve); o acontecimento só entra com um `payload` igual,
+para a mesma contratação, o mesmo lado e a mesma pessoa. O PDF passa a ser carregado pelo servidor (a política de
+inserção do balde fica fechada, `with check (false)`, para a migração não precisar de `drop`). A equipa da
+plataforma continua a poder registar qualquer acontecimento. Testes em `supabase/tests/rls.test.ts`, que falham sem
+a migração: sem registo, com outro `payload`, com o registo de outra pessoa da mesma entidade, a tabela e a função
+fechadas a quem tem sessão; e o balde, que nenhuma parte escreve.
+
+**Ordem de publicação indiferente.** Enquanto a migração não estiver aplicada, a função não existe (`PGRST202`) e a
+base ainda tem a política antiga: o servidor segue sem o registo, que não abre nada que não esteja aberto. Assim o
+código pode ir para produção antes ou depois da migração sem parar as assinaturas. Um carregamento cujo registo
+falhou já não fica preso: enquanto o passo estiver disponível, um PDF novo substitui o anterior.
+
+**Revisão independente (06/11/2026, madrugada) — dois defeitos que a correção introduziu, e corrigidos.**
+1. *O PDF guardado podia deixar de ser o verificado.* O carregamento pela chave de serviço substituía o
+   ficheiro de nome fixo, e entre a verificação (que vai à rede buscar certificados, e pode demorar) e a escrita
+   outra submissão podia registar a assinatura: o acontecimento dizia «certificado do Estado» e o ficheiro
+   guardado era outro. Agora cada PDF chama-se pelo resumo SHA-256 do próprio conteúdo
+   (`<contratação>/cliente-<sha256>.pdf`), lê-se o do acontecimento aceite pela reconstrução (o mais recente:
+   depois de um litígio resolvido com «retomar», o cliente assina de novo — `resumoDaAssinaturaAceite`, testada) e
+   o resumo é conferido antes de o ficheiro ser entregue a alguém. De caminho, deixa de falhar a segunda
+   assinatura do cliente depois de «retomar», que com o nome fixo dava «já tinha sido carregado».
+2. *Um identificador escrito de outra maneira* (maiúsculas, sem hífens) encontrava a contratação mas punha o PDF
+   num caminho que nenhuma das partes conseguia ler. Depois de carregar a linha, só se usa o identificador da base.
+E dois menores: um registo verificado passou a valer um só acontecimento (um gatilho gasta-o quando o
+acontecimento entra — antes, o mesmo payload entrava pela API quantas vezes se quisesse, cada cópia nas provas e
+num aviso à outra parte); e a aceitação simples (só fora de produção) também confirma o lado antes de registar.
+**Não se proíbe** uma segunda assinatura do mesmo lado, pela razão do «retomar».
+
+**Segunda revisão (06/11/2026, de manhã) — sete achados confirmados, todos de gravidade baixa depois de refutados; um
+refutado.**
+1. *Registos que sobravam:* o registo de uma tentativa recusada (por exemplo, a meio de um litígio) podia gastar-se
+   mais tarde pela API, depois de um «retomar», e o pintor ficava a assinar sobre uma versão do PDF do cliente que já
+   não era a aceite. Agora qualquer outro acontecimento da contratação apaga os registos pendentes, e um registo só
+   vale 15 minutos (o servidor grava a assinatura menos de um segundo depois de o registar).
+2. *Várias assinaturas com um só registo,* num INSERT de várias linhas: a política via todas antes de o gatilho as
+   gastar. A prova passou da política para um gatilho BEFORE, que gasta o registo linha a linha — a segunda linha já
+   não o encontra. A política continua a decidir quem assina cada lado.
+3. *O pintor podia assinar sobre um PDF do cliente desatualizado* se o pedido demorasse (verificações de rede) e o
+   cliente assinasse entretanto outra versão: a assinatura do pintor guarda agora `sobreCliente` (o resumo do PDF do
+   cliente que contra-assinou), conferido de novo mesmo antes de gravar.
+4. *O contador do menu podia contar mal* com mais de 1000 acontecimentos (a API corta cada resposta às 1000 linhas):
+   lê-se por páginas, e uma página que falha não dá contagem nenhuma.
+5. *A lista e a página do contrato diziam «o próximo passo é seu»* a quem só acompanha (leitor, financeiro): agora
+   só a quem pode assinar, com a mesma regra do contador.
+Refutado: o PDF assinado pelo cliente chegar ao pintor antes da apresentação.
+
+### Rasto de avisos: de qualquer menu até ao contrato
+
+Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação
+a cada menu onde carregar até alcançar o doc». Uma só regra decide de quem é o próximo passo e qual
+(`src/domain/proximoPasso.ts`, testada): caução, adiantamento, assinar, decidir (cliente); confirmar a obra, assinar
+(pintor). **Corrige um engano antigo:** a lista e o Início contavam qualquer ação disponível como «o próximo passo é
+seu» — o cliente via-o enquanto esperava pelo pintor, só por poder desistir, e o pintor não o via com a comissão por
+pagar. Os elos, todos a apontar para `#assinar` quando o passo é assinar:
+- **menu:** contador em «Contratações» (calculado em lote, três consultas, uma vez por pedido ao servidor —
+  `src/lib/contratosAMinhaEspera.ts`); no telemóvel, um ponto no botão do menu fechado (os avisos por ler do Início
+  não acendem o ponto, que estaria sempre aceso);
+- **Início** (as duas composições), **página da obra** do cliente e **Propostas recebidas**: o passo pelo nome;
+- **lista de Contratações:** «Precisa de si» com o passo, a assinatura primeiro; o cartão realçado e o prazo;
+- **página do contrato:** secção «Assinar o contrato» logo a seguir ao título, em três passos — descarregar,
+  assinar (no computador, a aplicação Autenticação.gov; no telemóvel, o serviço do Estado sem instalar nada,
+  pelo guia oficial do gov.pt), carregar — com o prazo; o PDF recusado em âmbar (resolve-se); o que falta ao
+  condomínio dentro da secção, em texto âmbar (deixou de ser uma segunda caixa de cor); quem não é proprietário
+  nem gestor lê que a assinatura cabe a quem é. As duas partes descarregam o PDF assinado (o do cliente enquanto
+  espera pelo pintor; o das duas no fim);
+- **email:** a ligação vai à secção, o botão diz «Abrir o contrato» e o texto diz onde e como.
+De passagem, na página do contrato: o bloco «Trabalhos a mais» aparecia duas vezes (saiu o de cima) e os
+«Registos sem efeito» deixaram de ser uma caixa vermelha (regra 13).
+
+**O endereço do serviço web de assinatura ficou por confirmar.** O guia oficial existe
+(`https://www.gov.pt/guias/assinar-com-a-chave-movel-digital`), mas a página carrega o conteúdo por JavaScript e não
+foi possível ler dela o endereço da ferramenta. O ecrã liga ao guia e não a um endereço adivinhado. **Também não está
+provado** que um PDF assinado nesse serviço passe na nossa verificação (o mesmo documento com a assinatura
+acrescentada): fica para o ensaio de assinatura real (`EM_ABERTO.md`).
+
+### O contrato por WhatsApp
+
+Decisão do promotor («devíamos aproveitar para avisar ambos por WhatsApp?» — «sim»). Quando é a vez de uma parte
+assinar, sai o modelo `contrato_para_assinar` no mesmo momento do email, a quem pode assinar pela entidade
+(proprietários e gestores, como o email) e **só a quem deu o consentimento e o número**. A preferência é da pessoa e
+vive onde já vivia a dos avaliadores (`survey_availability`): sem migração nova. Liga-se no **Perfil** e, enquanto o
+contrato está em curso e a pessoa ainda não o ligou, na própria página do contrato; ligado, a página diz para que
+número e como desligar (o consentimento retira-se com a mesma facilidade com que se dá). Na mensagem só vai a
+referência da obra; o botão abre o contrato. Sem `WHATSAPP_MODELO_CONTRATO` (o modelo por aprovar na Meta) não sai
+nada — e o email e o aviso na aplicação saem como sempre.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros; os avisos são os mesmos 28, nenhum nos
+ficheiros tocados), `npm test` (2043, com as migrações em memória) e `npm run build`. A secção da assinatura e o
+consentimento vistos num navegador (1280 e 390 px), numa página de ensaio com dados inventados que não entrou no
+Git: alvos de toque de 44 px, o erro do PDF a âmbar. **Não visto com sessão:** o contador do menu, o Início, a lista e
+a página verdadeira precisam de dados na base.
+
+## 06/11/2026 — Subscrição: opção 3 do promotor, e o que já está em produção
+
+**Pedido:** «igual à 2, mas vamos meter em linha de produção o diário e a adenda». O Cofre fica em «Já
+disponível»; o diário de obra e a adenda (trabalhos a mais) passam a produção.
+
+**O que se verificou antes de mexer (06/11/2026, base real e código):**
+- **O diário e a adenda já estão em produção, e com uso.** O ecrã está no ramo publicado
+  (`claude/sweet-brahmagupta-xd1vp7`, `/app/obras/[id]`) e as migrações estão aplicadas
+  (`diario_de_obra`, `adendas_trabalhos_a_mais`, `adenda_oferecida`); na base real há 13 entradas de
+  diário, 1 fotografia e 1 adenda. Não falta nada de código nem de base para os pôr em produção: já lá
+  estão. Por isso ficam em «Já disponível», como estavam — pô-los em «A chegar em breve» seria anunciar
+  como futuro o que já funciona.
+- **O Cofre está fechado ao Pro no ecrã:** `/app/obras` só mostra o cofre a quem tem `temPro`; sem o Pro
+  aparece a explicação e a ligação ao plano. **A base não o fecha:** os documentos (`org_documents`) são
+  da entidade e servem também a validação, por isso qualquer empresa os guarda; o que é do Pro é o cofre
+  com os avisos de validade. Fica assim, registado.
+- **Uma contradição que fica para o promotor decidir:** a página do Pro vende a adenda e o diário como
+  benefícios, mas desde 25/10/2026 os dois estão abertos a todas as empresas «de propósito» (fechar a
+  adenda tirava margem registada à plataforma; as ferramentas de obra são o hábito que traz o pintor).
+  Quem subscreve para ter a adenda já a tinha. Ou se fecham ao Pro, ou saem da lista do Pro, ou ficam
+  escritas como «também no gratuito».
+
+Resultado: `BENEFICIOS_PRO` não muda (2 em «a chegar»: as duas linhas das obras públicas); um teste novo
+fixa o Cofre, a adenda e o diário em «Já disponível».
+
+## 06/11/2026 — Caleiras passam a tipo de obra orçamentável; a minuta passa a ter versão
+
+**Pedido do promotor:** «Caleiras» em «O que pretende fazer?», com o estado e o que se pretende
+(renovar; substituir partes, com os metros; apenas limpar; limpar e pintar), no contrato e no orçamento.
+
+**Como.** Seguiu-se o precedente do capoto: a especialidade que estava só *registada* na ficha do prédio
+(`buildingNeeds.ts`) passa a orçamentável. `caleiras` entra no **fim** de `WORK_TYPES` e do enum
+`work_type` (a ordem decide o tipo principal; no fim, nenhum pedido existente muda). **Não é um
+`SurfaceKind`**: as caleiras medem-se em metros, não em m², e não entram na soma das áreas nem no volume.
+O campo próprio (`CamposDasCaleiras.tsx`) só aparece com o tipo marcado; o servidor (`parseCaleiras`) e a
+base (`check`) validam as opções e os metros (positivos, até 2 km, «substituir» exige-os e só ela os tem,
+nunca mais do que o comprimento total). Metros em centésimos de metro, inteiros. Os valores vão para o
+anúncio na publicação, pelo gatilho que já copia o resto. O pintor vê-os em «Declarado pelo cliente» e
+orçamenta em `ml` (unidade que já existia em `proposal.ts`); não os pode alterar.
+
+**Por confirmar pelo promotor (gravado como proposta):** as opções de «estado» — *bom estado*, *desgaste
+ou tinta a descascar*, *ferrugem*, *furos ou partes partidas*, *não sei* — e se interessa o comprimento
+total (pedido como facultativo).
+
+**A minuta passa a ter versão (`engagements.minuta_versao`).** O PDF do contrato gera-se de novo a partir
+dos dados e os bytes têm de bater com o que cada parte assinou. Mudar o texto para toda a gente faria o
+pintor assinar um documento diferente do do cliente numa contratação já a meio. Por isso o texto novo
+(o declarado no pedido; depois, os elementos das partes e a cláusula de alteração) só vale para as
+contratações criadas com a versão `2026-11-06`; as existentes ficam com a coluna vazia e o texto de
+sempre, fixado byte a byte em `minuta.test.ts` (impressão digital tirada do código de 05/11/2026). A
+migração aplica-se **no momento da publicação**: uma contratação criada entre uma e outra receberia a
+versão nova com o código antigo.
+
+**Contratos já assinados não mudam:** o PDF assinado é o guardado e conferido pelo resumo (91d3075), e o
+texto das contratações antigas não muda.
+
+## 06/11/2026 — IBAN, contactos e comprovativos: a plataforma recolhe e regista, não intervém
+
+Decisões do promotor (06/11/2026, adenda ao pedido), e como ficaram construídas.
+
+**Elementos do contrato** (`elementos_do_contrato`, `src/domain/elementosDoContrato.ts`): IBAN, telefone e email
+para correspondência de cada parte, por contratação.
+- **Quando:** depois da apresentação (`fee_recebido` — as partes já se conhecem, regra 6) e **até à primeira
+  assinatura registada** («assinado» = a primeira assinatura, decisão do promotor). Depois dela não há ecrã nem
+  ação: qualquer alteração é por adenda ao contrato, entre as partes, fora da plataforma. A base recusa o que
+  estiver fora deste prazo (gatilho), não só o ecrã.
+- **Ordem real dos estados (T3.1):** no percurso v2 o pintor paga a comissão, as partes conhecem-se, e só depois
+  o cliente assina — o IBAN do pintor cabe antes da geração do PDF. Para garantir que lá está, **o cliente não
+  assina nem descarrega o PDF a assinar** sem o IBAN do empreiteiro (só na minuta nova). O pintor assina o PDF
+  que o cliente assinou, por isso o texto não muda entre as duas assinaturas.
+- **Qualquer das partes** altera os seus; a outra é sempre avisada por email de cada campo (o IBAN vai mascarado).
+  A aplicação envia email (e WhatsApp onde já está ligado para o contrato); **não envia correio postal**.
+- **Nada se apaga:** cada alteração é uma linha nova (parte, campo, valor, desde quando, quem, como foi
+  validado); o em vigor é a mais recente. Nem a chave de serviço reescreve ou apaga (gatilho
+  `so_de_acrescentar`). O contrato gera-se sempre de novo a partir dos dados (é determinístico), por isso cada
+  versão anterior reconstitui-se do histórico; a impressão digital de cada versão fica também no registo do
+  percurso (secção seguinte).
+- **Email novo:** código de 6 algarismos enviado para ele; até ser indicado, vale o anterior. Validade de 10
+  minutos, 5 tentativas por código, 3 códigos por hora por contratação e parte; guarda-se só o SHA-256 do código
+  (com o identificador da linha como sal) e compara-se em tempo constante. Se for o mesmo email do início de
+  sessão de quem o indica, não se pede código: fica «validado antecipadamente pelo início de sessão». **Não se
+  usa o `updateUser` do Supabase:** mudaria o email de acesso da conta, que é outra coisa — este é o email de
+  correspondência de um contrato, de uma parte que pode ter várias pessoas.
+- **Telefone:** regista-se sem validação (o promotor só pediu para o email; SMS tem custo — pergunta em aberto).
+- **IBAN:** português, com o algarismo de controlo (`isValidPtIban`); mascarado nas listas e nos avisos; nunca
+  nos registos do servidor. Contas estrangeiras: pergunta em aberto. **Não é o `supplier_payout_details`**
+  (IBAN por entidade, para pagar comissões a fornecedores).
+- **Escreve só o servidor** (chave de serviço), depois de confirmar que quem pede gere aquele lado (proprietário
+  ou gestor). Nenhum utilizador escreve nas tabelas diretamente.
+
+**Contrato (minuta 2026-11-06):** os elementos de cada parte em «Partes»; em «4. Pagamentos», as restantes
+tranches pagas ao empreiteiro por transferência ou depósito para o IBAN dele (articulado com a frase que já lá
+estava, sem a duplicar); e a cláusula nova **«4-A. Elementos das partes»**, com a **redação por validar pelo
+jurista** (não definitiva). O contrato chama às partes «dono da obra» e «empreiteiro», não «primeiro» e
+«segundo outorgante»: manteve-se a forma do contrato, e o «segundo outorgante» do promotor é o empreiteiro.
+Só nas contratações criadas com a minuta nova; os contratos já assinados não mudam.
+
+**Comprovativos de pagamento** (`comprovativos_de_pagamento`, cofre privado `comprovativos-de-pagamento`): por
+tranche, o cliente regista valor, data, uma **nota livre opcional** (confirmada pelo promotor — por exemplo,
+«pago para outro IBAN, na sequência de uma adenda entre as partes») e o ficheiro. Só depois das duas
+assinaturas; só de acrescentar; a data é a do servidor. As imagens perdem os metadados; guarda-se o SHA-256 do
+que se guardou, que é também o nome do ficheiro. Leem as duas partes e a equipa. **O comprovativo não marca a
+tranche como recebida** — continua a ser o pintor a confirmar (por confirmar com o promotor). A plataforma
+regista o que lhe dizem e não valida.
+
+## 06/11/2026 — Conclusão da obra, início da garantia e conservação dos registos
+
+Decisão do promotor: a plataforma é **terceira isenta** — guarda o registo e a prova documental e não decide
+quem tem razão.
+
+- **Início da garantia:** quando uma parte declara a obra concluída (com a data) e a outra confirma
+  (`conclusao_da_obra`, `src/domain/garantia.ts`). Qualquer parte pode declarar; a outra é avisada por email e
+  pode confirmar, **discordar com uma razão escrita** (fica registada, sem julgamento) ou juntar prova. Sem
+  resposta, fica «declarada por uma só parte» e quem declarou é convidado a juntar prova (fotografia ou PDF,
+  mesmos limites, sem metadados, cofre privado `provas-da-obra`, SHA-256). A declaração unilateral não inicia
+  a garantia. Cada passo é só de acrescentar e tem a data do servidor.
+- **Duração como número:** o contrato tinha a garantia só em texto. As contratações novas guardam
+  `engagements.garantia_anos`, copiado da proposta escolhida no momento em que são criadas; nas antigas o número
+  vem da proposta escolhida (que já não muda). O texto «5. Garantia da obra» já diz que a garantia contratual não
+  reduz o prazo legal de cinco anos (art. 1225.º CC): o cálculo é só da garantia contratual e não o contradiz.
+- **Conservação:** fim da garantia = início + duração; fim da conservação = esse fim + 24 meses
+  (`garantias_calculadas`, com a data do cálculo, só de acrescentar). Nada destes registos se apaga — nem pela
+  chave de serviço (gatilho), nem pela contratação (`on delete restrict`). **Não há apagamento automático.**
+  Depois do período, apagar ou anonimizar só a pedido, pelo modo que o jurista decidir.
+- **Propostas do chat, por confirmar (EM_ABERTO):** 15 dias para a outra parte confirmar, com lembrete aos 7
+  (o prazo está em código; o lembrete ainda não sai — fica para a tarefa diária dos toques); discordar com razão
+  (construído); ação própria «Declarar a obra concluída», em vez do estado `concluida` do diário (construído
+  assim); sem declaração, os registos ficam sem limite; conta encerrada no período: registos mantidos com acesso
+  restrito às partes e à equipa.
+
+**Alerta para o promotor e para o jurista, tal como está:** a garantia contratual pode ser curta (2 anos, por
+exemplo); com mais 24 meses são 4 anos — e o texto do contrato já cita um prazo legal de cinco anos. A pergunta
+ao jurista é se a conservação deve seguir o prazo mais longo. Não se decidiu.
+
+## 06/11/2026 — O registo do percurso negocial de cada obra, e o relatório gratuito ao cliente
+
+Pedido do promotor: manter o percurso negocial de cada obra desde a abertura de conta (pedido de orçamentos,
+quais foram a «jogo», quem ganhou e em que condições, adendas…), disponível ao backoffice e entregue ao
+cliente, **gratuitamente**, se o pedir por motivos de prova em litígio ou disputa de consumo.
+
+**Auditoria — o que se perdia até aqui** (migração `registo_da_obra`, cabeçalho):
+1. Um pedido em rascunho apaga-se, e leva em cascata propostas, versões, mensagens, fotografias, zonas, anúncio
+   e relatório de propostas — e um pedido publicado que volta a rascunho passa a poder ser apagado, com as
+   propostas já submetidas.
+2. Apagar um prédio apaga os pedidos dele em qualquer estado (exceto com contratação, que trava).
+3. Apagar uma entidade (`delete_organization`, só sem histórico próprio) leva os seus rascunhos — incluindo um
+   pedido que voltou a rascunho com propostas de outros pintores.
+Já travavam: a contratação e os seus acontecimentos, e os registos de 06/11 (elementos, comprovativos,
+conclusão, garantia), todos `restrict`.
+
+**Daqui em diante:** um registo só de acrescentar, `registo_da_obra`, escrito por gatilhos com a data do servidor
+e **sem chaves estrangeiras** (sobrevive ao apagamento do que regista). Regista: abertura de conta e quem entra
+na entidade; criação, mudanças de estado e publicação do pedido; cada estado das propostas com as condições
+(preço, IVA, adiantamento, plano de pagamentos, duração, início, garantia) e as versões; o relatório de
+comparação (quais entraram); a contratação e todos os seus acontecimentos (com a impressão digital do documento
+assinado); as adendas; os elementos do contrato (IBAN mascarado) e a impressão digital de cada nova versão do
+contrato por assinar; os comprovativos; a conclusão e a garantia; o pedido, a emissão e a entrega do relatório.
+**Antes de um apagamento**, o gatilho copia a linha inteira para o registo (pedido e propostas que já tinham
+saído de rascunho). Ninguém o reescreve nem o apaga — nem a chave de serviço. Só a equipa o lê. Escolheu-se
+copiar em vez de trocar o apagamento por arquivo: não muda nenhum ecrã nem nenhuma regra de quem pode apagar
+o quê, e o que se prova fica num só sítio. Os avisos enviados (`toques`, `avisos_por_email`) continuam nas
+suas tabelas e não se copiam (não se apagam com o pedido).
+
+**O relatório** (`src/domain/percursoNegocial.ts`, `relatorios_do_percurso`): tirado do registo, por ordem, com
+as datas do servidor, resumido (SHA-256) e guardado uma vez, sem nunca mudar; emitir outra vez é uma versão nova.
+Duas versões geradas cada uma por inteiro: a **completa** (backoffice) e a **do cliente**, sem o que a
+plataforma cobra ao pintor (nenhum valor dos acontecimentos da contratação; «confirmação do pintor») e sem a
+identidade dos pintores que não ganharam («Pintor A», «Pintor B»), de quem só se diz o estado da proposta.
+O texto diz o que o relatório é — um registo do que aconteceu na plataforma, com datas — e **não** diz que tem
+valor de prova.
+
+**Como se pede:** na página do pedido, em Documentos, «Pedir o relatório desta obra», com o motivo (litígio,
+disputa de consumo, outro). Gratuito, sem subscrição. A equipa emite em Backoffice › Pedidos › Relatórios do
+percurso; para o cliente, a aplicação confirma antes que quem pediu é, hoje, pessoa da entidade que fez o
+pedido. O cliente é avisado por email e lê o relatório na página do pedido.
+
+**Por responder pelo promotor:** (a) o pintor também pode pedir o relatório da sua obra? (b) o relatório do
+cliente pode mostrar os pintores que não ganharam, ou fica como está? **Para o jurista:** conservação deste
+registo e por quanto tempo; direito ao apagamento (RGPD) face a um registo que não se apaga; o que entregar ao
+cliente; a entrega gratuita a pedido.
+
+## 06/11/2026 — Interior da habitação: divisões, perímetro e pé-direito, cor e lista de materiais
+
+Pedido do promotor (com a adenda 2): medir o interior por perímetro e pé-direito, escolher a cor e ver os
+materiais com preços de mercado.
+
+**Estado verificado antes de construir:** a ferramenta das fachadas (`homografia.ts`, `fachadaMedida.ts`,
+`MedirFachada.tsx`) só vive em `/demo-areas`; fora dela só a usa `margemDaArea.ts`. **A ligação ao pedido não
+existe** e não foi feita nesta sessão (pergunta em aberto). O separador «Alçados» mostra a lista de zonas de sempre.
+
+**Separadores** (`separadoresDoPasso`): interior e exterior (fachadas, muros, moradia) → «Alçados» e «Interior da
+habitação»; só interior → só o interior; sem interior → como sempre. Zonas comuns: não se mexeu — com interior,
+aparecem os separadores com «Zonas e medidas» no primeiro (pergunta em aberto).
+
+**Editor próprio, não um pacote.** Não se ensaiou o `react-planner` (Redux + Immutable, `ReactDOM.render`,
+React ≥ 16, sem áreas de parede): a conta é pequena e cabe no domínio. Três modos (`src/domain/interior.ts`):
+- **Divisões e medidas:** comprimento × largura, ou o perímetro numa divisão irregular; pé-direito geral ou por
+  divisão; portas e janelas; pintar paredes e/ou teto. Cotas escritas → `declarada`.
+- **Sobre a planta da casa:** a planta abre **só no aparelho** (`URL.createObjectURL`, nunca enviada — regra 6);
+  dois toques numa medida conhecida dão a escala; dois cantos opostos dão cada divisão, com a margem de erro do
+  toque. → `estimada`. Um PDF exporta-se primeiro como imagem (não se lê PDF no aparelho: fica para depois).
+- **Áreas escritas:** paredes (e teto) por divisão, ou o total numa divisão.
+Paredes = perímetro × pé-direito − vãos; **tetos sempre à parte**. Nunca se inventa: sem perímetro ou pé-direito
+fica «Por medir», e diz-se o que falta. O pé-direito corrente (2,8 m) só entra com o toque «Não sei: usar 2,8 m»,
+como estimativa. **Vãos:** só descontam os indicados, e só os maiores do que `VAO_MINIMO_INTERIOR_M2` — **1 m²,
+provisório, por decidir** (é a regra das fachadas; a alternativa é descontar sempre). O valor guarda-se com cada
+divisão. Nomes das divisões só da lista geral («Sala», «Quarto 2»), sem texto livre.
+
+**Onde se grava:** `request_rooms` (cada divisão, com as áreas calculadas pelo servidor, a certeza, a cor e quem
+mediu — cliente ou avaliador) e duas zonas em `request_surfaces` — paredes interiores e tetos — com
+`area_source` `planta` (desenho e planta) ou `medicao_cliente` (manual). O resto da aplicação (total, anúncio,
+orçamento) já as lê. Só se altera em rascunho; o pintor lê os números com o anúncio aberto, nunca a planta.
+Depois de publicado, uma alteração das divisões ou da cor geral fica no registo da obra.
+
+**Cor** (`src/domain/corDaPintura.ts`): guarda-se uma referência em texto — `QP-014 · Branco gelo`, `RAL 9010`,
+`Barbot · Casca de Ovo` — e, só para o ecrã, o hex da paleta própria. **Não se embutem RAL, NCS nem Pantone**
+(proprietárias; a reprodução exige licença): a grelha é a paleta própria `QP-nnn` (`paleta_cores`, 60 cores de
+interior propostas nesta sessão, leitura pública, escrita só da equipa); quem souber um código de outro sistema
+escreve-o, e fica texto sem quadrado. As cores de fabricante (`reference_products.cores`) aparecem num segundo
+separador, só com nome e marca. «Escolher cor» abre um `<dialog>` nativo: pastilhas por família, quadrado
+grande, «Escolher outra» / «Confirmar»; cada pastilha tem o nome em texto. Está no campo geral «Cor e
+acabamento» (o mesmo campo de texto, que continua a aceitar texto à mão) e em cada divisão. O contrato e o
+anúncio levam as cores com a frase «A cor final é a da amostra do fabricante; a cor no ecrã é aproximada.»
+
+**Lista de materiais** (`ListaDeMateriais.tsx`, `materiaisDoInterior.ts`): `reference_products` visíveis, por omissão
+tintas de interior, primários e esmaltes, com filtros por tipo e marca: preço de referência com data e fonte,
+por litro e por m² (por demão), rendimento, embalagens, ficha técnica, e o consumo estimado (litros ≈ área ÷
+rendimento × demãos, demãos à escolha) — sempre dito como estimativa, e os preços como de mercado, não da Quem
+Pinta nem de um pintor. Não se reaproveitou `ProductCard`, que é dos produtos dos fornecedores (`products`), não
+dos de referência; reaproveitou-se `ProductThumb` e os cálculos de preço (`pricePerLitre`). Escolher na lista
+não encomenda nada (por agora, a lista é só de consulta).
+
+**No contrato (minuta nova) e no anúncio do pintor:** as divisões a pintar, as áreas (paredes e tetos à parte),
+as por medir e as cores, em «Declarado pelo dono da obra no pedido» / «Declarado pelo cliente».
+
+**Por decidir (EM_ABERTO):** vãos; RAL/NCS com licença ou só a paleta própria; a lista inicial de cores (está
+uma proposta); se a estimativa de litros aparece ao cliente ou só ao avaliador (hoje aparece a quem preenche);
+se a ferramenta entra já no pedido (foi o que se fez, em rascunho) ou fica primeiro num ecrã de ensaio; a
+ligação da ferramenta das fachadas ao pedido; as zonas comuns. **Por validar no terreno:** 3 ou 4 plantas reais
+com uma medida conhecida e uma casa medida à fita ou a laser.
+## 06/11/2026 — A medição do cliente pela fotografia grava-se no pedido (fase 1: base, regras e ação)
+
+**Pedido do promotor:** «avança com a gravação no pedido, medido pelo cliente», sobre a decisão de 05/11/2026 (o
+cliente também mede, na ferramenta de fotografia; a zona fica com origem própria e margem, nunca confirmada).
+
+**Como fica.**
+- Origem nova `medida_pelo_cliente` («Medida pelo cliente») e coluna `margem_bps` em `request_surfaces`
+  (migração `20261106083508_medida_pelo_cliente`, aplicada a 06/11/2026). Não se reutilizou `medicao`, que confirma a
+  zona sozinha, nem `medicao_cliente`, que existe na coluna antiga e a migração de 30/10 converteu em confirmada.
+- **A base garante as duas regras** — as políticas deixam quem gere o pedido escrever qualquer coluna pela API: só
+  a zona medida pelo cliente tem margem, e tem-na sempre; e fica sempre por confirmar. Testes de base, que falham
+  sem a migração.
+- A conversão é pura e testada (`src/domain/medicaoDaFotografia.ts`): área a pintar em centésimos de m², margem
+  em pontos-base **arredondada para cima**; não grava uma fachada sem contorno, com partes por medir, com área nula
+  ou absurda, nem sem margem conhecida («melhor não gravar do que gravar sem ela»).
+- Grava-se a área e a margem, **nunca a fotografia nem o desenho** (regra 6: o pintor lê as zonas do anúncio).
+- Ação `gravarMedicaoDaFotografia` (`src/app/app/pedidos/actions.ts`): numa zona existente ou numa nova; quem pode
+  gravar decide-o a base (gerir a entidade, ou ser o avaliador do pedido, com o pedido em rascunho); uma gravação
+  recusada sem erro (nenhuma linha) não diz «Guardado»; a autoria passa a quem mediu.
+- O formulário manual recusa a origem nova. Uma zona medida pelo cliente editada à mão sem mudar a área continua a
+  ser a mesma medição («manter»); com a área mudada perde a margem e passa à origem escolhida.
+- A ferramenta entrega o resultado do passo 4 a quem a abre (`aoMudarMedicao`), só durante o passo 4 e nunca a meio
+  de um recálculo da margem.
+
+**Revisão adversarial (06/11/2026), sete correções, nenhum achado refutado.**
+1. *Uma fachada com varandas nunca se gravava:* a lista do que falta medir trazia sempre «faces de dentro das
+   varandas (decisão 8.2)», que espera pelo promotor e não por quem mede. Passa à parte (`porDecidir`, a constante
+   `FACES_DE_DENTRO_DAS_VARANDAS`): não impede gravar, e a mensagem diz que essas faces ficam de fora.
+2. *Gravar numa zona existente com quantidade 3 triplicava a área medida* sem o dizer: a medição grava sempre
+   `quantidade = 1` (a ferramenta mede uma fachada).
+3. *A restrição da margem deixava passar uma margem numa zona sem origem* (`=` com nulo dá nulo, e uma restrição
+   nula passa): agora `is not distinct from`, com teste.
+4. *Mudar à mão a área de uma zona medida pela fotografia, com «manter»,* passava-a a estimativa em silêncio: agora
+   pergunta de onde vem o número novo.
+5. *A ferramenta podia avisar o anfitrião em ciclo* (uma função nova a cada render): a função fica numa ref e só se
+   avisa quando a medição muda.
+6. *O texto gravado da margem podia diferir do que o ecrã mostra:* `margemEmTexto` segue a regra do passo 4 (uma
+   casa, nunca abaixo de 0,1 %).
+7. *O relatório para a assembleia lia a origem antiga* e dizia «estimativa» a uma medição: lê a nova.
+
+**Fase 2, feita (06/11/2026, no ramo `passo2b-wip`).**
+- *«Usar esta medição» grava.* A janela «Levantamento da área da obra» recebe a medição do passo 4 e chama
+  `gravarMedicaoDaFotografia` para a zona escolhida, ou cria uma zona nova (tipo e nome). Enquanto a medição não
+  serve, o botão fica desativado com a razão ao lado — a de `zonaDaMedicao`, a mesma que o servidor volta a
+  perguntar, sem regras duplicadas no ecrã. Recusada pela ação, a razão aparece em âmbar no rodapé (regra 13), e
+  uma falha de rede também, com a medição ainda na ferramenta. Gravada, a janela fecha, a página atualiza-se
+  (`router.refresh`) e por baixo do total fica a linha do que entrou: «Tardoz · Gravado: 133,18 m², medida pelo
+  cliente ± 1,7 %, por confirmar no local.»
+- *Aparece a quem pode editar o pedido* (gerir a entidade, pedido em rascunho), já não só à equipa; quem só o lê
+  nunca a vê. **Excepção:** no ecrã do levantamento do avaliador não se oferece — ele mede no local, e o que mede
+  fica confirmado; a ferramenta gravaria «medida pelo cliente», que não é o que ele faz.
+- *«Para que zona»* lista as zonas que a ferramenta mede — fachadas, empenas e muros (`medeSeNaFotografia`) — com o
+  que as distingue («— sem medidas», «— fora do pedido», «— por decidir se entra»), e «Uma zona nova», cujo tipo fica
+  pelos mesmos três. Uma zona **confirmada no local** aparece desativada: trocar a medida de quem lá foi por uma da
+  fotografia era perder certeza sem ninguém o decidir. O editor de uma zona sem medidas também leva à ferramenta.
+- *A margem nunca se separa do número* (`origemEmTexto`): «Medida pelo cliente ± 1,7 %» no cartão da zona, no
+  «Hoje:» da janela, no editor e, ao pintor, no anúncio (`ListingPreview`, na pré-visualização do cliente e na
+  oportunidade do pintor — só o rótulo e a margem, nunca a fotografia). A oportunidade pede `origem_quantidade` e
+  `margem_bps` e, sem a coluna (migração por aplicar), lê o resto, para o anúncio não ficar sem zonas. «± 1,7 %»
+  leva espaços inquebráveis: no telemóvel o «%» caía sozinho na linha de baixo.
+- *A barra tem quatro troços, e não três* (`trocosDaBarra`, testada): confirmado (cobalto cheio), medido pelo
+  cliente (riscas de cobalto sobre o pálido — ver a revisão abaixo), estimado (pálido) e as zonas sem medidas (tracejado). A medição do cliente não é
+  confirmada (ninguém a viu no local) nem estimativa (tem margem calculada). Por isso o que se dizia «medidos» diz
+  agora **«confirmados»** — ao lado de «medidos pelo cliente», «medidos» lia-se como a soma das duas. Com várias
+  medições do cliente, a margem da legenda é a média pesada pela área, para cima: o pior caso, os erros todos no
+  mesmo sentido. A medição do cliente continua em «Falta confirmar»: confirma-a quem mede no local.
+
+**Revisão da fase 2 por dois céticos (06/11/2026), corrigida no mesmo commit.**
+1. *Uma zona confirmada no local não se troca pela fotografia — agora também no servidor* (regra 10). A regra só
+   existia no `<select>`: uma chamada direta à ação com o id de uma zona confirmada rebaixava-a e apagava largura,
+   altura e vãos. `gravarMedicaoDaFotografia` lê a confirmação e o tipo da zona antes de gravar
+   (`aceitaMedicaoDaFotografia`, `medeSeNaFotografia`, testadas) e o próprio update leva
+   `.neq('confirmacao', 'confirmada')`, para o caso de a zona ser confirmada entre a leitura e a escrita.
+2. *O editor decide pela confirmação gravada*, não pela origem escolhida no campo: numa zona confirmada, mudar a
+   origem para «Estimativa» fazia aparecer «Medir na fotografia», e a janela abria-se sobre **outra** zona e gravava
+   nela. Já não aparece; e, se a janela for aberta para uma zona que não serve, abre sem zona escolhida e diz porquê,
+   em vez de escolher outra em silêncio.
+3. *Zona nova vinda do editor:* o tipo e o nome já escritos lá seguem para a ferramenta (antes, gravava «Fachada»).
+4. *«Guardar e medir outra fachada», dentro do pedido, diz o que faz:* «Medir outra fachada», com a nota de que esta
+   fica de lado e que para a pôr no pedido é «Usar esta medição». O botão guardava só na ferramenta e apagava a
+   medição que ia para o pedido, e quem carregava em «Guardar» julgava ter gravado (`MedirFachada`, `noPedido`).
+5. *O rodapé diz o que acontece ao número que a zona já tem* (`fraseDaGravacao`, testada): «Em Tardoz, substitui
+   133,18 m² (medida pelo cliente ± 1,7 %) por 220,52 m², …», e, quando a quantidade passa de 6 para 1, também isso.
+   Numa zona nova, «numa zona nova» — e não «em uma», que é do português do Brasil.
+6. *Antes da migração `20261106083508`*, a ação devolvia «O pedido tem de estar em rascunho…», falso para quem o
+   gere. Os erros de coluna ou restrição em falta (42703, PGRST204, 23514) dizem agora «A gravação pela fotografia
+   ainda não está disponível» e ficam no registo do servidor.
+7. *O texto do editor* prometia «Sem fita à mão»; a ferramenta pede uma medida tirada com fita. Passou a «Sem as
+   medidas da zona: uma fachada mede-se pela fotografia e por uma medida tirada com fita (uma porta, uma janela).»
+8. *Na barra, o troço do cliente às riscas.* O cobalto intermédio contra o estimado dava 1,41:1 e lia-se como
+   estimativa. As riscas (`.troco-riscado`, `globals.css`) distinguem-no sem depender do tom, também na legenda.
+9. *Ao pintor, todas as zonas dizem de onde vem a área e se está confirmada* (`origemParaOPintor`, testada):
+   «Estimativa · por confirmar», «Medida pelo cliente ± 1,7 % · por confirmar», «Medição · confirmada». Só com a do
+   cliente rotulada, uma estimativa sem margem parecia mais fiável do que a medição com ± 1,7 %.
+10. *A linha «Gravado: …» sai quando a zona muda por outro caminho* (editada, removida, posta fora do pedido):
+    depois de a página a mostrar como ficou gravada, deixar de bater certo apaga-a.
+11. *A razão do botão desativado* já não parte «(passo / 4).»: a caixa passou a 44ch e o «passo 4» leva um espaço
+    inquebrável.
+
+## 06/11/2026 — A paleta QP está aprovada
+
+O promotor aprovou a paleta própria da Quem Pinta tal como foi proposta: as 60 cores `QP-001` a `QP-060`, com os
+nomes, os tons e as oito famílias que estão na migração `20261106084200_interior_e_cores` (já aplicada e em
+produção). É a tabela de cores da aplicação; RAL, NCS e Pantone não entram (precisariam de licença da RAL gGmbH ou
+da NCS Colour AB, e ninguém a pediu). Quem souber um código desses continua a poder escrevê-lo no campo, como texto.
+Mudar, acrescentar ou desativar uma cor faz-se pela equipa (`paleta_cores`, escrita só da equipa); desativar
+(`ativa = false`) em vez de apagar, porque há referências gravadas em pedidos e contratos.
+
+## 06/11/2026 — Respostas do promotor às 12 questões, e o que mudou por causa delas
+
+Antes de aplicar, comparou-se cada resposta com o que já estava construído; as três que colidiam foram
+perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
+
+1. **Vãos no interior:** fica a regra de 1 m² (como nas fachadas). **Construído:** cada vão tem «Descontar:
+   automático / sim / não», que manda sobre a regra, e cada divisão mostra quanto se descontou das paredes.
+   A escolha grava-se com o vão.
+2. **Caleiras:** as cinco opções de estado confirmadas; comprimento total facultativo; os metros a substituir só,
+   e obrigatórios, em «Substituir partes». Era o que estava construído.
+3. **Paleta própria** (QP, 60 cores, aprovada); RAL/NCS só com licença.
+4. **Litros:** aparecem ao avaliador e ao cliente, sempre como estimativa e sem valor total em euros. A lista de
+   materiais já era assim (preço de referência por embalagem, por litro e por m², e os litros estimados; nenhum total).
+5. **O interior fica no pedido**, mas não se anuncia aos clientes antes de ser testado com plantas reais.
+6. **Ferramenta das fachadas no pedido: fica a decisão de 05/11/2026** (o cliente também mede pela fotografia,
+   com a margem à vista e a zona sempre por confirmar), e não a resposta «primeiro só do avaliador», que o
+   promotor deixou cair quando se lhe mostrou o conflito. O trabalho é da sessão «Medição de zonas por
+   retângulo e dois pontos»; a ligação ao botão é a próxima sessão dela.
+7. **Zonas comuns usam a ferramenta do interior** (paredes e tetos), com divisões próprias: átrio, patamar,
+   corredor comum, escadas. **As escadas ficam sempre «Por medir»** até haver regra própria (o servidor não
+   calcula nada para elas, digam-se as medidas que se disserem). A lista de zonas mantém-se no outro separador,
+   onde vivem as zonas comuns já gravadas. Migração `20261106091521_zonas_comuns_e_relatorio_do_pintor`, aplicada e publicada a 06/11/2026.
+8. **O comprovativo do cliente não marca a tranche como recebida**; quem confirma é o pintor. Confirmado.
+9. **SMS: não**, por agora; o código de 6 algarismos por email basta.
+10. **IBAN:** só português por agora; estrangeiro (SEPA) só se aparecer um caso real.
+11. **Conclusão:** 15 dias para a outra parte confirmar, **com lembrete ao 7.º dia — ligado** na tarefa diária
+    das 8h (`/api/cron/toques`), uma vez por declaração (registo em `toques`); discordar com razão escrita, só fica
+    registado; a ação própria «Declarar a obra concluída»; numa obra que ninguém declarou concluída os registos não
+    se apagam, e o limite decide-se com o jurista.
+12. **Relatório do percurso:** **o pintor contratado também o pede** (na página do contrato), e recebe a versão
+    do empreiteiro: **sem o que a plataforma lhe cobrou** e sem nada das outras propostas, nem o que o cliente
+    fez antes de publicar. **O relatório do cliente fica como estava**: as outras propostas aparecem só como
+    «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
+    emite continua a ser a equipa, que confirma que quem pediu é parte da obra.
+
+## 06/11/2026 — Escadas «a olho»: a área escrita à mão fica como estimativa
+
+As escadas das zonas comuns não têm regra de medição (continuam «Por medir» quando se indicam medidas ou se
+desenha na planta). Decisão do promotor: em «Escrever as áreas», a área das escadas pode ser indicada «a olho» e
+fica marcada como **estimativa** — e com ela o total das paredes, para o pintor saber que não foi medida. As outras
+divisões escritas à mão continuam como medidas. A regra de medição própria das escadas continua por fazer.
+
+## 06/11/2026 — Páginas públicas, objetivos lidos da descrição e «Guardar e continuar»
+
+Pedidos do promotor, a ver o site:
+- **Fornecedores:** «Descontos para pintores — personalizáveis: por perfil ou caso a caso» (impessoal, regra 12,
+  confirmado pelo promotor). Topo: «Sem custo para os vendedores. Caso a empresa queira, pode subscrever a presença
+  no catálogo.»
+- **Avaliador, na página pública: sem valores nem percentagens.** Fica «Este trabalho tem remuneração elevada», e
+  os valores conhecem-se depois do registo e da confirmação da atividade (o simulador continua na área do
+  fornecedor, só depois da inscrição). A inscrição traz o convite ao WhatsApp: «Para ganhar levantamentos é preciso
+  ser o primeiro a responder…», no site e no ecrã «Ser avaliador», com o mesmo componente de consentimento.
+- **Empresas de pintura:** orçamentar é gratuito, para os pedidos da plataforma e para os clientes próprios; o
+  logotipo e os contactos no orçamento são uma opção, dita como do plano Pro (o promotor esclareceu que o gratuito é
+  criar orçamentos). Ferramentas: gestão de obra, stocks e consumíveis, catálogo de produtos e descontos, e
+  **medir a cor de uma parede — «Em breve»**, também assim em `/app/obras`. Nota: a plataforma não cobra
+  comissão aos fornecedores; os descontos combinados podem manter-se, convidando o fornecedor a aderir.
+- **Objetivos do pedido lidos da descrição** (`objectivosDaDescricao.ts`): as pastilhas acendem com palavras
+  aproximadas ou relacionadas (salitre, bolor, rachada, infiltrações, capoto, aconselhamento…), sem acentos nem
+  maiúsculas. Continuam a não marcar trabalhos.
+- **«Guardar e continuar»** passa ao passo seguinte depois de gravar; com erro, fica onde está.
+- As melhorias à ferramenta das fachadas (desfazer, recorte, instruções ao lado, janela redimensionável, gravar e
+  retomar, deteção) ficam para a sessão que a está a ligar ao pedido (prompt entregue ao promotor).
+## 06/11/2026 — A primeira emissão na Moloni deu «emitido» com o número «undefined»
+
+Primeira emissão a sério (conta de testes «Quem Pinta TESTES API», fatura da comissão de «Pintor Teste Lda», 188,40 €):
+a fila ficou vazia e apareceu em «Últimos documentos emitidos» uma fatura «FT undefined», sem PDF, sem ATCUD e sem
+botão de envio. Na base, `fiscal_documents.provider_document_id = 'undefined'`, estado `emitido`, `numero` nulo, `erro`
+nulo. **A causa:** `emitDocument` lia `created.document_id` sem ver se existia, e `call` só tratava como recusa uma
+lista com `false` na primeira posição — uma recusa em forma de objeto (`{ valid: 0, … }`, que a Moloni pode devolver com
+HTTP 200) passava por sucesso. **Não se sabe** o que a Moloni respondeu (a resposta não se guardou) nem se há ou não um
+documento do lado dela: tem de se ver na conta de testes. **A correção** (`src/domain/moloniResposta.ts`, com testes):
+uma resposta sem `document_id` inteiro positivo já não conta como emitida — falha, com a resposta da Moloni no campo
+`erro`, e fica por emitir; e uma resposta com `valid` a 0 ou com `errors` é uma recusa. A linha «undefined» que ficou na
+base é de teste e tem de ser tratada à mão (apagada ou posta em `falhou`) antes de voltar a emitir, senão a fila não
+volta a mostrá-la.
+
+## 06/11/2026 — A verificação de sessão no middleware passa a ter limite de 5 s
+
+A 06/11/2026, às 12:18 (hora de Lisboa), um pedido ficou parado no middleware até a Vercel o cortar aos 25 s
+(«Your function was stopped as it did not return an initial response within 25s»). Os registos do Supabase dessa
+hora mostram as verificações de sessão a responder entre 3 e 184 ms; a do pedido cortado nunca chegou — falha de
+rede momentânea entre a Vercel e o Supabase, não um defeito da aplicação. Uma ocorrência em 6 horas.
+
+Decisão do promotor: pôr um limite. `src/lib/comLimite.ts` (testado) espera no máximo 5 s; sem resposta (ou com
+erro), o middleware deixa o pedido seguir e regista um aviso na consola, em vez de mandar a pessoa para a
+entrada — a área reservada volta a confirmar quem entrou no seu próprio layout (`src/app/app/layout.tsx`), e é aí
+que quem não entrou é mandado para `/entrar`. Nesse caso a sessão não é renovada nesse pedido; renova-se no seguinte.

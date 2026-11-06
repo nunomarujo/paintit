@@ -23,8 +23,15 @@ async function publicar(cfg: ConfiguracaoWhatsApp, corpo: Record<string, unknown
   return j.messages?.[0]?.id ?? '';
 }
 
-/** Um modelo aprovado, com os parâmetros do corpo e, se tiver, o payload do botão «Aceito». */
-export function enviarModelo(cfg: ConfiguracaoWhatsApp, para: string, modelo: string, parametros: string[], botao?: string): Promise<string> {
+/** Um modelo aprovado, com os parâmetros do corpo e, se tiver, o payload do botão «Aceito» ou o fim do
+ * endereço do botão de ligação. */
+export function enviarModelo(
+  cfg: ConfiguracaoWhatsApp,
+  para: string,
+  modelo: string,
+  parametros: string[],
+  botao?: string | { sufixoUrl: string },
+): Promise<string> {
   return publicar(cfg, corpoDoModelo(para, modelo, cfg.idioma, parametros, botao));
 }
 

@@ -140,6 +140,16 @@ input[type='radio'] {
 
 @layer components {
   /*
+   * O troço «medido pelo cliente» da barra do passo 2 e a sua bolinha na legenda (06/11/2026): riscas de
+   * cobalto sobre o pálido. Entre o confirmado (cobalto cheio) e o estimado (pálido liso), um tom
+   * intermédio dava 1,41:1 contra o estimado e lia-se como ele; a risca distingue-o sem depender do tom.
+   */
+  .troco-riscado {
+    background-color: theme('colors.tinta.200');
+    background-image: repeating-linear-gradient(135deg, theme('colors.tinta.600') 0 2px, transparent 2px 4px);
+  }
+
+  /*
    * `.eyebrow` era maiúsculas espaçadas (`uppercase tracking-[0.18em]`), em 53 sítios de 23
    * ficheiros. O promotor rejeitou esse padrão duas vezes na página inicial — "não adequado a uma
    * imagem pro" — e ele continuava vivo no resto da aplicação, a começar pelo "ÁREA DE TRABALHO"
@@ -342,6 +352,64 @@ input[type='radio'] {
   }
   .stat {
     @apply rounded-xl border border-slate-200 bg-white px-6 py-5;
+  }
+  /*
+   * Um botão desativado que se lê (guia app-screens §8.1). O `btn-base` desativado fica a 45% de
+   * opacidade — o texto cai abaixo de 3:1 e o botão parece avariado. Este fica com o contorno, o texto
+   * a 6,8:1 sobre o fundo, e quem o usa escreve a razão ao lado, a 15 px (juiz, 05/11/2026).
+   */
+  .btn-desativado {
+    @apply disabled:cursor-not-allowed disabled:border disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-600 disabled:opacity-100;
+  }
+}
+
+/*
+ * O quadro das zonas do passo 2 (proposta B, 05/11/2026): o modo lista é a base — o desenho de um
+ * lado, os cartões empilhados do outro, ou um por cima do outro no telemóvel. As chamadas (os cartões
+ * à volta do desenho, ligados aos números) só entram com o contentor a partir de 1040 px, e só quando
+ * `chamadas.ts` aceitou a disposição (`.quadro-com-chamadas`). Contentor e não ecrã: a largura que
+ * conta é a do conteúdo, depois da barra lateral da aplicação.
+ *
+ * O palco: a partir de 720 px, o desenho e os cartões ficam no mesmo fundo cinzento, com os cartões
+ * brancos por cima (maqueta B). Antes era uma caixa cinzenta só à volta do desenho, com os cartões
+ * soltos no branco — lia-se «imagem + cartões» (cético, 05/11/2026). No telemóvel, só o desenho tem
+ * fundo: os cartões vêm a seguir, na largura toda.
+ */
+.quadro-das-zonas {
+  container-type: inline-size;
+}
+.quadro-so-chamadas {
+  display: none;
+}
+.quadro-lista-grelha > * + * {
+  margin-top: 1rem;
+}
+@container (min-width: 720px) {
+  .quadro-lista-grelha > * + * {
+    margin-top: 0;
+  }
+  .quadro-lista-grelha {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .quadro-palco {
+    border-radius: 16px;
+    background-color: theme('colors.slate.50');
+    padding: 12px;
+  }
+  .quadro-lista-desenho {
+    position: sticky;
+    top: 4.5rem;
+  }
+}
+@container (min-width: 1040px) {
+  .quadro-com-chamadas .quadro-so-chamadas {
+    display: block;
+  }
+  .quadro-com-chamadas .quadro-so-lista {
+    display: none;
   }
 }
 

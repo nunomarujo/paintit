@@ -1,4 +1,8 @@
 import type { Forma } from '@/domain/volume';
+import { caleirasDaLinha, declaracaoDasCaleiras } from '@/domain/caleiras';
+import { DeclaradoPeloCliente } from '@/components/DeclaradoPeloCliente';
+import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
+import { AVISO_DA_COR } from '@/domain/corDaPintura';
 import { cabecalhoTrabalho, capotoEmFalta } from '@/domain/etics';
 import { parseCapoto } from '@/lib/capoto';
 import { CapotoEditor } from './orcamento/CapotoEditor';
@@ -57,12 +61,28 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const orgs = await painterOrgs(supabase, user!.id);
   if (orgs.length === 0) notFound();
 
-  const [{ data: listing }, { data: surfaces }, { data: photos }, { data: proposals }] = await Promise.all([
+  const [{ data: listing }, zonasComMargem, { data: photos }, { data: proposals }] = await Promise.all([
     supabase.from('request_listings').select('*').eq('request_id', id).maybeSingle(),
-    supabase.from('request_surfaces').select('id, kind, descricao, area_cm2, trabalhos').eq('request_id', id).order('created_at'),
+    supabase
+      .from('request_surfaces')
+      .select('id, kind, descricao, area_cm2, trabalhos, origem_quantidade, confirmacao, margem_bps')
+      .eq('request_id', id)
+      .order('created_at'),
     supabase.from('request_photos').select('id, legenda').eq('request_id', id).eq('revisao', 'aprovada'),
     supabase.from('proposals').select('*').eq('request_id', id).in('painter_org_id', orgs.map((o) => o.id)),
   ]);
+  // A origem, o estado e a margem de cada zona dizem ao pintor quanto vale cada área (06/11/2026). A coluna
+  // `margem_bps` entra com a migração 20261106083508: num ambiente onde ainda não correu, pedi-la dá erro e o
+  // anúncio ficava sem zonas nenhumas — por isso, sem ela, lê-se o resto (a origem e o estado já existem).
+  const surfaces = zonasComMargem.error
+    ? ((
+        await supabase
+          .from('request_surfaces')
+          .select('id, kind, descricao, area_cm2, trabalhos, origem_quantidade, confirmacao')
+          .eq('request_id', id)
+          .order('created_at')
+      ).data?.map((s) => ({ ...s, margem_bps: null })) ?? null)
+    : zonasComMargem.data;
   const proposal = proposals?.[0] ?? null;
   // Sem anúncio aberto, só se mostra a quem já tinha proposta.
   if (!listing && !proposal) notFound();
@@ -299,12 +319,29 @@ export default async function OpportunityPage({ params, searchParams }: { params
             prazoPropostas: listing.prazo_propostas,
             execucaoDesde: listing.execucao_desde,
             execucaoAte: listing.execucao_ate,
-            surfaces: (surfaces ?? []).map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+            surfaces: (surfaces ?? []).map((s) => ({
+              id: s.id,
+              kind: s.kind,
+              descricao: s.descricao,
+              area: s.area_cm2,
+              trabalhos: s.trabalhos,
+              origemDaQuantidade: s.origem_quantidade,
+              margemBps: s.margem_bps,
+              confirmacao: s.confirmacao,
+            })),
             trabalhosModo: listing.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
             ocupacaoViaPublica: listing.ocupacao_via_publica,
             preferidos: await preferredView(supabase, listing.produtos_preferidos),
             photos: photos ?? [],
           }}
+        />
+      )}
+      {listing && (
+        <DeclaradoPeloCliente
+          frases={[
+            declaracaoDasCaleiras(caleirasDaLinha(listing)),
+            ...declaracaoDasDivisoesGravadas((await supabase.from('request_rooms').select('*').eq('request_id', id).order('ordem')).data ?? [], AVISO_DA_COR),
+          ]}
         />
       )}
       {listing?.aberto && (

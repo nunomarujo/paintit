@@ -32,6 +32,7 @@ export default async function BackofficeDashboard() {
       title: 'Entidades',
       items: [
         { href: '/app/backoffice/entidades', label: 'Documentos por validar', n: c.documentos },
+        { href: '/app/backoffice/entidades/poderes', label: 'Certidões permanentes por ler', n: c.certidoes },
         { href: '/app/backoffice/entidades/regimes', label: 'Regimes de fornecedores por validar', n: c.regimes },
       ],
     },

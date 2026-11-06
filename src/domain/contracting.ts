@@ -1,4 +1,5 @@
 import { EQUIVALENT_RULE } from './equivalence';
+import type { PoderesDaAssinatura } from './poderes';
 import {
   carryToNext,
   clientDepositDue,
@@ -77,12 +78,17 @@ export interface EngagementEvent {
     culpaClientePercent?: number;
     to?: string;
     documentHash?: string;
+    /** Na assinatura do pintor: o resumo SHA-256 do PDF do cliente que ele contra-assinou (06/11/2026). */
+    sobreCliente?: string;
     /** Como assinou: PDF com Chave Móvel Digital/Cartão de Cidadão, ou aceitação simples (só em testes). */
     metodo?: 'cmd_pdf' | 'aceitacao';
     signatario?: string | null;
     identificacao?: string | null;
     /** O certificado encadeia numa entidade "Cartão de Cidadão" do Estado. */
     cadeiaConfiavel?: boolean;
+    /** Quem assinou tem poderes para obrigar a entidade? Só o resultado e o texto — nunca os dados da
+     * certidão nem o código (`src/domain/poderes.ts`, 05/11/2026). Nunca recusa a assinatura. */
+    poderes?: PoderesDaAssinatura;
   };
   at: string;
 }
@@ -280,6 +286,40 @@ export interface DraftInput {
   /** Alguma linha indica um produto «ou equivalente». */
   equivalentes?: boolean;
   materiais?: { produto: string; fornecedor: string; linha: string }[];
+  /**
+   * Versão da minuta (`engagements.minuta_versao`). Sem ela — todas as contratações criadas antes
+   * de 06/11/2026 — o texto é byte a byte o de sempre (`minuta.test.ts`): o PDF assinado confere-se
+   * contra estes bytes, e uma parte nunca pode assinar um texto diferente do da outra.
+   */
+  minuta?: string | null;
+  /** O que o dono da obra declarou no pedido e o pintor não altera (caleiras, interior), em frases. */
+  declarado?: string[];
+  /** IBAN, telefone e email para correspondência de cada parte (`elementos_do_contrato`). */
+  elementos?: { cliente: ElementosDaParte; pintor: ElementosDaParte };
+}
+
+/** Os elementos de uma parte que o contrato indica. Qualquer um pode faltar. */
+export interface ElementosDaParte {
+  iban: string | null;
+  telefone: string | null;
+  email: string | null;
+}
+
+/** A minuta com os elementos das partes, o declarado no pedido e a cláusula de alteração. */
+export const MINUTA_2026_11_06 = '2026-11-06';
+export const minutaComElementos = (m: string | null | undefined) => !!m && m >= MINUTA_2026_11_06;
+
+/** «PT50 0002 0123 1234 5678 9015 4» — o IBAN em grupos de quatro, como se lê num papel. */
+export const ibanEmGrupos = (iban: string) => iban.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();
+
+function frasesDosElementos(quem: string, e: ElementosDaParte | undefined): string[] {
+  if (!e) return [];
+  const partes = [
+    e.iban ? `IBAN ${ibanEmGrupos(e.iban)}` : null,
+    e.telefone ? `telefone ${e.telefone}` : null,
+    e.email ? `email para correspondência ${e.email}` : null,
+  ].filter(Boolean);
+  return partes.length ? [`Elementos ${quem}: ${partes.join('; ')}.`] : [];
 }
 
 export interface Draft {
@@ -297,6 +337,8 @@ const party = (p: DraftInput['cliente'], fallback: string) =>
  * por um advogado (questões jurídicas em aberto em docs/DECISOES.md).
  */
 export function contractDraft(d: DraftInput): Draft {
+  const nova = minutaComElementos(d.minuta);
+  const ibanPintor = nova ? d.elementos?.pintor.iban : null;
   return {
     title: `Contrato de empreitada — pedido ${d.ref}`,
     sections: [
@@ -305,6 +347,7 @@ export function contractDraft(d: DraftInput): Draft {
         paragraphs: [
           `Dono da obra: ${party(d.cliente, 'o cliente identificado no pedido (dados revelados na apresentação)')}.`,
           `Empreiteiro: ${party(d.pintor, 'o pintor autor da proposta escolhida (dados revelados na apresentação)')}.`,
+          ...(nova ? [...frasesDosElementos('do dono da obra', d.elementos?.cliente), ...frasesDosElementos('do empreiteiro', d.elementos?.pintor)] : []),
         ],
       },
       {
@@ -314,6 +357,7 @@ export function contractDraft(d: DraftInput): Draft {
             d.obra.morada ? `sito em ${d.obra.morada}` : `localizado no concelho de ${d.obra.concelho}`
           }.`,
           d.obra.descricao,
+          ...(nova && d.declarado?.length ? ['Declarado pelo dono da obra no pedido:', ...d.declarado] : []),
         ],
       },
       {
@@ -353,9 +397,26 @@ export function contractDraft(d: DraftInput): Draft {
         heading: '4. Pagamentos',
         paragraphs: [
           d.adiantamento,
-          'As restantes tranches são acordadas entre as partes e pagas diretamente ao empreiteiro.',
+          nova
+            ? `As restantes tranches são acordadas entre as partes e pagas diretamente ao empreiteiro, por transferência bancária ou depósito ${
+                ibanPintor ? `para o IBAN ${ibanEmGrupos(ibanPintor)}` : 'para o IBAN do empreiteiro indicado neste contrato'
+              }.`
+            : 'As restantes tranches são acordadas entre as partes e pagas diretamente ao empreiteiro.',
         ],
       },
+      ...(nova
+        ? [
+            {
+              // Redação por validar pelo jurista (06/11/2026): não é definitiva.
+              heading: '4-A. Elementos das partes',
+              paragraphs: [
+                'As partes acordam que os elementos indicados neste contrato — IBAN, contactos e email para correspondência — são os que valem para a execução do contrato e para as comunicações entre elas.',
+                'Qualquer alteração destes elementos depois da assinatura é feita por adenda a este contrato, aceite por ambas as partes.',
+                'A plataforma limita-se a recolher e registar a informação que as partes lhe submetem; não intervém na alteração destes elementos nem na sua validação.',
+              ],
+            },
+          ]
+        : []),
       {
         heading: '5. Garantia da obra',
         paragraphs: [

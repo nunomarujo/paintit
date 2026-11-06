@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COBRANCA_NOTICES, FATURACAO_NOTICE, FATURA_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
+import { ASSINAR_COMO, COBRANCA_NOTICES, FATURACAO_NOTICE, FATURA_NOTICE, JANELA_ABRIU_NOTICE, JANELA_ACABA_NOTICE, NEW_PROPOSAL_NOTICE, NEW_REQUEST_NOTICE, SEGUIMENTO_NOTICES, engagementNotices } from './notifications';
 
 describe('avisos por email', () => {
   it('sem mudança de estado não há aviso', () => {
@@ -14,6 +14,19 @@ describe('avisos por email', () => {
   it('a assinatura de cada parte avisa a outra', () => {
     expect(engagementNotices('aguarda_assinatura_cliente', 'aguarda_assinatura_pintor', 8).map((x) => x.to)).toEqual(['pintor']);
     expect(engagementNotices('aguarda_fee', 'aguarda_assinatura_cliente', 8).map((x) => x.to)).toEqual(['cliente']);
+  });
+  it('quem tem de assinar fica a saber onde está o contrato e como se assina (05/11/2026)', () => {
+    for (const [antes, depois] of [
+      ['aguarda_fee', 'aguarda_assinatura_cliente'],
+      ['aguarda_assinatura_cliente', 'aguarda_assinatura_pintor'],
+    ] as const) {
+      const [n] = engagementNotices(antes, depois, 8);
+      expect(n!.lines).toContain(ASSINAR_COMO);
+    }
+    expect(ASSINAR_COMO).toMatch(/Contratações/);
+    expect(ASSINAR_COMO).toMatch(/Chave Móvel Digital/);
+    // O cliente lê o mesmo texto: nada do que a plataforma cobra ao pintor (regra 15).
+    expect(ASSINAR_COMO).not.toMatch(/comiss|%/i);
   });
   it('o fim do contrato avisa as duas partes', () => {
     expect(engagementNotices('aguarda_assinatura_pintor', 'assinado', 8).map((x) => x.to).sort()).toEqual(['cliente', 'pintor']);

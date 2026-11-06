@@ -9,7 +9,8 @@ import {
   type PedidoParaToque,
   type Toque,
 } from '@/domain/toques';
-import { notifyCobranca, notifyFaturacao, notifyJanela, notifySeguimento, notifySemana } from '@/lib/notify';
+import { notifyCobranca, notifyFaturacao, notifyJanela, notifySeguimento, notifySemana, recipients, sendEmail } from '@/lib/notify';
+import { DIAS_PARA_CONFIRMAR, lembretesDaConclusao, type PassoDaConclusao } from '@/domain/garantia';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -159,8 +160,44 @@ export async function GET(req: Request) {
     if (!dup) faturacao = await notifyFaturacao(hoje).catch(() => false);
   }
 
+  // A conclusão da obra por confirmar há 7 dias: lembrete à outra parte (decisão do promotor, 06/11/2026).
+  // A chave é a declaração; regista-se em `toques` antes de enviar, como o resto, e nunca sai duas vezes.
+  let lembretesDaObra = 0;
+  {
+    const { data: passos } = await db.from('conclusao_da_obra').select('id, engagement_id, lado, passo, data_conclusao, criado_em');
+    const devidosDaObra = lembretesDaConclusao(
+      (passos ?? []).map((p) => ({
+        id: p.id,
+        engagementId: p.engagement_id,
+        lado: p.lado as 'cliente' | 'pintor',
+        passo: p.passo as PassoDaConclusao,
+        dataConclusao: p.data_conclusao,
+        criadoEm: p.criado_em,
+      })),
+      new Date(),
+    );
+    for (const l of devidosDaObra) {
+      const { error: dup } = await db.from('toques').insert({ tipo: 'conclusao_lembrete', alvo: l.declaracaoId, destinatario: l.para });
+      if (dup) continue;
+      const { data: e } = await db.from('engagements').select('client_org_id, painter_org_id').eq('id', l.engagementId).maybeSingle();
+      if (!e) continue;
+      const enviado = await sendEmail(
+        await recipients(l.para === 'cliente' ? e.client_org_id : e.painter_org_id),
+        'Conclusão da obra por confirmar',
+        [
+          `${l.para === 'cliente' ? 'O empreiteiro' : 'O dono da obra'} declarou a obra concluída há uma semana. Na página do contrato é possível confirmar, discordar com uma razão escrita, ou juntar prova.`,
+          `Sem resposta em ${DIAS_PARA_CONFIRMAR} dias, fica registado que a conclusão foi declarada só por uma das partes. A plataforma regista e não decide.`,
+        ],
+        `/app/contratacoes/${l.engagementId}#conclusao`,
+        { cta: 'Ver o contrato' },
+      ).catch(() => false);
+      if (enviado) lembretesDaObra += 1;
+    }
+  }
+
   const resumo = {
     hoje,
+    lembretesDaObra,
     semana,
     faturacao,
     anuncios: ids.length,

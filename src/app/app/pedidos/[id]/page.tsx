@@ -17,6 +17,7 @@ import {
   type WorksMode,
 } from '@/domain/request';
 import { percursoDoPedido } from '@/domain/percurso';
+import { numeracaoDoPedido } from '@/domain/prancheta';
 import { paraZona } from '@/lib/requests';
 import { Percurso } from './Percurso';
 import { CaixaDaSeccao, PedidoEmSeccoes } from './PedidoEmSeccoes';
@@ -38,9 +39,16 @@ import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { ZonasComVolume } from './ZonasComVolume';
 import { Voltar } from '@/components/Voltar';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { Dica } from '@/components/Dica';
-import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
+import { PedirRelatorio } from './PedirRelatorio';
+import { InteriorDaHabitacao } from './InteriorDaHabitacao';
+import { SeparadoresDoInterior } from './SeparadoresDoInterior';
+import { divisoesAOferecer, separadoresDoPasso } from '@/domain/interior';
+import { coresDoFabricante } from '@/domain/corDaPintura';
+import { interiorInicial, paraMaterial } from '@/lib/interior';
+import type { WorkType } from '@/domain/request';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   rascunho: { label: 'Rascunho', className: 'bg-slate-100 text-slate-700' },
@@ -102,6 +110,14 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
   const manager = canManage(await myRole(supabase, user!.id, org));
   const draft = req.status === 'rascunho';
+  // Relatório do percurso negocial (06/11/2026): o que já foi entregue e o que está pedido. Sem a migração,
+  // as consultas falham sozinhas e a secção fica só com o botão.
+  const [{ data: relatoriosEntregues }, { data: relatoriosPedidos }] = draft
+    ? [{ data: [] }, { data: [] }]
+    : await Promise.all([
+        supabase.from('relatorios_do_percurso').select('id, versao, emitido_em').eq('request_id', id).eq('destinatario', 'cliente').order('versao', { ascending: false }),
+        supabase.from('pedidos_de_relatorio').select('id, pedido_em').eq('request_id', id).order('pedido_em', { ascending: false }),
+      ]);
   const pt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '');
   // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
   // (`propostas_entregues`); isto é só o que o ecrã diz, e conta os dias da mesma maneira.
@@ -193,6 +209,47 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     .limit(1);
   const fotosPorZona = !faltaZonaNasFotos;
 
+  // O prédio e as zonas, como o passo 2 os desenha. A numeração das zonas sai da mesma função que o
+  // desenho usa (`numeracaoDoPedido`), para as fotografias terem os números do desenho.
+  const predioDoDesenho = {
+    buildingId: req.building_id,
+    pisos: building.pisos,
+    fachadas: building.fachadas,
+    temVarandas: !!building.tem_varandas,
+    moradia: building.tipo === 'moradia',
+    forma: (building.forma_implantacao as Forma | null) ?? null,
+    janelas: {
+      frente: janelas?.janelas_frente ?? null,
+      esquerda: janelas?.janelas_esquerda ?? null,
+      direita: janelas?.janelas_direita ?? null,
+      tras: janelas?.janelas_tras ?? null,
+    },
+    medidas: {
+      larguraM: medidas?.largura_cm ? medidas.largura_cm / 100 : null,
+      profundidadeM: medidas?.profundidade_cm ? medidas.profundidade_cm / 100 : null,
+      peDireitoM: medidas?.pe_direito_cm ? medidas.pe_direito_cm / 100 : null,
+      origem: medidas?.medidas_origem ?? 'estimativa',
+    },
+    podeMedir: !!medidas,
+  };
+  const zonasDoQuadro = list.map((s) => ({
+    id: s.id,
+    kind: s.kind,
+    descricao: s.descricao,
+    areaCm2: s.area_cm2,
+    areaDiretaCm2: s.area_direta_cm2,
+    larguraCm: s.largura_cm,
+    alturaCm: s.altura_cm,
+    vaosCm2: s.vaos_cm2,
+    quantidade: s.quantidade,
+    participacao: paraZona(s).participacao,
+    origemDaQuantidade: paraZona(s).origemDaQuantidade,
+    confirmacao: paraZona(s).confirmacao,
+    margemBps: paraZona(s).margemBps,
+    trabalhos: s.trabalhos,
+  }));
+  const numeracao = numeracaoDoPedido(predioDoDesenho, zonasDoQuadro);
+
   // O que os pintores vão ver: é a pré-visualização do anúncio, e é também o que fica debaixo da
   // lista do que falta para publicar. Fica numa variável porque serve nos dois sítios.
   const oQueOsPintoresVeem = (
@@ -227,7 +284,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         prazoPropostas: req.prazo_propostas,
         execucaoDesde: req.execucao_desde,
         execucaoAte: req.execucao_ate,
-        surfaces: list.map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+        surfaces: list.map((s) => ({
+          id: s.id,
+          kind: s.kind,
+          descricao: s.descricao,
+          area: s.area_cm2,
+          trabalhos: s.trabalhos,
+          origemDaQuantidade: paraZona(s).origemDaQuantidade,
+          margemBps: paraZona(s).margemBps,
+          confirmacao: paraZona(s).confirmacao,
+        })),
         trabalhosModo: req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
         ocupacaoViaPublica: req.ocupacao_via_publica,
         preferidos: await preferredView(supabase, req.produtos_preferidos),
@@ -241,6 +307,30 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     )}
   </section>
   );
+
+  // Interior da habitação (06/11/2026): só quando o tipo «interior» está marcado. A planta não se guarda;
+  // as divisões, sim. Separadores com exterior; só o interior sem ele (`separadoresDoPasso`).
+  const tiposDoPedido = (req.tipos_obra?.length ? req.tipos_obra : [req.tipo_obra]) as WorkType[];
+  const passoDasMedidas = separadoresDoPasso(tiposDoPedido);
+  const comInterior = passoDasMedidas.modo !== 'so_zonas';
+  const [{ data: divisoesGravadas }, { data: paletaRows }, materiaisInterior] = comInterior
+    ? await Promise.all([
+        supabase.from('request_rooms').select('*').eq('request_id', id).order('ordem'),
+        supabase.from('paleta_cores').select('codigo, nome, hex, familia').eq('ativa', true).order('ordem'),
+        loadReferences(supabase).then((rs) => rs.filter((r) => ['tinta_interior', 'primario', 'esmalte'].includes(r.tipo))),
+      ])
+    : [{ data: [] }, { data: [] }, []];
+  const interiorSlot = comInterior ? (
+    <InteriorDaHabitacao
+      requestId={req.id}
+      podeEditar={(!!manager || !!tecnicoDoCliente) && draft}
+      inicial={interiorInicial(req, divisoesGravadas ?? [])}
+      paleta={paletaRows ?? []}
+      coresDeFabricante={materiaisInterior.flatMap((r) => coresDoFabricante(r.cores).map((cor) => ({ marca: r.marca, cor }))).slice(0, 300)}
+      materiais={materiaisInterior.map(paraMaterial)}
+      oferecer={divisoesAOferecer(passoDasMedidas)}
+    />
+  ) : null;
 
   const slots = {
     resumo: (
@@ -305,113 +395,39 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     ),
     zonas: (
       <div id="levantamento-da-obra" className="scroll-mt-6">
-        {/* Zero é um valor; não haver medição é outro estado, e escrever «0 m²» diz a coisa
-            errada (promotor, 29/10/2026). */}
-        <p className="text-[15px] text-slate-600">
-          {!tecnicoDoCliente
-            ? 'O avaliador regista as zonas e as medidas durante a visita.'
-            : list.length === 0
-              ? 'Área por levantar.'
-              : `Total: ${formatArea(total)}`}
-          {!tecnicoDoCliente && list.length > 0 && ` Até agora: ${formatArea(total)}.`}
-        </p>
-        {(resumo.excluidas > 0 || resumo.porConfirmar > 0 || resumo.semQuantidade > 0) && (
-          <p className="mt-1 text-[17px] text-slate-600">
-            {[
-              resumo.semQuantidade > 0
-                ? `${resumo.semQuantidade} ${resumo.semQuantidade === 1 ? 'zona' : 'zonas'} por levantar`
-                : '',
-              resumo.porConfirmar > 0
-                ? `${resumo.porConfirmar} ${resumo.porConfirmar === 1 ? 'quantidade' : 'quantidades'} por confirmar`
-                : '',
-              resumo.excluidas > 0
-                ? `${resumo.excluidas} ${resumo.excluidas === 1 ? 'zona deixada' : 'zonas deixadas'} de fora, e por isso fora do total`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            .
-          </p>
-        )}
-        {/* Com visita pedida, os campos de medição ficam recolhidos: a página acompanha a escolha
-            do cliente em vez de o pôr a medir (promotor, 01/11/2026). */}
-        <ZonasRecolhiveis recolhido={!tecnicoDoCliente}>
-          <ZonasComVolume
-            requestId={req.id}
-            predio={{
-              buildingId: req.building_id,
-              pisos: building.pisos,
-              fachadas: building.fachadas,
-              temVarandas: !!building.tem_varandas,
-              moradia: building.tipo === 'moradia',
-              forma: (building.forma_implantacao as Forma | null) ?? null,
-              janelas: {
-                frente: janelas?.janelas_frente ?? null,
-                esquerda: janelas?.janelas_esquerda ?? null,
-                direita: janelas?.janelas_direita ?? null,
-                tras: janelas?.janelas_tras ?? null,
-              },
-              medidas: {
-                larguraM: medidas?.largura_cm ? medidas.largura_cm / 100 : null,
-                profundidadeM: medidas?.profundidade_cm ? medidas.profundidade_cm / 100 : null,
-                peDireitoM: medidas?.pe_direito_cm ? medidas.pe_direito_cm / 100 : null,
-                origem: medidas?.medidas_origem ?? 'estimativa',
-              },
-              podeMedir: !!medidas,
-            }}
-            zonas={list.map((s) => ({
-              id: s.id,
-              kind: s.kind,
-              descricao: s.descricao,
-              areaCm2: s.area_cm2,
-              areaDiretaCm2: s.area_direta_cm2,
-              larguraCm: s.largura_cm,
-              alturaCm: s.altura_cm,
-              vaosCm2: s.vaos_cm2,
-              quantidade: s.quantidade,
-              participacao: paraZona(s).participacao,
-              origemDaQuantidade: paraZona(s).origemDaQuantidade,
-              confirmacao: paraZona(s).confirmacao,
-              trabalhos: s.trabalhos,
-            }))}
-            modo={req.trabalhos_modo as WorksMode}
-            podeEditar={!!manager && draft}
-            doCliente={tecnicoDoCliente}
-          />
-        </ZonasRecolhiveis>
+        {/* A resposta (total, o que falta), o desenho com as zonas e as medidas do prédio: tudo em
+            ZonasComVolume (proposta B, 05/11/2026). Com visita pedida, o quadro fica recolhido: a
+            página acompanha a escolha do cliente em vez de o pôr a medir (promotor, 01/11/2026). */}
+        <ZonasComVolume
+          requestId={req.id}
+          predio={predioDoDesenho}
+          zonas={zonasDoQuadro}
+          modo={req.trabalhos_modo as WorksMode}
+          podeEditar={!!manager && draft}
+          doCliente={tecnicoDoCliente}
+          recolhido={!tecnicoDoCliente}
+        />
       </div>
     ),
     fotografias: (
-      <div>
-        {/* Uma linha; o resto (quais vão ao anúncio, a remoção dos dados do aparelho) vai na
-            dica, para não gastar altura (promotor, 01/11/2026). */}
-        <p className="flex items-center gap-2 text-[15px] text-slate-600">
-          Opcionais. Ajudam o avaliador a perceber o estado atual.
-          <Dica rotulo="Quem vê as fotografias">
-            Só as imagens que aprovar para divulgação são mostradas aos pintores; as gerais ficam privadas. A localização e os
-            dados do aparelho são retirados de todas.
-          </Dica>
-        </p>
-        <div className="mt-4">
-          <Fotografias
-            requestId={req.id}
-            fotografias={(photos ?? []).map((f) => ({
-              id: f.id,
-              kind: f.kind,
-              legenda: f.legenda,
-              revisao: f.revisao,
-              notas_revisao: f.notas_revisao,
-              zonaId: f.zona_id ?? null,
-            }))}
-            zonas={list.map((s) => ({
-              id: s.id,
-              nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind],
-            }))}
-            podeEditar={!!manager && draft}
-            porZona={fotosPorZona}
-          />
-        </div>
-      </div>
+      <Fotografias
+        requestId={req.id}
+        fotografias={(photos ?? []).map((f) => ({
+          id: f.id,
+          kind: f.kind,
+          legenda: f.legenda,
+          revisao: f.revisao,
+          notas_revisao: f.notas_revisao,
+          zonaId: f.zona_id ?? null,
+        }))}
+        // As zonas pela ordem do quadro e com o mesmo número do desenho.
+        zonas={numeracao.map((n) => {
+          const s = list.find((x) => x.id === n.id)!;
+          return { id: s.id, nome: s.descricao?.trim() || SURFACE_KIND_LABELS[s.kind], n: n.n, fora: n.grupo === 'fora_do_pedido' };
+        })}
+        podeEditar={!!manager && draft}
+        porZona={fotosPorZona}
+      />
     ),
     publicar:
       manager && draft ? (
@@ -424,6 +440,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         oQueOsPintoresVeem
       ),
   };
+  if (passoDasMedidas.modo === 'so_interior') slots.zonas = interiorSlot!;
+  else if (passoDasMedidas.modo === 'separadores') slots.zonas = <SeparadoresDoInterior primeiro={passoDasMedidas.primeiro!} segundo={passoDasMedidas.rotuloInterior} zonas={slots.zonas} interior={interiorSlot} />;
+
 
   // ── Pedido publicado (ou encerrado): página de acompanhamento, não de preparação ────────────
   // Canvas «Espaço do cliente» (01/11/2026): cabeçalho operacional com as datas nomeadas, duas ações
@@ -434,6 +453,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     const encerrar = changeRequestStatus.bind(null, req.id, 'encerrado');
     const dataLonga = (iso: string | null) =>
       iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }) : '—';
+    // Rasto de avisos do contrato (05/11/2026): escolhida a proposta, o passo seguinte (pagar a caução,
+    // assinar) vive na contratação — e é daqui, da obra, que o cliente costuma vir.
+    const contratoAEspera = (await aMinhaEspera(user!.id)).find((c) => c.requestId === req.id && c.lado === 'cliente');
     return (
       <div className="space-y-6">
         <Voltar href="/app/pedidos">As minhas obras</Voltar>
@@ -501,6 +523,23 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             </div>
           )}
         </div>
+
+        {contratoAEspera && (
+          <section className="rounded-2xl bg-tinta-900 p-5 text-white sm:p-6">
+            <p className="text-[13px] font-semibold text-lima">Precisa de si</p>
+            <h2 className="mt-1 text-[20px] font-semibold leading-snug">{contratoAEspera.passo.titulo}</h2>
+            <p className="mt-1 max-w-[54ch] text-[15px] text-tinta-200">
+              {contratoAEspera.passo.texto}
+              {contratoAEspera.passo.ate ? ` Até ${contratoAEspera.passo.ate.split('-').reverse().join('/')}, às 23:59.` : ''}
+            </p>
+            <Link
+              href={`/app/contratacoes/${contratoAEspera.id}${contratoAEspera.passo.passo === 'assinar' ? '#assinar' : ''}`}
+              className="btn-primary mt-4 !bg-lima !text-tinta-900 hover:!bg-lima/90"
+            >
+              {contratoAEspera.passo.passo === 'assinar' ? 'Ir para o contrato' : 'Abrir a contratação'}
+            </Link>
+          </section>
+        )}
 
         {/* O aviso obrigatório: enquanto a cliente não responder, o prazo do avaliador continua a correr. */}
         {agendamento?.por_responder && (
@@ -633,6 +672,33 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                     Dossiê do pedido, para imprimir
                   </Link>
                 </section>
+                <section className={card}>
+                  <h2 className="font-semibold">Relatório do percurso negocial</h2>
+                  <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+                    Um registo do que aconteceu na plataforma nesta obra, por ordem e com datas: o pedido, as propostas, a escolha, o contrato, os
+                    pagamentos registados e as adendas. Pode ser pedido, sem custo, por exemplo para um litígio ou uma disputa de consumo; a
+                    equipa da plataforma confirma o pedido e emite-o aqui.
+                  </p>
+                  {(relatoriosEntregues ?? []).length > 0 && (
+                    <ul className="mt-3 space-y-1">
+                      {(relatoriosEntregues ?? []).map((r) => (
+                        <li key={r.id}>
+                          <Link href={`/app/pedidos/${req.id}/relatorio/${r.id}`} className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-tinta-600 hover:underline">
+                            Versão {r.versao}, emitida a {new Date(r.emitido_em).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' })}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {(relatoriosPedidos ?? []).length > (relatoriosEntregues ?? []).length && (
+                    <p className="mt-3 text-[17px] text-slate-700">Há um pedido de relatório à espera da equipa da plataforma.</p>
+                  )}
+                  {manager && (
+                    <div className="mt-4">
+                      <PedirRelatorio requestId={req.id} />
+                    </div>
+                  )}
+                </section>
                 {oQueOsPintoresVeem}
               </div>
             ),
@@ -727,6 +793,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
                 disabled={!manager || !draft}
                 references={(await loadReferences(supabase)).map(escolhivel)}
+                paleta={(await supabase.from('paleta_cores').select('codigo, nome, hex, familia').eq('ativa', true).order('ordem')).data ?? []}
               />
           </CaixaDaSeccao>
         }

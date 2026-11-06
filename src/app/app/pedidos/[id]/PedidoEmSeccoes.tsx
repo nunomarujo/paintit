@@ -139,17 +139,19 @@ export function PedidoEmSeccoes({
           {/* Passo 1: o formulário em grelha de quadros (RequestForm trata da disposição). */}
           <div hidden={passo !== 'essencial'}>{formulario}</div>
 
-          {/* Passo 2: zonas e medidas à esquerda, fotografias à direita. Esconder e não desmontar.
+          {/* Passo 2 (proposta B, «o prédio ao centro», 05/11/2026): as zonas e medidas a toda a
+              largura — o desenho precisa dela —, e as fotografias por baixo, numa faixa agrupada pelas
+              mesmas zonas. Esconder e não desmontar.
               A classe `grid` não pode ir com o atributo `hidden`: no Tailwind 3.4 a regra
               `[hidden] { display: none }` tem a mesma especificidade que `.grid` e vem antes, por isso
               perdia — o passo escondido aparecia por baixo dos outros (o «Resumo do pedido» e o
               «Publicar» no passo 2, relatado pelo promotor a 05/11/2026). Escondido, leva `hidden`
               também como classe (`mostrarSo`). */}
-          <div hidden={passo !== 'medidas'} className={mostrarSo(passo === 'medidas', 'grid gap-6 lg:grid-cols-12')}>
-            <Area nome="Zonas e medidas" estado={estados.zonas} className="lg:col-span-7" moldura>
+          <div hidden={passo !== 'medidas'} className={mostrarSo(passo === 'medidas', 'grid gap-4')}>
+            <Area nome="Zonas e medidas" estado={estados.zonas} moldura>
               {slots.zonas}
             </Area>
-            <Area nome="Fotografias" estado={estados.fotografias} className="lg:col-span-5" moldura>
+            <Area nome="Fotografias" estado={estados.fotografias} moldura>
               {slots.fotografias}
             </Area>
           </div>

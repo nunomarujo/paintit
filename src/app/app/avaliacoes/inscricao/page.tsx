@@ -5,6 +5,8 @@ import { FATORES_DA_BANDA, VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/a
 import type { SurveyorPerformance } from '@/domain/survey';
 import { getUser } from '@/lib/supabase/server';
 import { Autodeclaracao, SimuladorDeGanho } from './Formularios';
+import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
+import { configuracaoWhatsApp } from '@/domain/whatsapp';
 
 /**
  * Ser avaliador — a inscrição por autodeclaração e, depois dela, o simulador de ganho e a explicação de
@@ -18,10 +20,12 @@ export default async function InscricaoPage() {
   const pertenca = await pertencaDoFornecedor(supabase, user!);
   if (pertenca.tipo === 'sem_empresa') return <SemEmpresa convites={pertenca.convites} />;
 
-  const [{ data: inscricao }, { data: avaliacoes }] = await Promise.all([
+  const [{ data: inscricao }, { data: avaliacoes }, { data: preferencia }] = await Promise.all([
     supabase.from('survey_terms_acceptances').select('accepted_at').eq('version', VERSAO_AUTODECLARACAO_DO_AVALIADOR).maybeSingle(),
     supabase.from('survey_reviews').select('nota').eq('vendedor_user_id', user!.id),
+    supabase.from('survey_availability').select('alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle(),
   ]);
+  const whatsappLigado = !!(preferencia?.alerta_whatsapp && preferencia.telemovel_whatsapp);
   const n = (avaliacoes ?? []).length;
   const desempenho: SurveyorPerformance = {
     qualificacaoGeral: n ? (avaliacoes ?? []).reduce((s, a) => s + a.nota, 0) / n : null,
@@ -76,6 +80,26 @@ export default async function InscricaoPage() {
             </>
           )}
         </div>
+      </section>
+
+      {/* O convite ao WhatsApp acompanha a inscrição (promotor, 06/11/2026): quem responde primeiro fica
+          com o levantamento, e o aviso por WhatsApp é o que chega primeiro. */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-[20px] font-semibold text-slate-900">Ser avisado primeiro</h2>
+        <p className="mt-1 mb-4 max-w-[54ch] text-[17px] text-slate-700">
+          Para ganhar levantamentos é preciso ser o primeiro a responder. Inscreva o seu telemóvel para receber por WhatsApp os
+          avisos de novas ofertas. É gratuito.
+        </p>
+        {whatsappLigado ? (
+          <p className="text-[17px] text-slate-700">
+            Avisos por WhatsApp ligados para {preferencia!.telemovel_whatsapp}.{' '}
+            <Link href="/app/perfil" className="ligacao">
+              Mudar ou desligar
+            </Link>
+          </p>
+        ) : (
+          <AvisosPorWhatsApp alertaWhatsApp={false} telemovel={preferencia?.telemovel_whatsapp ?? null} whatsappDisponivel={configuracaoWhatsApp(process.env) !== null} />
+        )}
       </section>
 
       {inscricao && (

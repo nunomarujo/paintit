@@ -10,6 +10,10 @@ export interface Notice {
   lines: string[];
 }
 
+/** Onde está o contrato e como se assina — o mesmo caminho que a página do contrato mostra (05/11/2026). */
+export const ASSINAR_COMO =
+  'Na Quem Pinta, em Contratações: descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado. O botão abaixo leva diretamente ao contrato.';
+
 export function engagementNotices(before: EngagementStatus, after: EngagementStatus, feeDeadlineDays: number): Notice[] {
   if (before === after) return [];
   const both = (subject: string, lines: string[]): Notice[] => [
@@ -33,7 +37,11 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
         {
           to: 'cliente',
           subject: 'Partes apresentadas: falta assinar o contrato',
-          lines: ['A empresa de pintura confirmou a escolha. Os contactos já estão visíveis.', 'Falta a assinatura do contrato, a fazer primeiro pelo cliente.'],
+          lines: [
+            'A empresa de pintura confirmou a escolha. Os contactos já estão visíveis.',
+            'Falta a assinatura do contrato, a fazer primeiro pelo cliente.',
+            ASSINAR_COMO,
+          ],
         },
       ];
     case 'aguarda_assinatura_pintor':
@@ -41,7 +49,11 @@ export function engagementNotices(before: EngagementStatus, after: EngagementSta
         {
           to: 'pintor',
           subject: 'O cliente assinou: falta a assinatura da empresa',
-          lines: ['O cliente assinou o contrato.', 'Falta a assinatura da empresa de pintura para o contrato ficar concluído.'],
+          lines: [
+            'O cliente assinou o contrato.',
+            'Falta a assinatura da empresa de pintura para o contrato ficar concluído.',
+            ASSINAR_COMO,
+          ],
         },
       ];
     case 'assinado':

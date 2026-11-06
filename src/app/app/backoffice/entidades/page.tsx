@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { DOC_KIND_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
 import { getUser } from '@/lib/supabase/server';
 import { ReviewForm } from './ReviewForm';
@@ -38,6 +39,15 @@ export default async function DocumentsPage() {
                 {d.valido_ate ? ` · válido até ${d.valido_ate.split('-').reverse().join('/')}` : ''}
                 {d.classe ? ` · classe ${d.classe} (confirme no portal do IMPIC)` : ''}
               </p>
+              {(d.kind === 'certidao_permanente' || (d.kind === 'ata_nomeacao_administrador' && d.organizations?.kind === 'condominio')) && (
+                <p className="mt-1 text-[15px] text-slate-600">
+                  Depois de aprovar, registe quem tem poderes para assinar em{' '}
+                  <Link href="/app/backoffice/entidades/poderes" className="font-semibold text-tinta-700 hover:underline">
+                    Poderes de representação
+                  </Link>
+                  .
+                </p>
+              )}
               <ReviewForm documentId={d.id} />
             </li>
           ))}
