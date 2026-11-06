@@ -6658,3 +6658,49 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 - Migração `20261106172045_catalogo_de_lancamento` aplicada à base real (não havia subscrições de fornecedores) e verificada
   com entidades `zz-test`: dentro da data tem catálogo e aparece; passada a data não; referência fechada com a oferta e aberta
   depois de pagar; sem rasto. Avisos de segurança e desempenho sem nada novo além de índices por usar nas tabelas novas.
+
+## 06/11/2026 — Revisão dos workspaces dos três perfis contra o taste-skill (ponto C)
+
+Revisão pedida pelo promotor aos workspaces de cliente, pintor e fornecedor (não à página inicial). Capturas dos
+ecrãs reais com dados fictícios, numa ferramenta local que não entra no repositório. Corrigido: `SeletorDeContexto`
+(Vendas / Avaliações) com raio fora da escala (`rounded-[10px]`) e altura de 40px — passa a `rounded-lg` e 44px;
+`Meteorologia` (dias de obra) tinha fundo âmbar em cada linha da lista — regra 13: o aviso fica só no texto.
+Fica por decidir com o promotor (crítica por ecrã, ver a resposta da sessão): o «Início» do pintor é o mesmo
+ecrã genérico do cliente, sem um «Hoje» próprio.
+
+## 06/11/2026 — «Hoje» do pintor
+
+O Início do pintor era o ecrã genérico do cliente («Pedidos em curso», «As suas entidades»), enquanto o do
+fornecedor já tinha um «Hoje» com ação. A pedido do promotor, o pintor ganha o seu (`InicioDoPintor.tsx`),
+para contas só de pintor; as outras contas mantêm o Início anterior.
+
+Pergunta do ecrã: o que pede ação desta empresa hoje? Ordem: **o que espera por si** (contratos a assinar,
+pagar ou confirmar; a única banda de cor, no topo; sem nada, o quadro fica e di-lo); **prazos a fechar**
+(pedidos abertos que terminam em 7 dias e em que a empresa ainda não enviou proposta; o rascunho à frente a
+igualdade; âmbar em texto até 3 dias); **a decorrer** (orçamentos por enviar, propostas à espera de resposta,
+pedidos abertos por propor, obras em curso, em algarismos tabulares); **obras em curso**; **documentos a
+caducar** só quando algum caduca em 30 dias (âmbar o que ainda se resolve, vermelho o que já caducou); avisos.
+As escolhas vivem em `src/domain/hojeDoPintor.ts`, com testes. O bloco «Avisos» passou a componente comum
+(`AvisosDoInicio.tsx`). Visto com dados fictícios no computador e no telemóvel (390px: sem deslocamento
+horizontal, sem alvos abaixo de 44px); não visto com dados reais.
+
+## 06/11/2026 — Oportunidades do pintor: lista em colunas
+
+A lista era um bloco cinzento em duas colunas de texto corrido («· Porto», área e prazo misturados na mesma
+linha). Passa a **uma lista de linhas** num cartão: identidade à esquerda (tipo · concelho, pedido, pisos, a
+proposta da empresa se houver), **área** e **propostas até** em colunas à direita, em algarismos tabulares, com
+cabeçalho de 13px sem faixa; no telemóvel a área e o prazo ficam lado a lado. O aviso de prazo é texto âmbar
+(nunca fundo, regra 13). A frase longa sobre anonimato passou para um (i) e uma linha diz o que a vista tem
+(«7 pedidos abertos · 3 a fechar em 3 dias · 2 com proposta sua»), que muda com os filtros. Os campos usam
+`campo` (regra 17). Visto com dados fictícios no computador e no telemóvel (sem deslocamento, sem alvos < 44px).
+
+## 06/11/2026 — «As minhas obras» do cliente: uma lista por fase
+
+A página tinha um painel lateral (cartão marinho «Precisa de si», «Em números», «O que o protege») e, à direita,
+uma grelha de cartões por fase que deixava metade do ecrã vazio quando uma fase tinha uma só obra; a mesma
+entidade repetia-se em todos os cartões e os números do painel diziam o que os títulos dos grupos já diziam.
+Passa a **uma lista por fase, em largura total**: título da fase com a contagem (sem pílula acima do título),
+colunas à direita em algarismos tabulares com cabeçalho de 13px (propostas até / abrem; propostas / por fazer),
+e o que há por fazer em texto âmbar. O nome da entidade só aparece se a conta tiver mais de uma. O «Precisa de si»
+virou uma frase sob o título (o cartão repetia a obra que a lista já mostra), e «O que o protege» passou para um
+(i). Visto com dados fictícios, computador e telemóvel (sem deslocamento, sem alvos < 44px); não visto com dados reais.

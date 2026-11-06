@@ -26,7 +26,7 @@ export function SeletorDeContexto() {
             key={c}
             href={inicioDoContexto(c)}
             aria-current={ativo ? 'page' : undefined}
-            className={`flex min-h-[40px] flex-1 items-center justify-center rounded-[10px] px-3 text-[15px] ${
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-3 text-[15px] ${
               ativo ? 'bg-white font-semibold text-tinta-900' : 'font-medium text-barra-text hover:bg-barra-hover'
             }`}
           >
