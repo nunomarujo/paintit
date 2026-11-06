@@ -5871,3 +5871,28 @@ ficheiros tocados), `npm test` (2043, com as migrações em memória) e `npm run
 consentimento vistos num navegador (1280 e 390 px), numa página de ensaio com dados inventados que não entrou no
 Git: alvos de toque de 44 px, o erro do PDF a âmbar. **Não visto com sessão:** o contador do menu, o Início, a lista e
 a página verdadeira precisam de dados na base.
+
+## 06/11/2026 — Subscrição: opção 3 do promotor, e o que já está em produção
+
+**Pedido:** «igual à 2, mas vamos meter em linha de produção o diário e a adenda». O Cofre fica em «Já
+disponível»; o diário de obra e a adenda (trabalhos a mais) passam a produção.
+
+**O que se verificou antes de mexer (06/11/2026, base real e código):**
+- **O diário e a adenda já estão em produção, e com uso.** O ecrã está no ramo publicado
+  (`claude/sweet-brahmagupta-xd1vp7`, `/app/obras/[id]`) e as migrações estão aplicadas
+  (`diario_de_obra`, `adendas_trabalhos_a_mais`, `adenda_oferecida`); na base real há 13 entradas de
+  diário, 1 fotografia e 1 adenda. Não falta nada de código nem de base para os pôr em produção: já lá
+  estão. Por isso ficam em «Já disponível», como estavam — pô-los em «A chegar em breve» seria anunciar
+  como futuro o que já funciona.
+- **O Cofre está fechado ao Pro no ecrã:** `/app/obras` só mostra o cofre a quem tem `temPro`; sem o Pro
+  aparece a explicação e a ligação ao plano. **A base não o fecha:** os documentos (`org_documents`) são
+  da entidade e servem também a validação, por isso qualquer empresa os guarda; o que é do Pro é o cofre
+  com os avisos de validade. Fica assim, registado.
+- **Uma contradição que fica para o promotor decidir:** a página do Pro vende a adenda e o diário como
+  benefícios, mas desde 25/10/2026 os dois estão abertos a todas as empresas «de propósito» (fechar a
+  adenda tirava margem registada à plataforma; as ferramentas de obra são o hábito que traz o pintor).
+  Quem subscreve para ter a adenda já a tinha. Ou se fecham ao Pro, ou saem da lista do Pro, ou ficam
+  escritas como «também no gratuito».
+
+Resultado: `BENEFICIOS_PRO` não muda (2 em «a chegar»: as duas linhas das obras públicas); um teste novo
+fixa o Cofre, a adenda e o diário em «Já disponível».

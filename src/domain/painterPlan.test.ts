@@ -134,6 +134,17 @@ describe('acesso ao Pro', () => {
     expect(BENEFICIOS_PRO.filter((b) => !b.aChegar)).toHaveLength(6);
   });
 
+  it('o cofre, a adenda e o diário estão em «Já disponível» (opção 3 do promotor, 06/11/2026)', () => {
+    // Verificado na base real a 06/11/2026: o diário (worksite_entries) e as adendas (worksite_addenda)
+    // já estão em produção e com uso; o cofre só aparece a quem tem o Pro (/app/obras). Nada disto pode
+    // voltar a «A chegar em breve» sem deixar de funcionar primeiro.
+    const disponivel = (palavra: string) => BENEFICIOS_PRO.find((b) => `${b.titulo} ${b.detalhe}`.includes(palavra));
+    for (const palavra of ['documento caducado', 'adenda', 'Diário']) {
+      expect(disponivel(palavra), palavra).toBeDefined();
+      expect(disponivel(palavra)?.aChegar, palavra).toBeFalsy();
+    }
+  });
+
   it('o benefício do convite traz os números medidos, não adjectivos', () => {
     // 478 e 62,5 M€ são os valores da carga real de 2026, depois de tirados os quatro contratos que
     // o ficheiro do portal trazia a dobrar. Enquanto estiveram a dobrar, eram 482 e 63,6 M€.
