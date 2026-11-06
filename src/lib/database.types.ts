@@ -1135,7 +1135,7 @@ export type Database = {
         Update: { estado?: string; erro?: string | null; updated_at?: string };
         Relationships: [];
       };
-      // Números de WhatsApp confirmados por mensagem recebida: 20261106110000_numeros_de_whatsapp_confirmados.
+      // Números de WhatsApp confirmados por mensagem recebida: 20261106201807_numeros_de_whatsapp_confirmados.
       // Só se lê (a própria pessoa); escreve-se pelas funções `confirmar_numero_whatsapp`, `parar_whatsapp` e `remover_numero_whatsapp`.
       whatsapp_numeros: {
         Row: { id: string; user_id: string; numero: string; confirmado_em: string };
@@ -2079,7 +2079,7 @@ export type Database = {
           origem_quantidade: OrigemDaQuantidade | null;
           // Migração 20261106083508 (aplicada a 06/11/2026): margem da medição do cliente pela fotografia.
           margem_bps: number | null;
-          /** O lado da planta do prédio onde fica o alçado (migração 20261106103000; ainda por aplicar à base real). */
+          /** O lado da planta do prédio onde fica o alçado (migração 20261106201643; ainda por aplicar à base real). */
           face_do_predio: string | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
@@ -2415,7 +2415,7 @@ export type Database = {
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
       // Só a chave de serviço (webhook do WhatsApp). 'aceite' | 'tarde' | 'sem_inscricao' | 'excluido'.
       aceitar_convite: { Args: { p_invite: string }; Returns: string };
-      // Confirmar o número de WhatsApp por mensagem recebida (20261106110000). Devolve o código em claro uma só vez.
+      // Confirmar o número de WhatsApp por mensagem recebida (20261106201807). Devolve o código em claro uma só vez.
       pedir_codigo_whatsapp: { Args: Record<string, never>; Returns: string };
       remover_numero_whatsapp: { Args: { p_id: string }; Returns: undefined };
       cancelar_codigo_whatsapp: { Args: Record<string, never>; Returns: undefined };

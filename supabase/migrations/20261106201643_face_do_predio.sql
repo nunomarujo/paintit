@@ -25,4 +25,4 @@ alter table public.request_surfaces add constraint request_surfaces_face_do_pred
 );
 
 comment on column public.request_surfaces.face_do_predio is
-  'O lado da planta do prédio a que a zona pertence (frente, esquerda, direita, tras, ou tras-2, direita-2… nas asas de um L, U ou T). Nulo: o desenho atribui pela ordem. Migração 20261106103000.';
+  'O lado da planta do prédio a que a zona pertence (frente, esquerda, direita, tras, ou tras-2, direita-2… nas asas de um L, U ou T). Nulo: o desenho atribui pela ordem. Migração 20261106201643.';

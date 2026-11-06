@@ -6448,7 +6448,7 @@ perfil, na inscrição de avaliador, na página do contrato e em «Disponibilida
 passou a ser derivado (o confirmado mais recente) — por isso todos os sítios que enviam (avisos, contrato, convites
 dos avaliadores) só enviam a números confirmados, sem os alterar —, e um gatilho recusa qualquer escrita nessa coluna
 que não venha das funções (ou da chave de serviço). Os dois números de teste que lá estavam, escritos à mão, deixaram
-de valer (sem número e sem consentimento) até serem associados. Migração `20261106110000_numeros_de_whatsapp_confirmados`,
+de valer (sem número e sem consentimento) até serem associados. Migração `20261106201807_numeros_de_whatsapp_confirmados`,
 testes em `supabase/tests/whatsappNumeros.test.ts`. **Não escolhido:** SMS (precisava de fornecedor, custa por código e
 só confirmaria o telemóvel, não o WhatsApp).
 
@@ -6540,7 +6540,7 @@ cartão ou um botão não começam arrasto. As varandas e palas de um prédio qu
 clique passar para a parede.
 
 **Na base: `request_surfaces.face_do_predio`** (texto, `frente|esquerda|direita|tras` com sufixo `-2` a `-9`, nulo quando o
-desenho atribui). Migração `20261106103000_face_do_predio.sql`, aditiva, com testes de RLS em `supabase/tests/rls.test.ts`
+desenho atribui). Migração `20261106201643_face_do_predio.sql`, aditiva, com testes de RLS em `supabase/tests/rls.test.ts`
 (aceita os lados e o nulo, recusa o resto, só quem gere o pedido o altera). **Por aplicar à base real.** Até lá nada
 rebenta: a página lê com `select *` e a gravação do lado repete-se à parte, sem derrubar a da zona (a mensagem diz que o
 lado ainda não se guarda); `database.types.ts` já traz a coluna, e deve ser regenerado depois de aplicar.
@@ -6627,7 +6627,7 @@ pagamento marcava-se em Contabilidade › A pagar (`survey_redemption_pay`), mas
 quando o recibo traz IVA, o pagamento (comissão + IVA − retenção − líquido) e os estornos (comissão `sem_efeito`, recibo de um
 resgate anulado pela equipa depois de recebido). Não se lança: comissão ainda não recebida do pintor, valor 0, resgate só
 pedido, resgate anulado antes do recibo. Origens próprias (`levantamento_*`), para um id nunca colidir com os da adesão.
-Detalhe em `CONTABILIDADE.md` §15. Migração `20261106160500_contas_dos_avaliadores_no_livro` (duas contas novas;
+Detalhe em `CONTABILIDADE.md` §15. Migração `20261106201820_contas_dos_avaliadores_no_livro` (duas contas novas;
 **por aplicar** à base real). Testes: `src/domain/accounting/{entries,plan}.test.ts` e `supabase/tests/livroDosAvaliadores.test.ts`.
 
 **Por validar pelo contabilista (Nuno Branco) — escolhi o mais simples e igual ao da adesão, sem inventar:**

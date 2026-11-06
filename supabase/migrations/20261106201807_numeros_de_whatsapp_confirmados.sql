@@ -51,7 +51,7 @@ grant select on public.whatsapp_numeros to authenticated;
 create policy whatsapp_numeros_dona_le on public.whatsapp_numeros for select to authenticated using (user_id = (select auth.uid()));
 
 comment on table public.whatsapp_numeros is
-  'Números de WhatsApp confirmados por mensagem recebida (até 3 por conta; um número em uma conta de cada vez). Migração 20261106110000.';
+  'Números de WhatsApp confirmados por mensagem recebida (até 3 por conta; um número em uma conta de cada vez). Migração 20261106201807.';
 comment on table public.whatsapp_codigos is
   'Código pendente de associação de um número (só o resumo SHA-256, 15 minutos, uso único). Ninguém com sessão lê.';
 

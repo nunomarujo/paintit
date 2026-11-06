@@ -191,4 +191,4 @@ As comissões de levantamento são de cada avaliador (decisão de 05/11/2026) e 
 | Resgate pago | `levantamento_resgate_pago` / `survey_redemptions.id` | D 22.3 (comissão + IVA) · C 24.2 (retenção) · C 12.1 (líquido) | `paga_em`, estado `paga` |
 | Comissão sem efeito, ou recibo de resgate anulado | `…_estorno` | o inverso, só se o original já estava lançado | dia da sincronização |
 
-Um resgate só **pedido** ou **anulado antes do recibo** não lança nada. Idempotente por `(origem, origem_id)`. Código: `src/domain/accounting/entries.ts` (`surveyAccrued`, `surveyRedemptionInvoiced`, `surveyRedemptionPaid`), `plan.ts`, `src/lib/accounting.ts`; contas na migração `20261106160500`. ◆ Por validar pelo contabilista: ver `DECISOES.md`, 06/11/2026.
+Um resgate só **pedido** ou **anulado antes do recibo** não lança nada. Idempotente por `(origem, origem_id)`. Código: `src/domain/accounting/entries.ts` (`surveyAccrued`, `surveyRedemptionInvoiced`, `surveyRedemptionPaid`), `plan.ts`, `src/lib/accounting.ts`; contas na migração `20261106201820`. ◆ Por validar pelo contabilista: ver `DECISOES.md`, 06/11/2026.

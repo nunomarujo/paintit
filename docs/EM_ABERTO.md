@@ -61,7 +61,7 @@ ordem das ondas (só a qualificação geral, como no simulador); um painel inter
 por concelho, para recrutar onde não há nenhum.
 
 **Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). **Livro de movimentos: ligado a 06/11/2026**
-(migração `20261106160500_contas_dos_avaliadores_no_livro`, **por aplicar** à base real — `syncLedger` falha a
+(migração `20261106201820_contas_dos_avaliadores_no_livro`, **por aplicar** à base real — `syncLedger` falha a
 gravar os lançamentos de avaliadores, com erro de conta inexistente, até lá; ver `DECISOES.md`, 06/11/2026, com as
 decisões «por validar pelo contabilista»: contas 22.3/62.2.3, IVA e retenção do recibo verde e do ato isolado).
 Fica: aplicar essa migração antes do primeiro pagamento real e correr «Sincronizar agora»; os resgates de
@@ -84,7 +84,7 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário
    (`/api/cron/devolucoes`) — só vistas em modo de teste. Falta um percurso completo em teste do pagamento à
    devolução, e a validação do contabilista sobre a natureza fiscal da caução (secção 2).
-4. **Livro de movimentos:** os resgates de avaliadores entram nele desde 06/11/2026 (código e testes feitos); falta **aplicar a migração `20261106160500`** e o contabilista validar as contas, o IVA e a retenção (ver 1b).
+4. **Livro de movimentos:** os resgates de avaliadores entram nele desde 06/11/2026 (código e testes feitos); falta **aplicar a migração `20261106201820`** e o contabilista validar as contas, o IVA e a retenção (ver 1b).
 5. **IVA trimestral e fecho formal; acesso do contabilista** (`CONTABILIDADE.md`).
 
 ## 2. Decisões do promotor que travam construção ou dinheiro
@@ -191,7 +191,7 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
-- **Números de WhatsApp confirmados por mensagem (06/11/2026): migração `20261106110000_numeros_de_whatsapp_confirmados`
+- **Números de WhatsApp confirmados por mensagem (06/11/2026): migração `20261106201807_numeros_de_whatsapp_confirmados`
   por aplicar** (só com o OK do promotor). Sem ela, o ecrã novo não grava e o webhook não confirma; o código antigo
   continua a ler `telemovel_whatsapp`. Depois de aplicada: os 2 números de teste ficam sem número — associá-los de novo
   pelo cartão «Números em vigor» (perfil), a partir do telemóvel de cada um. Ver numa base real: o percurso completo
@@ -205,7 +205,7 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
 - **O desenho do prédio por alçados e a rodar — construído a 06/11/2026, por publicar** (`docs/DECISOES.md`, «O desenho do
   prédio é dos alçados, e roda»): laje até ao segundo alçado, planta ao segundo (a do cadastro ou a pergunta), cada alçado
   no seu lado da planta, números e cotas e chamadas por ângulo, e os botões e o arrasto para rodar. **Falta:**
-  (1) **aplicar a migração `20261106103000_face_do_predio`** à base real (aditiva, testada em memória; até lá o lado
+  (1) **aplicar a migração `20261106201643_face_do_predio`** à base real (aditiva, testada em memória; até lá o lado
   de cada alçado não se guarda e o desenho atribui pelo nome e pela ordem — a página não rebenta), e depois regenerar
   `src/lib/database.types.ts`; (2) ver o desenho **no navegador com sessão e dados reais**, a escolher a planta
   (`guardarFormaDoPredio` grava no cadastro: só se viu a recusa sem sessão) e a escolher o lado de um alçado; (3) o
