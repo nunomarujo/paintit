@@ -7,6 +7,9 @@ import {
   guaranteeRetained,
   redemptionInvoiced,
   redemptionPaid,
+  surveyAccrued,
+  surveyRedemptionInvoiced,
+  surveyRedemptionPaid,
   referralAccrued,
   refundIssued,
   reverse,
@@ -95,6 +98,42 @@ describe('livro de movimentos: lançamentos', () => {
     expect(balance).toBe(0);
   });
 
+  it('comissão de levantamento: contas próprias dos avaliadores, IVA e retenção comuns', () => {
+    const acc = surveyAccrued({ payoutId: 's1', amount: 10_000, data: D });
+    expect(acc.origem).toBe('levantamento_comissao');
+    expect(acc.lines).toEqual([
+      { conta: '62.2.3', debito: 10_000, credito: 0 },
+      { conta: '22.3', debito: 0, credito: 10_000 },
+    ]);
+    expect(surveyRedemptionInvoiced({ redemptionId: 'x1', vat: 0, data: D })).toBeNull();
+    const inv = surveyRedemptionInvoiced({ redemptionId: 'x1', vat: 2_300, data: D })!;
+    expect(inv.lines).toEqual([
+      { conta: '24.32', debito: 2_300, credito: 0 },
+      { conta: '22.3', debito: 0, credito: 2_300 },
+    ]);
+    // Ato isolado, sem IVA, com 25% de retenção: 100 € − 25 € = 75 € à pessoa.
+    const paid = surveyRedemptionPaid({ redemptionId: 'x2', base: 10_000, vat: 0, retention: 2_500, net: 7_500, data: D });
+    expect(paid.origem).toBe('levantamento_resgate_pago');
+    expect(paid.lines).toEqual([
+      { conta: '22.3', debito: 10_000, credito: 0 },
+      { conta: '24.2', debito: 0, credito: 2_500 },
+      { conta: '12.1', debito: 0, credito: 7_500 },
+    ]);
+    expect(() => surveyRedemptionPaid({ redemptionId: 'x3', base: 10_000, vat: 0, retention: 0, net: 9_999, data: D })).toThrow(/não fecham/);
+  });
+
+  it('a conta dos avaliadores fecha a zero depois de acumular, receber o recibo e pagar', () => {
+    const lines = [
+      surveyAccrued({ payoutId: 's1', amount: 10_000, data: D }),
+      surveyRedemptionInvoiced({ redemptionId: 'x1', vat: 2_300, data: D })!,
+      surveyRedemptionPaid({ redemptionId: 'x1', base: 10_000, vat: 2_300, retention: 1_000, net: 11_300, data: D }),
+    ].flatMap((p) => p.lines);
+    expect(lines.filter((l) => l.conta === '22.3').reduce((n, l) => n + l.credito - l.debito, 0)).toBe(0);
+    // O gasto é a comissão; a retenção fica a pagar ao Estado.
+    expect(lines.filter((l) => l.conta === '62.2.3').reduce((n, l) => n + l.debito, 0)).toBe(10_000);
+    expect(lines.filter((l) => l.conta === '24.2').reduce((n, l) => n + l.credito, 0)).toBe(1_000);
+  });
+
   it('estorno troca débitos e créditos e anula o efeito', () => {
     const p = commissionReceived({ paymentIntent: 'pi_9', gross: 18_450, data: D });
     const r = reverse(p, '2026-10-22');
@@ -116,6 +155,6 @@ describe('livro de movimentos: lançamentos', () => {
   it('todas as contas usadas existem no plano e têm códigos únicos', () => {
     const codes = ACCOUNT_LIST.map((a) => a.codigo);
     expect(new Set(codes).size).toBe(codes.length);
-    for (const c of ['13.1', '72.1', '24.33', '27.8.1', '72.3', '72.2', '62.2.1', '22.1', '24.32', '24.2', '12.1']) expect(codes).toContain(c);
+    for (const c of ['13.1', '72.1', '24.33', '27.8.1', '72.3', '72.2', '62.2.1', '22.1', '24.32', '24.2', '12.1', '22.3', '62.2.3']) expect(codes).toContain(c);
   });
 });

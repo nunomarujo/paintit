@@ -6468,3 +6468,36 @@ oportunidades de **todo o país** (a convenção das entregas de produtos). Para
   deixa de ver oportunidades até o responsável os escolher. Nenhum tinha a lista vazia.
 - **Fica como estava:** os concelhos de **entrega de produtos** do fornecedor («Concelhos servidos», vazio = todo o
   país). É outra regra; muda-se só se o promotor o pedir.
+
+## 06/11/2026 — Os resgates dos avaliadores entram no livro de movimentos
+
+**Pedido:** ligar os resgates de avaliadores ao livro antes do primeiro pagamento real (`EM_ABERTO.md` §1b). Até aqui o
+pagamento marcava-se em Contabilidade › A pagar (`survey_redemption_pay`), mas `syncLedger` só lia `referral_payouts` e
+`referral_redemptions`: o dinheiro saía do banco sem lançamento.
+
+**O que se fez.** O mesmo circuito dos resgates de adesão, com as mesmas partidas dobradas, em cêntimos, idempotente por
+`(origem, origem_id)` (`acc_post`): a comissão devida (quando a comissão do pintor entra, `fee_recebido_em`), o IVA dedutível
+quando o recibo traz IVA, o pagamento (comissão + IVA − retenção − líquido) e os estornos (comissão `sem_efeito`, recibo de um
+resgate anulado pela equipa depois de recebido). Não se lança: comissão ainda não recebida do pintor, valor 0, resgate só
+pedido, resgate anulado antes do recibo. Origens próprias (`levantamento_*`), para um id nunca colidir com os da adesão.
+Detalhe em `CONTABILIDADE.md` §15. Migração `20261106160500_contas_dos_avaliadores_no_livro` (duas contas novas;
+**por aplicar** à base real). Testes: `src/domain/accounting/{entries,plan}.test.ts` e `supabase/tests/livroDosAvaliadores.test.ts`.
+
+**Por validar pelo contabilista (Nuno Branco) — escolhi o mais simples e igual ao da adesão, sem inventar:**
+
+1. **Contas próprias:** `22.3 Fornecedores: avaliadores (comissões de levantamento)` e `62.2.3 Comissões de levantamento a
+   avaliadores`, em vez de reutilizar 22.1 e 62.2.1 (que são «tintas»). Razão: o saldo devido às pessoas vê-se à parte (novo
+   mosaico «Devido a avaliadores» no painel). Se o contabilista preferir uma só conta de fornecedores, é trocar duas linhas
+   em `accounts.ts` e a migração; os lançamentos são os mesmos.
+2. **Gasto:** a comissão do avaliador é gasto da plataforma (62.2.x) reconhecido quando a comissão do pintor entra, como a de
+   adesão. Não se tratou como custo de aquisição de cliente nem como parte do rendimento (72.1).
+3. **IVA:** só há IVA dedutível (24.32) quando o avaliador declara que liquida IVA (`cobra_iva`); recibo verde com isenção
+   (art. 53.º) ou ato isolado abaixo do limite não tem. A 23% fixos, como nos resgates de adesão. O IVA entra no momento do recibo.
+4. **Retenção na fonte:** a taxa é a que a equipa fixa ao validar o regime (`retencao_bps`); vai a 24.2 (IRS/IRC), a mesma conta
+   da adesão. Não se distinguiu retenção de IRS (pessoa singular) de IRC, nem se tratou o caso «dispensa de retenção»
+   além do que a taxa 0 já faz. O **ato isolado** e a retenção de IRS sobre rendimentos da categoria B (ou outra) ficam por confirmar.
+5. **Segurança social (TSU) do prestador:** não é encargo da plataforma neste desenho; não se lançou nada.
+
+**Limites.** O extrato bancário (separador Banco) só sugere correspondência com os resgates de adesão pagos; os de avaliadores
+pagos aparecem no livro (12.1) mas não na «Conferência». Nada foi aplicado à base real nem corrido sobre dados reais.
+
