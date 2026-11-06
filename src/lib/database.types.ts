@@ -237,6 +237,31 @@ export type Database = {
           },
         ];
       };
+      // Migração `crm_fundacao` (06/11/2026). Escrita à mão enquanto não for aplicada à base real; regenerar depois.
+      crm_zonas: {
+        Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string };
+        Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string };
+        Update: { id?: string; concelho?: string; ativa?: boolean; campanha_atual?: number; criada_em?: string };
+        Relationships: [];
+      };
+      crm_contactos: {
+        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string };
+        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
+        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      crm_envios: {
+        Row: { id: string; contacto_id: string; campanha_id: string; estado: string; aprovado_por: string | null; enviado_em: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; campanha_id: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; campanha_id?: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      crm_eventos: {
+        Row: { id: string; contacto_id: string; envio_id: string | null; tipo: string; detalhe: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; envio_id?: string | null; tipo: string; detalhe?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; envio_id?: string | null; tipo?: string; detalhe?: string | null; criado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {

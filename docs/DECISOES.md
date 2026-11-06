@@ -6468,3 +6468,19 @@ oportunidades de **todo o país** (a convenção das entregas de produtos). Para
   deixa de ver oportunidades até o responsável os escolher. Nenhum tinha a lista vazia.
 - **Fica como estava:** os concelhos de **entrega de produtos** do fornecedor («Concelhos servidos», vazio = todo o
   país). É outra regra; muda-se só se o promotor o pedir.
+
+## 06/11/2026 — CRM do workspace de developer: fundação
+
+Pedido do promotor: um separador CRM no backoffice que pesquise pintores, fornecedores e clientes por zona, faça
+outreach por email com campanhas gratuitas, gira as respostas e aprenda o que resulta. Pesquisa em
+`docs/CRM_PESQUISA.md`; nenhum CRM externo adotado.
+
+- **Respostas do promotor:** âmbito mínimo aprovado (empresas por email: pintores, fornecedores, administradoras);
+  primeira zona **Viana do Castelo**; o agente **propõe e uma pessoa aprova** antes de qualquer envio; subdomínio de
+  envio `mail.quempinta.pt` aprovado (DNS e domínio no Resend por fazer).
+- **Construído:** migração `20261106180000_crm_fundacao` (4 tabelas, RLS só para a equipa, zona Viana do Castelo
+  semeada), `src/domain/crm.ts` (porta legal, sequência de campanhas, decidir avançar/parar, escolha de variante
+  por UCB1), testes de domínio e de base, separador «CRM» (só leitura).
+- **Porta legal na base:** um gatilho recusa envios a quem não é pessoa coletiva ou já desistiu (Lei 41/2004,
+  art. 13.º-A). Clientes particulares ficam fora do email frio. Validação jurídica final por fazer.
+- **Fora desta entrega:** descoberta de contactos, envio, receção de respostas, uso do `?c=` na adesão.
