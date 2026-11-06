@@ -6573,7 +6573,7 @@ embutidas em `src/lib/pdfFonts.ts` (subconjuntos Latin, ~150 KB). **O texto da m
 **Versionamento (a regra que importa):** o PDF assinado confere-se regenerando-o, por isso a disposição não pode
 mudar para contratações já criadas. A disposição antiga (`v1`) fica intacta, fixada por um teste com o SHA-256 dos
 bytes (`contractPdf.layout.test.ts`); a nova (`v2`) só vale para `minuta_versao >= '2026-11-07'`
-(`minutaComLayoutNovo`). A migração `20261107000000_minuta_com_layout_novo` muda o valor por omissão — **aplicar
+(`minutaComLayoutNovo`). A migração `20261106200620_minuta_com_layout_novo` muda o valor por omissão — **aplicar
 depois de o código estar publicado**.
 
 **Limites conhecidos:** se as assinaturas não couberem na última página, passam sozinhas para uma página nova (sem
@@ -6681,6 +6681,137 @@ pagos aparecem no livro (12.1) mas não na «Conferência». Nada foi aplicado �
   depois de escolher a planta o foco vai para «Alterar».
 - **Não era real / fica:** a «laje parece prédio de painel» é decisão de desenho; a numeração, as chamadas e as regras do
   número não mudaram.
+
+## 06/11/2026 — CRM do workspace de developer: fundação
+
+Pedido do promotor: um separador CRM no backoffice que pesquise pintores, fornecedores e clientes por zona, faça
+outreach por email com campanhas gratuitas, gira as respostas e aprenda o que resulta. Pesquisa em
+`docs/CRM_PESQUISA.md`; nenhum CRM externo adotado.
+
+- **Respostas do promotor:** âmbito mínimo aprovado (empresas por email: pintores, fornecedores, administradoras);
+  primeira zona **Viana do Castelo**; o agente **propõe e uma pessoa aprova** antes de qualquer envio; subdomínio de
+  envio `mail.quempinta.pt` aprovado (DNS e domínio no Resend por fazer).
+- **Construído:** migração `20261106180000_crm_fundacao` (4 tabelas, RLS só para a equipa, zona Viana do Castelo
+  semeada), `src/domain/crm.ts` (porta legal, sequência de campanhas, decidir avançar/parar, escolha de variante
+  por UCB1), testes de domínio e de base, separador «CRM» (só leitura).
+- **Porta legal na base:** um gatilho recusa envios a quem não é pessoa coletiva ou já desistiu (Lei 41/2004,
+  art. 13.º-A). Clientes particulares ficam fora do email frio. Validação jurídica final por fazer.
+- **Fora desta entrega:** descoberta de contactos, envio, receção de respostas, uso do `?c=` na adesão.
+
+### 06/11/2026 — CRM: descoberta de contactos
+
+- **Fonte:** OpenStreetMap (Overpass), só o que é público e aberto (ODbL, atribuição em `fonte`): `craft=painter` (pintores),
+  `shop=paint` (fornecedores), `office=property_management` (administradoras). Google Maps fora, por termos de uso.
+- **Pessoa coletiva só com forma societária no nome** (Lda, S.A., Unipessoal…); na dúvida fica `false` e a base recusa o
+  envio. Contactos sem email guardam-se na mesma (telefone, website) para outra via.
+- **Construído:** `src/domain/crmDescoberta.ts` (puro, testado), `src/lib/crmDescoberta.ts` (pedido ao Overpass, com
+  servidor de reserva), botão «Pesquisar contactos» por zona. Colunas `telefone` e `website` acrescentadas à migração
+  `crm_fundacao` (ainda por aplicar).
+- **Não verificado com dados reais:** o ambiente de desenvolvimento não alcança o Overpass; a primeira pesquisa real
+  faz-se na aplicação, depois de a migração estar aplicada. IMPIC e nif.pt ficam para a seguir.
+
+### 06/11/2026 — CRM: migração aplicada; email a empresas validado
+
+- **Aplicada à base real** (`phkfrabrjqbpnmocrrvj`, conector «QuemP»), registada como `20261106154252_crm_fundacao`; o
+  ficheiro foi renomeado para a versão registada e ganhou o índice de `crm_envios.aprovado_por`. Verificado dentro de um
+  bloco que reverte: o gatilho recusou o envio a pessoa singular e aceitou-o a coletiva; contagens finais 1/0/0/0
+  (zonas/contactos/envios/eventos), sem rasto. Avisos de segurança: nada das tabelas novas.
+- **Validação jurídica:** o promotor comunicou, a 06/11/2026, que o email a empresas foi validado com o jurista. Fica
+  registado como declaração do promotor; o parecer escrito não está no repositório.
+- **Prompt para configurar o domínio de envio:** `docs/PROMPT_RESEND_DNS.md`.
+
+### 06/11/2026 — CRM: sinal de sucesso por clique com código, e a tarefa diária
+
+- **Aprovado pelo promotor:** o sinal de uma campanha é o **clique no link com o código do contacto** (limiar de 8% dos
+  contactos que agiram sobre os enviados, a partir de 30 envios); resposta e adesão contam também. Aberturas de email
+  não contam (o Apple Mail e o Gmail inflacionam-nas). Parar continua a ser acima de 5% de desistências.
+- **Código por contacto** (`crm_contactos.codigo`, 8 caracteres) e rota `/api/crm/c/<código>?e=<campanha>` que regista o
+  clique (um por envio, garantido por índice único) e encaminha para o destino do flyer com `k=<código>`. Cliques de
+  robôs e pré-visualizadores de link não contam (cabeçalho do navegador); filtro imperfeito, a rever com dados.
+- **Tarefa diária** `/api/cron/crm` (09:40): por zona ativa, descoberta no OpenStreetMap semanal, leitura de até 15
+  websites por dia para achar o email geral, **proposta** (nunca envio) de até 20 envios por dia, e decisão de avançar
+  ou parar a campanha. O envio exige aprovação por uma pessoa — ainda por construir.
+- **IMPIC:** a consulta pública de empresas com alvará é dirigida por JavaScript e por sessão, e não se lê com um
+  pedido simples. Fica para uma passagem com navegador automático. Vale a pena: o NIF devolvido distingue pessoa
+  coletiva (NIF começado por 5, 6 ou 9) sem depender do nome, e o nif.pt dá contactos a partir do NIF.
+- Migração `20261106163026_crm_codigos_e_cliques` aplicada e verificada (código distinto por contacto, 2.º clique
+  recusado, sem rasto).
+
+### 06/11/2026 — CRM: campanhas com aprovação, envio, saída e dossier
+
+- **Aprovação (decisão do promotor):** os envios de uma campanha **aprovada** não esperam por ninguém; só as campanhas
+  **novas ou corrigidas** esperam pela autorização ou pedido de correção. A regra está na base de dados (gatilho): um envio
+  só passa a «aprovado» ou «enviado» com a campanha aprovada e o contacto ainda elegível. Ecrã no separador CRM
+  («Campanhas à espera de decisão»: Aprovar / Pedir correção); retirar a aprovação pára o que ainda não saiu.
+- **Textos** de seis campanhas (pintores, fornecedores, administradoras) em `src/domain/crmEmails.ts`, entram como
+  **rascunho**; o texto que vale é o de `crm_campanhas`. Regra 15 respeitada por teste: só pintores e fornecedores ouvem
+  falar de comissão. **O desconto de 5% promete-se no texto mas o registo ainda não lê o código `k` nem o aplica:** não
+  aprovar as campanhas de pintores e fornecedores antes disso.
+- **Envio** pelo Resend (`CRM_REMETENTE` + `RESEND_API_KEY`; sem eles, nada sai), 20 por dia, com identificação da empresa,
+  origem do contacto e saída em um clique (`/api/crm/sair/<código>`, com confirmação no GET e desistência no POST, para
+  antivírus de correio não desinscreverem ninguém; `List-Unsubscribe-Post`).
+- **Formas societárias reconhecidas:** Lda, Lda., L.da, Ld.ª, Limitada, Unipessoal (Limitada), Unip., Soc./Sociedade, S.A.,
+  SA em maiúsculas, SGPS, CRL, Cooperativa, Associação. «Sa» solto não conta (apelido). Na dúvida, não é pessoa coletiva.
+- **Dossier** (`crm_dossier`) e estratégia em `docs/CRM_ESTRATEGIA.md`. A fonte do dossier (o «founder-skill») está por indicar.
+- Migração `20261106165113_crm_campanhas_e_dossier` aplicada e verificada (campanha não aprovada recusada, aprovada envia,
+  em correção recusada; sem rasto).
+
+### 06/11/2026 — CRM: a oferta passa a ser a campanha de lançamento (Plano Pro grátis até 31/01/2027)
+
+- O promotor, vendo o flyer de pintores («Plano Pro gratuito até 2027, pelo QR»), indicou esse tipo de oferta como o que
+  pode funcionar, e pediu que se dissesse o que o Pro oferece. **Substitui os «5% na primeira comissão»**, que eram fracos
+  (o Pro já inclui desconto na comissão) e que o texto tinha de prometer com um número.
+- **Pintores:** Plano Pro sem custo até 31/01/2027 para quem aderir pelo email. Texto com o que o Pro inclui hoje
+  (`BENEFICIOS_PRO`): orçamentos com logótipo e contactos, exportar ou enviar aos clientes, seguimento automático dos
+  orçamentos, cofre de documentos com aviso, adendas de trabalhos a mais aceites num clique, diário fotográfico e desconto
+  na comissão do marketplace; clientes próprios sem comissão. **Fornecedores:** presença no catálogo sem subscrição.
+  **Administradoras:** relatório e acesso dos condóminos sem custo. Datas e condições lidas de `CAMPANHA_DE_LANCAMENTO`.
+- **Sem percentagens nem valores de comissão nos emails** (regra 15; o pintor só os vê depois de aceitar os termos): teste.
+- **Por construir antes de aprovar qualquer campanha:** quem chega pelo link (`k`) ou pelo QR (`c`) tem de ficar com a
+  oferta concedida. Hoje o Pro só se obtém por pagamento (Stripe) ou por cortesia manual em SQL; nada lê `k` nem `c`.
+
+### 06/11/2026 — Concessão do Plano Pro de lançamento (aprovada pelo promotor)
+
+- **Quem recebe:** uma empresa de pintura criada por quem chegou pelo QR de um flyer de pintores (`?c=fl-pin-1` ou `fl-pin-2`)
+  ou pelo link de um email do CRM (que leva ao mesmo destino, com `c=` e `k=`), até 31/01/2027. Plano Pro sem custo, sem
+  renovação, sem cobrança; depois dessa data a conta volta ao plano gratuito.
+- **Como:** o middleware guarda a origem num cookie (`qp_origem`, 30 dias, só com o formato exato). Ao criar a entidade
+  (`createOrganization`), `aplicarOfertaDeLancamento` — com a chave de serviço — grava uma linha em `ofertas_de_lancamento`
+  (uma por entidade; chave primária) e uma linha em `org_subscriptions` com `preco_versao = 'lancamento-2027-01-31'`, estado
+  «cancelada» (não ocupa o lugar de uma subscrição paga; o pintor pode subscrever durante a oferta) e `valida_ate`. Nunca
+  impede o registo. Se veio com `k`, regista a adesão do contacto no CRM (`crm_eventos`, estado «aderiu»).
+- **O cookie é do navegador (regra 10):** vale pelo que o servidor prova — formato, tipo de entidade (só pintor, só flyers
+  `fl-pin-*`) e data. O QR é público por natureza; o limite é uma oferta por entidade e a data. Uma pessoa que crie várias
+  entidades para repetir a oferta é um risco aceite, sem controlo de NIF por agora.
+- **Ecrã «Subscrição»:** diz «Plano Pro de lançamento, sem custo até …» e que não há cobrança nem renovação.
+- **Correção de um defeito antigo:** o email de segunda-feira passava a `temPro` a linha da base com `valida_ate` em vez de
+  `validaAte`, pelo que uma subscrição caducada contava como Pro para sempre nesse email. Agora mapeia os campos.
+- **Faturação:** a procura do plano para a designação da fatura ignora as linhas de lançamento.
+- **Ainda sem concessão:** fornecedores («catálogo sem subscrição») e administradoras («relatório sem custo»). O plano de
+  fornecedor não tem data de fim (`supplier_subscriptions`), e conceder «grátis até 31/01» exige uma coluna de validade
+  honrada pelas funções de acesso. Fica por decidir com o promotor; a adesão fica registada, só não se concede nada.
+- Migração `20261106170917_ofertas_de_lancamento` aplicada e verificada na base real com uma empresa `zz-test` (oferta
+  concedida, 2.ª oferta recusada, subscrição paga possível durante a oferta; sem rasto).
+
+### 06/11/2026 — Catálogo de lançamento para fornecedores (aprovado pelo promotor)
+
+- **Quem recebe:** um fornecedor criado por quem chegou pelo QR de um flyer de fornecedores (`fl-for-1`/`fl-for-2`) ou pelo link
+  de um email do CRM, até 31/01/2027: presença no catálogo sem subscrição (plano «catálogo», preço 0). O mecanismo é o do Pro
+  dos pintores (`aplicarOfertaDeLancamento`): cookie de origem, concessão com a chave de serviço, registo em
+  `ofertas_de_lancamento` (agora com `concedida` = `pro` ou `catalogo`), adesão do contacto no CRM.
+- **Data de fim nas subscrições de fornecedor:** `supplier_subscriptions.valida_ate` (nula = sem fim, como até aqui) e
+  `origem` (`lancamento`). Honradas por `private.supplier_has_plan` (produtos e descontos) e `public.active_suppliers`
+  (catálogo e sugestões ao orçamentar), e repetidas em TypeScript por `planoVigente` (ecrãs). Passada a data, o fornecedor
+  deixa de ter catálogo e de aparecer; a linha fica, e subscrever pelo Stripe volta a ativá-la sem fim.
+- **Pagar acaba com a oferta:** o webhook do Stripe e a ativação pelo backoffice limpam `valida_ate` e `origem`. Sem isto, um
+  fornecedor que pagasse durante a oferta perderia o plano a 31/01 (o `upsert` não tocava nessas colunas).
+- **Referências de fornecedores:** a oferta gratuita **não** abre a janela de 12 meses de desconto do pintor que o indicou
+  (seria um benefício sem receita). Abre quando o fornecedor passa a pagar: gatilho novo, na conversão `origem → null`.
+- **Administradoras:** nada a conceder — o relatório já é gratuito e o acesso dos condóminos não é pago hoje. A adesão fica
+  registada no CRM quando vem com código.
+- Migração `20261106172045_catalogo_de_lancamento` aplicada à base real (não havia subscrições de fornecedores) e verificada
+  com entidades `zz-test`: dentro da data tem catálogo e aparece; passada a data não; referência fechada com a oferta e aberta
+  depois de pagar; sem rasto. Avisos de segurança e desempenho sem nada novo além de índices por usar nas tabelas novas.
 
 ## 06/11/2026 — Sem concelhos indicados, vale o concelho da morada da empresa
 

@@ -237,6 +237,51 @@ export type Database = {
           },
         ];
       };
+      // Migração `crm_fundacao` (06/11/2026), aplicada à base real. Escrita à mão: coincide coluna a coluna com a migração.
+      crm_zonas: {
+        Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string; descoberta_em: string | null };
+        Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
+        Update: { id?: string; concelho?: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
+        Relationships: [];
+      };
+      crm_contactos: {
+        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; telefone: string | null; website: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string; codigo: string; enriquecido_em: string | null };
+        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; telefone?: string | null; website?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
+        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; telefone?: string | null; website?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
+        Relationships: [];
+      };
+      crm_envios: {
+        Row: { id: string; contacto_id: string; campanha_id: string; estado: string; aprovado_por: string | null; enviado_em: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; campanha_id: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; campanha_id?: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      crm_eventos: {
+        Row: { id: string; contacto_id: string; envio_id: string | null; tipo: string; detalhe: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; envio_id?: string | null; tipo: string; detalhe?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; envio_id?: string | null; tipo?: string; detalhe?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      // Migração `crm_campanhas_e_dossier` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      crm_campanhas: {
+        Row: { id: string; assunto: string; corpo: string; cta: string; estado: string; nota: string | null; versao: number; decidida_por: string | null; decidida_em: string | null; criada_em: string };
+        Insert: { id: string; assunto: string; corpo: string; cta: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Update: { id?: string; assunto?: string; corpo?: string; cta?: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Relationships: [];
+      };
+      crm_dossier: {
+        Row: { id: string; perfil: string; zona_id: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias: number; solucao: string | null; cobertura: number; estado: string; criado_em: string; atualizado_em: string };
+        Insert: { id?: string; perfil: string; zona_id?: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Update: { id?: string; perfil?: string; zona_id?: string | null; tema?: string; tipo?: string; texto?: string; fonte?: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Relationships: [];
+      };
+      // Migração `ofertas_de_lancamento` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      ofertas_de_lancamento: {
+        Row: { org_id: string; origem_flyer: string | null; origem_contacto: string | null; concedida: string | null; valida_ate: string | null; criado_em: string };
+        Insert: { org_id: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Update: { org_id?: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {
@@ -1510,8 +1555,8 @@ export type Database = {
         Relationships: [];
       };
       supplier_subscriptions: {
-        Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
-        Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };
+        Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; valida_ate: string | null; origem: string | null; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
+        Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; valida_ate?: string | null; origem?: string | null; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };
         Update: Partial<Database['public']['Tables']['supplier_subscriptions']['Insert']>;
         Relationships: [];
       };
