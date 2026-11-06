@@ -267,6 +267,9 @@ export function InteriorDaHabitacao({
         <h3 className="text-[15px] font-semibold text-slate-700">Divisões</h3>
         {divisoes.length === 0 && <p className="rounded-lg border border-slate-200 px-4 py-3 text-[17px] text-slate-600">Ainda não há divisões. Acrescentar as que a obra tem.</p>}
         {modo === 'manual' && divisoes.length > 0 && <p className="text-[15px] text-slate-600">Para indicar só o total das paredes, uma divisão chega.</p>}
+        {modo === 'manual' && divisoes.some((d) => d.tipo === 'escadas') && (
+          <p className="text-[15px] text-slate-600">As escadas não têm regra de medição: a área escrita fica como estimativa.</p>
+        )}
         <ul className="space-y-3">
           {divisoes.map((d, i) => {
             const a = areasDaDivisao(d, geral, modo);

@@ -6377,3 +6377,10 @@ perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
     fez antes de publicar. **O relatório do cliente fica como estava**: as outras propostas aparecem só como
     «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
     emite continua a ser a equipa, que confirma que quem pediu é parte da obra.
+
+## 06/11/2026 — Escadas «a olho»: a área escrita à mão fica como estimativa
+
+As escadas das zonas comuns não têm regra de medição (continuam «Por medir» quando se indicam medidas ou se
+desenha na planta). Decisão do promotor: em «Escrever as áreas», a área das escadas pode ser indicada «a olho» e
+fica marcada como **estimativa** — e com ela o total das paredes, para o pintor saber que não foi medida. As outras
+divisões escritas à mão continuam como medidas. A regra de medição própria das escadas continua por fazer.

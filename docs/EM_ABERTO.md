@@ -183,7 +183,7 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
 
 ## 3. Por construir (já decidido, ainda não feito)
 
-- **Escadas das zonas comuns:** uma regra de medição própria (hoje ficam «Por medir»), decisão do promotor de 06/11/2026.
+- **Escadas das zonas comuns:** uma regra de medição própria (hoje ficam «Por medir» com medidas ou planta; escritas à mão, ficam como estimativa), decisão do promotor de 06/11/2026.
 
 - **Poderes de quem assina (05/11/2026), o que fica da versão manual** (`DECISOES.md`, «Poderes de quem assina»):
   a leitura automática da certidão, só depois da autorização do IRN (secção 1); o **SCAP** (assinatura com o
