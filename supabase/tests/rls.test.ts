@@ -386,6 +386,60 @@ describe('pedidos e anúncios', () => {
   });
 });
 
+describe('zona medida pelo cliente na fotografia (06/11/2026)', () => {
+  // Decisão do promotor de 05/11/2026: a medição do cliente na ferramenta de fotografia entra com origem
+  // própria e margem, e nunca confirmada. As políticas deixam quem gere o pedido escrever qualquer coluna pela
+  // API — por isso as duas regras vivem na base, e não só na ação do servidor.
+  let req: string;
+  const zona = (cols: string, vals: unknown[]) =>
+    as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2, ${cols}) values ($1, 'fachada', 13318, ${vals.map((_, i) => `$${i + 2}`).join(', ')}) returning id`, [req, ...vals]));
+
+  beforeAll(async () => {
+    const predio = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    req = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Medida na fotografia', 'fachadas', 'Pintura da fachada principal do prédio.', current_date + 10) returning id`,
+          [condo, predio],
+        ),
+      )
+    ).id;
+  });
+
+  it('entra com a margem e por confirmar', async () => {
+    const r = await zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 170, 'por_confirmar']);
+    expect(r.rows).toHaveLength(1);
+  });
+
+  it('sem margem, não entra; com margem noutra origem, também não', async () => {
+    await expect(zona('origem_quantidade, confirmacao', ['medida_pelo_cliente', 'por_confirmar'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    await expect(zona('origem_quantidade, margem_bps', ['estimativa', 300])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    await expect(zona('origem_quantidade, margem_bps, confirmacao', ['medicao', 300, 'confirmada'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+  });
+
+  it('nunca confirmada — nem ao entrar, nem depois, pela API', async () => {
+    await expect(zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 170, 'confirmada'])).rejects.toThrow(/medida_do_cliente_por_confirmar/);
+    const { id } = (await zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 450, 'por_confirmar'])).rows[0] as { id: string };
+    await expect(as(A, () => db.query(`update public.request_surfaces set confirmacao = 'confirmada' where id = $1`, [id]))).rejects.toThrow(
+      /medida_do_cliente_por_confirmar/,
+    );
+    // Passar a «medição» e confirmar exige deixar a margem: deixa de ser a medição da fotografia.
+    await as(A, () => db.query(`update public.request_surfaces set origem_quantidade = 'medicao', confirmacao = 'confirmada', margem_bps = null where id = $1`, [id]));
+  });
+
+  it('a margem é em pontos-base, entre 1 e 10 000', async () => {
+    for (const m of [0, 10_001, -5]) {
+      await expect(zona('origem_quantidade, margem_bps', ['medida_pelo_cliente', m])).rejects.toThrow(/check constraint/);
+    }
+  });
+
+  it('as origens de antes continuam a valer', async () => {
+    for (const o of ['medicao', 'estimativa', 'documento']) await zona('origem_quantidade', [o]);
+    await expect(zona('origem_quantidade', ['medicao_cliente'])).rejects.toThrow(/origem_quantidade_check/);
+  });
+});
+
 describe('tipos de obra e datas indicativas', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado acima
   let buildingId: string;

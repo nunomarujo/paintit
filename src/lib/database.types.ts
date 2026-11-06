@@ -12,7 +12,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 type Participacao = 'incluida' | 'por_decidir' | 'excluida';
-type OrigemDaQuantidade = 'medicao' | 'estimativa' | 'documento';
+type OrigemDaQuantidade = 'medicao' | 'estimativa' | 'documento' | 'medida_pelo_cliente';
 type Confirmacao = 'por_confirmar' | 'confirmada';
 type BuildingKind = 'edificio_habitacao' | 'edificio_misto' | 'moradia' | 'apartamento' | 'comercial';
 type DocKind =
@@ -2025,6 +2025,8 @@ export type Database = {
           // do topo manda: a regeneração completa traz 87 erros de tipos e é dívida à parte.
           participacao: Participacao;
           origem_quantidade: OrigemDaQuantidade | null;
+          // Migração 20261106010000 (por aplicar): margem da medição do cliente pela fotografia.
+          margem_bps: number | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
           registado_em: string | null;
@@ -2045,6 +2047,7 @@ export type Database = {
           trabalhos?: string[] | null;
           participacao?: Participacao;
           origem_quantidade?: OrigemDaQuantidade | null;
+          margem_bps?: number | null;
           confirmacao?: Confirmacao;
           registado_por?: string | null;
           registado_em?: string | null;

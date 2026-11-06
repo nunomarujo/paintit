@@ -13,7 +13,7 @@ import {
   DESIRED_WORKS,
   DESIRED_WORK_LABELS,
   ORIGEM_DA_QUANTIDADE_LABELS,
-  ORIGENS_DA_QUANTIDADE,
+  ORIGENS_ESCOLHIVEIS,
   PARTICIPACAO_LABELS,
   SURFACE_KINDS,
   SURFACE_KIND_LABELS,
@@ -326,12 +326,15 @@ function EditorDaZona({
           error={e.origemQuantidade}
           info="O pintor usa isto para saber com que margem pode contar. Uma estimativa honesta vale mais do que uma medida inventada."
         >
+          {/* A medição pela fotografia não se escolhe à mão: vem da ferramenta, com a margem. Numa zona medida
+              assim, «manter» guarda-a como está desde que a área não mude (updateSurface, 06/11/2026). */}
           <select
             name="origemQuantidade"
-            defaultValue={zona?.origemDaQuantidade ?? 'estimativa'}
+            defaultValue={zona?.origemDaQuantidade === 'medida_pelo_cliente' ? 'manter' : (zona?.origemDaQuantidade ?? 'estimativa')}
             className={selectClass}
           >
-            {ORIGENS_DA_QUANTIDADE.map((o) => (
+            {zona?.origemDaQuantidade === 'medida_pelo_cliente' && <option value="manter">Medida pelo cliente, na fotografia</option>}
+            {ORIGENS_ESCOLHIVEIS.map((o) => (
               <option key={o} value={o}>
                 {ORIGEM_DA_QUANTIDADE_LABELS[o]}
               </option>

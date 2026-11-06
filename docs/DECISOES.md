@@ -5871,3 +5871,31 @@ ficheiros tocados), `npm test` (2043, com as migrações em memória) e `npm run
 consentimento vistos num navegador (1280 e 390 px), numa página de ensaio com dados inventados que não entrou no
 Git: alvos de toque de 44 px, o erro do PDF a âmbar. **Não visto com sessão:** o contador do menu, o Início, a lista e
 a página verdadeira precisam de dados na base.
+
+## 06/11/2026 — A medição do cliente pela fotografia grava-se no pedido (fase 1: base, regras e ação)
+
+**Pedido do promotor:** «avança com a gravação no pedido, medido pelo cliente», sobre a decisão de 05/11/2026 (o
+cliente também mede, na ferramenta de fotografia; a zona fica com origem própria e margem, nunca confirmada).
+
+**Como fica.**
+- Origem nova `medida_pelo_cliente` («Medida pelo cliente») e coluna `margem_bps` em `request_surfaces`
+  (migração `20261106010000_medida_pelo_cliente`, **por aplicar**). Não se reutilizou `medicao`, que confirma a
+  zona sozinha, nem `medicao_cliente`, que existe na coluna antiga e a migração de 30/10 converteu em confirmada.
+- **A base garante as duas regras** — as políticas deixam quem gere o pedido escrever qualquer coluna pela API: só
+  a zona medida pelo cliente tem margem, e tem-na sempre; e fica sempre por confirmar. Testes de base, que falham
+  sem a migração.
+- A conversão é pura e testada (`src/domain/medicaoDaFotografia.ts`): área a pintar em centésimos de m², margem
+  em pontos-base **arredondada para cima**; não grava uma fachada sem contorno, com partes por medir, com área nula
+  ou absurda, nem sem margem conhecida («melhor não gravar do que gravar sem ela»).
+- Grava-se a área e a margem, **nunca a fotografia nem o desenho** (regra 6: o pintor lê as zonas do anúncio).
+- Ação `gravarMedicaoDaFotografia` (`src/app/app/pedidos/actions.ts`): numa zona existente ou numa nova; quem pode
+  gravar decide-o a base (gerir a entidade, ou ser o avaliador do pedido, com o pedido em rascunho); uma gravação
+  recusada sem erro (nenhuma linha) não diz «Guardado»; a autoria passa a quem mediu.
+- O formulário manual recusa a origem nova. Uma zona medida pelo cliente editada à mão sem mudar a área continua a
+  ser a mesma medição («manter»); com a área mudada perde a margem e passa à origem escolhida.
+- A ferramenta entrega o resultado do passo 4 a quem a abre (`aoMudarMedicao`), só durante o passo 4 e nunca a meio
+  de um recálculo da margem.
+
+**Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
+abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
+na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».
