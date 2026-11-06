@@ -1,6 +1,7 @@
 import { BRAND } from '@/config/brand';
 import { TEXTO_ATRIBUIDA, TEXTO_JA_ATRIBUIDA } from '@/domain/convocatoria';
 import { assinaturaValida, configuracaoWhatsApp, conviteDoPayload, eventosDoWebhook, respostaDaVerificacao } from '@/domain/whatsapp';
+import { RESPOSTAS_DA_ASSOCIACAO, RESPOSTA_PARAR, codigoNaMensagem, eParar, mascararCodigos } from '@/domain/whatsappNumeros';
 import { adminClient } from '@/lib/supabase/admin';
 import { enviarTexto } from '@/lib/whatsapp';
 
@@ -13,6 +14,9 @@ import { enviarTexto } from '@/lib/whatsapp';
  *
  * O «Aceito» do botão traz o convite no payload; escrito à mão, casa com o último convite enviado a este
  * número. A reserva é atómica na base (`aceitar_convite`): de dois «Aceito» ao mesmo tempo, um ganha.
+ * Duas coisas mais, desde 06/11/2026, que confirmam o NÚMERO de quem escreve (o WhatsApp diz de onde veio a
+ * mensagem): um código `QP-XXXX-XXXX` associa esse número à conta que o pediu (`confirmar_numero_whatsapp`), e
+ * «PARAR» tira-o (`parar_whatsapp`). O código nunca fica à vista nos registos.
  * Responde sempre 200 depois de verificada a assinatura: a Meta repete o que não recebe 200, e repetir não
  * muda nada (a função é idempotente).
  */
@@ -52,10 +56,37 @@ export async function POST(req: Request) {
     if (e.estado === 'failed') await db.from('survey_invites').update({ estado: 'falhou', erro: e.erro }).eq('twilio_sid', e.id).eq('estado', 'enviado');
   }
 
+  /** Resposta em texto livre (a pessoa escreveu primeiro, por isso cabe na janela de 24 horas): cortesia, nunca trava nada. */
+  const responder = async (para: string, texto: string) => {
+    try {
+      const id = await enviarTexto(cfg, para, texto);
+      await db.from('whatsapp_messages').insert({ direcao: 'saida', twilio_sid: id || null, para, de: cfg.numeroId, corpo: texto });
+    } catch {
+      // A associação, ou a remoção, já está feita na base; a resposta é cortesia.
+    }
+  };
+
   for (const m of mensagens) {
-    await db.from('whatsapp_messages').insert({
-      direcao: 'entrada', twilio_sid: m.id, para: cfg.numeroId, de: m.de.slice(0, 40), corpo: m.texto.slice(0, 2000), estado: 'recebida',
+    const { error: jaRecebida } = await db.from('whatsapp_messages').insert({
+      direcao: 'entrada', twilio_sid: m.id, para: cfg.numeroId, de: m.de.slice(0, 40), corpo: mascararCodigos(m.texto).slice(0, 2000), estado: 'recebida',
     });
+    // A Meta repete o que não recebe 200; uma mensagem já vista não volta a gastar um código nem a responder duas vezes.
+    const repetida = jaRecebida?.code === '23505';
+
+    if (eParar(m.texto)) {
+      if (repetida) continue;
+      const { data: parou } = await db.rpc('parar_whatsapp', { p_numero: m.de });
+      await responder(m.de, parou ? RESPOSTA_PARAR : 'Este número não tinha avisos ligados.');
+      continue;
+    }
+    const codigo = m.aceito ? null : codigoNaMensagem(m.texto);
+    if (codigo) {
+      if (repetida) continue;
+      const { data, error } = await db.rpc('confirmar_numero_whatsapp', { p_codigo: codigo, p_numero: m.de });
+      const estado = error ? 'invalido' : String((data as { estado?: string } | null)?.estado ?? 'invalido');
+      await responder(m.de, RESPOSTAS_DA_ASSOCIACAO[estado] ?? RESPOSTAS_DA_ASSOCIACAO.invalido!);
+      continue;
+    }
     if (!m.aceito) continue;
 
     let convite: { id: string; survey_id: string } | null = null;

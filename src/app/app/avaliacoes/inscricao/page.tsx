@@ -5,8 +5,7 @@ import { FATORES_DA_BANDA, VERSAO_AUTODECLARACAO_DO_AVALIADOR } from '@/domain/a
 import type { SurveyorPerformance } from '@/domain/survey';
 import { getUser } from '@/lib/supabase/server';
 import { Autodeclaracao, SimuladorDeGanho } from './Formularios';
-import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
-import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { AvisosPorWhatsAppDaPessoa } from '@/components/AvisosPorWhatsAppDaPessoa';
 
 /**
  * Ser avaliador — a inscrição por autodeclaração e, depois dela, o simulador de ganho e a explicação de
@@ -98,7 +97,7 @@ export default async function InscricaoPage() {
             </Link>
           </p>
         ) : (
-          <AvisosPorWhatsApp alertaWhatsApp={false} telemovel={preferencia?.telemovel_whatsapp ?? null} whatsappDisponivel={configuracaoWhatsApp(process.env) !== null} />
+          <AvisosPorWhatsAppDaPessoa />
         )}
       </section>
 

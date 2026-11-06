@@ -4145,12 +4145,15 @@ describe('disponibilidade do avaliador', () => {
     await expect(
       as(EU, () => db.query('update public.survey_availability set alerta_whatsapp = true where user_id = $1', [EU])),
     ).rejects.toThrow(/whatsapp_com_numero/);
+    // O número já não se escreve pela API (06/11/2026): vem do webhook, depois de confirmado por mensagem recebida. A
+    // restrição de formato continua a valer para quem escreve com a chave de serviço, sem sessão de pessoa.
+    await db.query(`select set_config('request.jwt.claim.sub', '', false)`);
+    await db.query(`select set_config('request.jwt.claims', '{}', false)`);
+    await expect(db.query(`update public.survey_availability set telemovel_whatsapp = '912345678' where user_id = $1`, [EU])).rejects.toThrow(/check/);
+    await db.query(`update public.survey_availability set telemovel_whatsapp = '+351912345678', alerta_whatsapp = true where user_id = $1`, [EU]);
     await expect(
-      as(EU, () => db.query(`update public.survey_availability set telemovel_whatsapp = '912345678' where user_id = $1`, [EU])),
-    ).rejects.toThrow(/check/);
-    await as(EU, () =>
-      db.query(`update public.survey_availability set telemovel_whatsapp = '+351912345678', alerta_whatsapp = true where user_id = $1`, [EU]),
-    );
+      as(EU, () => db.query(`update public.survey_availability set telemovel_whatsapp = '+351913345678' where user_id = $1`, [EU])),
+    ).rejects.toThrow(/só se associa por mensagem/);
     const r = await as(OUTRA, () => db.query('select telemovel_whatsapp from public.survey_availability'));
     expect(r.rows).toHaveLength(0);
   });

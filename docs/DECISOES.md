@@ -6431,3 +6431,23 @@ as medidas do prédio ficam). Remover uma zona já existia, mas só dentro da ga
 pedido na mesma mensagem — o desenho do prédio:** (1) o primeiro passo é a planta (quadrado, I, L, U, T), e o desenho
 só tem as fachadas que se foram entregando, coladas às anteriores; (2) o desenho roda e vê-se por inteiro, para
 nenhuma zona ficar «fora do desenho» por não ter sítio. Ver `docs/EM_ABERTO.md`.
+
+## 06/11/2026 — Os números de WhatsApp só valem depois de confirmados por mensagem recebida
+
+**A falha.** O número que recebe os avisos era um campo de texto: qualquer conta escrevia o telemóvel de outra
+pessoa e a plataforma passava a mandar-lhe avisos de trabalho — sem consentimento, e com o risco de denúncias que a
+Meta pune no número da plataforma. **A decisão do promotor:** o número deixa de se escrever; a pessoa pede um código,
+envia-o por WhatsApp para o número da plataforma (+351 926 549 194), e a plataforma fica com o número DE ONDE a
+mensagem veio — o WhatsApp garante que é o dela, e o webhook já o recebia. **Regras:** código `QP-XXXX-XXXX`, de uso
+único, válido 15 minutos, guardado só em resumo SHA-256; cinco enganos por hora e por número; até três números por
+conta; um número em uma conta de cada vez (quem prova que o telemóvel é seu fica com ele, e a conta anterior perde-o —
+sem aviso à conta anterior: não há ainda aviso por pessoa para isto); «PARAR» escrito do próprio número tira-o; pedir
+o código e enviá-lo é o consentimento (liga os avisos). **O cartão** «Números em vigor», à direita do consentimento, no
+perfil, na inscrição de avaliador, na página do contrato e em «Disponibilidade e alertas»: lista cada número com
+«Remover» (com confirmação) e «Associar outro número». **O que mudou por baixo:** `survey_availability.telemovel_whatsapp`
+passou a ser derivado (o confirmado mais recente) — por isso todos os sítios que enviam (avisos, contrato, convites
+dos avaliadores) só enviam a números confirmados, sem os alterar —, e um gatilho recusa qualquer escrita nessa coluna
+que não venha das funções (ou da chave de serviço). Os dois números de teste que lá estavam, escritos à mão, deixaram
+de valer (sem número e sem consentimento) até serem associados. Migração `20261106110000_numeros_de_whatsapp_confirmados`,
+testes em `supabase/tests/whatsappNumeros.test.ts`. **Não escolhido:** SMS (precisava de fornecedor, custa por código e
+só confirmaria o telemóvel, não o WhatsApp).

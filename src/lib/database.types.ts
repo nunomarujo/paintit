@@ -1133,6 +1133,14 @@ export type Database = {
         Update: { estado?: string; erro?: string | null; updated_at?: string };
         Relationships: [];
       };
+      // Números de WhatsApp confirmados por mensagem recebida: 20261106110000_numeros_de_whatsapp_confirmados.
+      // Só se lê (a própria pessoa); escreve-se pelas funções `confirmar_numero_whatsapp`, `parar_whatsapp` e `remover_numero_whatsapp`.
+      whatsapp_numeros: {
+        Row: { id: string; user_id: string; numero: string; confirmado_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       avisos_por_email: {
         // Só o esvaziamento (chave de serviço) a toca; sem políticas, de propósito. Colunas whatsapp_*: migração 20261102090000.
         Row: { id: string; notification_id: string; attempt_id: string | null; destinatario: string; assunto: string; estado: string; tentativas: number; proxima_tentativa_em: string; ultima_tentativa_em: string | null; ultimo_erro: string | null; enviado_em: string | null; created_at: string; whatsapp_estado: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro: string | null; whatsapp_em: string | null };
@@ -2376,6 +2384,12 @@ export type Database = {
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
       // Só a chave de serviço (webhook do WhatsApp). 'aceite' | 'tarde' | 'sem_inscricao' | 'excluido'.
       aceitar_convite: { Args: { p_invite: string }; Returns: string };
+      // Confirmar o número de WhatsApp por mensagem recebida (20261106110000). Devolve o código em claro uma só vez.
+      pedir_codigo_whatsapp: { Args: Record<string, never>; Returns: string };
+      remover_numero_whatsapp: { Args: { p_id: string }; Returns: undefined };
+      // Só a chave de serviço (webhook). estado: ok | transferido | ja_associado | invalido | demasiadas | cheio.
+      confirmar_numero_whatsapp: { Args: { p_codigo: string; p_numero: string }; Returns: Json };
+      parar_whatsapp: { Args: { p_numero: string }; Returns: boolean };
       reserve_survey: {
         Args: { p_survey_id: string; p_org: string };
         Returns: {

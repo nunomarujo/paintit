@@ -8,18 +8,16 @@ import { DISTRITOS } from '@/lib/concelhos';
 import { guardarConvites } from './actions';
 
 /**
- * Convites por WhatsApp: o número com o consentimento, o concelho base e o raio. Os dados para receber a
+ * Convites por WhatsApp: o consentimento, o concelho base e o raio (o número associa-se no cartão ao lado). Os dados para receber a
  * comissão (NIF, IBAN) vivem em «Comissões pessoais» — a comissão é da pessoa (05/11/2026).
  */
 export function ConvitesWhatsApp({
   alertaWhatsApp,
-  telemovel,
   concelhoBase,
   raioKm,
   whatsappDisponivel,
 }: {
   alertaWhatsApp: boolean;
-  telemovel: string | null;
   concelhoBase: string | null;
   raioKm: number | null;
   /** O canal existe neste ambiente (chaves configuradas). Sem ele, a preferência guarda-se na mesma. */
@@ -34,27 +32,16 @@ export function ConvitesWhatsApp({
         <input name="alerta_whatsapp" type="checkbox" defaultChecked={alertaWhatsApp} className="h-5 w-5 rounded border-slate-300 text-tinta-600" />
         Receber convites e avisos por WhatsApp
       </label>
-      <Field
-        name="telemovel_whatsapp"
-        label="Telemóvel pessoal"
-        hint={
-          whatsappDisponivel
-            ? 'O número da loja é partilhado: os convites vão para quem os aceita. Só mensagens de trabalho, nunca publicidade.'
-            : 'O canal de WhatsApp ainda está a ser preparado: fica guardado e passa a valer assim que abrir.'
-        }
-        error={state.errors.telemovel_whatsapp}
-      >
-        <input
-          id="telemovel_whatsapp"
-          name="telemovel_whatsapp"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          defaultValue={telemovel ?? ''}
-          placeholder="912 345 678"
-          className="campo mt-1 max-w-[16rem]"
-        />
-      </Field>
+      {state.errors.alerta_whatsapp && (
+        <p className="text-[15px] font-semibold text-amber-800" role="alert">
+          {state.errors.alerta_whatsapp}
+        </p>
+      )}
+      <p className="text-[15px] text-slate-600">
+        {whatsappDisponivel
+          ? 'Os convites vão para os números associados, no cartão ao lado. O número da loja é partilhado: os convites vão para quem os aceita. Só mensagens de trabalho, nunca publicidade.'
+          : 'O canal de WhatsApp ainda está a ser preparado: poderá associar o número assim que abrir.'}
+      </p>
 
       <Field name="concelho_base" label="Concelho base" hint="De onde parte para os levantamentos." error={state.errors.concelho_base}>
         <select id="concelho_base" name="concelho_base" defaultValue={concelhoBase ?? ''} className="campo mt-1 max-w-[22rem]">

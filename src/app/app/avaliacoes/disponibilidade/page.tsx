@@ -4,6 +4,7 @@ import { CoverageForm } from '@/app/app/levantamentos/Forms';
 import { mandaNaEmpresa } from '@/domain/workspaceFornecedor';
 import { getUser } from '@/lib/supabase/server';
 import { Disponibilidade } from './Formulario';
+import { CartaoDosNumeros } from '@/components/AvisosPorWhatsAppDaPessoa';
 import { ConvitesWhatsApp } from './Convites';
 import { PreVisualizacaoDoConvite, RegrasDosConvites } from './PreVisualizacao';
 import { configuracaoWhatsApp } from '@/domain/whatsapp';
@@ -105,13 +106,15 @@ export default async function DisponibilidadePage() {
           </div>
         )}
         <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <ConvitesWhatsApp
-            alertaWhatsApp={minha?.alerta_whatsapp ?? false}
-            telemovel={minha?.telemovel_whatsapp ?? null}
-            concelhoBase={minha?.concelho_base ?? null}
-            raioKm={minha?.raio_km ?? null}
-            whatsappDisponivel={configuracaoWhatsApp(process.env) !== null}
-          />
+          <div className="space-y-6">
+            <CartaoDosNumeros />
+            <ConvitesWhatsApp
+              alertaWhatsApp={minha?.alerta_whatsapp ?? false}
+              concelhoBase={minha?.concelho_base ?? null}
+              raioKm={minha?.raio_km ?? null}
+              whatsappDisponivel={configuracaoWhatsApp(process.env) !== null}
+            />
+          </div>
           <PreVisualizacaoDoConvite concelho={minha?.concelho_base ?? 'Viana do Castelo'} />
         </div>
         <details className="group mt-5 border-t border-slate-200 pt-4">

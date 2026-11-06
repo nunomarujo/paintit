@@ -178,6 +178,12 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
+- **Números de WhatsApp confirmados por mensagem (06/11/2026): migração `20261106110000_numeros_de_whatsapp_confirmados`
+  por aplicar** (só com o OK do promotor). Sem ela, o ecrã novo não grava e o webhook não confirma; o código antigo
+  continua a ler `telemovel_whatsapp`. Depois de aplicada: os 2 números de teste ficam sem número — associá-los de novo
+  pelo cartão «Números em vigor» (perfil), a partir do telemóvel de cada um. Ver numa base real: o percurso completo
+  (pedir código → mensagem → «Número associado» → cartão atualizado) e «PARAR», que só se vêem com o webhook ligado à
+  Meta. Não visto: o painel «À espera da mensagem» (precisa da ação no servidor).
 - **O desenho do prédio, a refazer (pedido do promotor, 06/11/2026):** hoje é um volume genérico com uma frente, e uma
   segunda fachada, as escadas e o átrio ficam «Fora do desenho». Pedido: (1) começar pela planta — quadrado, I, L, U,
   T (já existem em `volume.ts`/`FormaWizard`, com a forma no cadastro do prédio) —, e o desenho só ter as fachadas
