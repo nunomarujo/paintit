@@ -57,7 +57,7 @@ describe('caleiras', () => {
 
   it('o pedido lê as caleiras só com o tipo marcado', () => {
     const f = new FormData();
-    for (const [k, v] of [['buildingId', 'b'], ['titulo', 't'], ['tipoObra', 'caleiras'], ['caleirasIntervencao', 'renovar']]) f.append(k, v!);
+    for (const [k, v] of [['buildingId', 'b'], ['titulo', 't'], ['tipoObra', 'caleiras'], ['caleirasIntervencao', 'renovar']] as const) f.append(k, v);
     const r = parseRequest(f);
     expect(r.value?.caleiras.intervencao).toBe('renovar');
     expect(r.value?.tiposObra).toEqual(['caleiras']);
