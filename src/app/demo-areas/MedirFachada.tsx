@@ -366,10 +366,17 @@ const IMPERMEABILIZACAO = ['Só pintura', 'Membrana líquida', 'Tela asfáltica'
 
 export function MedirFachada({
   aoMudarMedicao,
+  noPedido = false,
 }: {
   /** O resultado do passo 4 da fachada aberta, para quem a grava no pedido; `null` fora do passo 4 ou
    * enquanto a margem se recalcula (um número a meio não se grava). */
   aoMudarMedicao?: (m: MedicaoDaFotografia | null) => void;
+  /**
+   * Aberta dentro do pedido (06/11/2026): quem grava é «Usar esta medição», da janela. Aqui «Guardar e
+   * medir outra fachada» guardava só na ferramenta e apagava a medição que ia para o pedido — quem
+   * carregava em «Guardar» julgava ter gravado. No pedido o botão diz o que faz, sem «Guardar».
+   */
+  noPedido?: boolean;
 } = {}) {
   const [passo, setPasso] = useState(1);
   const [foto, setFoto] = useState<Foto | null>(null);
@@ -883,6 +890,7 @@ export function MedirFachada({
           setFundo={setFundo}
           guardadas={guardadas}
           onVoltar={() => setPasso(3)}
+          noPedido={noPedido}
           onOutraFachada={() => {
             const usados = new Set([...guardadas.map((g) => g.nome), nome]);
             // A mesma fachada guardada duas vezes substitui a anterior — nunca soma duas vezes
@@ -2841,6 +2849,7 @@ function PassoResultado(props: {
   guardadas: FachadaGuardada[];
   onVoltar: () => void;
   onOutraFachada: () => void;
+  noPedido: boolean;
 }) {
   const { resultado: r, zonas } = props;
   // O aviso dos 5 % decide-se aqui pela área que vai para o orçamento, e não só pelo contorno do passo
@@ -3150,9 +3159,18 @@ function PassoResultado(props: {
           Voltar ao desenho
         </button>
         <button type="button" className="btn-secondary btn-sm" onClick={props.onOutraFachada}>
-          {substitui ? 'Guardar (substitui a anterior) e medir outra fachada' : 'Guardar e medir outra fachada'}
+          {props.noPedido
+            ? 'Medir outra fachada'
+            : substitui
+              ? 'Guardar (substitui a anterior) e medir outra fachada'
+              : 'Guardar e medir outra fachada'}
         </button>
       </div>
+      {props.noPedido && (
+        <p className="max-w-[54ch] text-[15px] text-slate-600">
+          Medir outra fachada deixa esta de lado: para a pôr no pedido, primeiro «Usar esta medição», em baixo.
+        </p>
+      )}
     </section>
   );
 }

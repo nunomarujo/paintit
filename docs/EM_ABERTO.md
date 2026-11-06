@@ -135,7 +135,7 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   «Passo 2 do pedido: a proposta B»).
 - O (i) dentro dos rótulos dos formulários (`Field.tsx`) tem 16 px, abaixo dos 44 px da regra 17:
   um alvo maior tapava o campo. Dívida declarada.
-- Ligar ao fluxo real: *fase 1 feita a 06/11/2026* (base, regras, ação e saída da ferramenta — `DECISOES.md` 06/11/2026); falta a fase 2, ligar o botão do passo 2 e mostrar a margem (ver lá).
+- Ligar ao fluxo real: *feito a 06/11/2026, fases 1 e 2* (base, regras, ação; o botão do passo 2 grava, a quem pode editar, e a margem aparece no cartão, na barra e ao pintor — `DECISOES.md` 06/11/2026). Fica: aplicar a migração `20261106010000` (secção 1) **antes de publicar este ramo, ou junto** — sem ela, «Medir na fotografia» aparece a todos os que editam um pedido e «Usar esta medição» responde «A gravação pela fotografia ainda não está disponível» — e ver uma gravação de ponta a ponta na base real com um utilizador `zz-test-*` (a linha «Gravado: …» a sair quando a zona muda por outro caminho só se vê aí: a página de ensaio não tem base).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
   pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
@@ -159,18 +159,18 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
 (DECISOES 05/11/2026). O desenho com as zonas numeradas; o modo lista como base e as chamadas só em
 contentores de 1040 px ou mais, com a regra das ligações numa função testada (`src/domain/chamadas.ts`); a
 barra medido/estimado; a conta ao vivo no editor; o que falta, acionável; as fotografias pela zona. A
-entrada da ferramenta de levantamento («Medir na fotografia», numa janela grande) **só aparece à equipa**.
+entrada da ferramenta de levantamento («Medir na fotografia», numa janela grande) aparece a quem pode editar o
+pedido e grava a medição na zona (06/11/2026, ver abaixo).
 Revisto por céticos (05–06/11/2026) e corrigido no mesmo commit: gaveta com um só modo de gravar e remover
 com confirmação; título e frase do que falta coerentes nos casos-limite; ligações que não atravessam a zona
 de outro número; palco cinzento a toda a largura; desenho tocável e «+ Fachada/Empena/Varandas» no prédio
 vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
 
 **Por fazer:**
-- **Ligar a ferramenta ao pedido** — o resultado de uma medição volta para a zona escolhida, com a origem
-  nova **«medida pelo cliente»** e a **margem** (± %) guardada na zona. Precisa de **migração** (o valor novo
-  da origem da quantidade e uma coluna para a margem), de `parseSurface`/`colunasDaZona` a aceitá-los, e do
-  cartão e do pintor a mostrar a margem. Nunca a dar por «confirmada».
-- **Abrir o botão aos clientes**, depois de ligada (hoje: `daEquipa` em `ZonasComVolume`).
+- *Feito a 06/11/2026:* **ligar a ferramenta ao pedido** — a medição volta para a zona escolhida (ou uma nova),
+  «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
+  (não ao avaliador, que mede no local). Falta só a migração `20261106010000` na base real (secção 1) e uma
+  gravação verificada lá, de ponta a ponta.
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 

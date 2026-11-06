@@ -140,6 +140,16 @@ input[type='radio'] {
 
 @layer components {
   /*
+   * O troço «medido pelo cliente» da barra do passo 2 e a sua bolinha na legenda (06/11/2026): riscas de
+   * cobalto sobre o pálido. Entre o confirmado (cobalto cheio) e o estimado (pálido liso), um tom
+   * intermédio dava 1,41:1 contra o estimado e lia-se como ele; a risca distingue-o sem depender do tom.
+   */
+  .troco-riscado {
+    background-color: theme('colors.tinta.200');
+    background-image: repeating-linear-gradient(135deg, theme('colors.tinta.600') 0 2px, transparent 2px 4px);
+  }
+
+  /*
    * `.eyebrow` era maiúsculas espaçadas (`uppercase tracking-[0.18em]`), em 53 sítios de 23
    * ficheiros. O promotor rejeitou esse padrão duas vezes na página inicial — "não adequado a uma
    * imagem pro" — e ele continuava vivo no resto da aplicação, a começar pelo "ÁREA DE TRABALHO"

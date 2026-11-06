@@ -9,6 +9,7 @@ import {
   type SurfaceKind,
   formatArea,
 } from './request';
+import { margemEmTexto } from './medicaoDaFotografia';
 
 /**
  * O que o passo 2 do pedido diz em cima, antes de tudo: quanto se vai pintar, de onde vem esse
@@ -41,6 +42,8 @@ export interface ZonaParaResposta {
   participacao: Participacao;
   origemDaQuantidade: OrigemDaQuantidade | null;
   confirmacao: Confirmacao;
+  /** Margem de erro em pontos-base: só nas zonas medidas pelo cliente na fotografia. */
+  margemBps?: number | null;
 }
 
 /** Uma coisa que falta, com as zonas a que se refere — para o ecrã fazer de cada nome um botão. */
@@ -60,9 +63,25 @@ export interface RespostaDasZonas {
   totalCm2: AreaCm2;
   /** Parte do total que alguém mediu (confirmada). */
   medidaCm2: AreaCm2;
-  /** Parte do total por confirmar: estimativas e documentos. */
+  /**
+   * Parte do total por confirmar, toda: estimativas, documentos e medições do cliente. É a área de
+   * «Falta confirmar»: a medição pela fotografia também se confirma no local (promotor, 05/11/2026).
+   */
   porConfirmarCm2: AreaCm2;
-  /** Tudo o que está por confirmar é estimativa (nenhum número veio de um documento). */
+  /**
+   * Parte do total medida pelo cliente na fotografia (06/11/2026). Uma categoria à parte na barra: não é
+   * uma medida confirmada (ninguém a foi ver ao local) nem uma estimativa (tem uma margem calculada).
+   */
+  medidaPeloClienteCm2: AreaCm2;
+  /**
+   * A margem dessa parte, em pontos-base, ou nula sem medições do cliente. Com várias, a média pesada pela
+   * área, arredondada para cima: é o pior caso — os erros de todas no mesmo sentido —, e nunca se promete
+   * menos erro do que o de cada medição.
+   */
+  margemDoClienteBps: number | null;
+  /** O resto do que está por confirmar: estimativas e documentos. `medida + cliente + estimado = total`. */
+  estimadoCm2: AreaCm2;
+  /** Tudo o que é `estimado` é estimativa (nenhum número veio de um documento). */
   soEstimativas: boolean;
   /** Zonas incluídas, com ou sem número. */
   incluidas: number;
@@ -191,6 +210,12 @@ export function respostaDasZonas(zonas: readonly ZonaParaResposta[]): RespostaDa
   const soma = (zs: readonly ZonaParaResposta[]) => zs.reduce((n, z) => n + z.areaCm2, 0);
   const totalCm2 = soma(incluidas);
   const porConfirmarCm2 = soma(porConfirmar);
+  const doCliente = porConfirmar.filter((z) => z.origemDaQuantidade === 'medida_pelo_cliente');
+  const outras = porConfirmar.filter((z) => z.origemDaQuantidade !== 'medida_pelo_cliente');
+  const medidaPeloClienteCm2 = soma(doCliente);
+  // Uma medição do cliente sem margem não devia existir (a base exige-a); se chegar, conta como 100 %,
+  // que é o que se sabe dela — nunca como zero.
+  const erroCm2Bps = doCliente.reduce((n, z) => n + z.areaCm2 * (z.margemBps ?? 10_000), 0);
 
   const falta: Falta[] = [];
   if (porConfirmar.length > 0) {
@@ -211,7 +236,10 @@ export function respostaDasZonas(zonas: readonly ZonaParaResposta[]): RespostaDa
     totalCm2,
     medidaCm2: totalCm2 - porConfirmarCm2,
     porConfirmarCm2,
-    soEstimativas: porConfirmar.every((z) => z.origemDaQuantidade === 'estimativa'),
+    medidaPeloClienteCm2,
+    margemDoClienteBps: medidaPeloClienteCm2 > 0 ? Math.ceil(erroCm2Bps / medidaPeloClienteCm2) : null,
+    estimadoCm2: porConfirmarCm2 - medidaPeloClienteCm2,
+    soEstimativas: outras.every((z) => z.origemDaQuantidade === 'estimativa'),
     incluidas: incluidas.length,
     comNumero: comArea.length,
     porLevantar: porLevantar.length,
@@ -220,6 +248,59 @@ export function respostaDasZonas(zonas: readonly ZonaParaResposta[]): RespostaDa
     total: zonas.length,
     falta,
   };
+}
+
+// --- A barra e a sua legenda ------------------------------------------------------------------------
+
+/** Um troço da barra do total, com o texto da legenda (que é também o do leitor de ecrã). */
+export interface TrocoDaBarra {
+  tipo: 'confirmada' | 'cliente' | 'estimada' | 'por_levantar';
+  /** A área do troço; 0 no das zonas por levantar, que não tem área (o troço não está à escala). */
+  areaCm2: AreaCm2;
+  /** «118 m² confirmados», «133 m² medidos pelo cliente ± 1,7 %», «98 m² estimados», «1 zona sem medidas». */
+  texto: string;
+  /** A parte do texto que é número, para o ecrã a pôr em algarismos tabulares. */
+  numero: string;
+}
+
+/**
+ * Os troços da barra, pela ordem em que se desenham: do mais certo ao menos certo.
+ *
+ * Quatro categorias, e não três (06/11/2026): a medição do cliente na fotografia não é «confirmada» —
+ * ninguém a mediu no local — nem «estimativa» — tem uma margem calculada, e a margem vai com ela. Por
+ * isso o que antes se dizia «medidos» diz agora «confirmados»: ao lado de «medidos pelo cliente», «medidos»
+ * sozinho lia-se como o total das duas coisas.
+ */
+export function trocosDaBarra(r: RespostaDasZonas): TrocoDaBarra[] {
+  const t: TrocoDaBarra[] = [];
+  const area = (cm2: number) => formatArea(cm2);
+  if (r.medidaCm2 > 0) t.push({ tipo: 'confirmada', areaCm2: r.medidaCm2, numero: area(r.medidaCm2), texto: `${area(r.medidaCm2)} confirmados` });
+  if (r.medidaPeloClienteCm2 > 0) {
+    const margem = r.margemDoClienteBps !== null ? ` ${margemEmTexto(r.margemDoClienteBps)}` : '';
+    t.push({
+      tipo: 'cliente',
+      areaCm2: r.medidaPeloClienteCm2,
+      numero: area(r.medidaPeloClienteCm2),
+      texto: `${area(r.medidaPeloClienteCm2)} medidos pelo cliente${margem}`,
+    });
+  }
+  if (r.estimadoCm2 > 0) {
+    t.push({
+      tipo: 'estimada',
+      areaCm2: r.estimadoCm2,
+      numero: area(r.estimadoCm2),
+      texto: `${area(r.estimadoCm2)} ${r.soEstimativas ? 'estimados' : 'por confirmar'}`,
+    });
+  }
+  if (r.porLevantar > 0) {
+    t.push({
+      tipo: 'por_levantar',
+      areaCm2: 0,
+      numero: String(r.porLevantar),
+      texto: `${r.porLevantar} ${r.porLevantar === 1 ? 'zona sem medidas' : 'zonas sem medidas'}`,
+    });
+  }
+  return t;
 }
 
 // --- O título do passo ----------------------------------------------------------------------------

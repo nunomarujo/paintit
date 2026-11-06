@@ -28,6 +28,7 @@ import {
   type SurfaceKind,
   type WorksMode,
 } from '@/domain/request';
+import { aceitaMedicaoDaFotografia, medeSeNaFotografia, origemEmTexto } from '@/domain/medicaoDaFotografia';
 import { contaDaZona, nomeDaZona } from '@/domain/respostaDasZonas';
 
 /**
@@ -74,6 +75,8 @@ export interface ZonaNaLista {
   origemDaQuantidade: OrigemDaQuantidade | null;
   confirmacao: Confirmacao;
   trabalhos: string[] | null;
+  /** Margem de erro em pontos-base: só nas zonas medidas pelo cliente na fotografia (06/11/2026). */
+  margemBps?: number | null;
 }
 
 /** Como a zona foi medida, deduzido do que lá está. Decide que campos o editor abre. */
@@ -183,7 +186,8 @@ export function partesDoEstado(z: ZonaNaLista): { texto: string; falta: boolean 
     return partes;
   }
   if (z.origemDaQuantidade) {
-    const o = ORIGEM_DA_QUANTIDADE_LABELS[z.origemDaQuantidade];
+    // «Medida pelo cliente ± 1,7 %»: a margem vai sempre com a medição da fotografia.
+    const o = origemEmTexto(z.origemDaQuantidade, z.margemBps);
     partes.push({ texto: partes.length > 0 ? o.toLowerCase() : o, falta: false });
   }
   partes.push({
@@ -394,8 +398,9 @@ export function EditorDaZona({
   modo: WorksMode;
   idDoFormulario: string;
   aoFechar: () => void;
-  /** Só para a equipa: abre a ferramenta de levantamento já com esta zona escolhida. */
-  medir?: () => void;
+  /** Abre a ferramenta de levantamento já com esta zona escolhida (quem pode editar o pedido); numa zona
+   * nova, leva o tipo e o nome já escritos aqui. */
+  medir?: (doEditor: { tipo?: SurfaceKind; nome?: string }) => void;
 }) {
   const zonaId = zona?.id ?? null;
   const participacaoAntes = zona?.participacao ?? null;
@@ -607,7 +612,7 @@ export function EditorDaZona({
                   onChange={(ev) => setOrigem(ev.target.value as OrigemDaQuantidade | 'manter')}
                   className="campo bg-white"
                 >
-                  {medidaPeloCliente && <option value="manter">Medida pelo cliente, na fotografia</option>}
+                  {medidaPeloCliente && <option value="manter">{origemEmTexto('medida_pelo_cliente', zona?.margemBps)}, na fotografia</option>}
                   {ORIGENS_ESCOLHIVEIS.map((o) => (
                     <option key={o} value={o}>
                       {ORIGEM_DA_QUANTIDADE_LABELS[o]}
@@ -624,7 +629,7 @@ export function EditorDaZona({
                     <span className={`block text-[13px] ${confirmada ? 'text-slate-600' : 'text-amber-800'}`}>
                       {confirmada
                         ? 'medição, conta como confirmada'
-                        : `${ORIGEM_DA_QUANTIDADE_LABELS[origemEfetiva].toLowerCase()}, fica por confirmar`}
+                        : `${origemEmTexto(origemEfetiva, origem === 'manter' ? zona?.margemBps : null).toLowerCase()}, fica por confirmar`}
                     </span>
                   </>
                 ) : (
@@ -634,12 +639,34 @@ export function EditorDaZona({
             </div>
           )}
 
-          {medir && !confirmada && como !== 'nao_sei' && (
+          {/* Também sem medidas: uma zona por levantar pode ter o primeiro número pela fotografia. Nunca numa
+              zona já confirmada (vale o que está gravado, não a origem escolhida agora no campo) nem num tipo
+              que a ferramenta não mede. */}
+          {medir && !confirmada && aceitaMedicaoDaFotografia(zona?.confirmacao) && (!zona || medeSeNaFotografia(zona.kind)) && (
             <div className="rounded-lg bg-slate-50 p-3">
               <p className="text-[15px] text-slate-600">
-                Um número <span className="text-amber-800">por confirmar</span> confirma-se medindo no local. Na fotografia sai uma medida com margem, que continua por confirmar.
+                {como === 'nao_sei' ? (
+                  'Sem as medidas da zona: uma fachada mede-se pela fotografia e por uma medida tirada com fita (uma porta, uma janela). Fica medida pelo cliente, com a margem de erro, e por confirmar no local.'
+                ) : (
+                  <>
+                    Um número <span className="text-amber-800">por confirmar</span> confirma-se medindo no local. Na fotografia sai uma
+                    medida com margem, que continua por confirmar.
+                  </>
+                )}
               </p>
-              <button type="button" onClick={medir} className="btn-secondary btn-sm mt-2">
+              <button
+                type="button"
+                onClick={(ev) => {
+                  // Numa zona nova, o tipo e o nome já escritos aqui seguem para a ferramenta.
+                  const f = ev.currentTarget.form ? new FormData(ev.currentTarget.form) : null;
+                  const tipo = String(f?.get('kind') ?? '');
+                  medir({
+                    tipo: (SURFACE_KINDS as readonly string[]).includes(tipo) ? (tipo as SurfaceKind) : undefined,
+                    nome: String(f?.get('descricao') ?? '').trim() || undefined,
+                  });
+                }}
+                className="btn-secondary btn-sm mt-2"
+              >
                 Medir na fotografia
               </button>
             </div>

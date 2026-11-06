@@ -26,7 +26,7 @@ import { horaExata } from '@/domain/contagem';
 import { RevisaoEPublicacao } from './RevisaoEPublicacao';
 import { estadosDasSeccoes, primeiraPendencia } from '@/domain/seccoes';
 import { CURRENT_RULES } from '@/domain/rules';
-import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
+import { canManage, myRole } from '@/lib/access';
 import { BRAND } from '@/config/brand';
 import { qrCodeSvg } from '@/lib/qrcode';
 import { escolhivel, loadReferences, preferredView } from '@/lib/reference';
@@ -102,9 +102,6 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     .maybeSingle();
 
   const manager = canManage(await myRole(supabase, user!.id, org));
-  // A equipa da plataforma vê a entrada da ferramenta de levantamento (passo 2). Por agora só ela: o
-  // resultado da ferramenta ainda não volta para o pedido (docs/DECISOES.md, 05/11/2026).
-  const daEquipa = await isPlatformAdmin(supabase, user!.id);
   const draft = req.status === 'rascunho';
   const pt = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '');
   // Quando é que as propostas chegam ao cliente. A porta verdadeira está na base de dados
@@ -233,6 +230,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     participacao: paraZona(s).participacao,
     origemDaQuantidade: paraZona(s).origemDaQuantidade,
     confirmacao: paraZona(s).confirmacao,
+    margemBps: paraZona(s).margemBps,
     trabalhos: s.trabalhos,
   }));
   const numeracao = numeracaoDoPedido(predioDoDesenho, zonasDoQuadro);
@@ -271,7 +269,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         prazoPropostas: req.prazo_propostas,
         execucaoDesde: req.execucao_desde,
         execucaoAte: req.execucao_ate,
-        surfaces: list.map((s) => ({ id: s.id, kind: s.kind, descricao: s.descricao, area: s.area_cm2, trabalhos: s.trabalhos })),
+        surfaces: list.map((s) => ({
+          id: s.id,
+          kind: s.kind,
+          descricao: s.descricao,
+          area: s.area_cm2,
+          trabalhos: s.trabalhos,
+          origemDaQuantidade: paraZona(s).origemDaQuantidade,
+          margemBps: paraZona(s).margemBps,
+          confirmacao: paraZona(s).confirmacao,
+        })),
         trabalhosModo: req.trabalhos_modo as 'iguais' | 'diferencas' | 'nao_sei',
         ocupacaoViaPublica: req.ocupacao_via_publica,
         preferidos: await preferredView(supabase, req.produtos_preferidos),
@@ -360,7 +367,6 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           podeEditar={!!manager && draft}
           doCliente={tecnicoDoCliente}
           recolhido={!tecnicoDoCliente}
-          daEquipa={daEquipa}
         />
       </div>
     ),

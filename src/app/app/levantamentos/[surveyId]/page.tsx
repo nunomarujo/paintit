@@ -191,10 +191,14 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
               participacao: paraZona(s).participacao,
               origemDaQuantidade: paraZona(s).origemDaQuantidade,
               confirmacao: paraZona(s).confirmacao,
+              margemBps: paraZona(s).margemBps,
               trabalhos: s.trabalhos,
             }))}
             modo="iguais"
             podeEditar={!done}
+            // O avaliador mede no local, e o que mede fica confirmado. A ferramenta da fotografia grava
+            // «medida pelo cliente», que não é o que ele faz: aqui não se oferece (06/11/2026).
+            medirNaFotografia={false}
             doCliente={false}
             predio={{
               buildingId: request.building_id,

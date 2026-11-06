@@ -3,19 +3,21 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { alturaDoPredio, dimensao, type Certeza, type Dimensao } from '@/domain/geometria';
 import { entradaDoVolume, lugaresDasZonas, numerarZonas, type EixoDaCota } from '@/domain/prancheta';
-import { formatArea, type SurfaceKind, type WorksMode } from '@/domain/request';
+import type { SurfaceKind, WorksMode } from '@/domain/request';
 import {
   fraseDoQueFalta,
   nomeDaZona,
   respostaDasZonas,
   tituloDaResposta,
   tituloNumaFrase,
+  trocosDaBarra,
   type Falta,
+  type TrocoDaBarra,
 } from '@/domain/respostaDasZonas';
 import { buildingVolume, type Forma } from '@/domain/volume';
 import { GeometriaDoPredio, type MedidasEmTexto } from './GeometriaDoPredio';
 import { BotaoFechar, Janela } from './Janela';
-import { JanelaDaFerramenta } from './JanelaDaFerramenta';
+import { JanelaDaFerramenta, type InicioDaFerramenta, type MedicaoGravada } from './JanelaDaFerramenta';
 import { QuadroDasZonas } from './Prancheta';
 import { EditorDaZona, Pino, type ZonaNaLista } from './ZonasDoPedido';
 import { ZonasRecolhiveis } from './ZonasRecolhiveis';
@@ -63,7 +65,7 @@ export function ZonasComVolume({
   doCliente,
   predio,
   recolhido = false,
-  daEquipa = false,
+  medirNaFotografia = true,
 }: {
   requestId: string;
   zonas: ZonaNaLista[];
@@ -86,15 +88,20 @@ export function ZonasComVolume({
   /** Com visita pedida: o quadro fica recolhido atrás de «Acrescentar informação que já sei». */
   recolhido?: boolean;
   /**
-   * Quem vê é da equipa da plataforma (`platform_admins`)? Só a equipa tem, por agora, a entrada da
-   * ferramenta de levantamento: o resultado ainda não volta para o pedido.
+   * A entrada da ferramenta de fotografia, para quem pode editar (06/11/2026). Falso no ecrã do
+   * avaliador: ele mede no local, e a ferramenta grava «medida pelo cliente».
    */
-  daEquipa?: boolean;
+  medirNaFotografia?: boolean;
 }) {
+  const podeMedirNaFotografia = podeEditar && medirNaFotografia;
   const [aberto, setAberto] = useState<{ id: string | null; tipo?: SurfaceKind } | null>(null);
   const [apontada, setApontada] = useState<string | null>(null);
   // `zonaId` nulo: abriu-se pelo botão do topo (sugere-se a primeira por confirmar); vazio: uma zona nova.
-  const [ferramenta, setFerramenta] = useState<{ zonaId: string | null } | null>(null);
+  const [ferramenta, setFerramenta] = useState<InicioDaFerramenta | null>(null);
+  // O que a ferramenta gravou por último, dito por baixo do total até se voltar a medir — ou até a zona
+  // mudar por outro caminho (editada, removida, posta fora do pedido): `visto` marca que a página já a
+  // mostrou como ficou gravada; a partir daí, se deixar de bater certo, a linha sai.
+  const [gravada, setGravada] = useState<(MedicaoGravada & { visto: boolean }) | null>(null);
   const [medidas, setMedidas] = useState<MedidasEmTexto>({
     largura: texto(predio.medidas.larguraM),
     profundidade: texto(predio.medidas.profundidadeM),
@@ -146,8 +153,23 @@ export function ZonasComVolume({
     if (desapareceu) setAberto(null);
   }, [desapareceu]);
 
+  const zonaGravada = gravada ? zonas.find((z) => z.id === gravada.zonaId) : undefined;
+  const bateCerto =
+    !!zonaGravada &&
+    zonaGravada.origemDaQuantidade === 'medida_pelo_cliente' &&
+    zonaGravada.participacao === 'incluida' &&
+    zonaGravada.areaCm2 === gravada?.areaCm2;
+  const gravadaVista = gravada?.visto ?? false;
+  useEffect(() => {
+    if (bateCerto && !gravadaVista) setGravada((g) => g && { ...g, visto: true });
+    if (!bateCerto && gravadaVista) setGravada(null);
+  }, [bateCerto, gravadaVista]);
+
   const abrir = (id: string | null, tipo?: SurfaceKind) => setAberto({ id, tipo });
-  const medir = (zonaId: string | null) => setFerramenta({ zonaId });
+  const medir = (inicio: InicioDaFerramenta) => {
+    setGravada(null);
+    setFerramenta(inicio);
+  };
   /** Levar a um cartão: o que está à vista (há dois quadros no HTML, um escondido). */
   const irAoCartao = (id: string) => {
     const el = Array.from(document.querySelectorAll<HTMLElement>(`[data-zona="${id}"]`)).find((x) => x.offsetParent !== null);
@@ -166,8 +188,9 @@ export function ZonasComVolume({
       + Acrescentar zona
     </button>
   );
-  const botaoMedir = daEquipa && (
-    <button type="button" onClick={() => medir(null)} className="btn-secondary btn-sm gap-2">
+  // A ferramenta grava no pedido (06/11/2026): aparece a quem o pode editar, e só a esses.
+  const botaoMedir = podeMedirNaFotografia && (
+    <button type="button" onClick={() => medir({ zonaId: null })} className="btn-secondary btn-sm gap-2">
       <svg
         width="18"
         height="18"
@@ -201,13 +224,12 @@ export function ZonasComVolume({
           vazio={zonas.length === 0}
           recolhido={recolhido}
           accoes={accoes || null}
+          gravada={gravada}
           aoResolver={(f, id) => {
             // Decidir faz-se no cartão (os botões estão lá); confirmar e levantar, no editor da zona —
-            // e é lá que a equipa tem a ferramenta, já com a zona escolhida. Sem edição, a equipa vai
-            // direta à ferramenta; os outros, ao cartão.
+            // e é lá que está a ferramenta, já com a zona escolhida. Sem edição, ao cartão.
             if (f.tipo === 'decidir') return irAoCartao(id);
             if (podeEditar) return abrir(id);
-            if (daEquipa && f.tipo === 'confirmar') return medir(id);
             irAoCartao(id);
           }}
         />
@@ -278,19 +300,26 @@ export function ZonasComVolume({
               modo={modo}
               idDoFormulario="editor-da-zona"
               aoFechar={() => setAberto(null)}
-              medir={daEquipa ? () => medir(zonaAberta?.id ?? '') : undefined}
+              medir={podeMedirNaFotografia ? (doEditor) => medir({ zonaId: zonaAberta?.id ?? '', ...doEditor }) : undefined}
             />
           </>
         )}
       </Janela>
 
-      {daEquipa && (
+      {podeMedirNaFotografia && (
         <JanelaDaFerramenta
           aberta={ferramenta !== null}
           aoFechar={() => setFerramenta(null)}
+          aoGravar={(g) => {
+            setFerramenta(null);
+            setAberto(null);
+            setGravada({ ...g, visto: false });
+          }}
+          requestId={requestId}
+          podeEditar={podeEditar}
           zonas={zonas}
           numero={numeroDe}
-          zonaInicial={ferramenta?.zonaId ?? null}
+          inicio={ferramenta ?? { zonaId: null }}
           predio={{
             frente: g.largura.metros !== null ? emMetros(g.largura.metros) : null,
             fundo: g.profundidade.metros !== null ? emMetros(g.profundidade.metros) : null,
@@ -306,21 +335,29 @@ export function ZonasComVolume({
  * A resposta do passo: o total, a barra do medido, do estimado e do que ainda não tem número, e o que
  * falta. A gramática do que falta vive no domínio (`fraseDoQueFalta`, testada); aqui cada nome de zona
  * passa a botão para o sítio onde se resolve: «decidir as varandas» leva ao cartão; «confirmar» e
- * «levantar» abrem a edição da zona (e, nela, a equipa tem a ferramenta já com essa zona).
+ * «levantar» abrem a edição da zona (e, nela, a ferramenta da fotografia já com essa zona).
  */
 function Resposta({
   r,
   vazio,
   recolhido,
   accoes,
+  gravada,
   aoResolver,
 }: {
   r: ReturnType<typeof respostaDasZonas>;
   vazio: boolean;
   recolhido: boolean;
   accoes: ReactNode;
+  gravada: MedicaoGravada | null;
   aoResolver: (f: Pick<Falta, 'tipo'>, id: string) => void;
 }) {
+  // Depois de gravar, a página atualiza-se por baixo; esta linha diz o que entrou e onde.
+  const linhaGravada = gravada && (
+    <p role="status" className="mt-3 max-w-[62ch] text-[15px] text-slate-700">
+      <span className="font-medium text-tinta-900">{gravada.zona}</span> · {gravada.mensagem}
+    </p>
+  );
   if (recolhido) {
     return (
       <p className="text-[15px] text-slate-600">
@@ -339,6 +376,7 @@ function Resposta({
           <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">
             Primeiro, dizer o que se vai pintar — mesmo sem medidas. Cada zona soma aqui quando tiver um número.
           </p>
+          {linhaGravada}
         </div>
         {ladoDoTotal}
       </div>
@@ -358,56 +396,8 @@ function Resposta({
           </span>
           <span className="text-[17px] text-slate-600">{t.frase}</span>
         </p>
-        {r.totalCm2 > 0 && (
-          <div className="mt-3 max-w-[26rem]">
-            {/* A barra é o total: o que alguém mediu, em cobalto; o estimado, pálido (proposta A); e, no
-                fim, as zonas ainda sem número — um troço aberto, a tracejado, que não está à escala
-                porque a área delas não se sabe (cético, 05/11/2026). */}
-            <div
-              role="img"
-              aria-label={[
-                r.medidaCm2 > 0 && `${formatArea(r.medidaCm2)} medidos`,
-                r.porConfirmarCm2 > 0 && `${formatArea(r.porConfirmarCm2)} por confirmar`,
-                r.porLevantar > 0 && `${r.porLevantar === 1 ? '1 zona' : `${r.porLevantar} zonas`} ainda sem medidas`,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-              className="flex h-2 w-full gap-0.5"
-            >
-              {r.medidaCm2 > 0 && <span className="rounded-full bg-tinta-600" style={{ flex: `${r.medidaCm2} 1 0%` }} />}
-              {r.porConfirmarCm2 > 0 && <span className="rounded-full bg-tinta-300" style={{ flex: `${r.porConfirmarCm2} 1 0%` }} />}
-              {r.porLevantar > 0 && (
-                <span className="rounded-full border border-dashed border-slate-500" style={{ flex: `0 0 ${Math.min(40, 14 * r.porLevantar)}%` }} />
-              )}
-            </div>
-            <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
-              {r.medidaCm2 > 0 && (
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden="true" className="h-2 w-3 rounded-full bg-tinta-600" />
-                  <span>
-                    <span className="tabular-nums">{formatArea(r.medidaCm2)}</span> medidos
-                  </span>
-                </li>
-              )}
-              {r.porConfirmarCm2 > 0 && (
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden="true" className="h-2 w-3 rounded-full bg-tinta-300" />
-                  <span>
-                    <span className="tabular-nums">{formatArea(r.porConfirmarCm2)}</span> {r.soEstimativas ? 'estimados' : 'por confirmar'}
-                  </span>
-                </li>
-              )}
-              {r.porLevantar > 0 && (
-                <li className="flex items-center gap-1.5">
-                  <span aria-hidden="true" className="h-2 w-3 rounded-full border border-dashed border-slate-500" />
-                  <span>
-                    <span className="tabular-nums">{r.porLevantar}</span> {r.porLevantar === 1 ? 'zona sem medidas' : 'zonas sem medidas'}
-                  </span>
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
+        {r.totalCm2 > 0 && <Barra trocos={trocosDaBarra(r)} />}
+        {linhaGravada}
         {falta.length > 0 && (
           <p className="mt-3 text-[15px] leading-relaxed text-amber-800">
             {falta.map((pd, i) =>
@@ -428,6 +418,50 @@ function Resposta({
         )}
       </div>
       {ladoDoTotal}
+    </div>
+  );
+}
+
+/**
+ * A barra do total e a sua legenda, dos troços de `trocosDaBarra` (o texto da legenda é também o do
+ * leitor de ecrã). Do mais certo ao menos certo: o confirmado em cobalto cheio; o medido pelo cliente na
+ * fotografia, às riscas de cobalto sobre o pálido — mais do que uma estimativa, menos do que uma medida no local; o
+ * estimado, pálido (proposta A); e, no fim, as zonas ainda sem número — um troço aberto, a tracejado, que
+ * não está à escala porque a área delas não se sabe (cético, 05/11/2026).
+ */
+const COR_DO_TROCO: Record<TrocoDaBarra['tipo'], string> = {
+  confirmada: 'bg-tinta-600',
+  // Riscas, e não só um tom entre os dois: o cobalto intermédio contra o pálido dava 1,41:1 e lia-se como
+  // estimativa (revisão de 06/11/2026). A risca diz «medido, com margem» também a quem não distingue tons.
+  cliente: 'troco-riscado',
+  estimada: 'bg-tinta-300',
+  por_levantar: 'border border-dashed border-slate-500',
+};
+
+function Barra({ trocos }: { trocos: TrocoDaBarra[] }) {
+  const porLevantar = trocos.find((t) => t.tipo === 'por_levantar');
+  return (
+    <div className="mt-3 max-w-[30rem]">
+      <div role="img" aria-label={trocos.map((t) => t.texto).join(', ')} className="flex h-2 w-full gap-0.5">
+        {trocos.map((t) => (
+          <span
+            key={t.tipo}
+            className={`rounded-full ${COR_DO_TROCO[t.tipo]}`}
+            style={{ flex: t.tipo === 'por_levantar' ? `0 0 ${Math.min(40, 14 * Number(porLevantar?.numero ?? 1))}%` : `${t.areaCm2} 1 0%` }}
+          />
+        ))}
+      </div>
+      <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
+        {trocos.map((t) => (
+          <li key={t.tipo} className="flex items-center gap-1.5">
+            <span aria-hidden="true" className={`h-2 w-3 shrink-0 rounded-full ${COR_DO_TROCO[t.tipo]}`} />
+            <span>
+              <span className="tabular-nums">{t.numero}</span>
+              {t.texto.slice(t.numero.length)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

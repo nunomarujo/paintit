@@ -23,7 +23,15 @@ import {
   type SurfaceKind,
 } from '@/domain/request';
 import { paraZona } from '@/lib/requests';
-import { margemEmTexto, zonaDaMedicao, type MedicaoDaFotografia } from '@/domain/medicaoDaFotografia';
+import {
+  CONFIRMADA_NAO_SE_TROCA,
+  NAO_SE_MEDE_NA_FOTOGRAFIA,
+  aceitaMedicaoDaFotografia,
+  margemEmTexto,
+  medeSeNaFotografia,
+  zonaDaMedicao,
+  type MedicaoDaFotografia,
+} from '@/domain/medicaoDaFotografia';
 import { preferencesFromForm } from '@/domain/reference';
 import { newReferralCode } from '@/domain/referral';
 import { CURRENT_RULES } from '@/domain/rules';
@@ -273,7 +281,7 @@ export async function gravarMedicaoDaFotografia(
   requestId: string,
   zona: { id: string } | { nova: { kind: string; descricao: string | null } },
   medicao: MedicaoDaFotografia,
-): Promise<FormState> {
+): Promise<FormState & { zonaId?: string }> {
   const { supabase, user } = await getUser();
   if (!user) return NOT_SIGNED_IN;
   const z = zonaDaMedicao({
@@ -303,19 +311,45 @@ export async function gravarMedicaoDaFotografia(
     errors: {},
     message: 'Não foi possível gravar a medição. O pedido tem de estar em rascunho, e só quem o gere o pode alterar.',
   };
+  // Antes da migração 20261106010000 a coluna da margem não existe e a origem nova é recusada: a culpa não é
+  // de quem grava, e dizer-lhe «o pedido tem de estar em rascunho» mandava-o procurar o erro errado.
+  const recusou = (error: { code?: string; message?: string }): FormState => {
+    if (['42703', 'PGRST204', '23514'].includes(error.code ?? '')) {
+      console.error('gravarMedicaoDaFotografia: a base ainda não aceita a medição do cliente', error.code, error.message);
+      return { errors: {}, message: 'A gravação pela fotografia ainda não está disponível. A medição continua na ferramenta.' };
+    }
+    return naoGravou;
+  };
 
+  let zonaId: string;
   if ('id' in zona) {
     if (typeof zona.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(zona.id)) return { errors: {}, message: 'Zona inválida.' };
+    // A janela não oferece uma zona confirmada no local, mas a zona chega do navegador (regra 10): pergunta-se
+    // aqui outra vez, à base, antes de trocar a medida de quem lá foi por uma da fotografia.
+    const { data: actual } = await supabase
+      .from('request_surfaces')
+      .select('confirmacao, kind')
+      .eq('id', zona.id)
+      .eq('request_id', requestId)
+      .maybeSingle();
+    if (!actual) return naoGravou;
+    if (!aceitaMedicaoDaFotografia(actual.confirmacao)) return { errors: {}, message: CONFIRMADA_NAO_SE_TROCA };
+    if (!medeSeNaFotografia(actual.kind)) return { errors: {}, message: NAO_SE_MEDE_NA_FOTOGRAFIA };
     const { data, error } = await supabase
       .from('request_surfaces')
       .update(colunas)
       .eq('id', zona.id)
       .eq('request_id', requestId)
+      // E no próprio update: se a zona for confirmada entre a leitura e a escrita, não se toca nela.
+      .neq('confirmacao', 'confirmada')
       .select('id');
-    if (error || !data?.length) return naoGravou;
+    if (error) return recusou(error);
+    if (!data?.length) return naoGravou;
+    zonaId = zona.id;
   } else {
     const kind = String(zona?.nova?.kind ?? '');
     if (!(SURFACE_KINDS as readonly string[]).includes(kind)) return { errors: {}, message: 'Escolha o tipo da zona.' };
+    if (!medeSeNaFotografia(kind as SurfaceKind)) return { errors: {}, message: NAO_SE_MEDE_NA_FOTOGRAFIA };
     const descricao = String(zona.nova.descricao ?? '').trim().slice(0, 200) || null;
     const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao });
     if (refused) return refused;
@@ -323,14 +357,17 @@ export async function gravarMedicaoDaFotografia(
       .from('request_surfaces')
       .insert({ request_id: requestId, kind: kind as SurfaceKind, descricao, origem: 'estimativa', ...colunas })
       .select('id');
-    if (error || !data?.length) return naoGravou;
+    if (error) return recusou(error);
+    if (!data?.[0]) return naoGravou;
+    zonaId = data[0].id;
   }
   revalidarPedido(requestId);
   const foraDaArea = medicao?.porDecidir?.length ? ' Não inclui as faces de dentro das varandas, que ficam à parte.' : '';
   return {
     errors: {},
     ok: true,
-    message: `Gravado: ${(z.areaDiretaCm2 / 100).toLocaleString('pt-PT')} m², ${margemEmTexto(z.margemBps)}, por confirmar no local.${foraDaArea}`,
+    zonaId,
+    message: `Gravado: ${(z.areaDiretaCm2 / 100).toLocaleString('pt-PT')} m², medida pelo cliente ${margemEmTexto(z.margemBps)}, por confirmar no local.${foraDaArea}`,
   };
 }
 

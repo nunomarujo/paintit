@@ -6035,6 +6035,61 @@ cliente também mede, na ferramenta de fotografia; a zona fica com origem própr
    casa, nunca abaixo de 0,1 %).
 7. *O relatório para a assembleia lia a origem antiga* e dizia «estimativa» a uma medição: lê a nova.
 
-**Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
-abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
-na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».
+**Fase 2, feita (06/11/2026, no ramo `passo2b-wip`).**
+- *«Usar esta medição» grava.* A janela «Levantamento da área da obra» recebe a medição do passo 4 e chama
+  `gravarMedicaoDaFotografia` para a zona escolhida, ou cria uma zona nova (tipo e nome). Enquanto a medição não
+  serve, o botão fica desativado com a razão ao lado — a de `zonaDaMedicao`, a mesma que o servidor volta a
+  perguntar, sem regras duplicadas no ecrã. Recusada pela ação, a razão aparece em âmbar no rodapé (regra 13), e
+  uma falha de rede também, com a medição ainda na ferramenta. Gravada, a janela fecha, a página atualiza-se
+  (`router.refresh`) e por baixo do total fica a linha do que entrou: «Tardoz · Gravado: 133,18 m², medida pelo
+  cliente ± 1,7 %, por confirmar no local.»
+- *Aparece a quem pode editar o pedido* (gerir a entidade, pedido em rascunho), já não só à equipa; quem só o lê
+  nunca a vê. **Excepção:** no ecrã do levantamento do avaliador não se oferece — ele mede no local, e o que mede
+  fica confirmado; a ferramenta gravaria «medida pelo cliente», que não é o que ele faz.
+- *«Para que zona»* lista as zonas que a ferramenta mede — fachadas, empenas e muros (`medeSeNaFotografia`) — com o
+  que as distingue («— sem medidas», «— fora do pedido», «— por decidir se entra»), e «Uma zona nova», cujo tipo fica
+  pelos mesmos três. Uma zona **confirmada no local** aparece desativada: trocar a medida de quem lá foi por uma da
+  fotografia era perder certeza sem ninguém o decidir. O editor de uma zona sem medidas também leva à ferramenta.
+- *A margem nunca se separa do número* (`origemEmTexto`): «Medida pelo cliente ± 1,7 %» no cartão da zona, no
+  «Hoje:» da janela, no editor e, ao pintor, no anúncio (`ListingPreview`, na pré-visualização do cliente e na
+  oportunidade do pintor — só o rótulo e a margem, nunca a fotografia). A oportunidade pede `origem_quantidade` e
+  `margem_bps` e, sem a coluna (migração por aplicar), lê o resto, para o anúncio não ficar sem zonas. «± 1,7 %»
+  leva espaços inquebráveis: no telemóvel o «%» caía sozinho na linha de baixo.
+- *A barra tem quatro troços, e não três* (`trocosDaBarra`, testada): confirmado (cobalto cheio), medido pelo
+  cliente (riscas de cobalto sobre o pálido — ver a revisão abaixo), estimado (pálido) e as zonas sem medidas (tracejado). A medição do cliente não é
+  confirmada (ninguém a viu no local) nem estimativa (tem margem calculada). Por isso o que se dizia «medidos» diz
+  agora **«confirmados»** — ao lado de «medidos pelo cliente», «medidos» lia-se como a soma das duas. Com várias
+  medições do cliente, a margem da legenda é a média pesada pela área, para cima: o pior caso, os erros todos no
+  mesmo sentido. A medição do cliente continua em «Falta confirmar»: confirma-a quem mede no local.
+
+**Revisão da fase 2 por dois céticos (06/11/2026), corrigida no mesmo commit.**
+1. *Uma zona confirmada no local não se troca pela fotografia — agora também no servidor* (regra 10). A regra só
+   existia no `<select>`: uma chamada direta à ação com o id de uma zona confirmada rebaixava-a e apagava largura,
+   altura e vãos. `gravarMedicaoDaFotografia` lê a confirmação e o tipo da zona antes de gravar
+   (`aceitaMedicaoDaFotografia`, `medeSeNaFotografia`, testadas) e o próprio update leva
+   `.neq('confirmacao', 'confirmada')`, para o caso de a zona ser confirmada entre a leitura e a escrita.
+2. *O editor decide pela confirmação gravada*, não pela origem escolhida no campo: numa zona confirmada, mudar a
+   origem para «Estimativa» fazia aparecer «Medir na fotografia», e a janela abria-se sobre **outra** zona e gravava
+   nela. Já não aparece; e, se a janela for aberta para uma zona que não serve, abre sem zona escolhida e diz porquê,
+   em vez de escolher outra em silêncio.
+3. *Zona nova vinda do editor:* o tipo e o nome já escritos lá seguem para a ferramenta (antes, gravava «Fachada»).
+4. *«Guardar e medir outra fachada», dentro do pedido, diz o que faz:* «Medir outra fachada», com a nota de que esta
+   fica de lado e que para a pôr no pedido é «Usar esta medição». O botão guardava só na ferramenta e apagava a
+   medição que ia para o pedido, e quem carregava em «Guardar» julgava ter gravado (`MedirFachada`, `noPedido`).
+5. *O rodapé diz o que acontece ao número que a zona já tem* (`fraseDaGravacao`, testada): «Em Tardoz, substitui
+   133,18 m² (medida pelo cliente ± 1,7 %) por 220,52 m², …», e, quando a quantidade passa de 6 para 1, também isso.
+   Numa zona nova, «numa zona nova» — e não «em uma», que é do português do Brasil.
+6. *Antes da migração `20261106010000`*, a ação devolvia «O pedido tem de estar em rascunho…», falso para quem o
+   gere. Os erros de coluna ou restrição em falta (42703, PGRST204, 23514) dizem agora «A gravação pela fotografia
+   ainda não está disponível» e ficam no registo do servidor.
+7. *O texto do editor* prometia «Sem fita à mão»; a ferramenta pede uma medida tirada com fita. Passou a «Sem as
+   medidas da zona: uma fachada mede-se pela fotografia e por uma medida tirada com fita (uma porta, uma janela).»
+8. *Na barra, o troço do cliente às riscas.* O cobalto intermédio contra o estimado dava 1,41:1 e lia-se como
+   estimativa. As riscas (`.troco-riscado`, `globals.css`) distinguem-no sem depender do tom, também na legenda.
+9. *Ao pintor, todas as zonas dizem de onde vem a área e se está confirmada* (`origemParaOPintor`, testada):
+   «Estimativa · por confirmar», «Medida pelo cliente ± 1,7 % · por confirmar», «Medição · confirmada». Só com a do
+   cliente rotulada, uma estimativa sem margem parecia mais fiável do que a medição com ± 1,7 %.
+10. *A linha «Gravado: …» sai quando a zona muda por outro caminho* (editada, removida, posta fora do pedido):
+    depois de a página a mostrar como ficou gravada, deixar de bater certo apaga-a.
+11. *A razão do botão desativado* já não parte «(passo / 4).»: a caixa passou a 44ch e o «passo 4» leva um espaço
+    inquebrável.

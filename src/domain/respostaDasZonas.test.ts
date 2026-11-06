@@ -9,6 +9,7 @@ import {
   textoDaFrase,
   tituloDaResposta,
   tituloNumaFrase,
+  trocosDaBarra,
   type ZonaParaResposta,
 } from './respostaDasZonas';
 
@@ -259,5 +260,79 @@ describe('a conta de uma zona, igual à de surfaceArea', () => {
       const s: SurfaceInput = { kind: 'fachada', descricao: null, origem: 'estimativa', origemQuantidade: null, trabalhos: null, ...m(c) };
       expect(contaDaZona(m(c))!.resultadoCm2).toBe(surfaceArea(s));
     }
+  });
+});
+
+describe('a zona medida pelo cliente na fotografia (06/11/2026)', () => {
+  const cliente = (id: string, areaCm2: number, margemBps: number, o: Partial<ZonaParaResposta> = {}) =>
+    zona(id, { areaCm2, origemDaQuantidade: 'medida_pelo_cliente', confirmacao: 'por_confirmar', margemBps, ...o });
+  const estimada = zona('e', { kind: 'empena', descricao: 'Empena lado norte', areaCm2: 9_800, origemDaQuantidade: 'estimativa', confirmacao: 'por_confirmar' });
+
+  it('é uma categoria à parte: nem confirmada nem estimativa, e as três partes somam o total', () => {
+    const r = respostaDasZonas([zona('a', { areaCm2: 11_800 }), cliente('b', 13_318, 170, { descricao: 'Tardoz' }), estimada]);
+    expect(r.totalCm2).toBe(34_918);
+    expect(r.medidaCm2).toBe(11_800);
+    expect(r.medidaPeloClienteCm2).toBe(13_318);
+    expect(r.estimadoCm2).toBe(9_800);
+    expect(r.medidaCm2 + r.medidaPeloClienteCm2 + r.estimadoCm2).toBe(r.totalCm2);
+    expect(r.margemDoClienteBps).toBe(170);
+    // Uma medição do cliente ao lado de uma estimativa não faz da estimativa «por confirmar».
+    expect(r.soEstimativas).toBe(true);
+  });
+
+  it('continua a faltar confirmar no local: entra em «Falta confirmar», com as estimativas', () => {
+    const r = respostaDasZonas([cliente('b', 13_318, 170, { descricao: 'Tardoz' }), estimada]);
+    expect(r.porConfirmarCm2).toBe(23_118);
+    expect(textoDaFrase(fraseDoQueFalta(r.falta))).toBe('Falta confirmar 231,18 m² (tardoz e empena lado norte).');
+  });
+
+  it('a legenda diz «confirmados», «medidos pelo cliente ± %» e «estimados», do mais certo ao menos certo', () => {
+    const r = respostaDasZonas([
+      zona('a', { areaCm2: 11_800 }),
+      cliente('b', 13_300, 170),
+      estimada,
+      zona('c', { kind: 'muro', areaCm2: 0, origemDaQuantidade: null }),
+    ]);
+    expect(trocosDaBarra(r).map((t) => [t.tipo, t.texto])).toEqual([
+      ['confirmada', '118 m² confirmados'],
+      ['cliente', '133 m² medidos pelo cliente ±\u00a01,7\u00a0%'],
+      ['estimada', '98 m² estimados'],
+      ['por_levantar', '1 zona sem medidas'],
+    ]);
+    // O número é o começo do texto, para o ecrã o pôr em algarismos tabulares.
+    for (const t of trocosDaBarra(r)) expect(t.texto.startsWith(t.numero)).toBe(true);
+  });
+
+  it('só com medições do cliente, a barra tem um troço só, e sem «confirmados»', () => {
+    const r = respostaDasZonas([cliente('b', 13_300, 600)]);
+    expect(trocosDaBarra(r)).toEqual([
+      { tipo: 'cliente', areaCm2: 13_300, numero: '133 m²', texto: '133 m² medidos pelo cliente ±\u00a06,0\u00a0%' },
+    ]);
+    expect(r.medidaCm2).toBe(0);
+  });
+
+  it('várias medições: a margem é a média pesada pela área, para cima — o pior caso, nunca menos', () => {
+    // 100 m² a ± 1 % e 300 m² a ± 3 %: 4 m² de erro possível em 400 m², ±\u00a02,5\u00a0%.
+    const r = respostaDasZonas([cliente('a', 10_000, 100), cliente('b', 30_000, 300)]);
+    expect(r.margemDoClienteBps).toBe(250);
+    // Arredonda para cima: 1 m² a ± 1 % e 2 m² a ± 2 % dão 1,666…%, que se diz 1,67 % e não 1,66 %.
+    expect(respostaDasZonas([cliente('a', 100, 100), cliente('b', 200, 200)]).margemDoClienteBps).toBe(167);
+  });
+
+  it('sem margem gravada (não devia acontecer: a base exige-a), conta como 100 %, nunca como zero', () => {
+    const r = respostaDasZonas([cliente('a', 10_000, 0, { margemBps: null })]);
+    expect(r.margemDoClienteBps).toBe(10_000);
+  });
+
+  it('uma excluída ou por decidir medida pelo cliente não entra na barra', () => {
+    const r = respostaDasZonas([zona('a', { areaCm2: 11_800 }), cliente('b', 13_300, 170, { participacao: 'excluida' })]);
+    expect(r.medidaPeloClienteCm2).toBe(0);
+    expect(r.margemDoClienteBps).toBeNull();
+    expect(trocosDaBarra(r).map((t) => t.tipo)).toEqual(['confirmada']);
+  });
+
+  it('um documento por confirmar diz «por confirmar», não «estimados»', () => {
+    const r = respostaDasZonas([{ ...estimada, origemDaQuantidade: 'documento' }]);
+    expect(trocosDaBarra(r)).toEqual([{ tipo: 'estimada', areaCm2: 9_800, numero: '98 m²', texto: '98 m² por confirmar' }]);
   });
 });
