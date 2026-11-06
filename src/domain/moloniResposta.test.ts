@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idDoDocumentoCriado, recusaEmObjeto } from './moloniResposta';
+import { errosDeValidacao, explicarErrosDeValidacao, idDoDocumentoCriado, recusaEmObjeto } from './moloniResposta';
 
 describe('idDoDocumentoCriado', () => {
   it('aceita um inteiro positivo, também em texto', () => {
@@ -40,5 +40,33 @@ describe('recusaEmObjeto', () => {
     expect(recusaEmObjeto([{ customer_id: 3 }])).toBeNull();
     expect(recusaEmObjeto(false)).toBeNull();
     expect(recusaEmObjeto(null)).toBeNull();
+  });
+});
+
+describe('os erros de validação da Moloni (lista de textos)', () => {
+  const REAL = ['5 document_set_id []', '2 customer_id 1 0', '1 products', '5 document_set_id', '5 document_set_wsat_id'];
+
+  it('reconhece a resposta real de 06/11/2026 como uma recusa, e não como dados', () => {
+    expect(errosDeValidacao(REAL)).toEqual(REAL);
+    expect(recusaEmObjeto(REAL)).toContain('products: campo obrigatório em falta');
+  });
+
+  it('explica cada código', () => {
+    expect(explicarErrosDeValidacao(['1 products'])).toBe('products: campo obrigatório em falta');
+    expect(explicarErrosDeValidacao(['2 customer_id 1 0'])).toBe('customer_id: valor numérico inválido (1 0)');
+    expect(explicarErrosDeValidacao(['5 document_set_id []'])).toBe('document_set_id: valor não aceite');
+    expect(explicarErrosDeValidacao(['99 qualquer'])).toBe('qualquer: erro 99');
+  });
+
+  it('não confunde uma lista de dados (clientes, séries) com erros', () => {
+    expect(errosDeValidacao([{ customer_id: 3 }])).toBeNull();
+    expect(errosDeValidacao([])).toBeNull();
+    expect(errosDeValidacao(['olá mundo, isto não é um erro', 'outra frase'])).toBeNull();
+    expect(errosDeValidacao([false])).toBeNull();
+    expect(recusaEmObjeto([{ document_set_id: 5, name: 'M' }])).toBeNull();
+  });
+
+  it('a recusa explicada chega ao idDoDocumentoCriado só quando passa por «sucesso»', () => {
+    expect(() => idDoDocumentoCriado(REAL)).toThrow(/não devolveu o identificador/);
   });
 });

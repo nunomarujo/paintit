@@ -6455,3 +6455,19 @@ só confirmaria o telemóvel, não o WhatsApp).
 *Depois da revisão independente (06/11/2026):* o contrato e os avisos gerais passam a todos os números confirmados da
 pessoa (até 3); os convites dos avaliadores vão ao mais recente, porque o convite fica ligado a um número (o «Aceito»
 casa por ele). Um erro da base ao confirmar ou parar já não responde «código inválido» nem «não tinha avisos»: repete-se.
+
+## 06/11/2026 — Moloni: o erro verdadeiro apareceu, e é de configuração e de código
+
+Depois da correção de 06/11 («sem identificador não há emissão»), a emissão repetida na conta de testes falhou **com a
+resposta da Moloni à vista**: `["5 document_set_id []","2 customer_id 1 0","1 products","5 document_set_id","5 document_set_wsat_id"]`.
+Lida com a documentação («Controlo de erros»): `1 products` = campo obrigatório em falta (cada linha precisa de
+`product_id`, que não enviávamos); `2 customer_id 1 0` = o cliente não tinha um identificador inteiro maior que 0 (a
+criação do cliente também recusou, e o erro, uma lista de textos, passava por sucesso); `5 document_set_id` = a série
+não é aceite — suspeita de pertencer a outra empresa (a de produção) e não à de testes. **Feito:** os erros em lista de
+textos passam a ser recusas e vêm explicados («products: campo obrigatório em falta»); cada fatura leva um artigo de
+serviço da plataforma (`QP-COMISSAO`, `QP-SUBSCRICAO`, `QP-CAUCAO_RETIDA`), criado na primeira vez e encontrado pela
+referência depois; o `customer_id` tem de ser inteiro positivo; e a série configurada é conferida contra
+`documentSets/getAll` — se não existir na empresa ligada, o erro lista as que existem. **Não provado contra a Moloni:**
+`products/getByReference`, `productCategories/getAll` e `measurementUnits/getAll` seguem a documentação, mas não foram
+testados; cada falha nova diz o que falta. **Por fazer pelo promotor:** conferir na Vercel que `MOLONI_DOCUMENT_SET_ID` e
+`MOLONI_TAX_ID_NORMAL` são os da empresa «Quem Pinta TESTES API» (e não os da empresa real) — ver o erro da próxima emissão.

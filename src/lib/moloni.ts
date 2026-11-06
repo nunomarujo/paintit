@@ -98,7 +98,10 @@ async function call<T>(path: string, body: Record<string, unknown>): Promise<T> 
   } catch {
     throw new Error(`Moloni (${path}): resposta inesperada (${res.status}): ${text.slice(0, 300)}`);
   }
-  if (!res.ok || (Array.isArray(json) && json[0] === false) || recusaEmObjeto(json)) throw new Error(`Moloni (${path}) recusou: ${text.slice(0, 500)}`);
+  if (!res.ok || (Array.isArray(json) && json[0] === false)) throw new Error(`Moloni (${path}) recusou: ${text.slice(0, 500)}`);
+  // Uma recusa que chega com HTTP 200 (lista de «código campo» ou objeto com valid 0): explica-se o campo (06/11/2026).
+  const recusa = recusaEmObjeto(json);
+  if (recusa) throw new Error(`Moloni (${path}) recusou: ${recusa}`);
   return json as T;
 }
 
@@ -112,7 +115,7 @@ async function ensureCustomer(c: InvoiceDraft['customer']): Promise<number> {
   }
   const found = await call<{ customer_id?: number }[] | { customer_id: number } | false>('customers/getByVat', { vat: c.nif }).catch(() => null);
   const existing = Array.isArray(found) ? found[0] : found || undefined;
-  if (existing?.customer_id) return existing.customer_id;
+  if (existing?.customer_id) return idPositivo(existing.customer_id, 'customer_id');
   const created = await call<{ customer_id: number }>('customers/insert', {
     vat: c.nif,
     number: c.nif,
@@ -123,7 +126,70 @@ async function ensureCustomer(c: InvoiceDraft['customer']): Promise<number> {
     city: c.localidade ?? '',
     country_id: 1,
   });
-  return created.customer_id;
+  return idPositivo(created.customer_id, 'customer_id');
+}
+
+/** Um identificador devolvido pela Moloni tem de ser um inteiro positivo; senão a emissão para aqui, com o motivo. */
+function idPositivo(v: unknown, campo: string): number {
+  const n = typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v;
+  if (typeof n !== 'number' || !Number.isInteger(n) || n <= 0) throw new Error(`A Moloni não devolveu um ${campo} válido (recebido: ${JSON.stringify(v) ?? 'nada'}).`);
+  return n;
+}
+
+/** A série configurada tem de existir NESTA empresa da Moloni (as séries são de cada empresa): se não, diz quais há. */
+async function verificarSerie(documentSet: number): Promise<void> {
+  const series = await call<{ document_set_id?: number | string; name?: string }[]>('documentSets/getAll', {}).catch(() => null);
+  if (!Array.isArray(series) || series.length === 0) return; // sem lista não se bloqueia: a emissão dirá se a série não serve
+  if (series.some((x) => Number(x.document_set_id) === documentSet)) return;
+  throw new Error(
+    `A série MOLONI_DOCUMENT_SET_ID=${documentSet} não existe na empresa ligada (MOLONI_COMPANY_ID=${env('MOLONI_COMPANY_ID')}). ` +
+      `Séries desta empresa: ${series.map((x) => `${x.document_set_id} «${x.name ?? ''}»`).join(', ')}.`,
+  );
+}
+
+const NOME_DO_SERVICO: Record<string, string> = {
+  comissao: 'Comissão de sucesso',
+  subscricao: 'Subscrição',
+  caucao_retida: 'Garantia retida',
+};
+
+/**
+ * Cada linha de uma fatura da Moloni tem de ter `product_id` (campo obrigatório na documentação: sem ele a resposta
+ * é «1 products», 06/11/2026). Em vez de um artigo por linha, usa-se um artigo de serviço por tipo de fatura
+ * («QP-COMISSAO»…), criado na primeira vez (categoria e unidade: as primeiras da empresa) e encontrado pela
+ * referência nas seguintes; o texto de cada linha vai no `name` da linha, que sobrepõe o do artigo.
+ * ◆ CONFIRMAR contra a conta real: `products/getByReference`, `productCategories/getAll`, `measurementUnits/getAll`.
+ */
+async function artigoDeServico(reason: string, taxId: number): Promise<number> {
+  const reference = `QP-${reason}`.toUpperCase().slice(0, 30);
+  const achados = await call<{ product_id?: number | string }[] | false>('products/getByReference', { reference, exact: 1 }).catch(() => null);
+  const existente = Array.isArray(achados) ? achados[0] : undefined;
+  if (existente?.product_id) return idPositivo(existente.product_id, 'product_id');
+
+  // O artigo leva o IVA normal; um código de isenção não se inventa aqui (faturas isentas: quando existirem).
+  if (!taxId) throw new Error('Falta configurar MOLONI_TAX_ID_NORMAL (o IVA do artigo de serviço que a plataforma cria na Moloni).');
+  const categorias = await call<{ category_id?: number | string }[]>('productCategories/getAll', { parent_id: 0 }).catch(() => null);
+  const categoria = Array.isArray(categorias) && categorias[0]?.category_id
+    ? idPositivo(categorias[0].category_id, 'category_id')
+    : idPositivo((await call<{ category_id: number }>('productCategories/insert', { parent_id: 0, name: 'Serviços', description: '', pos_enabled: 0 })).category_id, 'category_id');
+  const unidades = await call<{ unit_id?: number | string }[]>('measurementUnits/getAll', {});
+  if (!Array.isArray(unidades) || !unidades[0]?.unit_id) throw new Error('A Moloni não devolveu nenhuma unidade de medida para criar o artigo de serviço.');
+
+  const criado = await call<{ product_id: number }>('products/insert', {
+    category_id: categoria,
+    type: 2,
+    name: NOME_DO_SERVICO[reason] ?? 'Serviço',
+    summary: '',
+    reference,
+    ean: '',
+    price: 0,
+    unit_id: idPositivo(unidades[0].unit_id, 'unit_id'),
+    has_stock: 0,
+    stock: 0,
+    pos_favorite: 0,
+    taxes: [{ tax_id: taxId, value: 0, order: 1, cumulative: 0 }],
+  });
+  return idPositivo(criado.product_id, 'product_id');
 }
 
 export interface EmittedDocument {
@@ -142,8 +208,11 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
   const documentSet = Number(env('MOLONI_DOCUMENT_SET_ID'));
   const taxId = Number(env('MOLONI_TAX_ID_NORMAL'));
   if (!documentSet) throw new Error('Falta configurar MOLONI_DOCUMENT_SET_ID.');
+  await verificarSerie(documentSet);
   const customerId = await ensureCustomer(draft.customer);
+  const artigo = await artigoDeServico(draft.reason, taxId);
   const products = draft.lines.map((l) => ({
+    product_id: artigo,
     name: l.descricao.slice(0, 100),
     qty: l.quantidade / 100,
     price: l.precoUnitario / 100,
