@@ -239,15 +239,15 @@ export type Database = {
       };
       // Migração `crm_fundacao` (06/11/2026), aplicada à base real. Escrita à mão: coincide coluna a coluna com a migração.
       crm_zonas: {
-        Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string };
-        Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string };
-        Update: { id?: string; concelho?: string; ativa?: boolean; campanha_atual?: number; criada_em?: string };
+        Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string; descoberta_em: string | null };
+        Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
+        Update: { id?: string; concelho?: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
         Relationships: [];
       };
       crm_contactos: {
-        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; telefone: string | null; website: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string };
-        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; telefone?: string | null; website?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
-        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; telefone?: string | null; website?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string };
+        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; telefone: string | null; website: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string; codigo: string; enriquecido_em: string | null };
+        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; telefone?: string | null; website?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
+        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; telefone?: string | null; website?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
         Relationships: [];
       };
       crm_envios: {

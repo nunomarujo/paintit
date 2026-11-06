@@ -41,6 +41,8 @@ export function sequenciaDeCampanhas(tipo: TipoContacto): string[] {
 
 export interface Resultados {
   enviados: number;
+  /** Contactos distintos que agiram: clicaram no link com o seu código, responderam ou aderiram. */
+  agiram: number;
   respostas: number;
   adesoes: number;
   desistencias: number;
@@ -51,8 +53,8 @@ export const LIMIARES = {
   amostraMinima: 30,
   /** Pontos-base de desistências sobre enviados a partir dos quais se pára e uma pessoa olha (5%). */
   desistenciaMaxBp: 500,
-  /** Pontos-base de respostas + adesões sobre enviados abaixo dos quais a campanha «não resulta» (2%). */
-  respostaMinBp: 200,
+  /** Pontos-base de contactos que agiram (clique, resposta ou adesão) sobre enviados abaixo dos quais a campanha «não resulta» (8%). */
+  acaoMinBp: 800,
 } as const;
 
 export type Decisao = { acao: 'continuar' | 'avancar' | 'parar'; motivo: string };
@@ -68,8 +70,8 @@ export function decidirCampanha(r: Resultados, restantes: number, l = LIMIARES):
     return { acao: 'parar', motivo: 'Desistências acima do limite: rever o texto e a lista antes de continuar.' };
   }
   if (restantes === 0) return { acao: 'avancar', motivo: 'Todos os contactos da zona já a receberam.' };
-  if (r.enviados >= l.amostraMinima && bp(r.respostas + r.adesoes, r.enviados) < l.respostaMinBp) {
-    return { acao: 'avancar', motivo: 'Respostas abaixo do mínimo: passar à campanha seguinte.' };
+  if (r.enviados >= l.amostraMinima && bp(r.agiram, r.enviados) < l.acaoMinBp) {
+    return { acao: 'avancar', motivo: 'Poucos contactos agiram: passar à campanha seguinte.' };
   }
   return { acao: 'continuar', motivo: 'A campanha está a resultar ou a amostra ainda é curta.' };
 }

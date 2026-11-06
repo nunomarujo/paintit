@@ -46,8 +46,10 @@ export default async function CrmPage() {
               const ids = new Set(dela.map((c) => c.id));
               const enviadosIds = (envios ?? []).filter((e) => ids.has(e.contacto_id) && e.estado === 'enviado');
               const ev = (eventos ?? []).filter((e) => ids.has(e.contacto_id));
+              const agiram = new Set(ev.filter((e) => e.tipo !== 'desistencia').map((e) => e.contacto_id)).size;
               const r: Resultados = {
                 enviados: enviadosIds.length,
+                agiram,
                 respostas: ev.filter((e) => e.tipo === 'resposta').length,
                 adesoes: ev.filter((e) => e.tipo === 'adesao').length,
                 desistencias: ev.filter((e) => e.tipo === 'desistencia').length,
@@ -62,7 +64,7 @@ export default async function CrmPage() {
                     Campanha {z.campanha_atual}: {nomeDaCampanha(atual)}
                   </p>
                   <dl className="mt-3 grid grid-cols-4 gap-2 text-[15px]">
-                    {[['Contactos', dela.length], ['Enviados', r.enviados], ['Respostas', r.respostas], ['Adesões', r.adesoes]].map(([k, v]) => (
+                    {[['Contactos', dela.length], ['Enviados', r.enviados], ['Agiram', r.agiram], ['Adesões', r.adesoes]].map(([k, v]) => (
                       <div key={k as string}>
                         <dt className="text-[13px] text-slate-500">{k}</dt>
                         <dd className="tabular-nums text-[20px] font-semibold">{v}</dd>

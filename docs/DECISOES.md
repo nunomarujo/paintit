@@ -6506,3 +6506,20 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 - **Validação jurídica:** o promotor comunicou, a 06/11/2026, que o email a empresas foi validado com o jurista. Fica
   registado como declaração do promotor; o parecer escrito não está no repositório.
 - **Prompt para configurar o domínio de envio:** `docs/PROMPT_RESEND_DNS.md`.
+
+### 06/11/2026 — CRM: sinal de sucesso por clique com código, e a tarefa diária
+
+- **Aprovado pelo promotor:** o sinal de uma campanha é o **clique no link com o código do contacto** (limiar de 8% dos
+  contactos que agiram sobre os enviados, a partir de 30 envios); resposta e adesão contam também. Aberturas de email
+  não contam (o Apple Mail e o Gmail inflacionam-nas). Parar continua a ser acima de 5% de desistências.
+- **Código por contacto** (`crm_contactos.codigo`, 8 caracteres) e rota `/api/crm/c/<código>?e=<campanha>` que regista o
+  clique (um por envio, garantido por índice único) e encaminha para o destino do flyer com `k=<código>`. Cliques de
+  robôs e pré-visualizadores de link não contam (cabeçalho do navegador); filtro imperfeito, a rever com dados.
+- **Tarefa diária** `/api/cron/crm` (09:40): por zona ativa, descoberta no OpenStreetMap semanal, leitura de até 15
+  websites por dia para achar o email geral, **proposta** (nunca envio) de até 20 envios por dia, e decisão de avançar
+  ou parar a campanha. O envio exige aprovação por uma pessoa — ainda por construir.
+- **IMPIC:** a consulta pública de empresas com alvará é dirigida por JavaScript e por sessão, e não se lê com um
+  pedido simples. Fica para uma passagem com navegador automático. Vale a pena: o NIF devolvido distingue pessoa
+  coletiva (NIF começado por 5, 6 ou 9) sem depender do nome, e o nif.pt dá contactos a partir do NIF.
+- Migração `20261106163026_crm_codigos_e_cliques` aplicada e verificada (código distinto por contacto, 2.º clique
+  recusado, sem rasto).

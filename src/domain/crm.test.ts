@@ -26,13 +26,13 @@ describe('sequência de campanhas', () => {
 });
 
 describe('decidirCampanha', () => {
-  const base = { enviados: 40, respostas: 4, adesoes: 0, desistencias: 0 };
+  const base = { enviados: 40, agiram: 6, respostas: 1, adesoes: 0, desistencias: 0 };
   it('continua quando resulta', () => expect(decidirCampanha(base, 10).acao).toBe('continuar'));
   it('continua com amostra curta, mesmo sem respostas', () => {
-    expect(decidirCampanha({ enviados: 10, respostas: 0, adesoes: 0, desistencias: 0 }, 5).acao).toBe('continuar');
+    expect(decidirCampanha({ enviados: 10, agiram: 0, respostas: 0, adesoes: 0, desistencias: 0 }, 5).acao).toBe('continuar');
   });
-  it('avança quando não resulta', () => {
-    expect(decidirCampanha({ ...base, respostas: 0 }, 10).acao).toBe('avancar');
+  it('avança quando poucos agem (2 em 40 = 5%)', () => {
+    expect(decidirCampanha({ ...base, agiram: 2 }, 10).acao).toBe('avancar');
   });
   it('avança quando a zona está esgotada', () => expect(decidirCampanha(base, 0).acao).toBe('avancar'));
   it('pára com desistências acima de 5%, e isso vence tudo', () => {

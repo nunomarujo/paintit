@@ -66,3 +66,21 @@ describe('CRM: a porta legal na base de dados', () => {
     await expect(db.query(`insert into public.crm_envios (contacto_id, campanha_id) values ($1, 'pintor-1')`, [id])).rejects.toThrow(/duplicate key/);
   });
 });
+
+describe('CRM: códigos e cliques', () => {
+  it('cada contacto tem um código próprio de 8 caracteres', async () => {
+    const a = await contacto(true, 'cod-a@empresa.invalid');
+    const b = await contacto(true, 'cod-b@empresa.invalid');
+    const r = await db.query<{ id: string; codigo: string }>('select id, codigo from public.crm_contactos where id = any($1)', [[a, b]]);
+    expect(r.rows).toHaveLength(2);
+    expect(r.rows[0]!.codigo).toMatch(/^[A-Z0-9]{8}$/);
+    expect(r.rows[0]!.codigo).not.toBe(r.rows[1]!.codigo);
+  });
+  it('um envio só conta um clique', async () => {
+    const c = await contacto(true, 'clique@empresa.invalid');
+    const e = (await db.query<{ id: string }>(`insert into public.crm_envios (contacto_id, campanha_id) values ($1, 'pintor-1') returning id`, [c])).rows[0]!.id;
+    await db.query(`insert into public.crm_eventos (contacto_id, envio_id, tipo) values ($1, $2, 'clique')`, [c, e]);
+    await expect(db.query(`insert into public.crm_eventos (contacto_id, envio_id, tipo) values ($1, $2, 'clique')`, [c, e])).rejects.toThrow(/duplicate key/);
+    await db.query(`insert into public.crm_eventos (contacto_id, envio_id, tipo) values ($1, $2, 'resposta')`, [c, e]);
+  });
+});
