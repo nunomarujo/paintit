@@ -168,7 +168,7 @@ export async function contractPdfFor(supabase: Client, row: EngagementRow): Prom
   return contractPdf(await loadDraft(supabase, row, { anonymous }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
 }
 
-/** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261105233000). */
+/** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261106083458). */
 export const caminhoDoPdfAssinado = (engagementId: string, side: 'cliente' | 'pintor', sha256: string) => `${engagementId}/${side}-${sha256}.pdf`;
 
 /**

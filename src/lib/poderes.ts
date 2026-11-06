@@ -15,7 +15,7 @@ import type { Database } from '@/lib/database.types';
 // Leituras da base para os poderes de representação (regras em src/domain/poderes.ts). Correm com a sessão de
 // quem pede: a entidade lê a sua própria leitura (quem a gere), a equipa lê todas, e mais ninguém (RLS).
 //
-// Tudo ou nada. Enquanto a migração `20261105230000_poderes_de_representacao` não estiver aplicada, as tabelas
+// Tudo ou nada. Enquanto a migração `20261106083428_poderes_de_representacao` não estiver aplicada, as tabelas
 // não existem e a leitura devolve `undefined`: nesse caso nada muda para ninguém — a assinatura não grava
 // resultado nenhum, em NENHUM regime (nem no do titular, que não precisa destas tabelas), e a página da entidade
 // não passa a pedir a certidão ao pintor sociedade. Publicar o código antes da migração não liga metade da

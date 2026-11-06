@@ -32,7 +32,7 @@ const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entr
 const SEM_SERVIDOR = 'Não foi possível registar a assinatura agora. Tente de novo dentro de minutos.';
 
 /**
- * A assinatura só entra pelo servidor (migração `20261105233000_assinatura_so_pelo_servidor`): depois de
+ * A assinatura só entra pelo servidor (migração `20261106083458_assinatura_so_pelo_servidor`): depois de
  * verificar, regista-se com a chave de serviço o payload exato que o acontecimento vai levar, e a base só
  * aceita o acontecimento com um payload igual, desta pessoa. Até 05/11/2026 quem gerisse a entidade podia
  * registar «assinou» pela API sem PDF nenhum. Devolve a mensagem de erro, ou `null` quando ficou registado.
@@ -308,7 +308,7 @@ export async function signWithPdf(
     ...(poderes ? { poderes } : {}),
   };
   // O PDF e a verificação seguem pela chave de serviço: nenhuma das duas coisas se faz com a sessão da parte
-  // (migração 20261105233000). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
+  // (migração 20261106083458). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
   // escrever os mesmos bytes, e um carregamento atrasado (uma verificação de rede lenta) cai noutro nome e
   // nunca substitui o que foi aceite — lê-se sempre o do acontecimento (`signedPdf`).
   if (sobreCliente) {

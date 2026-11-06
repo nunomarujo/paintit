@@ -2041,7 +2041,7 @@ export type Database = {
           // do topo manda: a regeneração completa traz 87 erros de tipos e é dívida à parte.
           participacao: Participacao;
           origem_quantidade: OrigemDaQuantidade | null;
-          // Migração 20261106010000 (por aplicar): margem da medição do cliente pela fotografia.
+          // Migração 20261106083508 (aplicada a 06/11/2026): margem da medição do cliente pela fotografia.
           margem_bps: number | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
@@ -2269,7 +2269,7 @@ export type Database = {
           { foreignKeyName: 'relatorios_de_propostas_fichas_relatorio_id_fkey'; columns: ['relatorio_id']; isOneToOne: false; referencedRelation: 'relatorios_de_propostas'; referencedColumns: ['id'] },
         ];
       };
-      // Migração `20261105230000_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
+      // Migração `20261106083428_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
       // aplicar à base real. Só se escrevem pelas funções `definir_codigo_certidao` e
       // `registar_leitura_poderes` (abaixo), por isso Insert e Update são `never`.
       poderes_de_representacao: {
@@ -2460,13 +2460,13 @@ export type Database = {
           por_responder: boolean;
         }[];
       };
-      // Poderes de representação (migração 20261105230000), escritas à mão até ser aplicada.
+      // Poderes de representação (migração 20261106083428), escritas à mão até ser aplicada.
       definir_codigo_certidao: { Args: { p_org: string; p_codigo: string }; Returns: undefined };
       registar_leitura_poderes: {
         Args: { p_org: string; p_fonte: string; p_forma_de_obrigar: string; p_assinaturas: number | null; p_valida_ate: string; p_membros: Json };
         Returns: undefined;
       };
-      // A assinatura só entra pelo servidor (migração 20261105233000), escrita à mão até ser aplicada. Só a
+      // A assinatura só entra pelo servidor (migração 20261106083458), escrita à mão até ser aplicada. Só a
       // chave de serviço a executa; a tabela `assinaturas_verificadas` não tem entrada aqui porque ninguém
       // com sessão a lê nem a escreve.
       registar_assinatura_verificada: {

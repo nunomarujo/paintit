@@ -40,7 +40,7 @@ alter table public.assinaturas_verificadas enable row level security;
 revoke all on public.assinaturas_verificadas from public, anon, authenticated;
 
 comment on table public.assinaturas_verificadas is
-  'O payload de cada assinatura que o servidor verificou (PDF esperado, assinatura válida). O acontecimento cliente_assinou/pintor_assinou só entra com um payload igual. Migração 20261105233000.';
+  'O payload de cada assinatura que o servidor verificou (PDF esperado, assinatura válida). O acontecimento cliente_assinou/pintor_assinou só entra com um payload igual. Migração 20261106083458.';
 
 -- A porta do servidor. Um novo PDF verificado do mesmo lado substitui o anterior enquanto o acontecimento não
 -- existir (um carregamento cujo registo falhou não fica preso); depois de existir, o percurso do servidor

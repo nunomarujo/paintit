@@ -3,7 +3,7 @@
  *
  * Decisão do promotor (05/11/2026): o cliente também mede, na ferramenta de fotografia; a zona fica com a
  * origem «medida pelo cliente» e com a margem de erro da medição, e **nunca confirmada** — confirma-a quem
- * mede no local. A base garante as duas coisas (migração 20261106010000); aqui decide-se o que se grava.
+ * mede no local. A base garante as duas coisas (migração 20261106083508); aqui decide-se o que se grava.
  *
  * Grava-se a área a pintar e a margem. **Nunca a fotografia**, nem a geometria desenhada sobre ela: o pintor
  * lê as zonas de um anúncio aberto, e a fotografia original não lhe pode chegar antes da apresentação

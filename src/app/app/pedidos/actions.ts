@@ -262,7 +262,7 @@ export async function updateSurface(
  * Grava no pedido a medição de uma fachada feita na ferramenta de fotografia (06/11/2026).
  *
  * A zona fica «medida pelo cliente», com a margem de erro, e por confirmar (decisão do promotor de
- * 05/11/2026; a base garante-o, migração 20261106010000). Vai a área a pintar e a margem — nunca a
+ * 05/11/2026; a base garante-o, migração 20261106083508). Vai a área a pintar e a margem — nunca a
  * fotografia nem o desenho sobre ela (regra 6). As regras da conversão estão em `zonaDaMedicao`.
  *
  * Tudo isto chega do navegador (regra 10): o pedido e a zona ligados, a medição no corpo. A medição é

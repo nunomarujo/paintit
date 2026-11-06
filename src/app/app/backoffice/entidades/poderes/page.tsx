@@ -30,7 +30,7 @@ export default async function PoderesPage() {
       <section className={card}>
         <h2 className="font-semibold">Poderes de representação</h2>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
-          A migração <code>20261105230000_poderes_de_representacao</code> ainda não foi aplicada a esta base: sem ela não há códigos nem
+          A migração <code>20261106083428_poderes_de_representacao</code> ainda não foi aplicada a esta base: sem ela não há códigos nem
           leituras para mostrar.
         </p>
       </section>
