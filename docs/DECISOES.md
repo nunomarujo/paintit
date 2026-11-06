@@ -6431,3 +6431,80 @@ as medidas do prédio ficam). Remover uma zona já existia, mas só dentro da ga
 pedido na mesma mensagem — o desenho do prédio:** (1) o primeiro passo é a planta (quadrado, I, L, U, T), e o desenho
 só tem as fachadas que se foram entregando, coladas às anteriores; (2) o desenho roda e vê-se por inteiro, para
 nenhuma zona ficar «fora do desenho» por não ter sítio. Ver `docs/EM_ABERTO.md`.
+
+## 06/11/2026 — O desenho do prédio é dos alçados, e roda
+
+Pedido do promotor (06/11/2026), depois de ver o passo 2 em produção: o desenho 3D só deve ter a forma dos alçados
+entregues, colados uns aos outros; a planta (quadrado, I, L, U, T) define-se ao entrar o segundo alçado; o desenho roda
+e vê-se por inteiro; os números e as cotas seguem o ângulo; nenhuma zona fica «Fora do desenho» por falta de sítio. Feito
+no ramo `claude/sweet-cray-xfehwj`, por publicar (`src/domain/volume.ts`, `prancheta.ts`, `rotacao.ts`,
+`src/app/app/pedidos/[id]/Prancheta.tsx`, `ZonasComVolume.tsx`).
+
+**Um alçado é uma zona de fachada ou de empena.** Ocupa um **lado da planta** (`LadoDaPlanta`, em `volume.ts`: o
+contorno da planta, um lado por parede exterior — `frente`, `esquerda`, `direita`, `tras`, e `tras-2`, `direita-2`… para
+as asas de um L, U ou T, com nomes como «Tardoz (ala direita)»; um quadrado ou uma banda têm quatro, um L seis, um U ou
+um T oito). O desenho já não é uma caixa com janelas em todo o lado: as paredes são os lados do contorno (sem paredes
+dentro do U), e só o lado entregue leva parede, vãos e cor; os outros ficam só com o traço e um enchimento leve («por
+entregar»). Uma empena é parede cega.
+
+**A laje, e a planta ao segundo alçado.** Com zero ou um alçado o prédio é uma **laje**: um painel com a frente do
+primeiro alçado e pouca profundidade, a três dimensões (a cota do fundo não se desenha: a profundidade medida é a do
+prédio, não a do painel). Ao entrar o segundo, o prédio ganha planta: a do cadastro (`buildings.forma_implantacao`),
+usada logo; se ainda não existir, o desenho usa a **banda** e aparece, por cima do desenho, «Qual é a planta do
+prédio?» com as cinco miniaturas — não bloqueia nada, e a escolha grava-se no cadastro (`guardarFormaDoPredio`, só quem
+gere o pedido; o prédio tem de ser o do pedido; no ecrã do avaliador vê-se a planta, mas não se muda). **Consequência a ter presente:** a planta é do cadastro, e o volume do anúncio
+que os pintores veem usa-a — mudá-la aqui muda-a lá, para todos os pedidos do prédio. Com a planta já escolhida a linha diz «Planta: Em
+L · Alterar».
+
+**Que lado tem cada alçado** (`atribuirFaces`): o que a zona guardou (`face_do_predio`) manda; depois o que o nome diz
+(«Tardoz», «Traseiras», «Lateral esquerda», «Empena direita», «Fachada principal» — só quando o nome diz **um** lado;
+`ladoPeloNome`); depois a ordem — frente, direita, esquerda, tardoz para as fachadas, laterais primeiro para as empenas.
+Dois alçados nunca partilham um lado; um alçado a mais do que a planta tem lados fica «Fora do desenho» (só aí). O editor
+da zona ganhou «Lado do prédio» (quando já há outro alçado), com o nome de cada lado e «já tem alçado» nos ocupados.
+As varandas assentam no lado que guardaram, ou no da primeira fachada, ou na frente.
+
+**O número segue o ângulo** — a regra, também no cabeçalho de `prancheta.ts` e testada:
+1. Uma zona **tem sítio** se o prédio tem a peça que ela pinta (o lado do alçado, as varandas, o muro, a cobertura…).
+   Isto **não depende do ângulo**, por isso a numeração não muda ao rodar (testado de 15 em 15°).
+2. O número só está numa face da zona que **se vê e se lê**: virada para a câmara com `vista ≥ 0,35` (a menos de ~70° de
+   frente; uma parede de perfil não leva número) e num ponto **não tapado** por nenhuma face desenhada depois dela (as
+   janelas e a porta não tapam; um lado por entregar tapa). Procura-se, a partir do sítio preferido do tipo de zona (no
+   ecrã, à esquerda para a fachada e as varandas, ao meio para a empena, à direita para o muro), o primeiro ponto livre
+   de uma grelha.
+3. Se nenhuma face cumpre, a zona fica **oculta nesta vista**: mantém o número e o cartão, sem pino, e o cartão diz
+   «Atrás, nesta vista» com **«Ver no desenho»**, que roda até à vista mais próxima onde o número fica numa face de
+   frente (`vista ≥ 0,7`, `vistaParaVer`). Verificado: cada lado de cada planta tem uma vista assim (`vistaParaVer` nunca
+   devolve nulo) e o número nunca está atrás de uma parede em 3D (`pinos3d.test.ts`, que lança raios e não olha para a
+   ordem do pintor).
+Também se corrigiu o que o prédio visto por trás mostrava: as varandas, os vãos, o muro e os beirais da frente pairavam
+por cima da cobertura (o pintor desenha o corpo e depois os pormenores). Agora o que assenta num lado de costas não se
+desenha.
+
+**As cotas seguem o ângulo** (`Volume.cotasDaPrancheta`): a largura na aresta do telhado mais afastada da câmara, o fundo
+na mais à esquerda no ecrã, a altura na esquina mais à direita. A 25° são as de sempre. A moldura do desenho é a de
+**todas as vistas** (`caixaDaVolta`: treze vistas) — rodar não muda a escala, como num prato giratório.
+
+**As chamadas por ângulo.** `chamadas.ts` não mudou: já só conhecia píxeis, pinos e faces; o que mudou é que
+`pranchetaLarga` é chamada com o prédio a cada ângulo, e só entram as zonas com pino nessa vista. As ocultas vão para um
+grupo por baixo do palco («Sem número nesta vista»). Onde nenhuma disposição cumpre a regra — nenhuma ligação cruza uma
+cota, corta uma face na diagonal ou atravessa a zona de outro número —, fica o modo lista, que nunca falha. A garantia
+continua a ser a função: testado de 5 em 5° em cinco plantas que nunca devolve uma ligação má (`problemasDasLigacoes`
+vazio) e que há chamadas em mais de metade das vistas.
+
+**Rodar.** Arrastar (rato ou toque; na vertical o toque continua a deslocar a página), botões «Esquerda», «Direita» e
+«Vista inicial» (44 px, com nome por extenso «Rodar à esquerda/direita» para o leitor de ecrã) e as setas e o Início com
+o foco no desenho. Os botões andam de 45° em 45° a partir da vista inicial (25°); **aumentar o ângulo roda o prédio para
+a esquerda** (a frente vai para a esquerda), e arrastar para a direita faz o contrário. Anima-se 320 ms pelo caminho mais
+curto, **salvo `prefers-reduced-motion`** (salta). Um arrasto não abre a zona por baixo do ponteiro; um número, um
+cartão ou um botão não começam arrasto. As varandas e palas de um prédio que as tem mas sem a zona registada deixam o
+clique passar para a parede.
+
+**Na base: `request_surfaces.face_do_predio`** (texto, `frente|esquerda|direita|tras` com sufixo `-2` a `-9`, nulo quando o
+desenho atribui). Migração `20261106103000_face_do_predio.sql`, aditiva, com testes de RLS em `supabase/tests/rls.test.ts`
+(aceita os lados e o nulo, recusa o resto, só quem gere o pedido o altera). **Por aplicar à base real.** Até lá nada
+rebenta: a página lê com `select *` e a gravação do lado repete-se à parte, sem derrubar a da zona (a mensagem diz que o
+lado ainda não se guarda); `database.types.ts` já traz a coluna, e deve ser regenerado depois de aplicar.
+
+**Perdeu-se, de propósito:** o «+ Empena» pousado no desenho do pedido vazio. A laje não tem uma parede lateral onde caiba
+(2 m de profundidade); continua na lista ao lado. Fica a decidir pelo promotor se o quer de volta de outra maneira.
+**Não se adivinha:** o nome só decide o lado quando diz um só; e a ordem de omissão é a mesma de antes, agora com lugar.

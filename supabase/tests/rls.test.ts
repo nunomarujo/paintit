@@ -442,6 +442,63 @@ describe('zona medida pelo cliente na fotografia (06/11/2026)', () => {
   });
 });
 
+describe('o lado do prédio de cada alçado (06/11/2026)', () => {
+  // A zona guarda o lado da planta onde fica o seu alçado. Nulo é válido (o desenho atribui); o que se guarda tem de
+  // ser um identificador de `ladosDaPlanta`. A restrição está na base porque as políticas deixam quem gere o pedido
+  // escrever qualquer coluna pela API.
+  let req: string;
+  const zona = (face: string | null) =>
+    as(A, () =>
+      db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2, face_do_predio) values ($1, 'fachada', 9000, $2) returning id`, [req, face]),
+    );
+
+  beforeAll(async () => {
+    const predio = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    req = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Lados do prédio', 'fachadas', 'Pintura das fachadas do prédio.', current_date + 10) returning id`,
+          [condo, predio],
+        ),
+      )
+    ).id;
+  });
+
+  it('aceita os lados das formas canónicas e o nulo', async () => {
+    for (const f of ['frente', 'esquerda', 'direita', 'tras', 'tras-2', 'direita-3', 'esquerda-9', null]) {
+      expect((await zona(f)).rows).toHaveLength(1);
+    }
+  });
+
+  it('recusa o que não é um lado: outro nome, número fora de 2 a 9, maiúsculas, texto solto', async () => {
+    for (const f of ['norte', 'frente-1', 'frente-10', 'Frente', 'frente ', 'frente; drop table', '']) {
+      await expect(zona(f), JSON.stringify(f)).rejects.toThrow(/face_do_predio_formato/);
+    }
+  });
+
+  it('quem gere o pedido muda o lado de uma zona, e não mexe no resto da linha', async () => {
+    const { id } = (await zona('frente')).rows[0] as { id: string };
+    await as(A, () => db.query(`update public.request_surfaces set face_do_predio = 'direita' where id = $1`, [id]));
+    const l = await one<{ face_do_predio: string; area_direta_cm2: number }>(
+      'select face_do_predio, area_direta_cm2 from public.request_surfaces where id = $1',
+      [id],
+    );
+    expect(l).toEqual({ face_do_predio: 'direita', area_direta_cm2: 9000 });
+  });
+
+  it('quem não gere o pedido não vê nem altera o lado: as políticas da tabela cobrem a coluna', async () => {
+    const { id } = (await zona('tras')).rows[0] as { id: string };
+    const estranho = '00000000-0000-4000-8000-0000000000f9';
+    const vistas = await as(estranho, async () => (await db.query('select face_do_predio from public.request_surfaces where id = $1', [id])).rows);
+    expect(vistas).toEqual([]);
+    const mudadas = await as(estranho, async () =>
+      (await db.query(`update public.request_surfaces set face_do_predio = 'frente' where id = $1 returning id`, [id])).rows,
+    );
+    expect(mudadas).toEqual([]);
+  });
+});
+
 describe('tipos de obra e datas indicativas', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado acima
   let buildingId: string;

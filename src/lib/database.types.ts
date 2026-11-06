@@ -2043,6 +2043,8 @@ export type Database = {
           origem_quantidade: OrigemDaQuantidade | null;
           // Migração 20261106083508 (aplicada a 06/11/2026): margem da medição do cliente pela fotografia.
           margem_bps: number | null;
+          /** O lado da planta do prédio onde fica o alçado (migração 20261106103000; ainda por aplicar à base real). */
+          face_do_predio: string | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
           registado_em: string | null;
@@ -2064,6 +2066,7 @@ export type Database = {
           participacao?: Participacao;
           origem_quantidade?: OrigemDaQuantidade | null;
           margem_bps?: number | null;
+          face_do_predio?: string | null;
           confirmacao?: Confirmacao;
           registado_por?: string | null;
           registado_em?: string | null;

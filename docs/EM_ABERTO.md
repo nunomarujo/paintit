@@ -178,12 +178,15 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
-- **O desenho do prédio, a refazer (pedido do promotor, 06/11/2026):** hoje é um volume genérico com uma frente, e uma
-  segunda fachada, as escadas e o átrio ficam «Fora do desenho». Pedido: (1) começar pela planta — quadrado, I, L, U,
-  T (já existem em `volume.ts`/`FormaWizard`, com a forma no cadastro do prédio) —, e o desenho só ter as fachadas
-  entregues, coladas às anteriores; (2) poder rodar e ver o prédio inteiro (a câmara de `buildingVolume` já tem
-  azimute); (3) cada alçado ter o seu sítio, para nenhuma zona ficar de fora. Mexe em `prancheta.ts`, `chamadas.ts`
-  (as ligações assumem uma vista fixa) e `Prancheta.tsx`; as chamadas e as cotas têm de se refazer para cada ângulo.
+- **O desenho do prédio por alçados e a rodar — construído a 06/11/2026, por publicar** (`docs/DECISOES.md`, «O desenho do
+  prédio é dos alçados, e roda»): laje até ao segundo alçado, planta ao segundo (a do cadastro ou a pergunta), cada alçado
+  no seu lado da planta, números e cotas e chamadas por ângulo, e os botões e o arrasto para rodar. **Falta:**
+  (1) **aplicar a migração `20261106103000_face_do_predio`** à base real (aditiva, testada em memória; até lá o lado
+  de cada alçado não se guarda e o desenho atribui pelo nome e pela ordem — a página não rebenta), e depois regenerar
+  `src/lib/database.types.ts`; (2) ver o desenho **no navegador com sessão e dados reais**, a escolher a planta
+  (`guardarFormaDoPredio` grava no cadastro: só se viu a recusa sem sessão) e a escolher o lado de um alçado; (3) o
+  promotor decidir se quer o «+ Empena» de volta no desenho do pedido vazio (saiu: a laje não tem parede lateral onde
+  caiba); (4) a escolha da planta no ecrã do avaliador, que hoje só a vê (não gere o prédio).
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 

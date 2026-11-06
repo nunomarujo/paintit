@@ -1,11 +1,14 @@
 'use client';
 
-import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import {
+  caixaDaVolta,
   colunaDasChamadas,
   desenharZonas,
+  lugaresDasZonas,
   pranchetaLarga,
   sitiosParaAcrescentar,
+  vistaParaVer,
   type DesenhoDasZonas,
   type EixoDaCota,
   type TipoNoDesenho,
@@ -24,6 +27,9 @@ import {
   type ZonaNaLista,
 } from './ZonasDoPedido';
 import { nomeDaZona } from '@/domain/respostaDasZonas';
+import { DURACAO_DA_ROTACAO, LIMIAR_DO_ARRASTO, anguloDoArrasto } from '@/domain/rotacao';
+import { ControlosDaVista } from './ControlosDaVista';
+import type { RotacaoDoDesenho } from './useAnguloDoDesenho';
 
 /**
  * O quadro das zonas do passo 2: o desenho do prédio e os cartões das zonas, ligados pelo número.
@@ -44,6 +50,16 @@ import { nomeDaZona } from '@/domain/respostaDasZonas';
  *
  * Os dois modos estão no HTML e o CSS escolhe: sem medir nada no servidor, o primeiro ecrã já vem no
  * modo certo. A largura medida no navegador só acerta a escala do desenho e as posições das chamadas.
+ *
+ * ## Rodar (06/11/2026)
+ *
+ * O desenho roda: arrastando (rato ou toque; na vertical o toque continua a deslocar a página), pelos
+ * botões «Esquerda», «Direita» e «Vista inicial» (`ControlosDaVista`) e pelas setas do teclado com o foco no
+ * desenho. A moldura é a de **todas** as vistas (`caixaDaVolta`): o prédio roda sem a escala mexer. Os números e
+ * as cotas refazem-se a cada ângulo (`lugaresDasZonas`, `cotasDoDesenho`) e as chamadas também (`pranchetaLarga`):
+ * uma zona cuja face fica atrás nesta vista não tem número no desenho — o cartão diz «Atrás, nesta vista» e o botão
+ * «Ver no desenho» roda até à vista mais próxima onde se vê (`vistaParaVer`). Nas chamadas, essas zonas vão para um
+ * grupo por baixo do palco; sem disposição aceitável, o modo lista, que nunca falha.
  *
  * O desenho responde ao toque: um número abre a sua zona (é um botão, com 44 px de alvo), uma face
  * abre a zona que a pinta e acende-se com o rato por cima. No pedido vazio, «+ Fachada», «+ Empena» e
@@ -78,9 +94,14 @@ function classeDaFace(kind: FaceKind, estado: EstadoNoDesenho | null): { classe:
   // As janelas e a porta estão na parede: o clique passa por elas para a face da zona.
   if (kind === 'janela') return { classe: 'pointer-events-none fill-white stroke-slate-400' };
   if (kind === 'porta') return { classe: 'pointer-events-none fill-slate-600 stroke-slate-700' };
+  // Um lado da planta que ainda ninguém entregou: só o traço, para se ler o que falta sem ser parede.
+  if (kind === 'por_entregar') return { classe: 'pointer-events-none fill-slate-100/70 stroke-slate-300', tracejado: '3 3' };
   if (estado) return { classe: CLASSE_DO_ESTADO[estado], tracejado: TRACEJADO_DO_ESTADO[estado] };
   if (kind === 'topo') return { classe: 'fill-slate-200 stroke-slate-400' };
-  if (kind === 'grade') return { classe: 'fill-white stroke-slate-500' };
+  // O que assenta na parede e não é de nenhuma zona (as varandas de um prédio que as tem mas sem a zona registada)
+  // deixa o clique passar para a parede por baixo: cobria-a e a fachada deixava de se poder tocar.
+  if (kind === 'grade') return { classe: 'pointer-events-none fill-white stroke-slate-500' };
+  if (kind === 'varanda' || kind === 'marquise' || kind === 'pala') return { classe: 'pointer-events-none fill-white stroke-slate-400' };
   return { classe: 'fill-white stroke-slate-400' };
 }
 
@@ -208,7 +229,12 @@ const FOLGA_DO_PALCO = 12;
 
 export interface PropsDoQuadro {
   requestId: string;
+  /** O prédio ao ângulo que se desenha. */
   volume: Volume;
+  /** O prédio a qualquer ângulo: para a moldura de todas as vistas e para «Ver no desenho». */
+  volumeEm: (angulo: number) => Volume;
+  /** O ângulo e os modos de o mudar (arrastar, botões). */
+  rotacao: RotacaoDoDesenho;
   zonas: ZonaNaLista[];
   numeracao: ZonaNumerada[];
   textos: Partial<Record<EixoDaCota, string>>;
@@ -246,10 +272,70 @@ const ROTULO_DO_TIPO: Record<TipoNoDesenho, string> = { fachada: 'Fachada', empe
 /** A chave da altura medida do bloco «Fora do pedido», ao lado das dos cartões. */
 const RODAPE = '\u0000rodape';
 
+/**
+ * Arrastar o desenho roda-o; as setas do teclado também. Um arrasto só começa depois de `LIMIAR_DO_ARRASTO` px,
+ * e o clique que o fecha não abre a zona por baixo do ponteiro. Em botões, ligações, campos e cartões não
+ * começa (esses são de quem os usa); e o toque na vertical continua a deslocar a página (`touch-pan-y`).
+ */
+function useGestosDeRotacao(rotacao: RotacaoDoDesenho) {
+  const gesto = useRef<{ id: number; x0: number; angulo0: number; arrastou: boolean } | null>(null);
+  const suprimir = useRef(false);
+  const fim = (e: PointerEvent<HTMLElement>) => {
+    const g = gesto.current;
+    if (!g || g.id !== e.pointerId) return;
+    gesto.current = null;
+    if (g.arrastou) {
+      suprimir.current = true;
+      setTimeout(() => (suprimir.current = false), 0);
+    }
+  };
+  return {
+    onPointerDown: (e: PointerEvent<HTMLElement>) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if ((e.target as HTMLElement).closest('button, a, input, select, textarea, [data-zona]')) return;
+      gesto.current = { id: e.pointerId, x0: e.clientX, angulo0: rotacao.angulo, arrastou: false };
+    },
+    onPointerMove: (e: PointerEvent<HTMLElement>) => {
+      const g = gesto.current;
+      if (!g || g.id !== e.pointerId) return;
+      const dx = e.clientX - g.x0;
+      if (!g.arrastou) {
+        if (Math.abs(dx) < LIMIAR_DO_ARRASTO) return;
+        g.arrastou = true;
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
+      rotacao.definir(anguloDoArrasto(g.angulo0, dx));
+    },
+    onPointerUp: fim,
+    onPointerCancel: fim,
+    onClickCapture: (e: { stopPropagation: () => void; preventDefault: () => void }) => {
+      if (!suprimir.current) return;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('input, select, textarea')) return;
+      if (e.key === 'ArrowLeft') rotacao.rodar('esquerda');
+      else if (e.key === 'ArrowRight') rotacao.rodar('direita');
+      else if (e.key === 'Home') rotacao.voltar();
+      else return;
+      e.preventDefault();
+      // O número em que estava o foco pode deixar de existir nesta vista (a face foi para trás): quando a rotação
+      // acaba, se o elemento já não está na página, o foco passa para o desenho, e as setas continuam a rodar em
+      // vez de se perderem no corpo da página.
+      const desenho = e.currentTarget;
+      const alvo = e.target as HTMLElement;
+      setTimeout(() => {
+        if (alvo !== desenho && !alvo.isConnected) desenho.focus({ preventScroll: true });
+      }, DURACAO_DA_ROTACAO + 150);
+    },
+  };
+}
+
 export function QuadroDasZonas(p: PropsDoQuadro) {
   const [largura, ref] = useLarguraDoContentor();
   const prefixo = useId().replace(/:/g, '');
-  const zonasDoDesenho = useMemo(() => p.zonas.map((z) => ({ id: z.id, kind: z.kind, participacao: z.participacao })), [p.zonas]);
+  const zonasDoDesenho = useMemo(() => p.zonas.map((z) => ({ id: z.id, kind: z.kind, participacao: z.participacao, face: z.face ?? null, descricao: z.descricao })), [p.zonas]);
   const numero = useMemo(() => Object.fromEntries(p.numeracao.map((n) => [n.id, n])), [p.numeracao]);
   const porId = useMemo(() => Object.fromEntries(p.zonas.map((z) => [z.id, z])), [p.zonas]);
   const estados: Record<string, EstadoNoDesenho> = {};
@@ -260,17 +346,34 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
   // ficava com 140 px de largura, espremido entre os textos das cotas).
   const estreito = largura < LARGURA_SEM_COTAS;
   const textosDaLista = useMemo(() => (estreito ? {} : p.textos), [estreito, p.textos]);
+  // A moldura de todas as vistas: rodar não a muda (nem a escala). Medem-se treze volumes só quando o prédio ou as
+  // cotas mudam — não a cada ângulo.
+  const caixaDaLista = useMemo(() => caixaDaVolta(p.volumeEm, textosDaLista), [p.volumeEm, textosDaLista]);
+  const caixaDaLarga = useMemo(() => caixaDaVolta(p.volumeEm, { ...p.textos, altura: undefined }), [p.volumeEm, p.textos]);
   const lista = useMemo(() => {
     const duasColunas = largura >= 720;
     const larguraDoDesenho = duasColunas ? ((largura - 2 * FOLGA_DO_PALCO - 20) * 1.15) / 2.15 : largura;
     let s = 16;
-    let d = desenharZonas(p.volume, zonasDoDesenho, textosDaLista, s);
+    let d = desenharZonas(p.volume, zonasDoDesenho, textosDaLista, s, caixaDaLista);
     for (let i = 0; i < 2; i++) {
       s = Math.min(larguraDoDesenho / d.caixa[2], ALTURA_MAXIMA_DO_DESENHO / d.caixa[3]);
-      d = desenharZonas(p.volume, zonasDoDesenho, textosDaLista, s);
+      d = desenharZonas(p.volume, zonasDoDesenho, textosDaLista, s, caixaDaLista);
     }
     return { d, s };
-  }, [largura, p.volume, zonasDoDesenho, textosDaLista]);
+  }, [largura, p.volume, zonasDoDesenho, textosDaLista, caixaDaLista]);
+  // As zonas com sítio no prédio que esta vista não mostra (a face delas fica atrás, ou tapada): sem número no
+  // desenho, com o cartão a dizê-lo e a oferecer a vista onde se veem.
+  const lugares = useMemo(() => lugaresDasZonas(p.volume, zonasDoDesenho), [p.volume, zonasDoDesenho]);
+  const oculta = (id: string) => !!lugares[id]?.temSitio && !lugares[id]?.pino;
+  // Uma zona que nenhuma vista mostra (não deve acontecer: cada lado vê-se de frente a algum ângulo) diz-o, em vez
+  // de um botão que não faz nada.
+  const [semVista, setSemVista] = useState<ReadonlySet<string>>(new Set());
+  const aoVer = (id: string) => {
+    const alvo = vistaParaVer(p.volumeEm, zonasDoDesenho, id, p.rotacao.angulo);
+    if (alvo !== null) p.rotacao.ir(alvo);
+    else setSemVista((s) => new Set(s).add(id));
+  };
+  const gestos = useGestosDeRotacao(p.rotacao);
   const sitios = useMemo(() => (p.vazio?.aoAcrescentar ? sitiosParaAcrescentar(p.volume) : []), [p.vazio?.aoAcrescentar, p.volume]);
 
   // As chamadas: só as zonas do pedido têm cartão à volta, até seis e todas com sítio no desenho. As
@@ -295,9 +398,10 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
             alturas,
             alturaMaxima: 340,
             rodape: alturaDoRodape || undefined,
+            caixaMinima: caixaDaLarga,
           })
         : null,
-    [elegivel, p.volume, zonasDoDesenho, p.textos, larguraDasChamadas, alturas, alturaDoRodape],
+    [elegivel, p.volume, zonasDoDesenho, p.textos, larguraDasChamadas, alturas, alturaDoRodape, caixaDaLarga],
   );
   const comChamadas = !!larga?.disposicao;
 
@@ -338,9 +442,11 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
       compacto={compacto}
       aoAbrir={() => p.aoAbrir(z.id)}
       aoApontar={(sim) => p.aoApontar(sim ? z.id : null)}
+      aoVerNoDesenho={oculta(z.id) ? { aoVer: () => aoVer(z.id), semVista: semVista.has(z.id) } : undefined}
     />
   );
   const doGrupo = (g: ZonaNumerada['grupo']) => p.numeracao.filter((n) => n.grupo === g).map((n) => porId[n.id]!);
+  const ocultasDoPedido = doPedido.filter((z) => oculta(z.id));
 
   /** Um número no desenho: um botão que abre a zona (ou só o número, quando é só de leitura). */
   const pino = (id: string, left: string, top: string | number) => {
@@ -385,7 +491,14 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
     <div className="quadro-lista-desenho min-w-0">
       <div className="quadro-caixa-do-desenho rounded-2xl bg-slate-50">
         <div className="mx-auto w-full" style={{ maxWidth: Math.round((ALTURA_MAXIMA_DO_DESENHO * cw) / ch) }}>
-          <figure className="relative m-0" style={{ aspectRatio: `${cw} / ${ch}` }} aria-label={p.descricao} role="group">
+          <figure
+            tabIndex={-1}
+            className="relative m-0 cursor-grab touch-pan-y select-none outline-none"
+            style={{ aspectRatio: `${cw} / ${ch}` }}
+            aria-label={p.descricao}
+            role="group"
+            {...gestos}
+          >
             <svg viewBox={`${cx} ${cy} ${cw} ${ch}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
               <Faces volume={p.volume} d={lista.d} estados={estados} prefixo={`${prefixo}-l`} tocar={aoTocarNaFace} />
               <LinhasDasCotas d={lista.d} px={(q) => q} ponto={2 / lista.s} />
@@ -409,6 +522,7 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
           </figure>
         </div>
       </div>
+      {!p.vazio && <ControlosDaVista rotacao={p.rotacao} className="mt-2 justify-center" />}
       {estreito && medidasEmTexto.length > 0 && (
         <p className="mt-2 text-[13px] tabular-nums text-slate-600">{medidasEmTexto.join(' · ').replace(/^./, (c) => c.toUpperCase())}</p>
       )}
@@ -457,7 +571,14 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
       {larga?.disposicao && (
         // O palco: cinzento a toda a largura, com os cartões por cima e o desenho ao meio (maqueta B).
         <div className="quadro-so-chamadas rounded-2xl bg-slate-50" style={{ padding: FOLGA_DO_PALCO }}>
-          <figure className="relative m-0" style={{ height: larga.disposicao.altura }} aria-label={p.descricao} role="group">
+          <figure
+            tabIndex={-1}
+            className="relative m-0 cursor-grab touch-pan-y select-none outline-none"
+            style={{ height: larga.disposicao.altura }}
+            aria-label={p.descricao}
+            role="group"
+            {...gestos}
+          >
             <svg
               viewBox={`0 0 ${larguraDasChamadas} ${larga.disposicao.altura}`}
               preserveAspectRatio="none"
@@ -531,6 +652,10 @@ export function QuadroDasZonas(p: PropsDoQuadro) {
               </div>
             )}
           </figure>
+          <ControlosDaVista rotacao={p.rotacao} className="mt-3 justify-center" />
+          {ocultasDoPedido.length > 0 && (
+            <div className="mt-4">{grupo('Sem número nesta vista', 'A face delas fica atrás. Rodar o prédio mostra-as.', ocultasDoPedido, 'grelha')}</div>
+          )}
           {/* Sem lugar numa coluna, por baixo. Aqui não se mede: a altura que conta é a da coluna, e
               medir esta (mais baixa, em grelha) punha o bloco a saltar entre os dois sítios. */}
           {!larga.disposicao.rodape && doGrupo('fora_do_pedido').length > 0 && <div className="mt-4">{foraDoPedido('grelha')}</div>}

@@ -293,23 +293,15 @@ describe('o que a regra aceita', () => {
 });
 
 describe('o prédio das maquetas: 4 pisos, 2 fachadas, varandas e muro, 12 × 10 m, pé-direito 2,8', () => {
-  const volume = buildingVolume({
-    pisos: 4,
-    fachadas: 2,
-    temVarandas: true,
-    moradia: false,
-    forma: null,
-    angulo: 25,
-    janelas: { frente: 4, esquerda: 0, direita: 0, tras: 4 },
-    escala: { larguraM: 12, profundidadeM: 10, peDireitoM: 2.8 },
-    elementos: { muro: true },
-  });
   const zonas: ZonaParaDesenho[] = [
     { id: 'z1', kind: 'fachada', participacao: 'incluida' },
     { id: 'z2', kind: 'empena', participacao: 'incluida' },
     { id: 'z3', kind: 'varandas', participacao: 'por_decidir' },
     { id: 'z4', kind: 'muro', participacao: 'excluida' },
   ];
+  const predio = { pisos: 4, fachadas: 2, temVarandas: true, moradia: false, forma: null, janelas: { frente: 4, esquerda: 0, direita: 0, tras: 4 } };
+  // Uma fachada e uma empena: dois alçados, por isso já há planta (a banda, enquanto ninguém escolhe).
+  const volume = buildingVolume(entradaDoVolume(predio, zonas, { larguraM: 12, profundidadeM: 10, peDireitoM: 2.8 }));
   const textos = { frente: '≈ 12 m', fundo: '≈ 10 m', altura: '≈ 11,2 m' };
   const alturas = { z1: 90, z2: 90, z3: 156, z4: 112 };
 
@@ -408,5 +400,49 @@ describe('prédios em L, em U, em T e altos (o cético só tinha visto o prédio
       problemas.some((x) => x.startsWith('z2: atravessa a zona z1')),
       problemas.join(' | '),
     ).toBe(true);
+  });
+});
+
+describe('as chamadas por ângulo (06/11/2026): o prédio roda, as ligações refazem-se', () => {
+  const zonas: ZonaParaDesenho[] = [
+    { id: 'z1', kind: 'fachada', participacao: 'incluida' },
+    { id: 'z2', kind: 'empena', participacao: 'incluida' },
+    { id: 'z3', kind: 'varandas', participacao: 'por_decidir' },
+    { id: 'z4', kind: 'muro', participacao: 'excluida' },
+  ];
+  const alturas = { z1: 90, z2: 90, z3: 140, z4: 130 };
+  const textos = { frente: '≈ 12 m', fundo: '≈ 10 m', altura: '≈ 11,2 m' };
+
+  for (const forma of [null, 'quadrado', 'L', 'U', 'T'] as (Forma | null)[]) {
+    it(`${forma ?? 'I'}: a qualquer ângulo, ou há ligações que cumprem a regra toda, ou fica o modo lista — nunca uma ligação má`, () => {
+      let comChamadas = 0;
+      let total = 0;
+      for (let angulo = 0; angulo < 360; angulo += 5) {
+        const predio = { pisos: 4, fachadas: 2, temVarandas: true, moradia: false, forma, janelas: { frente: 4, tras: 4 } };
+        const v = buildingVolume(entradaDoVolume(predio, zonas, { larguraM: 12, profundidadeM: 10, peDireitoM: 2.8 }, angulo));
+        const p = pranchetaLarga(v, zonas, textos, { largura: 1100, alturas, alturaMaxima: 340 });
+        total++;
+        if (!p.disposicao) continue;
+        comChamadas++;
+        const onde = `${forma ?? 'I'} ${angulo}°`;
+        // Só as zonas do pedido que se veem nesta vista têm ligação, e todas têm.
+        const visiveis = p.desenho.pinos.map((x) => x.id).filter((id) => id !== 'z4');
+        expect(p.disposicao.chamadas.map((c) => c.id).sort(), onde).toEqual(visiveis.sort());
+        expect(ortogonais(p.disposicao.chamadas), onde).toBe(true);
+        expect(problemasDasLigacoes(p.disposicao.chamadas, p.entrada), onde).toEqual([]);
+      }
+      // Não é uma garantia vazia: há vistas, e muitas, em que as chamadas existem.
+      expect(comChamadas, `${forma ?? 'I'}: ${comChamadas} de ${total}`).toBeGreaterThan(total / 2);
+    });
+  }
+
+  it('uma zona escondida nesta vista não tem ligação: o número só se liga ao cartão quando se vê', () => {
+    const predio = { pisos: 4, fachadas: 2, temVarandas: true, moradia: false, forma: 'quadrado' as Forma, janelas: { frente: 4, tras: 4 } };
+    // De costas (205°), a frente e a lateral direita ficam atrás: a fachada (frente) e a empena (direita) não se veem.
+    const v = buildingVolume(entradaDoVolume(predio, zonas, { larguraM: 12, profundidadeM: 10, peDireitoM: 2.8 }, 205));
+    const p = pranchetaLarga(v, zonas, textos, { largura: 1100, alturas, alturaMaxima: 340 });
+    expect(p.desenho.pinos.map((x) => x.id)).not.toContain('z1');
+    expect(p.desenho.pinos.map((x) => x.id)).not.toContain('z2');
+    expect(p.disposicao?.chamadas.map((c) => c.id) ?? []).not.toContain('z1');
   });
 });
