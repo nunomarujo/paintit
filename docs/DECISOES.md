@@ -6495,8 +6495,17 @@ Promotor: «sim, avança com o registo de lojas».
 - **Para que serve, por agora:** os concelhos por omissão. Sem concelhos indicados, de levantamento ou de entrega, valem
   o da morada da empresa **e** os das lojas (`concelhosPorOmissao` em `coberturaDaEmpresa.ts`, `private.supplier_covers`,
   os convites por WhatsApp). O ecrã diz de onde vêm: «Viana do Castelo e Braga (morada e lojas da empresa)».
-- **Fica para depois (decisão do promotor):** mostrar a morada das lojas aos pintores (para levantar encomendas) — hoje
-  não sai da empresa.
+- **Aos pintores:** decidido a seguir — ver a entrada «As lojas veem-se pelos pintores».
 - **Base real, de passagem:** uma migração reaplicada por outra sessão (`20261106151731`, mesmo nome da de 05/11) tinha
   desfeito a correção `20261105094822` (search_path de `private.versao_da_autodeclaracao_do_avaliador`); a correção,
   que já estava no repositório, foi reposta e o aviso de segurança voltou a zero.
+
+## 06/11/2026 — As lojas do fornecedor veem-se pelos pintores
+
+Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem
+pertence a uma empresa de pintura lê as lojas dos fornecedores; clientes e outros fornecedores continuam sem as ver, e
+a morada fiscal da empresa continua reservada. Onde aparecem:
+- **Escolha de materiais no orçamento** (`MaterialPicker`): linha «Loja»/«Lojas» por baixo da entrega, com as do
+  concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
+- **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
+  concelho, um vendedor com loja nesse concelho também aparece.

@@ -16,16 +16,17 @@ export interface LojaNaLista {
 }
 
 /**
- * As lojas do fornecedor (06/11/2026). Servem, por agora, para os concelhos por omissão: quando a empresa
- * não indica concelhos de levantamento ou de entrega, valem o da morada e os das lojas.
+ * As lojas do fornecedor (06/11/2026). Os pintores veem-nas na escolha de materiais e no catálogo, para
+ * levantar o material; e, quando a empresa não indica concelhos de levantamento ou de entrega, valem o da
+ * morada e os das lojas.
  */
 export function Lojas({ orgId, lojas, podeGerir }: { orgId: string; lojas: LojaNaLista[]; podeGerir: boolean }) {
   return (
     <div>
       <h2 className="text-[20px] font-semibold text-slate-900">Lojas</h2>
       <p className="mt-1 max-w-[54ch] text-[15px] text-slate-600">
-        Os concelhos das lojas juntam-se ao da morada da empresa quando não se indicam concelhos de levantamento ou
-        de entrega. As moradas das lojas ficam só para a empresa e para a plataforma.
+        Os pintores veem as lojas na escolha de materiais e no catálogo, para levantar o material. Os concelhos das
+        lojas juntam-se ao da morada da empresa quando não se indicam concelhos de levantamento ou de entrega.
       </p>
       {lojas.length === 0 ? (
         <p className="mt-3 text-[17px] text-slate-600">Ainda sem lojas registadas.</p>

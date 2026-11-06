@@ -2706,8 +2706,12 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     );
     expect(await cobre('Porto')).toBe(true);
     expect(await cobre('Braga')).toBe(true);
-    // As lojas veem-se só pela empresa (e pela plataforma).
+    // As lojas veem-se pela empresa, pela plataforma e pelos pintores (06/11/2026); por mais ninguém.
     expect(await as(B, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([]);
+    const PINTOR = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado nos testes das propostas
+    expect(await as(PINTOR, async () => (await db.query('select nome from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([
+      { nome: 'Loja do Porto' },
+    ]);
     expect(await as(SEMZONA, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toHaveLength(1);
     // Quem não gere a empresa não acrescenta lojas.
     await expect(

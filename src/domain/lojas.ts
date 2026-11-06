@@ -28,3 +28,22 @@ export function lerLoja(form: FormData): { value: LojaInput } | { errors: Record
   if (Object.keys(errors).length > 0) return { errors };
   return { value: { nome, morada, codigoPostal, localidade } };
 }
+
+export interface LojaVisivel {
+  nome: string;
+  morada: string;
+  codigo_postal: string;
+  localidade: string;
+  concelho: string | null;
+}
+
+/**
+ * As lojas de um fornecedor como as vê o pintor (06/11/2026): «Loja de Braga — Rua X, 4700-000 Braga».
+ * As do concelho da obra vêm primeiro: é aí que se levanta o material sem entrega.
+ */
+export function lojasParaOPintor(lojas: readonly LojaVisivel[], concelhoDaObra?: string | null): string[] {
+  const perto = (l: LojaVisivel) => (concelhoDaObra && l.concelho === concelhoDaObra ? 0 : 1);
+  return [...lojas]
+    .sort((a, b) => perto(a) - perto(b) || a.nome.localeCompare(b.nome, 'pt'))
+    .map((l) => `${l.nome} — ${l.morada}, ${l.codigo_postal} ${l.localidade}`);
+}
