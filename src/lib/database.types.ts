@@ -275,6 +275,13 @@ export type Database = {
         Update: { id?: string; perfil?: string; zona_id?: string | null; tema?: string; tipo?: string; texto?: string; fonte?: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
         Relationships: [];
       };
+      // Migração `ofertas_de_lancamento` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      ofertas_de_lancamento: {
+        Row: { org_id: string; origem_flyer: string | null; origem_contacto: string | null; concedida: string | null; valida_ate: string | null; criado_em: string };
+        Insert: { org_id: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Update: { org_id?: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {

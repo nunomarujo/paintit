@@ -8,7 +8,8 @@ import { resumoDaFila } from '@/domain/faturacao';
 import { invoiceTotal } from '@/domain/invoicing';
 import { pendingInvoices } from '@/lib/invoicing';
 import { DOC_KIND_LABELS, type DocKind } from '@/domain/organization';
-import { temPro, type SubscricaoPintor } from '@/domain/painterPlan';
+import { isPlanoPintor, temPro, type SubscricaoPintor } from '@/domain/painterPlan';
+import { VERSAO_DE_LANCAMENTO } from '@/domain/ofertaDeLancamento';
 import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
@@ -297,7 +298,7 @@ export async function notifySemana(orgId: string, hoje: string): Promise<boolean
     db.from('org_documents').select('kind, valido_ate').eq('org_id', orgId).not('valido_ate', 'is', null).lte('valido_ate', trintaDias).gte('valido_ate', hoje),
     db
       .from('org_subscriptions')
-      .select('plano, estado, periodicidade, valida_ate, preco_cents')
+      .select('plano, estado, periodicidade, valida_ate, preco_cents, preco_versao')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -312,7 +313,18 @@ export async function notifySemana(orgId: string, hoje: string): Promise<boolean
       orcamentosAEspera: (orcamentos ?? []).filter((q) => q.enviado_em).map((q) => ({ enviadoEm: q.enviado_em!.slice(0, 10) })),
       documentosACaducar: (docs ?? []).map((d) => ({ nome: DOC_KIND_LABELS[d.kind as DocKind] ?? d.kind, validoAte: d.valido_ate! })),
       // A mesma regra do resto da aplicação, não uma segunda leitura do plano aqui.
-      pro: temPro(sub as SubscricaoPintor | null, hoje),
+      pro: temPro(
+        sub && isPlanoPintor(sub.plano)
+          ? {
+              plano: sub.plano,
+              estado: sub.estado as SubscricaoPintor['estado'],
+              periodicidade: sub.periodicidade as SubscricaoPintor['periodicidade'],
+              validaAte: sub.valida_ate,
+              lancamento: sub.preco_versao === VERSAO_DE_LANCAMENTO,
+            }
+          : null,
+        hoje,
+      ),
     },
     hoje,
   );

@@ -6556,3 +6556,26 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 - **Sem percentagens nem valores de comissão nos emails** (regra 15; o pintor só os vê depois de aceitar os termos): teste.
 - **Por construir antes de aprovar qualquer campanha:** quem chega pelo link (`k`) ou pelo QR (`c`) tem de ficar com a
   oferta concedida. Hoje o Pro só se obtém por pagamento (Stripe) ou por cortesia manual em SQL; nada lê `k` nem `c`.
+
+### 06/11/2026 — Concessão do Plano Pro de lançamento (aprovada pelo promotor)
+
+- **Quem recebe:** uma empresa de pintura criada por quem chegou pelo QR de um flyer de pintores (`?c=fl-pin-1` ou `fl-pin-2`)
+  ou pelo link de um email do CRM (que leva ao mesmo destino, com `c=` e `k=`), até 31/01/2027. Plano Pro sem custo, sem
+  renovação, sem cobrança; depois dessa data a conta volta ao plano gratuito.
+- **Como:** o middleware guarda a origem num cookie (`qp_origem`, 30 dias, só com o formato exato). Ao criar a entidade
+  (`createOrganization`), `aplicarOfertaDeLancamento` — com a chave de serviço — grava uma linha em `ofertas_de_lancamento`
+  (uma por entidade; chave primária) e uma linha em `org_subscriptions` com `preco_versao = 'lancamento-2027-01-31'`, estado
+  «cancelada» (não ocupa o lugar de uma subscrição paga; o pintor pode subscrever durante a oferta) e `valida_ate`. Nunca
+  impede o registo. Se veio com `k`, regista a adesão do contacto no CRM (`crm_eventos`, estado «aderiu»).
+- **O cookie é do navegador (regra 10):** vale pelo que o servidor prova — formato, tipo de entidade (só pintor, só flyers
+  `fl-pin-*`) e data. O QR é público por natureza; o limite é uma oferta por entidade e a data. Uma pessoa que crie várias
+  entidades para repetir a oferta é um risco aceite, sem controlo de NIF por agora.
+- **Ecrã «Subscrição»:** diz «Plano Pro de lançamento, sem custo até …» e que não há cobrança nem renovação.
+- **Correção de um defeito antigo:** o email de segunda-feira passava a `temPro` a linha da base com `valida_ate` em vez de
+  `validaAte`, pelo que uma subscrição caducada contava como Pro para sempre nesse email. Agora mapeia os campos.
+- **Faturação:** a procura do plano para a designação da fatura ignora as linhas de lançamento.
+- **Ainda sem concessão:** fornecedores («catálogo sem subscrição») e administradoras («relatório sem custo»). O plano de
+  fornecedor não tem data de fim (`supplier_subscriptions`), e conceder «grátis até 31/01» exige uma coluna de validade
+  honrada pelas funções de acesso. Fica por decidir com o promotor; a adesão fica registada, só não se concede nada.
+- Migração `20261106170917_ofertas_de_lancamento` aplicada e verificada na base real com uma empresa `zz-test` (oferta
+  concedida, 2.ª oferta recusada, subscrição paga possível durante a oferta; sem rasto).

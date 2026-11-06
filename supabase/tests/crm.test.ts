@@ -120,3 +120,30 @@ describe('CRM: o dossier só é da equipa', () => {
     await expect(as(OUTRO, () => db.query(`insert into public.crm_dossier (perfil, tema, tipo, texto, fonte) values ('pintor','a','dor','b','c')`))).rejects.toThrow(/row-level security/);
   });
 });
+
+describe('Oferta de lançamento', () => {
+  const ORG = '00000000-0000-4000-8000-0000000000d1';
+  beforeAll(async () => {
+    await db.query(`insert into public.organizations (id, kind, nome, created_by) values ($1, 'pintor', 'Pinturas de Ensaio', $2)`, [ORG, ADMIN]);
+  });
+  it('o Pro de lançamento cabe no esquema da subscrição, e não ocupa o lugar de uma subscrição paga', async () => {
+    await db.query(
+      `insert into public.org_subscriptions (org_id, plano, periodicidade, estado, preco_versao, preco_cents, valida_ate)
+       values ($1, 'pro', 'mensal', 'cancelada', 'lancamento-2027-01-31', 0, '2027-01-31')`,
+      [ORG],
+    );
+    await db.query(`insert into public.org_subscriptions (org_id, plano, periodicidade, estado, preco_versao, preco_cents) values ($1, 'pro', 'mensal', 'por_pagar', '2026-10-25', 3000)`, [ORG]);
+  });
+  it('uma oferta por entidade', async () => {
+    await db.query(`insert into public.ofertas_de_lancamento (org_id, origem_flyer, concedida, valida_ate) values ($1, 'fl-pin-1', 'pro', '2027-01-31')`, [ORG]);
+    await expect(db.query(`insert into public.ofertas_de_lancamento (org_id, origem_flyer) values ($1, 'fl-pin-1')`, [ORG])).rejects.toThrow(/duplicate key/);
+  });
+  it('só se aceita um flyer com o formato exato', async () => {
+    await expect(db.query(`insert into public.ofertas_de_lancamento (org_id, origem_flyer) values ($1, 'x; drop')`, ['00000000-0000-4000-8000-0000000000d2'])).rejects.toThrow();
+  });
+  it('só a equipa lê; ninguém escreve pela interface', async () => {
+    expect((await as(ADMIN, () => db.query('select * from public.ofertas_de_lancamento'))).rows).toHaveLength(1);
+    expect((await as(OUTRO, () => db.query('select * from public.ofertas_de_lancamento'))).rows).toHaveLength(0);
+    await expect(as(ADMIN, () => db.query(`insert into public.ofertas_de_lancamento (org_id) values ($1)`, [ORG]))).rejects.toThrow(/permission denied/);
+  });
+});
