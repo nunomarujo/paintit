@@ -39,7 +39,7 @@ export function ConvitesWhatsApp({
       )}
       <p className="text-[15px] text-slate-600">
         {whatsappDisponivel
-          ? 'Os convites vão para os números associados, no cartão ao lado. O número da loja é partilhado: os convites vão para quem os aceita. Só mensagens de trabalho, nunca publicidade.'
+          ? 'Cada convite vai para o número associado mais recente, no cartão ao lado. O número da loja é partilhado: os convites vão para quem os aceita. Só mensagens de trabalho, nunca publicidade.'
           : 'O canal de WhatsApp ainda está a ser preparado: poderá associar o número assim que abrir.'}
       </p>
 

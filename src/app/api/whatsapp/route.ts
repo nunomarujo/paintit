@@ -56,6 +56,12 @@ export async function POST(req: Request) {
     if (e.estado === 'failed') await db.from('survey_invites').update({ estado: 'falhou', erro: e.erro }).eq('twilio_sid', e.id).eq('estado', 'enviado');
   }
 
+  /** O número ainda está confirmado na conta do convidado? Um número tirado (ou passado a outra conta) não reserva em nome da antiga. */
+  const aindaEDaPessoa = async (userId: string, numero: string) => {
+    const { data } = await db.from('whatsapp_numeros').select('id').eq('user_id', userId).eq('numero', numero).maybeSingle();
+    return !!data;
+  };
+
   /** Resposta em texto livre (a pessoa escreveu primeiro, por isso cabe na janela de 24 horas): cortesia, nunca trava nada. */
   const responder = async (para: string, texto: string) => {
     try {
@@ -66,6 +72,7 @@ export async function POST(req: Request) {
     }
   };
 
+  let falhou = false;
   for (const m of mensagens) {
     const { error: jaRecebida } = await db.from('whatsapp_messages').insert({
       direcao: 'entrada', twilio_sid: m.id, para: cfg.numeroId, de: m.de.slice(0, 40), corpo: mascararCodigos(m.texto).slice(0, 2000), estado: 'recebida',
@@ -75,7 +82,14 @@ export async function POST(req: Request) {
 
     if (eParar(m.texto)) {
       if (repetida) continue;
-      const { data: parou } = await db.rpc('parar_whatsapp', { p_numero: m.de });
+      const { data: parou, error } = await db.rpc('parar_whatsapp', { p_numero: m.de });
+      if (error) {
+        // Não se diz «não tinha avisos» perante um erro: o número pode continuar a receber. Esquece-se o registo
+        // e responde-se 500, para a Meta repetir (a mensagem repetida já não conta como «vista»).
+        await db.from('whatsapp_messages').delete().eq('twilio_sid', m.id);
+        falhou = true;
+        continue;
+      }
       await responder(m.de, parou ? RESPOSTA_PARAR : 'Este número não tinha avisos ligados.');
       continue;
     }
@@ -83,7 +97,13 @@ export async function POST(req: Request) {
     if (codigo) {
       if (repetida) continue;
       const { data, error } = await db.rpc('confirmar_numero_whatsapp', { p_codigo: codigo, p_numero: m.de });
-      const estado = error ? 'invalido' : String((data as { estado?: string } | null)?.estado ?? 'invalido');
+      if (error) {
+        // Um erro da base não é um código inválido: o código pode estar certo. Repete-se (ver acima).
+        await db.from('whatsapp_messages').delete().eq('twilio_sid', m.id);
+        falhou = true;
+        continue;
+      }
+      const estado = String((data as { estado?: string } | null)?.estado ?? 'invalido');
       await responder(m.de, RESPOSTAS_DA_ASSOCIACAO[estado] ?? RESPOSTAS_DA_ASSOCIACAO.invalido!);
       continue;
     }
@@ -92,24 +112,24 @@ export async function POST(req: Request) {
     let convite: { id: string; survey_id: string } | null = null;
     const doPayload = conviteDoPayload(m.payload ?? undefined);
     if (doPayload) {
-      const { data } = await db.from('survey_invites').select('id, survey_id, telemovel').eq('id', doPayload).maybeSingle();
+      const { data } = await db.from('survey_invites').select('id, survey_id, telemovel, user_id').eq('id', doPayload).maybeSingle();
       // O convite tem de ser deste número: uma resposta reencaminhada não reserva em nome de outra pessoa.
-      if (data && data.telemovel === m.de) convite = data;
+      if (data && data.telemovel === m.de && (await aindaEDaPessoa(data.user_id, m.de))) convite = data;
     }
     if (!convite && m.respondeA) {
-      const { data } = await db.from('survey_invites').select('id, survey_id, telemovel').eq('twilio_sid', m.respondeA).maybeSingle();
-      if (data && data.telemovel === m.de) convite = data;
+      const { data } = await db.from('survey_invites').select('id, survey_id, telemovel, user_id').eq('twilio_sid', m.respondeA).maybeSingle();
+      if (data && data.telemovel === m.de && (await aindaEDaPessoa(data.user_id, m.de))) convite = data;
     }
     if (!convite) {
       const { data } = await db
         .from('survey_invites')
-        .select('id, survey_id')
+        .select('id, survey_id, user_id')
         .eq('telemovel', m.de)
         .in('estado', ['enviado', 'expirado'])
         .order('enviado_em', { ascending: false })
         .limit(1)
         .maybeSingle();
-      convite = data;
+      if (data && (await aindaEDaPessoa(data.user_id, m.de))) convite = data;
     }
     if (!convite) continue;
 
@@ -125,5 +145,5 @@ export async function POST(req: Request) {
       // A reserva já está feita e aparece na aplicação; a resposta por WhatsApp é cortesia.
     }
   }
-  return new Response('ok');
+  return falhou ? new Response('Falhou, repetir', { status: 500 }) : new Response('ok');
 }

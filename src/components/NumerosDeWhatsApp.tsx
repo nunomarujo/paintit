@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
+  cancelarCodigoDeWhatsApp,
   numerosDeWhatsApp,
   pedirCodigoDeWhatsApp,
   removerNumeroDeWhatsApp,
@@ -168,9 +169,16 @@ export function NumerosDeWhatsApp({
             <span className="font-semibold tabular-nums text-slate-900">{codigo.texto}</span>. Vale 15 minutos e só serve uma vez.
           </p>
           <p className="text-[15px] text-slate-600" role="status">
-            À espera da mensagem…
+            À espera da mensagem… Se a resposta no WhatsApp disser outra coisa, pedir um novo código.
           </p>
-          <button type="button" onClick={() => setCodigo(null)} className="btn-quiet btn-sm -ml-3 font-normal text-slate-700">
+          <button
+            type="button"
+            onClick={() => {
+              setCodigo(null);
+              void cancelarCodigoDeWhatsApp();
+            }}
+            className="btn-quiet btn-sm -ml-3 font-normal text-slate-700"
+          >
             Cancelar
           </button>
         </div>

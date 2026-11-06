@@ -184,6 +184,11 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   pelo cartão «Números em vigor» (perfil), a partir do telemóvel de cada um. Ver numa base real: o percurso completo
   (pedir código → mensagem → «Número associado» → cartão atualizado) e «PARAR», que só se vêem com o webhook ligado à
   Meta. Não visto: o painel «À espera da mensagem» (precisa da ação no servidor).
+  **Ordem:** aplicar a migração mesmo antes de publicar o código — antes dela o cartão aparece vazio e o código não se
+  pede; depois dela, o código antigo recusa gravar o formulário dos avaliadores a quem já tivesse número. Revisão
+  independente (06/11/2026) corrigida: o «PARAR» e a confirmação repetem-se se a base falhar (500 à Meta), o «Aceito» e o
+  reenvio só valem para um número ainda confirmado, o contrato e os avisos gerais vão a todos os números confirmados
+  (os convites, ao mais recente), «Cancelar» apaga o código, e os códigos caducados limpam-se.
 - **O desenho do prédio, a refazer (pedido do promotor, 06/11/2026):** hoje é um volume genérico com uma frente, e uma
   segunda fachada, as escadas e o átrio ficam «Fora do desenho». Pedido: (1) começar pela planta — quadrado, I, L, U,
   T (já existem em `volume.ts`/`FormaWizard`, com a forma no cadastro do prédio) —, e o desenho só ter as fachadas

@@ -6451,3 +6451,7 @@ que não venha das funções (ou da chave de serviço). Os dois números de test
 de valer (sem número e sem consentimento) até serem associados. Migração `20261106110000_numeros_de_whatsapp_confirmados`,
 testes em `supabase/tests/whatsappNumeros.test.ts`. **Não escolhido:** SMS (precisava de fornecedor, custa por código e
 só confirmaria o telemóvel, não o WhatsApp).
+
+*Depois da revisão independente (06/11/2026):* o contrato e os avisos gerais passam a todos os números confirmados da
+pessoa (até 3); os convites dos avaliadores vão ao mais recente, porque o convite fica ligado a um número (o «Aceito»
+casa por ele). Um erro da base ao confirmar ou parar já não responde «código inválido» nem «não tinha avisos»: repete-se.

@@ -154,6 +154,25 @@ describe('confirmar um número', () => {
   });
 });
 
+describe('desistir de um código', () => {
+  it('cancelar torna o código inútil já, e só o da própria pessoa', async () => {
+    await limpar();
+    const codigo = await pedir(ANA);
+    const outro = await pedir(BRUNO);
+    await as(ANA, () => db.query('select public.cancelar_codigo_whatsapp()'));
+    expect((await confirmar(codigo, N1)).estado).toBe('invalido');
+    expect((await confirmar(outro, N2)).estado).toBe('ok');
+  });
+
+  it('pedir um código novo limpa os caducados de toda a gente', async () => {
+    await limpar();
+    await pedir(BRUNO);
+    await db.query(`update public.whatsapp_codigos set expira_em = now() - interval '1 hour' where user_id = $1`, [BRUNO]);
+    await pedir(ANA);
+    expect((await one<{ n: number }>('select count(*)::int as n from public.whatsapp_codigos')).n).toBe(1);
+  });
+});
+
 describe('tirar um número', () => {
   it('«PARAR» tira o número; o consentimento sai com o último', async () => {
     await limpar();

@@ -69,6 +69,13 @@ export async function pedirCodigoDeWhatsApp(): Promise<{ codigo?: string; erro?:
   return { codigo: data };
 }
 
+/** A pessoa desiste do código pedido: deixa de valer já. */
+export async function cancelarCodigoDeWhatsApp(): Promise<void> {
+  const { supabase, user } = await getUser();
+  if (!user) return;
+  await supabase.rpc('cancelar_codigo_whatsapp');
+}
+
 export async function removerNumeroDeWhatsApp(id: string): Promise<{ ok: boolean }> {
   const { supabase, user } = await getUser();
   if (!user) return { ok: false };

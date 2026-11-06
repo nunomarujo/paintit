@@ -2387,6 +2387,7 @@ export type Database = {
       // Confirmar o número de WhatsApp por mensagem recebida (20261106110000). Devolve o código em claro uma só vez.
       pedir_codigo_whatsapp: { Args: Record<string, never>; Returns: string };
       remover_numero_whatsapp: { Args: { p_id: string }; Returns: undefined };
+      cancelar_codigo_whatsapp: { Args: Record<string, never>; Returns: undefined };
       // Só a chave de serviço (webhook). estado: ok | transferido | ja_associado | invalido | demasiadas | cheio.
       confirmar_numero_whatsapp: { Args: { p_codigo: string; p_numero: string }; Returns: Json };
       parar_whatsapp: { Args: { p_numero: string }; Returns: boolean };

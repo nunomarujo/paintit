@@ -113,6 +113,8 @@ begin
   if (select count(*) from public.whatsapp_numeros where user_id = v_user) >= private.max_numeros_whatsapp() then
     raise exception 'Já tem % números associados. Remova um para associar outro.', private.max_numeros_whatsapp() using errcode = 'P0001';
   end if;
+  -- Os códigos caducados não ficam à espera: limpam-se aqui, a cada pedido.
+  delete from public.whatsapp_codigos where expira_em < now();
   v_codigo := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
   insert into public.whatsapp_codigos (user_id, codigo_hash, expira_em)
     values (v_user, encode(sha256(convert_to(v_codigo, 'utf8')), 'hex'), now() + interval '15 minutes')
@@ -122,6 +124,20 @@ begin
 end $$;
 revoke all on function public.pedir_codigo_whatsapp() from public, anon;
 grant execute on function public.pedir_codigo_whatsapp() to authenticated;
+
+-- (1b) A pessoa desiste: o código deixa de valer já, não daqui a 15 minutos.
+create function public.cancelar_codigo_whatsapp() returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_user uuid := (select auth.uid());
+begin
+  if v_user is null then
+    raise exception 'A sessão expirou. Entre de novo.' using errcode = '42501';
+  end if;
+  delete from public.whatsapp_codigos where user_id = v_user;
+end $$;
+revoke all on function public.cancelar_codigo_whatsapp() from public, anon;
+grant execute on function public.cancelar_codigo_whatsapp() to authenticated;
 
 -- (2) O webhook recebeu o código, vindo de `p_numero`. Só a chave de serviço chama: o WhatsApp não traz sessão, e
 -- o que autoriza é o código (e a assinatura da Meta, já verificada pelo webhook). Devolve o estado:
