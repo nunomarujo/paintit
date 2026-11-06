@@ -31,6 +31,7 @@ const ficha = (o: Partial<FichaDoAvaliador> = {}): FichaDoAvaliador => ({
   whatsapp: true,
   concelhoBase: 'Viana do Castelo',
   raioKm: 30,
+  zonasDaEmpresa: true,
   suspenso: false,
   emCurso: 0,
   ...o,
@@ -81,9 +82,10 @@ describe('condições para ser convidado', () => {
   });
   it('cada falta diz o que fazer', () => {
     const m = motivosDeInelegibilidade(
-      ficha({ nipcDaEmpresa: null, inscrito: false, confidencialidade: false, nomeCompleto: 'Cláudio', whatsapp: false, concelhoBase: null, raioKm: 20, suspenso: true, emCurso: 2 }),
+      ficha({ nipcDaEmpresa: null, inscrito: false, confidencialidade: false, nomeCompleto: 'Cláudio', whatsapp: false, concelhoBase: null, raioKm: 20, zonasDaEmpresa: false, suspenso: true, emCurso: 2 }),
     );
-    expect(m).toHaveLength(9);
+    expect(m).toHaveLength(10);
+    expect(m.join(' ')).toMatch(/escolher os concelhos/);
     expect(m.join(' ')).toMatch(/NIPC/);
     expect(m.join(' ')).toMatch(/nome completo/);
     expect(m.join(' ')).toMatch(/2 levantamentos em curso/);

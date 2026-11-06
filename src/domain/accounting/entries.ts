@@ -167,6 +167,45 @@ export function redemptionPaid(p: { redemptionId: string; base: Cents; vat: Cent
   });
 }
 
+// Comissões de levantamento (avaliadores, pessoais desde 05/11/2026): o mesmo circuito das comissões de adesão, com contas próprias
+// (22.3 e 62.2.3) para o saldo das pessoas não se misturar com o dos fornecedores; IVA dedutível (24.32) e retenções (24.2) são comuns.
+// ◆ Por validar pelo contabilista (docs/DECISOES.md, 06/11/2026): contas, IVA e retenção de quem emite recibo verde ou ato isolado.
+
+/** Comissão de levantamento devida ao avaliador: gasto, a pagar quando ele resgatar. */
+export function surveyAccrued(p: { payoutId: string; amount: Cents; data: string }): Posting {
+  return assertBalanced({
+    origem: 'levantamento_comissao',
+    origemId: p.payoutId,
+    data: p.data,
+    descricao: 'Comissão de levantamento devida a avaliador',
+    lines: [dr(ACCOUNTS.gastoLevantamentos.codigo, p.amount), cr(ACCOUNTS.avaliadores.codigo, p.amount)],
+  });
+}
+
+/** Recibo do avaliador recebido num resgate: o IVA dedutível aumenta a dívida. Sem IVA, não há lançamento. */
+export function surveyRedemptionInvoiced(p: { redemptionId: string; vat: Cents; data: string }): Posting | null {
+  if (p.vat === 0) return null;
+  return assertBalanced({
+    origem: 'levantamento_resgate_recibo',
+    origemId: p.redemptionId,
+    data: p.data,
+    descricao: 'Recibo de avaliador (resgate de comissões): IVA dedutível',
+    lines: [dr(ACCOUNTS.ivaDedutivel.codigo, p.vat), cr(ACCOUNTS.avaliadores.codigo, p.vat)],
+  });
+}
+
+/** Pagamento de um resgate de avaliador: sai do banco o líquido; a retenção fica a pagar ao Estado. */
+export function surveyRedemptionPaid(p: { redemptionId: string; base: Cents; vat: Cents; retention: Cents; net: Cents; data: string }): Posting {
+  if (p.base + p.vat !== p.retention + p.net) throw new MoneyError('Resgate com valores que não fecham.');
+  return assertBalanced({
+    origem: 'levantamento_resgate_pago',
+    origemId: p.redemptionId,
+    data: p.data,
+    descricao: 'Pagamento de resgate de comissões ao avaliador',
+    lines: [dr(ACCOUNTS.avaliadores.codigo, p.base + p.vat), ...(p.retention > 0 ? [cr(ACCOUNTS.retencoes.codigo, p.retention)] : []), cr(ACCOUNTS.banco.codigo, p.net)],
+  });
+}
+
 /** Estorno: o mesmo lançamento com débitos e créditos trocados, noutra origem. */
 export function reverse(p: Posting, data: string): Posting {
   return assertBalanced({

@@ -79,6 +79,15 @@ async function inscreverComoAvaliador(userId: string) {
   );
 }
 
+/** Os concelhos da empresa (06/11/2026): sem eles não chegam oportunidades. «todo» = todo o país, marcado. */
+async function cobrir(orgId: string, zona: string[] | 'todo') {
+  await db.query(
+    `insert into public.supplier_survey_coverage (org_id, concelhos, todo_o_pais) values ($1, $2, $3)
+       on conflict (org_id) do update set concelhos = excluded.concelhos, todo_o_pais = excluded.todo_o_pais`,
+    [orgId, zona === 'todo' ? [] : zona, zona === 'todo'],
+  );
+}
+
 beforeAll(async () => {
   db = await baseComMigracoes();
   for (const u of [A, B, C, D, ADMIN]) {
@@ -2678,6 +2687,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [VEND, email(VEND)]);
     await inscreverComoAvaliador(VEND);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Levantamento Lda', '610000004')).id;
+    await cobrir(vendorOrg, ['Lisboa', 'Oeiras']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
     requestId = (
@@ -2714,6 +2724,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
     await inscreverComoAvaliador(OTHERVEND);
     const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
+    await cobrir(other, 'todo');
     await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
   });
 
@@ -2724,6 +2735,27 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await expect(as(NAOINSCRITO, () => db.query('select public.reserve_survey($1, $2)', [surveyId, org]))).rejects.toThrow(
       /inscrição como avaliador/,
     );
+  });
+
+  it('concelhos obrigatórios (06/11/2026): sem zona não cobre nada, e «todo o país» só quando marcado', async () => {
+    const SEMZONA = '00000000-0000-4000-8000-00000000c0c1';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [SEMZONA, email(SEMZONA)]);
+    const org = (await createOrg(SEMZONA, 'fornecedor', 'Sem Zona Lda', '610000098')).id;
+    const cobre = async (concelho: string) =>
+      (await one<{ c: boolean }>('select private.supplier_covers($1, $2) as c', [org, concelho])).c;
+    // Sem linha: não cobre (antes cobria todo o país).
+    expect(await cobre('Lisboa')).toBe(false);
+    // Uma lista vazia sem «todo o país» nem se grava.
+    await expect(
+      as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{}')`, [org])),
+    ).rejects.toThrow(/supplier_survey_coverage_escolhida/);
+    // Uma lista cobre os seus concelhos e mais nenhum.
+    await as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{Porto}')`, [org]));
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Lisboa')).toBe(false);
+    // «Todo o país», marcado.
+    await as(SEMZONA, () => db.query(`update public.supplier_survey_coverage set concelhos = '{}', todo_o_pais = true where org_id = $1`, [org]));
+    expect(await cobre('Lisboa')).toBe(true);
   });
 
   it('reservar abre a tentativa 1, com os três prazos escritos de uma vez', async () => {
@@ -3283,8 +3315,10 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     await inscreverComoAvaliador(VEND);
     await inscreverComoAvaliador(VEND2);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Esclarecimento Lda', '610000055')).id;
+    await cobrir(vendorOrg, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     vendor2Org = (await createOrg(VEND2, 'fornecedor', 'Tintas do Esclarecimento Dois Lda', '610000063')).id;
+    await cobrir(vendor2Org, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendor2Org, VEND2]);
     await createOrg(CP, 'pintor', 'Pinturas do Esclarecimento Lda', '610000071');
     await createOrg(CP2, 'pintor', 'Pinturas do Esclarecimento Dois Lda', '610000080');

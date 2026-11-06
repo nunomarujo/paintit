@@ -25,6 +25,8 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 
 | Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
 | Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
+| Pedir ao fornecedor que ainda não escolheu os concelhos de levantamento que os escolha | o responsável, em Avaliações › Disponibilidade › «Zonas cobertas pela empresa» (desde 06/11/2026, sem concelhos não recebe oportunidades) | concelhos gravados |
+| Ver em produção o topo de «Avaliações › Hoje» do avaliador | quempinta.pt, com uma conta de vendedor: sem inscrição vê a lista do que falta; inscrito e com os concelhos gravados vê «Quanto pode ganhar» e, uma vez, a janela «Tudo pronto» (`DECISOES.md` 06/11/2026) | dizer o que não está como se queria |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
 
 ## 1b. WhatsApp — passos do promotor (02/11/2026)
@@ -49,10 +51,12 @@ Ficam por decidir/construir: a «informação do levantamento» e a «resposta a
 ordem das ondas (só a qualificação geral, como no simulador); um painel interno com avaliadores elegíveis
 por concelho, para recrutar onde não há nenhum.
 
-**Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). Fica: os
-resgates de avaliadores ainda **não são lançados no livro de movimentos** (o pagamento marca-se em
-Contabilidade › A pagar, mas `syncLedger` só conhece os resgates de adesão) — ligar antes do primeiro
-pagamento real; e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
+**Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). **Livro de movimentos: ligado a 06/11/2026**
+(migração `20261106160500_contas_dos_avaliadores_no_livro`, **por aplicar** à base real — `syncLedger` falha a
+gravar os lançamentos de avaliadores, com erro de conta inexistente, até lá; ver `DECISOES.md`, 06/11/2026, com as
+decisões «por validar pelo contabilista»: contas 22.3/62.2.3, IVA e retenção do recibo verde e do ato isolado).
+Fica: aplicar essa migração antes do primeiro pagamento real e correr «Sincronizar agora»; os resgates de
+avaliadores pagos ainda não entram na «Conferência» com o extrato do banco (só os de adesão); e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
 sem uso desde que a comissão passou a ser sempre da pessoa — retirá-las numa migração com confirmação.
 
 ## 1c. Dinheiro e faturação — o que separa a app do primeiro pagamento real (05/11/2026)
@@ -71,7 +75,7 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário
    (`/api/cron/devolucoes`) — só vistas em modo de teste. Falta um percurso completo em teste do pagamento à
    devolução, e a validação do contabilista sobre a natureza fiscal da caução (secção 2).
-4. **Livro de movimentos:** os resgates de avaliadores ainda não entram nele (ver 1b).
+4. **Livro de movimentos:** os resgates de avaliadores entram nele desde 06/11/2026 (código e testes feitos); falta **aplicar a migração `20261106160500`** e o contabilista validar as contas, o IVA e a retenção (ver 1b).
 5. **IVA trimestral e fecho formal; acesso do contabilista** (`CONTABILIDADE.md`).
 
 ## 2. Decisões do promotor que travam construção ou dinheiro

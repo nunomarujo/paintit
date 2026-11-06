@@ -83,7 +83,7 @@ export default async function InscricaoPage() {
 
       {/* O convite ao WhatsApp acompanha a inscrição (promotor, 06/11/2026): quem responde primeiro fica
           com o levantamento, e o aviso por WhatsApp é o que chega primeiro. */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <section id="avisos" className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="text-[20px] font-semibold text-slate-900">Ser avisado primeiro</h2>
         <p className="mt-1 mb-4 max-w-[54ch] text-[17px] text-slate-700">
           Para ganhar levantamentos é preciso ser o primeiro a responder. Inscreva o seu telemóvel para receber por WhatsApp os
@@ -103,7 +103,7 @@ export default async function InscricaoPage() {
 
       {inscricao && (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section id="simulador" className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-[20px] font-semibold text-slate-900">Quanto ganha</h2>
             <p className="mt-1 mb-4 max-w-[54ch] text-[15px] text-slate-600">
               Entre 1% e 2,7% do valor adjudicado sem IVA. A percentagem é a sua posição na banda, segundo o seu
