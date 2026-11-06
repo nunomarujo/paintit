@@ -6630,3 +6630,36 @@ Detalhe em `CONTABILIDADE.md` §15. Migração `20261106160500_contas_dos_avalia
 **Limites.** O extrato bancário (separador Banco) só sugere correspondência com os resgates de adesão pagos; os de avaliadores
 pagos aparecem no livro (12.1) mas não na «Conferência». Nada foi aplicado à base real nem corrido sobre dados reais.
 
+**Revisão independente do desenho (06/11/2026, duas revisões: geometria e desenho/teclado/toque) — o que se corrigiu.**
+- **As cotas nunca ficam sobre o prédio** (`cotasDoDesenho`; o erro: varrendo de 5° em 5° as cinco plantas, a perna da cota do
+  fundo ficava sobre as paredes em ~47 % das vistas). Agora a linha, as duas linhas de chamada e o texto têm de ficar fora
+  de qualquer face (pontos amostrados contra o interior das faces, e cruzamentos com as arestas), e fora das outras cotas
+  (a da frente e a do fundo tocavam-se). Afasta-se pela **normal à aresta virada para fora do prédio** (`Volume.cotasDaPrancheta
+  .candidatas`; o antigo `foraDoFundo` era o vetor entre duas esquinas), inclina-se a direção ±28° e tenta-se a outra aresta
+  equivalente, por ordem de custo (meia letra de afastamento custa meia; outra aresta, duas); a altura passa pelo mesmo
+  caminho e assenta nas esquinas da **planta** e não nas do retângulo que a envolve. **Se nada serve até quatro letras, a
+  cota não se desenha nessa vista** — melhor sem cota do que com cota a atravessar o prédio (na varredura, ≥ 97 % das cotas
+  pedidas têm lugar; as que faltam são sobretudo a da frente em L, U e T a ~80°). A moldura
+  mede agora 37 vistas (de 10° em 10°).
+- **«Atrás, nesta vista» só quando é atrás.** `LugarDaZona.oculta`: *atrás* (nenhuma face se vê), *de lado* (vê-se como tira
+  estreita, `vista < 0,35`) e *tapada* (de frente, mas coberta). A grelha de amostras do número ganhou uma segunda passagem,
+  fina (34×18), que põe o número no centro da parte livre: num U, uma parede de frente com uma nesga livre ficava sem pino.
+- **O que o editor oferece como lado** conta-se como se a planta já existisse (`ladosParaEscolher`): um único alçado chamado
+  «Tardoz» deixa a frente livre e ocupa o tardoz, que é onde o desenho o põe ao entrar o segundo.
+- **`addSurface` já não perde o lado em silêncio**: se a coluna `face_do_predio` não estiver aplicada, diz-o como
+  `updateSurface`, e o editor **fica aberto** (`FormState.lerAntesDeFechar`, botão «Fechar») para a mensagem se ler — não
+  guarda outra vez, que duplicava a zona.
+- **«Ver no desenho»** traz o desenho ao ecrã (`scrollIntoView`, `nearest`; sem movimento se o sistema o pedir) e põe o foco
+  no número da zona quando a rotação pára (no desenho, para quem só lê). Uma **região viva** (`role=status`, só para leitores
+  de ecrã) diz «Vista a 70°. 2 zonas sem número nesta vista: …» 500 ms depois de a rotação parar.
+- **Desenho:** os prédios vizinhos esbatidos desenham-se **por baixo de tudo** (a sombra sujava a parede); os lados por
+  entregar levam enchimento cinzento, traço firme a tracejado e a legenda «A tracejado: lados do prédio sem alçado»; com
+  chamadas o desenho cresce até 520 px de altura (estava preso a 340, e a 1440 px a fachada ficava com ~150 px).
+- **A página não salta ao rodar:** o espaço dos cartões das zonas ocultas reserva-se para o pior ângulo (modo lista: 42 px por
+  cartão; chamadas: o grupo «Sem número nesta vista»). Medido de 20° em 20°: a 1440 px a altura é constante; a 1140 e a 390
+  sobra uma variação de 23–45 px (era 130–180). **Limite:** quando nenhuma disposição de chamadas é aceite a certos ângulos,
+  o desenho passa ao modo lista e a altura muda (visto a 1140 px num U).
+- **Editor:** junto a «Lado do prédio», a miniatura da planta com o lado escolhido destacado (os ocupados a cinzento escuro);
+  depois de escolher a planta o foco vai para «Alterar».
+- **Não era real / fica:** a «laje parece prédio de painel» é decisão de desenho; a numeração, as chamadas e as regras do
+  número não mudaram.

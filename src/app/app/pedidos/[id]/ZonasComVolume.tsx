@@ -6,9 +6,9 @@ import { useConfirmacao } from '@/components/Confirmar';
 import { alturaDoPredio, dimensao, type Certeza, type Dimensao } from '@/domain/geometria';
 import {
   ANGULO_DO_DESENHO,
-  atribuirFaces,
   ehAlcado,
   entradaDoVolume,
+  ladosParaEscolher,
   lugaresDasZonas,
   numerarZonas,
   plantaDoDesenho,
@@ -25,7 +25,7 @@ import {
   type Falta,
   type TrocoDaBarra,
 } from '@/domain/respostaDasZonas';
-import { buildingVolume, ladosDaPlanta, type Forma } from '@/domain/volume';
+import { buildingVolume, type Forma } from '@/domain/volume';
 import { GeometriaDoPredio, type MedidasEmTexto } from './GeometriaDoPredio';
 import { BotaoFechar, Janela } from './Janela';
 import { JanelaDaFerramenta, type InicioDaFerramenta, type MedicaoGravada } from './JanelaDaFerramenta';
@@ -185,10 +185,6 @@ export function ZonasComVolume({
       setAGuardarPlanta(false);
     }
   };
-  // Os lados que o editor oferece a um alçado novo ou existente: os da planta de agora — ou, com só um alçado, os da
-  // que o segundo vai trazer (a banda, enquanto o prédio não disser).
-  const ladosDoEditor = useMemo(() => ladosDaPlanta(formaLocal ?? 'I'), [formaLocal]);
-  const faceDe = useMemo(() => atribuirFaces(zonas, planta.lados, planta.laje), [zonas, planta.lados, planta.laje]);
   const textos = useMemo<Partial<Record<EixoDaCota, string>>>(() => {
     if (lM === null || hM === null) return {};
     const alto = alturaDoPredio({
@@ -410,13 +406,10 @@ export function ZonasComVolume({
               lados={
                 // Escolher o lado só faz sentido quando há (ou vai haver) planta: com mais um alçado além desta zona.
                 zonas.filter((x) => ehAlcado(x.kind) && x.id !== zonaAberta?.id).length >= 1
-                  ? ladosDoEditor.map((l) => ({
-                      id: l.id,
-                      label: l.label,
-                      ocupado: zonas.some((x) => x.id !== zonaAberta?.id && ehAlcado(x.kind) && faceDe[x.id] === l.id),
-                    }))
+                  ? ladosParaEscolher(zonas, formaLocal, zonaAberta?.id ?? null)
                   : undefined
               }
+              forma={formaLocal ?? 'I'}
               faceDaZona={zonaAberta?.face ?? null}
               medir={podeMedirNaFotografia ? (doEditor) => medir({ zonaId: zonaAberta?.id ?? '', ...doEditor }) : undefined}
             />

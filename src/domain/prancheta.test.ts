@@ -10,7 +10,9 @@ import {
   desenharZonas,
   entradaDoVolume,
   ladoPeloNome,
+  ladosParaEscolher,
   lugaresDasZonas,
+  naFace,
   numeracaoDoPedido,
   numerarZonas,
   plantaDoDesenho,
@@ -418,6 +420,122 @@ describe('o número segue o ângulo', () => {
   });
 });
 
+describe('porque é que uma zona não tem número nesta vista', () => {
+  const alcados = (k: number) => Array.from({ length: k }, (_, i) => z(`a${i}`, i % 2 ? 'empena' : 'fachada'));
+
+  it('atrás, de lado ou tapada: cada zona sem número diz qual, e as que têm número não dizem nenhum', () => {
+    const vistos = { atras: 0, de_lado: 0, tapada: 0 };
+    for (const forma of ['I', 'L', 'U', 'T'] as Forma[]) {
+      const zonas = alcados(4);
+      for (let angulo = 0; angulo < 360; angulo += 5) {
+        const v = desenho(zonas, { forma, angulo });
+        const lugares = lugaresDasZonas(v, zonas);
+        for (const zona of zonas) {
+          const l = lugares[zona.id]!;
+          if (!l.temSitio || l.pino) {
+            expect(l.oculta, `${forma} ${angulo}° ${zona.id}`).toBeNull();
+            continue;
+          }
+          const vistas = l.faces.map((i) => v.faces[i]!.vista ?? 1);
+          if (vistas.length === 0) expect(l.oculta).toBe('atras');
+          else if (Math.max(...vistas) < LEGIBILIDADE_DO_NUMERO) expect(l.oculta).toBe('de_lado');
+          else expect(l.oculta).toBe('tapada');
+          vistos[l.oculta!]++;
+        }
+      }
+    }
+    // As três situações existem de facto: a de perfil é a que o texto «Atrás» descrevia mal (2432 casos na revisão).
+    expect(vistos.atras).toBeGreaterThan(0);
+    expect(vistos.de_lado).toBeGreaterThan(0);
+  });
+
+  it('uma parede vista quase de perfil (vista entre 0 e 0,35) é «de lado», e uma de costas, «atrás»', () => {
+    const zonas = [z('f', 'fachada'), z('e', 'empena')];
+    // A frente a 80°: o cosseno de 80° é 0,17 — uma tira estreita.
+    const v80 = desenho(zonas, { forma: 'quadrado', angulo: 80 });
+    expect(v80.faces.find((f) => f.face === 'frente' && f.kind === 'frente')!.vista).toBeLessThan(LEGIBILIDADE_DO_NUMERO);
+    expect(lugaresDasZonas(v80, zonas).f!.oculta).toBe('de_lado');
+    // A frente a 180°: de costas.
+    expect(lugaresDasZonas(desenho(zonas, { forma: 'quadrado', angulo: 180 }), zonas).f!.oculta).toBe('atras');
+  });
+
+  it('num U, uma parede de frente com uma nesga livre não fica sem número: a grelha fina acerta onde a grande falhava', () => {
+    // Independente da implementação: uma grelha ainda mais fina (62×30, desfasada) sobre cada face legível da zona.
+    const livreNoPonto = (v: ReturnType<typeof desenho>, i: number, p: [number, number], daZona: Set<number>) => {
+      for (let j = i + 1; j < v.faces.length; j++) {
+        const f = v.faces[j]!;
+        if (f.fade || f.kind === 'janela' || f.kind === 'porta' || daZona.has(j)) continue;
+        if (dentroDoPoligono(p, f.points)) return false;
+      }
+      return true;
+    };
+    const falhas: string[] = [];
+    for (let k = 4; k <= 5; k++) {
+      const zonas = alcados(k);
+      for (let angulo = 0; angulo < 360; angulo += 5) {
+        const v = desenho(zonas, { forma: 'U', angulo });
+        const lugares = lugaresDasZonas(v, zonas);
+        for (const zona of zonas) {
+          const l = lugares[zona.id]!;
+          if (l.pino || !l.temSitio) continue;
+          const daZona = new Set(l.faces);
+          const legiveis = l.faces.filter((i) => (v.faces[i]!.vista ?? 1) >= LEGIBILIDADE_DO_NUMERO);
+          const sobra = legiveis.some((i) => {
+            const q = v.faces[i]!.points;
+            // Um ponto livre a mais de 4% do lado da face (uma nesga de largura nula não leva um número).
+            for (let a = 0; a < 62; a++) for (let b = 0; b < 30; b++) if (livreNoPonto(v, i, naFace(q, (a + 0.31) / 62, (b + 0.27) / 30), daZona)) return true;
+            return false;
+          });
+          if (sobra) falhas.push(`U/${k}/${angulo}°/${zona.id}`);
+        }
+      }
+    }
+    expect(falhas.slice(0, 5)).toEqual([]);
+  });
+});
+
+describe('o lado que o editor oferece: conta-se como se a planta já existisse', () => {
+  it('com um só alçado chamado «Tardoz», a frente está livre e o tardoz ocupado — e é onde o desenho o põe quando entra o segundo', () => {
+    const tardoz: ZonaParaDesenho = { id: 'a', kind: 'fachada', participacao: 'incluida', face: null, descricao: 'Tardoz' };
+    const lados = ladosParaEscolher([tardoz], null, null);
+    expect(lados.find((l) => l.id === 'frente')!.ocupado).toBe(false);
+    expect(lados.find((l) => l.id === 'tras')!.ocupado).toBe(true);
+    // O que o desenho faz quando o segundo entra: o «Tardoz» fica no tardoz.
+    const com2 = [tardoz, z('b', 'fachada')];
+    const p = plantaDoDesenho(null, com2);
+    expect(atribuirFaces(com2, p.lados, p.laje).a).toBe('tras');
+    // E ao escolher o lado do segundo, a lista bate certo com o desenho: o lado que ficou livre para ele é a frente.
+    expect(atribuirFaces(com2, p.lados, p.laje).b).toBe('frente');
+  });
+
+  it('o que se está a editar não conta: o seu próprio lado fica livre para ele', () => {
+    const zonas = [z('a', 'fachada', 'incluida', 'frente'), z('b', 'fachada', 'incluida', 'direita')];
+    const lados = ladosParaEscolher(zonas, 'U', 'a');
+    expect(lados.filter((l) => l.ocupado).map((l) => l.id)).toEqual(['direita']);
+    // Sem o que se edita, o resto atribui-se sozinho: as varandas não ocupam lado nenhum.
+    expect(ladosParaEscolher([z('v', 'varandas'), z('a', 'fachada')], 'L', null).filter((l) => l.ocupado).map((l) => l.id)).toEqual(['frente']);
+  });
+
+  it('a laje mentia: com um alçado sem nome, a frente ocupada era a única resposta, e continua a ser', () => {
+    expect(ladosParaEscolher([z('a', 'fachada')], null, null).filter((l) => l.ocupado).map((l) => l.id)).toEqual(['frente']);
+  });
+});
+
+describe('os vizinhos esbatidos ficam por baixo de tudo', () => {
+  it('a qualquer ângulo, nenhuma face do prédio é desenhada antes de um vizinho: a sombra nunca suja a parede', () => {
+    for (const forma of ['quadrado', 'L', 'U'] as Forma[]) {
+      for (let angulo = 0; angulo < 360; angulo += 5) {
+        const v = buildingVolume(
+          entradaDoVolume({ ...PREDIO, fachadas: 2, forma }, [z('a', 'fachada'), z('b', 'empena')], ESCALA, angulo),
+        );
+        const ultimoVizinho = v.faces.map((f) => !!f.fade).lastIndexOf(true);
+        const primeiroDoPredio = v.faces.findIndex((f) => !f.fade);
+        if (ultimoVizinho >= 0) expect(ultimoVizinho, `${forma} ${angulo}°`).toBeLessThan(primeiroDoPredio);
+      }
+    }
+  });
+});
+
 describe('rodar para a esquerda é aumentar o ângulo', () => {
   it('aumentando o ângulo, a frente vai para a esquerda e a lateral direita aproxima-se', () => {
     const zonas = [z('a', 'fachada'), z('b', 'fachada')];
@@ -482,8 +600,8 @@ describe('as cotas', () => {
         const xMax = Math.max(...t.map((q) => q[0]));
         expect(Math.abs(c.altura[0][0] - xMax), `altura ${forma} ${angulo}°`).toBeLessThan(0.02);
         expect(c.altura[1][1]).toBeLessThan(c.altura[0][1]);
-        // O «para fora» do fundo vai para a esquerda do ecrã.
-        expect(c.foraDoFundo[0]).toBeLessThanOrEqual(1e-9);
+        // O «para fora» do fundo vai para a esquerda do ecrã, ou para cima/baixo quando a aresta fica na horizontal.
+        expect(Math.hypot(...c.foraDoFundo)).toBeCloseTo(1, 6);
       }
     }
   });
@@ -528,6 +646,111 @@ describe('as cotas', () => {
             for (const p of cantos) expect(dentroDoPoligono(p, f.points), `${forma} ${angulo}°: ${c.eixo}`).toBe(false);
           }
         }
+      }
+    }
+  });
+});
+
+describe('as cotas nunca ficam sobre o prédio, a qualquer ângulo (varredura de 5° em 5°)', () => {
+  const FORMAS_VARRIDAS: Forma[] = ['quadrado', 'I', 'L', 'U', 'T'];
+  const TEXTOS = { frente: '12,5 m', fundo: '10 m', altura: '11,2 m' };
+  const alcados = (k: number) => Array.from({ length: k }, (_, i) => z(`a${i}`, i % 2 ? 'empena' : 'fachada'));
+  const medida = (s: number) => ({ letra: 20 / s, caracter: 7.4 / s });
+
+  type P = [number, number];
+  /** Independente da implementação: a distância mínima de um ponto às arestas do polígono, e o par-ímpar. */
+  const dist = (p: P, a: P, b: P) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l2 = dx * dx + dy * dy;
+    const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2));
+    return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+  };
+  const dentroFundo = (p: P, q: P[], folga: number) => dentroDoPoligono(p, q) && q.every((r, i) => dist(p, r, q[(i + 1) % q.length]!) > folga);
+
+  /** Os pontos que uma cota ocupa: linha, chamadas (a partir de 10%: nascem na aresta) e a caixa do texto. */
+  const pontosDaCota = (c: ReturnType<typeof cotasDoDesenho>[number], m: { letra: number; caracter: number }) => {
+    const pts: P[] = [];
+    const ao = (a: P, b: P, desde: number) => {
+      for (let t = desde; t <= 1 + 1e-9; t += 0.02) pts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+    };
+    ao(c.linha[0], c.linha[1], 0);
+    for (const [a, b] of c.chamadas) ao(a, b, 0.1);
+    const k = caixaDoRotulo(c, m);
+    for (let i = 0; i <= 8; i++) for (let j = 0; j <= 2; j++) pts.push([k.x + (k.w * i) / 8, k.y + (k.h * j) / 2]);
+    return pts;
+  };
+
+  it('a linha, as chamadas e o texto ficam fora de todas as faces, para as cinco plantas e 1 a 5 alçados', () => {
+    const s = 16;
+    const m = medida(s);
+    let vistas = 0;
+    let cotasPostas = 0;
+    let cotasPedidas = 0;
+    const sobre: string[] = [];
+    for (const forma of FORMAS_VARRIDAS) {
+      for (let k = 1; k <= 5; k++) {
+        const zonas = alcados(k);
+        for (let angulo = 0; angulo < 360; angulo += 5) {
+          const vf = desenho(zonas, { forma, angulo });
+          const corpo = vf.faces.filter((f) => !f.fade).map((f) => f.points as P[]);
+          const cotas = cotasDoDesenho(vf, TEXTOS, { afastamento: 22 / s, ...m });
+          vistas++;
+          cotasPedidas += 3;
+          cotasPostas += cotas.length;
+          for (const c of cotas) {
+            if (pontosDaCota(c, m).some((p) => corpo.some((q) => dentroFundo(p, q, 0.05 * m.letra)))) sobre.push(`${forma}/${k}/${angulo}°: ${c.eixo}`);
+          }
+        }
+      }
+    }
+    expect(vistas).toBe(5 * 5 * 72);
+    expect(sobre.slice(0, 5)).toEqual([]);
+    // Omitir é o último recurso: quase todas as cotas pedidas têm de ter lugar.
+    expect(cotasPostas / cotasPedidas).toBeGreaterThan(0.9);
+  });
+
+  it('as cotas não se tocam: nem as linhas se cruzam, nem uma linha passa pelo texto de outra, nem os textos se sobrepõem', () => {
+    const s = 16;
+    const m = medida(s);
+    const mau: string[] = [];
+    for (const forma of FORMAS_VARRIDAS) {
+      for (const k of [2, 4]) {
+        for (let angulo = 0; angulo < 360; angulo += 5) {
+          const cotas = cotasDoDesenho(desenho(alcados(k), { forma, angulo }), TEXTOS, { afastamento: 22 / s, ...m });
+          const caixas = cotas.map((c) => caixaDoRotulo(c, m));
+          for (let i = 0; i < cotas.length; i++) {
+            for (let j = i + 1; j < cotas.length; j++) {
+              const a = caixas[i]!;
+              const b = caixas[j]!;
+              if (!(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y)) mau.push(`${forma}/${k}/${angulo}°: textos ${cotas[i]!.eixo}/${cotas[j]!.eixo}`);
+              const noTexto = (c: (typeof cotas)[number], r: (typeof caixas)[number]) =>
+                [c.linha, ...c.chamadas].some(([p, q]) => {
+                  for (let t = 0; t <= 1; t += 0.02) {
+                    const x = p[0] + (q[0] - p[0]) * t;
+                    const y = p[1] + (q[1] - p[1]) * t;
+                    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return true;
+                  }
+                  return false;
+                });
+              if (noTexto(cotas[i]!, b) || noTexto(cotas[j]!, a)) mau.push(`${forma}/${k}/${angulo}°: ${cotas[i]!.eixo} toca o texto de ${cotas[j]!.eixo}`);
+            }
+          }
+        }
+      }
+    }
+    expect(mau.slice(0, 5)).toEqual([]);
+  });
+
+  it('a normal do fundo é perpendicular à aresta e aponta para longe do prédio', () => {
+    for (const forma of FORMAS_VARRIDAS) {
+      for (let angulo = 0; angulo < 360; angulo += 5) {
+        const c = desenho(alcados(3), { forma, angulo }).cotasDaPrancheta;
+        const [a, b] = c.fundo;
+        const ar = c.candidatas.fundo[0]!;
+        expect(Math.hypot(ar.fora[0], ar.fora[1])).toBeCloseTo(1, 6);
+        expect(Math.abs(ar.fora[0] * (b[0] - a[0]) + ar.fora[1] * (b[1] - a[1])), `${forma} ${angulo}°`).toBeLessThan(1e-6);
+        expect(c.foraDoFundo).toEqual(ar.fora);
       }
     }
   });

@@ -178,14 +178,28 @@ export interface Volume {
    * Onde a prancheta põe as cotas nesta vista, já projetadas: a largura na aresta do telhado mais afastada
    * da câmara, o fundo na aresta do telhado mais à esquerda no ecrã, a altura na esquina mais à direita.
    * Seguem o ângulo; a 25° são as de sempre (por cima, à esquerda e à direita do prédio).
-   * `foraDoFundo` é o sentido, no ecrã, para longe do prédio.
+   * `foraDoFundo` é a normal à aresta do fundo, no ecrã, virada para longe do centro do prédio.
+   *
+   * `candidatas` são, por eixo, as arestas onde a cota pode assentar, da preferida para a última (a primeira
+   * é a de `largura`, `fundo` e `altura`): quando a preferida não tem sítio livre, quem desenha tenta as outras
+   * e, se nenhuma serve, não desenha a cota (06/11/2026: a cota que atravessa o prédio é pior do que nenhuma).
+   * `fora` é a normal à aresta, unitária, virada para longe do centro do prédio no ecrã.
    */
   cotasDaPrancheta: {
     largura: [[number, number], [number, number]];
     fundo: [[number, number], [number, number]];
     altura: [[number, number], [number, number]];
     foraDoFundo: [number, number];
+    candidatas: Record<'largura' | 'fundo' | 'altura', ArestaDaCota[]>;
   };
+}
+
+/** Uma aresta do prédio, já projetada, onde se pode pôr uma cota. */
+export interface ArestaDaCota {
+  a: [number, number];
+  b: [number, number];
+  /** A normal à aresta, unitária, virada para longe do centro do prédio no ecrã. */
+  fora: [number, number];
 }
 
 const FLOOR = 3;
@@ -768,8 +782,10 @@ export function buildingVolume(input: VolumeInput): Volume {
   // ela (a normal é a mesma), por isso desenhá-los todos depois do corpo é correcto. Entre si
   // continuam ordenados por profundidade — é o que põe o muro à frente da porta, e a guarda à
   // frente da laje da varanda.
+  // Os vizinhos (os fantasmas que se esbatem) vão **por baixo de tudo**: uma sombra desenhada por cima da parede, num
+  // prédio visto de lado, sujava-a (revisão, 06/11/2026). Não tapam nada — são só o lembrete de que há prédio ao lado.
   const CORPO = DO_CORPO;
-  const camada = (k: FaceKind) => (CORPO.includes(k) ? 0 : 1);
+  const camada = (k: FaceKind) => (k === 'vizinho' ? -1 : CORPO.includes(k) ? 0 : 1);
   visible.sort((a2, b2) => camada(a2.face.kind) - camada(b2.face.kind) || a2.depth - b2.depth);
   const faces = visible.map((v) => v.face);
 
@@ -792,24 +808,59 @@ export function buildingVolume(input: VolumeInput): Volume {
   const yLonge = alta(yFundo) <= alta(yFrente) ? yFundo : yFrente;
   const esquerda = (x: number) => (proj(x, yFundo, height)[0] + proj(x, yFrente, height)[0]) / 2;
   const xEsq = esquerda(px0) <= esquerda(px1) ? px0 : px1;
-  const xDir = xEsq === px0 ? px1 : px0;
   const perto = (x: number): [number, number] => {
     const a = proj(x, yFrente, height);
     const b = proj(x, yFundo, height);
     return a[1] >= b[1] ? [yFrente, yFundo] : [yFundo, yFrente];
   };
   const [yPerto, yAlem] = perto(xEsq);
-  const esq = proj(xEsq, yPerto, height);
-  const dir = proj(xDir, yPerto, height);
-  const sentido: [number, number] = [esq[0] - dir[0], esq[1] - dir[1]];
-  const norma = Math.hypot(sentido[0], sentido[1]) || 1;
   const cantos: [number, number][] = [[px0, yFundo], [px1, yFundo], [px0, yFrente], [px1, yFrente]];
   const direito = cantos.reduce((m, c) => (proj(c[0], c[1], 0)[0] > proj(m[0], m[1], 0)[0] ? c : m), cantos[0]!);
+
+  // As arestas candidatas de cada cota. «Fora» é a normal à aresta virada para longe do centro do prédio: afastar
+  // por ela afasta do prédio, o que não acontecia com o vetor entre duas esquinas (perto de 100–130° ficava quase
+  // paralelo à aresta e o afastamento não saía de cima das paredes).
+  const centroDoEcra = proj(cx, cy, height / 2);
+  const aresta = (a: [number, number], b: [number, number]): ArestaDaCota => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const n = Math.hypot(dx, dy) || 1;
+    let nx = dy / n;
+    let ny = -dx / n;
+    const lado = nx * ((a[0] + b[0]) / 2 - centroDoEcra[0]) + ny * ((a[1] + b[1]) / 2 - centroDoEcra[1]);
+    if (lado < -1e-9 || (Math.abs(lado) <= 1e-9 && (ny > 1e-9 || (Math.abs(ny) <= 1e-9 && nx > 0)))) {
+      nx = -nx;
+      ny = -ny;
+    }
+    return { a, b, fora: [nx, ny] };
+  };
+  const doX = (y: number, z: number) => aresta(proj(px0, y, z), proj(px1, y, z));
+  const doY = (x: number, z: number) => {
+    const [yP, yA] = perto(x);
+    return aresta(proj(x, yP, z), proj(x, yA, z));
+  };
+  const outroY = yLonge === yFundo ? yFrente : yFundo;
+  const outroX = xEsq === px0 ? px1 : px0;
+  // As esquinas verticais do contorno **da planta** (e não do retângulo que a envolve, que num L ou U pode ser ar),
+  // da mais à direita no ecrã para a mais à esquerda.
+  const vertices = new Map<string, [number, number]>();
+  for (const l of lados) {
+    const pts: [number, number][] = l.eixo === 'x' ? [[l.de, l.plano], [l.ate, l.plano]] : [[l.plano, l.de], [l.plano, l.ate]];
+    for (const p of pts) vertices.set(p.join(','), p);
+  }
+  const esquinas = [...vertices.values()].sort((p, q) => proj(q[0], q[1], 0)[0] - proj(p[0], p[1], 0)[0]);
+  if (esquinas.length === 0) esquinas.push(direito);
+  const candidatas = {
+    largura: [doX(yLonge, height), doX(outroY, height), doX(outroY, 0), doX(yLonge, 0)],
+    fundo: [doY(xEsq, height), doY(outroX, height), doY(xEsq, 0), doY(outroX, 0)],
+    altura: esquinas.map((c) => aresta(proj(c[0], c[1], 0), proj(c[0], c[1], height))),
+  };
   const cotasDaPrancheta = {
     largura: [proj(px0, yLonge, height), proj(px1, yLonge, height)] as [[number, number], [number, number]],
     fundo: [proj(xEsq, yPerto, height), proj(xEsq, yAlem, height)] as [[number, number], [number, number]],
     altura: [proj(direito[0], direito[1], 0), proj(direito[0], direito[1], height)] as [[number, number], [number, number]],
-    foraDoFundo: [sentido[0] / norma, sentido[1] / norma] as [number, number],
+    foraDoFundo: candidatas.fundo[0]!.fora,
+    candidatas,
   };
 
   const pecas: Volume['pecas'] = [];
