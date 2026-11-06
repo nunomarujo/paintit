@@ -3,11 +3,15 @@
 import type { FormState } from '@/app/app/actions';
 import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import { useFormAction } from '@/components/useFormAction';
-import { pedirRelatorio } from '../relatorio-actions';
+import { pedirRelatorio, pedirRelatorioDoPintor } from '../relatorio-actions';
 
-/** «Pedir o relatório desta obra»: o motivo, uma nota opcional, e mais nada. Gratuito. */
-export function PedirRelatorio({ requestId }: { requestId: string }) {
-  const { state, pending, repetir, formProps } = useFormAction<FormState>(pedirRelatorio.bind(null, requestId), { errors: {} }, { resetOnSuccess: true });
+/**
+ * «Pedir o relatório desta obra»: o motivo, uma nota opcional, e mais nada. Gratuito. Com `engagementId`,
+ * é o pintor contratado a pedir (a sua versão); sem ele, o dono da obra.
+ */
+export function PedirRelatorio({ requestId, engagementId }: { requestId?: string; engagementId?: string }) {
+  const accao = engagementId ? pedirRelatorioDoPintor.bind(null, engagementId) : pedirRelatorio.bind(null, requestId ?? '');
+  const { state, pending, repetir, formProps } = useFormAction<FormState>(accao, { errors: {} }, { resetOnSuccess: true });
   return (
     <form {...formProps} className="space-y-3">
       <fieldset>

@@ -6182,3 +6182,38 @@ produção). É a tabela de cores da aplicação; RAL, NCS e Pantone não entram
 da NCS Colour AB, e ninguém a pediu). Quem souber um código desses continua a poder escrevê-lo no campo, como texto.
 Mudar, acrescentar ou desativar uma cor faz-se pela equipa (`paleta_cores`, escrita só da equipa); desativar
 (`ativa = false`) em vez de apagar, porque há referências gravadas em pedidos e contratos.
+
+## 06/11/2026 — Respostas do promotor às 12 questões, e o que mudou por causa delas
+
+Antes de aplicar, comparou-se cada resposta com o que já estava construído; as três que colidiam foram
+perguntadas ao promotor (pontos 6, 7 e 12) e as respostas dele estão abaixo.
+
+1. **Vãos no interior:** fica a regra de 1 m² (como nas fachadas). **Construído:** cada vão tem «Descontar:
+   automático / sim / não», que manda sobre a regra, e cada divisão mostra quanto se descontou das paredes.
+   A escolha grava-se com o vão.
+2. **Caleiras:** as cinco opções de estado confirmadas; comprimento total facultativo; os metros a substituir só,
+   e obrigatórios, em «Substituir partes». Era o que estava construído.
+3. **Paleta própria** (QP, 60 cores, aprovada); RAL/NCS só com licença.
+4. **Litros:** aparecem ao avaliador e ao cliente, sempre como estimativa e sem valor total em euros. A lista de
+   materiais já era assim (preço de referência por embalagem, por litro e por m², e os litros estimados; nenhum total).
+5. **O interior fica no pedido**, mas não se anuncia aos clientes antes de ser testado com plantas reais.
+6. **Ferramenta das fachadas no pedido: fica a decisão de 05/11/2026** (o cliente também mede pela fotografia,
+   com a margem à vista e a zona sempre por confirmar), e não a resposta «primeiro só do avaliador», que o
+   promotor deixou cair quando se lhe mostrou o conflito. O trabalho é da sessão «Medição de zonas por
+   retângulo e dois pontos»; a ligação ao botão é a próxima sessão dela.
+7. **Zonas comuns usam a ferramenta do interior** (paredes e tetos), com divisões próprias: átrio, patamar,
+   corredor comum, escadas. **As escadas ficam sempre «Por medir»** até haver regra própria (o servidor não
+   calcula nada para elas, digam-se as medidas que se disserem). A lista de zonas mantém-se no outro separador,
+   onde vivem as zonas comuns já gravadas. Migração `zonas_comuns_e_relatorio_do_pintor`.
+8. **O comprovativo do cliente não marca a tranche como recebida**; quem confirma é o pintor. Confirmado.
+9. **SMS: não**, por agora; o código de 6 algarismos por email basta.
+10. **IBAN:** só português por agora; estrangeiro (SEPA) só se aparecer um caso real.
+11. **Conclusão:** 15 dias para a outra parte confirmar, **com lembrete ao 7.º dia — ligado** na tarefa diária
+    das 8h (`/api/cron/toques`), uma vez por declaração (registo em `toques`); discordar com razão escrita, só fica
+    registado; a ação própria «Declarar a obra concluída»; numa obra que ninguém declarou concluída os registos não
+    se apagam, e o limite decide-se com o jurista.
+12. **Relatório do percurso:** **o pintor contratado também o pede** (na página do contrato), e recebe a versão
+    do empreiteiro: **sem o que a plataforma lhe cobrou** e sem nada das outras propostas, nem o que o cliente
+    fez antes de publicar. **O relatório do cliente fica como estava**: as outras propostas aparecem só como
+    «Pintor A: submetida», sem nome, preço nem condições (o promotor escolheu manter a letra e o estado). Quem
+    emite continua a ser a equipa, que confirma que quem pediu é parte da obra.

@@ -31,6 +31,7 @@ import { historicoDosElementos } from '@/lib/elementosDoContrato';
 import { AlterarElemento } from './ElementosDoContrato';
 import { ComprovativoForm } from './ComprovativoForm';
 import { PassoDaConclusaoForm } from './ConclusaoDaObra';
+import { PedirRelatorio } from '@/app/app/pedidos/[id]/PedirRelatorio';
 import { DIAS_PARA_CONFIRMAR, PASSO_LABELS, estadoDaConclusao, passosPossiveis, type Lado as LadoDaObra, type PassoDaConclusao } from '@/domain/garantia';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
@@ -171,6 +172,15 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
     ? await supabase.from('garantias_calculadas').select('*').eq('engagement_id', id).order('calculado_em', { ascending: false }).limit(1).maybeSingle()
     : { data: null };
   const passosMeus = meuLado && manager ? passosPossiveis(estadoDaObra, meuLado) : [];
+  // O relatório do percurso, pedido pelo pintor contratado (06/11/2026). Sem a migração, as consultas falham
+  // sozinhas e a secção fica só com o botão.
+  const [{ data: relatoriosDoPintor }, { data: pedidosDoPintor }] =
+    side === 'pintor'
+      ? await Promise.all([
+          supabase.from('relatorios_do_percurso').select('id, versao, emitido_em').eq('request_id', row.request_id).eq('destinatario', 'pintor').order('versao', { ascending: false }),
+          supabase.from('pedidos_de_relatorio').select('id').eq('request_id', row.request_id).eq('lado', 'pintor'),
+        ])
+      : [{ data: [] }, { data: [] }];
   const nomesDasTranches = propostaDoPlano
     ? tranchesDoContrato({
         totalCents: (propostaDoPlano.base_cents ?? 0) + (propostaDoPlano.iva_cents ?? 0),
@@ -458,6 +468,36 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
               {passosMeus.map((passo) => (
                 <PassoDaConclusaoForm key={passo} engagementId={id} lado={meuLado} passo={passo} />
               ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {side === 'pintor' && (
+        <section className={card}>
+          <h2 className="font-semibold">Relatório do percurso negocial</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+            Um registo do que aconteceu na plataforma nesta obra, por ordem e com datas: o pedido publicado, a proposta, a contratação, as
+            assinaturas, as adendas, os pagamentos registados e a conclusão. Pode ser pedido sem custo; a equipa da plataforma confirma o pedido e
+            emite-o aqui.
+          </p>
+          {(relatoriosDoPintor ?? []).length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {(relatoriosDoPintor ?? []).map((r) => (
+                <li key={r.id}>
+                  <Link href={`/app/relatorios/${r.id}`} className="inline-flex min-h-[44px] items-center text-[17px] font-semibold text-tinta-700 hover:underline">
+                    Versão {r.versao}, emitida a {new Date(r.emitido_em).toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon' })}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {(pedidosDoPintor ?? []).length > (relatoriosDoPintor ?? []).length && (
+            <p className="mt-3 text-[17px] text-slate-700">Há um pedido de relatório à espera da equipa da plataforma.</p>
+          )}
+          {manager && (
+            <div className="mt-4">
+              <PedirRelatorio engagementId={id} />
             </div>
           )}
         </section>

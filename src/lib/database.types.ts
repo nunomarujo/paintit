@@ -2166,8 +2166,8 @@ export type Database = {
         Relationships: [];
       };
       pedidos_de_relatorio: {
-        Row: { id: string; request_id: string; org_id: string; motivo: string; nota: string | null; pedido_por: string; pedido_em: string };
-        Insert: { id?: string; request_id: string; org_id: string; motivo: string; nota?: string | null; pedido_por?: string; pedido_em?: string };
+        Row: { id: string; request_id: string; org_id: string; motivo: string; nota: string | null; pedido_por: string; pedido_em: string; lado: string };
+        Insert: { id?: string; request_id: string; org_id: string; motivo: string; nota?: string | null; pedido_por?: string; pedido_em?: string; lado?: string };
         Update: never;
         Relationships: [];
       };

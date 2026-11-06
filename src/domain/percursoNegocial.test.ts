@@ -81,3 +81,26 @@ describe('relatório do percurso negocial', () => {
     expect(relatorioDoPercurso(base('cliente'))).toBe(relatorioDoPercurso(base('cliente')));
   });
 });
+
+describe('versão do empreiteiro (pintor contratado, 06/11/2026)', () => {
+  const t = () => relatorioDoPercurso({ ...base('cliente'), destinatario: 'pintor' });
+  it('sem a comissão, em nenhuma forma', () => {
+    expect(t()).not.toMatch(/comiss/i);
+    expect(t()).not.toMatch(/1\D?992,60/);
+  });
+  it('sem nada das outras propostas, nem por letra, nem a comparação', () => {
+    expect(t()).not.toContain('Pinturas Perdeu');
+    expect(t()).not.toContain('Pintor A');
+    expect(t()).not.toContain('Relatório de comparação');
+  });
+  it('sem o que o cliente fez antes de publicar, nem a abertura de conta dele', () => {
+    expect(t()).not.toContain('Pedido de orçamentos criado');
+    expect(t()).not.toContain('Conta aberta na plataforma: Condomínio X');
+    expect(t()).toContain('Pedido publicado aos pintores');
+    expect(t()).toContain('para o empreiteiro');
+  });
+  it('com a sua própria proposta e a contratação', () => {
+    expect(t()).toMatch(/Proposta de Pinturas Ganhou, Lda\.: submetida/);
+    expect(t()).toContain('Escolhida a proposta de Pinturas Ganhou, Lda.');
+  });
+});

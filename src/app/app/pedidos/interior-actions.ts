@@ -48,7 +48,7 @@ export async function guardarInterior(requestId: string, _prev: FormState, form:
       largura_cm: cm(d.larguraM),
       perimetro_cm: cm(d.perimetroM),
       pe_direito_cm: cm(d.peDireitoM),
-      vaos: d.vaos.map((x) => ({ largura_cm: cm(x.larguraM), altura_cm: cm(x.alturaM), quantidade: x.quantidade })),
+      vaos: d.vaos.map((x) => ({ largura_cm: cm(x.larguraM), altura_cm: cm(x.alturaM), quantidade: x.quantidade, descontar: x.descontar ?? 'auto' })),
       pintar_paredes: d.pintarParedes,
       pintar_teto: d.pintarTeto,
       area_paredes_manual_cm2: cm(d.areaParedesManualM2),

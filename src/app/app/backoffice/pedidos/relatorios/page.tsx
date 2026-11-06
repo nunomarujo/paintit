@@ -27,8 +27,9 @@ export default async function RelatoriosDoPercurso() {
       <section>
         <h2 className="text-[20px] font-semibold">Pedidos dos clientes</h2>
         <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
-          Antes de entregar, a aplicação confirma que quem pediu é, hoje, pessoa da entidade que fez o pedido. Sem custo para o cliente. A versão
-          do cliente vai sem o que a plataforma cobra ao pintor e sem a identidade dos pintores que não ganharam.
+          Antes de entregar, a aplicação confirma que quem pediu é, hoje, pessoa da entidade que fez o pedido ou da empresa contratada. Sem custo.
+          A versão do dono da obra vai sem o que a plataforma cobra ao pintor e sem a identidade dos pintores que não ganharam; a do empreiteiro,
+          sem o que a plataforma lhe cobrou e sem as outras propostas.
         </p>
         {(pedidos ?? []).length === 0 ? (
           <p className="mt-4 rounded-2xl border border-slate-200 px-4 py-3 text-[17px] text-slate-600">Não há pedidos de relatório.</p>
@@ -37,7 +38,7 @@ export default async function RelatoriosDoPercurso() {
             {(pedidos ?? []).map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <span className="text-[17px]">
-                  Obra {refDe(p.request_id)} · {orgs?.find((o) => o.id === p.org_id)?.nome ?? 'Entidade'} · {MOTIVOS[p.motivo] ?? p.motivo}
+                  Obra {refDe(p.request_id)} · {p.lado === 'pintor' ? 'empreiteiro' : 'dono da obra'}: {orgs?.find((o) => o.id === p.org_id)?.nome ?? 'Entidade'} · {MOTIVOS[p.motivo] ?? p.motivo}
                   <span className="block text-[15px] text-slate-600">
                     Pedido a {dt(p.pedido_em)}
                     {p.nota ? ` · «${p.nota}»` : ''}
@@ -45,7 +46,7 @@ export default async function RelatoriosDoPercurso() {
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
                   {entregue(p.id) && <span className="text-[15px] text-slate-600">Entregue</span>}
-                  <EmitirRelatorio requestId={p.request_id} destinatario="cliente" pedidoId={p.id} rotulo={entregue(p.id) ? 'Emitir nova versão' : 'Confirmar e entregar'} />
+                  <EmitirRelatorio requestId={p.request_id} destinatario={p.lado === 'pintor' ? 'pintor' : 'cliente'} pedidoId={p.id} rotulo={entregue(p.id) ? 'Emitir nova versão' : 'Confirmar e entregar'} />
                   <EmitirRelatorio requestId={p.request_id} destinatario="backoffice" pedidoId={null} rotulo="Versão completa" />
                 </span>
               </li>
@@ -61,7 +62,7 @@ export default async function RelatoriosDoPercurso() {
           <ul className="mt-4 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
             {(emitidos ?? []).map((e) => (
               <li key={e.id} className="px-4 py-3 text-[17px]">
-                Obra {refDe(e.request_id)} · {e.destinatario === 'cliente' ? 'para o cliente' : 'versão completa'} · versão {e.versao} · {dt(e.emitido_em)}
+                Obra {refDe(e.request_id)} · {e.destinatario === 'cliente' ? 'para o dono da obra' : e.destinatario === 'pintor' ? 'para o empreiteiro' : 'versão completa'} · versão {e.versao} · {dt(e.emitido_em)}
                 <a href={`/app/backoffice/pedidos/relatorios/${e.id}`} className="ml-2 inline-flex min-h-[44px] items-center font-semibold text-tinta-700 underline">
                   Ler
                 </a>
