@@ -5976,3 +5976,32 @@ assinaturas; só de acrescentar; a data é a do servidor. As imagens perdem os m
 que se guardou, que é também o nome do ficheiro. Leem as duas partes e a equipa. **O comprovativo não marca a
 tranche como recebida** — continua a ser o pintor a confirmar (por confirmar com o promotor). A plataforma
 regista o que lhe dizem e não valida.
+
+## 06/11/2026 — Conclusão da obra, início da garantia e conservação dos registos
+
+Decisão do promotor: a plataforma é **terceira isenta** — guarda o registo e a prova documental e não decide
+quem tem razão.
+
+- **Início da garantia:** quando uma parte declara a obra concluída (com a data) e a outra confirma
+  (`conclusao_da_obra`, `src/domain/garantia.ts`). Qualquer parte pode declarar; a outra é avisada por email e
+  pode confirmar, **discordar com uma razão escrita** (fica registada, sem julgamento) ou juntar prova. Sem
+  resposta, fica «declarada por uma só parte» e quem declarou é convidado a juntar prova (fotografia ou PDF,
+  mesmos limites, sem metadados, cofre privado `provas-da-obra`, SHA-256). A declaração unilateral não inicia
+  a garantia. Cada passo é só de acrescentar e tem a data do servidor.
+- **Duração como número:** o contrato tinha a garantia só em texto. As contratações novas guardam
+  `engagements.garantia_anos`, copiado da proposta escolhida no momento em que são criadas; nas antigas o número
+  vem da proposta escolhida (que já não muda). O texto «5. Garantia da obra» já diz que a garantia contratual não
+  reduz o prazo legal de cinco anos (art. 1225.º CC): o cálculo é só da garantia contratual e não o contradiz.
+- **Conservação:** fim da garantia = início + duração; fim da conservação = esse fim + 24 meses
+  (`garantias_calculadas`, com a data do cálculo, só de acrescentar). Nada destes registos se apaga — nem pela
+  chave de serviço (gatilho), nem pela contratação (`on delete restrict`). **Não há apagamento automático.**
+  Depois do período, apagar ou anonimizar só a pedido, pelo modo que o jurista decidir.
+- **Propostas do chat, por confirmar (EM_ABERTO):** 15 dias para a outra parte confirmar, com lembrete aos 7
+  (o prazo está em código; o lembrete ainda não sai — fica para a tarefa diária dos toques); discordar com razão
+  (construído); ação própria «Declarar a obra concluída», em vez do estado `concluida` do diário (construído
+  assim); sem declaração, os registos ficam sem limite; conta encerrada no período: registos mantidos com acesso
+  restrito às partes e à equipa.
+
+**Alerta para o promotor e para o jurista, tal como está:** a garantia contratual pode ser curta (2 anos, por
+exemplo); com mais 24 meses são 4 anos — e o texto do contrato já cita um prazo legal de cinco anos. A pergunta
+ao jurista é se a conservação deve seguir o prazo mais longo. Não se decidiu.

@@ -447,6 +447,7 @@ export type Database = {
           request_id: string;
           rules_version: string;
           minuta_versao: string | null;
+          garantia_anos: number | null;
         };
         Insert: never;
         Update: never;
@@ -2134,6 +2135,18 @@ export type Database = {
       comprovativos_de_pagamento: {
         Row: { id: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota: string | null; ficheiro_path: string | null; ficheiro_sha256: string | null; ficheiro_tipo: string | null; criado_por: string; criado_em: string };
         Insert: { id?: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota?: string | null; ficheiro_path?: string | null; ficheiro_sha256?: string | null; ficheiro_tipo?: string | null; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      conclusao_da_obra: {
+        Row: { id: string; engagement_id: string; lado: string; passo: string; data_conclusao: string | null; razao: string | null; ficheiro_path: string | null; ficheiro_sha256: string | null; ficheiro_tipo: string | null; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; lado: string; passo: string; data_conclusao?: string | null; razao?: string | null; ficheiro_path?: string | null; ficheiro_sha256?: string | null; ficheiro_tipo?: string | null; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      garantias_calculadas: {
+        Row: { id: string; engagement_id: string; inicio: string; anos: number; fim_garantia: string; fim_conservacao: string; calculado_em: string };
+        Insert: { id?: string; engagement_id: string; inicio: string; anos: number; fim_garantia: string; fim_conservacao: string; calculado_em?: string };
         Update: never;
         Relationships: [];
       };

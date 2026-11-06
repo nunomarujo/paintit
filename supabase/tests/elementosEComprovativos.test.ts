@@ -53,14 +53,14 @@ async function entidades() {
 }
 
 /** Uma contratação mínima, criada como dono da base (fora das regras de acesso, só para o ensaio). */
-async function contratacao(minuta: string | null): Promise<string> {
+async function contratacao(minuta: string | null, garantia: number | null = null): Promise<string> {
   const b = (await one<{ id: string }>(
     `insert into public.buildings (org_id, nome_interno, tipo, morada, codigo_postal, localidade, concelho)
      values ($1, 'zz-test', 'edificio_habitacao', 'Rua A, 1', '1000-001', 'Lisboa', 'Lisboa') returning id`,
     [c],
   )).id;
   const r = (await one<{ id: string }>(`insert into public.work_requests (org_id, building_id, titulo, tipo_obra) values ($1, $2, 'zz-test', 'fachadas') returning id`, [c, b])).id;
-  const pr = (await one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id) values ($1, $2) returning id`, [r, p])).id;
+  const pr = (await one<{ id: string }>(`insert into public.proposals (request_id, painter_org_id, garantia_anos) values ($1, $2, $3) returning id`, [r, p, garantia])).id;
   return (
     await one<{ id: string }>(
       `insert into public.engagements (proposal_id, request_id, client_org_id, painter_org_id, base_cents, advance_cents, rules_version, minuta_versao)
@@ -208,5 +208,47 @@ describe('comprovativos de pagamento', () => {
 
   it('a contratação não se apaga com registos destes agarrados', async () => {
     await expect(db.query('delete from public.engagements where id = $1', [aberta])).rejects.toThrow(/foreign key|violates/);
+  });
+});
+
+describe('conclusão da obra e garantia (06/11/2026)', () => {
+  const passo = (engagement: string, lado: string, p: string, data: string | null, razao: string | null = null) =>
+    servico(() =>
+      db.query(
+        `insert into public.conclusao_da_obra (engagement_id, lado, passo, data_conclusao, razao, criado_por) values ($1, $2, $3, $4, $5, $6)`,
+        [engagement, lado, p, data, razao, lado === 'cliente' ? CLIENTE : PINTOR],
+      ),
+    );
+
+  it('a contratação nova guarda os anos de garantia da proposta escolhida; as antigas não', async () => {
+    const anos = async (id: string) => (await one<{ garantia_anos: number | null }>('select garantia_anos from public.engagements where id = $1', [id])).garantia_anos;
+    expect(await anos(await contratacao('2026-11-06', 2))).toBe(2);
+    expect(await anos(await contratacao(null, 2))).toBeNull();
+  });
+
+  it('antes do contrato celebrado não se regista', async () => {
+    const outra = await contratacao('2026-11-06');
+    await expect(passo(outra, 'pintor', 'declarou', '2026-11-01')).rejects.toThrow(/assinado pelas duas partes/);
+  });
+
+  it('declarar exige a data (não futura); discordar exige a razão; nada se reescreve', async () => {
+    await expect(passo(aberta, 'pintor', 'declarou', null)).rejects.toThrow(/conclusao_declarou_tem_data/);
+    await expect(passo(aberta, 'pintor', 'declarou', '2999-01-01')).rejects.toThrow(/futura/);
+    await expect(passo(aberta, 'cliente', 'discordou', null)).rejects.toThrow(/conclusao_discordou_tem_razao/);
+    await passo(aberta, 'pintor', 'declarou', '2026-11-01');
+    await passo(aberta, 'cliente', 'confirmou', null);
+    await expect(servico(() => db.query('delete from public.conclusao_da_obra where engagement_id = $1', [aberta]))).rejects.toThrow(/só de acrescentar/);
+    await expect(as(CLIENTE, () => db.query(`insert into public.conclusao_da_obra (engagement_id, lado, passo, criado_por) values ($1, 'cliente', 'confirmou', $2)`, [aberta, CLIENTE]))).rejects.toThrow(/permission denied/);
+  });
+
+  it('a garantia calculada guarda as duas datas e a data do cálculo; não se reescreve', async () => {
+    await servico(() =>
+      db.query(`insert into public.garantias_calculadas (engagement_id, inicio, anos, fim_garantia, fim_conservacao, calculado_em) values ($1, '2026-11-01', 2, '2028-11-01', '2030-11-01', '2000-01-01')`, [aberta]),
+    );
+    const g = await one<{ calculado_em: string }>('select calculado_em from public.garantias_calculadas where engagement_id = $1', [aberta]);
+    expect(new Date(g.calculado_em).getUTCFullYear()).toBeGreaterThan(2000);
+    await expect(servico(() => db.query('update public.garantias_calculadas set anos = 9 where engagement_id = $1', [aberta]))).rejects.toThrow(/só de acrescentar/);
+    expect(await as(ESTRANHO, async () => (await db.query('select id from public.garantias_calculadas')).rows.length)).toBe(0);
+    expect(await as(CLIENTE, async () => (await db.query('select id from public.garantias_calculadas')).rows.length)).toBe(1);
   });
 });

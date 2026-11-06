@@ -102,6 +102,12 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | IBAN estrangeiro | Só se aceita IBAN português (PT50). Há clientes ou pintores com conta noutro país? | idem |
 | Comprovativo vs. confirmação do pintor | O comprovativo do cliente não marca a tranche como recebida; é o pintor que confirma. Confirmar | idem |
 | Jurista: elementos do contrato | Redação da cláusula 4-A; histórico que não se apaga e direito ao apagamento (RGPD); valor dos comprovativos como prova. Acrescentar ao documento de questões jurídicas (Claude Docs) | idem |
+| Conclusão da obra: prazo para confirmar | Proposta: 15 dias, lembrete aos 7 (o lembrete ainda não está ligado à tarefa diária). Confirmar | `DECISOES.md` 06/11/2026, «Conclusão da obra» |
+| Conclusão: discordar com razão | Construído como proposta (fica registado, sem julgamento). Confirmar | idem |
+| Conclusão: ação própria ou estado do diário | Construída a ação «Declarar a obra concluída»; o estado `concluida` do diário não conta. Confirmar | idem |
+| Obra que ninguém declarou concluída | Os registos ficam sem limite. Que limite máximo? (com o jurista) | idem |
+| Conta encerrada durante o período de conservação | Proposta: registos mantidos, acesso só às partes e à equipa. Validar com o jurista | idem |
+| Jurista: conservação vs. prazo legal de 5 anos | Garantia de 2 anos + 24 meses = 4 anos, abaixo dos 5 do art. 1225.º CC citado no contrato. Conservar pelo prazo mais longo? Valor da prova junta por uma só parte; papel de «terceira isenta» | idem |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)

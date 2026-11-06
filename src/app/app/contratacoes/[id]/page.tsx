@@ -30,6 +30,8 @@ import { parseFases } from '@/domain/proposal';
 import { historicoDosElementos } from '@/lib/elementosDoContrato';
 import { AlterarElemento } from './ElementosDoContrato';
 import { ComprovativoForm } from './ComprovativoForm';
+import { PassoDaConclusaoForm } from './ConclusaoDaObra';
+import { DIAS_PARA_CONFIRMAR, PASSO_LABELS, estadoDaConclusao, passosPossiveis, type Lado as LadoDaObra, type PassoDaConclusao } from '@/domain/garantia';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -151,6 +153,24 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   const { data: propostaDoPlano } = celebrado && side === 'cliente'
     ? await supabase.from('proposals').select('adiantamento_bps, fases, base_cents, iva_cents').eq('id', row.proposal_id).maybeSingle()
     : { data: null };
+  // Conclusão da obra e garantia (06/11/2026): depois das duas assinaturas.
+  const { data: passosRows } = celebrado
+    ? await supabase.from('conclusao_da_obra').select('*').eq('engagement_id', id).order('criado_em')
+    : { data: [] };
+  const passosDaObra = await Promise.all(
+    (passosRows ?? []).map(async (p) => ({
+      ...p,
+      url: p.ficheiro_path ? (await supabase.storage.from('provas-da-obra').createSignedUrl(p.ficheiro_path, 300)).data?.signedUrl ?? null : null,
+    })),
+  );
+  const estadoDaObra = estadoDaConclusao(
+    passosDaObra.map((p) => ({ lado: p.lado as LadoDaObra, passo: p.passo as PassoDaConclusao, dataConclusao: p.data_conclusao, criadoEm: p.criado_em })),
+    new Date(),
+  );
+  const { data: garantiaCalculada } = celebrado
+    ? await supabase.from('garantias_calculadas').select('*').eq('engagement_id', id).order('calculado_em', { ascending: false }).limit(1).maybeSingle()
+    : { data: null };
+  const passosMeus = meuLado && manager ? passosPossiveis(estadoDaObra, meuLado) : [];
   const nomesDasTranches = propostaDoPlano
     ? tranchesDoContrato({
         totalCents: (propostaDoPlano.base_cents ?? 0) + (propostaDoPlano.iva_cents ?? 0),
@@ -384,6 +404,60 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           {side === 'cliente' && manager && (
             <div className="mt-5">
               <ComprovativoForm engagementId={id} tranches={nomesDasTranches} />
+            </div>
+          )}
+        </section>
+      )}
+
+      {celebrado && (
+        <section id="conclusao" className={`${card} scroll-mt-24`}>
+          <h2 className="font-semibold">Conclusão da obra e garantia</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+            A garantia começa quando uma parte declara a obra concluída e a outra o confirma. A plataforma regista cada passo, com a data, e a
+            prova que as partes juntarem; não decide quem tem razão.
+          </p>
+          <p className="mt-3 text-[17px] text-slate-900">
+            {estadoDaObra.estado === 'por_declarar' && 'Ainda ninguém declarou a obra concluída.'}
+            {estadoDaObra.estado === 'por_confirmar' &&
+              `${estadoDaObra.declaradaPor === 'cliente' ? 'O dono da obra' : 'O empreiteiro'} declarou a obra concluída a ${pt(estadoDaObra.dataConclusao)}; falta a confirmação da outra parte (até ${dt(estadoDaObra.prazo)}).`}
+            {estadoDaObra.estado === 'uma_parte' &&
+              `Declarada só por ${estadoDaObra.declaradaPor === 'cliente' ? 'o dono da obra' : 'o empreiteiro'} (${pt(estadoDaObra.dataConclusao)}): a outra parte não confirmou em ${DIAS_PARA_CONFIRMAR} dias. Fica registado assim; quem declarou pode juntar prova.`}
+            {estadoDaObra.estado === 'contestada' && `A conclusão declarada a ${pt(estadoDaObra.dataConclusao)} foi contestada pela outra parte, com a razão registada abaixo.`}
+            {estadoDaObra.estado === 'confirmada' && `Obra concluída a ${pt(estadoDaObra.dataConclusao)}, confirmado pelas duas partes.`}
+          </p>
+          {garantiaCalculada && (
+            <dl className="mt-3 grid gap-x-6 gap-y-1 text-[17px] sm:grid-cols-[auto_1fr]">
+              <dt className="text-slate-600">Garantia contratual</dt>
+              <dd>
+                {garantiaCalculada.anos} {garantiaCalculada.anos === 1 ? 'ano' : 'anos'}, de {pt(garantiaCalculada.inicio)} a {pt(garantiaCalculada.fim_garantia)}
+              </dd>
+              <dt className="text-slate-600">Registos guardados até</dt>
+              <dd>
+                {pt(garantiaCalculada.fim_conservacao)} <span className="text-[15px] text-slate-600">(24 meses depois do fim da garantia; calculado a {dt(garantiaCalculada.calculado_em)})</span>
+              </dd>
+            </dl>
+          )}
+          {passosDaObra.length > 0 && (
+            <ol className="mt-4 space-y-2 text-[15px] text-slate-700">
+              {passosDaObra.map((p) => (
+                <li key={p.id}>
+                  {dt(p.criado_em)} · {p.lado === 'cliente' ? 'Dono da obra' : 'Empreiteiro'} {PASSO_LABELS[p.passo as PassoDaConclusao]}
+                  {p.data_conclusao && ` (${pt(p.data_conclusao)})`}
+                  {p.razao && <span className="block text-slate-900">«{p.razao}»</span>}
+                  {p.url && (
+                    <a href={p.url} target="_blank" rel="noreferrer" className="ml-2 font-semibold text-tinta-700 underline">
+                      Ver a prova
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+          {meuLado && passosMeus.length > 0 && (
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {passosMeus.map((passo) => (
+                <PassoDaConclusaoForm key={passo} engagementId={id} lado={meuLado} passo={passo} />
+              ))}
             </div>
           )}
         </section>
