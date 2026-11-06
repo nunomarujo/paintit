@@ -82,10 +82,10 @@ function toFormPairs(prefix: string, value: unknown, out: [string, string][]): v
 }
 
 /** Chamada genérica à API (POST, formulário). */
-async function call<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function call<T>(path: string, body: Record<string, unknown>, opcoes: { semEmpresa?: boolean } = {}): Promise<T> {
   const token = await getAccessToken();
   const pairs: [string, string][] = [];
-  for (const [k, v] of Object.entries({ company_id: Number(env('MOLONI_COMPANY_ID')), ...body })) toFormPairs(k, v, pairs);
+  for (const [k, v] of Object.entries({ ...(opcoes.semEmpresa ? {} : { company_id: Number(env('MOLONI_COMPANY_ID')) }), ...body })) toFormPairs(k, v, pairs);
   const res = await fetch(`${BASE}/${path}/?access_token=${encodeURIComponent(token)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -134,6 +134,21 @@ function idPositivo(v: unknown, campo: string): number {
   const n = typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v;
   if (typeof n !== 'number' || !Number.isInteger(n) || n <= 0) throw new Error(`A Moloni não devolveu um ${campo} válido (recebido: ${JSON.stringify(v) ?? 'nada'}).`);
   return n;
+}
+
+/**
+ * A empresa configurada tem de ser uma das desta ligação (token) à Moloni. Um `MOLONI_COMPANY_ID` errado dá, em todos os
+ * campos, erros que parecem de outra coisa («5 document_set_id», «2 customer_id 1 0», 06/11/2026: no ramo de testes o
+ * identificador estava marcado «por confirmar»). Diz-se logo qual é o erro e que empresas há.
+ */
+async function verificarEmpresa(): Promise<void> {
+  const empresas = await call<{ company_id?: number | string; name?: string }[]>('companies/getAll', {}, { semEmpresa: true }).catch(() => null);
+  if (!Array.isArray(empresas) || empresas.length === 0) return; // sem lista não se bloqueia
+  const id = Number(env('MOLONI_COMPANY_ID'));
+  if (empresas.some((e) => Number(e.company_id) === id)) return;
+  throw new Error(
+    `MOLONI_COMPANY_ID=${env('MOLONI_COMPANY_ID')} não é uma empresa desta ligação à Moloni. Empresas: ${empresas.map((e) => `${e.company_id} «${e.name ?? ''}»`).join(', ')}.`,
+  );
 }
 
 /** A série configurada tem de existir NESTA empresa da Moloni (as séries são de cada empresa): se não, diz quais há. */
@@ -208,6 +223,7 @@ export async function emitDocument(draft: InvoiceDraft): Promise<EmittedDocument
   const documentSet = Number(env('MOLONI_DOCUMENT_SET_ID'));
   const taxId = Number(env('MOLONI_TAX_ID_NORMAL'));
   if (!documentSet) throw new Error('Falta configurar MOLONI_DOCUMENT_SET_ID.');
+  await verificarEmpresa();
   await verificarSerie(documentSet);
   const customerId = await ensureCustomer(draft.customer);
   const artigo = await artigoDeServico(draft.reason, taxId);

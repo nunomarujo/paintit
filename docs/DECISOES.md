@@ -6680,3 +6680,12 @@ Promotor, a seguir à entrada anterior: «quando não indicados devem ficar asso
   sem escolha. A lista vazia deixou de querer dizer todo o país também em `deliveryFor`.
 - **«Loja»:** a aplicação ainda não guarda lojas nem pontos de venda dos fornecedores — só a morada da empresa. Se uma
   empresa tiver lojas noutros concelhos, por agora escolhe-os à mão; guardar lojas fica em aberto.
+
+*Moloni, a causa mais provável (06/11/2026, noite):* na Vercel, as variáveis `MOLONI_*` da conta de TESTES existem só para os
+*deploys de pré-visualização do ramo `moloni-teste`* (série `978495`, IVA `3946815`, consumidor final `163662825`), e o
+`MOLONI_COMPANY_ID` desse ramo (`404970`) está marcado «**por confirmar** com `companies/getAll`: valor sugerido por uma chave
+do browser, não é fonte fiável». Um identificador de empresa errado explica os três erros ao mesmo tempo (série, cliente e
+artigo parecem inválidos porque são de outra empresa). **Feito:** a emissão confere a empresa contra `companies/getAll` e diz
+quais há. **Atenção, perigo:** em **produção** as `MOLONI_*` são as da empresa REAL (de 20/10/2026) e a base é a mesma: um
+«Emitir» em produção cria uma fatura REAL, que não se apaga. A linha «Pintor Teste Lda» está na fila de produção. Emitir só
+no deploy do ramo `moloni-teste`.
