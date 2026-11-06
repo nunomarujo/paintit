@@ -307,6 +307,12 @@ export interface ElementosDaParte {
 
 /** A minuta com os elementos das partes, o declarado no pedido e a cláusula de alteração. */
 export const MINUTA_2026_11_06 = '2026-11-06';
+/**
+ * Minuta de 07/11/2026: o mesmo texto, com a disposição nova do PDF (`contractPdfV2`). O PDF assinado confere-se
+ * regenerando-o, por isso a disposição também é versionada: só as contratações criadas com esta versão a usam.
+ */
+export const MINUTA_2026_11_07 = '2026-11-07';
+export const minutaComLayoutNovo = (m: string | null | undefined) => !!m && m >= MINUTA_2026_11_07;
 export const minutaComElementos = (m: string | null | undefined) => !!m && m >= MINUTA_2026_11_06;
 
 /** «PT50 0002 0123 1234 5678 9015 4» — o IBAN em grupos de quatro, como se lê num papel. */

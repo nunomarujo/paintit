@@ -6431,3 +6431,21 @@ Decisão do promotor: pôr um limite. `src/lib/comLimite.ts` (testado) espera no
 erro), o middleware deixa o pedido seguir e regista um aviso na consola, em vez de mandar a pessoa para a
 entrada — a área reservada volta a confirmar quem entrou no seu próprio layout (`src/app/app/layout.tsx`), e é aí
 que quem não entrou é mandado para `/entrar`. Nesse caso a sessão não é renovada nesse pedido; renova-se no seguinte.
+
+
+## 07/11/2026 — PDF do contrato: disposição nova, versionada
+
+**Pedido do promotor:** as minutas/contratos em PDF eram feios, de formatação fraca; deixou um exemplo
+(`Contrato_QuemPinta_ENSAIO01.pdf`) do que a aplicação deve conseguir. **Feito:** `src/lib/contractPdfV2.ts` —
+cabeçalho com a marca e a referência, título em serifa (Noto Serif), secções com o número a cor, as partes lado a
+lado, o preço em caixa, quadros de assinatura e rodapé «Página n de N». Fontes Inter e Noto Serif (SIL OFL 1.1)
+embutidas em `src/lib/pdfFonts.ts` (subconjuntos Latin, ~150 KB). **O texto da minuta não mudou.**
+
+**Versionamento (a regra que importa):** o PDF assinado confere-se regenerando-o, por isso a disposição não pode
+mudar para contratações já criadas. A disposição antiga (`v1`) fica intacta, fixada por um teste com o SHA-256 dos
+bytes (`contractPdf.layout.test.ts`); a nova (`v2`) só vale para `minuta_versao >= '2026-11-07'`
+(`minutaComLayoutNovo`). A migração `20261107000000_minuta_com_layout_novo` muda o valor por omissão — **aplicar
+depois de o código estar publicado**.
+
+**Limites conhecidos:** se as assinaturas não couberem na última página, passam sozinhas para uma página nova (sem
+texto do contrato). O destaque a negrito de «Rótulo:» é por padrão do texto, não por estrutura.

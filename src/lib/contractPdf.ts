@@ -1,6 +1,7 @@
 import { BRAND } from '@/config/brand';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { Draft } from '@/domain/contracting';
+import { contractPdfV2 } from './contractPdfV2';
 
 // PDF do contrato. É determinístico: os mesmos dados dão sempre os mesmos bytes
 // (datas fixadas na data da contratação, sem identificadores aleatórios). Assim
@@ -17,7 +18,13 @@ export function pdfSafe(text: string): string {
     .join('');
 }
 
-export async function contractPdf(draft: Draft, fixedDate: Date, reference: string): Promise<Uint8Array> {
+/**
+ * `layout` 'v1' é a disposição de sempre (texto simples): as contratações anteriores a 07/11/2026 continuam a
+ * gerar exatamente os mesmos bytes, porque as assinaturas já feitas se conferem regenerando o PDF. 'v2' é a
+ * disposição nova, só para as criadas com a minuta de 07/11/2026 (`minutaComLayoutNovo`).
+ */
+export async function contractPdf(draft: Draft, fixedDate: Date, reference: string, layout: 'v1' | 'v2' = 'v1'): Promise<Uint8Array> {
+  if (layout === 'v2') return contractPdfV2(draft, fixedDate, reference);
   const doc = await PDFDocument.create();
   doc.setTitle(pdfSafe(draft.title));
   doc.setAuthor(BRAND.name);
