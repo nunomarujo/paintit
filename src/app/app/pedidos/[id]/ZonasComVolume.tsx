@@ -1,8 +1,19 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { apagarTodasAsZonas, guardarFormaDoPredio } from '@/app/app/pedidos/actions';
+import { useConfirmacao } from '@/components/Confirmar';
 import { alturaDoPredio, dimensao, type Certeza, type Dimensao } from '@/domain/geometria';
-import { entradaDoVolume, lugaresDasZonas, numerarZonas, type EixoDaCota } from '@/domain/prancheta';
+import {
+  ANGULO_DO_DESENHO,
+  ehAlcado,
+  entradaDoVolume,
+  ladosParaEscolher,
+  lugaresDasZonas,
+  numerarZonas,
+  plantaDoDesenho,
+  type EixoDaCota,
+} from '@/domain/prancheta';
 import type { SurfaceKind, WorksMode } from '@/domain/request';
 import {
   fraseDoQueFalta,
@@ -18,7 +29,9 @@ import { buildingVolume, type Forma } from '@/domain/volume';
 import { GeometriaDoPredio, type MedidasEmTexto } from './GeometriaDoPredio';
 import { BotaoFechar, Janela } from './Janela';
 import { JanelaDaFerramenta, type InicioDaFerramenta, type MedicaoGravada } from './JanelaDaFerramenta';
+import { PlantaDoPredio } from './PlantaDoPredio';
 import { QuadroDasZonas } from './Prancheta';
+import { useAnguloDoDesenho } from './useAnguloDoDesenho';
 import { EditorDaZona, Pino, type ZonaNaLista } from './ZonasDoPedido';
 import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 
@@ -65,6 +78,7 @@ export function ZonasComVolume({
   doCliente,
   predio,
   recolhido = false,
+  podeEscolherPlanta = false,
   medirNaFotografia = true,
 }: {
   requestId: string;
@@ -88,6 +102,11 @@ export function ZonasComVolume({
   /** Com visita pedida: o quadro fica recolhido atrás de «Acrescentar informação que já sei». */
   recolhido?: boolean;
   /**
+   * Quem pode escolher a planta do prédio (ela grava-se no cadastro do prédio). Falso no ecrã do avaliador, que
+   * não gere o prédio: vê a planta, mas não a muda.
+   */
+  podeEscolherPlanta?: boolean;
+  /**
    * A entrada da ferramenta de fotografia, para quem pode editar (06/11/2026). Falso no ecrã do
    * avaliador: ele mede no local, e a ferramenta grava «medida pelo cliente».
    */
@@ -96,6 +115,8 @@ export function ZonasComVolume({
   const podeMedirNaFotografia = podeEditar && medirNaFotografia;
   const [aberto, setAberto] = useState<{ id: string | null; tipo?: SurfaceKind } | null>(null);
   const [apontada, setApontada] = useState<string | null>(null);
+  const [pedir, dialogoDeConfirmacao] = useConfirmacao();
+  const [aRecomecar, setARecomecar] = useState(false);
   // `zonaId` nulo: abriu-se pelo botão do topo (sugere-se a primeira por confirmar); vazio: uma zona nova.
   const [ferramenta, setFerramenta] = useState<InicioDaFerramenta | null>(null);
   // O que a ferramenta gravou por último, dito por baixo do total até se voltar a medir — ou até a zona
@@ -124,13 +145,46 @@ export function ZonasComVolume({
   const lM = g.largura.metros;
   const pM = g.profundidade.metros;
   const hM = g.peDireito.metros;
-  const volume = useMemo(
-    () =>
+  // A planta: o prédio guarda-a (cadastro), e o que se escolhe aqui vê-se logo, antes de a gravação voltar.
+  const [formaLocal, setFormaLocal] = useState<Forma | null>(predio.forma);
+  useEffect(() => setFormaLocal(predio.forma), [predio.forma]);
+  const [aGuardarPlanta, setAGuardarPlanta] = useState(false);
+  const [erroDaPlanta, setErroDaPlanta] = useState<string | null>(null);
+  const predioDoDesenho = useMemo(() => ({ ...predio, forma: formaLocal }), [predio, formaLocal]);
+  const planta = plantaDoDesenho(formaLocal, zonas);
+  // O prédio a qualquer ângulo: o desenho, a moldura de todas as vistas e «Ver no desenho» pedem-no.
+  const volumeEm = useCallback(
+    (angulo: number) =>
       buildingVolume(
-        entradaDoVolume(predio, zonas, lM !== null && hM !== null ? { larguraM: lM, profundidadeM: pM, peDireitoM: hM } : null),
+        entradaDoVolume(predioDoDesenho, zonas, lM !== null && hM !== null ? { larguraM: lM, profundidadeM: pM, peDireitoM: hM } : null, angulo),
       ),
-    [predio, zonas, lM, pM, hM],
+    [predioDoDesenho, zonas, lM, pM, hM],
   );
+  // O ângulo: muda a cada movimento do rato, e o desenho segue-o com o que o React puder (`useDeferredValue`):
+  // arrastar nunca deixa a página a pensar.
+  const rotacao = useAnguloDoDesenho(ANGULO_DO_DESENHO);
+  const anguloDoDesenho = useDeferredValue(rotacao.angulo);
+  const volume = useMemo(() => volumeEm(anguloDoDesenho), [volumeEm, anguloDoDesenho]);
+  // Os números não dependem do ângulo (têm sítio no prédio ou não têm): medem-se na vista inicial.
+  const volumeInicial = useMemo(() => volumeEm(ANGULO_DO_DESENHO), [volumeEm]);
+  const escolherPlanta = async (f: Forma) => {
+    const antes = formaLocal;
+    setFormaLocal(f);
+    setErroDaPlanta(null);
+    setAGuardarPlanta(true);
+    try {
+      const r = await guardarFormaDoPredio(predio.buildingId, requestId, f);
+      if (!r.ok) {
+        setFormaLocal(antes);
+        setErroDaPlanta(r.message ?? 'Não foi possível guardar a planta.');
+      }
+    } catch {
+      setFormaLocal(antes);
+      setErroDaPlanta('Não foi possível guardar a planta.');
+    } finally {
+      setAGuardarPlanta(false);
+    }
+  };
   const textos = useMemo<Partial<Record<EixoDaCota, string>>>(() => {
     if (lM === null || hM === null) return {};
     const alto = alturaDoPredio({
@@ -140,9 +194,14 @@ export function ZonasComVolume({
       profundidade: dimensao(pM, certeza),
       peDireito: dimensao(hM, certeza),
     });
-    return { frente: textoDaCota(dimensao(lM, certeza)), fundo: textoDaCota(dimensao(pM, certeza)), altura: textoDaCota(alto) };
-  }, [lM, pM, hM, certeza, predio.pisos]);
-  const numeracao = useMemo(() => numerarZonas(zonas, lugaresDasZonas(volume, zonas)), [volume, zonas]);
+    // A laje não tem fundo: a profundidade medida é a do prédio, e o painel não a desenha — a cota ficava a mentir.
+    return {
+      frente: textoDaCota(dimensao(lM, certeza)),
+      ...(planta.laje ? {} : { fundo: textoDaCota(dimensao(pM, certeza)) }),
+      altura: textoDaCota(alto),
+    };
+  }, [lM, pM, hM, certeza, predio.pisos, planta.laje]);
+  const numeracao = useMemo(() => numerarZonas(zonas, lugaresDasZonas(volumeInicial, zonas)), [volumeInicial, zonas]);
   const numeroDe = useMemo(() => Object.fromEntries(numeracao.map((n) => [n.id, n.n])), [numeracao]);
   const r = respostaDasZonas(zonas);
   const zonaAberta = aberto?.id ? (zonas.find((z) => z.id === aberto.id) ?? null) : null;
@@ -185,7 +244,7 @@ export function ZonasComVolume({
 
   const botaoAcrescentar = podeEditar && (
     <button type="button" onClick={() => abrir(null)} className="btn-secondary btn-sm">
-      + Acrescentar zona
+      + Acrescentar alçado
     </button>
   );
   // A ferramenta grava no pedido (06/11/2026): aparece a quem o pode editar, e só a esses.
@@ -205,7 +264,36 @@ export function ZonasComVolume({
         <rect x="3" y="5" width="18" height="14" rx="2" />
         <path d="M3 15l5-5 4 4 3-3 6 6" />
       </svg>
-      Medir na fotografia
+      Medir por fotografia
+    </button>
+  );
+
+  // Recomeçar o desenho: apaga todas as zonas, com as medidas (as fotografias e as medidas do prédio ficam).
+  const botaoRecomecar = podeEditar && zonas.length > 0 && (
+    <button
+      type="button"
+      disabled={aRecomecar}
+      onClick={async () => {
+        const ok = await pedir({
+          titulo: `Remover ${zonas.length === 1 ? 'a zona' : `as ${zonas.length} zonas`} e recomeçar?`,
+          texto:
+            'Saem do pedido todas as zonas, com as medidas e os trabalhos de cada uma. As fotografias e as medidas do prédio ficam. Não se pode desfazer.',
+          confirmar: 'Remover e recomeçar',
+          destrutivo: true,
+        });
+        if (!ok) return;
+        setARecomecar(true);
+        try {
+          await apagarTodasAsZonas(requestId);
+          setAberto(null);
+          setGravada(null);
+        } finally {
+          setARecomecar(false);
+        }
+      }}
+      className="btn-quiet btn-sm font-normal text-slate-700"
+    >
+      {aRecomecar ? 'A remover…' : 'Recomeçar do zero'}
     </button>
   );
 
@@ -213,6 +301,7 @@ export function ZonasComVolume({
     <>
       {zonas.length > 0 && botaoAcrescentar}
       {botaoMedir}
+      {botaoRecomecar}
     </>
   );
 
@@ -239,11 +328,24 @@ export function ZonasComVolume({
             <div className="mb-4 flex flex-wrap gap-2">
               {botaoAcrescentar}
               {botaoMedir}
+              {botaoRecomecar}
             </div>
+          )}
+          {!planta.laje && (
+            <PlantaDoPredio
+              forma={planta.porEscolher ? null : planta.forma}
+              porEscolher={planta.porEscolher}
+              podeEscolher={podeEditar && podeEscolherPlanta}
+              aoEscolher={escolherPlanta}
+              aGuardar={aGuardarPlanta}
+              erro={erroDaPlanta}
+            />
           )}
           <QuadroDasZonas
             requestId={requestId}
             volume={volume}
+            volumeEm={volumeEm}
+            rotacao={rotacao}
             zonas={zonas}
             numeracao={numeracao}
             textos={textos}
@@ -280,6 +382,7 @@ export function ZonasComVolume({
       </div>
 
       {/* As janelas fora da coluna de cima: um `<dialog>` dentro de um `space-y-*` herdava a margem. */}
+      {dialogoDeConfirmacao}
       <Janela aberta={aberto !== null && !desapareceu} aoFechar={() => setAberto(null)} forma="gaveta" idDoTitulo="gaveta-titulo">
         {aberto && !desapareceu && (
           <>
@@ -300,6 +403,14 @@ export function ZonasComVolume({
               modo={modo}
               idDoFormulario="editor-da-zona"
               aoFechar={() => setAberto(null)}
+              lados={
+                // Escolher o lado só faz sentido quando há (ou vai haver) planta: com mais um alçado além desta zona.
+                zonas.filter((x) => ehAlcado(x.kind) && x.id !== zonaAberta?.id).length >= 1
+                  ? ladosParaEscolher(zonas, formaLocal, zonaAberta?.id ?? null)
+                  : undefined
+              }
+              forma={formaLocal ?? 'I'}
+              faceDaZona={zonaAberta?.face ?? null}
               medir={podeMedirNaFotografia ? (doEditor) => medir({ zonaId: zonaAberta?.id ?? '', ...doEditor }) : undefined}
             />
           </>

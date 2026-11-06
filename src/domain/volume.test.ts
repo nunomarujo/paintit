@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildingVolume, FACHADAS, JANELAS_POR_OMISSAO } from './volume';
+import { buildingVolume, FACHADAS, FORMAS, JANELAS_POR_OMISSAO, ladosDaPlanta, lerFaceDoPredio } from './volume';
 
 // Em três quartos (30°), cada caixa mostra três faces: é o ângulo em que se contam os pormenores.
 const base = { pisos: 5, fachadas: 4, temVarandas: false, moradia: false, angulo: 30 };
@@ -251,5 +251,68 @@ describe('o volume à escala do prédio', () => {
     const antes = buildingVolume(base);
     expect(antes.alturaDesenhada).toBe(12);
     expect(antes.faces.length).toBeGreaterThan(0);
+  });
+});
+
+describe('o desenho por alçados (06/11/2026)', () => {
+  const porAlcados = { ...base, fachadas: 2, temVarandas: true, forma: 'U' as const };
+
+  it('o desenho genérico (o do anúncio) não mudou: sem alçados, sem lados nem traços por entregar', () => {
+    const v = buildingVolume({ ...base, forma: 'L' });
+    expect(v.lados).toEqual([]);
+    expect(v.laje).toBe(false);
+    expect(v.faces.some((f) => f.kind === 'por_entregar')).toBe(false);
+  });
+
+  it('o prédio só tem paredes nos lados do contorno, sem paredes dentro do U', () => {
+    const v = buildingVolume({ ...porAlcados, angulo: 0, alcados: [{ face: 'frente', tipo: 'fachada' }] });
+    const paredes = v.pecas.filter((p) => ['frente', 'lado', 'empena', 'por_entregar'].includes(p.kind));
+    expect(paredes.map((p) => p.face).sort()).toEqual(v.lados.map((l) => l.id).sort());
+  });
+
+  it('as medidas reais esticam a planta e os lados continuam os mesmos', () => {
+    const a = buildingVolume({ ...porAlcados, alcados: [] });
+    const b = buildingVolume({ ...porAlcados, alcados: [], escala: { larguraM: 20, profundidadeM: 15, peDireitoM: 3 } });
+    expect(b.lados.map((l) => l.id)).toEqual(a.lados.map((l) => l.id));
+    expect(b.lados.find((l) => l.id === 'frente')!.ate - b.lados.find((l) => l.id === 'frente')!.de).toBeCloseTo(20, 5);
+  });
+
+  it('um lado entregue como empena é parede cega: sem janelas', () => {
+    const v = buildingVolume({
+      ...porAlcados,
+      forma: 'quadrado',
+      angulo: 60,
+      alcados: [{ face: 'frente', tipo: 'fachada' }, { face: 'direita', tipo: 'empena' }],
+    });
+    expect(v.faces.filter((f) => f.kind === 'janela').every((f) => f.face === 'frente')).toBe(true);
+    expect(v.faces.some((f) => f.kind === 'empena' && f.face === 'direita')).toBe(true);
+  });
+
+  it('cada face de parede diz quão de frente está; as coberturas não levam o campo', () => {
+    const v = buildingVolume({ ...porAlcados, forma: 'quadrado', angulo: 0, alcados: [{ face: 'frente', tipo: 'fachada' }] });
+    const frente = v.faces.find((f) => f.kind === 'frente')!;
+    expect(frente.vista).toBe(1);
+    expect(v.faces.find((f) => f.kind === 'topo')!.vista).toBeUndefined();
+  });
+
+  it('a laje tem pouca profundidade, mesmo com a profundidade do prédio medida (que é a do prédio, não a do painel)', () => {
+    const v = buildingVolume({
+      ...porAlcados,
+      laje: true,
+      alcados: [{ face: 'frente', tipo: 'fachada' }],
+      escala: { larguraM: 12, profundidadeM: 10, peDireitoM: 2.8 },
+    });
+    const lateral = v.lados.find((l) => l.id === 'direita')!;
+    expect(lateral.ate - lateral.de).toBeLessThan(3);
+  });
+
+  it('rodar o desenho por alçados é puro: o mesmo ângulo dá o mesmo desenho, e uma volta completa volta ao início', () => {
+    const e = { ...porAlcados, alcados: [{ face: 'frente', tipo: 'fachada' as const }, { face: 'tras', tipo: 'fachada' as const }] };
+    expect(buildingVolume({ ...e, angulo: 77 })).toEqual(buildingVolume({ ...e, angulo: 77 + 360 }));
+  });
+
+  it('o lado que vem do navegador só passa se for um lado: todos os ids das plantas passam, o resto vira nulo', () => {
+    for (const f of FORMAS) for (const l of ladosDaPlanta(f)) expect(lerFaceDoPredio(l.id), l.id).toBe(l.id);
+    for (const mau of ['norte', 'frente-1', 'frente-10', 'Frente', '', ' frente', 'frente\n', null, undefined, 3]) expect(lerFaceDoPredio(mau)).toBeNull();
   });
 });

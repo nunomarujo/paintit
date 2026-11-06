@@ -25,11 +25,15 @@ export async function POST(req: Request) {
   const id = new URL(req.url).searchParams.get('convite') ?? '';
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response('Convite inválido', { status: 400 });
 
-  const { data: convite } = await db.from('survey_invites').select('id, survey_id, telemovel, estado').eq('id', id).maybeSingle();
+  const { data: convite } = await db.from('survey_invites').select('id, survey_id, telemovel, estado, user_id').eq('id', id).maybeSingle();
   if (!convite) return new Response('Convite desconhecido', { status: 404 });
   if (convite.estado !== 'enviado' && convite.estado !== 'expirado') {
     return new Response(`O convite está «${convite.estado}»: não se reenvia`, { status: 409 });
   }
+
+  // O número tem de continuar confirmado na conta do convidado (06/11/2026): um número tirado, ou com «PARAR», não recebe.
+  const { data: confirmado } = await db.from('whatsapp_numeros').select('id').eq('user_id', convite.user_id).eq('numero', convite.telemovel).maybeSingle();
+  if (!confirmado) return new Response('O número já não está confirmado nesta conta: não se reenvia', { status: 409 });
 
   const { data: s } = await db.from('request_surveys').select('request_id, status').eq('id', convite.survey_id).maybeSingle();
   if (!s || s.status !== 'aberto') return new Response('O levantamento já não está aberto', { status: 409 });

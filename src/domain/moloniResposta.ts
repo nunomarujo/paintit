@@ -8,8 +8,48 @@
  * ficava registado como emitido.
  */
 
-/** Uma recusa em forma de objeto: `valid` a 0/false, ou erros declarados. Devolve o texto para mostrar, ou null. */
+/**
+ * Os erros de validação da Moloni chegam, com HTTP 200, como uma lista de textos «código campo [parâmetros]»
+ * (confirmado a 06/11/2026: `["5 document_set_id []","2 customer_id 1 0","1 products"]`), e não como um objeto.
+ * Códigos (documentação, «Controlo de erros»): 1 campo obrigatório; 2 o campo é numérico (1 = inteiro, 2 = maior
+ * que, 3 = menor que…); 3 email inválido; 4 campo único; 5 valor não aceite; 10 associação de documento inválida;
+ * 14 e 15 regras de IVA num artigo; 16 cliente sem identificação válida; 17 limite do campo.
+ */
+const ERRO_EM_TEXTO = /^\d{1,2} [A-Za-z_][\w.\[\]]*(?: .*)?$/;
+const SIGNIFICADO: Record<string, string> = {
+  '1': 'campo obrigatório em falta',
+  '2': 'valor numérico inválido',
+  '3': 'email inválido',
+  '4': 'valor repetido (campo único)',
+  '5': 'valor não aceite',
+  '10': 'associação de documento inválida',
+  '14': 'regra de IVA do artigo',
+  '15': 'regra de IVA do artigo',
+  '16': 'cliente sem identificação válida',
+  '17': 'limite do campo excedido',
+};
+
+/** Uma lista só de textos «código campo…»: é um erro de validação da Moloni, não dados. */
+export function errosDeValidacao(json: unknown): string[] | null {
+  if (!Array.isArray(json) || json.length === 0) return null;
+  return json.every((x) => typeof x === 'string' && ERRO_EM_TEXTO.test(x)) ? (json as string[]) : null;
+}
+
+/** Os erros escritos para quem os lê: «products: campo obrigatório em falta; customer_id: valor numérico inválido (1 0)». */
+export function explicarErrosDeValidacao(erros: string[]): string {
+  return erros
+    .map((e) => {
+      const [codigo, campo, ...resto] = e.split(' ');
+      const parametros = resto.join(' ').trim();
+      return `${campo}: ${SIGNIFICADO[codigo!] ?? `erro ${codigo}`}${parametros && parametros !== '[]' ? ` (${parametros})` : ''}`;
+    })
+    .join('; ');
+}
+
+/** Uma recusa: em objeto (`valid` a 0, `errors`) ou em lista de textos de validação. Devolve o texto para mostrar, ou null. */
 export function recusaEmObjeto(json: unknown): string | null {
+  const erros = errosDeValidacao(json);
+  if (erros) return explicarErrosDeValidacao(erros);
   if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
   const o = json as Record<string, unknown>;
   const invalida = o.valid === 0 || o.valid === false || o.valid === '0';

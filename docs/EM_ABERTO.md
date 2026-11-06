@@ -17,15 +17,18 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | O quê | Onde | O que fecha |
 |---|---|---|
 | Rever em produção os ecrãs novos do workspace (Hoje, Levantamentos, Produtos e preços, Regras comerciais, Empresa) | quempinta.pt | dizer o que não está como se queria |
-| Correr a limpeza dos resíduos de ensaio | `painel-limpeza-dos-ensaios.sql`, primeiro em ensaio (`a_serio := false`), depois a sério | antes de a Stripe passar a modo real |
-| Apagar 2 fotografias SIMULACAO | conta `info@quempinta.pt`, pedido «SIMULACAO Pintura das fachadas e caixa de escadas» | apagar na aplicação |
-| Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords (aviso de segurança da Supabase) | ligar |
-| Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
+| Limpeza dos resíduos de ensaio, antes de a Stripe passar a modo real | **Feito a 06/11/2026 para as 6 entidades «SIMULACAO»** (pedidos, prédios, levantamentos e fotografias delas; ensaio desfeito primeiro, depois a sério). O script `painel-limpeza-dos-ensaios.sql` não existe no repositório. **Por fazer, só antes da Stripe real:** as outras 8 entidades de teste (Pintor Teste Lda e Condomínio Teste Rua de Altamira com contratação, 3 pagamentos Stripe e a linha da Moloni; Exotictarget; «Nuno Marujo»; «asacassc saca»; «teste de pintor»; «exotictgarte»; «Lote 14»), que ainda servem para ensaios | decidir quando |
+| Apagar 2 fotografias SIMULACAO | **Feito a 06/11/2026** (as linhas saíram com o pedido). Ficam 2 ficheiros órfãos de 4,6 e 4,8 KB no balde `fotos`, pasta `d7a7b186-7f8f-46b6-874f-43dd0d8b2b0b/` (a Supabase proíbe apagar `storage.objects` por SQL) | apagar à mão em Supabase › Storage › fotos |
+| Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords — **só existe no plano Pro: adiado** (decisão do promotor, 06/11/2026) | ao passar a Pro |
+| Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | adiado com o plano Pro (06/11/2026); `DECISOES.md` «Passos pendentes do promotor» |
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
+| Modelo `contrato_para_assinar` do WhatsApp | **Feito a 06/11/2026:** já existia e estava «Ativo» na Meta (editado a 05/11, mesmo corpo com 1 variável e botão de URL dinâmico `https://quempinta.pt/app/contratacoes/{{1}}`); `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` posta na Vercel (só produção) — vale a partir do próximo deploy. Criou-se por engano `contrato_para_assinar_v2` (igual), em revisão: pode ficar sem uso ou ser apagado no WhatsApp Manager. Qualidade do modelo «pendente» na Meta | ver o contrato chegar por WhatsApp numa assinatura real |
+| Pedido ao IRN de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt) | **Enviado pelo promotor a 06/11/2026.** Falta a resposta do IRN; com a autorização, a leitura deixa de ser manual (secção 3) |
+| Pedir ao fornecedor que ainda não escolheu os concelhos de levantamento que os escolha | o responsável, em Avaliações › Disponibilidade › «Zonas cobertas pela empresa» (desde 06/11/2026, sem concelhos não recebe oportunidades) | concelhos gravados |
+| Decidir se os fornecedores registam lojas (pontos de venda) com morada própria, para que os concelhos por omissão incluam os das lojas | promotor; hoje só existe a morada da empresa (`DECISOES.md` 06/11/2026, «Sem concelhos indicados…») | decisão |
 | Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
 | Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
-| Publicar o ramo `claude/sweet-cray-xfehwj` (desenho do prédio, WhatsApp por número confirmado, livro dos avaliadores) | da sessão que o está a fazer; duas migrações dele ainda por aplicar, e a do WhatsApp desliga os avisos dos 2 números já gravados até cada pessoa os confirmar | ramo em produção |
 | Ramos `claude/formulario-icones` e `claude/workspace-fornecedor` (01/11/2026) | de um histórico antigo do repositório, sem ligação ao atual: não se juntam; ver se falta alguma coisa deles na produção | decisão |
 | Ver em produção o topo de «Avaliações › Hoje» do avaliador | quempinta.pt, com uma conta de vendedor: sem inscrição vê a lista do que falta; inscrito e com os concelhos gravados vê «Quanto pode ganhar» e, uma vez, a janela «Tudo pronto» (`DECISOES.md` 06/11/2026) | dizer o que não está como se queria |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
@@ -40,8 +43,13 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 reserva → resposta lida, às 20:31). Canal: **Meta direta** (Cloud API), conta WhatsApp «Quem Pinta»
 1466775882007762, número +351 926 549 194 (id 1500003363188840), pagamento com cartão em euros, aplicação
 publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver `docs/WHATSAPP.md`. Por fazer:
-(1) **a convocatória com ondas a sério ainda não foi vista a correr** (só reenviei um convite à mão); fica
-para um dia útil das 9h às 18h, com um pedido de teste novo; (2) o modelo `avaliador_nova_oportunidade` foi
+(1) **a convocatória com ondas, vista a correr a 06/11/2026, 16:35 (Lisboa):** um pedido de teste novo
+(`zz-test-convocatoria`, concelho de Viana do Castelo, levantamento n.º 1012) fez sair a **1.ª onda** ao minuto seguinte
+para o único avaliador elegível (a empresa Exotictarget), entregue no telemóvel de teste. Antes disso a convocatória
+respondia «sem candidatos» aos levantamentos antigos de teste porque a empresa tinha as reservas dessas ofertas
+**libertadas** (excluída delas). O «Aceito» foi respondido 8 segundos depois e o levantamento ficou **reservado**: o circuito (onda → convite →
+«Aceito» → reserva → resposta) passou de ponta a ponta com a convocatória a sério. Os dados de teste foram apagados. Por
+ver: a 2.ª onda, 60 minutos úteis depois (só se vê com mais de um avaliador elegível); (2) o modelo `avaliador_nova_oportunidade` foi
 **reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa). A 05/11/2026,
 18:58, a Meta enviou «pedido para atualizar a categoria de UTILITY para MARKETING aprovado… podes continuar a
 enviar mensagens com este modelo»: o modelo **funciona, como Marketing**. Não foi um recurso ganho — se o custo
@@ -52,10 +60,12 @@ Ficam por decidir/construir: a «informação do levantamento» e a «resposta a
 ordem das ondas (só a qualificação geral, como no simulador); um painel interno com avaliadores elegíveis
 por concelho, para recrutar onde não há nenhum.
 
-**Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). Fica: os
-resgates de avaliadores ainda **não são lançados no livro de movimentos** (o pagamento marca-se em
-Contabilidade › A pagar, mas `syncLedger` só conhece os resgates de adesão) — ligar antes do primeiro
-pagamento real; e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
+**Comissões do avaliador, pessoais (05/11/2026):** construído e aplicado (`20261105103940`). **Livro de movimentos: ligado a 06/11/2026**
+(migração `20261106201820_contas_dos_avaliadores_no_livro`, **por aplicar** à base real — `syncLedger` falha a
+gravar os lançamentos de avaliadores, com erro de conta inexistente, até lá; ver `DECISOES.md`, 06/11/2026, com as
+decisões «por validar pelo contabilista»: contas 22.3/62.2.3, IVA e retenção do recibo verde e do ato isolado).
+Fica: aplicar essa migração antes do primeiro pagamento real e correr «Sincronizar agora»; os resgates de
+avaliadores pagos ainda não entram na «Conferência» com o extrato do banco (só os de adesão); e as colunas `recebimento`/`nif_pessoal` de `survey_availability` (de 05/11, manhã) ficaram
 sem uso desde que a comissão passou a ser sempre da pessoa — retirá-las numa migração com confirmação.
 
 ## 1c. Dinheiro e faturação — o que separa a app do primeiro pagamento real (05/11/2026)
@@ -74,7 +84,7 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 3. **Caução e devoluções:** cobrança por Checkout, devolução automática por regras e por cron diário
    (`/api/cron/devolucoes`) — só vistas em modo de teste. Falta um percurso completo em teste do pagamento à
    devolução, e a validação do contabilista sobre a natureza fiscal da caução (secção 2).
-4. **Livro de movimentos:** os resgates de avaliadores ainda não entram nele (ver 1b).
+4. **Livro de movimentos:** os resgates de avaliadores entram nele desde 06/11/2026 (código e testes feitos); falta **aplicar a migração `20261106201820`** e o contabilista validar as contas, o IVA e a retenção (ver 1b).
 5. **IVA trimestral e fecho formal; acesso do contabilista** (`CONTABILIDADE.md`).
 
 ## 2. Decisões do promotor que travam construção ou dinheiro
@@ -181,6 +191,30 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
   (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
   gravação verificada na base real, de ponta a ponta.
+- **Números de WhatsApp confirmados por mensagem (06/11/2026): migração `20261106201807_numeros_de_whatsapp_confirmados`
+  por aplicar** (só com o OK do promotor). Sem ela, o ecrã novo não grava e o webhook não confirma; o código antigo
+  continua a ler `telemovel_whatsapp`. Depois de aplicada: os 2 números de teste ficam sem número — associá-los de novo
+  pelo cartão «Números em vigor» (perfil), a partir do telemóvel de cada um. Ver numa base real: o percurso completo
+  (pedir código → mensagem → «Número associado» → cartão atualizado) e «PARAR», que só se vêem com o webhook ligado à
+  Meta. Não visto: o painel «À espera da mensagem» (precisa da ação no servidor).
+  **Ordem:** aplicar a migração mesmo antes de publicar o código — antes dela o cartão aparece vazio e o código não se
+  pede; depois dela, o código antigo recusa gravar o formulário dos avaliadores a quem já tivesse número. Revisão
+  independente (06/11/2026) corrigida: o «PARAR» e a confirmação repetem-se se a base falhar (500 à Meta), o «Aceito» e o
+  reenvio só valem para um número ainda confirmado, o contrato e os avisos gerais vão a todos os números confirmados
+  (os convites, ao mais recente), «Cancelar» apaga o código, e os códigos caducados limpam-se.
+- **O desenho do prédio por alçados e a rodar — construído a 06/11/2026, por publicar** (`docs/DECISOES.md`, «O desenho do
+  prédio é dos alçados, e roda»): laje até ao segundo alçado, planta ao segundo (a do cadastro ou a pergunta), cada alçado
+  no seu lado da planta, números e cotas e chamadas por ângulo, e os botões e o arrasto para rodar. **Falta:**
+  (1) **aplicar a migração `20261106201643_face_do_predio`** à base real (aditiva, testada em memória; até lá o lado
+  de cada alçado não se guarda e o desenho atribui pelo nome e pela ordem — a página não rebenta), e depois regenerar
+  `src/lib/database.types.ts`; (2) ver o desenho **no navegador com sessão e dados reais**, a escolher a planta
+  (`guardarFormaDoPredio` grava no cadastro: só se viu a recusa sem sessão) e a escolher o lado de um alçado; (3) o
+  promotor decidir se quer o «+ Empena» de volta no desenho do pedido vazio (saiu: a laje não tem parede lateral onde
+  caiba); (4) a escolha da planta no ecrã do avaliador, que hoje só a vê (não gere o prédio).
+  **Revisão independente de 06/11/2026 corrigida** (cotas fora do prédio, «de lado» ≠ «atrás», nesga livre do U, lado do
+  editor, `addSurface` a avisar, foco e leitor de ecrã, sombra, lados por entregar, altura da página; ver o fim da entrada
+  em `DECISOES.md`) — **por publicar**. Fica: o desenho passa ao modo lista a certos ângulos de um U a 1140 px (a página
+  muda de altura aí), e a cota da frente omite-se a ~80° em L, U e T.
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 

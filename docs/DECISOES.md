@@ -6420,6 +6420,135 @@ uma resposta sem `document_id` inteiro positivo já não conta como emitida — 
 base é de teste e tem de ser tratada à mão (apagada ou posta em `falhou`) antes de voltar a emitir, senão a fila não
 volta a mostrá-la.
 
+## 06/11/2026 — Passo 2: nomes, «Fora do desenho» explicado, «Recomeçar do zero»
+
+Pedido do promotor, depois de ver o passo 2 em produção. **Feito:** «+ Acrescentar zona» passou a «+ Acrescentar
+alçado» (o separador chama-se «Alçados»); «Medir na fotografia» passou a «Medir por fotografia»; o aviso de «Fora do
+desenho» já não diz só «o desenho não as mostra» — diz que contam para o total, que o desenho só tem lugar para uma
+fachada e que não desenha escadas, átrio nem o interior; e há «Recomeçar do zero», ao lado dos outros botões, que
+remove todas as zonas do pedido, com confirmação (`apagarTodasAsZonas`; as fotografias só perdem a ligação à zona e
+as medidas do prédio ficam). Remover uma zona já existia, mas só dentro da gaveta, no fim: continua lá. **Por fazer,
+pedido na mesma mensagem — o desenho do prédio:** (1) o primeiro passo é a planta (quadrado, I, L, U, T), e o desenho
+só tem as fachadas que se foram entregando, coladas às anteriores; (2) o desenho roda e vê-se por inteiro, para
+nenhuma zona ficar «fora do desenho» por não ter sítio. Ver `docs/EM_ABERTO.md`.
+
+## 06/11/2026 — Os números de WhatsApp só valem depois de confirmados por mensagem recebida
+
+**A falha.** O número que recebe os avisos era um campo de texto: qualquer conta escrevia o telemóvel de outra
+pessoa e a plataforma passava a mandar-lhe avisos de trabalho — sem consentimento, e com o risco de denúncias que a
+Meta pune no número da plataforma. **A decisão do promotor:** o número deixa de se escrever; a pessoa pede um código,
+envia-o por WhatsApp para o número da plataforma (+351 926 549 194), e a plataforma fica com o número DE ONDE a
+mensagem veio — o WhatsApp garante que é o dela, e o webhook já o recebia. **Regras:** código `QP-XXXX-XXXX`, de uso
+único, válido 15 minutos, guardado só em resumo SHA-256; cinco enganos por hora e por número; até três números por
+conta; um número em uma conta de cada vez (quem prova que o telemóvel é seu fica com ele, e a conta anterior perde-o —
+sem aviso à conta anterior: não há ainda aviso por pessoa para isto); «PARAR» escrito do próprio número tira-o; pedir
+o código e enviá-lo é o consentimento (liga os avisos). **O cartão** «Números em vigor», à direita do consentimento, no
+perfil, na inscrição de avaliador, na página do contrato e em «Disponibilidade e alertas»: lista cada número com
+«Remover» (com confirmação) e «Associar outro número». **O que mudou por baixo:** `survey_availability.telemovel_whatsapp`
+passou a ser derivado (o confirmado mais recente) — por isso todos os sítios que enviam (avisos, contrato, convites
+dos avaliadores) só enviam a números confirmados, sem os alterar —, e um gatilho recusa qualquer escrita nessa coluna
+que não venha das funções (ou da chave de serviço). Os dois números de teste que lá estavam, escritos à mão, deixaram
+de valer (sem número e sem consentimento) até serem associados. Migração `20261106201807_numeros_de_whatsapp_confirmados`,
+testes em `supabase/tests/whatsappNumeros.test.ts`. **Não escolhido:** SMS (precisava de fornecedor, custa por código e
+só confirmaria o telemóvel, não o WhatsApp).
+
+*Depois da revisão independente (06/11/2026):* o contrato e os avisos gerais passam a todos os números confirmados da
+pessoa (até 3); os convites dos avaliadores vão ao mais recente, porque o convite fica ligado a um número (o «Aceito»
+casa por ele). Um erro da base ao confirmar ou parar já não responde «código inválido» nem «não tinha avisos»: repete-se.
+
+## 06/11/2026 — Moloni: o erro verdadeiro apareceu, e é de configuração e de código
+
+Depois da correção de 06/11 («sem identificador não há emissão»), a emissão repetida na conta de testes falhou **com a
+resposta da Moloni à vista**: `["5 document_set_id []","2 customer_id 1 0","1 products","5 document_set_id","5 document_set_wsat_id"]`.
+Lida com a documentação («Controlo de erros»): `1 products` = campo obrigatório em falta (cada linha precisa de
+`product_id`, que não enviávamos); `2 customer_id 1 0` = o cliente não tinha um identificador inteiro maior que 0 (a
+criação do cliente também recusou, e o erro, uma lista de textos, passava por sucesso); `5 document_set_id` = a série
+não é aceite — suspeita de pertencer a outra empresa (a de produção) e não à de testes. **Feito:** os erros em lista de
+textos passam a ser recusas e vêm explicados («products: campo obrigatório em falta»); cada fatura leva um artigo de
+serviço da plataforma (`QP-COMISSAO`, `QP-SUBSCRICAO`, `QP-CAUCAO_RETIDA`), criado na primeira vez e encontrado pela
+referência depois; o `customer_id` tem de ser inteiro positivo; e a série configurada é conferida contra
+`documentSets/getAll` — se não existir na empresa ligada, o erro lista as que existem. **Não provado contra a Moloni:**
+`products/getByReference`, `productCategories/getAll` e `measurementUnits/getAll` seguem a documentação, mas não foram
+testados; cada falha nova diz o que falta. **Por fazer pelo promotor:** conferir na Vercel que `MOLONI_DOCUMENT_SET_ID` e
+`MOLONI_TAX_ID_NORMAL` são os da empresa «Quem Pinta TESTES API» (e não os da empresa real) — ver o erro da próxima emissão.
+
+## 06/11/2026 — O desenho do prédio é dos alçados, e roda
+
+Pedido do promotor (06/11/2026), depois de ver o passo 2 em produção: o desenho 3D só deve ter a forma dos alçados
+entregues, colados uns aos outros; a planta (quadrado, I, L, U, T) define-se ao entrar o segundo alçado; o desenho roda
+e vê-se por inteiro; os números e as cotas seguem o ângulo; nenhuma zona fica «Fora do desenho» por falta de sítio. Feito
+no ramo `claude/sweet-cray-xfehwj`, por publicar (`src/domain/volume.ts`, `prancheta.ts`, `rotacao.ts`,
+`src/app/app/pedidos/[id]/Prancheta.tsx`, `ZonasComVolume.tsx`).
+
+**Um alçado é uma zona de fachada ou de empena.** Ocupa um **lado da planta** (`LadoDaPlanta`, em `volume.ts`: o
+contorno da planta, um lado por parede exterior — `frente`, `esquerda`, `direita`, `tras`, e `tras-2`, `direita-2`… para
+as asas de um L, U ou T, com nomes como «Tardoz (ala direita)»; um quadrado ou uma banda têm quatro, um L seis, um U ou
+um T oito). O desenho já não é uma caixa com janelas em todo o lado: as paredes são os lados do contorno (sem paredes
+dentro do U), e só o lado entregue leva parede, vãos e cor; os outros ficam só com o traço e um enchimento leve («por
+entregar»). Uma empena é parede cega.
+
+**A laje, e a planta ao segundo alçado.** Com zero ou um alçado o prédio é uma **laje**: um painel com a frente do
+primeiro alçado e pouca profundidade, a três dimensões (a cota do fundo não se desenha: a profundidade medida é a do
+prédio, não a do painel). Ao entrar o segundo, o prédio ganha planta: a do cadastro (`buildings.forma_implantacao`),
+usada logo; se ainda não existir, o desenho usa a **banda** e aparece, por cima do desenho, «Qual é a planta do
+prédio?» com as cinco miniaturas — não bloqueia nada, e a escolha grava-se no cadastro (`guardarFormaDoPredio`, só quem
+gere o pedido; o prédio tem de ser o do pedido; no ecrã do avaliador vê-se a planta, mas não se muda). **Consequência a ter presente:** a planta é do cadastro, e o volume do anúncio
+que os pintores veem usa-a — mudá-la aqui muda-a lá, para todos os pedidos do prédio. Com a planta já escolhida a linha diz «Planta: Em
+L · Alterar».
+
+**Que lado tem cada alçado** (`atribuirFaces`): o que a zona guardou (`face_do_predio`) manda; depois o que o nome diz
+(«Tardoz», «Traseiras», «Lateral esquerda», «Empena direita», «Fachada principal» — só quando o nome diz **um** lado;
+`ladoPeloNome`); depois a ordem — frente, direita, esquerda, tardoz para as fachadas, laterais primeiro para as empenas.
+Dois alçados nunca partilham um lado; um alçado a mais do que a planta tem lados fica «Fora do desenho» (só aí). O editor
+da zona ganhou «Lado do prédio» (quando já há outro alçado), com o nome de cada lado e «já tem alçado» nos ocupados.
+As varandas assentam no lado que guardaram, ou no da primeira fachada, ou na frente.
+
+**O número segue o ângulo** — a regra, também no cabeçalho de `prancheta.ts` e testada:
+1. Uma zona **tem sítio** se o prédio tem a peça que ela pinta (o lado do alçado, as varandas, o muro, a cobertura…).
+   Isto **não depende do ângulo**, por isso a numeração não muda ao rodar (testado de 15 em 15°).
+2. O número só está numa face da zona que **se vê e se lê**: virada para a câmara com `vista ≥ 0,35` (a menos de ~70° de
+   frente; uma parede de perfil não leva número) e num ponto **não tapado** por nenhuma face desenhada depois dela (as
+   janelas e a porta não tapam; um lado por entregar tapa). Procura-se, a partir do sítio preferido do tipo de zona (no
+   ecrã, à esquerda para a fachada e as varandas, ao meio para a empena, à direita para o muro), o primeiro ponto livre
+   de uma grelha.
+3. Se nenhuma face cumpre, a zona fica **oculta nesta vista**: mantém o número e o cartão, sem pino, e o cartão diz
+   «Atrás, nesta vista» com **«Ver no desenho»**, que roda até à vista mais próxima onde o número fica numa face de
+   frente (`vista ≥ 0,7`, `vistaParaVer`). Verificado: cada lado de cada planta tem uma vista assim (`vistaParaVer` nunca
+   devolve nulo) e o número nunca está atrás de uma parede em 3D (`pinos3d.test.ts`, que lança raios e não olha para a
+   ordem do pintor).
+Também se corrigiu o que o prédio visto por trás mostrava: as varandas, os vãos, o muro e os beirais da frente pairavam
+por cima da cobertura (o pintor desenha o corpo e depois os pormenores). Agora o que assenta num lado de costas não se
+desenha.
+
+**As cotas seguem o ângulo** (`Volume.cotasDaPrancheta`): a largura na aresta do telhado mais afastada da câmara, o fundo
+na mais à esquerda no ecrã, a altura na esquina mais à direita. A 25° são as de sempre. A moldura do desenho é a de
+**todas as vistas** (`caixaDaVolta`: treze vistas) — rodar não muda a escala, como num prato giratório.
+
+**As chamadas por ângulo.** `chamadas.ts` não mudou: já só conhecia píxeis, pinos e faces; o que mudou é que
+`pranchetaLarga` é chamada com o prédio a cada ângulo, e só entram as zonas com pino nessa vista. As ocultas vão para um
+grupo por baixo do palco («Sem número nesta vista»). Onde nenhuma disposição cumpre a regra — nenhuma ligação cruza uma
+cota, corta uma face na diagonal ou atravessa a zona de outro número —, fica o modo lista, que nunca falha. A garantia
+continua a ser a função: testado de 5 em 5° em cinco plantas que nunca devolve uma ligação má (`problemasDasLigacoes`
+vazio) e que há chamadas em mais de metade das vistas.
+
+**Rodar.** Arrastar (rato ou toque; na vertical o toque continua a deslocar a página), botões «Esquerda», «Direita» e
+«Vista inicial» (44 px, com nome por extenso «Rodar à esquerda/direita» para o leitor de ecrã) e as setas e o Início com
+o foco no desenho. Os botões andam de 45° em 45° a partir da vista inicial (25°); **aumentar o ângulo roda o prédio para
+a esquerda** (a frente vai para a esquerda), e arrastar para a direita faz o contrário. Anima-se 320 ms pelo caminho mais
+curto, **salvo `prefers-reduced-motion`** (salta). Um arrasto não abre a zona por baixo do ponteiro; um número, um
+cartão ou um botão não começam arrasto. As varandas e palas de um prédio que as tem mas sem a zona registada deixam o
+clique passar para a parede.
+
+**Na base: `request_surfaces.face_do_predio`** (texto, `frente|esquerda|direita|tras` com sufixo `-2` a `-9`, nulo quando o
+desenho atribui). Migração `20261106201643_face_do_predio.sql`, aditiva, com testes de RLS em `supabase/tests/rls.test.ts`
+(aceita os lados e o nulo, recusa o resto, só quem gere o pedido o altera). **Por aplicar à base real.** Até lá nada
+rebenta: a página lê com `select *` e a gravação do lado repete-se à parte, sem derrubar a da zona (a mensagem diz que o
+lado ainda não se guarda); `database.types.ts` já traz a coluna, e deve ser regenerado depois de aplicar.
+
+**Perdeu-se, de propósito:** o «+ Empena» pousado no desenho do pedido vazio. A laje não tem uma parede lateral onde caiba
+(2 m de profundidade); continua na lista ao lado. Fica a decidir pelo promotor se o quer de volta de outra maneira.
+**Não se adivinha:** o nome só decide o lado quando diz um só; e a ordem de omissão é a mesma de antes, agora com lugar.
+
 ## 06/11/2026 — A verificação de sessão no middleware passa a ter limite de 5 s
 
 A 06/11/2026, às 12:18 (hora de Lisboa), um pedido ficou parado no middleware até a Vercel o cortar aos 25 s
@@ -6527,6 +6656,72 @@ a morada fiscal da empresa continua reservada. Onde aparecem:
   concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
 - **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
   concelho, um vendedor com loja nesse concelho também aparece.
+
+## 06/11/2026 — Os resgates dos avaliadores entram no livro de movimentos
+
+**Pedido:** ligar os resgates de avaliadores ao livro antes do primeiro pagamento real (`EM_ABERTO.md` §1b). Até aqui o
+pagamento marcava-se em Contabilidade › A pagar (`survey_redemption_pay`), mas `syncLedger` só lia `referral_payouts` e
+`referral_redemptions`: o dinheiro saía do banco sem lançamento.
+
+**O que se fez.** O mesmo circuito dos resgates de adesão, com as mesmas partidas dobradas, em cêntimos, idempotente por
+`(origem, origem_id)` (`acc_post`): a comissão devida (quando a comissão do pintor entra, `fee_recebido_em`), o IVA dedutível
+quando o recibo traz IVA, o pagamento (comissão + IVA − retenção − líquido) e os estornos (comissão `sem_efeito`, recibo de um
+resgate anulado pela equipa depois de recebido). Não se lança: comissão ainda não recebida do pintor, valor 0, resgate só
+pedido, resgate anulado antes do recibo. Origens próprias (`levantamento_*`), para um id nunca colidir com os da adesão.
+Detalhe em `CONTABILIDADE.md` §15. Migração `20261106201820_contas_dos_avaliadores_no_livro` (duas contas novas;
+**por aplicar** à base real). Testes: `src/domain/accounting/{entries,plan}.test.ts` e `supabase/tests/livroDosAvaliadores.test.ts`.
+
+**Por validar pelo contabilista (Nuno Branco) — escolhi o mais simples e igual ao da adesão, sem inventar:**
+
+1. **Contas próprias:** `22.3 Fornecedores: avaliadores (comissões de levantamento)` e `62.2.3 Comissões de levantamento a
+   avaliadores`, em vez de reutilizar 22.1 e 62.2.1 (que são «tintas»). Razão: o saldo devido às pessoas vê-se à parte (novo
+   mosaico «Devido a avaliadores» no painel). Se o contabilista preferir uma só conta de fornecedores, é trocar duas linhas
+   em `accounts.ts` e a migração; os lançamentos são os mesmos.
+2. **Gasto:** a comissão do avaliador é gasto da plataforma (62.2.x) reconhecido quando a comissão do pintor entra, como a de
+   adesão. Não se tratou como custo de aquisição de cliente nem como parte do rendimento (72.1).
+3. **IVA:** só há IVA dedutível (24.32) quando o avaliador declara que liquida IVA (`cobra_iva`); recibo verde com isenção
+   (art. 53.º) ou ato isolado abaixo do limite não tem. A 23% fixos, como nos resgates de adesão. O IVA entra no momento do recibo.
+4. **Retenção na fonte:** a taxa é a que a equipa fixa ao validar o regime (`retencao_bps`); vai a 24.2 (IRS/IRC), a mesma conta
+   da adesão. Não se distinguiu retenção de IRS (pessoa singular) de IRC, nem se tratou o caso «dispensa de retenção»
+   além do que a taxa 0 já faz. O **ato isolado** e a retenção de IRS sobre rendimentos da categoria B (ou outra) ficam por confirmar.
+5. **Segurança social (TSU) do prestador:** não é encargo da plataforma neste desenho; não se lançou nada.
+
+**Limites.** O extrato bancário (separador Banco) só sugere correspondência com os resgates de adesão pagos; os de avaliadores
+pagos aparecem no livro (12.1) mas não na «Conferência». Nada foi aplicado à base real nem corrido sobre dados reais.
+
+**Revisão independente do desenho (06/11/2026, duas revisões: geometria e desenho/teclado/toque) — o que se corrigiu.**
+- **As cotas nunca ficam sobre o prédio** (`cotasDoDesenho`; o erro: varrendo de 5° em 5° as cinco plantas, a perna da cota do
+  fundo ficava sobre as paredes em ~47 % das vistas). Agora a linha, as duas linhas de chamada e o texto têm de ficar fora
+  de qualquer face (pontos amostrados contra o interior das faces, e cruzamentos com as arestas), e fora das outras cotas
+  (a da frente e a do fundo tocavam-se). Afasta-se pela **normal à aresta virada para fora do prédio** (`Volume.cotasDaPrancheta
+  .candidatas`; o antigo `foraDoFundo` era o vetor entre duas esquinas), inclina-se a direção ±28° e tenta-se a outra aresta
+  equivalente, por ordem de custo (meia letra de afastamento custa meia; outra aresta, duas); a altura passa pelo mesmo
+  caminho e assenta nas esquinas da **planta** e não nas do retângulo que a envolve. **Se nada serve até quatro letras, a
+  cota não se desenha nessa vista** — melhor sem cota do que com cota a atravessar o prédio (na varredura, ≥ 97 % das cotas
+  pedidas têm lugar; as que faltam são sobretudo a da frente em L, U e T a ~80°). A moldura
+  mede agora 37 vistas (de 10° em 10°).
+- **«Atrás, nesta vista» só quando é atrás.** `LugarDaZona.oculta`: *atrás* (nenhuma face se vê), *de lado* (vê-se como tira
+  estreita, `vista < 0,35`) e *tapada* (de frente, mas coberta). A grelha de amostras do número ganhou uma segunda passagem,
+  fina (34×18), que põe o número no centro da parte livre: num U, uma parede de frente com uma nesga livre ficava sem pino.
+- **O que o editor oferece como lado** conta-se como se a planta já existisse (`ladosParaEscolher`): um único alçado chamado
+  «Tardoz» deixa a frente livre e ocupa o tardoz, que é onde o desenho o põe ao entrar o segundo.
+- **`addSurface` já não perde o lado em silêncio**: se a coluna `face_do_predio` não estiver aplicada, diz-o como
+  `updateSurface`, e o editor **fica aberto** (`FormState.lerAntesDeFechar`, botão «Fechar») para a mensagem se ler — não
+  guarda outra vez, que duplicava a zona.
+- **«Ver no desenho»** traz o desenho ao ecrã (`scrollIntoView`, `nearest`; sem movimento se o sistema o pedir) e põe o foco
+  no número da zona quando a rotação pára (no desenho, para quem só lê). Uma **região viva** (`role=status`, só para leitores
+  de ecrã) diz «Vista a 70°. 2 zonas sem número nesta vista: …» 500 ms depois de a rotação parar.
+- **Desenho:** os prédios vizinhos esbatidos desenham-se **por baixo de tudo** (a sombra sujava a parede); os lados por
+  entregar levam enchimento cinzento, traço firme a tracejado e a legenda «A tracejado: lados do prédio sem alçado»; com
+  chamadas o desenho cresce até 520 px de altura (estava preso a 340, e a 1440 px a fachada ficava com ~150 px).
+- **A página não salta ao rodar:** o espaço dos cartões das zonas ocultas reserva-se para o pior ângulo (modo lista: 42 px por
+  cartão; chamadas: o grupo «Sem número nesta vista»). Medido de 20° em 20°: a 1440 px a altura é constante; a 1140 e a 390
+  sobra uma variação de 23–45 px (era 130–180). **Limite:** quando nenhuma disposição de chamadas é aceite a certos ângulos,
+  o desenho passa ao modo lista e a altura muda (visto a 1140 px num U).
+- **Editor:** junto a «Lado do prédio», a miniatura da planta com o lado escolhido destacado (os ocupados a cinzento escuro);
+  depois de escolher a planta o foco vai para «Alterar».
+- **Não era real / fica:** a «laje parece prédio de painel» é decisão de desenho; a numeração, as chamadas e as regras do
+  número não mudaram.
 
 ## 06/11/2026 — CRM do workspace de developer: fundação
 
@@ -6663,6 +6858,31 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 
 ## 06/11/2026 — Revisão dos workspaces dos três perfis contra o taste-skill (ponto C)
 
+Promotor, a seguir à entrada anterior: «quando não indicados devem ficar associados à morada registada da empresa».
+- **`organizations.concelho`** (migração `20261106155820_concelho_da_morada_da_empresa`): o concelho da morada
+  fiscal, tirado do código postal pelo servidor sempre que os dados da empresa são gravados (base dos CTT, a mesma da
+  morada; com o serviço em baixo não se apaga o que já lá estava). Os dois fornecedores existentes ficaram com
+  «Viana do Castelo», lido dos seus códigos postais a 06/11/2026; as outras entidades preenchem-no na próxima gravação.
+- **Levantamentos:** sem zona escolhida, a empresa cobre o concelho da sua morada (`private.supplier_covers` e
+  `zonaEfetiva` em `coberturaDaEmpresa.ts`); a zona escolhida manda sobre a morada. Sem zona e sem morada, nada. O Hoje
+  diz «Disponível · Viana do Castelo (morada da empresa)» e, no cartão, «Os levantamentos chegam de …, o concelho da
+  morada da empresa», com a ligação para escolher outros. Gravar o formulário sem concelhos grava o da morada.
+- **Entregas de produtos** (pergunta da sessão, respondida aqui): «Todo o país» passa a ser uma caixa marcada
+  (`supplier_delivery.todo_o_pais`); sem concelhos, a condição fica com o concelho da morada; a base recusa uma condição
+  sem escolha. A lista vazia deixou de querer dizer todo o país também em `deliveryFor`.
+- **«Loja»:** a aplicação ainda não guarda lojas nem pontos de venda dos fornecedores — só a morada da empresa. Se uma
+  empresa tiver lojas noutros concelhos, por agora escolhe-os à mão; guardar lojas fica em aberto.
+
+*Moloni, a causa mais provável (06/11/2026, noite):* na Vercel, as variáveis `MOLONI_*` da conta de TESTES existem só para os
+*deploys de pré-visualização do ramo `moloni-teste`* (série `978495`, IVA `3946815`, consumidor final `163662825`), e o
+`MOLONI_COMPANY_ID` desse ramo (`404970`) está marcado «**por confirmar** com `companies/getAll`: valor sugerido por uma chave
+do browser, não é fonte fiável». Um identificador de empresa errado explica os três erros ao mesmo tempo (série, cliente e
+artigo parecem inválidos porque são de outra empresa). **Feito:** a emissão confere a empresa contra `companies/getAll` e diz
+quais há. **Atenção, perigo:** em **produção** as `MOLONI_*` são as da empresa REAL (de 20/10/2026) e a base é a mesma: um
+«Emitir» em produção cria uma fatura REAL, que não se apaga. A linha «Pintor Teste Lda» está na fila de produção. Emitir só
+no deploy do ramo `moloni-teste`.
+- **«Loja»:** ver a entrada seguinte (registo de lojas, 06/11/2026).
+
 Revisão pedida pelo promotor aos workspaces de cliente, pintor e fornecedor (não à página inicial). Capturas dos
 ecrãs reais com dados fictícios, numa ferramenta local que não entra no repositório. Corrigido: `SeletorDeContexto`
 (Vendas / Avaliações) com raio fora da escala (`rounded-[10px]`) e altura de 40px — passa a `rounded-lg` e 44px;
@@ -6716,9 +6936,8 @@ Pedido do promotor: «commit, push e publica em produção tudo que falte».
 - **Migrações que estavam só na base, agora com ficheiro:** `20261106151731` (reaplicação de
   `reserva_so_para_avaliadores_inscritos`, igual à de 05/11) (a `20261106200620_minuta_com_layout_novo` pô-la a própria sessão que a escreveu); mais
   `20261106201651_versao_do_avaliador_search_path_outra_vez`, que volta a fixar o search_path que a reaplicação desfez.
-- **Ficou de fora:** `claude/sweet-cray-xfehwj`, porque a sessão dele está ativa e a publicar por si; tem migrações por
-  aplicar e uma delas desliga os avisos de WhatsApp dos números já gravados (2 contas) até serem confirmados — não se
-  aplica sem o promotor. `moloni-teste` é um ramo de ensaio («só neste ramo»). `formulario-icones` e
+- **`claude/sweet-cray-xfehwj`:** não foi juntado aqui — a sessão dele estava ativa e publicou-o por si logo a seguir,
+  com as suas migrações (incluindo a dos números de WhatsApp confirmados). **Ficou de fora:** `moloni-teste` é um ramo de ensaio («só neste ramo»). `formulario-icones` e
   `workspace-fornecedor` (01/11) são de um histórico antigo do repositório e não se juntam ao atual.
 
 Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem

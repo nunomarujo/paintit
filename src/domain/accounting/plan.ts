@@ -1,14 +1,20 @@
-import { stripeFee, stripePayout, commissionReceived, depositReceived, guaranteeRetained, redemptionInvoiced, redemptionPaid, referralAccrued, refundIssued, reverse, subscriptionReceived, type Posting } from './entries';
+import { stripeFee, stripePayout, commissionReceived, depositReceived, guaranteeRetained, redemptionInvoiced, redemptionPaid, referralAccrued, refundIssued, reverse, subscriptionReceived, surveyAccrued, surveyRedemptionInvoiced, surveyRedemptionPaid, type Posting } from './entries';
 
 // Decide que lançamentos faltam, a partir do que existe e do que já está lançado. Pura e determinística: a gravação
 // (src/lib/accounting.ts) só envia o resultado. Correr duas vezes sobre o mesmo estado não lança nada de novo.
+
+interface PayoutSource { id: string; amountCents: number; estado: string; feeRecebidoEm: string | null }
+interface RedemptionSource { id: string; estado: string; comissaoCents: number; ivaCents: number; retencaoCents: number; liquidoCents: number; invoiceEm: string | null; pagaEm: string | null }
 
 export interface PlanSources {
   payments: { kind: 'comissao' | 'caucao'; paymentIntent: string; amountCents: number; refundedCents: number; createdAt: string }[];
   /** Caução retida por contratação, no total (do motor de regras), e quando foi a última retenção. */
   retentions: { engagementId: string; totalCents: number; lastAt: string | null }[];
-  payouts: { id: string; amountCents: number; estado: string; feeRecebidoEm: string | null }[];
-  redemptions: { id: string; estado: string; comissaoCents: number; ivaCents: number; retencaoCents: number; liquidoCents: number; invoiceEm: string | null; pagaEm: string | null }[];
+  payouts: PayoutSource[];
+  redemptions: RedemptionSource[];
+  /** Comissões de levantamento dos avaliadores (`survey_payouts`) e os seus resgates (`survey_redemptions`): mesmo circuito, contas próprias. */
+  surveyPayouts: PayoutSource[];
+  surveyRedemptions: RedemptionSource[];
   subscriptions: { invoiceId: string; amountCents: number; vatCents: number | null; paidAt: string }[];
   /** Taxas da Stripe por movimento de saldo (só as com valor) e transferências para o banco. */
   stripeFees: { id: string; feeCents: number; createdAt: string }[];
@@ -62,6 +68,27 @@ export function planPostings(src: PlanSources): Posting[] {
     }
     if (r.estado === 'paga' && r.pagaEm) {
       add(redemptionPaid({ redemptionId: r.id, base: r.comissaoCents, vat: r.ivaCents, retention: r.retencaoCents, net: r.liquidoCents, data: src.day(r.pagaEm) }));
+    }
+  }
+
+  // Avaliadores: só se lança o que é devido (comissão já recebida do pintor, valor positivo) e o que o resgate já tem (recibo, pagamento).
+  for (const y of src.surveyPayouts) {
+    if (!y.feeRecebidoEm || y.amountCents <= 0) continue;
+    const accrual = surveyAccrued({ payoutId: y.id, amount: y.amountCents, data: src.day(y.feeRecebidoEm) });
+    if (y.estado === 'sem_efeito') {
+      if (src.posted.has(key(accrual))) add(reverse(accrual, src.today));
+    } else add(accrual);
+  }
+
+  for (const r of src.surveyRedemptions) {
+    if (r.invoiceEm && r.estado !== 'pedido') {
+      const inv = surveyRedemptionInvoiced({ redemptionId: r.id, vat: r.ivaCents, data: src.day(r.invoiceEm) });
+      if (r.estado === 'anulado') {
+        if (inv && src.posted.has(key(inv))) add(reverse(inv, src.today));
+      } else add(inv);
+    }
+    if (r.estado === 'paga' && r.pagaEm) {
+      add(surveyRedemptionPaid({ redemptionId: r.id, base: r.comissaoCents, vat: r.ivaCents, retention: r.retencaoCents, net: r.liquidoCents, data: src.day(r.pagaEm) }));
     }
   }
 

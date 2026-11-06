@@ -1,7 +1,27 @@
 import { facesDaZona } from './geometria';
-import { dentroDoPoligono, disporChamadas, segmentosCruzam, type Disposicao, type FaceDaPrancheta, type Obstaculos } from './chamadas';
+import {
+  dentroDoPoligono,
+  disporChamadas,
+  segmentosCruzam,
+  segmentoTocaCaixa,
+  type Disposicao,
+  type EntradaDasChamadas,
+  type FaceDaPrancheta,
+  type Obstaculos,
+} from './chamadas';
 import type { Participacao, SurfaceKind } from './request';
-import { buildingVolume, type FaceKind, type Forma, type Volume, type VolumeInput } from './volume';
+import {
+  buildingVolume,
+  ladosDaPlanta,
+  type ArestaDaCota,
+  type Fachada,
+  LADOS_DA_LAJE,
+  type FaceKind,
+  type Forma,
+  type LadoDaPlanta,
+  type Volume,
+  type VolumeInput,
+} from './volume';
 
 /**
  * O desenho do passo 2 do pedido (proposta B, «o prédio ao centro», escolhida pelo promotor a
@@ -12,14 +32,36 @@ import { buildingVolume, type FaceKind, type Forma, type Volume, type VolumeInpu
  * ligação às zonas — que faces pinta cada uma, onde fica o seu número, que número tem — e o sítio
  * das cotas. Tudo em unidades do desenho, sem nada de ecrã: quem desenha converte para píxeis.
  *
+ * ## O desenho é dos alçados (06/11/2026)
+ *
+ * Um **alçado** é uma zona de fachada ou de empena. O desenho só tem a forma dos alçados que se foram
+ * entregando: com um (ou nenhum) é uma **laje** — um painel com pouca profundidade, visto a três
+ * dimensões —; ao entrar o segundo, pergunta-se a **planta** (quadrado, I, L, U, T, a do cadastro do
+ * prédio quando já existe) e cada alçado passa a ocupar um **lado** dessa planta (`LadoDaPlanta`,
+ * em `volume.ts`: frente, esquerda, direita, tardoz, e os lados das asas de um L, U ou T). O lado de cada
+ * alçado guarda-se no pedido (`face_do_predio`); sem ele, atribui-se pela ordem em que os alçados foram
+ * registados (`atribuirFaces`). Os lados por entregar ficam só a traço.
+ *
  * ## Uma zona, um sítio — ou nenhum
  *
- * O sítio de uma zona sai de `facesDaZona` (`geometria.ts`), a ligação única entre zonas e desenho.
- * Uma face só pode ser de uma zona: a primeira fachada fica com a frente (e com as laterais à vista,
- * porque o pedido não diz qual das fachadas é); uma segunda fachada já não tem onde ficar. Em vez de
- * escolher uma face à sorte e o cliente julgar que a plataforma sabe qual é, a zona vai para o grupo
- * **«Fora do desenho»**, sem número. O mesmo para as zonas que o volume não tem (escadas e átrio,
- * paredes interiores, tetos, outra superfície).
+ * O sítio de uma zona sai do volume, e **não depende do ângulo**: uma zona tem sítio se o prédio tem a
+ * peça que ela pinta (o lado do alçado, as varandas, o muro, a cobertura…). Por isso a numeração
+ * não muda ao rodar. Fica «Fora do desenho», sem número, o que o volume não tem — escadas e átrio,
+ * paredes interiores, tetos, outra superfície — e um alçado a mais do que a planta tem lados.
+ *
+ * ## O número segue o ângulo (a regra dos pinos)
+ *
+ * Ao rodar, as faces que se veem mudam, e o número de uma zona tem de estar numa face dela que se vê e se
+ * lê **nessa vista**:
+ *
+ * 1. a face tem de estar virada para a câmara com `vista ≥ LEGIBILIDADE_DO_NUMERO` (0,35: a menos de ~70°
+ *    de frente; uma parede de perfil não leva número);
+ * 2. o ponto do número não pode estar tapado por nenhuma face desenhada depois dela (só as janelas e a porta não
+ *    tapam: estão na parede; um lado por entregar tapa, tem enchimento) — procura-se, a começar pelo sítio preferido
+ *    do tipo de zona, o primeiro ponto de uma grelha que esteja livre;
+ * 3. se nenhuma face da zona cumpre, a zona fica **oculta nesta vista**: continua com o seu número e o seu
+ *    cartão, sem pino. `vistaParaVer` diz o ângulo mais próximo onde ela se vê de frente (`vista ≥ 0,7`),
+ *    e o ecrã oferece «Ver no desenho», que roda até lá.
  *
  * ## As cotas ficam onde as ligações não passam
  *
@@ -38,13 +80,162 @@ export interface ZonaParaDesenho {
   id: string;
   kind: SurfaceKind;
   participacao: Participacao;
+  /** O lado da planta a que a zona pertence (`request_surfaces.face_do_predio`); nulo: atribui-se pelo nome ou pela ordem. */
+  face?: string | null;
+  /** O nome que lhe deram («Tardoz», «Lateral esquerda»): diz o lado quando a zona não o guardou (`ladoPeloNome`). */
+  descricao?: string | null;
 }
 
 export interface LugarDaZona {
-  /** As faces do volume (índices em `volume.faces`) que a zona pinta. */
+  /** As faces do volume (índices em `volume.faces`) que a zona pinta, **nesta vista**. */
   faces: number[];
-  /** Onde fica o número da zona, em unidades do desenho. Nulo: a zona não se vê no volume. */
+  /** Onde fica o número da zona, em unidades do desenho. Nulo: a zona não se vê nesta vista (ver `temSitio`). */
   pino: Ponto | null;
+  /** O prédio tem a peça que a zona pinta, vejam-se ou não nesta vista. Não depende do ângulo: é o que numera. */
+  temSitio: boolean;
+  /** Quão de frente está a face do número (0 a 1). Nulo sem pino. */
+  vista: number | null;
+  /**
+   * Porque é que uma zona com sítio não tem número nesta vista (nulo quando tem, ou quando não tem sítio): **atrás** — nenhuma
+   * face dela se vê —, **de lado** — vê-se como uma tira estreita, abaixo da legibilidade do número — ou **tapada** — vê-se
+   * de frente, mas outra parte do prédio cobre-a toda.
+   */
+  oculta: 'atras' | 'de_lado' | 'tapada' | null;
+}
+
+/** Abaixo disto, uma parede está de perfil demais para levar um número (cosseno do ângulo, no plano horizontal). */
+export const LEGIBILIDADE_DO_NUMERO = 0.35;
+/** A vista que `vistaParaVer` procura: a face do número de frente (≈ 45°). */
+export const LEGIBILIDADE_PARA_VER = 0.7;
+
+// --- Os alçados e o seu lado da planta ---------------------------------------------------------------
+
+/** Uma zona de fachada ou de empena é um alçado: ocupa um lado da planta. */
+export const ehAlcado = (kind: SurfaceKind) => kind === 'fachada' || kind === 'empena';
+
+/** Menos de dois alçados não têm planta: o desenho é uma laje. */
+export const ALCADOS_PARA_TER_PLANTA = 2;
+
+export interface PlantaDoDesenho {
+  /** Ainda sem planta: um painel com pouca profundidade. */
+  laje: boolean;
+  /** A forma desenhada. Sem forma no prédio, a banda (I) — presume-se enquanto ninguém responde. */
+  forma: Forma;
+  lados: LadoDaPlanta[];
+  /** Há planta a desenhar, mas o prédio ainda não diz qual: é altura de perguntar. */
+  porEscolher: boolean;
+}
+
+export function plantaDoDesenho(forma: Forma | null, zonas: readonly Pick<ZonaParaDesenho, 'kind'>[]): PlantaDoDesenho {
+  const laje = zonas.filter((z) => ehAlcado(z.kind)).length < ALCADOS_PARA_TER_PLANTA;
+  const usada: Forma = forma ?? 'I';
+  return { laje, forma: usada, lados: laje ? LADOS_DA_LAJE : ladosDaPlanta(usada), porEscolher: !laje && forma === null };
+}
+
+/**
+ * O lado que o nome de uma zona diz: «Tardoz» e «Traseiras» são o tardoz; «Fachada principal» e «Frente», a frente;
+ * «Lateral esquerda», o lado esquerdo; «Empena direita», o direito. Só quando o nome diz **um** lado: «esquerda e direita»
+ * não diz nenhum, e «Empena lado norte» também não. É um palpite para o desenho não pôr o «Tardoz» onde o cliente
+ * escreveu «Lateral» — o lado guardado na zona manda sempre, e o editor deixa mudá-lo.
+ */
+export function ladoPeloNome(nome: string | null | undefined): Fachada | null {
+  if (!nome) return null;
+  const t = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const diz: Record<Fachada, boolean> = {
+    frente: /\b(frente|principal)\b/.test(t),
+    tras: /\b(tardoz|traseiras?|posterior|tras)\b/.test(t),
+    esquerda: /\besquerd[oa]s?\b/.test(t),
+    direita: /\bdireit[oa]s?\b/.test(t),
+  };
+  const lados = (Object.keys(diz) as Fachada[]).filter((k) => diz[k]);
+  return lados.length === 1 ? lados[0]! : null;
+}
+
+/** Os lados por que se tenta, pela ordem, quando um alçado não diz o seu: primeiro os que se veem na vista inicial. */
+const ORDEM_DA_FACHADA = ['frente', 'direita', 'esquerda', 'tras'];
+const ORDEM_DA_EMPENA = ['direita', 'esquerda', 'tras', 'frente'];
+
+function ordemDosLados(kind: SurfaceKind, lados: readonly LadoDaPlanta[]): string[] {
+  const pref = kind === 'empena' ? ORDEM_DA_EMPENA : ORDEM_DA_FACHADA;
+  const ids = lados.map((l) => l.id);
+  const primeiros = pref.filter((p) => ids.includes(p));
+  // Depois os das asas, na ordem de direção e número (direita-2 antes de tras-2…).
+  const resto = ids
+    .filter((id) => !primeiros.includes(id))
+    .sort((a, b) => pref.indexOf(a.split('-')[0]!) - pref.indexOf(b.split('-')[0]!) || a.localeCompare(b));
+  return [...primeiros, ...resto];
+}
+
+/**
+ * O lado da planta de cada alçado (e das varandas). O que a zona guardou vale, desde que o lado exista na
+ * planta de agora e ninguém o tenha tomado primeiro; os outros alçados ficam com o primeiro lado livre pela
+ * ordem acima. Sem planta (a laje) o único alçado é a frente. Um alçado sem lado (a planta não tem mais
+ * lados) fica nulo — «Fora do desenho».
+ *
+ * As varandas assentam no lado que guardaram; sem ele, no primeiro alçado de fachada, ou na frente.
+ */
+export function atribuirFaces(
+  zonas: readonly ZonaParaDesenho[],
+  lados: readonly LadoDaPlanta[],
+  laje: boolean,
+): Record<string, string | null> {
+  const res: Record<string, string | null> = {};
+  const ids = new Set(lados.map((l) => l.id));
+  const alcados = zonas.filter((z) => ehAlcado(z.kind));
+  if (laje) {
+    alcados.forEach((z, i) => (res[z.id] = i === 0 ? 'frente' : null));
+  } else {
+    const tomadas = new Set<string>();
+    for (const z of alcados) {
+      if (z.face && ids.has(z.face) && !tomadas.has(z.face)) {
+        res[z.id] = z.face;
+        tomadas.add(z.face);
+      }
+    }
+    // Sem lado guardado: o que o nome diz, se estiver livre…
+    for (const z of alcados) {
+      if (z.id in res) continue;
+      const pelaNome = ladoPeloNome(z.descricao);
+      if (pelaNome && ids.has(pelaNome) && !tomadas.has(pelaNome)) {
+        res[z.id] = pelaNome;
+        tomadas.add(pelaNome);
+      }
+    }
+    // …e os outros, pela ordem.
+    for (const z of alcados) {
+      if (z.id in res) continue;
+      const livre = ordemDosLados(z.kind, lados).find((id) => !tomadas.has(id));
+      res[z.id] = livre ?? null;
+      if (livre) tomadas.add(livre);
+    }
+  }
+  const primeira = alcados.find((a) => a.kind === 'fachada' && res[a.id]);
+  for (const z of zonas) {
+    if (z.kind !== 'varandas') continue;
+    res[z.id] = laje ? 'frente' : z.face && ids.has(z.face) ? z.face : primeira ? res[primeira.id]! : 'frente';
+  }
+  return res;
+}
+
+export interface LadoParaEscolher {
+  id: string;
+  label: string;
+  /** Outro alçado já ocupa este lado (as varandas podem ficar em cima dele). */
+  ocupado: boolean;
+}
+
+/**
+ * Os lados que o editor oferece a um alçado, com os que os outros alçados já ocupam. **Conta-se como se a planta já
+ * existisse**: com um só alçado o desenho ainda é uma laje, e `atribuirFaces` dá-lhe a frente; mas ao entrar o segundo
+ * o primeiro passa para o lado que o nome diz — um «Tardoz» deixa a frente livre e ocupa o tardoz — e o editor, que
+ * marcava a frente como «já tem alçado», mentia (revisão, 06/11/2026). Os outros alçados atribuem-se sem o que se está
+ * a editar: o que fica ocupado é o que continua ocupado quando este escolher.
+ */
+export function ladosParaEscolher(zonas: readonly ZonaParaDesenho[], forma: Forma | null, excepto: string | null): LadoParaEscolher[] {
+  const lados = ladosDaPlanta(forma ?? 'I');
+  const outros = zonas.filter((x) => x.id !== excepto);
+  const faces = atribuirFaces(outros, lados, false);
+  return lados.map((l) => ({ id: l.id, label: l.label, ocupado: outros.some((x) => ehAlcado(x.kind) && faces[x.id] === l.id) }));
 }
 
 const lerp = (a: Ponto, b: Ponto, t: number): Ponto => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
@@ -69,80 +260,173 @@ function facesPossiveis(kind: SurfaceKind, haMetalicos: boolean): Set<FaceKind> 
   return k;
 }
 
-/** O sítio do número de uma zona, dentro das faces que ela pinta. */
-function pinoDaZona(kind: SurfaceKind, faces: { kind: FaceKind; points: Ponto[] }[]): Ponto | null {
-  const maior = (k: FaceKind) =>
-    faces.filter((f) => f.kind === k).sort((a, b) => areaDoPoligono(b.points) - areaDoPoligono(a.points))[0]?.points ?? null;
-  /** A do meio, de cima para baixo, entre as maiores de um tipo (as lajes das varandas, as guardas). */
-  const doMeio = (k: FaceKind) => {
-    const todas = faces.filter((f) => f.kind === k);
-    const max = Math.max(0, ...todas.map((f) => areaDoPoligono(f.points)));
-    const grandes = todas.filter((f) => areaDoPoligono(f.points) > max * 0.5).sort((a, b) => centro(a.points)[1] - centro(b.points)[1]);
-    return grandes[Math.floor(grandes.length / 2)]?.points ?? null;
-  };
+type FaceProj = Volume['faces'][number];
+
+/** O ponto não está tapado por nenhum polígono desenhado depois da face `i` (e que não seja da mesma zona)? */
+function livreDeOutras(v: Volume, i: number, p: Ponto, daZona: ReadonlySet<number>): boolean {
+  for (let j = i + 1; j < v.faces.length; j++) {
+    const f = v.faces[j]!;
+    // As janelas e a porta estão na parede, e o vizinho esbate-se. Um lado por entregar **tapa**: tem o enchimento
+    // leve de um alçado que ainda não existe, e um número por trás dele leria-se como uma zona vista através de uma
+    // parede.
+    if (f.fade || f.kind === 'janela' || f.kind === 'porta') continue;
+    if (daZona.has(j)) continue;
+    if (dentroDoPoligono(p, f.points)) return false;
+  }
+  return true;
+}
+
+/** A grelha de pontos de uma face, do preferido para os mais afastados dele. */
+function amostras(pref: [number, number]): [number, number][] {
+  const grelha: [number, number][] = [];
+  for (const v of [0.8, 0.6, 0.4, 0.2]) for (const u of [0.12, 0.3, 0.5, 0.7, 0.88]) grelha.push([u, v]);
+  return [pref, ...grelha.sort((a, b) => Math.hypot(a[0] - pref[0], a[1] - pref[1]) - Math.hypot(b[0] - pref[0], b[1] - pref[1]))];
+}
+
+/** A grelha fina da segunda tentativa (só quando a grande não acerta): células de ~3% da face. */
+const FINA: [number, number] = [34, 18];
+
+/**
+ * A segunda tentativa de pôr um número numa face: a grelha de amostras acima falha uma nesga livre entre outras
+ * faces (num U, uma parede de frente com 16–20 % livres em 3D ficava sem número, e a zona dizia «atrás» estando
+ * à vista — revisão, 06/11/2026). Procura-se numa grelha fina todos os pontos livres e escolhe-se o mais perto do
+ * **centro da parte livre**, para o número assentar no meio da nesga e não na sua beira.
+ */
+function centroDaParteLivre(v: Volume, i: number, daZona: ReadonlySet<number>): Ponto | null {
+  const f = v.faces[i]!;
+  const livres: Ponto[] = [];
+  for (let a = 0; a < FINA[0]; a++) {
+    for (let b = 0; b < FINA[1]; b++) {
+      const p = naFace(f.points, (a + 0.5) / FINA[0], (b + 0.5) / FINA[1]);
+      if (livreDeOutras(v, i, p, daZona)) livres.push(p);
+    }
+  }
+  if (livres.length === 0) return null;
+  const c = centro(livres);
+  return livres.reduce((m, p) => (Math.hypot(p[0] - c[0], p[1] - c[1]) < Math.hypot(m[0] - c[0], m[1] - c[1]) ? p : m), livres[0]!);
+}
+
+/**
+ * Onde, numa face, o número prefere ficar. As ligações chegam ao desenho pela esquerda (as da fachada e das
+ * varandas) e pela direita (a empena, o muro), por isso o número fica do lado do ecrã de onde a ligação vem —
+ * à esquerda ou à direita **no ecrã**, qualquer que seja o ângulo a que a face está.
+ */
+function preferido(kind: SurfaceKind, f: FaceProj): [number, number] {
+  // Em que extremo da face (u = 0 ou u = 1) o x do ecrã é menor.
+  const uEsquerda = f.points[0]![0] + f.points[3]![0] <= f.points[1]![0] + f.points[2]![0] ? 0 : 1;
+  const aEsquerda = (u: number) => (uEsquerda === 0 ? u : 1 - u);
+  const aDireita = (u: number) => (uEsquerda === 0 ? 1 - u : u);
   switch (kind) {
-    case 'fachada': {
-      // No alto da frente, junto à esquina da esquerda: a ligação chega pela esquerda sem atravessar a fachada.
-      const frente = maior('frente');
-      if (frente) return naFace(frente, 0.12, 0.8);
-      const lado = maior('lado');
-      return lado ? naFace(lado, 0.75, 0.22) : null;
-    }
-    case 'empena': {
-      // A meio da empena, um pouco acima: a ligação chega pela direita, onde nada mais está. (Ficava em
-      // baixo, no canto da frente, para fugir à cota da altura; as chamadas deixaram de a desenhar.)
-      const e = maior('empena');
-      return e ? naFace(e, 0.5, 0.6) : null;
-    }
-    case 'varandas': {
-      // A laje do meio, na ponta da esquerda: a ligação chega pela esquerda e passa o mínimo por cima
-      // da fachada, onde as varandas assentam.
-      const laje = doMeio('varanda');
-      return laje ? naFace(laje, 0.06, 0.5) : null;
-    }
-    case 'muro': {
-      const m = maior('muro');
-      return m ? naFace(m, 0.86, 0.55) : null;
-    }
-    case 'beirais_cobertura': {
-      const topo = maior('topo');
-      if (topo) return centro(topo);
-      const b = maior('beiral');
-      return b ? centro(b) : null;
-    }
-    case 'elementos_metalicos': {
-      const g = doMeio('grade');
-      return g ? centro(g) : null;
-    }
+    case 'fachada':
+      // No alto, junto à esquina da esquerda.
+      return [aEsquerda(0.12), 0.8];
+    case 'empena':
+      return [0.5, 0.6];
+    case 'varandas':
+      return [aEsquerda(0.06), 0.5];
+    case 'muro':
+      return [aDireita(0.14), 0.55];
     default:
-      return null;
+      return [0.5, 0.5];
   }
 }
 
-/** Que faces pinta cada zona e onde fica o seu número. Uma face é de uma zona só: a primeira que a pede. */
+/** A ordem por que se tentam as faces de uma zona: as maiores primeiro; nas varandas e nas guardas, a do meio. */
+function ordemDeFaces(kind: SurfaceKind, idx: number[], v: Volume): number[] {
+  const area = (i: number) => areaDoPoligono(v.faces[i]!.points);
+  if (kind === 'varandas' || kind === 'elementos_metalicos') {
+    const dosTipos = (k: FaceKind) =>
+      idx.filter((i) => v.faces[i]!.kind === k).sort((a, b) => centro(v.faces[a]!.points)[1] - centro(v.faces[b]!.points)[1]);
+    const doMeio = (xs: number[]) => {
+      if (xs.length === 0) return xs;
+      const max = Math.max(...xs.map(area));
+      const grandes = xs.filter((i) => area(i) > max * 0.5);
+      const m = Math.floor(grandes.length / 2);
+      // Do meio para fora, alternando.
+      return grandes.map((_, k) => grandes[m + (k % 2 === 0 ? k / 2 : -(k + 1) / 2)]).filter((x): x is number => x !== undefined);
+    };
+    return [...doMeio(dosTipos('varanda')), ...doMeio(dosTipos('grade'))];
+  }
+  return [...idx].sort((a, b) => area(b) - area(a));
+}
+
+/**
+ * Que faces pinta cada zona **nesta vista** e onde fica o seu número (a regra dos pinos, no cabeçalho do
+ * ficheiro). Uma face é de uma zona só: a primeira que a pede. Os lados dos alçados vêm de `atribuirFaces`.
+ */
 export function lugaresDasZonas(v: Volume, zonas: readonly ZonaParaDesenho[]): Record<string, LugarDaZona> {
   const haMetalicos = zonas.some((z) => z.kind === 'elementos_metalicos');
+  const faces = atribuirFaces(zonas, v.lados, v.laje);
   const tomadas = new Set<number>();
   const lugares: Record<string, LugarDaZona> = {};
-  for (const z of zonas) {
+  // Primeiro tudo o que cada zona pinta, para o teste do «tapado» saber o que é da própria zona.
+  const dasZonas = zonas.map((z) => {
     const possiveis = facesPossiveis(z.kind, haMetalicos);
-    const faces: number[] = [];
+    const lado = ehAlcado(z.kind) || z.kind === 'varandas' ? (faces[z.id] ?? null) : undefined;
+    const sitio = lado === null ? false : v.pecas.some((p) => possiveis.has(p.kind) && (lado === undefined || p.face === lado));
+    const idx: number[] = [];
     v.faces.forEach((f, i) => {
-      if (!f.fade && possiveis.has(f.kind) && !tomadas.has(i)) faces.push(i);
+      if (f.fade || !possiveis.has(f.kind) || tomadas.has(i)) return;
+      if (lado !== undefined && f.face !== lado) return;
+      idx.push(i);
+      tomadas.add(i);
     });
-    for (const i of faces) tomadas.add(i);
-    lugares[z.id] = {
-      faces,
-      pino:
-        faces.length > 0
-          ? pinoDaZona(
-              z.kind,
-              faces.map((i) => ({ kind: v.faces[i]!.kind, points: v.faces[i]!.points })),
-            )
-          : null,
-    };
+    return { z, idx, sitio };
+  });
+  for (const { z, idx, sitio } of dasZonas) {
+    const daZona = new Set(idx);
+    let pino: Ponto | null = null;
+    let vista: number | null = null;
+    const legiveis = idx.filter((i) => (v.faces[i]!.vista ?? 1) >= LEGIBILIDADE_DO_NUMERO);
+    procura: for (const i of ordemDeFaces(z.kind, legiveis, v)) {
+      const f = v.faces[i]!;
+      for (const [u, w] of amostras(preferido(z.kind, f))) {
+        const p = naFace(f.points, u, w);
+        if (livreDeOutras(v, i, p, daZona)) {
+          pino = p;
+          vista = f.vista ?? 1;
+          break procura;
+        }
+      }
+    }
+    // A grelha grande não acertou numa nesga livre: tenta-se a fina, pelo meio da parte livre.
+    if (!pino) {
+      for (const i of ordemDeFaces(z.kind, legiveis, v)) {
+        const p = centroDaParteLivre(v, i, daZona);
+        if (p) {
+          pino = p;
+          vista = v.faces[i]!.vista ?? 1;
+          break;
+        }
+      }
+    }
+    const oculta: LugarDaZona['oculta'] = !sitio || pino ? null : idx.length === 0 ? 'atras' : legiveis.length === 0 ? 'de_lado' : 'tapada';
+    lugares[z.id] = { faces: idx, pino, temSitio: sitio, vista, oculta };
   }
   return lugares;
+}
+
+/**
+ * O ângulo mais próximo de `atual`, em passos de `passo` graus, onde a zona se vê de frente (o número
+ * numa face com `vista ≥ LEGIBILIDADE_PARA_VER`). Nulo se nenhum ângulo serve (a zona não tem sítio no
+ * desenho). Em empate roda-se para o lado positivo. `volumeEm` desenha o prédio a um ângulo.
+ */
+export function vistaParaVer(
+  volumeEm: (angulo: number) => Volume,
+  zonas: readonly ZonaParaDesenho[],
+  id: string,
+  atual: number,
+  passo = 5,
+): number | null {
+  const norm = (a: number) => ((a % 360) + 360) % 360;
+  for (let d = 0; d <= 180; d += passo) {
+    for (const a of d === 0 ? [0] : [d, -d]) {
+      const angulo = norm(atual + a);
+      const l = lugaresDasZonas(volumeEm(angulo), zonas)[id];
+      if (l?.pino && (l.vista ?? 1) >= LEGIBILIDADE_PARA_VER) return angulo;
+    }
+  }
+  return null;
 }
 
 /** Os tipos de zona que o pedido vazio oferece em cima do próprio desenho. */
@@ -189,7 +473,7 @@ export interface PredioParaDesenho {
   janelas?: Partial<Record<'frente' | 'esquerda' | 'direita' | 'tras', number | null>>;
 }
 
-/** O ângulo a que o passo 2 vê o prédio: a frente e a lateral direita, como em todo o lado. */
+/** O ângulo a que o passo 2 vê o prédio, à partida: a frente e a lateral direita, como em todo o lado. */
 export const ANGULO_DO_DESENHO = 25;
 
 /**
@@ -199,21 +483,34 @@ export const ANGULO_DO_DESENHO = 25;
  * O que o prédio **tem** deduz-se do que foi declarado: não há sítio nenhum onde alguém diga «este
  * prédio tem muro», e uma zona de muro é a melhor pista. A participação não conta — uma zona deixada
  * de fora continua a existir no prédio.
+ *
+ * O desenho é por alçados: cada alçado entregue dá um lado da planta com parede e vãos. Sem nenhum, a
+ * frente desenha-se como painel genérico, para o pedido vazio ter onde se tocar (`+ Fachada`).
  */
 export function entradaDoVolume(
   predio: PredioParaDesenho,
-  zonas: readonly Pick<ZonaParaDesenho, 'kind'>[],
+  zonas: readonly ZonaParaDesenho[],
   escala: VolumeInput['escala'] = null,
+  angulo: number = ANGULO_DO_DESENHO,
 ): VolumeInput {
   const tem = (k: SurfaceKind) => zonas.some((z) => z.kind === k);
+  const planta = plantaDoDesenho(predio.forma, zonas);
+  const faces = atribuirFaces(zonas, planta.lados, planta.laje);
+  const alcados = zonas.flatMap((z) =>
+    ehAlcado(z.kind) && faces[z.id] ? [{ face: faces[z.id]!, tipo: z.kind as 'fachada' | 'empena' }] : [],
+  );
+  const varandas = zonas.find((z) => z.kind === 'varandas');
   return {
     pisos: predio.pisos,
     fachadas: predio.fachadas,
     temVarandas: predio.temVarandas || tem('varandas'),
     moradia: predio.moradia,
-    forma: predio.forma,
+    forma: planta.forma,
+    laje: planta.laje,
+    alcados: alcados.length > 0 ? alcados : [{ face: 'frente', tipo: 'fachada' }],
+    varandasEm: varandas ? faces[varandas.id] : null,
     janelas: predio.janelas,
-    angulo: ANGULO_DO_DESENHO,
+    angulo,
     escala,
     elementos: { muro: tem('muro'), metalicos: tem('elementos_metalicos'), beirais: tem('beirais_cobertura') },
   };
@@ -241,7 +538,7 @@ export interface ZonaNumerada {
  * lá, só não vai ser pintado.
  */
 export function numerarZonas(zonas: readonly ZonaParaDesenho[], lugares: Record<string, LugarDaZona>): ZonaNumerada[] {
-  const comSitio = (z: ZonaParaDesenho) => !!lugares[z.id]?.pino;
+  const comSitio = (z: ZonaParaDesenho) => !!lugares[z.id]?.temSitio;
   const fora = (z: ZonaParaDesenho) => z.participacao === 'excluida';
   const ordem: { z: ZonaParaDesenho; grupo: GrupoDaZona }[] = [
     ...zonas.filter((z) => !fora(z) && comSitio(z)).map((z) => ({ z, grupo: 'no_desenho' as const })),
@@ -269,105 +566,158 @@ export interface CotaDoDesenho {
 }
 
 const mais = (a: Ponto, b: Ponto): Ponto => [a[0] + b[0], a[1] + b[1]];
-const menos = (a: Ponto, b: Ponto): Ponto => [a[0] - b[0], a[1] - b[1]];
 const vezes = (a: Ponto, k: number): Ponto => [a[0] * k, a[1] * k];
-const unitario = (a: Ponto): Ponto => {
-  const l = Math.hypot(a[0], a[1]) || 1;
-  return [a[0] / l, a[1] / l];
+
+/** A distância de um ponto a um segmento. */
+function distanciaAoSegmento(p: Ponto, a: Ponto, b: Ponto): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const l2 = dx * dx + dy * dy;
+  const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+
+/** Os segmentos cruzam-se **a sério** (tocar numa ponta comum não conta: duas cotas partem da mesma esquina)? */
+function cruzamDeVez(a: Ponto, b: Ponto, c: Ponto, d: Ponto): boolean {
+  const o = (p: Ponto, q: Ponto, r: Ponto) => {
+    const v = (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+    return Math.abs(v) < 1e-9 ? 0 : v > 0 ? 1 : -1;
+  };
+  const o1 = o(a, b, c);
+  const o2 = o(a, b, d);
+  const o3 = o(c, d, a);
+  const o4 = o(c, d, b);
+  return o1 !== 0 && o2 !== 0 && o3 !== 0 && o4 !== 0 && o1 !== o2 && o3 !== o4;
+}
+
+const rodar = (v: Ponto, graus: number): Ponto => {
+  const r = (graus * Math.PI) / 180;
+  return [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)];
 };
+
+/** Quanto, ao todo, uma cota pode afastar-se do prédio, em letras: mais do que isto é deixá-la a flutuar longe do que mede. */
+const AFASTAMENTO_MAXIMO_EM_LETRAS = 4;
 
 /**
  * As cotas dos eixos com texto (só se passam os eixos que alguém mediu ou estimou: um eixo por medir
  * não leva linha nenhuma). `afastamento` é a distância da aresta à linha; `letra`, a altura do texto —
  * ambos em unidades do desenho, para quem desenha os poder dar em píxeis à escala que vai usar.
+ *
+ * **Uma cota nunca fica sobre o prédio** (06/11/2026; revisão geométrica, varrendo de 5° em 5° as cinco plantas):
+ * a linha, as duas linhas de chamada e o texto têm de ficar fora de qualquer face do prédio — as que passam por
+ * cima de uma parede liam-se como um risco da fachada —, e fora das outras cotas (a da frente e a do fundo
+ * tocavam-se). Afasta-se pela **normal à aresta virada para fora do prédio**, em passos de meia letra; se não
+ * serve, inclina-se a direção; se ainda não serve, tenta-se a outra aresta equivalente (`candidatas`); e, se
+ * nenhuma serve, **a cota não se desenha nessa vista**: é melhor sem cota do que com a cota a atravessar o prédio.
+ * O texto da cota de um eixo medido está sempre na lista de medidas do pedido, por isso nada se perde.
  */
 export function cotasDoDesenho(
   v: Volume,
   textos: Partial<Record<EixoDaCota, string>>,
   { afastamento, letra, caracter = letra * 0.37 }: { afastamento: number; letra: number; caracter?: number },
 ): CotaDoDesenho[] {
-  const [fl, fr] = v.cotas.largura;
-  const br = v.cotas.profundidade[0];
-  const altura = menos(v.cotas.altura[1], v.cotas.altura[0]); // da base ao topo, na projeção
-  const fundo = menos(br, fr); // da frente para trás
+  const candidatas = v.cotasDaPrancheta.candidatas;
   const cotas: CotaDoDesenho[] = [];
 
-  // As faces do prédio (sem os vizinhos, que se esbatem): uma cota afasta-se até a linha e o texto
-  // ficarem fora delas. Num prédio em L, a asa de trás fica por cima do telhado, e o «12 m» assentava
-  // nela (cético, 05/11/2026).
+  // As faces do prédio (sem os vizinhos, que se esbatem). Os pontos a menos de `folga` da borda de uma face
+  // não contam como «dentro»: as linhas de chamada nascem na aresta do prédio.
   const corpo = v.faces.filter((f) => !f.fade).map((f) => f.points as Ponto[]);
-  const livre = (linha: [Ponto, Ponto], c: Pick<CotaDoDesenho, 'rotulo' | 'alinhar' | 'texto'>) => {
+  const folga = letra * 0.08;
+  const passo = letra * 0.25;
+  const sobreAFace = (p: Ponto) =>
+    corpo.some((q) => dentroDoPoligono(p, q) && q.every((r, i) => distanciaAoSegmento(p, r, q[(i + 1) % q.length]!) > folga));
+  const amostrar = (a: Ponto, b: Ponto, desde: number): Ponto[] => {
+    const n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / passo));
+    const res: Ponto[] = [];
+    for (let k = 0; k <= n; k++) if (k / n >= desde) res.push(lerp(a, b, k / n));
+    return res;
+  };
+  const cantosDe = (k: CaixaDoTexto): Ponto[] => [
+    [k.x, k.y],
+    [k.x + k.w, k.y],
+    [k.x + k.w, k.y + k.h],
+    [k.x, k.y + k.h],
+  ];
+  const sobrepoem = (k: CaixaDoTexto, o: CaixaDoTexto) => !(k.x + k.w < o.x || o.x + o.w < k.x || k.y + k.h < o.y || o.y + o.h < k.y);
+  const margem = (k: CaixaDoTexto): CaixaDoTexto => ({ x: k.x - letra * 0.15, y: k.y - letra * 0.1, w: k.w + letra * 0.3, h: k.h + letra * 0.2 });
+  const segmentosDe = (c: Pick<CotaDoDesenho, 'linha' | 'chamadas'>): [Ponto, Ponto][] => [c.linha, ...c.chamadas];
+
+  const livre = (c: CotaDoDesenho) => {
     const k = caixaDoRotulo(c, { letra, caracter });
-    const cantos: Ponto[] = [
-      [k.x, k.y],
-      [k.x + k.w, k.y],
-      [k.x + k.w, k.y + k.h],
-      [k.x, k.y + k.h],
-    ];
-    return corpo.every(
+    const cantos = cantosDe(k);
+    // A linha por inteiro; as chamadas a partir de 6% (nascem na aresta, que é do prédio).
+    const [a2, b2] = c.linha;
+    const chamadas = c.chamadas.map(([a, b]) => [lerp(a, b, 0.06), b] as [Ponto, Ponto]);
+    const pontos = [...amostrar(a2, b2, 0), ...chamadas.flatMap(([a, b]) => amostrar(a, b, 0)), ...amostrar(cantos[0]!, cantos[2]!, 0), ...amostrar(cantos[1]!, cantos[3]!, 0)];
+    for (let y = 0; y <= 1; y += 0.5) for (let x = 0; x <= 1; x += 0.125) pontos.push([k.x + k.w * x, k.y + k.h * y]);
+    if (pontos.some(sobreAFace)) return false;
+    const rasgam = [c.linha, ...chamadas];
+    const doTexto = cantos.map((p, i) => [p, cantos[(i + 1) % 4]!] as [Ponto, Ponto]);
+    const noCorpo = corpo.every(
       (q) =>
-        !cantos.some((p) => dentroDoPoligono(p, q)) &&
         !q.some((p) => dentroDoPoligono(p, cantos)) &&
-        !q.some((p, i) => segmentosCruzam(linha[0], linha[1], p, q[(i + 1) % q.length]!)) &&
-        !cantos.some((p, i) => q.some((r, j) => segmentosCruzam(p, cantos[(i + 1) % 4]!, r, q[(j + 1) % q.length]!))),
+        !rasgam.some(([x, y]) => q.some((p, i) => segmentosCruzam(x, y, p, q[(i + 1) % q.length]!))) &&
+        !doTexto.some(([x, y]) => q.some((p, i) => segmentosCruzam(x, y, p, q[(i + 1) % q.length]!))),
     );
-  };
-  /** A cota a `d` da aresta [a, b], para o lado `fora` (unitário). */
-  const cotaA = (a: Ponto, b: Ponto, fora: Ponto, d: number, texto: string, rotulo: (a2: Ponto, b2: Ponto) => Ponto) => {
-    const a2 = mais(a, vezes(fora, d));
-    const b2 = mais(b, vezes(fora, d));
-    return { linha: [a2, b2] as [Ponto, Ponto], chamadas: [[a, a2] as [Ponto, Ponto], [b, b2] as [Ponto, Ponto]], rotulo: rotulo(a2, b2) };
-  };
-  /** Afasta-se em passos de meia letra, até estar livre (ou até dez letras: aí fica onde está). */
-  const afastada = (
-    eixo: EixoDaCota,
-    a: Ponto,
-    b: Ponto,
-    fora: Ponto,
-    texto: string,
-    alinhar: CotaDoDesenho['alinhar'],
-    rotulo: (a2: Ponto, b2: Ponto) => Ponto,
-  ): CotaDoDesenho => {
-    let c = cotaA(a, b, fora, afastamento, texto, rotulo);
-    for (let d = afastamento; d <= afastamento + letra * 10; d += letra / 2) {
-      c = cotaA(a, b, fora, d, texto, rotulo);
-      if (livre(c.linha, { rotulo: c.rotulo, alinhar, texto })) break;
-    }
-    return { eixo, ...c, texto, alinhar };
-  };
-
-  if (textos.frente) {
-    // Na aresta de trás do telhado: o mesmo comprimento da frente, por cima de tudo.
-    const a = mais(mais(fl, fundo), altura);
-    const b = mais(mais(fr, fundo), altura);
-    cotas.push(afastada('frente', a, b, [0, -1], textos.frente, 'centro', (a2, b2) => mais(lerp(a2, b2, 0.5), [0, -letra * 0.7])));
-  }
-
-  if (textos.fundo) {
-    // Na aresta esquerda do telhado, afastada ao longo do eixo da frente, para fora.
-    const a = mais(fl, altura);
-    const b = mais(a, fundo);
-    const fora = unitario(menos(fl, fr));
-    cotas.push(afastada('fundo', a, b, fora, textos.fundo, 'direita', (a2, b2) => mais(lerp(a2, b2, 0.5), vezes(fora, letra * 0.4))));
-  }
-
-  if (textos.altura) {
-    // Na aresta vertical de trás, à direita.
-    const a = br;
-    const b = mais(br, altura);
-    const a2 = mais(a, [afastamento, 0]);
-    const b2 = mais(b, [afastamento, 0]);
-    cotas.push({
-      eixo: 'altura',
-      linha: [a2, b2],
-      chamadas: [
-        [a, a2],
-        [b, b2],
-      ],
-      texto: textos.altura,
-      rotulo: mais(lerp(a2, b2, 0.5), [letra * 0.4, 0]),
-      alinhar: 'esquerda',
+    if (!noCorpo) return false;
+    // E fora das cotas já postas: linhas e chamadas não se cruzam nem tocam o texto da outra, e os textos não se sobrepõem.
+    const km = margem(k);
+    return cotas.every((o) => {
+      const ko = margem(caixaDoRotulo(o, { letra, caracter }));
+      if (sobrepoem(km, ko)) return false;
+      if (segmentosDe(o).some(([x, y]) => segmentoTocaCaixa(x, y, km))) return false;
+      if (segmentosDe(c).some(([x, y]) => segmentoTocaCaixa(x, y, ko))) return false;
+      return !segmentosDe(c).some(([x, y]) => segmentosDe(o).some(([p, q]) => cruzamDeVez(x, y, p, q)));
     });
+  };
+
+  /** A cota de `e` afastada `d` na direção `dir` (unitária): o texto cresce para longe do prédio. */
+  const montar = (eixo: EixoDaCota, e: ArestaDaCota, dir: Ponto, d: number, texto: string): CotaDoDesenho => {
+    const a2 = mais(e.a, vezes(dir, d));
+    const b2 = mais(e.b, vezes(dir, d));
+    const m = lerp(a2, b2, 0.5);
+    let alinhar: CotaDoDesenho['alinhar'];
+    let rotulo: Ponto;
+    if (Math.abs(dir[0]) > 0.5) {
+      // Linha mais para o vertical: o texto fica ao lado dela, para o lado de fora, um pouco para o lado do afastamento.
+      alinhar = dir[0] < 0 ? 'direita' : 'esquerda';
+      rotulo = [m[0] + Math.sign(dir[0]) * letra * 0.5, m[1] + dir[1] * letra * 0.5];
+    } else {
+      // Linha mais para o horizontal: o texto fica por cima (ou por baixo) do meio, acima da inclinação da linha.
+      alinhar = 'centro';
+      const dx = b2[0] - a2[0];
+      const declive = Math.abs(dx) > 1e-9 ? Math.abs((b2[1] - a2[1]) / dx) : 0;
+      const meia = (texto.length * caracter + caracter) / 2;
+      rotulo = [m[0], m[1] + (dir[1] < 0 ? -1 : 1) * (letra * 0.55 + declive * meia)];
+    }
+    return { eixo, linha: [a2, b2], chamadas: [[e.a, a2], [e.b, b2]], texto, rotulo, alinhar };
+  };
+
+  const colocar = (eixo: EixoDaCota, texto: string) => {
+    // Todas as maneiras de a pôr — que aresta, a que distância, com que inclinação —, da mais barata para a mais cara:
+    // cada meia letra de afastamento custa meia letra; cada aresta que não é a preferida, duas letras (uma cota
+    // um pouco mais longe da aresta ainda mede o que mede; noutra aresta, só às vezes); uma linha inclinada, meia.
+    const passos = Math.floor(AFASTAMENTO_MAXIMO_EM_LETRAS * 2);
+    const arestas = candidatas[eixo === 'frente' ? 'largura' : eixo];
+    const maneiras: { e: ArestaDaCota; d: number; graus: number; custo: number }[] = [];
+    arestas.forEach((e, k) => {
+      for (let i = 0; i <= passos; i++) {
+        for (const graus of [0, 28, -28]) maneiras.push({ e, d: afastamento + (i * letra) / 2, graus, custo: i / 2 + 2 * k + (graus === 0 ? 0 : 0.4) });
+      }
+    });
+    maneiras.sort((x, y) => x.custo - y.custo);
+    for (const m of maneiras) {
+      const c = montar(eixo, m.e, rodar(m.e.fora, m.graus), m.d, texto);
+      if (livre(c)) return c;
+    }
+    return null;
+  };
+
+  for (const eixo of ['frente', 'fundo', 'altura'] as const) {
+    const texto = textos[eixo];
+    if (!texto) continue;
+    const c = colocar(eixo, texto);
+    if (c) cotas.push(c);
   }
   return cotas;
 }
@@ -408,6 +758,7 @@ export function desenharZonas(
   zonas: readonly ZonaParaDesenho[],
   textos: Partial<Record<EixoDaCota, string>>,
   pxPorUnidade: number,
+  caixaMinima?: readonly [number, number, number, number],
 ): DesenhoDasZonas {
   const s = pxPorUnidade > 0 ? pxPorUnidade : 1;
   const medida = { letra: 20 / s, caracter: 7.4 / s };
@@ -428,9 +779,42 @@ export function desenharZonas(
   const xs = pts.map((p) => p[0]);
   const ys = pts.map((p) => p[1]);
   const m = 16 / s;
-  const x0 = Math.min(...xs) - m;
-  const y0 = Math.min(...ys) - m;
-  return { zonaDaFace, pinos, cotas, caixa: [x0, y0, Math.max(...xs) + m - x0, Math.max(...ys) + m - y0] };
+  let x0 = Math.min(...xs) - m;
+  let y0 = Math.min(...ys) - m;
+  let x1 = Math.max(...xs) + m;
+  let y1 = Math.max(...ys) + m;
+  // A caixa de todas as vistas (`caixaDaVolta`): rodar não muda a moldura nem a escala do desenho.
+  if (caixaMinima) {
+    x0 = Math.min(x0, caixaMinima[0]);
+    y0 = Math.min(y0, caixaMinima[1]);
+    x1 = Math.max(x1, caixaMinima[0] + caixaMinima[2]);
+    y1 = Math.max(y1, caixaMinima[1] + caixaMinima[3]);
+  }
+  return { zonaDaFace, pinos, cotas, caixa: [x0, y0, x1 - x0, y1 - y0] };
+}
+
+/** Os ângulos por que se mede a moldura de uma volta inteira: de 10° em 10°, e a vista inicial. */
+const VISTAS_DA_VOLTA = [...Array.from({ length: 36 }, (_, i) => i * 10), ANGULO_DO_DESENHO];
+
+/**
+ * A caixa que cabe o prédio, com as cotas, **em qualquer vista**: a união das caixas de trinta e sete vistas (de 10° em
+ * 10°, e a inicial). O desenho usa-a como mínima, e por isso a moldura e a escala não mexem enquanto se roda — como um
+ * prato giratório, e não um prédio que respira. `pxPorUnidade` é a escala a que se medem as cotas (o seu
+ * tamanho em unidades do desenho depende dela); as vistas são medidas sem zonas, só o prédio e as cotas.
+ */
+export function caixaDaVolta(
+  volumeEm: (angulo: number) => Volume,
+  textos: Partial<Record<EixoDaCota, string>>,
+  pxPorUnidade = 16,
+): [number, number, number, number] {
+  let caixa: [number, number, number, number] | null = null;
+  for (const a of VISTAS_DA_VOLTA) {
+    const [x, y, w, h] = desenharZonas(volumeEm(a), [], textos, pxPorUnidade).caixa;
+    caixa = caixa
+      ? [Math.min(caixa[0], x), Math.min(caixa[1], y), Math.max(caixa[0] + caixa[2], x + w) - Math.min(caixa[0], x), Math.max(caixa[1] + caixa[3], y + h) - Math.min(caixa[1], y)]
+      : [x, y, w, h];
+  }
+  return caixa!;
 }
 
 // --- A prancheta larga: o desenho ao centro e os cartões à volta ---------------------------------
@@ -449,6 +833,8 @@ export interface PranchetaLarga {
   faces: FaceDaPrancheta[];
   /** Nula quando as ligações não cumprem a regra (`chamadas.ts`): fica-se no modo lista. */
   disposicao: Disposicao | null;
+  /** O que se perguntou a `disporChamadas`, para quem quer verificar a regra (`problemasDasLigacoes`). */
+  entrada: EntradaDasChamadas;
 }
 
 /** A largura de cada coluna de cartões das chamadas, para uma prancheta de `largura` px. */
@@ -477,7 +863,15 @@ export function pranchetaLarga(
     alturas,
     alturaMaxima = 400,
     rodape,
-  }: { largura: number; alturas: Record<string, number>; alturaMaxima?: number; rodape?: number },
+    caixaMinima,
+  }: {
+    largura: number;
+    alturas: Record<string, number>;
+    alturaMaxima?: number;
+    rodape?: number;
+    /** A caixa de todas as vistas (`caixaDaVolta`), para a moldura não mexer ao rodar. */
+    caixaMinima?: readonly [number, number, number, number];
+  },
 ): PranchetaLarga {
   const semAltura: Partial<Record<EixoDaCota, string>> = { ...textos, altura: undefined };
   const coluna = colunaDasChamadas(largura);
@@ -485,11 +879,11 @@ export function pranchetaLarga(
   const x0 = coluna + corredor;
   const w = Math.max(1, largura - 2 * x0);
   let escala = 15;
-  let desenho = desenharZonas(v, zonas, semAltura, escala);
+  let desenho = desenharZonas(v, zonas, semAltura, escala, caixaMinima);
   for (let i = 0; i < 3; i++) {
     const [, , cw, ch] = desenho.caixa;
     escala = Math.min(w / cw, alturaMaxima / ch);
-    desenho = desenharZonas(v, zonas, semAltura, escala);
+    desenho = desenharZonas(v, zonas, semAltura, escala, caixaMinima);
   }
   const [cx, cy, cw, ch] = desenho.caixa;
   const dx = x0 + (w - cw * escala) / 2 - cx * escala;
@@ -513,7 +907,7 @@ export function pranchetaLarga(
   const centroX = ((Math.min(...xs) + Math.max(...xs)) / 2) * escala + dx;
   const alturaDoDesenho = ch * escala;
   const pinos = desenho.pinos.map(({ id, p }) => ({ id, p: px(p) }));
-  const disposicao = disporChamadas({
+  const entrada: EntradaDasChamadas = {
     largura,
     altura: alturaDoDesenho,
     coluna,
@@ -525,6 +919,7 @@ export function pranchetaLarga(
     obstaculos,
     faces,
     rodape,
-  });
-  return { desenho, escala, dx, dy, coluna, corredor, alturaDoDesenho, faces, disposicao };
+  };
+  const disposicao = disporChamadas(entrada);
+  return { desenho, escala, dx, dy, coluna, corredor, alturaDoDesenho, faces, disposicao, entrada };
 }
