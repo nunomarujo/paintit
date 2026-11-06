@@ -98,6 +98,10 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | Página do Pro: adenda e diário | A página vende-os como do Pro, mas estão abertos a todas as empresas desde 25/10/2026. Fechá-los ao Pro, tirá-los da lista, ou escrevê-los como «também no gratuito»? | `DECISOES.md` 06/11/2026, «Subscrição: opção 3» |
 | Caleiras: opções de «estado» | Gravadas como proposta: bom estado, desgaste ou tinta a descascar, ferrugem, furos ou partes partidas, não sei. Confirmar ou corrigir | `DECISOES.md` 06/11/2026, «Caleiras» |
 | Caleiras: comprimento total | Pedido como facultativo (base de um preço por metro linear). Manter, tornar obrigatório ou tirar? | `DECISOES.md` 06/11/2026, «Caleiras» |
+| Telefone no contrato: validar por SMS? | Hoje regista-se sem validação (só o email tem código). SMS tem custo por mensagem | `DECISOES.md` 06/11/2026, «IBAN, contactos e comprovativos» |
+| IBAN estrangeiro | Só se aceita IBAN português (PT50). Há clientes ou pintores com conta noutro país? | idem |
+| Comprovativo vs. confirmação do pintor | O comprovativo do cliente não marca a tranche como recebida; é o pintor que confirma. Confirmar | idem |
+| Jurista: elementos do contrato | Redação da cláusula 4-A; histórico que não se apaga e direito ao apagamento (RGPD); valor dos comprovativos como prova. Acrescentar ao documento de questões jurídicas (Claude Docs) | idem |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)

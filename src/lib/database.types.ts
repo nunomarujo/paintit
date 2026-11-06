@@ -2119,6 +2119,24 @@ export type Database = {
           },
         ];
       };
+      elementos_do_contrato: {
+        Row: { id: string; engagement_id: string; lado: string; campo: string; valor: string; validacao: string; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; lado: string; campo: string; valor: string; validacao: string; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      codigos_de_email: {
+        Row: { id: string; engagement_id: string; lado: string; email: string; codigo_sha256: string; criado_por: string; criado_em: string; expira_em: string; tentativas: number; usado_em: string | null };
+        Insert: { id?: string; engagement_id: string; lado: string; email: string; codigo_sha256: string; criado_por: string; criado_em?: string; expira_em: string; tentativas?: number; usado_em?: string | null };
+        Update: { tentativas?: number; usado_em?: string | null };
+        Relationships: [];
+      };
+      comprovativos_de_pagamento: {
+        Row: { id: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota: string | null; ficheiro_path: string | null; ficheiro_sha256: string | null; ficheiro_tipo: string | null; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota?: string | null; ficheiro_path?: string | null; ficheiro_sha256?: string | null; ficheiro_tipo?: string | null; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
       promo_codes: {
         Row: { active: boolean; code: string; created_at: string; created_by: string; discount_bps: number; id: string; max_uses: number | null; notas: string | null; uses: number; valid_until: string | null };
         Insert: {

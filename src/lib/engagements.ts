@@ -3,7 +3,8 @@ import { hasEquivalent } from '@/domain/equivalence';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { declaracaoDasCaleiras, caleirasDaLinha } from '@/domain/caleiras';
-import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { elementosEmVigor } from '@/lib/elementosDoContrato';
+import { contractDraft, minutaComElementos, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { toEngagementRecord } from '@/domain/engagementRecord';
 import { resumoDaAssinaturaAceite } from '@/domain/signature';
 import { formatEuros, percentOf } from '@/domain/money';
@@ -143,6 +144,7 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
     // anúncio, que é o que as duas partes viram e o mesmo para as duas.
     minuta: row.minuta_versao ?? null,
     declarado: listing ? declaradoNoPedido(listing) : [],
+    elementos: minutaComElementos(row.minuta_versao) && !anon ? await elementosEmVigor(supabase, row.id) : undefined,
   });
 }
 

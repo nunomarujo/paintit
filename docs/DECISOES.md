@@ -5927,3 +5927,52 @@ versão nova com o código antigo.
 
 **Contratos já assinados não mudam:** o PDF assinado é o guardado e conferido pelo resumo (91d3075), e o
 texto das contratações antigas não muda.
+
+## 06/11/2026 — IBAN, contactos e comprovativos: a plataforma recolhe e regista, não intervém
+
+Decisões do promotor (06/11/2026, adenda ao pedido), e como ficaram construídas.
+
+**Elementos do contrato** (`elementos_do_contrato`, `src/domain/elementosDoContrato.ts`): IBAN, telefone e email
+para correspondência de cada parte, por contratação.
+- **Quando:** depois da apresentação (`fee_recebido` — as partes já se conhecem, regra 6) e **até à primeira
+  assinatura registada** («assinado» = a primeira assinatura, decisão do promotor). Depois dela não há ecrã nem
+  ação: qualquer alteração é por adenda ao contrato, entre as partes, fora da plataforma. A base recusa o que
+  estiver fora deste prazo (gatilho), não só o ecrã.
+- **Ordem real dos estados (T3.1):** no percurso v2 o pintor paga a comissão, as partes conhecem-se, e só depois
+  o cliente assina — o IBAN do pintor cabe antes da geração do PDF. Para garantir que lá está, **o cliente não
+  assina nem descarrega o PDF a assinar** sem o IBAN do empreiteiro (só na minuta nova). O pintor assina o PDF
+  que o cliente assinou, por isso o texto não muda entre as duas assinaturas.
+- **Qualquer das partes** altera os seus; a outra é sempre avisada por email de cada campo (o IBAN vai mascarado).
+  A aplicação envia email (e WhatsApp onde já está ligado para o contrato); **não envia correio postal**.
+- **Nada se apaga:** cada alteração é uma linha nova (parte, campo, valor, desde quando, quem, como foi
+  validado); o em vigor é a mais recente. Nem a chave de serviço reescreve ou apaga (gatilho
+  `so_de_acrescentar`). O contrato gera-se sempre de novo a partir dos dados (é determinístico), por isso cada
+  versão anterior reconstitui-se do histórico; a impressão digital de cada versão fica também no registo do
+  percurso (secção seguinte).
+- **Email novo:** código de 6 algarismos enviado para ele; até ser indicado, vale o anterior. Validade de 10
+  minutos, 5 tentativas por código, 3 códigos por hora por contratação e parte; guarda-se só o SHA-256 do código
+  (com o identificador da linha como sal) e compara-se em tempo constante. Se for o mesmo email do início de
+  sessão de quem o indica, não se pede código: fica «validado antecipadamente pelo início de sessão». **Não se
+  usa o `updateUser` do Supabase:** mudaria o email de acesso da conta, que é outra coisa — este é o email de
+  correspondência de um contrato, de uma parte que pode ter várias pessoas.
+- **Telefone:** regista-se sem validação (o promotor só pediu para o email; SMS tem custo — pergunta em aberto).
+- **IBAN:** português, com o algarismo de controlo (`isValidPtIban`); mascarado nas listas e nos avisos; nunca
+  nos registos do servidor. Contas estrangeiras: pergunta em aberto. **Não é o `supplier_payout_details`**
+  (IBAN por entidade, para pagar comissões a fornecedores).
+- **Escreve só o servidor** (chave de serviço), depois de confirmar que quem pede gere aquele lado (proprietário
+  ou gestor). Nenhum utilizador escreve nas tabelas diretamente.
+
+**Contrato (minuta 2026-11-06):** os elementos de cada parte em «Partes»; em «4. Pagamentos», as restantes
+tranches pagas ao empreiteiro por transferência ou depósito para o IBAN dele (articulado com a frase que já lá
+estava, sem a duplicar); e a cláusula nova **«4-A. Elementos das partes»**, com a **redação por validar pelo
+jurista** (não definitiva). O contrato chama às partes «dono da obra» e «empreiteiro», não «primeiro» e
+«segundo outorgante»: manteve-se a forma do contrato, e o «segundo outorgante» do promotor é o empreiteiro.
+Só nas contratações criadas com a minuta nova; os contratos já assinados não mudam.
+
+**Comprovativos de pagamento** (`comprovativos_de_pagamento`, cofre privado `comprovativos-de-pagamento`): por
+tranche, o cliente regista valor, data, uma **nota livre opcional** (confirmada pelo promotor — por exemplo,
+«pago para outro IBAN, na sequência de uma adenda entre as partes») e o ficheiro. Só depois das duas
+assinaturas; só de acrescentar; a data é a do servidor. As imagens perdem os metadados; guarda-se o SHA-256 do
+que se guardou, que é também o nome do ficheiro. Leem as duas partes e a equipa. **O comprovativo não marca a
+tranche como recebida** — continua a ser o pintor a confirmar (por confirmar com o promotor). A plataforma
+regista o que lhe dizem e não valida.

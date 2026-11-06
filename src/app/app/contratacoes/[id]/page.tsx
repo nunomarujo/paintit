@@ -23,6 +23,13 @@ import { stripeConfigured } from '@/lib/stripe';
 import { Voltar } from '@/components/Voltar';
 import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
 import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { minutaComElementos, ibanEmGrupos } from '@/domain/contracting';
+import { CAMPOS, CAMPO_LABELS, VALIDACAO_LABELS, emVigor, faltaParaAssinar, mascararIban, podeAlterar } from '@/domain/elementosDoContrato';
+import { tranchesDoContrato } from '@/domain/tranchesDoContrato';
+import { parseFases } from '@/domain/proposal';
+import { historicoDosElementos } from '@/lib/elementosDoContrato';
+import { AlterarElemento } from './ElementosDoContrato';
+import { ComprovativoForm } from './ComprovativoForm';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -115,6 +122,42 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
     ? await supabase.from('survey_availability').select('alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle()
     : { data: null };
   const oferecerWhatsApp = emCurso && !(preferencia?.alerta_whatsapp && preferencia.telemovel_whatsapp);
+
+  // Elementos do contrato (06/11/2026): só com a minuta nova, e só depois da apresentação — antes disso
+  // nenhuma parte vê os dados da outra (regra 6).
+  const apresentada = events.some((v) => v.kind === 'fee_recebido');
+  const comElementos = minutaComElementos(row.minuta_versao) && apresentada;
+  const historico = comElementos ? await historicoDosElementos(supabase, id) : [];
+  const vigor = emVigor(historico);
+  const alteravel = podeAlterar({
+    minuta: row.minuta_versao,
+    apresentada,
+    algumaAssinatura: events.some((v) => v.kind === 'cliente_assinou' || v.kind === 'pintor_assinou'),
+  });
+  const faltaIban = faltaParaAssinar(row.minuta_versao, vigor);
+  const meuLado = side === 'cliente' || side === 'pintor' ? side : null;
+
+  // Comprovativos de pagamento: depois das duas assinaturas, por tranche. O plano vem da proposta.
+  const celebrado = events.some((v) => v.kind === 'pintor_assinou');
+  const { data: comprovativosRows } = celebrado
+    ? await supabase.from('comprovativos_de_pagamento').select('*').eq('engagement_id', id).order('criado_em')
+    : { data: [] };
+  const comprovativos = await Promise.all(
+    (comprovativosRows ?? []).map(async (c) => ({
+      ...c,
+      url: c.ficheiro_path ? (await supabase.storage.from('comprovativos-de-pagamento').createSignedUrl(c.ficheiro_path, 300)).data?.signedUrl ?? null : null,
+    })),
+  );
+  const { data: propostaDoPlano } = celebrado && side === 'cliente'
+    ? await supabase.from('proposals').select('adiantamento_bps, fases, base_cents, iva_cents').eq('id', row.proposal_id).maybeSingle()
+    : { data: null };
+  const nomesDasTranches = propostaDoPlano
+    ? tranchesDoContrato({
+        totalCents: (propostaDoPlano.base_cents ?? 0) + (propostaDoPlano.iva_cents ?? 0),
+        adiantamentoBps: propostaDoPlano.adiantamento_bps,
+        fases: parseFases(propostaDoPlano.fases),
+      }).map((t) => t.descricao)
+    : [];
 
   return (
     <div className="space-y-8">
@@ -224,6 +267,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                   Ir para os documentos do condomínio
                 </Link>
               </div>
+            ) : side === 'cliente' && faltaIban ? (
+              <p className="max-w-[54ch] text-[17px] font-semibold text-amber-800">{faltaIban}</p>
             ) : (
               <PdfSign engagementId={id} side={side} />
             )}
@@ -249,6 +294,98 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             ligação direta para este contrato.
           </p>
           <AvisosPorWhatsApp alertaWhatsApp={false} telemovel={preferencia?.telemovel_whatsapp ?? null} whatsappDisponivel={configuracaoWhatsApp(process.env) !== null} />
+        </section>
+      )}
+
+      {comElementos && (
+        <section id="elementos" className={`${card} scroll-mt-24`}>
+          <h2 className="font-semibold">Elementos do contrato</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+            {alteravel
+              ? 'IBAN, telefone e email para correspondência de cada parte, como o contrato os indica. Até à primeira assinatura, cada parte corrige os seus; a outra é avisada de cada alteração e o valor anterior fica no histórico.'
+              : 'Os elementos indicados no contrato. Depois da primeira assinatura, qualquer alteração faz-se por adenda ao contrato, entre as partes, fora da plataforma.'}
+          </p>
+          {faltaIban && alteravel && (
+            <p className="mt-2 max-w-[54ch] text-[17px] font-semibold text-amber-800">
+              {side === 'pintor' ? 'Falta indicar o IBAN do empreiteiro: o dono da obra só pode assinar depois disso.' : faltaIban}
+            </p>
+          )}
+          <div className="mt-4 grid gap-6 sm:grid-cols-2">
+            {(['cliente', 'pintor'] as const).map((lado) => (
+              <div key={lado}>
+                <h3 className="text-[15px] font-semibold text-slate-600">{lado === 'cliente' ? 'Dono da obra' : 'Empreiteiro'}</h3>
+                <dl className="mt-2 space-y-3">
+                  {CAMPOS.map((campo) => (
+                    <div key={campo}>
+                      <dt className="text-[15px] text-slate-600">
+                        {CAMPO_LABELS[campo]}
+                        {campo === 'iban' && lado === 'pintor' && <span className="text-slate-600"> (obrigatório para o contrato)</span>}
+                        {campo === 'iban' && lado === 'cliente' && <span className="text-slate-600"> (facultativo)</span>}
+                      </dt>
+                      <dd className="text-[17px] text-slate-900 [font-variant-numeric:tabular-nums]">
+                        {vigor[lado][campo] ? (campo === 'iban' ? ibanEmGrupos(vigor[lado][campo]!) : vigor[lado][campo]) : <span className="text-slate-600">Por indicar</span>}
+                      </dd>
+                      {alteravel && manager && meuLado === lado && (
+                        <AlterarElemento engagementId={id} lado={lado} campo={campo} atual={vigor[lado][campo]} emailDaSessao={user?.email ?? null} />
+                      )}
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+          {historico.length > 0 && (
+            <details className="mt-5">
+              <summary className="flex min-h-[44px] cursor-pointer items-center text-[15px] font-semibold text-tinta-700">Histórico de alterações ({historico.length})</summary>
+              <ol className="mt-2 space-y-1 text-[15px] text-slate-700">
+                {[...historico].reverse().map((h, i) => (
+                  <li key={i}>
+                    {dt(h.criadoEm)} · {h.lado === 'cliente' ? 'Dono da obra' : 'Empreiteiro'} · {CAMPO_LABELS[h.campo]}:{' '}
+                    {h.campo === 'iban' ? mascararIban(h.valor) : h.valor} · {VALIDACAO_LABELS[h.validacao]}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+        </section>
+      )}
+
+      {celebrado && (side === 'cliente' || side === 'pintor' || side === 'plataforma') && (
+        <section className={card}>
+          <h2 className="font-semibold">Comprovativos de pagamento</h2>
+          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
+            {side === 'cliente'
+              ? 'Por cada tranche paga ao empreiteiro, o valor, a data e o comprovativo. É só registo: fica guardado tal como foi enviado, e a tranche é dada por recebida pelo empreiteiro.'
+              : 'O que o dono da obra registou ter pago, por tranche. É só registo: a plataforma guarda o que lhe enviam e não o valida.'}
+          </p>
+          {comprovativos.length > 0 ? (
+            <ul className="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200">
+              {comprovativos.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+                  <span className="text-[17px]">
+                    {c.tranche} · pago a {pt(c.pago_em)}
+                    {c.nota && <span className="block text-[15px] text-slate-600">{c.nota}</span>}
+                    <span className="block text-[13px] text-slate-600">Registado a {dt(c.criado_em)}</span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-[17px] font-semibold [font-variant-numeric:tabular-nums]">{formatEuros(c.valor_cents)}</span>
+                    {c.url && (
+                      <a href={c.url} className="btn-quiet btn-sm" target="_blank" rel="noreferrer">
+                        Ver o ficheiro
+                      </a>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 rounded-lg border border-slate-200 px-4 py-3 text-[17px] text-slate-600">Ainda não há comprovativos registados.</p>
+          )}
+          {side === 'cliente' && manager && (
+            <div className="mt-5">
+              <ComprovativoForm engagementId={id} tranches={nomesDasTranches} />
+            </div>
+          )}
         </section>
       )}
 

@@ -16,6 +16,8 @@ import { caminhoDoPdfAssinado, contractPdfFor, loadDraft, loadReplay, missingCon
 import { verifySignature } from '@/lib/pades';
 import { pedeAviso } from '@/domain/poderes';
 import { poderesDoLado } from '@/lib/poderes';
+import { faltaParaAssinar } from '@/domain/elementosDoContrato';
+import { elementosEmVigor } from '@/lib/elementosDoContrato';
 import { checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { getUser } from '@/lib/supabase/server';
@@ -129,6 +131,8 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
       const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
       const missing = row ? await missingCondoDocs(supabase, row) : [];
       if (missing.length > 0) return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
+      const falta = row ? faltaParaAssinar(row.minuta_versao, await elementosEmVigor(supabase, row.id)) : null;
+      if (falta) return { errors: {}, message: falta };
     }
   }
   const reason = String(form.get('motivo') ?? '').trim();
@@ -247,6 +251,9 @@ export async function signWithPdf(
     if (missing.length > 0) {
       return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
     }
+    // Minuta de 06/11/2026: o IBAN do empreiteiro tem de estar no PDF que o cliente assina.
+    const falta = faltaParaAssinar(row.minuta_versao, await elementosEmVigor(supabase, row.id));
+    if (falta) return { errors: {}, message: falta };
   }
   const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, row, 'cliente');
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
