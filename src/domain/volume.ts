@@ -67,6 +67,19 @@ export interface VolumeInput {
    * anúncio continua a mostrar o volume genérico, sem medidas — a regra 6 não muda aqui.
    */
   escala?: { larguraM: number; profundidadeM: number | null; peDireitoM: number } | null;
+  /**
+   * O desenho por alçados (passo 2 do pedido, 06/11/2026). Com ele, o prédio deixa de ser um volume
+   * genérico com janelas em todo o lado: só os lados da planta que alguém entregou levam parede, vãos e
+   * cor; os outros ficam só com o traço (`por_entregar`). Sem ele, o desenho é o de sempre (o anúncio).
+   */
+  alcados?: { face: string; tipo: 'fachada' | 'empena' }[];
+  /**
+   * Antes de haver dois alçados a planta ainda não existe: o prédio é uma laje fina — um painel com
+   * pouca profundidade — e só a frente conta. Só no desenho por alçados.
+   */
+  laje?: boolean;
+  /** O lado da planta onde assentam as varandas e as marquises. Omitido: a frente. */
+  varandasEm?: string | null;
   elementos?: {
     /** Superfície `elementos_metalicos` declarada: grades, portões, guardas. */
     metalicos?: boolean;
@@ -112,9 +125,19 @@ export type FaceKind =
   | 'grade'
   | 'muro'
   | 'beiral'
-  | 'pala';
+  | 'pala'
+  /** Um alçado do contorno da planta que ainda ninguém entregou: só o traço, sem enchimento. */
+  | 'por_entregar';
 export interface Face {
   kind: FaceKind;
+  /** O lado da planta a que a face pertence (`LadoDaPlanta.id`), quando o desenho é por alçados. */
+  face?: string;
+  /**
+   * Quão de frente a face está para a câmara, de 0 (de perfil) a 1 (de frente): o cosseno do ângulo, no
+   * plano horizontal, entre a normal da parede e a direção da câmara. Só nas paredes; as horizontais
+   * (coberturas) veem-se sempre de cima e não levam o campo.
+   */
+  vista?: number;
   /** Pontos já rodados e projetados (axonometria), em unidades do desenho. */
   points: [number, number][];
   /**
@@ -141,6 +164,28 @@ export interface Volume {
   cotas: { largura: [[number, number], [number, number]]; profundidade: [[number, number], [number, number]]; altura: [[number, number], [number, number]] };
   /** Altura desenhada, em metros do desenho. */
   alturaDesenhada: number;
+  /**
+   * Tudo o que o prédio tem, vejam-se ou não nesta vista: o tipo de cada peça e, nas que pertencem a
+   * um lado da planta, qual. Não depende do ângulo — é daqui que se sabe se uma zona tem sítio no
+   * desenho, para os números não mudarem ao rodar.
+   */
+  pecas: { kind: FaceKind; face?: string }[];
+  /** Os lados da planta (o contorno), pela ordem de `ladosDaPlanta`. Só nos desenhos por alçados. */
+  lados: LadoDaPlanta[];
+  /** O desenho é a laje (ainda sem planta). */
+  laje: boolean;
+  /**
+   * Onde a prancheta põe as cotas nesta vista, já projetadas: a largura na aresta do telhado mais afastada
+   * da câmara, o fundo na aresta do telhado mais à esquerda no ecrã, a altura na esquina mais à direita.
+   * Seguem o ângulo; a 25° são as de sempre (por cima, à esquerda e à direita do prédio).
+   * `foraDoFundo` é o sentido, no ecrã, para longe do prédio.
+   */
+  cotasDaPrancheta: {
+    largura: [[number, number], [number, number]];
+    fundo: [[number, number], [number, number]];
+    altura: [[number, number], [number, number]];
+    foraDoFundo: [number, number];
+  };
 }
 
 const FLOOR = 3;
@@ -205,6 +250,134 @@ export function footprintPlan(forma: Forma): [number, number, number, number][] 
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
+// --- Os lados da planta --------------------------------------------------------------------------
+
+/**
+ * Um lado do contorno da planta: uma parede do prédio vista de fora. É o sítio de um alçado — cada
+ * alçado entregue ocupa um lado — e a sua identidade guarda-se no pedido (`request_surfaces.face_do_predio`).
+ */
+export interface LadoDaPlanta {
+  /**
+   * `frente`, `esquerda`, `direita` ou `tras` para o lado mais exterior nessa direção; `tras-2`, `tras-3`…
+   * para os outros que olham para o mesmo lado (a asa de um L, o pátio de um U). Estável: só depende da forma.
+   */
+  id: string;
+  direcao: Fachada;
+  /** Se o lado se estende ao longo de x (`x`: frente e tardoz) ou de y (`y`: as laterais). */
+  eixo: 'x' | 'y';
+  /** A coordenada fixa do plano do lado (y para o eixo x; x para o eixo y). */
+  plano: number;
+  /** De onde a onde, ao longo do eixo, por ordem crescente. */
+  de: number;
+  ate: number;
+  /** Normal exterior, no plano horizontal. */
+  n: [number, number, number];
+  /** Para o avaliador e para o cliente: «Fachada principal», «Tardoz (ala direita)». */
+  label: string;
+}
+
+const DIRECAO_DA_NORMAL = (nx: number, ny: number): Fachada => (ny > 0 ? 'frente' : ny < 0 ? 'tras' : nx > 0 ? 'direita' : 'esquerda');
+
+/**
+ * O contorno de uma implantação em retângulos, lado a lado. Um retângulo por lado exterior, já fundidos
+ * os troços na mesma reta (o lado direito de um L é um só). Funciona com coordenadas quaisquer — a
+ * implantação escalada às medidas do prédio dá os mesmos lados que a canónica, pela mesma ordem.
+ */
+export function ladosDoPlano(plan: readonly [number, number, number, number][]): LadoDaPlanta[] {
+  const xs = [...new Set(plan.flatMap((r) => [r[0], r[2]]))].sort((a, b) => a - b);
+  const ys = [...new Set(plan.flatMap((r) => [r[1], r[3]]))].sort((a, b) => a - b);
+  const cheia = (i: number, j: number) => {
+    if (i < 0 || j < 0 || i >= xs.length - 1 || j >= ys.length - 1) return false;
+    const cx = (xs[i]! + xs[i + 1]!) / 2;
+    const cy = (ys[j]! + ys[j + 1]!) / 2;
+    return plan.some((r) => cx > r[0] && cx < r[2] && cy > r[1] && cy < r[3]);
+  };
+  type Troco = { direcao: Fachada; eixo: 'x' | 'y'; plano: number; de: number; ate: number; n: [number, number, number] };
+  const trocos: Troco[] = [];
+  for (let i = 0; i < xs.length - 1; i++) {
+    for (let j = 0; j < ys.length - 1; j++) {
+      if (!cheia(i, j)) continue;
+      if (!cheia(i, j + 1)) trocos.push({ direcao: 'frente', eixo: 'x', plano: ys[j + 1]!, de: xs[i]!, ate: xs[i + 1]!, n: [0, 1, 0] });
+      if (!cheia(i, j - 1)) trocos.push({ direcao: 'tras', eixo: 'x', plano: ys[j]!, de: xs[i]!, ate: xs[i + 1]!, n: [0, -1, 0] });
+      if (!cheia(i + 1, j)) trocos.push({ direcao: 'direita', eixo: 'y', plano: xs[i + 1]!, de: ys[j]!, ate: ys[j + 1]!, n: [1, 0, 0] });
+      if (!cheia(i - 1, j)) trocos.push({ direcao: 'esquerda', eixo: 'y', plano: xs[i]!, de: ys[j]!, ate: ys[j + 1]!, n: [-1, 0, 0] });
+    }
+  }
+  // Fundir os troços contíguos na mesma reta e do mesmo lado.
+  const fundidos: Troco[] = [];
+  for (const t of [...trocos].sort((a, b) => a.direcao.localeCompare(b.direcao) || a.plano - b.plano || a.de - b.de)) {
+    const ultimo = fundidos[fundidos.length - 1];
+    if (ultimo && ultimo.direcao === t.direcao && ultimo.plano === t.plano && Math.abs(ultimo.ate - t.de) < 1e-9) ultimo.ate = t.ate;
+    else fundidos.push({ ...t });
+  }
+  const x0 = xs[0]!;
+  const x1 = xs[xs.length - 1]!;
+  const y0 = ys[0]!;
+  const y1 = ys[ys.length - 1]!;
+  const lados: LadoDaPlanta[] = [];
+  for (const direcao of FACHADAS) {
+    // O mais exterior primeiro (o que fica mais longe do centro nessa direção), e, no mesmo plano, da esquerda para a direita
+    // (ou da frente para trás nas laterais).
+    const fora = (t: Troco) => (direcao === 'frente' || direcao === 'direita' ? -t.plano : t.plano);
+    const doLado = fundidos
+      .filter((t) => t.direcao === direcao)
+      .sort((a, b) => fora(a) - fora(b) || (a.eixo === 'x' ? a.de - b.de : b.de - a.de));
+    const planoExterior = doLado[0]?.plano;
+    const noMesmoPlano = doLado.filter((t) => t.plano === planoExterior).length;
+    doLado.forEach((t, k) => {
+      const meio = (t.de + t.ate) / 2;
+      // Onde fica, dentro da caixa da planta: terços.
+      const terco =
+        t.eixo === 'x'
+          ? meio < x0 + (x1 - x0) / 3
+            ? 'ala esquerda'
+            : meio > x0 + ((x1 - x0) * 2) / 3
+              ? 'ala direita'
+              : 'ao centro'
+          : meio > y0 + ((y1 - y0) * 2) / 3
+            ? 'ala da frente'
+            : meio < y0 + (y1 - y0) / 3
+              ? 'ala de trás'
+              : 'ao centro';
+      const unico = doLado.length === 1 || (k === 0 && noMesmoPlano === 1);
+      lados.push({
+        id: k === 0 ? direcao : `${direcao}-${k + 1}`,
+        direcao: DIRECAO_DA_NORMAL(t.n[0], t.n[1]),
+        eixo: t.eixo,
+        plano: t.plano,
+        de: t.de,
+        ate: t.ate,
+        n: t.n,
+        label: unico ? FACHADA_LABELS[direcao] : `${FACHADA_LABELS[direcao].replace(/ \(.*\)$/, '')} (${terco})`,
+      });
+    });
+  }
+  return lados;
+}
+
+/** A implantação de uma forma, em retângulos, para as formas canónicas. */
+export const ladosDaPlanta = (forma: Forma): LadoDaPlanta[] => ladosDoPlano(FOOTPRINTS[forma]);
+
+/**
+ * O lado do prédio que um formulário enviou, ou nulo («o desenho atribui»). Só passa um identificador de lado
+ * (`frente`, `esquerda`, `direita`, `tras`, e `tras-2`…`tras-9`): o que vem do navegador não manda, e a base de dados
+ * repete a verificação (`request_surfaces_face_do_predio_formato`).
+ */
+export function lerFaceDoPredio(v: unknown): string | null {
+  return typeof v === 'string' && /^(frente|esquerda|direita|tras)(-[2-9])?$/.test(v) ? v : null;
+}
+
+/** A laje: o painel do primeiro alçado, enquanto a planta não existe. Pouca profundidade, de propósito. */
+const LAJE: [number, number, number, number][] = [[0, 11, 14, 13]];
+/** Os lados da laje — os quatro, mas só a frente é um alçado. */
+export const LADOS_DA_LAJE: LadoDaPlanta[] = ladosDoPlano(LAJE);
+
+/** Quão de frente está um lado para a câmara a `angulo` graus: -1 (de costas) a 1 (de frente). */
+export const vistaDoLado = (n: readonly [number, number, number], angulo: number): number => {
+  const a = (angulo * Math.PI) / 180;
+  return n[0] * Math.sin(a) + n[1] * Math.cos(a);
+};
+
 export interface Quad {
   kind: FaceKind;
   /** Vizinhos: x da empena (contacto) e x do extremo oposto, por rodar. */
@@ -213,6 +386,8 @@ export interface Quad {
   pts: [number, number, number][];
   /** Normal exterior em 3D, por rodar. */
   n: [number, number, number];
+  /** O lado da planta a que pertence (só no desenho por alçados). */
+  face?: string;
 }
 
 /** Caixa entre (x0,y0,z0) e (x1,y1,z1): as seis faces, para a rotação poder mostrar qualquer uma. */
@@ -251,6 +426,8 @@ export interface GeometriaGerada {
   width: number;
   front: number;
   livres: number;
+  /** Os lados da planta (só no desenho por alçados; no outro, vazio). */
+  lados: LadoDaPlanta[];
 }
 
 /**
@@ -260,6 +437,7 @@ export interface GeometriaGerada {
  * mesma área, sempre a partir desta única função.
  */
 export function gerarQuads(input: VolumeInput): GeometriaGerada {
+  if (input.alcados) return gerarQuadsDosAlcados(input, input.alcados);
   const declared = input.pisos ?? (input.moradia ? 2 : 4);
   // "pisos" conta os pisos acima do solo; um rés-do-chão sozinho é 1.
   const pisos = Math.min(MAX_DRAWN_FLOORS, Math.max(1, declared));
@@ -386,11 +564,141 @@ export function gerarQuads(input: VolumeInput): GeometriaGerada {
   // Muro à frente do prédio, à altura de um muro de vedação.
   if (el.muro) quads.push(...box(px0 - 1, front + 3, 0, px1 + 1, front + 3.8, 1.6, 'muro'));
 
-  return { quads, pisos, piso, height, px0, py0, px1, py1, width, front, livres };
+  return { quads, pisos, piso, height, px0, py0, px1, py1, width, front, livres, lados: [] };
+}
+
+/** Uma caixa que assenta num lado da planta e sai dele `prof` metros, de `u0` a `u1` ao longo do lado. */
+function caixaNoLado(
+  l: LadoDaPlanta,
+  u0: number,
+  u1: number,
+  prof: number,
+  z0: number,
+  z1: number,
+  kind: FaceKind,
+): Quad[] {
+  const s = l.eixo === 'x' ? l.n[1] : l.n[0];
+  const fora = l.plano + s * prof;
+  const [p0, p1] = s > 0 ? [l.plano, fora] : [fora, l.plano];
+  const qs = l.eixo === 'x' ? box(u0, p0, z0, u1, p1, z1, kind) : box(p0, u0, z0, p1, u1, z1, kind);
+  return qs.map((q) => ({ ...q, face: l.id }));
+}
+
+/**
+ * O prédio por alçados: as paredes são os lados do contorno da planta, e cada lado é um alçado que
+ * alguém entregou ou ainda não. Sem paredes internas (as caixas da implantação partilhavam planos que, com
+ * lados só a traço, se viam por dentro): uma parede por lado exterior e uma cobertura por corpo.
+ *
+ * - Um lado **entregue** leva parede e vãos: uma fachada tem as janelas declaradas para o seu lado (e a
+ *   entrada, na frente); uma empena é parede cega.
+ * - Um lado **por entregar** só tem o traço (`por_entregar`).
+ * - Sem planta (menos de dois alçados) o prédio é a **laje**: um painel com pouca profundidade.
+ * - Varandas e marquises assentam no lado `varandasEm`; muro e beirais ficam à frente, como sempre.
+ */
+function gerarQuadsDosAlcados(input: VolumeInput, alcados: NonNullable<VolumeInput['alcados']>): GeometriaGerada {
+  const declared = input.pisos ?? (input.moradia ? 2 : 4);
+  const pisos = Math.min(MAX_DRAWN_FLOORS, Math.max(1, declared));
+  const livres = Math.min(4, Math.max(1, input.fachadas ?? 4));
+  const piso = input.escala?.peDireitoM && input.escala.peDireitoM > 0 ? input.escala.peDireitoM : FLOOR;
+  const height = pisos * piso;
+  const base = input.laje ? LAJE : FOOTPRINTS[input.forma ?? 'I'];
+  // A laje não tem profundidade medida: o fundo do prédio não é o dela.
+  const escala = input.escala ? (input.laje ? { ...input.escala, profundidadeM: null } : input.escala) : null;
+  const plan = comEscala(base, escala);
+  const lados = ladosDoPlano(plan);
+  const [px0, py0, px1, py1] = plan[0] ?? [0, 11, 14, 13];
+  const width = px1 - px0;
+  const front = py1;
+  const quads: Quad[] = [];
+  const el = input.elementos ?? {};
+  const entregue = new Map(alcados.map((a) => [a.face, a.tipo]));
+
+  // Paredes.
+  for (const l of lados) {
+    const tipo = entregue.get(l.id);
+    const kind: FaceKind = !tipo ? 'por_entregar' : tipo === 'empena' ? 'empena' : l.id === 'frente' ? 'frente' : 'lado';
+    const a = l.eixo === 'x' ? ([l.de, l.plano] as const) : ([l.plano, l.de] as const);
+    const b = l.eixo === 'x' ? ([l.ate, l.plano] as const) : ([l.plano, l.ate] as const);
+    quads.push({
+      kind,
+      face: l.id,
+      n: l.n,
+      pts: [[a[0], a[1], 0], [b[0], b[1], 0], [b[0], b[1], height], [a[0], a[1], height]],
+    });
+  }
+  // Coberturas: uma por corpo da implantação.
+  for (const [x0, y0, x1, y1] of plan) {
+    quads.push({ kind: 'topo', n: [0, 0, 1], pts: [[x0, y0, height], [x1, y0, height], [x1, y1, height], [x0, y1, height]] });
+  }
+
+  // Prédios encostados, como no desenho genérico.
+  const encostado = (qs: Quad[], contacto: number, fim: number) => quads.push(...qs.map((q) => ({ ...q, fade: { contacto, fim } })));
+  if (livres <= 3) encostado(box(px0 - 6, py0, 0, px0, front, height * 0.8, 'vizinho'), px0, px0 - 6);
+  if (livres <= 2) encostado(box(px1, py0, 0, px1 + 6, front, height * 0.7, 'vizinho'), px1, px1 + 6);
+
+  // Vãos: só nos alçados entregues que são fachada, pelo número declarado para a direção do lado. Ritmo
+  // regular, de propósito (regra 6): o número é fiel, a arrumação não identifica o prédio.
+  const quantas = (f: Fachada) => {
+    const v = input.janelas?.[f];
+    const n = v === null || v === undefined ? JANELAS_POR_OMISSAO : v;
+    return Math.max(0, Math.min(MAX_JANELAS_POR_PISO, Math.floor(n)));
+  };
+  for (const l of lados) {
+    if (entregue.get(l.id) !== 'fachada') continue;
+    const n = quantas(l.direcao);
+    if (n <= 0) continue;
+    const passo = (l.ate - l.de) / n;
+    const largura = Math.min(1.8, passo * 0.55);
+    const vaos = Array.from({ length: n }, (_, i) => {
+      const meio = l.de + passo * (i + 0.5);
+      return [round(meio - largura / 2), round(meio + largura / 2)] as [number, number];
+    });
+    const principal = l.id === 'frente';
+    for (let p = 0; p < pisos; p++) {
+      for (const [a0, a1] of vaos) {
+        const entrada = p === 0 && principal && a0 === vaos[0]![0];
+        const zb = entrada ? 0 : p * piso + 0.9;
+        const zt = entrada ? 2.1 : p * piso + 0.9 + 1.3;
+        const pts: [number, number, number][] =
+          l.eixo === 'x'
+            ? [[a0, l.plano, zb], [a1, l.plano, zb], [a1, l.plano, zt], [a0, l.plano, zt]]
+            : [[l.plano, a0, zb], [l.plano, a1, zb], [l.plano, a1, zt], [l.plano, a0, zt]];
+        quads.push({ kind: entrada ? 'porta' : 'janela', n: l.n, pts, face: l.id });
+        if (el.palas && principal && !entrada) quads.push(...caixaNoLado(l, a0 - 0.3, a1 + 0.3, 0.6, zt, zt + 0.2, 'pala'));
+      }
+    }
+  }
+
+  // Varandas e marquises, no lado que lhes cabe.
+  const lVaranda = lados.find((l) => l.id === (input.varandasEm ?? 'frente')) ?? lados.find((l) => l.id === 'frente');
+  if (lVaranda) {
+    const de = lVaranda.de + (lVaranda.ate - lVaranda.de) * 0.2;
+    const ate = lVaranda.de + (lVaranda.ate - lVaranda.de) * 0.8;
+    const s = lVaranda.eixo === 'x' ? lVaranda.n[1] : lVaranda.n[0];
+    const fora = lVaranda.plano + s * 1.2;
+    for (let p = 1; p < pisos; p++) {
+      const z = p * piso;
+      if (input.temVarandas) {
+        quads.push(...caixaNoLado(lVaranda, de, ate, 1.2, z, z + 0.25, 'varanda'));
+        const pts: [number, number, number][] =
+          lVaranda.eixo === 'x'
+            ? [[de, fora, z + 0.25], [ate, fora, z + 0.25], [ate, fora, z + 1.25], [de, fora, z + 1.25]]
+            : [[fora, de, z + 0.25], [fora, ate, z + 0.25], [fora, ate, z + 1.25], [fora, de, z + 1.25]];
+        quads.push({ kind: 'grade', n: lVaranda.n, pts, face: lVaranda.id });
+      }
+      if (input.temMarquises) quads.push(...caixaNoLado(lVaranda, de, ate, 1.2, z, z + 1.25, 'marquise'));
+    }
+  }
+
+  // O muro e os beirais são da frente: de costas, o prédio tapa-os (ver `buildingVolume`).
+  if (el.beirais) quads.push(...box(px0 - 0.6, front - 0.6, height, px1 + 0.6, front + 0.8, height + 0.4, 'beiral').map((q) => ({ ...q, face: 'frente' })));
+  if (el.muro) quads.push(...box(px0 - 1, front + 3, 0, px1 + 1, front + 3.8, 1.6, 'muro').map((q) => ({ ...q, face: 'frente' })));
+
+  return { quads, pisos, piso, height, px0, py0, px1, py1, width, front, livres, lados };
 }
 
 export function buildingVolume(input: VolumeInput): Volume {
-  const { quads, pisos, px0, py0, px1, front, height, livres } = gerarQuads(input);
+  const { quads, pisos, px0, py0, px1, front, height, livres, lados } = gerarQuads(input);
 
   // Rotação sobre o eixo vertical, em torno do centro da implantação, e projeção axonométrica.
   const angulo = ((input.angulo ?? 0) % 360 + 360) % 360;
@@ -410,10 +718,17 @@ export function buildingVolume(input: VolumeInput): Volume {
   // vê-se quando a sua normal aponta para a câmara. É o que torna a rotação correta em todos os ângulos,
   // sem nunca desenhar o que está escondido e sem o volume achatar de perfil.
   const visible: { face: Face; depth: number }[] = [];
+  // O que assenta num lado da planta (vãos, varandas, grades, palas, o muro, os beirais) não se vê quando esse
+  // lado está de costas: o prédio tapa-o. Sem isto, as varandas da frente pairavam por cima da cobertura num
+  // prédio visto por trás (o pintor desenha o corpo e depois os pormenores, sem saber o que está tapado).
+  const DO_CORPO: FaceKind[] = ['frente', 'lado', 'empena', 'topo', 'vizinho', 'por_entregar'];
+  const nDoLado = new Map(lados.map((l) => [l.id, l.n]));
   for (const q of quads) {
     // A normal roda com o corpo (rotação sobre o eixo vertical, sem translação).
     const ny = q.n[0] * sin + q.n[1] * cos;
     if (ny * COS_E + q.n[2] * SIN_E <= 1e-9) continue;
+    const apoio = q.face && !DO_CORPO.includes(q.kind) ? nDoLado.get(q.face) : undefined;
+    if (apoio && apoio[0] * sin + apoio[1] * cos <= 0.02) continue;
     const pts = q.pts.map(([x, y, z]) => {
       const [rx, ry] = rot(x, y);
       return { rx, ry, z };
@@ -430,7 +745,14 @@ export function buildingVolume(input: VolumeInput): Volume {
       fade = { de: ponto(q.fade.contacto), ate: ponto(q.fade.fim) };
     }
     visible.push({
-      face: { kind: q.kind, points: pts.map(({ rx, ry, z }) => iso(rx, ry, z)), ...(fade ? { fade } : {}) },
+      face: {
+        kind: q.kind,
+        ...(q.face ? { face: q.face } : {}),
+        // Só nas paredes: as horizontais veem-se sempre de cima.
+        ...(q.n[2] === 0 ? { vista: round(Math.max(0, ny)) } : {}),
+        points: pts.map(({ rx, ry, z }) => iso(rx, ry, z)),
+        ...(fade ? { fade } : {}),
+      },
       depth: pts.reduce((n, p) => n + p.ry * COS_E + p.z * SIN_E, 0) / pts.length,
     });
   }
@@ -446,7 +768,7 @@ export function buildingVolume(input: VolumeInput): Volume {
   // ela (a normal é a mesma), por isso desenhá-los todos depois do corpo é correcto. Entre si
   // continuam ordenados por profundidade — é o que põe o muro à frente da porta, e a guarda à
   // frente da laje da varanda.
-  const CORPO: FaceKind[] = ['frente', 'lado', 'empena', 'topo', 'vizinho'];
+  const CORPO = DO_CORPO;
   const camada = (k: FaceKind) => (CORPO.includes(k) ? 0 : 1);
   visible.sort((a2, b2) => camada(a2.face.kind) - camada(b2.face.kind) || a2.depth - b2.depth);
   const faces = visible.map((v) => v.face);
@@ -462,6 +784,40 @@ export function buildingVolume(input: VolumeInput): Volume {
     altura: [proj(px1, front, 0), proj(px1, front, height)] as [[number, number], [number, number]],
   };
 
+  // As cotas da prancheta seguem o ângulo (as arestas que ficam por cima e à esquerda e à direita do prédio
+  // mudam ao rodar): a largura na aresta do telhado mais afastada da câmara (a mais alta no ecrã), o fundo na
+  // aresta do telhado mais à esquerda, a altura na esquina mais à direita. A 25° são as de sempre.
+  const [yFundo, yFrente] = [py0, front];
+  const alta = (y: number) => (proj(px0, y, height)[1] + proj(px1, y, height)[1]) / 2;
+  const yLonge = alta(yFundo) <= alta(yFrente) ? yFundo : yFrente;
+  const esquerda = (x: number) => (proj(x, yFundo, height)[0] + proj(x, yFrente, height)[0]) / 2;
+  const xEsq = esquerda(px0) <= esquerda(px1) ? px0 : px1;
+  const xDir = xEsq === px0 ? px1 : px0;
+  const perto = (x: number): [number, number] => {
+    const a = proj(x, yFrente, height);
+    const b = proj(x, yFundo, height);
+    return a[1] >= b[1] ? [yFrente, yFundo] : [yFundo, yFrente];
+  };
+  const [yPerto, yAlem] = perto(xEsq);
+  const esq = proj(xEsq, yPerto, height);
+  const dir = proj(xDir, yPerto, height);
+  const sentido: [number, number] = [esq[0] - dir[0], esq[1] - dir[1]];
+  const norma = Math.hypot(sentido[0], sentido[1]) || 1;
+  const cantos: [number, number][] = [[px0, yFundo], [px1, yFundo], [px0, yFrente], [px1, yFrente]];
+  const direito = cantos.reduce((m, c) => (proj(c[0], c[1], 0)[0] > proj(m[0], m[1], 0)[0] ? c : m), cantos[0]!);
+  const cotasDaPrancheta = {
+    largura: [proj(px0, yLonge, height), proj(px1, yLonge, height)] as [[number, number], [number, number]],
+    fundo: [proj(xEsq, yPerto, height), proj(xEsq, yAlem, height)] as [[number, number], [number, number]],
+    altura: [proj(direito[0], direito[1], 0), proj(direito[0], direito[1], height)] as [[number, number], [number, number]],
+    foraDoFundo: [sentido[0] / norma, sentido[1] / norma] as [number, number],
+  };
+
+  const pecas: Volume['pecas'] = [];
+  for (const q of quads) {
+    if (q.fade) continue;
+    if (!pecas.some((x) => x.kind === q.kind && x.face === q.face)) pecas.push({ kind: q.kind, ...(q.face ? { face: q.face } : {}) });
+  }
+
   const xs = faces.flatMap((f) => f.points.map((p) => p[0]));
   const ys = faces.flatMap((f) => f.points.map((p) => p[1]));
   const pad = 1;
@@ -475,5 +831,9 @@ export function buildingVolume(input: VolumeInput): Volume {
     angulo,
     cotas,
     alturaDesenhada: round(height),
+    pecas,
+    lados,
+    laje: !!input.laje,
+    cotasDaPrancheta,
   };
 }

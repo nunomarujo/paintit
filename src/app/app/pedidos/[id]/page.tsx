@@ -246,6 +246,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     origemDaQuantidade: paraZona(s).origemDaQuantidade,
     confirmacao: paraZona(s).confirmacao,
     margemBps: paraZona(s).margemBps,
+    face: s.face_do_predio ?? null,
     trabalhos: s.trabalhos,
   }));
   const numeracao = numeracaoDoPedido(predioDoDesenho, zonasDoQuadro);
@@ -404,6 +405,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
           zonas={zonasDoQuadro}
           modo={req.trabalhos_modo as WorksMode}
           podeEditar={!!manager && draft}
+          // A planta grava-se no cadastro do prédio: só quem gere o pedido a escolhe (a política do prédio decide).
+          podeEscolherPlanta={!!manager && draft}
           doCliente={tecnicoDoCliente}
           recolhido={!tecnicoDoCliente}
         />

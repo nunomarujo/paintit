@@ -77,6 +77,8 @@ export interface ZonaNaLista {
   trabalhos: string[] | null;
   /** Margem de erro em pontos-base: só nas zonas medidas pelo cliente na fotografia (06/11/2026). */
   margemBps?: number | null;
+  /** O lado da planta do prédio onde fica o alçado (`request_surfaces.face_do_predio`); nulo: o desenho atribui. */
+  face?: string | null;
 }
 
 /** Como a zona foi medida, deduzido do que lá está. Decide que campos o editor abre. */
@@ -233,6 +235,7 @@ export function CartaoDaZona({
   compacto = false,
   aoAbrir,
   aoApontar,
+  aoVerNoDesenho,
 }: {
   requestId: string;
   zona: ZonaNaLista;
@@ -244,6 +247,11 @@ export function CartaoDaZona({
   compacto?: boolean;
   aoAbrir: () => void;
   aoApontar: (sim: boolean) => void;
+  /**
+   * A zona tem sítio no prédio, mas a face dela fica atrás nesta vista e o desenho não lhe pôs número:
+   * o cartão di-lo e oferece rodar até à vista mais próxima onde se vê.
+   */
+  aoVerNoDesenho?: { aoVer: () => void; semVista: boolean };
 }) {
   const fora = z.participacao === 'excluida';
   const conta = contaNoCartao(z);
@@ -290,6 +298,19 @@ export function CartaoDaZona({
           </p>
           {conta?.expressao && (
             <p className={`text-[15px] leading-snug tabular-nums text-slate-600 ${compacto ? 'truncate' : ''}`}>{conta.expressao}</p>
+          )}
+          {aoVerNoDesenho && (
+            // Por cima do `after` do nome: z-10. Neutro (cinzento): não é um aviso, é só a face que está atrás.
+            <div className="relative z-10 -mb-1 -ml-4 mt-0.5 flex flex-wrap items-center">
+              <span className="pl-4 text-[15px] text-slate-600">
+                {aoVerNoDesenho.semVista ? 'Nenhuma vista do desenho a mostra.' : 'Atrás, nesta vista.'}
+              </span>
+              {!aoVerNoDesenho.semVista && (
+                <button type="button" onClick={aoVerNoDesenho.aoVer} className="btn-quiet btn-sm">
+                  Ver no desenho
+                </button>
+              )}
+            </div>
           )}
           {podeEditar && z.participacao !== 'incluida' && (
             // Só a decisão que falta tem botões à vista; mudar a participação de uma zona incluída e
@@ -391,6 +412,8 @@ export function EditorDaZona({
   idDoFormulario,
   aoFechar,
   medir,
+  lados,
+  faceDaZona = null,
 }: {
   requestId: string;
   zona: ZonaNaLista | null;
@@ -398,6 +421,13 @@ export function EditorDaZona({
   modo: WorksMode;
   idDoFormulario: string;
   aoFechar: () => void;
+  /**
+   * Os lados do prédio onde um alçado pode ficar (06/11/2026), cada um com o nome e se já tem outro alçado. Sem
+   * eles (com um só alçado o desenho é uma laje) o campo não aparece: o lado escolhe-se quando há planta.
+   */
+  lados?: { id: string; label: string; ocupado: boolean }[];
+  /** O lado que a zona já guardou; nulo: o desenho escolhe o lado livre. */
+  faceDaZona?: string | null;
   /** Abre a ferramenta de levantamento já com esta zona escolhida (quem pode editar o pedido); numa zona
    * nova, leva o tipo e o nome já escritos aqui. */
   medir?: (doEditor: { tipo?: SurfaceKind; nome?: string }) => void;
@@ -419,6 +449,7 @@ export function EditorDaZona({
   const [pedir, confirmacao] = useConfirmacao();
   const [aRemover, setARemover] = useState(false);
   const [participacao, setParticipacao] = useState<Participacao>(zona?.participacao ?? 'incluida');
+  const [tipoEscolhido, setTipoEscolhido] = useState<SurfaceKind>(zona?.kind ?? tipo ?? 'fachada');
   const [como, setComo] = useState<ComoMedir>(zona ? comoFoiMedida(zona) : 'area');
   const [area, setArea] = useState(emMetros(zona?.areaDiretaCm2));
   const [largura, setLargura] = useState(emMetros(zona?.larguraCm));
@@ -457,7 +488,8 @@ export function EditorDaZona({
                 id={`${idDoFormulario}-kind`}
                 name="kind"
                 required
-                defaultValue={zona?.kind ?? tipo ?? 'fachada'}
+                value={tipoEscolhido}
+                onChange={(ev) => setTipoEscolhido(ev.target.value as SurfaceKind)}
                 className="campo bg-white"
               >
                 {SURFACE_KINDS.map((k) => (
@@ -483,6 +515,29 @@ export function EditorDaZona({
               />
             </Campo>
           </div>
+
+          {lados && (tipoEscolhido === 'fachada' || tipoEscolhido === 'empena' || tipoEscolhido === 'varandas') && (
+            <Campo
+              id={`${idDoFormulario}-face`}
+              rotulo="Lado do prédio"
+              ajuda={tipoEscolhido === 'varandas' ? 'Onde assentam as varandas no desenho.' : 'Onde fica este alçado no desenho.'}
+            >
+              <select
+                id={`${idDoFormulario}-face`}
+                name="face"
+                defaultValue={faceDaZona && lados.some((l) => l.id === faceDaZona) ? faceDaZona : ''}
+                className="campo bg-white"
+              >
+                <option value="">O desenho escolhe o lado livre</option>
+                {lados.map((l) => (
+                  <option key={l.id} value={l.id} disabled={l.ocupado && tipoEscolhido !== 'varandas'}>
+                    {l.label}
+                    {l.ocupado && tipoEscolhido !== 'varandas' ? ' — já tem alçado' : ''}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
 
           {/* A pergunta que decide o resto do editor. */}
           <fieldset>
