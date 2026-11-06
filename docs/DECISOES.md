@@ -6444,7 +6444,7 @@ embutidas em `src/lib/pdfFonts.ts` (subconjuntos Latin, ~150 KB). **O texto da m
 **Versionamento (a regra que importa):** o PDF assinado confere-se regenerando-o, por isso a disposição não pode
 mudar para contratações já criadas. A disposição antiga (`v1`) fica intacta, fixada por um teste com o SHA-256 dos
 bytes (`contractPdf.layout.test.ts`); a nova (`v2`) só vale para `minuta_versao >= '2026-11-07'`
-(`minutaComLayoutNovo`). A migração `20261107000000_minuta_com_layout_novo` muda o valor por omissão — **aplicar
+(`minutaComLayoutNovo`). A migração `20261106200620_minuta_com_layout_novo` muda o valor por omissão — **aplicar
 depois de o código estar publicado**.
 
 **Limites conhecidos:** se as assinaturas não couberem na última página, passam sozinhas para uma página nova (sem
