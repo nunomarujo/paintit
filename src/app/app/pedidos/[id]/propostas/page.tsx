@@ -39,6 +39,7 @@ import { getUser } from '@/lib/supabase/server';
 import { contarVotos, resumoDaContagem } from '@/domain/votacao';
 import { ChooseButton } from './ChooseButton';
 import { Voltar } from '@/components/Voltar';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { ComparacaoEmBlocos, type PropostaEmBloco } from '@/components/ComparacaoEmBlocos';
 import { Reconciliacao } from '@/components/Reconciliacao';
 import type { LadoDaReconciliacao } from '@/domain/reconciliacao';
@@ -261,6 +262,8 @@ export default async function ProposalsPage({
   const { data: engagement } = chosen
     ? await supabase.from('engagements').select('id').eq('proposal_id', chosen.id).maybeSingle()
     : { data: null };
+  // O passo do cliente nesta contratação, quando é dele (rasto de avisos do contrato, 05/11/2026).
+  const passoDoContrato = engagement ? (await aMinhaEspera(user!.id)).find((c) => c.id === engagement.id)?.passo : undefined;
 
   return (
     <div className="space-y-8">
@@ -275,10 +278,10 @@ export default async function ProposalsPage({
 
       {engagement && (
         <Link
-          href={`/app/contratacoes/${engagement.id}`}
+          href={`/app/contratacoes/${engagement.id}${passoDoContrato?.passo === 'assinar' ? '#assinar' : ''}`}
           className={`${card} block border-tinta-100 bg-tinta-50 font-semibold text-tinta-900 hover:bg-tinta-100`}
         >
-          Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura)
+          {passoDoContrato ? `Proposta escolhida. Próximo passo: ${passoDoContrato.titulo.toLowerCase()} →` : 'Proposta escolhida. Continuar para a contratação (depósito, minuta e assinatura)'}
         </Link>
       )}
 

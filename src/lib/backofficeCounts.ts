@@ -10,7 +10,7 @@ type Client = SupabaseClient<Database>;
 /** O que espera por uma pessoa da equipa, por fila. Só contagens baratas (servem a barra lateral em cada página). */
 export async function queueCounts(supabase: Client) {
   const head = { count: 'exact' as const, head: true };
-  const [docs, photos, reports, appeals, redemptions, regimes, bank, unverified] = await Promise.all([
+  const [docs, photos, reports, appeals, redemptions, regimes, bank, unverified, certidoes] = await Promise.all([
     supabase.from('org_documents').select('id', head).in('status', ['submetido', 'em_validacao']),
     supabase.from('request_photos').select('id', head).eq('revisao', 'pendente'),
     supabase.from('listing_reports').select('id', head).eq('status', 'pendente'),
@@ -19,6 +19,9 @@ export async function queueCounts(supabase: Client) {
     supabase.from('supplier_payout_details').select('org_id', head).eq('regime_validado', false),
     supabase.from('bank_lines').select('id', head).eq('classificacao', 'por_classificar'),
     supabase.from('engagement_events').select('id', head).eq('payload->>metodo', 'cmd_pdf').eq('payload->>cadeiaConfiavel', 'false'),
+    // Códigos de acesso da certidão entregues e ainda por ler (05/11/2026). Sem a migração aplicada, a
+    // contagem falha sozinha e dá zero.
+    supabase.from('poderes_de_representacao').select('org_id', head).is('lida_em', null).not('codigo_entregue_em', 'is', null),
   ]);
   const n = (r: { count: number | null }) => r.count ?? 0;
   return {
@@ -30,6 +33,7 @@ export async function queueCounts(supabase: Client) {
     regimes: n(regimes),
     banco: n(bank),
     assinaturas: n(unverified),
+    certidoes: n(certidoes),
   };
 }
 export type QueueCounts = Awaited<ReturnType<typeof queueCounts>>;

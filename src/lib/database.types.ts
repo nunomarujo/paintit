@@ -12,7 +12,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 type Participacao = 'incluida' | 'por_decidir' | 'excluida';
-type OrigemDaQuantidade = 'medicao' | 'estimativa' | 'documento';
+type OrigemDaQuantidade = 'medicao' | 'estimativa' | 'documento' | 'medida_pelo_cliente';
 type Confirmacao = 'por_confirmar' | 'confirmada';
 type BuildingKind = 'edificio_habitacao' | 'edificio_misto' | 'moradia' | 'apartamento' | 'comercial';
 type DocKind =
@@ -2025,6 +2025,8 @@ export type Database = {
           // do topo manda: a regeneração completa traz 87 erros de tipos e é dívida à parte.
           participacao: Participacao;
           origem_quantidade: OrigemDaQuantidade | null;
+          // Migração 20261106010000 (por aplicar): margem da medição do cliente pela fotografia.
+          margem_bps: number | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
           registado_em: string | null;
@@ -2045,6 +2047,7 @@ export type Database = {
           trabalhos?: string[] | null;
           participacao?: Participacao;
           origem_quantidade?: OrigemDaQuantidade | null;
+          margem_bps?: number | null;
           confirmacao?: Confirmacao;
           registado_por?: string | null;
           registado_em?: string | null;
@@ -2172,6 +2175,43 @@ export type Database = {
         Update: never;
         Relationships: [
           { foreignKeyName: 'relatorios_de_propostas_fichas_relatorio_id_fkey'; columns: ['relatorio_id']; isOneToOne: false; referencedRelation: 'relatorios_de_propostas'; referencedColumns: ['id'] },
+        ];
+      };
+      // Migração `20261105230000_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
+      // aplicar à base real. Só se escrevem pelas funções `definir_codigo_certidao` e
+      // `registar_leitura_poderes` (abaixo), por isso Insert e Update são `never`.
+      poderes_de_representacao: {
+        Row: {
+          org_id: string;
+          fonte: 'certidao' | 'ata';
+          codigo_entregue_em: string | null;
+          forma_de_obrigar: string | null;
+          assinaturas_exigidas: number | null;
+          valida_ate: string | null;
+          lida_em: string | null;
+          lida_por: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'poderes_de_representacao_org_id_fkey'; columns: ['org_id']; isOneToOne: true; referencedRelation: 'organizations'; referencedColumns: ['id'] },
+        ];
+      };
+      poderes_membros: {
+        Row: { id: string; org_id: string; ordem: number; nome: string; cargo: string; nif: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'poderes_membros_org_id_fkey'; columns: ['org_id']; isOneToOne: false; referencedRelation: 'poderes_de_representacao'; referencedColumns: ['org_id'] },
+        ];
+      };
+      // O código de acesso da certidão: só a equipa da plataforma o lê (RLS).
+      certidao_codigos: {
+        Row: { org_id: string; codigo: string; definido_por: string | null; definido_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          { foreignKeyName: 'certidao_codigos_org_id_fkey'; columns: ['org_id']; isOneToOne: true; referencedRelation: 'organizations'; referencedColumns: ['id'] },
         ];
       };
     };
@@ -2325,6 +2365,19 @@ export type Database = {
           adiado_para: string | null;
           por_responder: boolean;
         }[];
+      };
+      // Poderes de representação (migração 20261105230000), escritas à mão até ser aplicada.
+      definir_codigo_certidao: { Args: { p_org: string; p_codigo: string }; Returns: undefined };
+      registar_leitura_poderes: {
+        Args: { p_org: string; p_fonte: string; p_forma_de_obrigar: string; p_assinaturas: number | null; p_valida_ate: string; p_membros: Json };
+        Returns: undefined;
+      };
+      // A assinatura só entra pelo servidor (migração 20261105233000), escrita à mão até ser aplicada. Só a
+      // chave de serviço a executa; a tabela `assinaturas_verificadas` não tem entrada aqui porque ninguém
+      // com sessão a lê nem a escreve.
+      registar_assinatura_verificada: {
+        Args: { p_engagement: string; p_kind: EngagementEventKind; p_actor: string; p_payload: Json };
+        Returns: undefined;
       };
       survey_client_contact: {
         Args: { p_attempt: string };

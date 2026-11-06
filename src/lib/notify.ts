@@ -13,6 +13,9 @@ import { formatEuros } from '@/domain/money';
 import { WORK_TYPE_LABELS, type WorkType } from '@/domain/request';
 import type { EngagementStatus } from '@/domain/engagement';
 import { adminClient } from '@/lib/supabase/admin';
+import { proximoPasso } from '@/domain/proximoPasso';
+import { configuracaoWhatsApp, modeloDoContrato, variaveisDoContrato } from '@/domain/whatsapp';
+import { enviarModelo } from '@/lib/whatsapp';
 
 // Avisos por email (Resend). Só funcionam com RESEND_API_KEY e SUPABASE_SECRET_KEY no ambiente;
 // sem elas não fazem nada. Nunca devem fazer falhar a ação do utilizador: quem chama ignora erros.
@@ -86,14 +89,21 @@ export async function sendEmail(to: string[], subject: string, lines: string[], 
 }
 
 /** Emails dos proprietários e gestores da entidade (e da administradora que a gere). */
-export async function recipients(orgId: string, banned: Set<string> = new Set()): Promise<string[]> {
+/** Quem pode agir pela entidade: proprietários e gestores dela, ou da administradora que a gere. */
+async function gestoresDe(orgId: string): Promise<string[]> {
   const db = adminClient();
   if (!db) return [];
   const { data: org } = await db.from('organizations').select('id, gerida_por').eq('id', orgId).maybeSingle();
   const orgIds = [orgId, ...(org?.gerida_por ? [org.gerida_por] : [])];
   const { data: members } = await db.from('org_members').select('user_id').in('org_id', orgIds).in('role', ['proprietario', 'gestor']);
+  return [...new Set((members ?? []).map((m) => m.user_id))];
+}
+
+export async function recipients(orgId: string, banned: Set<string> = new Set()): Promise<string[]> {
+  const db = adminClient();
+  if (!db) return [];
   const emails = await Promise.all(
-    [...new Set((members ?? []).map((m) => m.user_id).filter((id) => !banned.has(id)))].map(async (id) => (await db.auth.admin.getUserById(id)).data.user?.email ?? null),
+    (await gestoresDe(orgId)).filter((id) => !banned.has(id)).map(async (id) => (await db.auth.admin.getUserById(id)).data.user?.email ?? null),
   );
   return [...new Set(emails.filter((e): e is string => !!e))];
 }
@@ -120,11 +130,47 @@ export async function notifyEngagementChange(engagementId: string, before: Engag
   if (notices.length === 0) return;
   const db = adminClient();
   if (!db) return;
-  const { data: e } = await db.from('engagements').select('client_org_id, painter_org_id').eq('id', engagementId).maybeSingle();
+  const { data: e } = await db.from('engagements').select('client_org_id, painter_org_id, request_id').eq('id', engagementId).maybeSingle();
   if (!e) return;
+  // A vez de assinar de uma das partes: o email leva-a direta à secção da assinatura, e sai também por
+  // WhatsApp a quem o ligou (05/11/2026). Um canal nunca trava o outro.
+  const vezDeAssinar = (['cliente', 'pintor'] as const).find((lado) => proximoPasso({ status: after }, lado)?.passo === 'assinar');
   // Um de cada vez: evita o limite de pedidos por segundo do Resend.
   for (const n of notices) {
-    await sendEmail(await recipients(n.to === 'cliente' ? e.client_org_id : e.painter_org_id), n.subject, n.lines, `/app/contratacoes/${engagementId}`);
+    const link = `/app/contratacoes/${engagementId}${n.to === vezDeAssinar ? '#assinar' : ''}`;
+    await sendEmail(await recipients(n.to === 'cliente' ? e.client_org_id : e.painter_org_id), n.subject, n.lines, link, n.to === vezDeAssinar ? { cta: 'Abrir o contrato' } : undefined);
+  }
+  if (vezDeAssinar) {
+    await contratoParaAssinarPorWhatsApp(engagementId, e.request_id, vezDeAssinar === 'cliente' ? e.client_org_id : e.painter_org_id).catch(() => undefined);
+  }
+}
+
+/**
+ * O contrato pronto para assinar, por WhatsApp (modelo `contrato_para_assinar`, 05/11/2026). Vai a quem pode
+ * assinar pela entidade — proprietários e gestores, como o email — e só a quem deu o consentimento e o número
+ * (`survey_availability`, a mesma preferência de toda a aplicação). Na mensagem só vai a referência da obra.
+ * Sem o modelo configurado (por aprovar na Meta) ou sem as chaves, não faz nada.
+ */
+async function contratoParaAssinarPorWhatsApp(engagementId: string, requestId: string, orgId: string): Promise<void> {
+  const modelo = modeloDoContrato(process.env);
+  const cfg = modelo ? configuracaoWhatsApp(process.env) : null;
+  const db = adminClient();
+  if (!modelo || !cfg || !db) return;
+  const pessoas = await gestoresDe(orgId);
+  if (pessoas.length === 0) return;
+  const [{ data: prefs }, { data: anuncio }] = await Promise.all([
+    db.from('survey_availability').select('user_id, alerta_whatsapp, telemovel_whatsapp').in('user_id', pessoas),
+    db.from('request_listings').select('ref').eq('request_id', requestId).maybeSingle(),
+  ]);
+  const referencia = anuncio?.ref ?? engagementId.slice(0, 8).toUpperCase();
+  for (const p of prefs ?? []) {
+    if (!p.alerta_whatsapp || !p.telemovel_whatsapp) continue;
+    try {
+      await enviarModelo(cfg, p.telemovel_whatsapp, modelo, variaveisDoContrato(referencia), { sufixoUrl: engagementId });
+    } catch (err) {
+      // Sem o número no registo: só a contratação e a razão da Meta.
+      console.error(`WhatsApp do contrato ${engagementId} não saiu: ${err instanceof Error ? err.message : 'falha desconhecida'}`);
+    }
   }
 }
 

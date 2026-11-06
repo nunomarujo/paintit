@@ -39,6 +39,7 @@ import { SurveyAddenda } from '@/components/SurveyAddenda';
 import { RequestSurveyCard, type SurveyInfo } from './RequestSurveyCard';
 import { ZonasComVolume } from './ZonasComVolume';
 import { Voltar } from '@/components/Voltar';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { Dica } from '@/components/Dica';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
 
@@ -404,6 +405,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
     const encerrar = changeRequestStatus.bind(null, req.id, 'encerrado');
     const dataLonga = (iso: string | null) =>
       iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }) : '—';
+    // Rasto de avisos do contrato (05/11/2026): escolhida a proposta, o passo seguinte (pagar a caução,
+    // assinar) vive na contratação — e é daqui, da obra, que o cliente costuma vir.
+    const contratoAEspera = (await aMinhaEspera(user!.id)).find((c) => c.requestId === req.id && c.lado === 'cliente');
     return (
       <div className="space-y-6">
         <Voltar href="/app/pedidos">As minhas obras</Voltar>
@@ -471,6 +475,23 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
             </div>
           )}
         </div>
+
+        {contratoAEspera && (
+          <section className="rounded-2xl bg-tinta-900 p-5 text-white sm:p-6">
+            <p className="text-[13px] font-semibold text-lima">Precisa de si</p>
+            <h2 className="mt-1 text-[20px] font-semibold leading-snug">{contratoAEspera.passo.titulo}</h2>
+            <p className="mt-1 max-w-[54ch] text-[15px] text-tinta-200">
+              {contratoAEspera.passo.texto}
+              {contratoAEspera.passo.ate ? ` Até ${contratoAEspera.passo.ate.split('-').reverse().join('/')}, às 23:59.` : ''}
+            </p>
+            <Link
+              href={`/app/contratacoes/${contratoAEspera.id}${contratoAEspera.passo.passo === 'assinar' ? '#assinar' : ''}`}
+              className="btn-primary mt-4 !bg-lima !text-tinta-900 hover:!bg-lima/90"
+            >
+              {contratoAEspera.passo.passo === 'assinar' ? 'Ir para o contrato' : 'Abrir a contratação'}
+            </Link>
+          </section>
+        )}
 
         {/* O aviso obrigatório: enquanto a cliente não responder, o prazo do avaliador continua a correr. */}
         {agendamento?.por_responder && (

@@ -386,6 +386,62 @@ describe('pedidos e anúncios', () => {
   });
 });
 
+describe('zona medida pelo cliente na fotografia (06/11/2026)', () => {
+  // Decisão do promotor de 05/11/2026: a medição do cliente na ferramenta de fotografia entra com origem
+  // própria e margem, e nunca confirmada. As políticas deixam quem gere o pedido escrever qualquer coluna pela
+  // API — por isso as duas regras vivem na base, e não só na ação do servidor.
+  let req: string;
+  const zona = (cols: string, vals: unknown[]) =>
+    as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2, ${cols}) values ($1, 'fachada', 13318, ${vals.map((_, i) => `$${i + 2}`).join(', ')}) returning id`, [req, ...vals]));
+
+  beforeAll(async () => {
+    const predio = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    req = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Medida na fotografia', 'fachadas', 'Pintura da fachada principal do prédio.', current_date + 10) returning id`,
+          [condo, predio],
+        ),
+      )
+    ).id;
+  });
+
+  it('entra com a margem e por confirmar', async () => {
+    const r = await zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 170, 'por_confirmar']);
+    expect(r.rows).toHaveLength(1);
+  });
+
+  it('sem margem, não entra; com margem noutra origem, também não', async () => {
+    await expect(zona('origem_quantidade, confirmacao', ['medida_pelo_cliente', 'por_confirmar'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    await expect(zona('origem_quantidade, margem_bps', ['estimativa', 300])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    await expect(zona('origem_quantidade, margem_bps, confirmacao', ['medicao', 300, 'confirmada'])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+    // Nem numa zona sem origem (por levantar): com «=» em vez de «is not distinct from», passava.
+    await expect(zona('margem_bps', [300])).rejects.toThrow(/margem_so_da_medida_do_cliente/);
+  });
+
+  it('nunca confirmada — nem ao entrar, nem depois, pela API', async () => {
+    await expect(zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 170, 'confirmada'])).rejects.toThrow(/medida_do_cliente_por_confirmar/);
+    const { id } = (await zona('origem_quantidade, margem_bps, confirmacao', ['medida_pelo_cliente', 450, 'por_confirmar'])).rows[0] as { id: string };
+    await expect(as(A, () => db.query(`update public.request_surfaces set confirmacao = 'confirmada' where id = $1`, [id]))).rejects.toThrow(
+      /medida_do_cliente_por_confirmar/,
+    );
+    // Passar a «medição» e confirmar exige deixar a margem: deixa de ser a medição da fotografia.
+    await as(A, () => db.query(`update public.request_surfaces set origem_quantidade = 'medicao', confirmacao = 'confirmada', margem_bps = null where id = $1`, [id]));
+  });
+
+  it('a margem é em pontos-base, entre 1 e 10 000', async () => {
+    for (const m of [0, 10_001, -5]) {
+      await expect(zona('origem_quantidade, margem_bps', ['medida_pelo_cliente', m])).rejects.toThrow(/check constraint/);
+    }
+  });
+
+  it('as origens de antes continuam a valer', async () => {
+    for (const o of ['medicao', 'estimativa', 'documento']) await zona('origem_quantidade', [o]);
+    await expect(zona('origem_quantidade', ['medicao_cliente'])).rejects.toThrow(/origem_quantidade_check/);
+  });
+});
+
 describe('tipos de obra e datas indicativas', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado acima
   let buildingId: string;
@@ -1103,6 +1159,17 @@ describe('contratação', () => {
         [engagementId, kind, extra.amount ?? null, extra.reveal ?? false, extra.at ?? null],
       ),
     );
+  /** Uma assinatura sem registo do servidor: recusada pelo gatilho que gasta o registo, ou pela política. */
+  const ASSINATURA_RECUSADA = /servidor verificar o PDF|row-level security/;
+  /** O que o servidor faz depois de verificar o PDF: regista, com a chave de serviço, o payload exato. */
+  const verificar = async (actor: string, kind: string, payload: object, engagement = engagementId) => {
+    await db.exec('set role service_role');
+    try {
+      await db.query(`select public.registar_assinatura_verificada($1, $2, $3, $4)`, [engagement, kind, actor, JSON.stringify(payload)]);
+    } finally {
+      await db.exec('reset role');
+    }
+  };
 
   beforeAll(async () => {
     // A mais antiga: o teste do código de adesão cumulativo (acima) já selecionou mais propostas depois desta.
@@ -1142,11 +1209,82 @@ describe('contratação', () => {
 
   it('só a plataforma confirma dinheiro; cada parte só regista o que lhe cabe', async () => {
     await expect(event(A, 'deposito_confirmado', { amount: 15000 })).rejects.toThrow(/row-level security/);
-    await expect(event(P, 'cliente_assinou')).rejects.toThrow(/row-level security/);
-    await expect(event(A, 'pintor_assinou')).rejects.toThrow(/row-level security/);
-    await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(/row-level security/);
+    await expect(event(P, 'cliente_assinou')).rejects.toThrow(ASSINATURA_RECUSADA);
+    await expect(event(A, 'pintor_assinou')).rejects.toThrow(ASSINATURA_RECUSADA);
+    await expect(event(A, 'cliente_assinou', { reveal: true })).rejects.toThrow(ASSINATURA_RECUSADA);
     await event(ADMIN, 'deposito_confirmado', { amount: 15000 });
+    // A assinatura só entra com o registo da verificação do servidor (teste seguinte); aqui fica feita.
+    await verificar(A, 'cliente_assinou', {});
     await event(A, 'cliente_assinou');
+  });
+
+  it('a assinatura não entra pela API sem o PDF verificado pelo servidor (05/11/2026)', async () => {
+    // A falha: quem gere a entidade registava «cliente assinou» com a sua sessão, sem PDF, e com o payload
+    // que quisesse. Esta contratação é outra, para não depender da assinatura do teste anterior.
+    const outra = await one<{ id: string }>(
+      `select e.id from public.engagements e where e.id <> $1 and e.client_org_id = (select client_org_id from public.engagements where id = $1) limit 1`,
+      [engagementId],
+    );
+    const assinar = (user: string, payload: object) =>
+      as(user, () =>
+        db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'cliente_assinou', $2)`, [
+          outra.id,
+          JSON.stringify(payload),
+        ]),
+      );
+    const forjado = { metodo: 'cmd_pdf', documentHash: 'f'.repeat(64), signatario: 'Alguém', cadeiaConfiavel: true };
+    // Sem registo do servidor: recusado, mesmo com o papel certo.
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
+    // Com registo, mas outro payload (ex.: a mesma assinatura com a cadeia trocada para «confiável»).
+    await verificar(A, 'cliente_assinou', { ...forjado, cadeiaConfiavel: false }, outra.id);
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
+    // Com o payload certo, mas verificado para outra pessoa — C também gere o condomínio (pela administradora).
+    await verificar(A, 'cliente_assinou', forjado, outra.id);
+    await expect(assinar(C, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
+    // Ninguém com sessão escreve ou lê o registo, nem chama a porta do servidor.
+    await expect(as(A, () => db.query(`select * from public.assinaturas_verificadas`))).rejects.toThrow(/permission denied/);
+    await expect(
+      as(A, () => db.query(`insert into public.assinaturas_verificadas (engagement_id, kind, actor, payload) values ($1, 'cliente_assinou', $2, '{}')`, [outra.id, A])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(A, () => db.query(`select public.registar_assinatura_verificada($1, 'cliente_assinou', $2, '{}')`, [outra.id, A])),
+    ).rejects.toThrow(/permission denied/);
+    // A porta só aceita assinaturas.
+    await expect(verificar(A, 'cliente_desistiu', {}, outra.id)).rejects.toThrow(/Só assinaturas/);
+    // O servidor verificou exatamente isto, para esta pessoa: entra.
+    await assinar(A, forjado);
+    // E gasta-se: o mesmo payload não entra uma segunda vez pela API (cada cópia aparecia nas provas e mandava
+    // outro aviso à outra parte — revisão de 05/11/2026).
+    await expect(assinar(A, forjado)).rejects.toThrow(ASSINATURA_RECUSADA);
+    expect((await one<{ n: number }>(`select count(*)::int n from public.assinaturas_verificadas where engagement_id = $1`, [outra.id])).n).toBe(0);
+    // Uma assinatura nova do mesmo lado continua possível — com outra verificação (depois de um litígio
+    // resolvido com «retomar», o cliente assina de novo).
+    await verificar(A, 'cliente_assinou', { ...forjado, documentHash: 'e'.repeat(64) }, outra.id);
+    await assinar(A, { ...forjado, documentHash: 'e'.repeat(64) });
+    await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id]);
+
+    // Revisão de 06/11/2026. (1) Um registo, várias linhas na mesma instrução: só a primeira o encontrava — e
+    // como a política via todas antes de o gatilho as gastar, entravam todas. Agora gasta-se linha a linha.
+    const duas = { ...forjado, documentHash: 'd'.repeat(64) };
+    await verificar(A, 'cliente_assinou', duas, outra.id);
+    await expect(
+      as(A, () =>
+        db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'cliente_assinou', $2), ($1, 'cliente_assinou', $2)`, [
+          outra.id,
+          JSON.stringify(duas),
+        ]),
+      ),
+    ).rejects.toThrow(ASSINATURA_RECUSADA);
+    expect((await one<{ n: number }>(`select count(*)::int n from public.engagement_events where engagement_id = $1 and kind = 'cliente_assinou'`, [outra.id])).n).toBe(0);
+    // (2) Um registo velho (de uma tentativa que falhou) não se gasta mais tarde.
+    await db.query(`update public.assinaturas_verificadas set verificada_em = now() - interval '20 minutes' where engagement_id = $1`, [outra.id]);
+    await expect(assinar(A, duas)).rejects.toThrow(ASSINATURA_RECUSADA);
+    // (3) Qualquer outro acontecimento da contratação apaga o que ficou pendente: o estado mudou.
+    await verificar(A, 'cliente_assinou', duas, outra.id);
+    await as(A, () => db.query(`insert into public.engagement_events (engagement_id, kind, payload) values ($1, 'litigio_aberto', '{"reason":"teste"}')`, [outra.id]));
+    expect((await one<{ n: number }>(`select count(*)::int n from public.assinaturas_verificadas where engagement_id = $1`, [outra.id])).n).toBe(0);
+    await expect(assinar(A, duas)).rejects.toThrow(ASSINATURA_RECUSADA);
+    await db.query(`delete from public.engagement_events where engagement_id = $1 and kind = 'litigio_aberto'`, [outra.id]);
   });
 
   it('as partes não escolhem a hora; a plataforma pode indicar uma hora passada', async () => {
@@ -1437,7 +1575,9 @@ describe('complementos: versões, convites, avaliações e avisos', () => {
     const review = (user: string) =>
       as(user, () => db.query(`insert into public.reviews (engagement_id, qualidade, prazo, comunicacao, comentario) values ($1, 5, 4, 5, 'Bom trabalho.')`, [e.id]));
     await expect(review(A)).rejects.toThrow(/row-level security/);
-    await db.query(`insert into public.engagement_events (engagement_id, kind, actor) values ($1, 'pintor_assinou', $2)`, [e.id, ADMIN]);
+    // Como a equipa da plataforma, e não como dono da base: aqui a sessão ainda traz o utilizador do teste
+    // anterior, e uma assinatura com sessão exige o registo do servidor (ou ser da equipa).
+    await as(ADMIN, () => db.query(`insert into public.engagement_events (engagement_id, kind, actor) values ($1, 'pintor_assinou', $2)`, [e.id, ADMIN]));
     await expect(review(P2)).rejects.toThrow(/row-level security/);
     await review(A);
     const painter = (await one<{ painter_org_id: string }>('select painter_org_id from public.engagements where id = $1', [e.id])).painter_org_id;
@@ -1581,18 +1721,31 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
 });
 
 describe('contratos assinados', () => {
-  it('cada parte só carrega o seu PDF; o pintor lê o anúncio fechado da sua contratação', async () => {
+  it('só o servidor carrega os PDF assinados; cada parte lê os da sua contratação; o pintor lê o anúncio fechado', async () => {
     const e = await one<{ id: string; painter_org_id: string; request_id: string }>(
       `select e.id, e.painter_org_id, e.request_id from public.engagements e join public.proposals p on p.id = e.proposal_id where p.status = 'selecionada'`,
     );
     const owner = (await one<{ user_id: string }>(`select user_id from public.org_members where org_id = $1 and role = 'proprietario'`, [e.painter_org_id])).user_id;
     const put = (user: string, file: string) => as(user, () => db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${file}`]));
+    // Até 05/11/2026 cada parte carregava o seu pela API — e podia pôr lá um ficheiro qualquer, sem
+    // verificação. Agora ninguém com sessão carrega: nem a parte do próprio lado.
     await expect(put(owner, 'cliente.pdf')).rejects.toThrow(/row-level security/);
     await expect(put(A, 'pintor.pdf')).rejects.toThrow(/row-level security/);
     await expect(put(B, 'cliente.pdf')).rejects.toThrow(/row-level security/);
-    await put(A, 'cliente.pdf');
-    await put(owner, 'pintor.pdf');
-    expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(2);
+    await expect(put(A, 'cliente.pdf')).rejects.toThrow(/row-level security/);
+    await expect(put(owner, 'pintor.pdf')).rejects.toThrow(/row-level security/);
+    // O servidor (chave de serviço), depois de verificar o PDF.
+    await db.exec('set role service_role');
+    try {
+      // O nome antigo, fixo, e o de agora, pelo resumo do conteúdo: os dois leem-se pela mesma regra.
+      for (const f of ['cliente.pdf', 'pintor.pdf', `cliente-${'a'.repeat(64)}.pdf`]) {
+        await db.query(`insert into storage.objects (bucket_id, name) values ('contratos', $1)`, [`${e.id}/${f}`]);
+      }
+    } finally {
+      await db.exec('reset role');
+    }
+    expect(await as(owner, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(3);
+    expect(await as(A, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toHaveLength(3);
     expect(await as(B, async () => (await db.query(`select name from storage.objects where bucket_id = 'contratos'`)).rows)).toEqual([]);
     expect(await as(owner, async () => (await db.query('select ref from public.request_listings where request_id = $1', [e.request_id])).rows)).toHaveLength(1);
   });

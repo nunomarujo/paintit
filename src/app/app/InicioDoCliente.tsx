@@ -3,6 +3,7 @@ import { horaExata } from '@/domain/contagem';
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
 import { ORG_KIND_LABELS, type OrgKind } from '@/domain/organization';
+import type { ProximoPasso } from '@/domain/proximoPasso';
 import { CURRENT_RULES } from '@/domain/rules';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
@@ -32,7 +33,7 @@ export async function InicioDoCliente({
   orgs: { id: string; kind: OrgKind; nome: string; localidade: string | null }[];
   novoPedidoHref: string;
   /** Contratações à espera de uma ação do cliente (as mesmas de antes, `availableActions`). */
-  contratacoes: { id: string; label: string }[];
+  contratacoes: { id: string; titulo: string | null; passo: ProximoPasso }[];
   avisos: { id: string; texto: string; link: string; created_at: string }[];
 }) {
   const orgIds = orgs.map((o) => o.id);
@@ -115,12 +116,17 @@ export async function InicioDoCliente({
         );
       })}
 
+      {/* O passo à espera dito pelo nome — o primeiro elo do rasto até ao contrato (05/11/2026). */}
       {contratacoes.map((t) => (
         <section key={t.id} className="rounded-2xl bg-tinta-900 p-6 text-white">
           <p className="text-[13px] font-semibold text-lima">Precisa de si</p>
-          <h2 className="mt-1 text-[20px] font-bold leading-snug">Contratação {t.id.slice(0, 8).toUpperCase()} · {t.label}</h2>
-          <Link href={`/app/contratacoes/${t.id}`} className="btn-primary mt-4 !bg-lima !text-tinta-900 hover:!bg-lima/90">
-            Abrir
+          <h2 className="mt-1 text-[20px] font-bold leading-snug">{t.passo.titulo}</h2>
+          <p className="mt-1 max-w-[54ch] text-[15px] text-tinta-200">
+            {t.titulo ?? `Contratação ${t.id.slice(0, 8).toUpperCase()}`} · {t.passo.texto}
+            {t.passo.ate ? ` Até ${t.passo.ate.split('-').reverse().join('/')}, às 23:59.` : ''}
+          </p>
+          <Link href={`/app/contratacoes/${t.id}${t.passo.passo === 'assinar' ? '#assinar' : ''}`} className="btn-primary mt-4 !bg-lima !text-tinta-900 hover:!bg-lima/90">
+            {t.passo.passo === 'assinar' ? 'Ir para o contrato' : 'Abrir a contratação'}
           </Link>
         </section>
       ))}

@@ -6,6 +6,8 @@ import { notFound } from 'next/navigation';
 import { EVENT_LABELS, STATUS_LABELS, availableActions, clientDepositDue, isRevealed, reviewCategory } from '@/domain/contracting';
 import { held, settlement } from '@/domain/engagement';
 import { formatEuros } from '@/domain/money';
+import { avisosDasAssinaturas } from '@/domain/poderes';
+import { proximoPasso } from '@/domain/proximoPasso';
 import { alias, proposalTotals } from '@/domain/proposal';
 import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
 import { loadReplay, missingCondoDocs } from '@/lib/engagements';
@@ -19,6 +21,8 @@ import { PdfSign } from './PdfSign';
 import { PayButton } from './PayButton';
 import { stripeConfigured } from '@/lib/stripe';
 import { Voltar } from '@/components/Voltar';
+import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
+import { configuracaoWhatsApp } from '@/domain/whatsapp';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-4 sm:p-5';
 const pt = (d: string | undefined) => (d ? d.split('-').reverse().join('/') : '—');
@@ -89,32 +93,62 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
   const category = reviewCategory(e);
   const { data: review } = category ? await supabase.from('reviews').select('*').eq('engagement_id', id).maybeSingle() : { data: null };
 
+  // Uma só banda no topo para tudo o que há a confirmar nas assinaturas (regra 13): os poderes de quem assinou
+  // (decisão de 05/11/2026 — só o resultado, nunca os dados da certidão) e o certificado por confirmar. Âmbar,
+  // porque se resolve; nada disto impediu a assinatura.
+  const avisosDePoderes = avisosDasAssinaturas(events);
+  const certificadoPorConfirmar = events.some(
+    (v) => (v.payload as { metodo?: string } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel,
+  );
+  const minhaEntidade = side === 'cliente' ? row.client_org_id : side === 'pintor' ? row.painter_org_id : null;
+  // O passo desta parte (rasto de avisos, 05/11/2026). A assinatura tem secção própria, logo a seguir ao
+  // título e com âncora `#assinar`, para onde apontam o menu, o Início e a lista.
+  const passo = side === 'cliente' || side === 'pintor' ? proximoPasso(e, side) : null;
+  const vezDeAssinar = passo?.passo === 'assinar' && (side === 'cliente' || side === 'pintor');
+  const assinadoPeloCliente = events.some((v) => v.kind === 'cliente_assinou' && (v.payload as { metodo?: string }).metodo === 'cmd_pdf');
+  const assinadoPelasDuas = events.some((v) => v.kind === 'pintor_assinou' && (v.payload as { metodo?: string }).metodo === 'cmd_pdf');
+  const outrasAcoes = partyActions.filter((k) => k !== 'transitar' && (aceitacaoSimples(process.env) || (k !== 'cliente_assinou' && k !== 'pintor_assinou')));
+  // Enquanto o contrato está em curso, quem ainda não ligou o WhatsApp pode ligá-lo aqui: é o aviso de que é
+  // a sua vez de assinar que mais se perde num email (05/11/2026). Ligado, não se mostra nada.
+  const emCurso = e.status.startsWith('aguarda_') && (side === 'cliente' || side === 'pintor') && manager;
+  const { data: preferencia } = emCurso
+    ? await supabase.from('survey_availability').select('alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle()
+    : { data: null };
+  const oferecerWhatsApp = emCurso && !(preferencia?.alerta_whatsapp && preferencia.telemovel_whatsapp);
+
   return (
     <div className="space-y-8">
-      {addenda.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-[17px] font-semibold">Trabalhos a mais</h2>
-          <p className="mt-1 max-w-[54ch] text-[17px] text-slate-600">
-            {side === 'cliente'
-              ? 'Trabalho que não estava no orçamento e que a empresa propõe fazer. Só é cobrado depois de o aceitar aqui.'
-              : 'O que propôs ao cliente além do orçamento. Só conta para o valor da obra depois de ele aceitar.'}
-          </p>
-          <div className="mt-4">
-            <AddendaList
-              addenda={addenda}
-              hoje={new Date().toISOString().slice(0, 10)}
-              vazio="Sem trabalhos a mais."
-              lado={side === 'cliente' ? 'cliente' : 'pintor'}
-              acoes={(a) =>
-                a.estado === 'proposta' && side === 'cliente' && manager ? (
-                  <AddendaDecision engagementId={id} addendaId={a.id} />
-                ) : null
-              }
-            />
-          </div>
+      {(avisosDePoderes.length > 0 || certificadoPorConfirmar) && (
+        <section role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5">
+          <h2 className="text-[17px] font-semibold text-amber-900">Assinaturas a confirmar</h2>
+          <ul className="mt-2 max-w-[54ch] space-y-2 text-[17px] text-amber-900">
+            {avisosDePoderes.map((a, i) => (
+              <li key={i}>
+                <span className="font-semibold">Assinatura {a.lado === 'cliente' ? 'do cliente' : 'do pintor'}:</span> {a.texto}
+              </li>
+            ))}
+            {certificadoPorConfirmar && (
+              <li>
+                Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A
+                plataforma não o confirma; se continuarem, as partes assumem a responsabilidade.
+              </li>
+            )}
+          </ul>
+          {avisosDePoderes.length > 0 && (
+            <p className="mt-3 max-w-[54ch] text-[15px] text-amber-900">
+              A plataforma avisa e não impede. O resultado é o do momento em que cada parte assinou.
+            </p>
+          )}
+          {minhaEntidade && avisosDePoderes.some((a) => a.lado === side) && (
+            <Link
+              href={side === 'pintor' ? `/app/organizacoes/${minhaEntidade}?ver=documentos` : `/app/organizacoes/${minhaEntidade}#documentos`}
+              className="btn-secondary btn-sm mt-3"
+            >
+              Rever os documentos da entidade
+            </Link>
+          )}
         </section>
       )}
-
       <div>
         <Voltar href={side === 'cliente' ? `/app/pedidos/${row.request_id}/propostas` : '/app/contratacoes'}>{side === 'cliente' ? 'Propostas do pedido' : 'Contratações'}</Voltar>
         <h1 className="mt-3 text-[26px] leading-tight font-semibold">Contratação {reference}</h1>
@@ -145,10 +179,17 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           <Link href={`/app/contratacoes/${id}/minuta`} className="text-tinta-700 hover:underline">
             Ver {e.status === 'assinado' ? 'contrato' : 'minuta'}
           </Link>
-          {events.some((v) => v.kind === 'pintor_assinou' && (v.payload as { metodo?: string }).metodo === 'cmd_pdf') && (
-            <a href={`/app/contratacoes/${id}/pdf?v=pintor`} className="text-tinta-700 hover:underline">
-              Descarregar contrato assinado (PDF)
+          {assinadoPelasDuas ? (
+            <a href={`/app/contratacoes/${id}/pdf?v=pintor`} className="font-semibold text-tinta-700 hover:underline">
+              Descarregar o contrato assinado pelas duas partes (PDF)
             </a>
+          ) : (
+            assinadoPeloCliente &&
+            !vezDeAssinar && (
+              <a href={`/app/contratacoes/${id}/pdf?v=cliente`} className="text-tinta-700 hover:underline">
+                Descarregar o contrato assinado pelo cliente (PDF)
+              </a>
+            )
           )}
           {side === 'pintor' && e.status === 'assinado' && (
             <Link href={`/app/obras/${obra?.id ?? ''}`} className="text-slate-600 hover:underline">
@@ -157,6 +198,59 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           )}
         </div>
       </div>
+
+      {vezDeAssinar && (
+        <section id="assinar" className="scroll-mt-24 rounded-2xl border-2 border-tinta-900 bg-white p-5 sm:p-6">
+          <p className="text-[13px] font-semibold text-slate-500">{manager ? 'O próximo passo é seu' : 'A seguir, deste lado'}</p>
+          <h2 className="mt-1 text-[20px] font-semibold leading-tight">Assinar o contrato</h2>
+          {passo?.ate && (
+            <p className="mt-1 text-[17px] text-slate-700">
+              Até <strong>{pt(passo.ate)}</strong>, às 23:59 (Lisboa).
+            </p>
+          )}
+          <div className="mt-5">
+            {!manager ? (
+              <p className="max-w-[54ch] text-[17px] text-slate-700">
+                Quem assina em nome da entidade é um proprietário ou gestor dela. Esta conta pode acompanhar, mas não assinar.
+              </p>
+            ) : condoMissing.length > 0 ? (
+              // Âmbar e em texto: resolve-se, e a banda do ecrã é a do topo (regra 13).
+              <div className="max-w-[54ch] text-[17px]">
+                <p className="font-semibold text-amber-800">Antes de assinar em nome do condomínio, falta: {condoMissing.join('; ')}.</p>
+                <p className="mt-1 text-slate-700">
+                  Enviar na página do condomínio e aguardar a validação. Quem assina tem de ter poderes para obrigar o condomínio.
+                </p>
+                <Link href={`/app/organizacoes/${row.client_org_id}`} className="btn-secondary btn-sm mt-3">
+                  Ir para os documentos do condomínio
+                </Link>
+              </div>
+            ) : (
+              <PdfSign engagementId={id} side={side} />
+            )}
+          </div>
+        </section>
+      )}
+
+      {emCurso && !oferecerWhatsApp && preferencia?.telemovel_whatsapp && (
+        // O consentimento retira-se com a mesma facilidade com que se dá (RGPD): o caminho fica à vista.
+        <p className="text-[15px] text-slate-600">
+          Avisos por WhatsApp ligados para {preferencia.telemovel_whatsapp}.{' '}
+          <Link href="/app/perfil" className="font-semibold text-tinta-700 underline">
+            Mudar ou desligar
+          </Link>
+        </p>
+      )}
+
+      {oferecerWhatsApp && (
+        <section className={card}>
+          <h2 className="font-semibold">Ser avisado também por WhatsApp</h2>
+          <p className="mt-1 mb-4 max-w-[54ch] text-[17px] text-slate-600">
+            Quando for a sua vez de assinar, o aviso segue por email e fica aqui. Com o WhatsApp ligado, chega também ao telemóvel, com a
+            ligação direta para este contrato.
+          </p>
+          <AvisosPorWhatsApp alertaWhatsApp={false} telemovel={preferencia?.telemovel_whatsapp ?? null} whatsappDisponivel={configuracaoWhatsApp(process.env) !== null} />
+        </section>
+      )}
 
       {addenda.length > 0 && (
         <section className={card}>
@@ -279,7 +373,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
         </section>
       )}
 
-      {(partyActions.length > 0 || platformActions.length > 0) && (
+      {(outrasAcoes.length > 0 || platformActions.length > 0 || canCarry) && (
         <section className={card}>
           <h2 className="font-semibold">O que pode fazer agora</h2>
           <div className="mt-4 space-y-4">
@@ -291,30 +385,13 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
                 expected={k === 'deposito_confirmado' ? euros(due) : k === 'fee_recebido' ? euros(e.fee.gross) : undefined}
               />
             ))}
-            {condoMissing.length > 0 && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[17px]">
-                <p className="font-semibold">Antes de assinar em nome do condomínio</p>
-                <p className="mt-1">
-                  Envie na página do condomínio, e aguarde a validação: {condoMissing.join('; ')}. Quem assina tem de ter poderes
-                  para obrigar o condomínio.
-                </p>
-                <Link href={`/app/organizacoes/${row.client_org_id}`} className="mt-2 inline-block font-semibold text-tinta-700 hover:underline">
-                  Ir para os documentos do condomínio
-                </Link>
-              </div>
-            )}
-            {partyActions.includes('cliente_assinou') && condoMissing.length === 0 && <PdfSign engagementId={id} side="cliente" />}
-            {partyActions.includes('pintor_assinou') && <PdfSign engagementId={id} side="pintor" />}
-            {partyActions
-              .filter((k) => k !== 'transitar')
-              .filter((k) => aceitacaoSimples(process.env) || (k !== 'cliente_assinou' && k !== 'pintor_assinou'))
-              .map((k) => (
-                <PartyAction
-                  key={k}
-                  engagementId={id}
-                  kind={k as 'cliente_assinou' | 'cliente_desistiu' | 'pintor_assinou' | 'litigio_aberto' | 'encerrar_sem_contrato'}
-                />
-              ))}
+            {outrasAcoes.map((k) => (
+              <PartyAction
+                key={k}
+                engagementId={id}
+                kind={k as 'cliente_assinou' | 'cliente_desistiu' | 'pintor_assinou' | 'litigio_aberto' | 'encerrar_sem_contrato'}
+              />
+            ))}
             {canCarry && (
               <div className="space-y-3 rounded-xl border border-slate-200 p-4 text-[17px]">
                 <p>
@@ -420,12 +497,8 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             </li>
           ))}
         </ol>
-        {events.some((v) => (v.payload as { metodo?: string; cadeiaConfiavel?: boolean } | null)?.metodo === 'cmd_pdf' && !(v.payload as { cadeiaConfiavel?: boolean }).cadeiaConfiavel) && (
-          <p className="mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-[17px] text-red-800">
-            Há uma assinatura cujo certificado não foi possível ligar ao Cartão de Cidadão ou à Chave Móvel Digital. A plataforma
-            não o confirma; se continuarem, as partes assumem a responsabilidade.
-          </p>
-        )}
+        {/* O aviso do certificado por confirmar subiu para a banda do topo (05/11/2026): era uma segunda caixa
+            de fundo vermelho no mesmo ecrã, e o que se pode resolver é âmbar (regra 13). */}
         {events.some((v) => (v.payload as { documentHash?: string } | null)?.documentHash) && (
           <div className="mt-4 border-t border-slate-100 pt-3 text-[15px] text-slate-500">
             {events
@@ -446,7 +519,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
           </div>
         )}
         {replay.rejected.length > 0 && (
-          <div className="mt-4 rounded-xl bg-red-50 p-3 text-[17px] text-red-800">
+          <div className="mt-4 border-t border-slate-100 pt-3 text-[17px] text-red-800">
             <p className="font-medium">Registos sem efeito</p>
             <ul className="mt-1 list-disc pl-5">
               {replay.rejected.map((r) => (

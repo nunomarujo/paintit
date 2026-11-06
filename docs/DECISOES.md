@@ -5792,3 +5792,249 @@ janela abre) e um quadro «Do prédio, para conferir» (frente, fundo, altura). 
 para o pedido: o botão só aparece a quem está em `platform_admins` (`isPlatformAdmin`), e a janela di-lo
 numa linha — quando voltar, a zona fica «medida pelo cliente», com a margem. O «Usar esta medição» está
 desativado, com a razão ao lado.
+
+## 05/11/2026 — Poderes de quem assina: a certidão permanente lida à mão, e um aviso bem à vista
+
+**Decisão do promotor.** Verificar se quem assina um contrato tem poderes para obrigar a entidade; mesmo que
+não impeça, avisar bem à vista. Regras em `src/domain/poderes.ts` (58 testes), base em
+`supabase/migrations/20261105230000_poderes_de_representacao.sql` (19 testes de acesso, utilizador a utilizador).
+
+**Porque é manual.** Ler a certidão permanente de forma automática (ir ao portal com o código e ler a página) é
+proibido sem autorização do IRN: Termos de utilização do portal registo.justica.gov.pt, §4. O pedido de
+autorização segue por email (`docs/EM_ABERTO.md`). Até haver resposta:
+1. a empresa entrega o **código de acesso** da certidão (12 algarismos, NNNN-NNNN-NNNN). Pela Portaria
+   285/2012, art. 6.º, n.º 2, entregar o código equivale a entregar a certidão — por isso o código satisfaz o
+   documento «Certidão permanente» na lista do que falta, tal como o ficheiro;
+2. a equipa da plataforma abre a certidão no portal e regista (Entidades › Poderes de representação): quem
+   tem poderes (nome, cargo, NIF opcional), a forma de obrigar tal como está escrita, quantas assinaturas
+   obrigam (1, 2, ou «a confirmar» quando o texto é invulgar) e a data «válida até».
+
+**A quem se aplica.**
+- Pintor que seja sociedade (NIF/NIPC a começar por 5): a certidão passa a ser pedida (`expectedDocs`).
+  Administradoras e fornecedores já a tinham em `EXPECTED_DOCS`.
+- Condomínio: a equipa regista o administrador a partir da **ata de nomeação**, na mesma tabela (fonte
+  «ata»), e o «válido até» é o fim do mandato.
+- Particular e empresário em nome individual (NIF 1, 2, 3 ou 45): compara-se com o nome do titular da conta
+  (o proprietário da entidade).
+- Pintor com outro tipo de NIF (6, 7, 8, 9): «não se aplica».
+
+**Na assinatura.** Em `signWithPdf`, depois de todas as verificações que já existiam e **sem nunca recusar por
+isto**, calcula-se o resultado para o lado que assina — confere, provável, não consta, faltam assinaturas, sem
+leitura, caducada, por confirmar; num particular, confere ou não confere — e guarda-se no acontecimento
+(`payload.poderes`: só o resultado e o texto). Quem assina recebe o aviso logo na confirmação. A página da
+contratação mostra às duas partes e à equipa **uma banda âmbar no topo** sempre que uma assinatura registada
+tem um resultado que não seja «confere», «confere com o titular» ou «não se aplica» (o «provável» também
+avisa). O aviso do certificado por confirmar, que era uma segunda caixa, vermelha, no histórico, passou para
+a mesma banda: regra 13, uma banda por ecrã, âmbar porque se resolve. No backoffice, Contratações ›
+Assinaturas mostra o resultado de cada assinatura em PDF.
+
+**A comparação.** Pelo nome normalizado: maiúsculas, sem acentos (a certidão escreve «JOÃO LUIS», o cartão
+«João Luís»), sem DE/DA/DO/DOS/DAS/E/D'. «Confere» quando as palavras são as mesmas, por qualquer ordem;
+«provável» quando o primeiro e o último nome são iguais e um nome está contido no outro. A mesma pessoa a
+assinar duas vezes conta uma vez, e cada pessoa da certidão serve a um só signatário — escolhe-se o
+emparelhamento com mais pares, não o primeiro que aparece. «Faltam assinaturas» quando a forma de obrigar
+exige duas e só uma pessoa da lista assinou.
+
+**O que se guarda e quem o vê (RGPD: minimização).**
+- O código dá acesso a dados pessoais de terceiros (moradas, estado civil dos sócios…): é um segredo. Vive
+  numa tabela só sua (`certidao_codigos`) que **só a equipa lê**; só quem gere a entidade o define, e só pela
+  função; nunca aparece em mensagens, registos ou acontecimentos, e o ecrã não o volta a mostrar — no lugar
+  dele fica «Guardado · por ler pela equipa» ou «Lida pela equipa a … · válida até …». Trocar o código põe a
+  leitura por fazer (o mesmo código outra vez não mexe em nada).
+- Da certidão guarda-se só nome, cargo e NIF (opcional) de quem tem poderes, a forma de obrigar, o número de
+  assinaturas, a validade, e quando e por quem foi lida.
+- **Quem gere a entidade vê os nomes e os cargos registados** — decidido nesta sessão, à pergunta «a entidade
+  precisa de ver os nomes de volta?». São dados do seu próprio registo, que ela própria entregou, e vê-los é
+  a única maneira de dar por um erro de transcrição antes de assinar um contrato, e não depois, num aviso que
+  a outra parte também lê. O NIF fica registado mas não se mostra. Os outros membros (financeiro, avaliador,
+  leitor) veem só o estado — que não tem dados pessoais e lhes diz se a certidão ainda falta.
+- A outra parte de uma contratação vê só o resultado (regra 6). Os textos não levam nomes, datas nem a forma
+  de obrigar; um teste percorre os cenários e falha se aparecer algum.
+
+**Limites, ditos às claras.**
+- **Só pelo nome.** O certificado do Cartão de Cidadão e da Chave Móvel Digital traz o nome completo e o n.º
+  de identificação civil, mas não o NIF, e a certidão não traz o n.º de identificação civil. Um «confere» é
+  um indício, não uma prova, e nenhum texto diz «verificado». Homónimos passam; um apelido que o cartão tem e
+  a certidão não (ou ao contrário) dá «provável»; um nome escrito de outra maneira pode dar «não consta».
+- **A forma de obrigar é texto livre.** O número de assinaturas é a leitura que a equipa faz dela; formas
+  invulgares (gerentes de categorias diferentes, um gerente com um procurador, limites de valor) ficam «a
+  confirmar», e a assinatura fica «por confirmar».
+- **Procuradores** não estão cobertos: quem assina por procuração dá «não consta».
+- **Administrador de condomínio que é uma empresa:** a equipa regista à mão as pessoas que a obrigam.
+- **SCAP** (a assinatura com o atributo profissional «gerente», que provaria a qualidade de quem assina) e
+  **LTV** (carimbo temporal e revogação embebidos no PDF, para a assinatura se validar daqui a anos) ainda não
+  tratados.
+- O resultado é o do **momento** da assinatura: uma leitura registada depois não o muda.
+- O acontecimento de uma assinatura pode ser inserido diretamente pela API por quem gere a entidade — a
+  política de `engagement_events` não exige o PDF, e isto vale igualmente para `cadeiaConfiavel`. Já existia
+  antes desta decisão; ficou registado em `docs/EM_ABERTO.md` (dívida técnica).
+- **Migração por aplicar — tudo ou nada.** Publicar o código antes da migração não liga metade da
+  funcionalidade: enquanto as tabelas novas não existem, nenhuma assinatura grava resultado, em nenhum regime —
+  incluindo particulares e empresários em nome individual, cuja comparação com o titular da conta só lê tabelas
+  que já existiam e, na primeira versão deste commit, gravava (achado de uma revisão cética: um perfil «Rui»
+  contra o certificado «RUI MIGUEL SANTOS MOTA» punha a banda âmbar à outra parte antes de a funcionalidade
+  estar ligada). E a página da entidade fica como estava: sem o bloco do código e sem pedir a certidão ao pintor
+  sociedade, que de outro modo a veria em falta sem a alternativa do código. Porquê tudo ou nada e não ligar já
+  a parte que funciona: um aviso que a outra parte lê não deve aparecer antes de o promotor ligar a
+  funcionalidade de propósito, ao aplicar a migração; e pedir um documento novo sem a forma mais simples de o
+  entregar acrescenta peso sem necessidade. A equipa já vê o menu novo (Entidades › Poderes de
+  representação), cuja fila diz que falta a migração. A única mudança visível para as partes antes da migração
+  é que o aviso do certificado por confirmar, que já existia, passou da caixa vermelha no histórico para a
+  banda âmbar do topo. Regra em `src/lib/poderes.ts` (`poderesDoLado`, `faltasDaEntidade`), testes em
+  `src/lib/poderes.test.ts`.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros, os mesmos 28 avisos), `npm test` (2031
+testes, com as migrações em memória; 99 deles novos — 58 do domínio, 19 de acesso, 22 do «tudo ou nada») e `npm run build`. Os ficheiros novos passam o prettier
+(`--print-width 140 --single-quote`); os que já existiam ficaram no estilo em que estavam. **Não visto num
+navegador**: os ecrãs estão atrás de sessão, e a migração não está na base real.
+
+## 05/11/2026 (noite) — A assinatura só entra pelo servidor; o rasto de avisos até ao contrato; o contrato por WhatsApp
+
+### Falha fechada: registar «assinou» pela API, sem PDF
+
+Encontrada na revisão da verificação de poderes, e anterior a ela. A política `engagement_events_insert` deixava
+quem gere uma das entidades registar `cliente_assinou` ou `pintor_assinou` diretamente pela API, com a sessão do
+próprio, sem PDF nenhum e com o `payload` que quisesse (`metodo: 'cmd_pdf'`, `cadeiaConfiavel: true`, poderes
+«confere»). Todas as verificações do PDF viviam só no servidor. Também o balde `contratos` aceitava da parte um
+ficheiro qualquer, que o pintor depois descarregava como «o contrato assinado pelo cliente». **Sem exposição:** não
+há em produção acontecimentos de assinatura fora do percurso do servidor (consulta de 05/11/2026).
+
+**A correção** (migração `20261105233000_assinatura_so_pelo_servidor`, por aplicar): a base continua a decidir
+**quem** regista (a política de sempre: papel na entidade do lado certo e `actor = auth.uid()`) e passa a exigir a
+prova de **que** o servidor verificou. Depois de verificar o PDF, o servidor regista com a chave de serviço o
+`payload` exato do acontecimento (`registar_assinatura_verificada`, só executável pela chave de serviço; tabela
+`assinaturas_verificadas`, que ninguém com sessão lê nem escreve); o acontecimento só entra com um `payload` igual,
+para a mesma contratação, o mesmo lado e a mesma pessoa. O PDF passa a ser carregado pelo servidor (a política de
+inserção do balde fica fechada, `with check (false)`, para a migração não precisar de `drop`). A equipa da
+plataforma continua a poder registar qualquer acontecimento. Testes em `supabase/tests/rls.test.ts`, que falham sem
+a migração: sem registo, com outro `payload`, com o registo de outra pessoa da mesma entidade, a tabela e a função
+fechadas a quem tem sessão; e o balde, que nenhuma parte escreve.
+
+**Ordem de publicação indiferente.** Enquanto a migração não estiver aplicada, a função não existe (`PGRST202`) e a
+base ainda tem a política antiga: o servidor segue sem o registo, que não abre nada que não esteja aberto. Assim o
+código pode ir para produção antes ou depois da migração sem parar as assinaturas. Um carregamento cujo registo
+falhou já não fica preso: enquanto o passo estiver disponível, um PDF novo substitui o anterior.
+
+**Revisão independente (06/11/2026, madrugada) — dois defeitos que a correção introduziu, e corrigidos.**
+1. *O PDF guardado podia deixar de ser o verificado.* O carregamento pela chave de serviço substituía o
+   ficheiro de nome fixo, e entre a verificação (que vai à rede buscar certificados, e pode demorar) e a escrita
+   outra submissão podia registar a assinatura: o acontecimento dizia «certificado do Estado» e o ficheiro
+   guardado era outro. Agora cada PDF chama-se pelo resumo SHA-256 do próprio conteúdo
+   (`<contratação>/cliente-<sha256>.pdf`), lê-se o do acontecimento aceite pela reconstrução (o mais recente:
+   depois de um litígio resolvido com «retomar», o cliente assina de novo — `resumoDaAssinaturaAceite`, testada) e
+   o resumo é conferido antes de o ficheiro ser entregue a alguém. De caminho, deixa de falhar a segunda
+   assinatura do cliente depois de «retomar», que com o nome fixo dava «já tinha sido carregado».
+2. *Um identificador escrito de outra maneira* (maiúsculas, sem hífens) encontrava a contratação mas punha o PDF
+   num caminho que nenhuma das partes conseguia ler. Depois de carregar a linha, só se usa o identificador da base.
+E dois menores: um registo verificado passou a valer um só acontecimento (um gatilho gasta-o quando o
+acontecimento entra — antes, o mesmo payload entrava pela API quantas vezes se quisesse, cada cópia nas provas e
+num aviso à outra parte); e a aceitação simples (só fora de produção) também confirma o lado antes de registar.
+**Não se proíbe** uma segunda assinatura do mesmo lado, pela razão do «retomar».
+
+**Segunda revisão (06/11/2026, de manhã) — sete achados confirmados, todos de gravidade baixa depois de refutados; um
+refutado.**
+1. *Registos que sobravam:* o registo de uma tentativa recusada (por exemplo, a meio de um litígio) podia gastar-se
+   mais tarde pela API, depois de um «retomar», e o pintor ficava a assinar sobre uma versão do PDF do cliente que já
+   não era a aceite. Agora qualquer outro acontecimento da contratação apaga os registos pendentes, e um registo só
+   vale 15 minutos (o servidor grava a assinatura menos de um segundo depois de o registar).
+2. *Várias assinaturas com um só registo,* num INSERT de várias linhas: a política via todas antes de o gatilho as
+   gastar. A prova passou da política para um gatilho BEFORE, que gasta o registo linha a linha — a segunda linha já
+   não o encontra. A política continua a decidir quem assina cada lado.
+3. *O pintor podia assinar sobre um PDF do cliente desatualizado* se o pedido demorasse (verificações de rede) e o
+   cliente assinasse entretanto outra versão: a assinatura do pintor guarda agora `sobreCliente` (o resumo do PDF do
+   cliente que contra-assinou), conferido de novo mesmo antes de gravar.
+4. *O contador do menu podia contar mal* com mais de 1000 acontecimentos (a API corta cada resposta às 1000 linhas):
+   lê-se por páginas, e uma página que falha não dá contagem nenhuma.
+5. *A lista e a página do contrato diziam «o próximo passo é seu»* a quem só acompanha (leitor, financeiro): agora
+   só a quem pode assinar, com a mesma regra do contador.
+Refutado: o PDF assinado pelo cliente chegar ao pintor antes da apresentação.
+
+### Rasto de avisos: de qualquer menu até ao contrato
+
+Pedido do promotor: «avisos bem evidentes para que o user não se perca onde está o doc e como fazer … com indicação
+a cada menu onde carregar até alcançar o doc». Uma só regra decide de quem é o próximo passo e qual
+(`src/domain/proximoPasso.ts`, testada): caução, adiantamento, assinar, decidir (cliente); confirmar a obra, assinar
+(pintor). **Corrige um engano antigo:** a lista e o Início contavam qualquer ação disponível como «o próximo passo é
+seu» — o cliente via-o enquanto esperava pelo pintor, só por poder desistir, e o pintor não o via com a comissão por
+pagar. Os elos, todos a apontar para `#assinar` quando o passo é assinar:
+- **menu:** contador em «Contratações» (calculado em lote, três consultas, uma vez por pedido ao servidor —
+  `src/lib/contratosAMinhaEspera.ts`); no telemóvel, um ponto no botão do menu fechado (os avisos por ler do Início
+  não acendem o ponto, que estaria sempre aceso);
+- **Início** (as duas composições), **página da obra** do cliente e **Propostas recebidas**: o passo pelo nome;
+- **lista de Contratações:** «Precisa de si» com o passo, a assinatura primeiro; o cartão realçado e o prazo;
+- **página do contrato:** secção «Assinar o contrato» logo a seguir ao título, em três passos — descarregar,
+  assinar (no computador, a aplicação Autenticação.gov; no telemóvel, o serviço do Estado sem instalar nada,
+  pelo guia oficial do gov.pt), carregar — com o prazo; o PDF recusado em âmbar (resolve-se); o que falta ao
+  condomínio dentro da secção, em texto âmbar (deixou de ser uma segunda caixa de cor); quem não é proprietário
+  nem gestor lê que a assinatura cabe a quem é. As duas partes descarregam o PDF assinado (o do cliente enquanto
+  espera pelo pintor; o das duas no fim);
+- **email:** a ligação vai à secção, o botão diz «Abrir o contrato» e o texto diz onde e como.
+De passagem, na página do contrato: o bloco «Trabalhos a mais» aparecia duas vezes (saiu o de cima) e os
+«Registos sem efeito» deixaram de ser uma caixa vermelha (regra 13).
+
+**O endereço do serviço web de assinatura ficou por confirmar.** O guia oficial existe
+(`https://www.gov.pt/guias/assinar-com-a-chave-movel-digital`), mas a página carrega o conteúdo por JavaScript e não
+foi possível ler dela o endereço da ferramenta. O ecrã liga ao guia e não a um endereço adivinhado. **Também não está
+provado** que um PDF assinado nesse serviço passe na nossa verificação (o mesmo documento com a assinatura
+acrescentada): fica para o ensaio de assinatura real (`EM_ABERTO.md`).
+
+### O contrato por WhatsApp
+
+Decisão do promotor («devíamos aproveitar para avisar ambos por WhatsApp?» — «sim»). Quando é a vez de uma parte
+assinar, sai o modelo `contrato_para_assinar` no mesmo momento do email, a quem pode assinar pela entidade
+(proprietários e gestores, como o email) e **só a quem deu o consentimento e o número**. A preferência é da pessoa e
+vive onde já vivia a dos avaliadores (`survey_availability`): sem migração nova. Liga-se no **Perfil** e, enquanto o
+contrato está em curso e a pessoa ainda não o ligou, na própria página do contrato; ligado, a página diz para que
+número e como desligar (o consentimento retira-se com a mesma facilidade com que se dá). Na mensagem só vai a
+referência da obra; o botão abre o contrato. Sem `WHATSAPP_MODELO_CONTRATO` (o modelo por aprovar na Meta) não sai
+nada — e o email e o aviso na aplicação saem como sempre.
+
+Verificado no worktree, pelo código de saída: typecheck, lint (0 erros; os avisos são os mesmos 28, nenhum nos
+ficheiros tocados), `npm test` (2043, com as migrações em memória) e `npm run build`. A secção da assinatura e o
+consentimento vistos num navegador (1280 e 390 px), numa página de ensaio com dados inventados que não entrou no
+Git: alvos de toque de 44 px, o erro do PDF a âmbar. **Não visto com sessão:** o contador do menu, o Início, a lista e
+a página verdadeira precisam de dados na base.
+
+## 06/11/2026 — A medição do cliente pela fotografia grava-se no pedido (fase 1: base, regras e ação)
+
+**Pedido do promotor:** «avança com a gravação no pedido, medido pelo cliente», sobre a decisão de 05/11/2026 (o
+cliente também mede, na ferramenta de fotografia; a zona fica com origem própria e margem, nunca confirmada).
+
+**Como fica.**
+- Origem nova `medida_pelo_cliente` («Medida pelo cliente») e coluna `margem_bps` em `request_surfaces`
+  (migração `20261106010000_medida_pelo_cliente`, **por aplicar**). Não se reutilizou `medicao`, que confirma a
+  zona sozinha, nem `medicao_cliente`, que existe na coluna antiga e a migração de 30/10 converteu em confirmada.
+- **A base garante as duas regras** — as políticas deixam quem gere o pedido escrever qualquer coluna pela API: só
+  a zona medida pelo cliente tem margem, e tem-na sempre; e fica sempre por confirmar. Testes de base, que falham
+  sem a migração.
+- A conversão é pura e testada (`src/domain/medicaoDaFotografia.ts`): área a pintar em centésimos de m², margem
+  em pontos-base **arredondada para cima**; não grava uma fachada sem contorno, com partes por medir, com área nula
+  ou absurda, nem sem margem conhecida («melhor não gravar do que gravar sem ela»).
+- Grava-se a área e a margem, **nunca a fotografia nem o desenho** (regra 6: o pintor lê as zonas do anúncio).
+- Ação `gravarMedicaoDaFotografia` (`src/app/app/pedidos/actions.ts`): numa zona existente ou numa nova; quem pode
+  gravar decide-o a base (gerir a entidade, ou ser o avaliador do pedido, com o pedido em rascunho); uma gravação
+  recusada sem erro (nenhuma linha) não diz «Guardado»; a autoria passa a quem mediu.
+- O formulário manual recusa a origem nova. Uma zona medida pelo cliente editada à mão sem mudar a área continua a
+  ser a mesma medição («manter»); com a área mudada perde a margem e passa à origem escolhida.
+- A ferramenta entrega o resultado do passo 4 a quem a abre (`aoMudarMedicao`), só durante o passo 4 e nunca a meio
+  de um recálculo da margem.
+
+**Revisão adversarial (06/11/2026), sete correções, nenhum achado refutado.**
+1. *Uma fachada com varandas nunca se gravava:* a lista do que falta medir trazia sempre «faces de dentro das
+   varandas (decisão 8.2)», que espera pelo promotor e não por quem mede. Passa à parte (`porDecidir`, a constante
+   `FACES_DE_DENTRO_DAS_VARANDAS`): não impede gravar, e a mensagem diz que essas faces ficam de fora.
+2. *Gravar numa zona existente com quantidade 3 triplicava a área medida* sem o dizer: a medição grava sempre
+   `quantidade = 1` (a ferramenta mede uma fachada).
+3. *A restrição da margem deixava passar uma margem numa zona sem origem* (`=` com nulo dá nulo, e uma restrição
+   nula passa): agora `is not distinct from`, com teste.
+4. *Mudar à mão a área de uma zona medida pela fotografia, com «manter»,* passava-a a estimativa em silêncio: agora
+   pergunta de onde vem o número novo.
+5. *A ferramenta podia avisar o anfitrião em ciclo* (uma função nova a cada render): a função fica numa ref e só se
+   avisa quando a medição muda.
+6. *O texto gravado da margem podia diferir do que o ecrã mostra:* `margemEmTexto` segue a regra do passo 4 (uma
+   casa, nunca abaixo de 0,1 %).
+7. *O relatório para a assembleia lia a origem antiga* e dizia «estimativa» a uma medição: lê a nova.
+
+**Fase 2, por fazer:** ligar o botão «Medir na fotografia» do passo 2 (ramo `passo2b-wip`, por juntar) à ação,
+abri-lo a quem pode editar o pedido em vez de só à equipa, mostrar «Medida pelo cliente ± X %» no cartão da zona,
+na barra medido/estimado e ao pintor no anúncio, e corrigir a frase que diz que medir na fotografia «confirma».

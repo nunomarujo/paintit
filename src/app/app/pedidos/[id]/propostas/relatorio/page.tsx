@@ -9,7 +9,8 @@ import { getUser } from '@/lib/supabase/server';
 import { toLine } from '@/lib/proposals';
 import { compareProposals } from '@/domain/proposal';
 import { formatEuros } from '@/domain/money';
-import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, formatArea, type DesiredWork } from '@/domain/request';
+import { AREA_SOURCE_LABELS, DESIRED_WORK_LABELS, ORIGEM_DA_QUANTIDADE_LABELS, formatArea, type DesiredWork } from '@/domain/request';
+import { paraZona } from '@/lib/requests';
 import {
   ESTADO_LABELS,
   ORDEM_LABELS,
@@ -70,7 +71,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
   if (!req) notFound();
   const [{ data: org }, { data: surfaces }, { data: proposals }] = await Promise.all([
     supabase.from('organizations').select('id, nome, gerida_por').eq('id', req.org_id).single(),
-    supabase.from('request_surfaces').select('id, kind, descricao, area_cm2, origem').eq('request_id', id).order('created_at'),
+    supabase.from('request_surfaces').select('id, kind, descricao, area_cm2, origem, origem_quantidade').eq('request_id', id).order('created_at'),
     supabase.from('proposals').select('*').eq('request_id', id).neq('status', 'rascunho').order('submitted_at'),
   ]);
   if (!org) notFound();
@@ -596,7 +597,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ id: 
                   })}
                   <li>
                     Áreas usadas: as do pedido ({formatArea(areaTotal)} no total), com a origem declarada em cada zona —{' '}
-                    {[...new Set((surfaces ?? []).map((s) => AREA_SOURCE_LABELS[s.origem]))].join(', ').toLocaleLowerCase('pt-PT') || 'não declarada'}.
+                    {[...new Set((surfaces ?? []).map((s) => { const o = paraZona(s).origemDaQuantidade; return o ? ORIGEM_DA_QUANTIDADE_LABELS[o] : AREA_SOURCE_LABELS[s.origem]; }))].join(', ').toLocaleLowerCase('pt-PT') || 'não declarada'}.
                     Uma estimativa não tem o mesmo valor de uma medição confirmada.
                   </li>
                   <li>

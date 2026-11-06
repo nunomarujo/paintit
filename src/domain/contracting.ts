@@ -1,4 +1,5 @@
 import { EQUIVALENT_RULE } from './equivalence';
+import type { PoderesDaAssinatura } from './poderes';
 import {
   carryToNext,
   clientDepositDue,
@@ -77,12 +78,17 @@ export interface EngagementEvent {
     culpaClientePercent?: number;
     to?: string;
     documentHash?: string;
+    /** Na assinatura do pintor: o resumo SHA-256 do PDF do cliente que ele contra-assinou (06/11/2026). */
+    sobreCliente?: string;
     /** Como assinou: PDF com Chave Móvel Digital/Cartão de Cidadão, ou aceitação simples (só em testes). */
     metodo?: 'cmd_pdf' | 'aceitacao';
     signatario?: string | null;
     identificacao?: string | null;
     /** O certificado encadeia numa entidade "Cartão de Cidadão" do Estado. */
     cadeiaConfiavel?: boolean;
+    /** Quem assinou tem poderes para obrigar a entidade? Só o resultado e o texto — nunca os dados da
+     * certidão nem o código (`src/domain/poderes.ts`, 05/11/2026). Nunca recusa a assinatura. */
+    poderes?: PoderesDaAssinatura;
   };
   at: string;
 }

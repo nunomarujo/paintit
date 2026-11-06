@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { hasEquivalent } from '@/domain/equivalence';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { toEngagementRecord } from '@/domain/engagementRecord';
+import { resumoDaAssinaturaAceite } from '@/domain/signature';
 import { formatEuros, percentOf } from '@/domain/money';
 import { INCLUSION_LABELS, UNIT_LABELS, lineTotal, proposalTotals } from '@/domain/proposal';
 import type { Database } from '@/lib/database.types';
@@ -146,10 +148,31 @@ export async function contractPdfFor(supabase: Client, row: EngagementRow): Prom
   return contractPdf(await loadDraft(supabase, row, { anonymous }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
 }
 
-/** PDF já assinado por uma das partes, se existir. */
-export async function signedPdf(supabase: Client, engagementId: string, side: 'cliente' | 'pintor'): Promise<Uint8Array | null> {
-  const { data } = await supabase.storage.from('contratos').download(`${engagementId}/${side}.pdf`);
-  return data ? new Uint8Array(await data.arrayBuffer()) : null;
+/** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261105233000). */
+export const caminhoDoPdfAssinado = (engagementId: string, side: 'cliente' | 'pintor', sha256: string) => `${engagementId}/${side}-${sha256}.pdf`;
+
+/**
+ * O PDF assinado por uma das partes — **o do acontecimento aceite**, conferido byte a byte.
+ *
+ * Desde 05/11/2026 o ficheiro chama-se pelo seu resumo SHA-256, e lê-se o que o acontecimento aceite pela
+ * reconstrução diz ter sido assinado (o mais recente: depois de um litígio resolvido com «retomar», o cliente
+ * assina de novo). Antes havia um nome fixo por lado, e um carregamento atrasado podia substituir o ficheiro
+ * depois de a assinatura estar registada — o acontecimento dizia «certificado do Estado» e o ficheiro guardado
+ * era outro (revisão de 05/11/2026). O resumo volta a ser conferido aqui: um ficheiro que não lhe corresponda
+ * não é entregue a ninguém. O nome fixo antigo só se lê como recurso, e com a mesma conferência.
+ */
+export async function signedPdf(supabase: Client, row: EngagementRow, side: 'cliente' | 'pintor'): Promise<Uint8Array | null> {
+  const { replay, events } = await loadReplay(supabase, row);
+  const recusados = new Set(replay.rejected.map((r) => r.event.id));
+  const resumo = resumoDaAssinaturaAceite(events, recusados, side === 'cliente' ? 'cliente_assinou' : 'pintor_assinou');
+  if (!resumo) return null;
+  for (const caminho of [caminhoDoPdfAssinado(row.id, side, resumo), `${row.id}/${side}.pdf`]) {
+    const { data } = await supabase.storage.from('contratos').download(caminho);
+    if (!data) continue;
+    const bytes = new Uint8Array(await data.arrayBuffer());
+    if (createHash('sha256').update(bytes).digest('hex') === resumo) return bytes;
+  }
+  return null;
 }
 
 /**

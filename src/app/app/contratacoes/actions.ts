@@ -10,18 +10,63 @@ import { fromLocalDateTime } from '@/domain/deadline';
 import type { DisputeOutcome } from '@/domain/engagement';
 import { parseHundredths } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
-import type { Json } from '@/lib/database.types';
-import { isPlatformAdmin } from '@/lib/access';
-import { contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
+import type { Database, Json } from '@/lib/database.types';
+import { canManage, isPlatformAdmin, myRole } from '@/lib/access';
+import { caminhoDoPdfAssinado, contractPdfFor, loadDraft, loadReplay, missingCondoDocs, signedPdf } from '@/lib/engagements';
 import { verifySignature } from '@/lib/pades';
-import { checkSignedPdf, findSignatures, shouldRejectUntrustedSignature } from '@/domain/signature';
+import { pedeAviso } from '@/domain/poderes';
+import { poderesDoLado } from '@/lib/poderes';
+import { checkSignedPdf, findSignatures, resumoDaAssinaturaAceite, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { getUser } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/admin';
 import { notifyEngagementChange, notifyReferralWon } from '@/lib/notify';
 import { settleRefunds } from '@/lib/payments';
 import { settleSurveyPayout } from '@/lib/surveys';
 
+type EngagementRow = Database['public']['Tables']['engagements']['Row'];
+
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
+const SEM_SERVIDOR = 'Não foi possível registar a assinatura agora. Tente de novo dentro de minutos.';
+
+/**
+ * A assinatura só entra pelo servidor (migração `20261105233000_assinatura_so_pelo_servidor`): depois de
+ * verificar, regista-se com a chave de serviço o payload exato que o acontecimento vai levar, e a base só
+ * aceita o acontecimento com um payload igual, desta pessoa. Até 05/11/2026 quem gerisse a entidade podia
+ * registar «assinou» pela API sem PDF nenhum. Devolve a mensagem de erro, ou `null` quando ficou registado.
+ */
+async function registarVerificacao(
+  engagementId: string,
+  kind: 'cliente_assinou' | 'pintor_assinou',
+  actor: string,
+  payload: EngagementEvent['payload'],
+): Promise<string | null> {
+  const admin = adminClient();
+  if (!admin) return SEM_SERVIDOR;
+  const { error } = await admin.rpc('registar_assinatura_verificada', {
+    p_engagement: engagementId,
+    p_kind: kind,
+    p_actor: actor,
+    p_payload: payload as Json,
+  });
+  // Enquanto a migração não estiver aplicada a função não existe (PGRST202) e a base ainda tem a política
+  // antiga, que aceita o acontecimento sem este registo: seguir em frente não abre nada que não esteja
+  // aberto, e o código pode ser publicado antes ou depois da migração sem parar as assinaturas.
+  if (error?.code === 'PGRST202') return null;
+  return error ? SEM_SERVIDOR : null;
+}
+
+/**
+ * Quem chama gere a entidade DESTE lado? O lado e a contratação chegam do navegador (regra 10), e o PDF e a
+ * verificação seguem pela chave de serviço, que não passa pelas regras da base: confirma-se aqui, antes de
+ * escrever o que for. Sem isto, o pintor podia substituir o PDF do cliente (05/11/2026).
+ */
+async function geresOLado(supabase: Awaited<ReturnType<typeof getUser>>['supabase'], userId: string, row: EngagementRow, side: 'cliente' | 'pintor') {
+  const orgId = side === 'cliente' ? row.client_org_id : row.painter_org_id;
+  const { data: entidade } = await supabase.from('organizations').select('id, gerida_por').eq('id', orgId).maybeSingle();
+  return !!entidade && canManage(await myRole(supabase, userId, entidade));
+}
+const NAO_E_DESTE_LADO: FormState = { errors: {}, message: 'A assinatura deste lado cabe a um proprietário ou gestor da entidade.' };
 
 type PartyKind = Extract<EventKind, 'cliente_assinou' | 'cliente_desistiu' | 'pintor_assinou' | 'litigio_aberto' | 'encerrar_sem_contrato'>;
 
@@ -93,11 +138,19 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
   if (kind === 'litigio_aberto') payload.reason = reason.slice(0, 1000);
   if (kind === 'cliente_assinou' || kind === 'pintor_assinou') {
     // Prova do que foi assinado: resumo SHA-256 do texto da minuta tal como a parte o viu.
-    const { supabase } = await getUser();
+    const { supabase, user } = await getUser();
+    if (!user) return NOT_SIGNED_IN;
     const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
     if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
+    if (!(await geresOLado(supabase, user.id, row, kind === 'cliente_assinou' ? 'cliente' : 'pintor'))) return NAO_E_DESTE_LADO;
     payload.documentHash = createHash('sha256').update(draftText(await loadDraft(supabase, row))).digest('hex');
     payload.metodo = 'aceitacao';
+    // Também a aceitação simples (só fora de produção) passa pelo registo do servidor: a base não aceita
+    // uma assinatura que ele não tenha registado.
+    const semVerificacao = await registarVerificacao(row.id, kind, user.id, payload);
+    if (semVerificacao) return { errors: {}, message: semVerificacao };
+    const r = await record(row.id, kind, { payload });
+    return { errors: r.errors, ok: r.ok, message: r.message };
   }
   const r = await record(engagementId, kind, { payload });
   return { errors: r.errors, ok: r.ok, message: r.message };
@@ -164,7 +217,12 @@ const MAX_PDF = 20 * 1024 * 1024;
  * (o PDF gerado, para o cliente; o PDF já assinado pelo cliente, para o pintor),
  * que acrescenta uma assinatura sobre o ficheiro inteiro e que ela é válida.
  */
-export async function signWithPdf(engagementId: string, side: 'cliente' | 'pintor', _prev: FormState, form: FormData): Promise<FormState> {
+export async function signWithPdf(
+  engagementId: string,
+  side: 'cliente' | 'pintor',
+  _prev: FormState & { aviso?: string },
+  form: FormData,
+): Promise<FormState & { aviso?: string }> {
   if (side !== 'cliente' && side !== 'pintor') return { errors: {}, message: 'Ação inválida.' };
   const file = form.get('pdf');
   if (!(file instanceof File) || file.size === 0) return { errors: { pdf: 'Escolha o PDF assinado.' } };
@@ -176,6 +234,11 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
   const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
   if (!row) return { errors: {}, message: 'Contratação não encontrada.' };
   const kind = side === 'cliente' ? 'cliente_assinou' : 'pintor_assinou';
+  if (!(await geresOLado(supabase, user.id, row, side))) return NAO_E_DESTE_LADO;
+  // Daqui para a frente, só o identificador que veio da base: o do navegador pode vir escrito de outra maneira
+  // (maiúsculas, sem hífens) e ainda assim encontrar a linha — e um PDF guardado com esse caminho ficava
+  // ilegível para as duas partes (revisão de 05/11/2026).
+  const id = row.id;
   const current = (await loadReplay(supabase, row)).replay.engagement;
   if (!availableActions(current, side).includes(kind)) return { errors: {}, message: 'Este passo não está disponível agora.' };
 
@@ -185,7 +248,7 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
       return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
     }
   }
-  const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, engagementId, 'cliente');
+  const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, row, 'cliente');
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
   const check = checkSignedPdf(uploaded, expected);
   if (!check.ok) return { errors: { pdf: check.reason } };
@@ -215,19 +278,49 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
     // mesmo recusada já foi devolvida acima, antes de qualquer gravação.
     trusted: signers.every((x) => x.trusted),
   };
+  // Poderes de representação (decisão de 05/11/2026): quem assinou pode obrigar a entidade deste lado? Vem
+  // depois de todas as verificações acima e nunca recusa — avisa. No acontecimento fica só o resultado e o
+  // texto, que as duas partes leem: nada da certidão, nunca o código. Se não for possível ler o que é preciso
+  // (`null`), não se grava resultado nenhum.
+  const poderes = await poderesDoLado(supabase, side === 'cliente' ? row.client_org_id : row.painter_org_id, signers.map((x) => x.name)).catch(
+    () => null,
+  );
 
-  const up = await supabase.storage.from('contratos').upload(`${engagementId}/${side}.pdf`, uploaded, { contentType: 'application/pdf' });
-  if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado (já tinha sido carregado?).' };
+  const resumo = createHash('sha256').update(uploaded).digest('hex');
+  // O pintor assina por cima do PDF do cliente: fica escrito qual, e confere-se outra vez mesmo antes de
+  // gravar. Entre o começo deste pedido e aqui há verificações de rede que podem demorar; se entretanto o
+  // cliente assinou outra versão (um litígio retomado), esta assinatura não é sobre a que vale.
+  const sobreCliente = side === 'pintor' ? createHash('sha256').update(expected).digest('hex') : undefined;
+  const payload: EngagementEvent['payload'] = {
+    documentHash: resumo,
+    ...(sobreCliente ? { sobreCliente } : {}),
+    metodo: 'cmd_pdf',
+    signatario: signer.name,
+    identificacao: signer.serialNumber,
+    cadeiaConfiavel: signer.trusted,
+    ...(poderes ? { poderes } : {}),
+  };
+  // O PDF e a verificação seguem pela chave de serviço: nenhuma das duas coisas se faz com a sessão da parte
+  // (migração 20261105233000). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
+  // escrever os mesmos bytes, e um carregamento atrasado (uma verificação de rede lenta) cai noutro nome e
+  // nunca substitui o que foi aceite — lê-se sempre o do acontecimento (`signedPdf`).
+  if (sobreCliente) {
+    const { replay: agora, events: eventosAgora } = await loadReplay(supabase, row);
+    const recusados = new Set(agora.rejected.map((r) => r.event.id));
+    if (resumoDaAssinaturaAceite(eventosAgora, recusados, 'cliente_assinou') !== sobreCliente) {
+      return { errors: { pdf: 'O contrato assinado pelo cliente mudou entretanto. Descarregue-o de novo e assine essa versão.' } };
+    }
+  }
+  const admin = adminClient();
+  if (!admin) return { errors: {}, message: SEM_SERVIDOR };
+  const up = await admin.storage
+    .from('contratos')
+    .upload(caminhoDoPdfAssinado(id, side, resumo), uploaded, { contentType: 'application/pdf', upsert: true });
+  if (up.error) return { errors: {}, message: 'Não foi possível guardar o PDF assinado. Tente de novo dentro de minutos.' };
+  const semVerificacao = await registarVerificacao(id, kind, user.id, payload);
+  if (semVerificacao) return { errors: {}, message: semVerificacao };
 
-  const r = await record(engagementId, kind, {
-    payload: {
-      documentHash: createHash('sha256').update(uploaded).digest('hex'),
-      metodo: 'cmd_pdf',
-      signatario: signer.name,
-      identificacao: signer.serialNumber,
-      cadeiaConfiavel: signer.trusted,
-    },
-  });
+  const r = await record(id, kind, { payload });
   if (!r.ok) return { errors: r.errors, message: r.message };
   return {
     errors: {},
@@ -235,6 +328,7 @@ export async function signWithPdf(engagementId: string, side: 'cliente' | 'pinto
     message: signer.trusted
       ? `Assinado por ${signer.name ?? 'titular do certificado'}, com certificado do Estado português.`
       : `Assinado por ${signer.name ?? 'titular do certificado'}. A equipa da plataforma vai confirmar a origem do certificado.`,
+    ...(poderes && pedeAviso(poderes.resultado) ? { aviso: poderes.texto } : {}),
   };
 }
 

@@ -63,3 +63,24 @@ Como o contrato é gerado pela plataforma, também mostramos ao lado o **texto d
   que já cobre o caso que importa (um certificado revogado é recusado).
 - Para testes sem Chave Móvel Digital: `PERMITIR_ACEITACAO_SIMPLES=1` no ambiente volta a mostrar a aceitação
   com caixa de confirmação. Nunca em produção.
+
+## Cadeia de confiança: quem assina pode obrigar a entidade? (05/11/2026)
+
+A cadeia acima responde a «este certificado é do Estado e não foi revogado?». Não responde a «esta pessoa pode
+assinar por esta empresa, ou por este condomínio?». Desde 05/11/2026 há um terceiro elo, que **avisa e nunca
+recusa** (decisão do promotor; detalhe em `DECISOES.md`, «Poderes de quem assina»):
+
+1. **Assinatura válida** sobre o contrato gerado (bytes e CMS) — recusa se falhar.
+2. **Certificado do Estado** (âncoras «Cartão de Cidadão», OCSP) — recusa se a cadeia for recusada; «por
+   confirmar» se ficar indeterminada por falha de rede.
+3. **Poderes de representação** (`src/domain/poderes.ts`) — o nome do certificado (CN) comparado com quem tem
+   poderes segundo a certidão permanente (sociedades, administradoras, fornecedores), a ata de nomeação
+   (condomínios) ou o titular da conta (particulares e empresários em nome individual). A certidão é lida à mão
+   pela equipa a partir do código de acesso que a empresa entrega — a leitura automática precisa de autorização
+   do IRN. O resultado fica no acontecimento da assinatura (`payload.poderes`), aparece a quem assina e, quando
+   não confere, numa banda âmbar no topo da contratação, para as duas partes e para a equipa.
+
+O terceiro elo compara **só nomes**: o certificado não traz NIF, e a certidão não traz o n.º de identificação
+civil. Um «confere» é um indício, não uma prova. Ficam por tratar o SCAP (o atributo «gerente» na própria
+assinatura, que provaria a qualidade de quem assina) e a LTV (carimbo temporal e revogação embebidos no PDF).
+A outra parte vê só o resultado, nunca os dados da certidão (regra 6).

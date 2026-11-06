@@ -1,6 +1,8 @@
 import { getUser } from '@/lib/supabase/server';
 import { ProfileForm } from './ProfileForm';
 import { PasswordForm } from './PasswordForm';
+import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
+import { configuracaoWhatsApp } from '@/domain/whatsapp';
 
 /**
  * Perfil em quadros lado a lado (promotor, 01/11/2026: nada de colunas únicas encostadas à
@@ -8,7 +10,10 @@ import { PasswordForm } from './PasswordForm';
  */
 export default async function ProfilePage() {
   const { supabase, user } = await getUser();
-  const { data: profile } = await supabase.from('profiles').select('nome, telefone, email').eq('user_id', user!.id).maybeSingle();
+  const [{ data: profile }, { data: preferencia }] = await Promise.all([
+    supabase.from('profiles').select('nome, telefone, email').eq('user_id', user!.id).maybeSingle(),
+    supabase.from('survey_availability').select('alerta_whatsapp, telemovel_whatsapp').eq('user_id', user!.id).maybeSingle(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +38,15 @@ export default async function ProfilePage() {
           <h2 className="text-[17px] font-semibold text-tinta-900">Acesso</h2>
           <p className="mt-0.5 mb-4 text-[15px] text-slate-500">Palavra-passe, para quem não entra pelo link do email.</p>
           <PasswordForm />
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-6">
+          <h2 className="text-[17px] font-semibold text-tinta-900">Avisos por WhatsApp</h2>
+          <p className="mt-0.5 mb-4 text-[15px] text-slate-500">Os avisos chegam sempre por email e aqui na aplicação; o WhatsApp é um extra.</p>
+          <AvisosPorWhatsApp
+            alertaWhatsApp={preferencia?.alerta_whatsapp ?? false}
+            telemovel={preferencia?.telemovel_whatsapp ?? null}
+            whatsappDisponivel={configuracaoWhatsApp(process.env) !== null}
+          />
         </section>
       </div>
     </div>

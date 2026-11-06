@@ -15,7 +15,7 @@ import {
   PARTICIPACOES,
   DESIRED_WORK_LABELS,
   ORIGEM_DA_QUANTIDADE_LABELS,
-  ORIGENS_DA_QUANTIDADE,
+  ORIGENS_ESCOLHIVEIS,
   SURFACE_KINDS,
   SURFACE_KIND_LABELS,
   confirmacaoDaOrigem,
@@ -420,7 +420,13 @@ export function EditorDaZona({
   const [altura, setAltura] = useState(emMetros(zona?.alturaCm));
   const [vaos, setVaos] = useState(emMetros(zona?.vaosCm2));
   const [quantidade, setQuantidade] = useState(String(zona?.quantidade ?? 1));
-  const [origem, setOrigem] = useState<OrigemDaQuantidade>(zona?.origemDaQuantidade ?? 'estimativa');
+  // A medição pela fotografia não se escolhe à mão: vem da ferramenta, com a margem. Numa zona medida assim,
+  // «manter» guarda-a como está desde que a área não mude (updateSurface, 06/11/2026).
+  const medidaPeloCliente = zona?.origemDaQuantidade === 'medida_pelo_cliente';
+  const [origem, setOrigem] = useState<OrigemDaQuantidade | 'manter'>(
+    medidaPeloCliente ? 'manter' : (zona?.origemDaQuantidade ?? 'estimativa'),
+  );
+  const origemEfetiva: OrigemDaQuantidade = origem === 'manter' ? 'medida_pelo_cliente' : origem;
   const e = state.errors;
   // Fecha-se sozinho quando gravou: ficar aberto depois de guardar parece que não guardou.
   if (state.ok && !pending) setTimeout(aoFechar, 0);
@@ -434,7 +440,7 @@ export function EditorDaZona({
       : como === 'largura_altura'
         ? contaDaZona({ areaDireta: null, larguraCm: lido(largura), alturaCm: lido(altura), vaosCm2: lido(vaos), quantidade: q })
         : null;
-  const confirmada = confirmacaoDaOrigem(origem) === 'confirmada';
+  const confirmada = confirmacaoDaOrigem(origemEfetiva) === 'confirmada';
 
   return (
     <>
@@ -598,10 +604,11 @@ export function EditorDaZona({
                   id={`${idDoFormulario}-origem`}
                   name="origemQuantidade"
                   value={origem}
-                  onChange={(ev) => setOrigem(ev.target.value as OrigemDaQuantidade)}
+                  onChange={(ev) => setOrigem(ev.target.value as OrigemDaQuantidade | 'manter')}
                   className="campo bg-white"
                 >
-                  {ORIGENS_DA_QUANTIDADE.map((o) => (
+                  {medidaPeloCliente && <option value="manter">Medida pelo cliente, na fotografia</option>}
+                  {ORIGENS_ESCOLHIVEIS.map((o) => (
                     <option key={o} value={o}>
                       {ORIGEM_DA_QUANTIDADE_LABELS[o]}
                     </option>
@@ -617,7 +624,7 @@ export function EditorDaZona({
                     <span className={`block text-[13px] ${confirmada ? 'text-slate-600' : 'text-amber-800'}`}>
                       {confirmada
                         ? 'medição, conta como confirmada'
-                        : `${ORIGEM_DA_QUANTIDADE_LABELS[origem].toLowerCase()}, fica por confirmar`}
+                        : `${ORIGEM_DA_QUANTIDADE_LABELS[origemEfetiva].toLowerCase()}, fica por confirmar`}
                     </span>
                   </>
                 ) : (
@@ -630,7 +637,7 @@ export function EditorDaZona({
           {medir && !confirmada && como !== 'nao_sei' && (
             <div className="rounded-lg bg-slate-50 p-3">
               <p className="text-[15px] text-slate-600">
-                Um número <span className="text-amber-800">por confirmar</span> confirma-se medindo — no local, ou na fotografia.
+                Um número <span className="text-amber-800">por confirmar</span> confirma-se medindo no local. Na fotografia sai uma medida com margem, que continua por confirmar.
               </p>
               <button type="button" onClick={medir} className="btn-secondary btn-sm mt-2">
                 Medir na fotografia

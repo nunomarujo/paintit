@@ -3,9 +3,8 @@ import { redirect } from 'next/navigation';
 import { acceptInvitation } from '@/app/app/actions';
 import { markNotificationsRead } from '@/app/app/extras-actions';
 import { MEMBER_ROLE_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
-import { STATUS_LABELS, availableActions } from '@/domain/contracting';
 import { isPlatformAdmin } from '@/lib/access';
-import { loadReplay } from '@/lib/engagements';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
 import { InicioDoCliente } from './InicioDoCliente';
@@ -44,34 +43,23 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const myOrgIds = new Set((orgs ?? []).filter((o) => direct.has(o.id) || (o.gerida_por && direct.has(o.gerida_por))).map((o) => o.id));
   // Fornecedores são visíveis a todos (catálogo), mas só os seus aparecem na lista.
   const mine = (orgs ?? []).filter((o) => myOrgIds.has(o.id));
-  const [{ data: requests }, { data: engagementRows }, painters] = await Promise.all([
+  const [{ data: requests }, aEspera, painters] = await Promise.all([
     supabase.from('work_requests').select('id, titulo, status').in('org_id', [...myOrgIds]).in('status', ['rascunho', 'publicado']).order('updated_at', { ascending: false }).limit(10),
-    supabase.from('engagements').select('*').order('created_at', { ascending: false }).limit(20),
+    // O que espera por esta conta, já com o passo (rasto de avisos do contrato, 05/11/2026). Até então
+    // contava qualquer ação disponível — o cliente via «a precisar de si» enquanto esperava pelo pintor.
+    // Uma contratação malformada fica de fora sem derrubar o Início (`contratosAMinhaEspera`).
+    aMinhaEspera(user!.id),
     painterOrgs(supabase, user!.id),
   ]);
   const ownRequests = requests ?? [];
   const { data: proposalRows } = ownRequests.length
     ? await supabase.from('proposals').select('request_id').in('request_id', ownRequests.map((r) => r.id)).neq('status', 'rascunho')
     : { data: [] };
-  const todo = (
-    await Promise.all(
-      (engagementRows ?? []).map(async (r) => {
-        const side = myOrgIds.has(r.client_org_id) ? 'cliente' : myOrgIds.has(r.painter_org_id) ? 'pintor' : null;
-        if (!side) return null;
-        // Uma contratação malformada (dados antigos, coluna aditiva ainda por chegar) não pode derrubar o
-        // Início — a página de maior tráfego da app — por isso fica fora da lista em vez de rebentar a página
-        // (ver docs/ESTADO.md, "server-side exception" no backoffice, 22-23/10/2026).
-        try {
-          const e = (await loadReplay(supabase, r)).replay.engagement;
-          return availableActions(e, side).length > 0 || ['aguarda_deposito', 'aguarda_fee'].includes(e.status)
-            ? { id: r.id, label: STATUS_LABELS[e.status] }
-            : null;
-        } catch {
-          return null;
-        }
-      }),
-    )
-  ).filter((x): x is { id: string; label: string } => x !== null);
+  // O título do pedido, quando esta conta o pode ler (o pintor só depois da apresentação).
+  const { data: titulos } = aEspera.length
+    ? await supabase.from('work_requests').select('id, titulo').in('id', [...new Set(aEspera.map((c) => c.requestId))])
+    : { data: [] };
+  const todo = aEspera.map((c) => ({ id: c.id, titulo: (titulos ?? []).find((t) => t.id === c.requestId)?.titulo ?? null, passo: c.passo }));
   const { count: openListings } = painters.length
     ? await supabase.from('request_listings').select('request_id', { count: 'exact', head: true }).eq('aberto', true)
     : { count: 0 };
@@ -172,15 +160,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       {(todo.length > 0 || ownRequests.length > 0 || painters.length > 0) && (
         <section className="grid gap-4 sm:grid-cols-2">
           {todo.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
-              <h2 className="font-semibold text-amber-800">Contratações a precisar de si</h2>
-              <ul className="mt-2 space-y-1">
+            // O passo à espera, dito pelo nome (assinar, pagar, confirmar) e com o caminho até ele: é o
+            // primeiro elo do rasto que leva ao contrato (05/11/2026).
+            <div className="rounded-2xl bg-tinta-900 p-5 text-[17px] text-white">
+              <h2 className="text-[13px] font-semibold text-lima">Precisa de si</h2>
+              <ul className="mt-2 space-y-3">
                 {todo.map((t) => (
                   <li key={t.id}>
-                    <Link href={`/app/contratacoes/${t.id}`} className="text-tinta-700 hover:underline">
-                      {t.id.slice(0, 8).toUpperCase()}
-                    </Link>{' '}
-                    · {t.label}
+                    <p className="font-semibold">{t.passo.titulo}</p>
+                    <p className="text-[15px] text-tinta-200">
+                      {t.titulo ?? `Contratação ${t.id.slice(0, 8).toUpperCase()}`}
+                      {t.passo.ate ? ` · até ${t.passo.ate.split('-').reverse().join('/')}` : ''}
+                    </p>
+                    <Link href={`/app/contratacoes/${t.id}${t.passo.passo === 'assinar' ? '#assinar' : ''}`} className="btn-primary btn-sm mt-2 !bg-lima !text-tinta-900 hover:!bg-lima/90">
+                      {t.passo.passo === 'assinar' ? 'Ir para o contrato' : 'Abrir a contratação'}
+                    </Link>
                   </li>
                 ))}
               </ul>

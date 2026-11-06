@@ -1,14 +1,16 @@
 import Link from 'next/link';
 import { STATUS_LABELS, availableActions, type Side } from '@/domain/contracting';
 import type { Engagement } from '@/domain/engagement';
+import { proximoPasso, type ProximoPasso } from '@/domain/proximoPasso';
 import { formatEuros } from '@/domain/money';
 import { isPlatformAdmin } from '@/lib/access';
 import { engagementSide, loadReplay } from '@/lib/engagements';
 import type { Database } from '@/lib/database.types';
 import { getUser } from '@/lib/supabase/server';
+import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 
 type EngagementRow = Database['public']['Tables']['engagements']['Row'];
-type Item = { r: EngagementRow; e: Engagement; titulo: string; precisaDeMim: boolean; pendingPlataforma: boolean; fase: Fase };
+type Item = { r: EngagementRow; e: Engagement; titulo: string; passo: ProximoPasso | null; pendingPlataforma: boolean; fase: Fase };
 
 type Fase = 'em_curso' | 'assinadas' | 'fechadas';
 const FASES: { id: Fase; nome: string; pilula: string }[] = [
@@ -28,6 +30,7 @@ export default async function EngagementsPage() {
   const { supabase, user } = await getUser();
   const admin = await isPlatformAdmin(supabase, user!.id);
   const { data: rows } = await supabase.from('engagements').select('*').order('created_at', { ascending: false });
+  const possoAgir = new Set((await aMinhaEspera(user!.id)).map((c) => c.id));
   const ids = [...new Set((rows ?? []).map((r) => r.request_id))];
   const { data: pedidos } = ids.length ? await supabase.from('work_requests').select('id, titulo').in('id', ids) : { data: [] };
   const tituloDe = (id: string) => (pedidos ?? []).find((p) => p.id === id)?.titulo ?? '';
@@ -40,13 +43,16 @@ export default async function EngagementsPage() {
         try {
           const e = (await loadReplay(supabase, r)).replay.engagement;
           const lado: Side | null = admin ? 'plataforma' : await engagementSide(supabase, user!.id, r);
-          const minhas = lado ? availableActions(e, lado) : [];
           return {
             r,
             e,
             titulo: tituloDe(r.request_id),
-            precisaDeMim: minhas.length > 0 && lado !== 'plataforma',
-            pendingPlataforma: admin && minhas.length > 0,
+            // O passo que é desta parte (assinar, pagar, confirmar) — não qualquer ação disponível: desistir
+            // está sempre à mão e não é um passo (proximoPasso.ts, 05/11/2026).
+            // Só a quem pode dar o passo (proprietário ou gestor da entidade): é a mesma regra do contador do
+            // menu (`aMinhaEspera`). A quem só acompanha, a lista não diz «precisa de si» (revisão de 06/11/2026).
+            passo: (lado === 'cliente' || lado === 'pintor') && possoAgir.has(r.id) ? proximoPasso(e, lado) : null,
+            pendingPlataforma: admin && availableActions(e, 'plataforma').length > 0,
             fase: faseDe(e.status),
           };
         } catch {
@@ -55,7 +61,10 @@ export default async function EngagementsPage() {
       }),
     )
   ).filter((x): x is Item => x !== null);
-  const atencao = items.filter((i) => i.precisaDeMim || i.pendingPlataforma);
+  // A assinatura primeiro: é onde as pessoas se perdem.
+  const atencao = items
+    .filter((i) => i.passo || i.pendingPlataforma)
+    .sort((a, b) => Number(b.passo?.passo === 'assinar') - Number(a.passo?.passo === 'assinar'));
   const grupos = FASES.map((f) => ({ ...f, itens: items.filter((i) => i.fase === f.id) })).filter((g) => g.itens.length > 0);
 
   return (
@@ -81,8 +90,12 @@ export default async function EngagementsPage() {
                 <ul className="mt-3 space-y-2">
                   {atencao.slice(0, 4).map((i) => (
                     <li key={i.r.id}>
-                      <Link href={`/app/contratacoes/${i.r.id}`} className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-lima hover:underline">
-                        {i.titulo || `Contratação ${i.r.id.slice(0, 8).toUpperCase()}`}
+                      <Link
+                        href={`/app/contratacoes/${i.r.id}${i.passo?.passo === 'assinar' ? '#assinar' : ''}`}
+                        className="flex min-h-[44px] flex-col justify-center text-[15px] hover:underline"
+                      >
+                        <span className="font-semibold text-lima">{i.passo?.titulo ?? 'Confirmação da plataforma'}</span>
+                        <span className="text-tinta-200">{i.titulo || `Contratação ${i.r.id.slice(0, 8).toUpperCase()}`}</span>
                       </Link>
                     </li>
                   ))}
@@ -125,7 +138,10 @@ export default async function EngagementsPage() {
                 <ul className="mt-3 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                   {g.itens.map((i) => (
                     <li key={i.r.id}>
-                      <Link href={`/app/contratacoes/${i.r.id}`} className="block h-full rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-tinta-600">
+                      <Link
+                        href={`/app/contratacoes/${i.r.id}${i.passo?.passo === 'assinar' ? '#assinar' : ''}`}
+                        className={`block h-full rounded-2xl border bg-white p-5 transition-colors hover:border-tinta-600 ${i.passo ? 'border-tinta-600' : 'border-slate-200'}`}
+                      >
                         <p className="text-[13px] text-slate-500">Contratação {i.r.id.slice(0, 8).toUpperCase()}</p>
                         <h3 className="mt-1 text-[20px] font-semibold leading-tight">{i.titulo || 'Obra'}</h3>
                         <p className="mt-1 text-[15px] text-slate-600">{STATUS_LABELS[i.e.status]}</p>
@@ -134,10 +150,10 @@ export default async function EngagementsPage() {
                             <dt className="text-[13px] text-slate-500">Valor sem IVA</dt>
                             <dd className="text-[17px] font-semibold">{formatEuros(i.e.base)}</dd>
                           </div>
-                          {(i.precisaDeMim || i.pendingPlataforma) && (
+                          {(i.passo || i.pendingPlataforma) && (
                             <div>
-                              <dt className="text-[13px] text-slate-500">Por fazer</dt>
-                              <dd className="text-[17px] font-semibold text-amber-800">{i.pendingPlataforma ? 'Confirmação da plataforma' : 'O próximo passo é seu'}</dd>
+                              <dt className="text-[13px] text-slate-500">Por fazer{i.passo?.ate ? ` até ${i.passo.ate.split('-').reverse().join('/')}` : ''}</dt>
+                              <dd className="text-[17px] font-semibold text-amber-800">{i.passo ? `${i.passo.titulo} →` : 'Confirmação da plataforma'}</dd>
                             </div>
                           )}
                         </dl>
