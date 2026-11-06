@@ -59,7 +59,7 @@ export default async function CrmPage() {
           </ul>
         )}
         <p className="mt-2 max-w-[54ch] text-[15px] text-slate-600">
-          O Plano Pro grátis dos pintores já se concede sozinho a quem aderir pelo link. O catálogo sem subscrição (fornecedores) e o relatório sem custo (administradoras) ainda não: não aprovar essas campanhas por agora.
+          As ofertas concedem-se sozinhas a quem aderir pelo link: Plano Pro grátis aos pintores e catálogo sem subscrição aos fornecedores, até 31/01/2027. O relatório das administradoras já é gratuito.
         </p>
       </section>
 

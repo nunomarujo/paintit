@@ -6579,3 +6579,23 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
   honrada pelas funções de acesso. Fica por decidir com o promotor; a adesão fica registada, só não se concede nada.
 - Migração `20261106170917_ofertas_de_lancamento` aplicada e verificada na base real com uma empresa `zz-test` (oferta
   concedida, 2.ª oferta recusada, subscrição paga possível durante a oferta; sem rasto).
+
+### 06/11/2026 — Catálogo de lançamento para fornecedores (aprovado pelo promotor)
+
+- **Quem recebe:** um fornecedor criado por quem chegou pelo QR de um flyer de fornecedores (`fl-for-1`/`fl-for-2`) ou pelo link
+  de um email do CRM, até 31/01/2027: presença no catálogo sem subscrição (plano «catálogo», preço 0). O mecanismo é o do Pro
+  dos pintores (`aplicarOfertaDeLancamento`): cookie de origem, concessão com a chave de serviço, registo em
+  `ofertas_de_lancamento` (agora com `concedida` = `pro` ou `catalogo`), adesão do contacto no CRM.
+- **Data de fim nas subscrições de fornecedor:** `supplier_subscriptions.valida_ate` (nula = sem fim, como até aqui) e
+  `origem` (`lancamento`). Honradas por `private.supplier_has_plan` (produtos e descontos) e `public.active_suppliers`
+  (catálogo e sugestões ao orçamentar), e repetidas em TypeScript por `planoVigente` (ecrãs). Passada a data, o fornecedor
+  deixa de ter catálogo e de aparecer; a linha fica, e subscrever pelo Stripe volta a ativá-la sem fim.
+- **Pagar acaba com a oferta:** o webhook do Stripe e a ativação pelo backoffice limpam `valida_ate` e `origem`. Sem isto, um
+  fornecedor que pagasse durante a oferta perderia o plano a 31/01 (o `upsert` não tocava nessas colunas).
+- **Referências de fornecedores:** a oferta gratuita **não** abre a janela de 12 meses de desconto do pintor que o indicou
+  (seria um benefício sem receita). Abre quando o fornecedor passa a pagar: gatilho novo, na conversão `origem → null`.
+- **Administradoras:** nada a conceder — o relatório já é gratuito e o acesso dos condóminos não é pago hoje. A adesão fica
+  registada no CRM quando vem com código.
+- Migração `20261106172045_catalogo_de_lancamento` aplicada à base real (não havia subscrições de fornecedores) e verificada
+  com entidades `zz-test`: dentro da data tem catálogo e aparece; passada a data não; referência fechada com a oferta e aberta
+  depois de pagar; sem rasto. Avisos de segurança e desempenho sem nada novo além de índices por usar nas tabelas novas.

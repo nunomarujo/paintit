@@ -147,3 +147,46 @@ describe('Oferta de lançamento', () => {
     await expect(as(ADMIN, () => db.query(`insert into public.ofertas_de_lancamento (org_id) values ($1)`, [ORG]))).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('Catálogo de lançamento (fornecedores)', () => {
+  const FORN = '00000000-0000-4000-8000-0000000000e1';
+  const FORN2 = '00000000-0000-4000-8000-0000000000e2';
+  const PINT = '00000000-0000-4000-8000-0000000000e3';
+  const dono = (n: number) => `00000000-0000-4000-8000-0000000000f${n}`;
+  beforeAll(async () => {
+    for (const n of [1, 2, 3, 4]) await db.query('insert into auth.users (id, email) values ($1, $2)', [dono(n), `forn${n}@teste.invalid`]);
+    await db.query(`insert into public.organizations (id, kind, nome, created_by) values ($1, 'fornecedor', 'Tintas de Ensaio', $4), ($2, 'fornecedor', 'Tintas Dois', $5), ($3, 'pintor', 'Pintor de Ensaio', $6)`, [FORN, FORN2, PINT, dono(1), dono(2), dono(3)]);
+  });
+  const tem = async (org: string) => (await db.query<{ r: boolean }>(`select private.supplier_has_plan($1, 'catalogo') as r`, [org])).rows[0]!.r;
+  const ativos = async () => (await db.query<{ active_suppliers: string }>(`select * from public.active_suppliers('catalogo')`)).rows.map((r) => r.active_suppliers);
+
+  it('dentro da data, tem o catálogo e aparece; passada a data, deixa de ter e de aparecer', async () => {
+    await db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents, valida_ate, origem) values ($1, 'catalogo', 0, '2999-01-31', 'lancamento')`, [FORN]);
+    expect(await tem(FORN)).toBe(true);
+    expect(await ativos()).toContain(FORN);
+    await db.query(`update public.supplier_subscriptions set valida_ate = '2020-01-01' where org_id = $1`, [FORN]);
+    expect(await tem(FORN)).toBe(false);
+    expect(await ativos()).not.toContain(FORN);
+  });
+  it('um plano sem fim (como até aqui) continua a valer', async () => {
+    await db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents) values ($1, 'catalogo', 4900)`, [FORN2]);
+    expect(await tem(FORN2)).toBe(true);
+  });
+  it('só se aceita a origem «lancamento»', async () => {
+    await expect(db.query(`update public.supplier_subscriptions set origem = 'outra' where org_id = $1`, [FORN2])).rejects.toThrow(/check/);
+  });
+  it('a oferta gratuita não abre a janela de referência; pagar sim', async () => {
+    const FORN3 = '00000000-0000-4000-8000-0000000000e4';
+    await db.query(`insert into public.organizations (id, kind, nome, created_by) values ($1, 'fornecedor', 'Tintas Tres', $2)`, [FORN3, dono(4)]);
+    await db.query(`insert into public.supplier_referral_invites (painter_org_id, code, supplier_org_id, nif, convite_confirmado_em) values ($1, 'ENSAIO1234', $2, '999999990', now())`, [PINT, FORN3]);
+    await db.query(`insert into public.supplier_subscriptions (org_id, plan, price_cents, valida_ate, origem) values ($1, 'catalogo', 0, '2999-01-31', 'lancamento')`, [FORN3]);
+    const antes = (await db.query<{ adesao_elegivel_em: string | null }>(`select adesao_elegivel_em from public.supplier_referral_invites where code = 'ENSAIO1234'`)).rows[0]!;
+    expect(antes.adesao_elegivel_em).toBeNull();
+    await db.query(`update public.supplier_subscriptions set origem = null, valida_ate = null, price_cents = 4900 where org_id = $1`, [FORN3]);
+    const depois = (await db.query<{ adesao_elegivel_em: string | null }>(`select adesao_elegivel_em from public.supplier_referral_invites where code = 'ENSAIO1234'`)).rows[0]!;
+    expect(depois.adesao_elegivel_em).not.toBeNull();
+  });
+  it('a oferta pode registar «catalogo» como concedida', async () => {
+    await db.query(`insert into public.ofertas_de_lancamento (org_id, origem_flyer, concedida, valida_ate) values ($1, 'fl-for-1', 'catalogo', '2027-01-31')`, [FORN2]);
+  });
+});

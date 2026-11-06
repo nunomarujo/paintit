@@ -34,9 +34,23 @@ describe('concessaoPara', () => {
   it('não concede depois da data', () => expect(concessaoPara('pintor', pin, '2027-02-01')).toBeNull());
   it('não concede a outros tipos de entidade, nem sem origem, nem a flyers de outros perfis', () => {
     for (const k of ['fornecedor', 'condominio', 'cliente']) expect(concessaoPara(k, pin, '2026-11-06')).toBeNull();
+    expect(concessaoPara('pintor', { flyer: 'fl-for-1', codigo: null }, '2026-11-06')).toBeNull();
     expect(concessaoPara('pintor', null, '2026-11-06')).toBeNull();
     expect(concessaoPara('pintor', { flyer: null, codigo: 'AB12CD34' }, '2026-11-06')).toBeNull();
     expect(concessaoPara('pintor', { flyer: 'fl-cli-1', codigo: null }, '2026-11-06')).toBeNull();
   });
   it('a versão de lançamento leva a data da campanha', () => expect(VERSAO_DE_LANCAMENTO).toBe('lancamento-2027-01-31'));
+});
+
+describe('concessaoPara: fornecedores', () => {
+  const forn = { flyer: 'fl-for-2', codigo: 'AB12CD34' };
+  it('concede o catálogo a um fornecedor vindo de um flyer de fornecedores, dentro da data', () => {
+    expect(concessaoPara('fornecedor', forn, '2026-11-06')).toEqual({ tipo: 'catalogo', validaAte: CAMPANHA_DE_LANCAMENTO.ate });
+    expect(concessaoPara('fornecedor', forn, '2027-02-01')).toBeNull();
+  });
+  it('não concede a um fornecedor vindo de um flyer de pintores, nem a administradoras', () => {
+    expect(concessaoPara('fornecedor', { flyer: 'fl-pin-1', codigo: null }, '2026-11-06')).toBeNull();
+    expect(concessaoPara('condominio', { flyer: 'fl-cond-1', codigo: null }, '2026-11-06')).toBeNull();
+    expect(concessaoPara('fornecedor', null, '2026-11-06')).toBeNull();
+  });
 });

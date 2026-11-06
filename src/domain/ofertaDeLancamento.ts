@@ -43,14 +43,17 @@ export function origemDoCookie(valor: string | undefined | null): Origem | null 
   return flyer || codigo ? { flyer, codigo } : null;
 }
 
-export type Concessao = { tipo: 'pro'; validaAte: string } | null;
+export type Concessao = { tipo: 'pro' | 'catalogo'; validaAte: string } | null;
 
 /**
- * O que se concede a uma entidade nova. Só empresas de pintura, só com origem num flyer de pintores (`fl-pin-*`), e só até à
- * data da campanha. O flyer de um email do CRM é o mesmo: o link do email leva ao destino do flyer, com `c=` e `k=`.
+ * O que se concede a uma entidade nova, até à data da campanha: às empresas de pintura vindas de um flyer de pintores
+ * (`fl-pin-*`), o Plano Pro; aos fornecedores vindos de um flyer de fornecedores (`fl-for-*`), a presença no catálogo sem
+ * subscrição. O flyer de um email do CRM é o mesmo: o link do email leva ao destino do flyer, com `c=` e `k=`.
+ * Administradoras: nada a conceder (o relatório já é gratuito); a adesão só se regista.
  */
 export function concessaoPara(kind: string, origem: Origem | null, hoje: string): Concessao {
-  if (kind !== 'pintor' || !origem?.flyer?.startsWith('fl-pin-')) return null;
   if (hoje > CAMPANHA_DE_LANCAMENTO.ate) return null;
-  return { tipo: 'pro', validaAte: CAMPANHA_DE_LANCAMENTO.ate };
+  if (kind === 'pintor' && origem?.flyer?.startsWith('fl-pin-')) return { tipo: 'pro', validaAte: CAMPANHA_DE_LANCAMENTO.ate };
+  if (kind === 'fornecedor' && origem?.flyer?.startsWith('fl-for-')) return { tipo: 'catalogo', validaAte: CAMPANHA_DE_LANCAMENTO.ate };
+  return null;
 }
