@@ -17,14 +17,14 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | O quê | Onde | O que fecha |
 |---|---|---|
 | Rever em produção os ecrãs novos do workspace (Hoje, Levantamentos, Produtos e preços, Regras comerciais, Empresa) | quempinta.pt | dizer o que não está como se queria |
-| Correr a limpeza dos resíduos de ensaio | `painel-limpeza-dos-ensaios.sql`, primeiro em ensaio (`a_serio := false`), depois a sério | antes de a Stripe passar a modo real |
-| Apagar 2 fotografias SIMULACAO | conta `info@quempinta.pt`, pedido «SIMULACAO Pintura das fachadas e caixa de escadas» | apagar na aplicação |
-| Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords (aviso de segurança da Supabase) | ligar |
-| Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
+| Limpeza dos resíduos de ensaio, antes de a Stripe passar a modo real | **Feito a 06/11/2026 para as 6 entidades «SIMULACAO»** (pedidos, prédios, levantamentos e fotografias delas; ensaio desfeito primeiro, depois a sério). O script `painel-limpeza-dos-ensaios.sql` não existe no repositório. **Por fazer, só antes da Stripe real:** as outras 8 entidades de teste (Pintor Teste Lda e Condomínio Teste Rua de Altamira com contratação, 3 pagamentos Stripe e a linha da Moloni; Exotictarget; «Nuno Marujo»; «asacassc saca»; «teste de pintor»; «exotictgarte»; «Lote 14»), que ainda servem para ensaios | decidir quando |
+| Apagar 2 fotografias SIMULACAO | **Feito a 06/11/2026** (as linhas saíram com o pedido). Ficam 2 ficheiros órfãos de 4,6 e 4,8 KB no balde `fotos`, pasta `d7a7b186-7f8f-46b6-874f-43dd0d8b2b0b/` (a Supabase proíbe apagar `storage.objects` por SQL) | apagar à mão em Supabase › Storage › fotos |
+| Ligar a proteção contra palavras-passe comprometidas | Supabase › Authentication › Passwords — **só existe no plano Pro: adiado** (decisão do promotor, 06/11/2026) | ao passar a Pro |
+| Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | adiado com o plano Pro (06/11/2026); `DECISOES.md` «Passos pendentes do promotor» |
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
 | Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
-| Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
+| Pedido ao IRN de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt) | **Enviado pelo promotor a 06/11/2026.** Falta a resposta do IRN; com a autorização, a leitura deixa de ser manual (secção 3) |
 | Pedir ao fornecedor que ainda não escolheu os concelhos de levantamento que os escolha | o responsável, em Avaliações › Disponibilidade › «Zonas cobertas pela empresa» (desde 06/11/2026, sem concelhos não recebe oportunidades) | concelhos gravados |
 | Ver em produção o topo de «Avaliações › Hoje» do avaliador | quempinta.pt, com uma conta de vendedor: sem inscrição vê a lista do que falta; inscrito e com os concelhos gravados vê «Quanto pode ganhar» e, uma vez, a janela «Tudo pronto» (`DECISOES.md` 06/11/2026) | dizer o que não está como se queria |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
@@ -39,8 +39,12 @@ aprovado → as quatro chaves na Vercel. Migração `20261102090000_avisos_por_w
 reserva → resposta lida, às 20:31). Canal: **Meta direta** (Cloud API), conta WhatsApp «Quem Pinta»
 1466775882007762, número +351 926 549 194 (id 1500003363188840), pagamento com cartão em euros, aplicação
 publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver `docs/WHATSAPP.md`. Por fazer:
-(1) **a convocatória com ondas a sério ainda não foi vista a correr** (só reenviei um convite à mão); fica
-para um dia útil das 9h às 18h, com um pedido de teste novo; (2) o modelo `avaliador_nova_oportunidade` foi
+(1) **a convocatória com ondas, vista a correr a 06/11/2026, 16:35 (Lisboa):** um pedido de teste novo
+(`zz-test-convocatoria`, concelho de Viana do Castelo, levantamento n.º 1012) fez sair a **1.ª onda** ao minuto seguinte
+para o único avaliador elegível (a empresa Exotictarget), entregue no telemóvel de teste. Antes disso a convocatória
+respondia «sem candidatos» aos levantamentos antigos de teste porque a empresa tinha as reservas dessas ofertas
+**libertadas** (excluída delas). Por ver: o «Aceito» no telemóvel (reserva) e a 2.ª onda, 60 minutos úteis depois (só
+se vê com mais de um avaliador). Depois do teste, apagar as entidades `zz-test-convocatoria-*`; (2) o modelo `avaliador_nova_oportunidade` foi
 **reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa). A 05/11/2026,
 18:58, a Meta enviou «pedido para atualizar a categoria de UTILITY para MARKETING aprovado… podes continuar a
 enviar mensagens com este modelo»: o modelo **funciona, como Marketing**. Não foi um recurso ganho — se o custo
