@@ -184,3 +184,14 @@ Sai no mesmo momento do email, quando é a vez de uma parte assinar, a quem pode
 consentimento e o número (`survey_availability`, a preferência de toda a aplicação; liga-se no Perfil e na página do
 contrato). Só sai com `WHATSAPP_MODELO_CONTRATO` na Vercel, depois de a Meta aprovar o modelo. Código:
 `contratoParaAssinarPorWhatsApp` em `src/lib/notify.ts`; botão de ligação em `corpoDoModelo` (`src/domain/whatsapp.ts`).
+
+
+## Confirmar o número de quem recebe avisos (06/11/2026)
+
+Os números não se escrevem: confirmam-se por mensagem recebida. A pessoa carrega em «Associar um número» (perfil,
+inscrição de avaliador, página do contrato, «Disponibilidade e alertas»), recebe um código `QP-XXXX-XXXX` e abre o
+WhatsApp já com a mensagem escrita para o número da plataforma (`BRAND.whatsapp`, `src/config/brand.ts`). O webhook
+(`/api/whatsapp`) lê o código na mensagem e chama `confirmar_numero_whatsapp(código, número de quem escreveu)`; responde
+em texto livre (a pessoa falou primeiro, por isso cabe na janela de 24 horas). Escrever «PARAR» do próprio número tira-o
+(`parar_whatsapp`). Regras, limites e a razão: `docs/DECISOES.md`, 06/11/2026. Sem número confirmado nada se envia: todos
+os sítios que enviam leem `survey_availability.telemovel_whatsapp`, agora derivado dos números confirmados.

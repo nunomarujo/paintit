@@ -79,6 +79,15 @@ async function inscreverComoAvaliador(userId: string) {
   );
 }
 
+/** Os concelhos da empresa (06/11/2026): sem eles não chegam oportunidades. «todo» = todo o país, marcado. */
+async function cobrir(orgId: string, zona: string[] | 'todo') {
+  await db.query(
+    `insert into public.supplier_survey_coverage (org_id, concelhos, todo_o_pais) values ($1, $2, $3)
+       on conflict (org_id) do update set concelhos = excluded.concelhos, todo_o_pais = excluded.todo_o_pais`,
+    [orgId, zona === 'todo' ? [] : zona, zona === 'todo'],
+  );
+}
+
 beforeAll(async () => {
   db = await baseComMigracoes();
   for (const u of [A, B, C, D, ADMIN]) {
@@ -439,6 +448,63 @@ describe('zona medida pelo cliente na fotografia (06/11/2026)', () => {
   it('as origens de antes continuam a valer', async () => {
     for (const o of ['medicao', 'estimativa', 'documento']) await zona('origem_quantidade', [o]);
     await expect(zona('origem_quantidade', ['medicao_cliente'])).rejects.toThrow(/origem_quantidade_check/);
+  });
+});
+
+describe('o lado do prédio de cada alçado (06/11/2026)', () => {
+  // A zona guarda o lado da planta onde fica o seu alçado. Nulo é válido (o desenho atribui); o que se guarda tem de
+  // ser um identificador de `ladosDaPlanta`. A restrição está na base porque as políticas deixam quem gere o pedido
+  // escrever qualquer coluna pela API.
+  let req: string;
+  const zona = (face: string | null) =>
+    as(A, () =>
+      db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2, face_do_predio) values ($1, 'fachada', 9000, $2) returning id`, [req, face]),
+    );
+
+  beforeAll(async () => {
+    const predio = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    req = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Lados do prédio', 'fachadas', 'Pintura das fachadas do prédio.', current_date + 10) returning id`,
+          [condo, predio],
+        ),
+      )
+    ).id;
+  });
+
+  it('aceita os lados das formas canónicas e o nulo', async () => {
+    for (const f of ['frente', 'esquerda', 'direita', 'tras', 'tras-2', 'direita-3', 'esquerda-9', null]) {
+      expect((await zona(f)).rows).toHaveLength(1);
+    }
+  });
+
+  it('recusa o que não é um lado: outro nome, número fora de 2 a 9, maiúsculas, texto solto', async () => {
+    for (const f of ['norte', 'frente-1', 'frente-10', 'Frente', 'frente ', 'frente; drop table', '']) {
+      await expect(zona(f), JSON.stringify(f)).rejects.toThrow(/face_do_predio_formato/);
+    }
+  });
+
+  it('quem gere o pedido muda o lado de uma zona, e não mexe no resto da linha', async () => {
+    const { id } = (await zona('frente')).rows[0] as { id: string };
+    await as(A, () => db.query(`update public.request_surfaces set face_do_predio = 'direita' where id = $1`, [id]));
+    const l = await one<{ face_do_predio: string; area_direta_cm2: number }>(
+      'select face_do_predio, area_direta_cm2 from public.request_surfaces where id = $1',
+      [id],
+    );
+    expect(l).toEqual({ face_do_predio: 'direita', area_direta_cm2: 9000 });
+  });
+
+  it('quem não gere o pedido não vê nem altera o lado: as políticas da tabela cobrem a coluna', async () => {
+    const { id } = (await zona('tras')).rows[0] as { id: string };
+    const estranho = '00000000-0000-4000-8000-0000000000f9';
+    const vistas = await as(estranho, async () => (await db.query('select face_do_predio from public.request_surfaces where id = $1', [id])).rows);
+    expect(vistas).toEqual([]);
+    const mudadas = await as(estranho, async () =>
+      (await db.query(`update public.request_surfaces set face_do_predio = 'frente' where id = $1 returning id`, [id])).rows,
+    );
+    expect(mudadas).toEqual([]);
   });
 });
 
@@ -1740,6 +1806,10 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     ).rejects.toThrow(/row-level security/);
     await as(F, () => db.query(`insert into public.supplier_discounts (org_id, tipo, max_area_cm2, desconto_bps) values ($1, 'primario', 100000, 1000)`, [supplier]));
     await as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida, minimo_cents) values ($1, '{Lisboa}', true, 50000)`, [supplier]));
+    // Uma condição de entrega sem concelhos e sem «todo o país» já não se grava (06/11/2026).
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida) values ($1, '{}', true)`, [supplier])),
+    ).rejects.toThrow(/supplier_delivery_escolhida/);
     expect(await as(B, async () => (await db.query('select id from public.supplier_discounts')).rows)).toHaveLength(1);
   });
 
@@ -2621,6 +2691,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [VEND, email(VEND)]);
     await inscreverComoAvaliador(VEND);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Levantamento Lda', '610000004')).id;
+    await cobrir(vendorOrg, ['Lisboa', 'Oeiras']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     const buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
     requestId = (
@@ -2657,6 +2728,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await db.query('insert into auth.users (id, email) values ($1, $2)', [OTHERVEND, email(OTHERVEND)]);
     await inscreverComoAvaliador(OTHERVEND);
     const other = (await createOrg(OTHERVEND, 'fornecedor', 'Outra Tinta Lda', '610000012')).id;
+    await cobrir(other, 'todo');
     await expect(as(OTHERVEND, () => db.query('select public.reserve_survey($1, $2)', [surveyId, other]))).rejects.toThrow(/já não está disponível/);
   });
 
@@ -2667,6 +2739,58 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await expect(as(NAOINSCRITO, () => db.query('select public.reserve_survey($1, $2)', [surveyId, org]))).rejects.toThrow(
       /inscrição como avaliador/,
     );
+  });
+
+  it('concelhos obrigatórios (06/11/2026): sem zona não cobre nada, e «todo o país» só quando marcado', async () => {
+    const SEMZONA = '00000000-0000-4000-8000-00000000c0c1';
+    await db.query('insert into auth.users (id, email) values ($1, $2)', [SEMZONA, email(SEMZONA)]);
+    const org = (await createOrg(SEMZONA, 'fornecedor', 'Sem Zona Lda', '610000098')).id;
+    const cobre = async (concelho: string) =>
+      (await one<{ c: boolean }>('select private.supplier_covers($1, $2) as c', [org, concelho])).c;
+    // Sem linha e sem morada: não cobre (antes cobria todo o país).
+    expect(await cobre('Lisboa')).toBe(false);
+    // Sem linha, com morada: cobre o concelho da morada da empresa, e só esse.
+    await db.query(`update public.organizations set concelho = 'Braga' where id = $1`, [org]);
+    expect(await cobre('Braga')).toBe(true);
+    expect(await cobre('Lisboa')).toBe(false);
+    // Uma loja noutro concelho junta-se à morada (06/11/2026).
+    await as(SEMZONA, () =>
+      db.query(
+        `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, concelho, created_by)
+           values ($1, 'Loja do Porto', 'Rua de Santa Catarina, 1', '4000-001', 'Porto', 'Porto', $2)`,
+        [org, SEMZONA],
+      ),
+    );
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Braga')).toBe(true);
+    // As lojas veem-se pela empresa, pela plataforma e pelos pintores (06/11/2026); por mais ninguém.
+    expect(await as(B, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([]);
+    const PINTOR = '00000000-0000-4000-8000-0000000000e1'; // o pintor criado nos testes das propostas
+    expect(await as(PINTOR, async () => (await db.query('select nome from public.supplier_stores where org_id = $1', [org])).rows)).toEqual([
+      { nome: 'Loja do Porto' },
+    ]);
+    expect(await as(SEMZONA, async () => (await db.query('select id from public.supplier_stores where org_id = $1', [org])).rows)).toHaveLength(1);
+    // Quem não gere a empresa não acrescenta lojas.
+    await expect(
+      as(B, () =>
+        db.query(
+          `insert into public.supplier_stores (org_id, nome, morada, codigo_postal, localidade, created_by) values ($1, 'X', 'Rua X', '4000-001', 'Porto', $2)`,
+          [org, B],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    // Uma lista vazia sem «todo o país» nem se grava.
+    await expect(
+      as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{}')`, [org])),
+    ).rejects.toThrow(/supplier_survey_coverage_escolhida/);
+    // Uma lista cobre os seus concelhos e mais nenhum.
+    await as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{Porto}')`, [org]));
+    expect(await cobre('Porto')).toBe(true);
+    expect(await cobre('Lisboa')).toBe(false);
+    expect(await cobre('Braga')).toBe(false); // a zona escolhida manda sobre a morada
+    // «Todo o país», marcado.
+    await as(SEMZONA, () => db.query(`update public.supplier_survey_coverage set concelhos = '{}', todo_o_pais = true where org_id = $1`, [org]));
+    expect(await cobre('Lisboa')).toBe(true);
   });
 
   it('reservar abre a tentativa 1, com os três prazos escritos de uma vez', async () => {
@@ -3226,8 +3350,10 @@ describe('pedido de esclarecimento ao vendedor (dois marcos, escalada sem crédi
     await inscreverComoAvaliador(VEND);
     await inscreverComoAvaliador(VEND2);
     vendorOrg = (await createOrg(VEND, 'fornecedor', 'Tintas do Esclarecimento Lda', '610000055')).id;
+    await cobrir(vendorOrg, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendorOrg, VEND]);
     vendor2Org = (await createOrg(VEND2, 'fornecedor', 'Tintas do Esclarecimento Dois Lda', '610000063')).id;
+    await cobrir(vendor2Org, ['Lisboa']);
     await db.query(`update public.org_members set role = 'vendedor' where org_id = $1 and user_id = $2`, [vendor2Org, VEND2]);
     await createOrg(CP, 'pintor', 'Pinturas do Esclarecimento Lda', '610000071');
     await createOrg(CP2, 'pintor', 'Pinturas do Esclarecimento Dois Lda', '610000080');
@@ -4145,12 +4271,15 @@ describe('disponibilidade do avaliador', () => {
     await expect(
       as(EU, () => db.query('update public.survey_availability set alerta_whatsapp = true where user_id = $1', [EU])),
     ).rejects.toThrow(/whatsapp_com_numero/);
+    // O número já não se escreve pela API (06/11/2026): vem do webhook, depois de confirmado por mensagem recebida. A
+    // restrição de formato continua a valer para quem escreve com a chave de serviço, sem sessão de pessoa.
+    await db.query(`select set_config('request.jwt.claim.sub', '', false)`);
+    await db.query(`select set_config('request.jwt.claims', '{}', false)`);
+    await expect(db.query(`update public.survey_availability set telemovel_whatsapp = '912345678' where user_id = $1`, [EU])).rejects.toThrow(/check/);
+    await db.query(`update public.survey_availability set telemovel_whatsapp = '+351912345678', alerta_whatsapp = true where user_id = $1`, [EU]);
     await expect(
-      as(EU, () => db.query(`update public.survey_availability set telemovel_whatsapp = '912345678' where user_id = $1`, [EU])),
-    ).rejects.toThrow(/check/);
-    await as(EU, () =>
-      db.query(`update public.survey_availability set telemovel_whatsapp = '+351912345678', alerta_whatsapp = true where user_id = $1`, [EU]),
-    );
+      as(EU, () => db.query(`update public.survey_availability set telemovel_whatsapp = '+351913345678' where user_id = $1`, [EU])),
+    ).rejects.toThrow(/só se associa por mensagem/);
     const r = await as(OUTRA, () => db.query('select telemovel_whatsapp from public.survey_availability'));
     expect(r.rows).toHaveLength(0);
   });

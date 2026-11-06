@@ -20,6 +20,8 @@ const FILL: Record<FaceKind, string> = {
   muro: 'fill-slate-200 stroke-slate-500',
   beiral: 'fill-slate-200 stroke-slate-600',
   pala: 'fill-slate-200 stroke-slate-600',
+  // Só existe no desenho por alçados do passo 2 (que não usa este componente): o contorno, sem enchimento.
+  por_entregar: 'fill-transparent stroke-slate-400',
 };
 
 /**

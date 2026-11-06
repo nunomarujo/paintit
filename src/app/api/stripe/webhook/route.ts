@@ -97,6 +97,9 @@ export async function POST(req: Request) {
         promo_code_id: promo?.id ?? null,
         discount_bps: bps,
         stripe_subscription_id: typeof s.subscription === 'string' ? s.subscription : (s.subscription?.id ?? null),
+        // Pagar acaba com a oferta de lançamento (que tinha data de fim) e passa a valer sem fim.
+        valida_ate: null,
+        origem: null,
         updated_by: null,
         updated_at: new Date().toISOString(),
       });

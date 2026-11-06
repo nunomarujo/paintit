@@ -237,6 +237,51 @@ export type Database = {
           },
         ];
       };
+      // Migração `crm_fundacao` (06/11/2026), aplicada à base real. Escrita à mão: coincide coluna a coluna com a migração.
+      crm_zonas: {
+        Row: { id: string; concelho: string; ativa: boolean; campanha_atual: number; criada_em: string; descoberta_em: string | null };
+        Insert: { id?: string; concelho: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
+        Update: { id?: string; concelho?: string; ativa?: boolean; campanha_atual?: number; criada_em?: string; descoberta_em?: string | null };
+        Relationships: [];
+      };
+      crm_contactos: {
+        Row: { id: string; zona_id: string; tipo: string; nome: string; email: string | null; telefone: string | null; website: string | null; fonte: string; pessoa_coletiva: boolean; estado: string; desistiu_em: string | null; criado_em: string; codigo: string; enriquecido_em: string | null };
+        Insert: { id?: string; zona_id: string; tipo: string; nome: string; email?: string | null; telefone?: string | null; website?: string | null; fonte: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
+        Update: { id?: string; zona_id?: string; tipo?: string; nome?: string; email?: string | null; telefone?: string | null; website?: string | null; fonte?: string; pessoa_coletiva?: boolean; estado?: string; desistiu_em?: string | null; criado_em?: string; codigo?: string; enriquecido_em?: string | null };
+        Relationships: [];
+      };
+      crm_envios: {
+        Row: { id: string; contacto_id: string; campanha_id: string; estado: string; aprovado_por: string | null; enviado_em: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; campanha_id: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; campanha_id?: string; estado?: string; aprovado_por?: string | null; enviado_em?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      crm_eventos: {
+        Row: { id: string; contacto_id: string; envio_id: string | null; tipo: string; detalhe: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id: string; envio_id?: string | null; tipo: string; detalhe?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string; envio_id?: string | null; tipo?: string; detalhe?: string | null; criado_em?: string };
+        Relationships: [];
+      };
+      // Migração `crm_campanhas_e_dossier` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      crm_campanhas: {
+        Row: { id: string; assunto: string; corpo: string; cta: string; estado: string; nota: string | null; versao: number; decidida_por: string | null; decidida_em: string | null; criada_em: string };
+        Insert: { id: string; assunto: string; corpo: string; cta: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Update: { id?: string; assunto?: string; corpo?: string; cta?: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Relationships: [];
+      };
+      crm_dossier: {
+        Row: { id: string; perfil: string; zona_id: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias: number; solucao: string | null; cobertura: number; estado: string; criado_em: string; atualizado_em: string };
+        Insert: { id?: string; perfil: string; zona_id?: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Update: { id?: string; perfil?: string; zona_id?: string | null; tema?: string; tipo?: string; texto?: string; fonte?: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Relationships: [];
+      };
+      // Migração `ofertas_de_lancamento` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      ofertas_de_lancamento: {
+        Row: { org_id: string; origem_flyer: string | null; origem_contacto: string | null; concedida: string | null; valida_ate: string | null; criado_em: string };
+        Insert: { org_id: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Update: { org_id?: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {
@@ -263,6 +308,7 @@ export type Database = {
           cae: string | null;
           cae_atividade: string | null;
           codigo_postal: string | null;
+          concelho: string | null;
           created_at: string;
           created_by: string;
           email_contacto: string | null;
@@ -286,6 +332,7 @@ export type Database = {
           cae?: string | null;
           cae_atividade?: string | null;
           codigo_postal?: string | null;
+          concelho?: string | null;
           created_at?: string;
           created_by?: string;
           email_contacto?: string | null;
@@ -1133,6 +1180,14 @@ export type Database = {
         Update: { estado?: string; erro?: string | null; updated_at?: string };
         Relationships: [];
       };
+      // Números de WhatsApp confirmados por mensagem recebida: 20261106201807_numeros_de_whatsapp_confirmados.
+      // Só se lê (a própria pessoa); escreve-se pelas funções `confirmar_numero_whatsapp`, `parar_whatsapp` e `remover_numero_whatsapp`.
+      whatsapp_numeros: {
+        Row: { id: string; user_id: string; numero: string; confirmado_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       avisos_por_email: {
         // Só o esvaziamento (chave de serviço) a toca; sem políticas, de propósito. Colunas whatsapp_*: migração 20261102090000.
         Row: { id: string; notification_id: string; attempt_id: string | null; destinatario: string; assunto: string; estado: string; tentativas: number; proxima_tentativa_em: string; ultima_tentativa_em: string | null; ultimo_erro: string | null; enviado_em: string | null; created_at: string; whatsapp_estado: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro: string | null; whatsapp_em: string | null };
@@ -1140,10 +1195,34 @@ export type Database = {
         Update: { whatsapp_estado?: 'enviado' | 'falhou' | 'sem_consentimento' | null; whatsapp_erro?: string | null; whatsapp_em?: string | null };
         Relationships: [];
       };
+      supplier_stores: {
+        Row: {
+          codigo_postal: string;
+          concelho: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          localidade: string;
+          morada: string;
+          nome: string;
+          org_id: string;
+        };
+        Insert: {
+          codigo_postal: string;
+          concelho?: string | null;
+          created_by: string;
+          localidade: string;
+          morada: string;
+          nome: string;
+          org_id: string;
+        };
+        Update: { codigo_postal?: string; concelho?: string | null; localidade?: string; morada?: string; nome?: string };
+        Relationships: [];
+      };
       supplier_survey_coverage: {
-        Row: { concelhos: string[]; org_id: string; updated_at: string };
-        Insert: { concelhos?: string[]; org_id: string };
-        Update: { concelhos?: string[] };
+        Row: { concelhos: string[]; org_id: string; todo_o_pais: boolean; updated_at: string };
+        Insert: { concelhos?: string[]; org_id: string; todo_o_pais?: boolean };
+        Update: { concelhos?: string[]; todo_o_pais?: boolean };
         Relationships: [];
       };
       survey_reviews: {
@@ -1476,8 +1555,8 @@ export type Database = {
         Relationships: [];
       };
       supplier_subscriptions: {
-        Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
-        Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };
+        Row: { discount_bps: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id: string | null; started_at: string; valida_ate: string | null; origem: string | null; status: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id: string | null; updated_at: string; updated_by: string | null };
+        Insert: { discount_bps?: number; org_id: string; plan: 'vendedores' | 'catalogo'; price_cents: number; promo_code_id?: string | null; started_at?: string; valida_ate?: string | null; origem?: string | null; status?: 'ativa' | 'suspensa' | 'cancelada'; stripe_subscription_id?: string | null; updated_at?: string; updated_by?: string | null };
         Update: Partial<Database['public']['Tables']['supplier_subscriptions']['Insert']>;
         Relationships: [];
       };
@@ -1491,6 +1570,7 @@ export type Database = {
           incluida: boolean;
           minimo_cents: number | null;
           org_id: string;
+          todo_o_pais: boolean;
         };
         Insert: {
           concelhos?: string[];
@@ -1499,6 +1579,7 @@ export type Database = {
           incluida?: boolean;
           minimo_cents?: number | null;
           org_id: string;
+          todo_o_pais?: boolean;
         };
         Update: Partial<Database['public']['Tables']['supplier_delivery']['Insert']>;
         Relationships: [];
@@ -2043,6 +2124,8 @@ export type Database = {
           origem_quantidade: OrigemDaQuantidade | null;
           // Migração 20261106083508 (aplicada a 06/11/2026): margem da medição do cliente pela fotografia.
           margem_bps: number | null;
+          /** O lado da planta do prédio onde fica o alçado (migração 20261106201643; ainda por aplicar à base real). */
+          face_do_predio: string | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
           registado_em: string | null;
@@ -2064,6 +2147,7 @@ export type Database = {
           participacao?: Participacao;
           origem_quantidade?: OrigemDaQuantidade | null;
           margem_bps?: number | null;
+          face_do_predio?: string | null;
           confirmacao?: Confirmacao;
           registado_por?: string | null;
           registado_em?: string | null;
@@ -2376,6 +2460,13 @@ export type Database = {
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
       // Só a chave de serviço (webhook do WhatsApp). 'aceite' | 'tarde' | 'sem_inscricao' | 'excluido'.
       aceitar_convite: { Args: { p_invite: string }; Returns: string };
+      // Confirmar o número de WhatsApp por mensagem recebida (20261106201807). Devolve o código em claro uma só vez.
+      pedir_codigo_whatsapp: { Args: Record<string, never>; Returns: string };
+      remover_numero_whatsapp: { Args: { p_id: string }; Returns: undefined };
+      cancelar_codigo_whatsapp: { Args: Record<string, never>; Returns: undefined };
+      // Só a chave de serviço (webhook). estado: ok | transferido | ja_associado | invalido | demasiadas | cheio.
+      confirmar_numero_whatsapp: { Args: { p_codigo: string; p_numero: string }; Returns: Json };
+      parar_whatsapp: { Args: { p_numero: string }; Returns: boolean };
       reserve_survey: {
         Args: { p_survey_id: string; p_org: string };
         Returns: {

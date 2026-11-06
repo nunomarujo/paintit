@@ -21,8 +21,7 @@ import { PdfSign } from './PdfSign';
 import { PayButton } from './PayButton';
 import { stripeConfigured } from '@/lib/stripe';
 import { Voltar } from '@/components/Voltar';
-import { AvisosPorWhatsApp } from '@/components/AvisosPorWhatsApp';
-import { configuracaoWhatsApp } from '@/domain/whatsapp';
+import { AvisosPorWhatsAppDaPessoa } from '@/components/AvisosPorWhatsAppDaPessoa';
 import { minutaComElementos, ibanEmGrupos } from '@/domain/contracting';
 import { CAMPOS, CAMPO_LABELS, VALIDACAO_LABELS, emVigor, faltaParaAssinar, mascararIban, podeAlterar } from '@/domain/elementosDoContrato';
 import { tranchesDoContrato } from '@/domain/tranchesDoContrato';
@@ -323,7 +322,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ id:
             Quando for a sua vez de assinar, o aviso segue por email e fica aqui. Com o WhatsApp ligado, chega também ao telemóvel, com a
             ligação direta para este contrato.
           </p>
-          <AvisosPorWhatsApp alertaWhatsApp={false} telemovel={preferencia?.telemovel_whatsapp ?? null} whatsappDisponivel={configuracaoWhatsApp(process.env) !== null} />
+          <AvisosPorWhatsAppDaPessoa />
         </section>
       )}
 

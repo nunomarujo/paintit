@@ -330,8 +330,10 @@ export function discounted(price: Cents, bps: number): Cents {
 // --- Entrega em obra ---------------------------------------------------------------
 
 export interface DeliveryRule {
-  /** Concelhos servidos; vazio = todo o país. */
+  /** Concelhos servidos. Desde 06/11/2026 uma lista vazia já não quer dizer «todo o país»: isso é `todoOPais`. */
   concelhos: string[];
+  /** «Todo o país», marcado de propósito pelo fornecedor. */
+  todoOPais?: boolean;
   incluida: boolean;
   custo: Cents | null;
   /** Encomenda mínima para a entrega incluída. */
@@ -348,7 +350,7 @@ const norm = (s: string) => s.trim().toLocaleLowerCase('pt-PT').normalize('NFD')
 
 /** Condições de entrega numa obra no `concelho`, para uma encomenda de `valor`. */
 export function deliveryFor(rules: DeliveryRule[], concelho: string, valor: Cents): DeliveryQuote {
-  const here = rules.filter((r) => r.concelhos.length === 0 || r.concelhos.some((c) => norm(c) === norm(concelho)));
+  const here = rules.filter((r) => r.todoOPais || r.concelhos.some((c) => norm(c) === norm(concelho)));
   if (here.length === 0) return { kind: 'sem_entrega' };
   if (here.some((r) => r.incluida && (r.minimo === null || valor >= r.minimo))) return { kind: 'incluida' };
   const paid = here.filter((r) => !r.incluida || r.custo !== null);

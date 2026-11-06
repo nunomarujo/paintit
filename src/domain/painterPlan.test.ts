@@ -187,3 +187,17 @@ describe('acesso ao Pro', () => {
     expect(texto).toContain('5 pontos percentuais');
   });
 });
+
+describe('Pro de lançamento (concedido, sem pagamento)', () => {
+  const base = { plano: 'pro', estado: 'cancelada', periodicidade: 'mensal', validaAte: '2027-01-31', lancamento: true } as const;
+  it('desconta e mostra a data enquanto vale', () => {
+    expect(situacaoDe(base, '2026-11-06')).toEqual({ tipo: 'lancamento', validaAte: '2027-01-31' });
+    expect(subscriberDiscountBp(base, '2027-01-31')).toBe(500);
+    expect(temPro(base, '2026-11-06')).toBe(true);
+  });
+  it('acaba na data: sem desconto e sem Pro, e a situação é «terminada»', () => {
+    expect(subscriberDiscountBp(base, '2027-02-01')).toBe(0);
+    expect(temPro(base, '2027-02-01')).toBe(false);
+    expect(situacaoDe(base, '2027-02-01')).toEqual({ tipo: 'terminada' });
+  });
+});

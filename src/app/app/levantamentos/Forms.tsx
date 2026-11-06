@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import type { FormState } from '@/app/app/actions';
+import { CONFIRMACAO_TODO_O_PAIS } from '@/domain/coberturaDaEmpresa';
 import { ConcelhosPicker } from '@/components/ConcelhosPicker';
 import { Field } from '@/components/Field';
 import { useFormAction } from '@/components/useFormAction';
@@ -16,19 +18,54 @@ const msg = (s: FormState) => {
   ) : null;
 };
 
-export function CoverageForm({ orgId, initial }: { orgId: string; initial: string[] }) {
+export function CoverageForm({
+  orgId,
+  initial,
+  todoOPais = false,
+  semEscolha = null,
+}: {
+  orgId: string;
+  initial: string[];
+  todoOPais?: boolean;
+  /** O que vale sem escolha: «Viana do Castelo (morada da empresa)». */
+  semEscolha?: string | null;
+}) {
   const { state, pending, formProps } = useFormAction<FormState>(setSurveyCoverage.bind(null, orgId), { errors: {} });
+  // «Todo o país» é uma escolha explícita, com a confirmação escrita ao lado — nunca o que fica quando a
+  // lista está vazia (promotor, 06/11/2026).
+  const [todo, setTodo] = useState(todoOPais);
   return (
-    <form {...formProps} className="flex flex-wrap items-end gap-3">
-      <div className="min-w-64 flex-1">
-        <Field name="concelhos" label="Concelhos" hint="Vazio = todo o país.">
+    <form {...formProps} className="space-y-4">
+      {!todo && (
+        <Field
+          name="concelhos"
+          label="Concelhos"
+          hint={
+            semEscolha
+              ? `Só chegam oportunidades dos concelhos escolhidos. Sem nenhum, ficam ${semEscolha}.`
+              : 'Pelo menos um. Só chegam oportunidades dos concelhos escolhidos.'
+          }
+        >
           <ConcelhosPicker name="concelhos" defaultValue={initial} />
         </Field>
-      </div>
+      )}
+      <label className="flex min-h-[44px] max-w-[54ch] items-start gap-3 text-[17px] text-slate-800">
+        <input
+          type="checkbox"
+          name="todo_o_pais"
+          checked={todo}
+          onChange={(e) => setTodo(e.target.checked)}
+          className="mt-1 h-5 w-5 flex-none"
+        />
+        <span>
+          <span className="font-semibold">Todo o país</span>
+          <span className="block text-[15px] text-slate-600">{CONFIRMACAO_TODO_O_PAIS}</span>
+        </span>
+      </label>
       <button type="submit" disabled={pending} className={button}>
         {pending ? 'A guardar…' : 'Guardar'}
       </button>
-      <div className="basis-full">{msg(state)}</div>
+      <div>{msg(state)}</div>
     </form>
   );
 }

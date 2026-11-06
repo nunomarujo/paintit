@@ -15,6 +15,7 @@ import {
 } from '@/domain/organization';
 import { diaDeLisboa } from '@/domain/disponibilidade';
 import { usaCertidao } from '@/domain/poderes';
+import { Lojas } from './Lojas';
 import { canManage, myRole } from '@/lib/access';
 import { faltasDaEntidade, leituraDaEntidade } from '@/lib/poderes';
 import { getUser } from '@/lib/supabase/server';
@@ -128,6 +129,13 @@ export default async function OrganizationPage({
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: null }),
     ]);
+
+  // Lojas do fornecedor (06/11/2026): só a empresa e a plataforma as veem (RLS).
+  const { data: lojasDaEmpresa } =
+    org.kind === 'fornecedor'
+      ? await supabase.from('supplier_stores').select('id, nome, morada, codigo_postal, localidade, concelho').eq('org_id', id).order('created_at')
+      : { data: [] };
+  const lojas = lojasDaEmpresa ?? [];
 
   const memberIds = (members ?? []).map((m) => m.user_id);
   const { data: profiles } = memberIds.length
@@ -366,6 +374,11 @@ export default async function OrganizationPage({
                   <p className="mt-4 border-t border-slate-100 pt-4 text-[17px] text-amber-800">{avisoCae}</p>
                 )}
               </section>
+              {org.kind === 'fornecedor' && (
+                <section className={card}>
+                  <Lojas orgId={org.id} lojas={lojas} podeGerir={manager} />
+                </section>
+              )}
               <section className={card}>
                 <PasswordForm />
               </section>

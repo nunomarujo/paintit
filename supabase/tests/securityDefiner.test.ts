@@ -52,6 +52,14 @@ const DISPENSADAS: Record<string, string> = {
     + 'Não decide quem pode assinar — isso continua na política engagement_events_insert, com a sessão da pessoa; só '
     + 'regista o payload que o acontecimento terá de trazer (assinatura_so_pelo_servidor, 05/11/2026). Um teste prova '
     + 'que authenticated recebe «permission denied».',
+  'public.confirmar_numero_whatsapp':
+    'Revogada a authenticated e a anon: só corre pelo serviço, chamada pelo webhook do WhatsApp depois de verificada a '
+    + 'assinatura da Meta. O WhatsApp não traz sessão; quem a autoriza é o código de uso único que a pessoa pediu com a '
+    + 'sua sessão (guardado em resumo, 15 minutos, cinco enganos por hora e por número). Um teste prova que '
+    + 'authenticated recebe «permission denied» (numeros_de_whatsapp_confirmados, 06/11/2026).',
+  'public.parar_whatsapp':
+    'Revogada a authenticated e a anon: só corre pelo serviço, chamada pelo webhook quando alguém escreve «PARAR» do '
+    + 'próprio número, depois de verificada a assinatura da Meta. Só tira (nunca acrescenta) (06/11/2026).',
   'public.registar_condomino':
     'Corre como anon de propósito: é o registo pelo código do prédio, antes de haver conta. O que a autoriza é o '
     + 'código activo (building_access_codes), e só escreve na linha do próprio email — nunca toca em permilagem nem '

@@ -96,6 +96,8 @@ export async function setSupplierPlan(_prev: FormState, form: FormData): Promise
     price_cents: monthlyPrice(p, promo?.discount_bps ?? 0),
     promo_code_id: promo?.id ?? null,
     discount_bps: promo?.discount_bps ?? 0,
+    valida_ate: null,
+    origem: null,
     updated_at: new Date().toISOString(),
   });
   if (error) return { errors: {}, message: 'Não foi possível ativar o plano.' };

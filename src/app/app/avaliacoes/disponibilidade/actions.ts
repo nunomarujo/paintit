@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import type { FormState } from '@/app/app/actions';
 import { getUser } from '@/lib/supabase/server';
-import { numeroWhatsApp } from '@/domain/whatsapp';
 import { REGRAS_DA_CONVOCATORIA } from '@/domain/convocatoria';
 import { DISTRITOS } from '@/lib/concelhos';
 
@@ -52,14 +51,15 @@ export async function guardarConvites(_prev: FormState, form: FormData): Promise
   if (!user) return NOT_SIGNED_IN;
 
   const alertaWhatsApp = form.get('alerta_whatsapp') === 'on';
-  const telemovelEscrito = String(form.get('telemovel_whatsapp') ?? '').trim();
-  const telemovel = numeroWhatsApp(telemovelEscrito);
   const concelho = String(form.get('concelho_base') ?? '').trim();
   const raio = Number(form.get('raio_km') ?? '');
 
   const errors: Record<string, string> = {};
-  if (alertaWhatsApp && !telemovel) errors.telemovel_whatsapp = 'Para receber por WhatsApp, indique o número de telemóvel.';
-  else if (telemovelEscrito && !telemovel) errors.telemovel_whatsapp = 'Indique um telemóvel válido, por exemplo 912 345 678.';
+  // O número não se escreve aqui: confirma-se por mensagem recebida (06/11/2026, whatsapp-actions.ts).
+  if (alertaWhatsApp) {
+    const { count } = await supabase.from('whatsapp_numeros').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+    if (!count) errors.alerta_whatsapp = 'Para receber por WhatsApp, associe primeiro um número.';
+  }
   if (concelho && !CONCELHOS.has(concelho)) errors.concelho_base = 'Escolha o concelho na lista.';
   if (form.get('raio_km') && !REGRAS_DA_CONVOCATORIA.raiosKm.includes(raio)) errors.raio_km = 'Escolha um dos raios.';
   if (Object.keys(errors).length > 0) return { errors };
@@ -68,7 +68,6 @@ export async function guardarConvites(_prev: FormState, form: FormData): Promise
     {
       user_id: user.id,
       alerta_whatsapp: alertaWhatsApp,
-      telemovel_whatsapp: telemovel,
       concelho_base: concelho || null,
       raio_km: form.get('raio_km') ? raio : null,
     },
