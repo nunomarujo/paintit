@@ -20,6 +20,8 @@ import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import { useSeccaoActiva } from '@/app/app/pedidos/[id]/PedidoEmSeccoes';
 import { EscolherProdutos, type ProdutoEscolhivel } from '@/components/EscolherProdutos';
 import { CamposDasCaleiras } from './CamposDasCaleiras';
+import { EscolherCor } from '@/components/EscolherCor';
+import { referenciaDaPaleta, type CorDaPaleta } from '@/domain/corDaPintura';
 import type { Preference } from '@/domain/reference';
 
 export interface RequestInitial {
@@ -51,6 +53,8 @@ interface Props {
   /** Mostra o «Guardar e publicar» ao lado do «Guardar». Só num rascunho, e só a quem o gere. */
   podePublicar?: boolean;
   references?: ProdutoEscolhivel[];
+  /** A paleta própria (`paleta_cores`), para o «Escolher cor». Vazia, o campo fica só de texto. */
+  paleta?: CorDaPaleta[];
 }
 
 const DESCRICAO_MAX = 1500;
@@ -68,7 +72,7 @@ const DESCRICAO_MAX = 1500;
 const FRAC_MIN = 0.35;
 const FRAC_MAX = 0.75;
 
-export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
+export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [], paleta = [] }: Props) {
   const seccao = useSeccaoActiva();
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
@@ -310,9 +314,19 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
             <Linha icone="cor" titulo="Cor e acabamento" valor={cor.trim() || 'Por definir'} definido={!!cor.trim()}>
               <label className="block text-[17px] font-medium text-slate-700">
                 Cor e acabamento
-                <input name="corAcabamento" value={cor} onChange={(ev) => setCor(ev.target.value)} aria-invalid={e.corAcabamento ? true : undefined} className="campo mt-1" />
+                <span className="mt-1 flex items-center gap-2">
+                  {paleta.find((c) => referenciaDaPaleta(c) === cor.trim()) && (
+                    <span className="h-8 w-8 shrink-0 rounded-full border border-slate-300" style={{ backgroundColor: paleta.find((c) => referenciaDaPaleta(c) === cor.trim())!.hex }} aria-hidden />
+                  )}
+                  <input name="corAcabamento" value={cor} onChange={(ev) => setCor(ev.target.value)} aria-invalid={e.corAcabamento ? true : undefined} className="campo" />
+                </span>
                 <span className="mt-1 block text-[15px] font-normal text-slate-500">{e.corAcabamento ?? 'Por exemplo: manter as cores atuais, acabamento mate.'}</span>
               </label>
+              {paleta.length > 0 && (
+                <div className="mt-2">
+                  <EscolherCor paleta={paleta} onConfirmar={(r) => setCor(r)} />
+                </div>
+              )}
             </Linha>
             {references.length > 0 && (
               <Linha icone="lata" titulo="Produtos preferidos" valor={nProdutos > 0 ? `${nProdutos} ${nProdutos === 1 ? 'escolhido' : 'escolhidos'}` : 'Sem preferência'} definido={nProdutos > 0}>

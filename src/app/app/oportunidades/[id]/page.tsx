@@ -1,6 +1,8 @@
 import type { Forma } from '@/domain/volume';
 import { caleirasDaLinha, declaracaoDasCaleiras } from '@/domain/caleiras';
 import { DeclaradoPeloCliente } from '@/components/DeclaradoPeloCliente';
+import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
+import { AVISO_DA_COR } from '@/domain/corDaPintura';
 import { cabecalhoTrabalho, capotoEmFalta } from '@/domain/etics';
 import { parseCapoto } from '@/lib/capoto';
 import { CapotoEditor } from './orcamento/CapotoEditor';
@@ -309,7 +311,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
           }}
         />
       )}
-      {listing && <DeclaradoPeloCliente frases={[declaracaoDasCaleiras(caleirasDaLinha(listing))]} />}
+      {listing && (
+        <DeclaradoPeloCliente
+          frases={[
+            declaracaoDasCaleiras(caleirasDaLinha(listing)),
+            ...declaracaoDasDivisoesGravadas((await supabase.from('request_rooms').select('*').eq('request_id', id).order('ordem')).data ?? [], AVISO_DA_COR),
+          ]}
+        />
+      )}
       {listing?.aberto && (
         <p className="rounded-xl border border-tinta-100 bg-tinta-50 p-4 text-[17px]">
           <strong>Dica:</strong> ao escolher materiais de um fornecedor registado na plataforma, o fornecedor confirma a

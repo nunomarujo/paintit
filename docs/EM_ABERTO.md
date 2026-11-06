@@ -111,6 +111,14 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | Relatório do percurso: o pintor também pede? | Hoje só o cliente pede (e a equipa emite a versão completa) | `DECISOES.md` 06/11/2026, «registo do percurso negocial» |
 | Relatório do cliente: pintores que não ganharam | Hoje aparecem como «Pintor A/B», só com o estado da proposta. Mostrar mais? | idem |
 | Jurista: registo e relatório | Conservação e prazo; RGPD face a um registo que não se apaga; conteúdo a entregar; entrega gratuita | idem |
+| Interior: vãos | Só descontam os maiores do que 1 m² (provisório, a regra das fachadas). Ou descontam sempre? | `DECISOES.md` 06/11/2026, «Interior da habitação» |
+| Interior: RAL/NCS ou paleta própria | Hoje só a paleta própria `QP-nnn` (60 cores propostas). RAL/NCS precisam de licença da RAL gGmbH / NCS Colour AB | idem |
+| Interior: lista inicial de cores | 60 cores propostas na migração `interior_e_cores`. Rever nomes e tons | idem |
+| Interior: estimativa de litros | Aparece a quem preenche (cliente ou avaliador). Só ao avaliador? | idem |
+| Interior: no pedido ou primeiro em ensaio | Entrou já no pedido (em rascunho). Preferia primeiro um ecrã de ensaio como `/demo-areas`? | idem |
+| Fachadas: ligar `/demo-areas` ao pedido | A ferramenta existe mas não grava no pedido. Entra numa próxima sessão? É só do avaliador ou também do cliente? | idem |
+| Zonas comuns e o interior | As zonas comuns usam esta ferramenta? Hoje continuam na lista de zonas | idem |
+| Interior: plantas reais para ensaio | 3 ou 4 plantas com uma parede de medida conhecida, e uma casa medida à fita ou laser | promotor |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)

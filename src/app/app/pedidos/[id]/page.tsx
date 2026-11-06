@@ -43,6 +43,12 @@ import { Dica } from '@/components/Dica';
 import { ZonasRecolhiveis } from './ZonasRecolhiveis';
 import { AcaoComConsequencia, Acompanhamento } from './Acompanhamento';
 import { PedirRelatorio } from './PedirRelatorio';
+import { InteriorDaHabitacao } from './InteriorDaHabitacao';
+import { SeparadoresDoInterior } from './SeparadoresDoInterior';
+import { separadoresDoPasso } from '@/domain/interior';
+import { coresDoFabricante } from '@/domain/corDaPintura';
+import { interiorInicial, paraMaterial } from '@/lib/interior';
+import type { WorkType } from '@/domain/request';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   rascunho: { label: 'Rascunho', className: 'bg-slate-100 text-slate-700' },
@@ -252,6 +258,29 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   </section>
   );
 
+  // Interior da habitação (06/11/2026): só quando o tipo «interior» está marcado. A planta não se guarda;
+  // as divisões, sim. Separadores com exterior; só o interior sem ele (`separadoresDoPasso`).
+  const tiposDoPedido = (req.tipos_obra?.length ? req.tipos_obra : [req.tipo_obra]) as WorkType[];
+  const passoDasMedidas = separadoresDoPasso(tiposDoPedido);
+  const comInterior = passoDasMedidas.modo !== 'so_zonas';
+  const [{ data: divisoesGravadas }, { data: paletaRows }, materiaisInterior] = comInterior
+    ? await Promise.all([
+        supabase.from('request_rooms').select('*').eq('request_id', id).order('ordem'),
+        supabase.from('paleta_cores').select('codigo, nome, hex, familia').eq('ativa', true).order('ordem'),
+        loadReferences(supabase).then((rs) => rs.filter((r) => ['tinta_interior', 'primario', 'esmalte'].includes(r.tipo))),
+      ])
+    : [{ data: [] }, { data: [] }, []];
+  const interiorSlot = comInterior ? (
+    <InteriorDaHabitacao
+      requestId={req.id}
+      podeEditar={(!!manager || !!tecnicoDoCliente) && draft}
+      inicial={interiorInicial(req, divisoesGravadas ?? [])}
+      paleta={paletaRows ?? []}
+      coresDeFabricante={materiaisInterior.flatMap((r) => coresDoFabricante(r.cores).map((cor) => ({ marca: r.marca, cor }))).slice(0, 300)}
+      materiais={materiaisInterior.map(paraMaterial)}
+    />
+  ) : null;
+
   const slots = {
     resumo: (
       <div className="space-y-5">
@@ -434,6 +463,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         oQueOsPintoresVeem
       ),
   };
+  if (passoDasMedidas.modo === 'so_interior') slots.zonas = interiorSlot!;
+  else if (passoDasMedidas.modo === 'separadores') slots.zonas = <SeparadoresDoInterior primeiro={passoDasMedidas.primeiro!} zonas={slots.zonas} interior={interiorSlot} />;
+
 
   // ── Pedido publicado (ou encerrado): página de acompanhamento, não de preparação ────────────
   // Canvas «Espaço do cliente» (01/11/2026): cabeçalho operacional com as datas nomeadas, duas ações
@@ -784,6 +816,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 initial={{ ...req, produtos_preferidos: parsePreferences(req.produtos_preferidos) }}
                 disabled={!manager || !draft}
                 references={(await loadReferences(supabase)).map(escolhivel)}
+                paleta={(await supabase.from('paleta_cores').select('codigo, nome, hex, familia').eq('ativa', true).order('ordem')).data ?? []}
               />
           </CaixaDaSeccao>
         }

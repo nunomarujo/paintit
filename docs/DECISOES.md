@@ -6052,3 +6052,63 @@ pedido. O cliente é avisado por email e lê o relatório na página do pedido.
 cliente pode mostrar os pintores que não ganharam, ou fica como está? **Para o jurista:** conservação deste
 registo e por quanto tempo; direito ao apagamento (RGPD) face a um registo que não se apaga; o que entregar ao
 cliente; a entrega gratuita a pedido.
+
+## 06/11/2026 — Interior da habitação: divisões, perímetro e pé-direito, cor e lista de materiais
+
+Pedido do promotor (com a adenda 2): medir o interior por perímetro e pé-direito, escolher a cor e ver os
+materiais com preços de mercado.
+
+**Estado verificado antes de construir:** a ferramenta das fachadas (`homografia.ts`, `fachadaMedida.ts`,
+`MedirFachada.tsx`) só vive em `/demo-areas`; fora dela só a usa `margemDaArea.ts`. **A ligação ao pedido não
+existe** e não foi feita nesta sessão (pergunta em aberto). O separador «Alçados» mostra a lista de zonas de sempre.
+
+**Separadores** (`separadoresDoPasso`): interior e exterior (fachadas, muros, moradia) → «Alçados» e «Interior da
+habitação»; só interior → só o interior; sem interior → como sempre. Zonas comuns: não se mexeu — com interior,
+aparecem os separadores com «Zonas e medidas» no primeiro (pergunta em aberto).
+
+**Editor próprio, não um pacote.** Não se ensaiou o `react-planner` (Redux + Immutable, `ReactDOM.render`,
+React ≥ 16, sem áreas de parede): a conta é pequena e cabe no domínio. Três modos (`src/domain/interior.ts`):
+- **Divisões e medidas:** comprimento × largura, ou o perímetro numa divisão irregular; pé-direito geral ou por
+  divisão; portas e janelas; pintar paredes e/ou teto. Cotas escritas → `declarada`.
+- **Sobre a planta da casa:** a planta abre **só no aparelho** (`URL.createObjectURL`, nunca enviada — regra 6);
+  dois toques numa medida conhecida dão a escala; dois cantos opostos dão cada divisão, com a margem de erro do
+  toque. → `estimada`. Um PDF exporta-se primeiro como imagem (não se lê PDF no aparelho: fica para depois).
+- **Áreas escritas:** paredes (e teto) por divisão, ou o total numa divisão.
+Paredes = perímetro × pé-direito − vãos; **tetos sempre à parte**. Nunca se inventa: sem perímetro ou pé-direito
+fica «Por medir», e diz-se o que falta. O pé-direito corrente (2,8 m) só entra com o toque «Não sei: usar 2,8 m»,
+como estimativa. **Vãos:** só descontam os indicados, e só os maiores do que `VAO_MINIMO_INTERIOR_M2` — **1 m²,
+provisório, por decidir** (é a regra das fachadas; a alternativa é descontar sempre). O valor guarda-se com cada
+divisão. Nomes das divisões só da lista geral («Sala», «Quarto 2»), sem texto livre.
+
+**Onde se grava:** `request_rooms` (cada divisão, com as áreas calculadas pelo servidor, a certeza, a cor e quem
+mediu — cliente ou avaliador) e duas zonas em `request_surfaces` — paredes interiores e tetos — com
+`area_source` `planta` (desenho e planta) ou `medicao_cliente` (manual). O resto da aplicação (total, anúncio,
+orçamento) já as lê. Só se altera em rascunho; o pintor lê os números com o anúncio aberto, nunca a planta.
+Depois de publicado, uma alteração das divisões ou da cor geral fica no registo da obra.
+
+**Cor** (`src/domain/corDaPintura.ts`): guarda-se uma referência em texto — `QP-014 · Branco gelo`, `RAL 9010`,
+`Barbot · Casca de Ovo` — e, só para o ecrã, o hex da paleta própria. **Não se embutem RAL, NCS nem Pantone**
+(proprietárias; a reprodução exige licença): a grelha é a paleta própria `QP-nnn` (`paleta_cores`, 60 cores de
+interior propostas nesta sessão, leitura pública, escrita só da equipa); quem souber um código de outro sistema
+escreve-o, e fica texto sem quadrado. As cores de fabricante (`reference_products.cores`) aparecem num segundo
+separador, só com nome e marca. «Escolher cor» abre um `<dialog>` nativo: pastilhas por família, quadrado
+grande, «Escolher outra» / «Confirmar»; cada pastilha tem o nome em texto. Está no campo geral «Cor e
+acabamento» (o mesmo campo de texto, que continua a aceitar texto à mão) e em cada divisão. O contrato e o
+anúncio levam as cores com a frase «A cor final é a da amostra do fabricante; a cor no ecrã é aproximada.»
+
+**Lista de materiais** (`ListaDeMateriais.tsx`, `materiaisDoInterior.ts`): `reference_products` visíveis, por omissão
+tintas de interior, primários e esmaltes, com filtros por tipo e marca: preço de referência com data e fonte,
+por litro e por m² (por demão), rendimento, embalagens, ficha técnica, e o consumo estimado (litros ≈ área ÷
+rendimento × demãos, demãos à escolha) — sempre dito como estimativa, e os preços como de mercado, não da Quem
+Pinta nem de um pintor. Não se reaproveitou `ProductCard`, que é dos produtos dos fornecedores (`products`), não
+dos de referência; reaproveitou-se `ProductThumb` e os cálculos de preço (`pricePerLitre`). Escolher na lista
+não encomenda nada (por agora, a lista é só de consulta).
+
+**No contrato (minuta nova) e no anúncio do pintor:** as divisões a pintar, as áreas (paredes e tetos à parte),
+as por medir e as cores, em «Declarado pelo dono da obra no pedido» / «Declarado pelo cliente».
+
+**Por decidir (EM_ABERTO):** vãos; RAL/NCS com licença ou só a paleta própria; a lista inicial de cores (está
+uma proposta); se a estimativa de litros aparece ao cliente ou só ao avaliador (hoje aparece a quem preenche);
+se a ferramenta entra já no pedido (foi o que se fez, em rascunho) ou fica primeiro num ecrã de ensaio; a
+ligação da ferramenta das fachadas ao pedido; as zonas comuns. **Por validar no terreno:** 3 ou 4 plantas reais
+com uma medida conhecida e uma casa medida à fita ou a laser.

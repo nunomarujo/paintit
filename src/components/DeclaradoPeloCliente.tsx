@@ -14,7 +14,7 @@ export function DeclaradoPeloCliente({ frases }: { frases: (string | null)[] }) 
         ))}
       </ul>
       <p className="mt-2 max-w-[54ch] text-[15px] text-slate-600">
-        Entra no contrato tal como está. As caleiras orçamentam-se em metros lineares (ml); a medição confirma-se em obra.
+        Entra no contrato tal como está. As caleiras orçamentam-se em metros lineares (ml); as paredes e os tetos do interior, à parte, em m². As medidas confirmam-se em obra.
       </p>
     </section>
   );

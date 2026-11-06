@@ -383,6 +383,9 @@ export type Database = {
           caleiras_intervencao: string | null;
           caleiras_metros_substituir_cm: number | null;
           caleiras_comprimento_cm: number | null;
+          interior_modo: string | null;
+          interior_pe_direito_cm: number | null;
+          interior_pe_direito_corrente: boolean;
         };
         Insert: {
           produtos_preferidos?: Json;
@@ -414,6 +417,9 @@ export type Database = {
           caleiras_intervencao?: string | null;
           caleiras_metros_substituir_cm?: number | null;
           caleiras_comprimento_cm?: number | null;
+          interior_modo?: string | null;
+          interior_pe_direito_cm?: number | null;
+          interior_pe_direito_corrente?: boolean;
         };
         Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
         Relationships: [
@@ -2166,6 +2172,30 @@ export type Database = {
         Row: { id: string; request_id: string; pedido_id: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em: string };
         Insert: { id?: string; request_id: string; pedido_id?: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em?: string };
         Update: never;
+        Relationships: [];
+      };
+      request_rooms: {
+        Row: {
+          id: string; request_id: string; ordem: number; tipo: string; numero: number; comprimento_cm: number | null; largura_cm: number | null;
+          perimetro_cm: number | null; pe_direito_cm: number | null; vaos: Json; pintar_paredes: boolean; pintar_teto: boolean;
+          area_paredes_manual_cm2: number | null; area_teto_manual_cm2: number | null; cor_referencia: string | null; cor_hex: string | null;
+          area_paredes_cm2: number | null; area_teto_cm2: number | null; certeza: string; margem_bp: number | null; vao_minimo_cm2: number;
+          registado_por: string | null; registado_em: string;
+        };
+        Insert: {
+          id?: string; request_id: string; ordem?: number; tipo: string; numero?: number; comprimento_cm?: number | null; largura_cm?: number | null;
+          perimetro_cm?: number | null; pe_direito_cm?: number | null; vaos?: Json; pintar_paredes?: boolean; pintar_teto?: boolean;
+          area_paredes_manual_cm2?: number | null; area_teto_manual_cm2?: number | null; cor_referencia?: string | null; cor_hex?: string | null;
+          area_paredes_cm2?: number | null; area_teto_cm2?: number | null; certeza?: string; margem_bp?: number | null; vao_minimo_cm2?: number;
+          registado_por?: string | null; registado_em?: string;
+        };
+        Update: Partial<Database['public']['Tables']['request_rooms']['Insert']>;
+        Relationships: [];
+      };
+      paleta_cores: {
+        Row: { codigo: string; nome: string; hex: string; familia: string; ordem: number; ativa: boolean };
+        Insert: { codigo: string; nome: string; hex: string; familia: string; ordem?: number; ativa?: boolean };
+        Update: { nome?: string; hex?: string; familia?: string; ordem?: number; ativa?: boolean };
         Relationships: [];
       };
       promo_codes: {

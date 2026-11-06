@@ -4,6 +4,8 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { declaracaoDasCaleiras, caleirasDaLinha } from '@/domain/caleiras';
 import { elementosEmVigor } from '@/lib/elementosDoContrato';
+import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
+import { AVISO_DA_COR } from '@/domain/corDaPintura';
 import { contractDraft, minutaComElementos, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { toEngagementRecord } from '@/domain/engagementRecord';
 import { resumoDaAssinaturaAceite } from '@/domain/signature';
@@ -143,9 +145,15 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
     // Minuta de 06/11/2026: só nas contratações criadas com ela (`minuta_versao`). O declarado vem do
     // anúncio, que é o que as duas partes viram e o mesmo para as duas.
     minuta: row.minuta_versao ?? null,
-    declarado: listing ? declaradoNoPedido(listing) : [],
+    declarado: listing ? [...declaradoNoPedido(listing), ...(minutaComElementos(row.minuta_versao) ? await interiorDeclarado(supabase, row.request_id) : [])] : [],
     elementos: minutaComElementos(row.minuta_versao) && !anon ? await elementosEmVigor(supabase, row.id) : undefined,
   });
+}
+
+/** As divisões do interior, como ficaram gravadas (vazio sem a migração ou sem interior). */
+async function interiorDeclarado(supabase: Client, requestId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('request_rooms').select('*').eq('request_id', requestId).order('ordem');
+  return error || !data ? [] : declaracaoDasDivisoesGravadas(data, AVISO_DA_COR);
 }
 
 /** O que o dono da obra declarou no pedido e o contrato repete (caleiras; o interior junta-se aqui). */
