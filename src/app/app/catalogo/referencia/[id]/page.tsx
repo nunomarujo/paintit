@@ -40,13 +40,13 @@ export default async function ReferencePage({
   const [{ data: orgs }, { data: delivery }] = orgIds.length
     ? await Promise.all([
         supabase.from('organizations').select('id, nome, localidade').in('id', orgIds),
-        supabase.from('supplier_delivery').select('org_id, concelhos, condicoes').in('org_id', orgIds),
+        supabase.from('supplier_delivery').select('org_id, concelhos, condicoes, todo_o_pais').in('org_id', orgIds),
       ])
     : [{ data: [] }, { data: [] }];
   const place = (concelho ?? '').trim().toLowerCase();
   const sellers = (orgs ?? [])
     .map((o) => ({ ...o, entrega: (delivery ?? []).find((d) => d.org_id === o.id), items: sellerProducts.filter((p) => p.org_id === o.id) }))
-    .filter((o) => !place || o.localidade?.toLowerCase() === place || o.entrega?.concelhos.some((c) => c.toLowerCase() === place));
+    .filter((o) => !place || o.localidade?.toLowerCase() === place || o.entrega?.todo_o_pais || o.entrega?.concelhos.some((c) => c.toLowerCase() === place));
   const isBoard = (ISOLAMENTO_E_ACESSORIOS as readonly string[]).includes(r.tipo);
   const pl = isBoard ? refPerM2(r) : refPerLitre(r);
   const guia = productGuide({
@@ -190,7 +190,7 @@ export default async function ReferencePage({
                     {p.preco_referencia_cents ? ` · ${formatEuros(p.preco_referencia_cents)}` : ''}
                   </span>
                 ))}
-                {s.entrega && <span className="block text-[15px] text-slate-500">Entrega: {s.entrega.condicoes || s.entrega.concelhos.join(', ')}</span>}
+                {s.entrega && <span className="block text-[15px] text-slate-500">Entrega: {s.entrega.condicoes || (s.entrega.todo_o_pais ? 'todo o país' : s.entrega.concelhos.join(', '))}</span>}
               </li>
             ))}
           </ul>

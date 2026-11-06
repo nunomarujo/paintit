@@ -10,13 +10,14 @@ const visivel = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, 
 
 type Cob = { todoOPais: boolean; concelhos: string[] } | null;
 const render = (
-  situacao: { inscrito: boolean; zonasDefinidas: boolean; responsavel: boolean; whatsappLigado: boolean },
+  situacao: { inscrito: boolean; zonasDefinidas: boolean; responsavel: boolean; whatsappLigado: boolean; zonaDaMorada?: string | null },
   cobertura: Cob = null,
+  concelhoDaEmpresa: string | null = null,
 ) =>
   visivel(
     renderToStaticMarkup(
       React.createElement(HojeAvaliacoes, {
-        estado: { emCurso: [], concluidos: [], oportunidades: 0, comissoesDisponiveis: 0, cobertura, avaliador: { userId: 'u1', situacao } },
+        estado: { emCurso: [], concluidos: [], oportunidades: 0, comissoesDisponiveis: 0, cobertura, concelhoDaEmpresa, avaliador: { userId: 'u1', situacao } },
         agoraIso: '2026-11-06T10:00:00Z',
       }),
     ),
@@ -64,5 +65,12 @@ describe('Hoje — topo do avaliador (06/11/2026)', () => {
     expect(render(s, { todoOPais: false, concelhos: [] })).toContain('Sem concelhos escolhidos');
     expect(render({ ...s, zonasDefinidas: true }, { todoOPais: true, concelhos: [] })).toContain('Disponível · todo o país');
     expect(render({ ...s, zonasDefinidas: true }, { todoOPais: false, concelhos: ['Lisboa', 'Oeiras'] })).toContain('Disponível · 2 concelhos cobertos');
+  });
+
+  it('sem concelhos escolhidos vale a morada da empresa, e o ecrã diz qual (06/11/2026)', () => {
+    const t = render({ inscrito: true, zonasDefinidas: true, responsavel: true, whatsappLigado: true, zonaDaMorada: 'Viana do Castelo' }, null, 'Viana do Castelo');
+    expect(t).toContain('Disponível · Viana do Castelo (morada da empresa)');
+    expect(t).toContain('Os levantamentos chegam de Viana do Castelo, o concelho da morada da empresa.');
+    expect(t).toContain('Escolher outros concelhos');
   });
 });

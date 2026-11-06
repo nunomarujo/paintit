@@ -1806,6 +1806,10 @@ describe('materiais certificados, encomendas e ferramentas de obra', () => {
     ).rejects.toThrow(/row-level security/);
     await as(F, () => db.query(`insert into public.supplier_discounts (org_id, tipo, max_area_cm2, desconto_bps) values ($1, 'primario', 100000, 1000)`, [supplier]));
     await as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida, minimo_cents) values ($1, '{Lisboa}', true, 50000)`, [supplier]));
+    // Uma condição de entrega sem concelhos e sem «todo o país» já não se grava (06/11/2026).
+    await expect(
+      as(F, () => db.query(`insert into public.supplier_delivery (org_id, concelhos, incluida) values ($1, '{}', true)`, [supplier])),
+    ).rejects.toThrow(/supplier_delivery_escolhida/);
     expect(await as(B, async () => (await db.query('select id from public.supplier_discounts')).rows)).toHaveLength(1);
   });
 
@@ -2743,7 +2747,11 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     const org = (await createOrg(SEMZONA, 'fornecedor', 'Sem Zona Lda', '610000098')).id;
     const cobre = async (concelho: string) =>
       (await one<{ c: boolean }>('select private.supplier_covers($1, $2) as c', [org, concelho])).c;
-    // Sem linha: não cobre (antes cobria todo o país).
+    // Sem linha e sem morada: não cobre (antes cobria todo o país).
+    expect(await cobre('Lisboa')).toBe(false);
+    // Sem linha, com morada: cobre o concelho da morada da empresa, e só esse.
+    await db.query(`update public.organizations set concelho = 'Braga' where id = $1`, [org]);
+    expect(await cobre('Braga')).toBe(true);
     expect(await cobre('Lisboa')).toBe(false);
     // Uma lista vazia sem «todo o país» nem se grava.
     await expect(
@@ -2753,6 +2761,7 @@ describe('levantamento por vendedor (reserva por zona, prazo, repartição)', ()
     await as(SEMZONA, () => db.query(`insert into public.supplier_survey_coverage (org_id, concelhos) values ($1, '{Porto}')`, [org]));
     expect(await cobre('Porto')).toBe(true);
     expect(await cobre('Lisboa')).toBe(false);
+    expect(await cobre('Braga')).toBe(false); // a zona escolhida manda sobre a morada
     // «Todo o país», marcado.
     await as(SEMZONA, () => db.query(`update public.supplier_survey_coverage set concelhos = '{}', todo_o_pais = true where org_id = $1`, [org]));
     expect(await cobre('Lisboa')).toBe(true);
