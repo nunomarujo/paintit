@@ -24,10 +24,16 @@ export interface Candidato {
 
 export const FONTE_OSM = 'OpenStreetMap (ODbL)';
 
-const FORMAS_SOCIETARIAS = /(^|[\s,(])(lda\.?|limitada|s\.?\s?a\.?|unipessoal|sociedade|cooperativa|associa[cç][aã]o|s\.?g\.?p\.?s\.?)($|[\s,).])/i;
+// Formas societárias portuguesas, com as grafias correntes: Lda, Lda., L.da, Ld.ª, Limitada, Unipessoal, S.A., SA,
+// Sociedade, SGPS, Cooperativa, CRL, Associação. O que vem antes e depois tem de ser separador, para «Cálda» não contar.
+const FORMAS_SOCIETARIAS =
+  /(^|[\s,(&-])(l\.?\s?da\.?|ld\.?\s?[ªa]\.?|lda\.?|limitada|unipessoal|unip\.?|soc\.?(iedade)?|s\.\s?a\.?|s\.?g\.?p\.?s\.?|c\.?r\.?l\.?|cooperativa|associa[cç][aã]o)($|[\s,).&-])/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const pareceEmpresa = (nome: string) => FORMAS_SOCIETARIAS.test(nome);
+/** «SA» sem pontos só conta em maiúsculas: «Sa» é um apelido. */
+const SA_MAIUSCULAS = /(^|[\s,(])SA($|[\s,).])/;
+
+export const pareceEmpresa = (nome: string) => FORMAS_SOCIETARIAS.test(nome) || SA_MAIUSCULAS.test(nome);
 
 /** O primeiro email válido de um campo que o OSM pode trazer com vários, separados por «;». */
 export function primeiroEmail(valor: string | undefined): string | null {

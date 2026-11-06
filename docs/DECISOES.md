@@ -6523,3 +6523,22 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
   coletiva (NIF começado por 5, 6 ou 9) sem depender do nome, e o nif.pt dá contactos a partir do NIF.
 - Migração `20261106163026_crm_codigos_e_cliques` aplicada e verificada (código distinto por contacto, 2.º clique
   recusado, sem rasto).
+
+### 06/11/2026 — CRM: campanhas com aprovação, envio, saída e dossier
+
+- **Aprovação (decisão do promotor):** os envios de uma campanha **aprovada** não esperam por ninguém; só as campanhas
+  **novas ou corrigidas** esperam pela autorização ou pedido de correção. A regra está na base de dados (gatilho): um envio
+  só passa a «aprovado» ou «enviado» com a campanha aprovada e o contacto ainda elegível. Ecrã no separador CRM
+  («Campanhas à espera de decisão»: Aprovar / Pedir correção); retirar a aprovação pára o que ainda não saiu.
+- **Textos** de seis campanhas (pintores, fornecedores, administradoras) em `src/domain/crmEmails.ts`, entram como
+  **rascunho**; o texto que vale é o de `crm_campanhas`. Regra 15 respeitada por teste: só pintores e fornecedores ouvem
+  falar de comissão. **O desconto de 5% promete-se no texto mas o registo ainda não lê o código `k` nem o aplica:** não
+  aprovar as campanhas de pintores e fornecedores antes disso.
+- **Envio** pelo Resend (`CRM_REMETENTE` + `RESEND_API_KEY`; sem eles, nada sai), 20 por dia, com identificação da empresa,
+  origem do contacto e saída em um clique (`/api/crm/sair/<código>`, com confirmação no GET e desistência no POST, para
+  antivírus de correio não desinscreverem ninguém; `List-Unsubscribe-Post`).
+- **Formas societárias reconhecidas:** Lda, Lda., L.da, Ld.ª, Limitada, Unipessoal (Limitada), Unip., Soc./Sociedade, S.A.,
+  SA em maiúsculas, SGPS, CRL, Cooperativa, Associação. «Sa» solto não conta (apelido). Na dúvida, não é pessoa coletiva.
+- **Dossier** (`crm_dossier`) e estratégia em `docs/CRM_ESTRATEGIA.md`. A fonte do dossier (o «founder-skill») está por indicar.
+- Migração `20261106165113_crm_campanhas_e_dossier` aplicada e verificada (campanha não aprovada recusada, aprovada envia,
+  em correção recusada; sem rasto).

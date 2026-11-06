@@ -1,5 +1,8 @@
 import { FLYERS } from '@/domain/campanhas';
+import { agruparPorTema, melhoresMensagens, principaisLacunas } from '@/domain/crmDossier';
+import { TEXTOS_INICIAIS } from '@/domain/crmEmails';
 import { decidirCampanha, sequenciaDeCampanhas, type Resultados } from '@/domain/crm';
+import { DecidirCampanha } from './DecidirCampanha';
 import { Descobrir } from './Descobrir';
 import { createClient } from '@/lib/supabase/server';
 
@@ -10,14 +13,22 @@ import { createClient } from '@/lib/supabase/server';
  */
 export default async function CrmPage() {
   const supabase = await createClient();
-  const [{ data: zonas }, { data: contactos }, { data: envios }, { data: eventos }] = await Promise.all([
+  // Os textos iniciais entram como rascunho; os já existentes não mudam.
+  await supabase.from('crm_campanhas').upsert(
+    Object.entries(TEXTOS_INICIAIS).map(([id, t]) => ({ id, assunto: t.assunto, corpo: t.corpo, cta: t.cta })),
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
+  const [{ data: zonas }, { data: contactos }, { data: envios }, { data: eventos }, { data: campanhas }, { data: dossier }] = await Promise.all([
     supabase.from('crm_zonas').select('id, concelho, ativa, campanha_atual').order('concelho'),
     supabase.from('crm_contactos').select('id, zona_id, tipo'),
     supabase.from('crm_envios').select('id, contacto_id, estado'),
     supabase.from('crm_eventos').select('contacto_id, tipo'),
+    supabase.from('crm_campanhas').select('*').order('id'),
+    supabase.from('crm_dossier').select('perfil, zona_id, tema, tipo, evidencias, cobertura'),
   ]);
+  const temas = agruparPorTema((dossier ?? []).map((d) => ({ perfil: d.perfil, zonaId: d.zona_id, tema: d.tema, tipo: d.tipo as 'dor' | 'lacuna' | 'acerto', evidencias: d.evidencias, cobertura: d.cobertura })));
+  const porDecidir = (campanhas ?? []).filter((c) => c.estado !== 'aprovada');
 
-  const porPendente = (envios ?? []).filter((e) => e.estado === 'proposto').length;
   const nomeDaCampanha = (id: string | undefined) => FLYERS.find((f) => f.id === id)?.titulo ?? '—';
 
   return (
@@ -29,11 +40,28 @@ export default async function CrmPage() {
         </p>
       </div>
 
-      {porPendente > 0 && (
-        <p className="rounded-lg bg-amber-50 px-4 py-3 text-[15px] text-amber-800">
-          {porPendente} {porPendente === 1 ? 'envio proposto espera' : 'envios propostos esperam'} aprovação.
+      <section aria-labelledby="campanhas">
+        <h2 id="campanhas" className="text-[13px] font-semibold text-slate-500">Campanhas à espera de decisão</h2>
+        {porDecidir.length === 0 ? (
+          <p className="mt-2 rounded-2xl border border-dashed border-slate-300 p-6 text-[15px] text-slate-600">Nada à espera. As campanhas aprovadas enviam sozinhas.</p>
+        ) : (
+          <ul className="mt-2 grid gap-4 lg:grid-cols-2">
+            {porDecidir.map((c) => (
+              <li key={c.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[13px] text-slate-500">{c.id} · {c.estado === 'correcao' ? <span className="text-amber-800">correção pedida</span> : 'rascunho'}</p>
+                <p className="mt-1 text-[17px] font-semibold text-tinta-900">{c.assunto}</p>
+                <p className="mt-2 whitespace-pre-line text-[15px] text-slate-700">{c.corpo}</p>
+                <p className="mt-2 text-[15px] text-slate-600">Botão: «{c.cta}»</p>
+                {c.nota && <p className="mt-2 text-[15px] text-amber-800">Correção pedida: {c.nota}</p>}
+                <DecidirCampanha id={c.id} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 max-w-[54ch] text-[15px] text-slate-600">
+          O código de desconto no texto só se cumpre quando o registo o ler e aplicar: confirmar isso antes de aprovar as campanhas de pintores e fornecedores.
         </p>
-      )}
+      </section>
 
       <section aria-labelledby="zonas">
         <h2 id="zonas" className="text-[13px] font-semibold text-slate-500">Zonas</h2>
@@ -77,6 +105,29 @@ export default async function CrmPage() {
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="dossier">
+        <h2 id="dossier" className="text-[13px] font-semibold text-slate-500">Dossier</h2>
+        {temas.length === 0 ? (
+          <p className="mt-2 rounded-2xl border border-dashed border-slate-300 p-6 text-[15px] text-slate-600">O dossier está vazio. Dores, lacunas e acertos entram à medida que chegam respostas e contactos.</p>
+        ) : (
+          <div className="mt-2 grid gap-4 lg:grid-cols-2">
+            {[['Mensagens fortes para as campanhas', melhoresMensagens(temas), 'mensagem'], ['Lacunas do produto', principaisLacunas(temas), 'lacuna']].map(([titulo, lista, campo]) => (
+              <div key={titulo as string} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[17px] font-semibold text-tinta-900">{titulo as string}</p>
+                <ul className="mt-2 space-y-1 text-[15px]">
+                  {(lista as ReturnType<typeof melhoresMensagens>).map((t) => (
+                    <li key={t.tema} className="flex justify-between gap-3">
+                      <span>{t.tema} <span className="text-slate-500">· {t.perfis.join(', ')}</span></span>
+                      <span className="tabular-nums">{t[campo as 'mensagem' | 'lacuna']}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
     </div>

@@ -84,3 +84,39 @@ describe('CRM: códigos e cliques', () => {
     await db.query(`insert into public.crm_eventos (contacto_id, envio_id, tipo) values ($1, $2, 'resposta')`, [c, e]);
   });
 });
+
+describe('CRM: só as campanhas aprovadas enviam', () => {
+  it('um envio aprovado ou enviado exige a campanha aprovada', async () => {
+    const c = await contacto(true, 'camp@empresa.invalid');
+    await expect(db.query(`insert into public.crm_envios (contacto_id, campanha_id, estado) values ($1, 'pintor-2', 'aprovado')`, [c])).rejects.toThrow(/não foi aprovada/);
+    await db.query(`insert into public.crm_campanhas (id, assunto, corpo, cta) values ('pintor-2', 'A', 'B', 'C')`);
+    await expect(db.query(`insert into public.crm_envios (contacto_id, campanha_id, estado) values ($1, 'pintor-2', 'aprovado')`, [c])).rejects.toThrow(/não foi aprovada/);
+    await db.query(`update public.crm_campanhas set estado = 'aprovada' where id = 'pintor-2'`);
+    const r = await db.query<{ id: string }>(`insert into public.crm_envios (contacto_id, campanha_id, estado) values ($1, 'pintor-2', 'aprovado') returning id`, [c]);
+    await db.query(`update public.crm_envios set estado = 'enviado' where id = $1`, [r.rows[0]!.id]);
+  });
+  it('retirar a aprovação pára o que ainda não saiu', async () => {
+    const c = await contacto(true, 'retira@empresa.invalid');
+    await db.query(`update public.crm_campanhas set estado = 'aprovada' where id = 'pintor-2'`);
+    const r = await db.query<{ id: string }>(`insert into public.crm_envios (contacto_id, campanha_id, estado) values ($1, 'pintor-1', 'proposto') returning id`, [c]);
+    await db.query(`insert into public.crm_campanhas (id, assunto, corpo, cta, estado) values ('pintor-1', 'A', 'B', 'C', 'aprovada') on conflict (id) do update set estado = 'aprovada'`);
+    await db.query(`update public.crm_envios set estado = 'aprovado' where id = $1`, [r.rows[0]!.id]);
+    await db.query(`update public.crm_campanhas set estado = 'correcao' where id = 'pintor-1'`);
+    await expect(db.query(`update public.crm_envios set estado = 'enviado' where id = $1`, [r.rows[0]!.id])).rejects.toThrow(/não foi aprovada/);
+  });
+  it('quem desistiu pode ter os envios pendentes rejeitados', async () => {
+    const c = await contacto(true, 'sai@empresa.invalid');
+    const r = await db.query<{ id: string }>(`insert into public.crm_envios (contacto_id, campanha_id) values ($1, 'fornecedor-1') returning id`, [c]);
+    await db.query(`update public.crm_contactos set desistiu_em = now(), estado = 'desistiu' where id = $1`, [c]);
+    await db.query(`update public.crm_envios set estado = 'rejeitado' where id = $1`, [r.rows[0]!.id]);
+  });
+});
+
+describe('CRM: o dossier só é da equipa', () => {
+  it('quem não é da equipa não lê nem escreve', async () => {
+    await db.query(`insert into public.crm_dossier (perfil, tema, tipo, texto, fonte) values ('pintor', 'propostas sem resposta', 'dor', 'x', 'teste')`);
+    expect((await as(OUTRO, () => db.query('select * from public.crm_dossier'))).rows).toHaveLength(0);
+    expect((await as(ADMIN, () => db.query('select * from public.crm_dossier'))).rows).toHaveLength(1);
+    await expect(as(OUTRO, () => db.query(`insert into public.crm_dossier (perfil, tema, tipo, texto, fonte) values ('pintor','a','dor','b','c')`))).rejects.toThrow(/row-level security/);
+  });
+});

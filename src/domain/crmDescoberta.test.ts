@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { candidatosDeOsm, concelhoSeguro, consultaOverpass, pareceEmpresa, primeiroEmail, type ElementoOsm } from './crmDescoberta';
 
 describe('pareceEmpresa', () => {
-  it.each(['Pinturas do Lima, Lda.', 'Tintas Norte S.A.', 'Cores Unipessoal Lda', 'Associação de Moradores'])('%s é pessoa coletiva', (n) => {
+  it.each(['Pinturas do Lima, Lda.', 'Tintas Norte S.A.', 'Cores Unipessoal Lda', 'Associação de Moradores', 'Pinturas Lima L.da', 'Pinturas Lima Limitada', 'Pinturas Lima, Unipessoal Limitada', 'Pinturas Lima Ld.ª', 'Pinturas Lima, LDA', 'Tintas Norte SA', 'Pinturas Lima, Soc. Unipessoal', 'Cores & Filhos, Lda', 'Moradia Lda.', 'Viana SGPS', 'Coop. Pintores CRL'])('%s é pessoa coletiva', (n) => {
     expect(pareceEmpresa(n)).toBe(true);
   });
-  it.each(['João Silva Pintor', 'Pinturas Silva', 'Fernanda Costa'])('%s fica por confirmar', (n) => {
+  it.each(['João Silva Pintor', 'Pinturas Silva', 'Fernanda Costa', 'Casa Sá Pintor', 'Pintor João Sa', 'Pinturas Salda', 'Pintor Aldo'])('%s fica por confirmar', (n) => {
     expect(pareceEmpresa(n)).toBe(false);
   });
 });

@@ -262,6 +262,19 @@ export type Database = {
         Update: { id?: string; contacto_id?: string; envio_id?: string | null; tipo?: string; detalhe?: string | null; criado_em?: string };
         Relationships: [];
       };
+      // Migração `crm_campanhas_e_dossier` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      crm_campanhas: {
+        Row: { id: string; assunto: string; corpo: string; cta: string; estado: string; nota: string | null; versao: number; decidida_por: string | null; decidida_em: string | null; criada_em: string };
+        Insert: { id: string; assunto: string; corpo: string; cta: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Update: { id?: string; assunto?: string; corpo?: string; cta?: string; estado?: string; nota?: string | null; versao?: number; decidida_por?: string | null; decidida_em?: string | null; criada_em?: string };
+        Relationships: [];
+      };
+      crm_dossier: {
+        Row: { id: string; perfil: string; zona_id: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias: number; solucao: string | null; cobertura: number; estado: string; criado_em: string; atualizado_em: string };
+        Insert: { id?: string; perfil: string; zona_id?: string | null; tema: string; tipo: string; texto: string; fonte: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Update: { id?: string; perfil?: string; zona_id?: string | null; tema?: string; tipo?: string; texto?: string; fonte?: string; evidencias?: number; solucao?: string | null; cobertura?: number; estado?: string; criado_em?: string; atualizado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {
