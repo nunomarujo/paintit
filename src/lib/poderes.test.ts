@@ -4,7 +4,7 @@ import { missingDocs, type DocKind } from '@/domain/organization';
 import type { Database } from '@/lib/database.types';
 import { faltasDaEntidade, poderesDoLado, type LeituraDaEntidade } from './poderes';
 
-// Tudo ou nada (05/11/2026). Enquanto a migração `20261105230000_poderes_de_representacao` não estiver aplicada,
+// Tudo ou nada (05/11/2026). Enquanto a migração `20261106083428_poderes_de_representacao` não estiver aplicada,
 // publicar o código não pode ligar metade da funcionalidade: nem a assinatura grava resultado em regime nenhum
 // (o do titular — particulares e empresários em nome individual — não precisa das tabelas novas, e gravava),
 // nem a página da entidade passa a pedir a certidão ao pintor sociedade sem lhe deixar entregar o código.

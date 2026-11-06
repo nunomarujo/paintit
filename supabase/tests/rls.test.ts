@@ -504,6 +504,116 @@ describe('tipos de obra e datas indicativas', () => {
   });
 });
 
+describe('interior da habitação e paleta de cores (06/11/2026)', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1';
+  let buildingId: string;
+  let r: string;
+  beforeAll(async () => {
+    buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+    r = (
+      await as(A, () =>
+        one<{ id: string }>(
+          `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, tipos_obra, descricao, prazo_propostas)
+           values ($1, $2, 'Interior', 'interior', '{interior}', 'Pintura do interior de um apartamento T2.', current_date + 10) returning id`,
+          [condo, buildingId],
+        ),
+      )
+    ).id;
+  });
+  const sala = (tipo = 'sala', numero = 1) =>
+    as(A, () => db.query(`insert into public.request_rooms (request_id, tipo, numero, comprimento_cm, largura_cm, area_paredes_cm2, certeza) values ($1, $2, $3, 500, 400, 4680, 'declarada')`, [r, tipo, numero]));
+
+  it('em rascunho, quem gere o pedido grava as divisões; o pintor ainda não as vê', async () => {
+    await sala();
+    expect(await as(P, async () => (await db.query('select id from public.request_rooms where request_id = $1', [r])).rows.length)).toBe(0);
+  });
+
+  it('só da lista geral de divisões; o mesmo nome não se repete', async () => {
+    await expect(sala('quarto do joão')).rejects.toThrow(/check constraint/);
+    await expect(sala()).rejects.toThrow(/duplicate key/);
+  });
+
+  it('publicado: o pintor lê os números; ninguém altera as divisões', async () => {
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'paredes_interiores', 4680)`, [r]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [r]));
+    expect(await as(P, async () => (await db.query('select area_paredes_cm2 from public.request_rooms where request_id = $1', [r])).rows)).toEqual([{ area_paredes_cm2: 4680 }]);
+    await expect(sala('quarto', 1)).rejects.toThrow(/row-level security/);
+    const upd = await as(A, () => db.query(`update public.request_rooms set area_paredes_cm2 = 1 where request_id = $1`, [r]));
+    expect(upd.affectedRows ?? 0).toBe(0);
+  });
+
+  it('depois de publicado, uma alteração das divisões ou da cor fica no registo da obra', async () => {
+    await as(A, () => db.query(`update public.work_requests set status = 'rascunho' where id = $1`, [r]));
+    const publicado = await one<{ published_at: string | null }>('select published_at from public.work_requests where id = $1', [r]);
+    await sala('quarto', 1);
+    await as(A, () => db.query(`update public.work_requests set cor_acabamento = 'QP-014 · Branco gelo' where id = $1`, [r]));
+    const tipos = (await db.query<{ tipo: string }>('select tipo from public.registo_da_obra where request_id = $1', [r])).rows.map((x) => x.tipo);
+    if (publicado.published_at) {
+      expect(tipos).toContain('interior_alterado');
+      expect(tipos).toContain('cor_alterada');
+    } else {
+      expect(tipos).not.toContain('interior_alterado');
+    }
+  });
+
+  it('a paleta lê-se sem sessão; só a equipa a altera', async () => {
+    const n = await as(null, async () => (await db.query('select codigo from public.paleta_cores')).rows.length);
+    expect(n).toBe(60);
+    await expect(as(A, () => db.query(`insert into public.paleta_cores (codigo, nome, hex, familia) values ('QP-999', 'X', '#000000', 'Y')`))).rejects.toThrow(/row-level security/);
+    const codigos = (await db.query<{ codigo: string }>('select codigo from public.paleta_cores')).rows.map((x) => x.codigo);
+    expect(codigos.every((c) => /^QP-\d{3}$/.test(c))).toBe(true);
+  });
+});
+
+describe('caleiras (06/11/2026)', () => {
+  const P = '00000000-0000-4000-8000-0000000000e1';
+  let buildingId: string;
+  beforeAll(async () => {
+    buildingId = (await one<{ id: string }>('select id from public.buildings where org_id = $1 limit 1', [condo])).id;
+  });
+  const criar = (tipos: string, intervencao: string | null, metros: number | null, estado: string | null = null) =>
+    as(A, () =>
+      one<{ id: string; tipo_obra: string }>(
+        `insert into public.work_requests (org_id, building_id, titulo, tipo_obra, tipos_obra, descricao, prazo_propostas,
+           caleiras_estado, caleiras_intervencao, caleiras_metros_substituir_cm, caleiras_comprimento_cm)
+         values ($1, $2, 'Caleiras', 'fachadas', $3::public.work_type[], 'Caleiras com ferrugem no tardoz, a substituir em parte.', current_date + 10, $4, $5, $6, 2400)
+         returning id, tipo_obra`,
+        [condo, buildingId, tipos, estado, intervencao, metros],
+      ),
+    );
+
+  it('caleiras vai para o fim: com outro tipo, o principal não muda', async () => {
+    expect((await criar('{caleiras,fachadas}', 'apenas_limpar', null)).tipo_obra).toBe('fachadas');
+    expect((await criar('{caleiras}', 'apenas_limpar', null)).tipo_obra).toBe('caleiras');
+  });
+
+  it('«Substituir partes» exige os metros, e os metros só existem com ela', async () => {
+    await expect(criar('{caleiras}', 'substituir_partes', null)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', 'apenas_limpar', 650)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', null, 650)).rejects.toThrow(/caleiras_metros/);
+    await expect(criar('{caleiras}', 'substituir_partes', 0)).rejects.toThrow();
+    await expect(criar('{caleiras}', 'substituir_partes', 650)).resolves.toBeTruthy();
+  });
+
+  it('valores fora das listas são recusados pela base', async () => {
+    await expect(criar('{caleiras}', 'pintar_de_azul', null)).rejects.toThrow();
+    await expect(criar('{caleiras}', 'renovar', null, 'excelente')).rejects.toThrow();
+  });
+
+  it('publicado: o pintor lê o que o cliente declarou, no anúncio', async () => {
+    const r = await criar('{caleiras}', 'substituir_partes', 650, 'ferrugem');
+    await as(A, () => db.query(`insert into public.request_surfaces (request_id, kind, area_direta_cm2) values ($1, 'fachada', 10000)`, [r.id]));
+    await as(A, () => db.query(`update public.work_requests set status = 'publicado' where id = $1`, [r.id]));
+    const l = await as(P, () =>
+      one<{ caleiras_estado: string; caleiras_intervencao: string; caleiras_metros_substituir_cm: number; caleiras_comprimento_cm: number }>(
+        'select caleiras_estado, caleiras_intervencao, caleiras_metros_substituir_cm, caleiras_comprimento_cm from public.request_listings where request_id = $1',
+        [r.id],
+      ),
+    );
+    expect(l).toEqual({ caleiras_estado: 'ferrugem', caleiras_intervencao: 'substituir_partes', caleiras_metros_substituir_cm: 650, caleiras_comprimento_cm: 2400 });
+  });
+});
+
 describe('fotografias do pedido', () => {
   const P = '00000000-0000-4000-8000-0000000000e1'; // pintor criado acima
   let requestId: string;

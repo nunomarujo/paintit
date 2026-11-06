@@ -37,4 +37,4 @@ alter table public.request_surfaces add constraint request_surfaces_medida_do_cl
 );
 
 comment on column public.request_surfaces.margem_bps is
-  'Margem de erro (± pontos-base) da área medida pelo cliente na ferramenta de fotografia. Só existe com origem_quantidade = medida_pelo_cliente. Migração 20261106010000.';
+  'Margem de erro (± pontos-base) da área medida pelo cliente na ferramenta de fotografia. Só existe com origem_quantidade = medida_pelo_cliente. Migração 20261106083508.';

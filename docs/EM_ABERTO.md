@@ -23,10 +23,7 @@ Verificado a 01/11/2026. Cada linha diz de onde vem e o que a fecha.
 | Email próprio no Supabase (SMTP); confirmar Site URL e Redirect URLs | Supabase › Authentication | `DECISOES.md` «Passos pendentes do promotor» — não consta que tenha sido feito |
 | Assinar um contrato de ensaio com um Cartão de Cidadão emitido desde 2024 e com a Chave Móvel Digital | um engagement `zz-test-*`, PDF assinado na Autenticação.gov | confirmar que as duas ficam «de confiança» (âncora 008, `DECISOES.md` 05/11/2026); só há testes com os certificados das entidades, não com um certificado real de signatário |
 
-| Aplicar a migração `20261105230000_poderes_de_representacao` (poderes de quem assina, 05/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` e confirmar as duas funções e as três tabelas | sem ela, as entidades e as partes não veem nada de novo — **tudo ou nada** (`src/lib/poderes.ts`, testado em `src/lib/poderes.test.ts`): nenhuma assinatura grava resultado, nem as de particulares e empresários em nome individual (que não precisam das tabelas novas); a página da entidade não mostra o campo do código nem passa a pedir a certidão ao pintor sociedade; só a equipa vê o menu novo, cuja fila diz que falta a migração. Aplicada, liga tudo de uma vez (`DECISOES.md` 05/11/2026, «Poderes de quem assina») |
-| Aplicar a migração `20261105233000_assinatura_so_pelo_servidor` (a assinatura só entra pelo servidor, 05/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` | fecha a falha que deixava registar «assinou» pela API sem PDF (`DECISOES.md` 05/11/2026, noite). O código funciona antes e depois dela; a falha só fecha com ela aplicada |
 | Submeter o modelo `contrato_para_assinar` no WhatsApp Manager e, aprovado, pôr `WHATSAPP_MODELO_CONTRATO=contrato_para_assinar` na Vercel | conta WhatsApp «Quem Pinta» (1466775882007762): categoria Utilidade, Português (Portugal), corpo «O contrato da obra {{1}} está pronto para assinatura. Na Quem Pinta, em Contratações, é possível descarregar o PDF, assiná-lo com a Chave Móvel Digital ou o Cartão de Cidadão e carregá-lo assinado.», botão «Abrir o contrato» com URL `https://quempinta.pt/app/contratacoes/{{1}}` | sem a variável o contrato só avisa por email e na aplicação |
-| Aplicar a migração `20261106010000_medida_pelo_cliente` (medição do cliente pela fotografia, 06/11/2026) | Supabase › SQL, ou `apply_migration`; depois `get_advisors` | troca uma restrição sem perder dados e acrescenta a coluna `margem_bps`; sem ela, gravar a medição dá erro (o resto do pedido não muda) |
 | Enviar ao IRN o pedido de autorização para ler a certidão permanente de forma automática | email a certidaopermanente@irn.mj.pt (cc geral@irn.mj.pt), já em **rascunho no Gmail da Quem Pinta** (quempinta.pt@gmail.com) desde 05/11/2026: falta preencher denominação, NIPC, n.º de consultas por mês e assinatura, e enviar | **por enviar**; com a autorização, a leitura deixa de ser manual (secção 3) |
 | Percurso real dos condóminos em produção | quempinta.pt, com um condomínio e um pedido publicado: criar o código do prédio, abrir `/predio/<código>` numa janela anónima, registar com um email seu, entrar pelo link, ver `/app/condominio` | dizer o que não funcionou |
 
@@ -42,9 +39,10 @@ reserva → resposta lida, às 20:31). Canal: **Meta direta** (Cloud API), conta
 publicada (Live) e **subscrita à conta de mensagens 2334889570658270** — ver `docs/WHATSAPP.md`. Por fazer:
 (1) **a convocatória com ondas a sério ainda não foi vista a correr** (só reenviei um convite à mão); fica
 para um dia útil das 9h às 18h, com um pedido de teste novo; (2) o modelo `avaliador_nova_oportunidade` foi
-**reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa) e o pedido de
-revisão para Serviços está pendente — se recusarem, usar o texto mais informativo proposto na conversa de
-05/11; (3) o nome de apresentação «Quem Pinta» está em revisão (o cabeçalho mostra o número até aprovarem);
+**reclassificado como Marketing** pela Meta (custa mais e tem limite de mensagens por pessoa). A 05/11/2026,
+18:58, a Meta enviou «pedido para atualizar a categoria de UTILITY para MARKETING aprovado… podes continuar a
+enviar mensagens com este modelo»: o modelo **funciona, como Marketing**. Não foi um recurso ganho — se o custo
+pesar, o texto mais informativo proposto a 05/11 (modelo novo, Utilidade) fica como alternativa; (3) o nome de apresentação «Quem Pinta» está em revisão (o cabeçalho mostra o número até aprovarem);
 (4) apagar as chaves `TWILIO_*` da Vercel e fechar a conta Twilio; (5) os modelos `propostas_disponiveis` e
 `levantamento_agendado` ficaram na conta antiga e não são usados — recriar só quando houver quem os envie.
 Ficam por decidir/construir: a «informação do levantamento» e a «resposta a tempo» ainda não entram na
@@ -94,6 +92,28 @@ Código escrito e testado, **nada provado com dinheiro nem com a fiscalidade rea
 | «Anos de experiência» no relatório de propostas | Sem campo próprio em lugar nenhum (proposta nem perfil da empresa) — de onde vem o número? Novo campo na proposta? No perfil? Auto-declarado ou verificado? Até à decisão, a coluna mostra «Não disponível» em todas as propostas (desenho transparente, não erro) | Construído e aplicado 02/11/2026, `src/domain/relatorioCongelado.ts` |
 | Auditorias de UX/UI | Explorar antes de pedir conta; prova social; fotografia real; escolha de perfil antes da conta; identidade do backoffice; automação da validação de documentos | `ESTADO.md` §7 |
 | Registo da marca | Pesquisa INPI/EUIPO, adiada pelo promotor | `ESTADO.md` §7 |
+| Página do Pro: adenda e diário | A página vende-os como do Pro, mas estão abertos a todas as empresas desde 25/10/2026. Fechá-los ao Pro, tirá-los da lista, ou escrevê-los como «também no gratuito»? | `DECISOES.md` 06/11/2026, «Subscrição: opção 3» |
+| Caleiras: opções de «estado» | Gravadas como proposta: bom estado, desgaste ou tinta a descascar, ferrugem, furos ou partes partidas, não sei. Confirmar ou corrigir | `DECISOES.md` 06/11/2026, «Caleiras» |
+| Caleiras: comprimento total | Pedido como facultativo (base de um preço por metro linear). Manter, tornar obrigatório ou tirar? | `DECISOES.md` 06/11/2026, «Caleiras» |
+| Telefone no contrato: validar por SMS? | Hoje regista-se sem validação (só o email tem código). SMS tem custo por mensagem | `DECISOES.md` 06/11/2026, «IBAN, contactos e comprovativos» |
+| IBAN estrangeiro | Só se aceita IBAN português (PT50). Há clientes ou pintores com conta noutro país? | idem |
+| Comprovativo vs. confirmação do pintor | O comprovativo do cliente não marca a tranche como recebida; é o pintor que confirma. Confirmar | idem |
+| Jurista: elementos do contrato | Redação da cláusula 4-A; histórico que não se apaga e direito ao apagamento (RGPD); valor dos comprovativos como prova. Acrescentar ao documento de questões jurídicas (Claude Docs) | idem |
+| Conclusão da obra: prazo para confirmar | Proposta: 15 dias, lembrete aos 7 (o lembrete ainda não está ligado à tarefa diária). Confirmar | `DECISOES.md` 06/11/2026, «Conclusão da obra» |
+| Conclusão: discordar com razão | Construído como proposta (fica registado, sem julgamento). Confirmar | idem |
+| Conclusão: ação própria ou estado do diário | Construída a ação «Declarar a obra concluída»; o estado `concluida` do diário não conta. Confirmar | idem |
+| Obra que ninguém declarou concluída | Os registos ficam sem limite. Que limite máximo? (com o jurista) | idem |
+| Conta encerrada durante o período de conservação | Proposta: registos mantidos, acesso só às partes e à equipa. Validar com o jurista | idem |
+| Jurista: conservação vs. prazo legal de 5 anos | Garantia de 2 anos + 24 meses = 4 anos, abaixo dos 5 do art. 1225.º CC citado no contrato. Conservar pelo prazo mais longo? Valor da prova junta por uma só parte; papel de «terceira isenta» | idem |
+| Relatório do percurso: o pintor também pede? | Hoje só o cliente pede (e a equipa emite a versão completa) | `DECISOES.md` 06/11/2026, «registo do percurso negocial» |
+| Relatório do cliente: pintores que não ganharam | Hoje aparecem como «Pintor A/B», só com o estado da proposta. Mostrar mais? | idem |
+| Jurista: registo e relatório | Conservação e prazo; RGPD face a um registo que não se apaga; conteúdo a entregar; entrega gratuita | idem |
+| Interior: vãos | Só descontam os maiores do que 1 m² (provisório, a regra das fachadas). Ou descontam sempre? | `DECISOES.md` 06/11/2026, «Interior da habitação» |
+| Interior: estimativa de litros | Aparece a quem preenche (cliente ou avaliador). Só ao avaliador? | idem |
+| Interior: no pedido ou primeiro em ensaio | Entrou já no pedido (em rascunho). Preferia primeiro um ecrã de ensaio como `/demo-areas`? | idem |
+| Fachadas: ligar `/demo-areas` ao pedido | A ferramenta existe mas não grava no pedido. Entra numa próxima sessão? É só do avaliador ou também do cliente? | idem |
+| Zonas comuns e o interior | As zonas comuns usam esta ferramenta? Hoje continuam na lista de zonas | idem |
+| Interior: plantas reais para ensaio | 3 ou 4 plantas com uma parede de medida conhecida, e uma casa medida à fita ou laser | promotor |
 | Piloto | 5–10 pintores e 2–3 fornecedores de Viana do Castelo, só depois de tudo pronto, incluindo marketing | `ESTADO.md` §7 |
 
 ## 2b. Medição de fachadas por fotografia, em `/demo-areas` (reformulado 04/11/2026)
@@ -135,7 +155,7 @@ com verticais a 0,07 m em 14,5 m; 18 zonas desenhadas em 1280 px e em 390 px, me
   «Passo 2 do pedido: a proposta B»).
 - O (i) dentro dos rótulos dos formulários (`Field.tsx`) tem 16 px, abaixo dos 44 px da regra 17:
   um alvo maior tapava o campo. Dívida declarada.
-- Ligar ao fluxo real: *feito a 06/11/2026, fases 1 e 2* (base, regras, ação; o botão do passo 2 grava, a quem pode editar, e a margem aparece no cartão, na barra e ao pintor — `DECISOES.md` 06/11/2026). Fica: aplicar a migração `20261106010000` (secção 1) **antes de publicar este ramo, ou junto** — sem ela, «Medir na fotografia» aparece a todos os que editam um pedido e «Usar esta medição» responde «A gravação pela fotografia ainda não está disponível» — e ver uma gravação de ponta a ponta na base real com um utilizador `zz-test-*` (a linha «Gravado: …» a sair quando a zona muda por outro caminho só se vê aí: a página de ensaio não tem base).
+- Ligar ao fluxo real: *feito a 06/11/2026, fases 1 e 2* (base, regras, ação; o botão do passo 2 grava, a quem pode editar, e a margem aparece no cartão, na barra e ao pintor — `DECISOES.md` 06/11/2026). A migração `20261106083508` já está aplicada (06/11/2026). Fica: ver uma gravação de ponta a ponta na base real com um utilizador `zz-test-*` (a linha «Gravado: …» a sair quando a zona muda por outro caminho só se vê aí: a página de ensaio não tem base).
 - *Feito a 04/11/2026, à tarde:* acertar uma zona já desenhada (tocar nela e arrastar a aresta),
   desenhar em série, zonas triangulares, "Desfazer", e a leitura das alturas pela distância entre
   pisos (ver `docs/DECISOES.md`, "segundo teste do promotor").
@@ -169,8 +189,8 @@ vazio; fotografias só de leitura com legenda, estado e nota de cada uma.
 **Por fazer:**
 - *Feito a 06/11/2026:* **ligar a ferramenta ao pedido** — a medição volta para a zona escolhida (ou uma nova),
   «medida pelo cliente», com a margem (± %), nunca «confirmada»; e **o botão aberto a quem pode editar o pedido**
-  (não ao avaliador, que mede no local). Falta só a migração `20261106010000` na base real (secção 1) e uma
-  gravação verificada lá, de ponta a ponta.
+  (não ao avaliador, que mede no local). A migração `20261106083508` já está aplicada; falta uma
+  gravação verificada na base real, de ponta a ponta.
 - Ver as chamadas em produção com prédios de outras formas (U, T): a função recusa o que não cumpre a
   regra e fica a lista; vistos na página de ensaio o prédio das maquetas, o L e um de 12 pisos.
 

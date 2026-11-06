@@ -23,6 +23,7 @@ import {
   type SurfaceKind,
 } from '@/domain/request';
 import { paraZona } from '@/lib/requests';
+import { colunasDasCaleiras } from '@/domain/caleiras';
 import {
   CONFIRMADA_NAO_SE_TROCA,
   NAO_SE_MEDE_NA_FOTOGRAFIA,
@@ -70,6 +71,10 @@ function requestColumns(v: NonNullable<ReturnType<typeof parseRequest>['value']>
     execucao_ate: v.execucaoAte,
     ocupacao_via_publica: v.ocupacaoViaPublica,
     trabalhos_modo: v.trabalhosModo,
+    // As colunas das caleiras (migração `caleiras`) só vão quando há caleiras agora ou havia antes
+    // (campo escondido do formulário): um pedido sem caleiras grava-se igual com ou sem a migração
+    // aplicada, e desmarcar o tipo limpa o que lá estava.
+    ...(v.tiposObra.includes('caleiras') || form.get('caleirasAntes') === '1' ? colunasDasCaleiras(v.caleiras) : {}),
   };
 }
 
@@ -265,7 +270,7 @@ export async function updateSurface(
  * Grava no pedido a medição de uma fachada feita na ferramenta de fotografia (06/11/2026).
  *
  * A zona fica «medida pelo cliente», com a margem de erro, e por confirmar (decisão do promotor de
- * 05/11/2026; a base garante-o, migração 20261106010000). Vai a área a pintar e a margem — nunca a
+ * 05/11/2026; a base garante-o, migração 20261106083508). Vai a área a pintar e a margem — nunca a
  * fotografia nem o desenho sobre ela (regra 6). As regras da conversão estão em `zonaDaMedicao`.
  *
  * Tudo isto chega do navegador (regra 10): o pedido e a zona ligados, a medição no corpo. A medição é
@@ -311,7 +316,7 @@ export async function gravarMedicaoDaFotografia(
     errors: {},
     message: 'Não foi possível gravar a medição. O pedido tem de estar em rascunho, e só quem o gere o pode alterar.',
   };
-  // Antes da migração 20261106010000 a coluna da margem não existe e a origem nova é recusada: a culpa não é
+  // Antes da migração 20261106083508 a coluna da margem não existe e a origem nova é recusada: a culpa não é
   // de quem grava, e dizer-lhe «o pedido tem de estar em rascunho» mandava-o procurar o erro errado.
   const recusou = (error: { code?: string; message?: string }): FormState => {
     if (['42703', 'PGRST204', '23514'].includes(error.code ?? '')) {

@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { hasEquivalent } from '@/domain/equivalence';
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { contractDraft, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
+import { declaracaoDasCaleiras, caleirasDaLinha } from '@/domain/caleiras';
+import { elementosEmVigor } from '@/lib/elementosDoContrato';
+import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
+import { AVISO_DA_COR } from '@/domain/corDaPintura';
+import { contractDraft, minutaComElementos, replay, type Side, type EngagementEvent, type EngagementRecord, type Replay } from '@/domain/contracting';
 import { toEngagementRecord } from '@/domain/engagementRecord';
 import { resumoDaAssinaturaAceite } from '@/domain/signature';
 import { formatEuros, percentOf } from '@/domain/money';
@@ -75,7 +79,7 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
     await Promise.all([
       supabase.from('proposals').select('*').eq('id', row.proposal_id).single(),
       supabase.from('proposal_lines').select('*').eq('proposal_id', row.proposal_id).order('created_at'),
-      supabase.from('request_listings').select('ref, concelho, descricao').eq('request_id', row.request_id).maybeSingle(),
+      supabase.from('request_listings').select('*').eq('request_id', row.request_id).maybeSingle(),
       supabase.from('work_requests').select('ref, descricao, building_id').eq('id', row.request_id).maybeSingle(),
       supabase.from('organizations').select('nome, nif, morada_fiscal, codigo_postal, localidade').eq('id', row.client_org_id).maybeSingle(),
       supabase.from('organizations').select('nome, nif, morada_fiscal, codigo_postal, localidade').eq('id', row.painter_org_id).maybeSingle(),
@@ -138,7 +142,23 @@ export async function loadDraft(supabase: Client, row: EngagementRow, opts: { an
         ? `O empreiteiro garante os trabalhos executados durante ${terms.garantiaAnos} anos a contar da receção da obra.`
         : 'O empreiteiro garante os trabalhos executados nos termos da lei.',
     exclusoes: terms.exclusoes,
+    // Minuta de 06/11/2026: só nas contratações criadas com ela (`minuta_versao`). O declarado vem do
+    // anúncio, que é o que as duas partes viram e o mesmo para as duas.
+    minuta: row.minuta_versao ?? null,
+    declarado: listing ? [...declaradoNoPedido(listing), ...(minutaComElementos(row.minuta_versao) ? await interiorDeclarado(supabase, row.request_id) : [])] : [],
+    elementos: minutaComElementos(row.minuta_versao) && !anon ? await elementosEmVigor(supabase, row.id) : undefined,
   });
+}
+
+/** As divisões do interior, como ficaram gravadas (vazio sem a migração ou sem interior). */
+async function interiorDeclarado(supabase: Client, requestId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('request_rooms').select('*').eq('request_id', requestId).order('ordem');
+  return error || !data ? [] : declaracaoDasDivisoesGravadas(data, AVISO_DA_COR);
+}
+
+/** O que o dono da obra declarou no pedido e o contrato repete (caleiras; o interior junta-se aqui). */
+function declaradoNoPedido(listing: Database['public']['Tables']['request_listings']['Row']): string[] {
+  return [declaracaoDasCaleiras(caleirasDaLinha(listing))].filter((f): f is string => !!f);
 }
 
 /** PDF do contrato para assinar: versão sem identidades, sempre com os mesmos bytes. */
@@ -148,7 +168,7 @@ export async function contractPdfFor(supabase: Client, row: EngagementRow): Prom
   return contractPdf(await loadDraft(supabase, row, { anonymous }), new Date(row.created_at), row.id.slice(0, 8).toUpperCase());
 }
 
-/** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261105233000). */
+/** Onde o servidor guarda um PDF assinado: pelo resumo SHA-256 do próprio conteúdo (migração 20261106083458). */
 export const caminhoDoPdfAssinado = (engagementId: string, side: 'cliente' | 'pintor', sha256: string) => `${engagementId}/${side}-${sha256}.pdf`;
 
 /**

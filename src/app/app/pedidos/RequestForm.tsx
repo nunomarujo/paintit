@@ -19,6 +19,9 @@ import { useFormAction } from '@/components/useFormAction';
 import { EstadoDeGravacao } from '@/components/EstadoDeGravacao';
 import { useSeccaoActiva } from '@/app/app/pedidos/[id]/PedidoEmSeccoes';
 import { EscolherProdutos, type ProdutoEscolhivel } from '@/components/EscolherProdutos';
+import { CamposDasCaleiras } from './CamposDasCaleiras';
+import { EscolherCor } from '@/components/EscolherCor';
+import { referenciaDaPaleta, type CorDaPaleta } from '@/domain/corDaPintura';
 import type { Preference } from '@/domain/reference';
 
 export interface RequestInitial {
@@ -36,6 +39,10 @@ export interface RequestInitial {
   ocupacao_via_publica?: string;
   produtos_preferidos?: Preference[];
   trabalhos_modo?: string;
+  caleiras_estado?: string | null;
+  caleiras_intervencao?: string | null;
+  caleiras_metros_substituir_cm?: number | null;
+  caleiras_comprimento_cm?: number | null;
 }
 
 interface Props {
@@ -46,6 +53,8 @@ interface Props {
   /** Mostra o «Guardar e publicar» ao lado do «Guardar». Só num rascunho, e só a quem o gere. */
   podePublicar?: boolean;
   references?: ProdutoEscolhivel[];
+  /** A paleta própria (`paleta_cores`), para o «Escolher cor». Vazia, o campo fica só de texto. */
+  paleta?: CorDaPaleta[];
 }
 
 const DESCRICAO_MAX = 1500;
@@ -63,7 +72,7 @@ const DESCRICAO_MAX = 1500;
 const FRAC_MIN = 0.35;
 const FRAC_MAX = 0.75;
 
-export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [] }: Props) {
+export function RequestForm({ action: submit, buildings, initial, disabled, podePublicar = false, references = [], paleta = [] }: Props) {
   const seccao = useSeccaoActiva();
   const { state, pending, repetir, formProps } = useFormAction<FormState>(submit, { errors: {} });
   const e = state.errors;
@@ -71,6 +80,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
   const tiposIniciais = initial?.tipos_obra?.length ? initial.tipos_obra : initial ? [initial.tipo_obra] : ['fachadas'];
   const flexiveisIniciais = initial?.datas_flexiveis ?? [];
   const [descricao, setDescricao] = useState(initial?.descricao ?? '');
+  // O campo das caleiras só aparece com o tipo marcado (como o capoto dentro de Trabalhos).
+  const [temCaleiras, setTemCaleiras] = useState(tiposIniciais.includes('caleiras'));
   // Execução: «datas flexíveis» (o caso comum) ou datas indicadas. Com datas flexíveis não se pedem
   // datas nenhumas; marcam-se as duas como indicativas, que é o que o servidor já entende.
   const [indicarDatas, setIndicarDatas] = useState(!!(initial?.execucao_desde || initial?.execucao_ate));
@@ -150,7 +161,14 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
             <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {WORK_TYPES.map((t) => (
                 <Pastilha key={t}>
-                  <input type="checkbox" name="tipoObra" value={t} defaultChecked={tiposIniciais.includes(t)} className="sr-only" />
+                  <input
+                    type="checkbox"
+                    name="tipoObra"
+                    value={t}
+                    defaultChecked={tiposIniciais.includes(t)}
+                    onChange={t === 'caleiras' ? (ev) => setTemCaleiras(ev.target.checked) : undefined}
+                    className="sr-only"
+                  />
                   <Icone nome={ICONE_DO_TIPO[t]} className="h-5 w-5 shrink-0 text-slate-500 [label:has(:checked)_&]:text-tinta-600" />
                   <span className="flex-1">{WORK_TYPE_LABELS[t]}</span>
                   <Visto />
@@ -163,6 +181,8 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
               </p>
             )}
           </fieldset>
+          {initial?.caleiras_intervencao && <input type="hidden" name="caleirasAntes" value="1" />}
+          {temCaleiras && <CamposDasCaleiras initial={initial} errors={e} />}
           <Objectivos descricao={descricao} setDescricao={setDescricao} />
         </Quadro>
 
@@ -294,9 +314,19 @@ export function RequestForm({ action: submit, buildings, initial, disabled, pode
             <Linha icone="cor" titulo="Cor e acabamento" valor={cor.trim() || 'Por definir'} definido={!!cor.trim()}>
               <label className="block text-[17px] font-medium text-slate-700">
                 Cor e acabamento
-                <input name="corAcabamento" value={cor} onChange={(ev) => setCor(ev.target.value)} aria-invalid={e.corAcabamento ? true : undefined} className="campo mt-1" />
+                <span className="mt-1 flex items-center gap-2">
+                  {paleta.find((c) => referenciaDaPaleta(c) === cor.trim()) && (
+                    <span className="h-8 w-8 shrink-0 rounded-full border border-slate-300" style={{ backgroundColor: paleta.find((c) => referenciaDaPaleta(c) === cor.trim())!.hex }} aria-hidden />
+                  )}
+                  <input name="corAcabamento" value={cor} onChange={(ev) => setCor(ev.target.value)} aria-invalid={e.corAcabamento ? true : undefined} className="campo" />
+                </span>
                 <span className="mt-1 block text-[15px] font-normal text-slate-500">{e.corAcabamento ?? 'Por exemplo: manter as cores atuais, acabamento mate.'}</span>
               </label>
+              {paleta.length > 0 && (
+                <div className="mt-2">
+                  <EscolherCor paleta={paleta} onConfirmar={(r) => setCor(r)} />
+                </div>
+              )}
             </Linha>
             {references.length > 0 && (
               <Linha icone="lata" titulo="Produtos preferidos" valor={nProdutos > 0 ? `${nProdutos} ${nProdutos === 1 ? 'escolhido' : 'escolhidos'}` : 'Sem preferência'} definido={nProdutos > 0}>
@@ -363,6 +393,7 @@ const ICONE_DO_TIPO: Record<(typeof WORK_TYPES)[number], NomeDoIcone> = {
   muros: 'muro',
   moradia: 'casa',
   interior: 'porta',
+  caleiras: 'caleira',
 };
 
 /** Um quadro numerado da grelha: ícone, número, título, subtítulo e o conteúdo a esticar. */
@@ -448,7 +479,7 @@ function Seta() {
   );
 }
 
-type NomeDoIcone = 'local' | 'pincel' | 'calendario' | 'texto' | 'ajustes' | 'regua' | 'ferramenta' | 'cor' | 'lata' | 'estrada' | 'predio' | 'escadas' | 'muro' | 'casa' | 'porta';
+type NomeDoIcone = 'local' | 'pincel' | 'calendario' | 'texto' | 'ajustes' | 'regua' | 'ferramenta' | 'cor' | 'lata' | 'estrada' | 'predio' | 'escadas' | 'muro' | 'casa' | 'porta' | 'caleira';
 
 /** Ícones de traço, 24×24, só os deste ecrã. */
 function Icone({ nome, className }: { nome: NomeDoIcone; className?: string }) {
@@ -539,6 +570,14 @@ function Icone({ nome, className }: { nome: NomeDoIcone; className?: string }) {
       <>
         <rect x="6" y="3" width="12" height="18" rx="1" />
         <circle cx="15" cy="12" r="1" />
+      </>
+    ),
+    // Uma caleira em corte (meia-cana) presa ao beiral, com o tubo de queda.
+    caleira: (
+      <>
+        <path d="M3 6h18" />
+        <path d="M5 9a7 3 0 0 0 14 0" />
+        <path d="M16 11v10" />
       </>
     ),
   };

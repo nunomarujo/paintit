@@ -1,11 +1,14 @@
 import type { FieldErrors } from './organization';
+import { parseCaleiras, type Caleiras } from './caleiras';
 
 // Pedido de orçamento: a obra descrita pelo cliente sobre um prédio, com as
 // superfícies a pintar e as respetivas áreas. Antes da apresentação, os
 // pintores só veem o anúncio anónimo: concelho, características gerais,
 // superfícies, áreas, trabalhos e prazos. Nunca a morada nem a identidade.
 
-export const WORK_TYPES = ['fachadas', 'zonas_comuns', 'muros', 'moradia', 'interior'] as const;
+// «caleiras» entrou a 06/11/2026 e vai no fim de propósito: a ordem decide o tipo principal
+// (`tipoPrincipal`) e é também a do enum `work_type` na base, onde o valor novo só pode ir para o fim.
+export const WORK_TYPES = ['fachadas', 'zonas_comuns', 'muros', 'moradia', 'interior', 'caleiras'] as const;
 export type WorkType = (typeof WORK_TYPES)[number];
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   fachadas: 'Fachadas e varandas',
@@ -13,6 +16,7 @@ export const WORK_TYPE_LABELS: Record<WorkType, string> = {
   muros: 'Muros e vedações',
   moradia: 'Moradia (exterior)',
   interior: 'Interior de habitação',
+  caleiras: 'Caleiras',
 };
 
 /**
@@ -542,6 +546,8 @@ export interface RequestInput {
   ocupacaoViaPublica: ViaPublica;
   trabalhosModo: WorksMode;
   datasFlexiveis: DataFlexivel[];
+  /** Vazio sem o tipo «Caleiras» (`caleiras.ts`). */
+  caleiras: Caleiras;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -571,6 +577,8 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
   if (dates.execucaoDesde && dates.execucaoAte && dates.execucaoAte < dates.execucaoDesde) {
     errors.execucaoAte = 'Tem de ser depois do início.';
   }
+  const caleiras = parseCaleiras(get, tiposObra.includes('caleiras'));
+  Object.assign(errors, caleiras.errors);
   if (Object.keys(errors).length > 0) return { errors };
   return {
     errors,
@@ -588,6 +596,7 @@ export function parseRequest(form: FormData): { value?: RequestInput; errors: Fi
       ocupacaoViaPublica: via as ViaPublica,
       trabalhosModo: modo as WorksMode,
       datasFlexiveis: [...new Set(flexiveis)],
+      caleiras: caleiras.value,
     },
   };
 }

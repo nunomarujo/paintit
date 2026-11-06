@@ -31,7 +31,7 @@ type DocStatus = 'submetido' | 'em_validacao' | 'aprovado' | 'rejeitado' | 'expi
 type MemberRole = 'proprietario' | 'gestor' | 'financeiro' | 'leitor' | 'vendedor';
 type OrgKind = 'condominio' | 'administradora' | 'particular' | 'pintor' | 'fornecedor';
 type RequestStatus = 'rascunho' | 'publicado' | 'encerrado' | 'cancelado';
-type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior';
+type WorkType = 'fachadas' | 'zonas_comuns' | 'muros' | 'moradia' | 'interior' | 'caleiras';
 type SurfaceKind =
   | 'fachada'
   | 'empena'
@@ -379,6 +379,13 @@ export type Database = {
           version: number;
           ocupacao_via_publica: ViaPublica;
           trabalhos_modo: string;
+          caleiras_estado: string | null;
+          caleiras_intervencao: string | null;
+          caleiras_metros_substituir_cm: number | null;
+          caleiras_comprimento_cm: number | null;
+          interior_modo: string | null;
+          interior_pe_direito_cm: number | null;
+          interior_pe_direito_corrente: boolean;
         };
         Insert: {
           produtos_preferidos?: Json;
@@ -406,6 +413,13 @@ export type Database = {
           version?: number;
           ocupacao_via_publica?: ViaPublica;
           trabalhos_modo?: string;
+          caleiras_estado?: string | null;
+          caleiras_intervencao?: string | null;
+          caleiras_metros_substituir_cm?: number | null;
+          caleiras_comprimento_cm?: number | null;
+          interior_modo?: string | null;
+          interior_pe_direito_cm?: number | null;
+          interior_pe_direito_corrente?: boolean;
         };
         Update: Partial<Database['public']['Tables']['work_requests']['Insert']>;
         Relationships: [
@@ -438,6 +452,8 @@ export type Database = {
           referral_discount_bp: number;
           request_id: string;
           rules_version: string;
+          minuta_versao: string | null;
+          garantia_anos: number | null;
         };
         Insert: never;
         Update: never;
@@ -2025,7 +2041,7 @@ export type Database = {
           // do topo manda: a regeneração completa traz 87 erros de tipos e é dívida à parte.
           participacao: Participacao;
           origem_quantidade: OrigemDaQuantidade | null;
-          // Migração 20261106010000 (por aplicar): margem da medição do cliente pela fotografia.
+          // Migração 20261106083508 (aplicada a 06/11/2026): margem da medição do cliente pela fotografia.
           margem_bps: number | null;
           confirmacao: Confirmacao;
           registado_por: string | null;
@@ -2095,6 +2111,10 @@ export type Database = {
           version: number;
           ocupacao_via_publica: ViaPublica;
           trabalhos_modo: string;
+          caleiras_estado: string | null;
+          caleiras_intervencao: string | null;
+          caleiras_metros_substituir_cm: number | null;
+          caleiras_comprimento_cm: number | null;
         };
         // Escrita só pelo gatilho de publicação (a base de dados recusa o resto).
         Insert: Partial<Database['public']['Tables']['request_listings']['Row']>;
@@ -2108,6 +2128,78 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      elementos_do_contrato: {
+        Row: { id: string; engagement_id: string; lado: string; campo: string; valor: string; validacao: string; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; lado: string; campo: string; valor: string; validacao: string; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      codigos_de_email: {
+        Row: { id: string; engagement_id: string; lado: string; email: string; codigo_sha256: string; criado_por: string; criado_em: string; expira_em: string; tentativas: number; usado_em: string | null };
+        Insert: { id?: string; engagement_id: string; lado: string; email: string; codigo_sha256: string; criado_por: string; criado_em?: string; expira_em: string; tentativas?: number; usado_em?: string | null };
+        Update: { tentativas?: number; usado_em?: string | null };
+        Relationships: [];
+      };
+      comprovativos_de_pagamento: {
+        Row: { id: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota: string | null; ficheiro_path: string | null; ficheiro_sha256: string | null; ficheiro_tipo: string | null; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; tranche: string; valor_cents: number; pago_em: string; nota?: string | null; ficheiro_path?: string | null; ficheiro_sha256?: string | null; ficheiro_tipo?: string | null; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      conclusao_da_obra: {
+        Row: { id: string; engagement_id: string; lado: string; passo: string; data_conclusao: string | null; razao: string | null; ficheiro_path: string | null; ficheiro_sha256: string | null; ficheiro_tipo: string | null; criado_por: string; criado_em: string };
+        Insert: { id?: string; engagement_id: string; lado: string; passo: string; data_conclusao?: string | null; razao?: string | null; ficheiro_path?: string | null; ficheiro_sha256?: string | null; ficheiro_tipo?: string | null; criado_por: string; criado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      garantias_calculadas: {
+        Row: { id: string; engagement_id: string; inicio: string; anos: number; fim_garantia: string; fim_conservacao: string; calculado_em: string };
+        Insert: { id?: string; engagement_id: string; inicio: string; anos: number; fim_garantia: string; fim_conservacao: string; calculado_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      registo_da_obra: {
+        Row: { id: string; ordem: number; request_id: string | null; engagement_id: string | null; org_id: string | null; painter_org_id: string | null; tipo: string; dados: Json; autor: string | null; criado_em: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      pedidos_de_relatorio: {
+        Row: { id: string; request_id: string; org_id: string; motivo: string; nota: string | null; pedido_por: string; pedido_em: string };
+        Insert: { id?: string; request_id: string; org_id: string; motivo: string; nota?: string | null; pedido_por?: string; pedido_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      relatorios_do_percurso: {
+        Row: { id: string; request_id: string; pedido_id: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em: string };
+        Insert: { id?: string; request_id: string; pedido_id?: string | null; destinatario: string; versao: number; conteudo: string; sha256: string; emitido_por: string; emitido_em?: string };
+        Update: never;
+        Relationships: [];
+      };
+      request_rooms: {
+        Row: {
+          id: string; request_id: string; ordem: number; tipo: string; numero: number; comprimento_cm: number | null; largura_cm: number | null;
+          perimetro_cm: number | null; pe_direito_cm: number | null; vaos: Json; pintar_paredes: boolean; pintar_teto: boolean;
+          area_paredes_manual_cm2: number | null; area_teto_manual_cm2: number | null; cor_referencia: string | null; cor_hex: string | null;
+          area_paredes_cm2: number | null; area_teto_cm2: number | null; certeza: string; margem_bp: number | null; vao_minimo_cm2: number;
+          registado_por: string | null; registado_em: string;
+        };
+        Insert: {
+          id?: string; request_id: string; ordem?: number; tipo: string; numero?: number; comprimento_cm?: number | null; largura_cm?: number | null;
+          perimetro_cm?: number | null; pe_direito_cm?: number | null; vaos?: Json; pintar_paredes?: boolean; pintar_teto?: boolean;
+          area_paredes_manual_cm2?: number | null; area_teto_manual_cm2?: number | null; cor_referencia?: string | null; cor_hex?: string | null;
+          area_paredes_cm2?: number | null; area_teto_cm2?: number | null; certeza?: string; margem_bp?: number | null; vao_minimo_cm2?: number;
+          registado_por?: string | null; registado_em?: string;
+        };
+        Update: Partial<Database['public']['Tables']['request_rooms']['Insert']>;
+        Relationships: [];
+      };
+      paleta_cores: {
+        Row: { codigo: string; nome: string; hex: string; familia: string; ordem: number; ativa: boolean };
+        Insert: { codigo: string; nome: string; hex: string; familia: string; ordem?: number; ativa?: boolean };
+        Update: { nome?: string; hex?: string; familia?: string; ordem?: number; ativa?: boolean };
+        Relationships: [];
       };
       promo_codes: {
         Row: { active: boolean; code: string; created_at: string; created_by: string; discount_bps: number; id: string; max_uses: number | null; notas: string | null; uses: number; valid_until: string | null };
@@ -2177,7 +2269,7 @@ export type Database = {
           { foreignKeyName: 'relatorios_de_propostas_fichas_relatorio_id_fkey'; columns: ['relatorio_id']; isOneToOne: false; referencedRelation: 'relatorios_de_propostas'; referencedColumns: ['id'] },
         ];
       };
-      // Migração `20261105230000_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
+      // Migração `20261106083428_poderes_de_representacao` (05/11/2026), escritas à mão: tabelas novas, por
       // aplicar à base real. Só se escrevem pelas funções `definir_codigo_certidao` e
       // `registar_leitura_poderes` (abaixo), por isso Insert e Update são `never`.
       poderes_de_representacao: {
@@ -2277,6 +2369,8 @@ export type Database = {
       reselect_proposal: { Args: { p_proposal: string }; Returns: undefined };
       active_suppliers: { Args: { p_plan: string }; Returns: string[] };
       delete_organization: { Args: { p_org: string }; Returns: undefined };
+      // Só a chave de serviço: a impressão digital do contrato por assinar, depois de cada alteração (06/11/2026).
+      registar_versao_da_minuta: { Args: { p_engagement: string; p_sha256: string }; Returns: undefined };
       check_promo_code: { Args: { p_code: string }; Returns: number | null };
       painter_rating: { Args: { p_proposal: string }; Returns: { n: number; media: number | null }[] };
       resolve_listing_report: { Args: { p_report: string; p_suspend: boolean; p_resolucao: string }; Returns: undefined };
@@ -2366,13 +2460,13 @@ export type Database = {
           por_responder: boolean;
         }[];
       };
-      // Poderes de representação (migração 20261105230000), escritas à mão até ser aplicada.
+      // Poderes de representação (migração 20261106083428), escritas à mão até ser aplicada.
       definir_codigo_certidao: { Args: { p_org: string; p_codigo: string }; Returns: undefined };
       registar_leitura_poderes: {
         Args: { p_org: string; p_fonte: string; p_forma_de_obrigar: string; p_assinaturas: number | null; p_valida_ate: string; p_membros: Json };
         Returns: undefined;
       };
-      // A assinatura só entra pelo servidor (migração 20261105233000), escrita à mão até ser aplicada. Só a
+      // A assinatura só entra pelo servidor (migração 20261106083458), escrita à mão até ser aplicada. Só a
       // chave de serviço a executa; a tabela `assinaturas_verificadas` não tem entrada aqui porque ninguém
       // com sessão a lê nem a escreve.
       registar_assinatura_verificada: {

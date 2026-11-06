@@ -16,6 +16,8 @@ import { caminhoDoPdfAssinado, contractPdfFor, loadDraft, loadReplay, missingCon
 import { verifySignature } from '@/lib/pades';
 import { pedeAviso } from '@/domain/poderes';
 import { poderesDoLado } from '@/lib/poderes';
+import { faltaParaAssinar } from '@/domain/elementosDoContrato';
+import { elementosEmVigor } from '@/lib/elementosDoContrato';
 import { checkSignedPdf, findSignatures, resumoDaAssinaturaAceite, shouldRejectUntrustedSignature } from '@/domain/signature';
 import { availableActions } from '@/domain/contracting';
 import { getUser } from '@/lib/supabase/server';
@@ -30,7 +32,7 @@ const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entr
 const SEM_SERVIDOR = 'Não foi possível registar a assinatura agora. Tente de novo dentro de minutos.';
 
 /**
- * A assinatura só entra pelo servidor (migração `20261105233000_assinatura_so_pelo_servidor`): depois de
+ * A assinatura só entra pelo servidor (migração `20261106083458_assinatura_so_pelo_servidor`): depois de
  * verificar, regista-se com a chave de serviço o payload exato que o acontecimento vai levar, e a base só
  * aceita o acontecimento com um payload igual, desta pessoa. Até 05/11/2026 quem gerisse a entidade podia
  * registar «assinou» pela API sem PDF nenhum. Devolve a mensagem de erro, ou `null` quando ficou registado.
@@ -129,6 +131,8 @@ export async function partyAction(engagementId: string, kind: PartyKind, _prev: 
       const { data: row } = await supabase.from('engagements').select('*').eq('id', engagementId).maybeSingle();
       const missing = row ? await missingCondoDocs(supabase, row) : [];
       if (missing.length > 0) return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
+      const falta = row ? faltaParaAssinar(row.minuta_versao, await elementosEmVigor(supabase, row.id)) : null;
+      if (falta) return { errors: {}, message: falta };
     }
   }
   const reason = String(form.get('motivo') ?? '').trim();
@@ -247,6 +251,9 @@ export async function signWithPdf(
     if (missing.length > 0) {
       return { errors: {}, message: `Antes de assinar, envie e aguarde a validação de: ${missing.join('; ')}.` };
     }
+    // Minuta de 06/11/2026: o IBAN do empreiteiro tem de estar no PDF que o cliente assina.
+    const falta = faltaParaAssinar(row.minuta_versao, await elementosEmVigor(supabase, row.id));
+    if (falta) return { errors: {}, message: falta };
   }
   const expected = side === 'cliente' ? await contractPdfFor(supabase, row) : await signedPdf(supabase, row, 'cliente');
   if (!expected) return { errors: {}, message: 'Falta o contrato assinado pelo cliente.' };
@@ -301,7 +308,7 @@ export async function signWithPdf(
     ...(poderes ? { poderes } : {}),
   };
   // O PDF e a verificação seguem pela chave de serviço: nenhuma das duas coisas se faz com a sessão da parte
-  // (migração 20261105233000). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
+  // (migração 20261106083458). O ficheiro chama-se pelo seu próprio resumo: escrever de novo o mesmo nome é
   // escrever os mesmos bytes, e um carregamento atrasado (uma verificação de rede lenta) cai noutro nome e
   // nunca substitui o que foi aceite — lê-se sempre o do acontecimento (`signedPdf`).
   if (sobreCliente) {

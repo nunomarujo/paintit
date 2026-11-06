@@ -1,4 +1,8 @@
 import type { Forma } from '@/domain/volume';
+import { caleirasDaLinha, declaracaoDasCaleiras } from '@/domain/caleiras';
+import { DeclaradoPeloCliente } from '@/components/DeclaradoPeloCliente';
+import { declaracaoDasDivisoesGravadas } from '@/domain/interior';
+import { AVISO_DA_COR } from '@/domain/corDaPintura';
 import { cabecalhoTrabalho, capotoEmFalta } from '@/domain/etics';
 import { parseCapoto } from '@/lib/capoto';
 import { CapotoEditor } from './orcamento/CapotoEditor';
@@ -68,7 +72,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
     supabase.from('proposals').select('*').eq('request_id', id).in('painter_org_id', orgs.map((o) => o.id)),
   ]);
   // A origem, o estado e a margem de cada zona dizem ao pintor quanto vale cada área (06/11/2026). A coluna
-  // `margem_bps` entra com a migração 20261106010000: num ambiente onde ainda não correu, pedi-la dá erro e o
+  // `margem_bps` entra com a migração 20261106083508: num ambiente onde ainda não correu, pedi-la dá erro e o
   // anúncio ficava sem zonas nenhumas — por isso, sem ela, lê-se o resto (a origem e o estado já existem).
   const surfaces = zonasComMargem.error
     ? ((
@@ -330,6 +334,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
             preferidos: await preferredView(supabase, listing.produtos_preferidos),
             photos: photos ?? [],
           }}
+        />
+      )}
+      {listing && (
+        <DeclaradoPeloCliente
+          frases={[
+            declaracaoDasCaleiras(caleirasDaLinha(listing)),
+            ...declaracaoDasDivisoesGravadas((await supabase.from('request_rooms').select('*').eq('request_id', id).order('ordem')).data ?? [], AVISO_DA_COR),
+          ]}
         />
       )}
       {listing?.aberto && (

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { contractPdfFor, signedPdf } from '@/lib/engagements';
 import { getUser } from '@/lib/supabase/server';
+import { faltaParaAssinar } from '@/domain/elementosDoContrato';
+import { elementosEmVigor } from '@/lib/elementosDoContrato';
 
 // PDF do contrato: "?v=base" é o documento gerado, para o cliente assinar;
 // "?v=cliente" e "?v=pintor" são as versões já assinadas.
@@ -12,6 +14,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: row } = await supabase.from('engagements').select('*').eq('id', id).maybeSingle();
   if (!row) return new NextResponse('Contratação não encontrada.', { status: 404 });
 
+  // Minuta de 06/11/2026: sem o IBAN do empreiteiro, o PDF a assinar ainda não está completo — quem o
+  // descarregasse e assinasse agora teria de o assinar outra vez.
+  if (v !== 'cliente' && v !== 'pintor') {
+    const falta = faltaParaAssinar(row.minuta_versao, await elementosEmVigor(supabase, row.id));
+    if (falta) return new NextResponse(falta, { status: 409, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
   const bytes = v === 'cliente' || v === 'pintor' ? await signedPdf(supabase, row, v) : await contractPdfFor(supabase, row);
   if (!bytes) return new NextResponse('Documento ainda não assinado.', { status: 404 });
   const ref = id.slice(0, 8).toUpperCase();
