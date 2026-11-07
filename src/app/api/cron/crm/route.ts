@@ -87,7 +87,7 @@ export async function GET(req: Request) {
     let envios = await lerEnvios();
     const jaTem = new Set(envios.map((e) => `${e.contacto_id}|${e.campanha_id}`));
     const elegiveis = (contactos ?? []).filter(
-      (c) => c.email && c.pessoa_coletiva && !c.desistiu_em && c.estado !== 'desistiu' && campanhaDe(c.tipo as TipoContacto),
+      (c) => c.email && c.pessoa_coletiva && !c.desistiu_em && c.estado !== 'desistiu' && c.estado !== 'recusou' && campanhaDe(c.tipo as TipoContacto),
     );
     const porCriar = elegiveis.filter((c) => !jaTem.has(`${c.id}|${campanhaDe(c.tipo as TipoContacto)}`));
     const aCriar = porCriar

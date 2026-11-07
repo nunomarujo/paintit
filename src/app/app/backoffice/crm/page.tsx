@@ -3,6 +3,7 @@ import { agruparPorTema, melhoresMensagens, principaisLacunas } from '@/domain/c
 import { TEXTOS_INICIAIS } from '@/domain/crmEmails';
 import { decidirCampanha, sequenciaDeCampanhas, type Resultados } from '@/domain/crm';
 import { DecidirCampanha } from './DecidirCampanha';
+import { Caixa } from './Caixa';
 import { Descobrir } from './Descobrir';
 import { createClient } from '@/lib/supabase/server';
 
@@ -18,14 +19,19 @@ export default async function CrmPage() {
     Object.entries(TEXTOS_INICIAIS).map(([id, t]) => ({ id, assunto: t.assunto, corpo: t.corpo, cta: t.cta })),
     { onConflict: 'id', ignoreDuplicates: true },
   );
-  const [{ data: zonas }, { data: contactos }, { data: envios }, { data: eventos }, { data: campanhas }, { data: dossier }] = await Promise.all([
+  const [{ data: zonas }, { data: contactos }, { data: envios }, { data: eventos }, { data: campanhas }, { data: dossier }, { data: porTratar }, { data: rascunhos }] = await Promise.all([
     supabase.from('crm_zonas').select('id, concelho, ativa, campanha_atual').order('concelho'),
-    supabase.from('crm_contactos').select('id, zona_id, tipo'),
+    supabase.from('crm_contactos').select('id, zona_id, tipo, nome'),
     supabase.from('crm_envios').select('id, contacto_id, estado'),
     supabase.from('crm_eventos').select('contacto_id, tipo'),
     supabase.from('crm_campanhas').select('*').order('id'),
     supabase.from('crm_dossier').select('perfil, zona_id, tema, tipo, evidencias, cobertura'),
+    supabase.from('crm_mensagens').select('id, contacto_id, de, assunto, texto, categoria, criado_em').eq('direcao', 'entrada').eq('estado', 'nova').order('criado_em').limit(30),
+    supabase.from('crm_mensagens').select('em_resposta_a, assunto, texto').eq('direcao', 'saida').eq('estado', 'rascunho'),
   ]);
+  const nomeDe = new Map((contactos ?? []).map((c) => [c.id, c.nome]));
+  const rascunhoDe = new Map((rascunhos ?? []).map((r) => [r.em_resposta_a, { assunto: r.assunto, corpo: r.texto }]));
+  const ROTULO: Record<string, string> = { interesse: 'Mostrou interesse', pergunta: 'Fez uma pergunta', outro: 'Resposta' };
   const temas = agruparPorTema((dossier ?? []).map((d) => ({ perfil: d.perfil, zonaId: d.zona_id, tema: d.tema, tipo: d.tipo as 'dor' | 'lacuna' | 'acerto', evidencias: d.evidencias, cobertura: d.cobertura })));
   const porDecidir = (campanhas ?? []).filter((c) => c.estado !== 'aprovada');
 
@@ -39,6 +45,28 @@ export default async function CrmPage() {
           Empresas a contactar por zona, com a sequência de campanhas de cada uma. O agente propõe; nada é enviado sem aprovação.
         </p>
       </div>
+
+      <section aria-labelledby="caixa">
+        <h2 id="caixa" className="text-[13px] font-semibold text-slate-500">
+          Caixa{(porTratar ?? []).length > 0 && <span className="text-amber-800"> · {(porTratar ?? []).length} por tratar</span>}
+        </h2>
+        {(porTratar ?? []).length === 0 ? (
+          <p className="mt-2 rounded-2xl border border-dashed border-slate-300 p-6 text-[15px] text-slate-600">
+            Nada por tratar. Pedidos para sair, recusas e endereços que não existem tratam-se sozinhos.
+          </p>
+        ) : (
+          <ul className="mt-2 grid gap-4 lg:grid-cols-2">
+            {(porTratar ?? []).map((m) => (
+              <li key={m.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[13px] text-slate-500">{ROTULO[m.categoria ?? 'outro'] ?? 'Resposta'} · {m.contacto_id ? (nomeDe.get(m.contacto_id) ?? m.de) : `${m.de} (contacto desconhecido)`}</p>
+                <p className="mt-1 text-[17px] font-semibold text-tinta-900">{m.assunto || 'Sem assunto'}</p>
+                <p className="mt-2 whitespace-pre-line text-[15px] text-slate-700">{m.texto.length > 700 ? `${m.texto.slice(0, 700)}…` : m.texto}</p>
+                <Caixa id={m.id} rascunho={rascunhoDe.get(m.id) ?? null} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section aria-labelledby="campanhas">
         <h2 id="campanhas" className="text-[13px] font-semibold text-slate-500">Campanhas à espera de decisão</h2>

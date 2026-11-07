@@ -6658,3 +6658,19 @@ a morada fiscal da empresa continua reservada. Onde aparecem:
   concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
 - **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
   concelho, um vendedor com loja nesse concelho também aparece.
+
+### 07/11/2026 — CRM: receção e classificação das respostas
+
+- **Entrada** `POST /api/crm/entrada` (segredo `CRM_ENTRADA_SEGREDO`; fechada sem ele). Cada mensagem é guardada em
+  `crm_mensagens` (idempotente por `message_id`), classificada por regras sobre o texto, sem IA e sem custo
+  (`src/domain/crmRespostas.ts`), e tratada por `tratarMensagemRecebida`. Instruções e script do Gmail em `docs/CRM_ENTRADA.md`.
+- **Só se faz sozinho o que a lei ou o bom senso mandam:** pedido para sair (contacto marcado, o que ia sair rejeitado,
+  desistência contada), recusa (pára), ressalto (o email deixa de existir para a base). Interesse, perguntas e o resto esperam por
+  uma pessoa na **Caixa** do separador CRM; só o interesse tem rascunho, que se edita e envia ali.
+- **A nossa mensagem citada não conta** (o rodapé tem «não quero receber mais mensagens»): `semCitacao`, com testes.
+- **Um ressalto** vem do servidor de correio: o contacto encontra-se pelo endereço lido dentro da mensagem (defeito apanhado
+  pelo teste com a base simulada).
+- **`CRM_RESPOSTAS_EMAIL`**: `Reply-To` dedicado, para o que se entrega ao CRM ser só o das campanhas, não toda a caixa pessoal.
+- O cron deixa de propor a quem «recusou». Migração `20261107024456_crm_mensagens` aplicada e verificada (estados inválidos e
+  mensagem repetida recusados; sem rasto).
+- **Por construir:** classificação com IA para o que as regras não apanham; rascunhos para perguntas; testar o script do Gmail.
