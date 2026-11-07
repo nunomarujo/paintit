@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { planPostings, type PlanSources } from './plan';
 import { sum } from './entries';
 
-const empty: PlanSources = { payments: [], retentions: [], payouts: [], redemptions: [], subscriptions: [], stripeFees: [], stripePayouts: [], posted: new Set(), today: '2026-10-21', day: (iso) => iso.slice(0, 10) };
+const empty: PlanSources = { payments: [], retentions: [], payouts: [], redemptions: [], subscriptions: [], stripeFees: [], stripePayouts: [], surveyPayouts: [], surveyRedemptions: [], posted: new Set(), today: '2026-10-21', day: (iso) => iso.slice(0, 10) };
 const key = (p: { origem: string; origemId: string }) => `${p.origem}|${p.origemId}`;
 
 describe('livro de movimentos: o que falta lançar', () => {
@@ -78,5 +78,41 @@ describe('livro de movimentos: o que falta lançar', () => {
     expect(inv.origem).toBe('resgate_fatura');
     const plan = planPostings({ ...empty, redemptions: [r], posted: new Set([key(inv)]) });
     expect(plan.map((p) => p.origem)).toEqual(['resgate_fatura_estorno']);
+  });
+
+  describe('resgates de avaliadores', () => {
+    const payout = { id: 's1', amountCents: 10_000, estado: 'adjudicada', feeRecebidoEm: '2026-10-20T11:00:00Z' };
+    const red = { id: 'v1', estado: 'paga', comissaoCents: 10_000, ivaCents: 0, retencaoCents: 2_500, liquidoCents: 7_500, invoiceEm: '2026-10-21T08:00:00Z', pagaEm: '2026-10-21T09:00:00Z' };
+    const sv: PlanSources = { ...empty, surveyPayouts: [payout, { ...payout, id: 's2', feeRecebidoEm: null }, { ...payout, id: 's3', amountCents: 0 }], surveyRedemptions: [red] };
+
+    it('lança a comissão devida e o pagamento, e nada do que não está devido; sem IVA não há lançamento do recibo', () => {
+      const plan = planPostings(sv);
+      expect(plan.map((p) => key(p)).sort()).toEqual(['levantamento_comissao|s1', 'levantamento_resgate_pago|v1']);
+      for (const p of plan) expect(sum(p.lines, 'debito')).toBe(sum(p.lines, 'credito'));
+    });
+
+    it('um resgate só pedido não lança nada; com recibo e IVA, lança o IVA dedutível e ainda não o pagamento', () => {
+      expect(planPostings({ ...empty, surveyRedemptions: [{ ...red, estado: 'pedido', invoiceEm: null, pagaEm: null }] })).toEqual([]);
+      const recibo = planPostings({ ...empty, surveyRedemptions: [{ ...red, estado: 'fatura_recebida', ivaCents: 2_300, liquidoCents: 9_800, pagaEm: null }] });
+      expect(recibo.map((p) => p.origem)).toEqual(['levantamento_resgate_recibo']);
+    });
+
+    it('é idempotente e não se mistura com as origens da adesão', () => {
+      const first = planPostings(sv);
+      expect(planPostings({ ...sv, posted: new Set(first.map(key)) })).toEqual([]);
+      const both = planPostings({ ...sv, payouts: [payout], redemptions: [{ ...red, id: 'v1' }] });
+      expect(both.map((p) => p.origem).sort()).toEqual(['comissao_adesao', 'levantamento_comissao', 'levantamento_resgate_pago', 'resgate_pago']);
+    });
+
+    it('estorna a comissão sem efeito e o recibo anulado, e só se já estavam lançados', () => {
+      const accrual = planPostings(sv).find((p) => p.origem === 'levantamento_comissao')!;
+      const voided = { ...sv, surveyPayouts: [{ ...payout, estado: 'sem_efeito' }], surveyRedemptions: [] };
+      expect(planPostings(voided)).toEqual([]);
+      expect(planPostings({ ...voided, posted: new Set([key(accrual)]) }).map((p) => p.origem)).toEqual(['levantamento_comissao_estorno']);
+      const r = { ...red, estado: 'anulado', ivaCents: 2_300, liquidoCents: 9_800, pagaEm: null };
+      const inv = planPostings({ ...empty, surveyRedemptions: [{ ...r, estado: 'fatura_recebida' }] })[0]!;
+      expect(planPostings({ ...empty, surveyRedemptions: [r], posted: new Set([key(inv)]) }).map((p) => p.origem)).toEqual(['levantamento_resgate_recibo_estorno']);
+      expect(planPostings({ ...empty, surveyRedemptions: [r] })).toEqual([]);
+    });
   });
 });

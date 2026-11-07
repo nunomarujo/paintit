@@ -159,18 +159,22 @@ async function contratoParaAssinarPorWhatsApp(engagementId: string, requestId: s
   if (!modelo || !cfg || !db) return;
   const pessoas = await gestoresDe(orgId);
   if (pessoas.length === 0) return;
-  const [{ data: prefs }, { data: anuncio }] = await Promise.all([
-    db.from('survey_availability').select('user_id, alerta_whatsapp, telemovel_whatsapp').in('user_id', pessoas),
+  const [{ data: prefs }, { data: numeros }, { data: anuncio }] = await Promise.all([
+    db.from('survey_availability').select('user_id, alerta_whatsapp').in('user_id', pessoas),
+    db.from('whatsapp_numeros').select('user_id, numero').in('user_id', pessoas),
     db.from('request_listings').select('ref').eq('request_id', requestId).maybeSingle(),
   ]);
   const referencia = anuncio?.ref ?? engagementId.slice(0, 8).toUpperCase();
   for (const p of prefs ?? []) {
-    if (!p.alerta_whatsapp || !p.telemovel_whatsapp) continue;
-    try {
-      await enviarModelo(cfg, p.telemovel_whatsapp, modelo, variaveisDoContrato(referencia), { sufixoUrl: engagementId });
-    } catch (err) {
-      // Sem o número no registo: só a contratação e a razão da Meta.
-      console.error(`WhatsApp do contrato ${engagementId} não saiu: ${err instanceof Error ? err.message : 'falha desconhecida'}`);
+    if (!p.alerta_whatsapp) continue;
+    // A todos os números confirmados da pessoa (até 3): só estes, nunca um número escrito à mão.
+    for (const n of (numeros ?? []).filter((x) => x.user_id === p.user_id)) {
+      try {
+        await enviarModelo(cfg, n.numero, modelo, variaveisDoContrato(referencia), { sufixoUrl: engagementId });
+      } catch (err) {
+        // Sem o número no registo: só a contratação e a razão da Meta.
+        console.error(`WhatsApp do contrato ${engagementId} não saiu: ${err instanceof Error ? err.message : 'falha desconhecida'}`);
+      }
     }
   }
 }

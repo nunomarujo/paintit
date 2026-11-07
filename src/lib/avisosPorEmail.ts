@@ -50,22 +50,28 @@ export async function esvaziarFilaDeAvisos(limite = 20): Promise<ResumoDoEsvazia
     // WhatsApp, quando existe o canal e a pessoa o ligou. Independente do email: uma falha aqui não trava
     // o outro, e o resultado fica na própria linha. Sem consentimento, nem se tenta (02/11/2026).
     if (whatsapp) {
-      const { data: pref } = await db
-        .from('survey_availability')
-        .select('alerta_whatsapp, telemovel_whatsapp')
-        .eq('user_id', linha.destinatario)
-        .maybeSingle();
-      if (pref?.alerta_whatsapp && pref.telemovel_whatsapp) {
-        try {
-          await enviarModelo(whatsapp, pref.telemovel_whatsapp, modeloAviso!, variaveisDoAviso(linha.assunto, linha.texto, linha.link));
+      const [{ data: pref }, { data: numeros }] = await Promise.all([
+        db.from('survey_availability').select('alerta_whatsapp').eq('user_id', linha.destinatario).maybeSingle(),
+        // Só números confirmados por mensagem recebida (06/11/2026), todos os da pessoa.
+        db.from('whatsapp_numeros').select('numero').eq('user_id', linha.destinatario),
+      ]);
+      if (pref?.alerta_whatsapp && (numeros ?? []).length > 0) {
+        let enviou = false;
+        let falha: string | null = null;
+        for (const n of numeros ?? []) {
+          try {
+            await enviarModelo(whatsapp, n.numero, modeloAviso!, variaveisDoAviso(linha.assunto, linha.texto, linha.link));
+            enviou = true;
+          } catch (e) {
+            falha = (e instanceof Error ? e.message : 'Falha desconhecida.').slice(0, 500);
+          }
+        }
+        if (enviou) {
           resumo.whatsappEnviados += 1;
           await db.from('avisos_por_email').update({ whatsapp_estado: 'enviado', whatsapp_em: new Date().toISOString(), whatsapp_erro: null }).eq('id', linha.id);
-        } catch (e) {
+        } else {
           resumo.whatsappFalhados += 1;
-          await db
-            .from('avisos_por_email')
-            .update({ whatsapp_estado: 'falhou', whatsapp_erro: (e instanceof Error ? e.message : 'Falha desconhecida.').slice(0, 500) })
-            .eq('id', linha.id);
+          await db.from('avisos_por_email').update({ whatsapp_estado: 'falhou', whatsapp_erro: falha }).eq('id', linha.id);
         }
       } else {
         await db.from('avisos_por_email').update({ whatsapp_estado: 'sem_consentimento' }).eq('id', linha.id);

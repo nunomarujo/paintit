@@ -179,3 +179,16 @@ ser o fornecedor a faturar a plataforma (fluxo já feito).
 - Os movimentos de outro tipo contam na diferença explicada (a conta fecha) e ficam listados; a equipa pode **deixá-los fora do livro com uma nota** (`stripe_bt_review`), ficando registado quem decidiu.
 - ⚠ **Antes de passar a Stripe a modo real:** a base de dados tem dados de teste (pagamentos, lançamentos, movimentos Stripe). O livro é imutável, por isso a limpeza dos lançamentos de teste faz-se à mão, no SQL Editor, por quem tem permissão de dono
   (desligar os triggers de imutabilidade, apagar `acc_*`, `stripe_bt`, `stripe_payouts`, `stripe_balance_snapshots`, `subscription_payments` de teste, e voltar a ligá-los). Guardar o SQL e usar uma só vez, antes do lançamento.
+
+## 15. Resgates dos avaliadores no livro (06/11/2026)
+
+As comissões de levantamento são de cada avaliador (decisão de 05/11/2026) e o seu resgate segue o circuito das comissões de adesão, com **contas próprias** para o saldo das pessoas não se misturar com o dos fornecedores:
+
+| Acontecimento | Origem (`acc_entries`) | Lançamento | Quando |
+| --- | --- | --- | --- |
+| Comissão de levantamento devida (a comissão do pintor entrou) | `levantamento_comissao` / `survey_payouts.id` | D 62.2.3 · C 22.3 | `fee_recebido_em` (valor > 0; estado diferente de `sem_efeito`) |
+| Recibo recebido, com IVA | `levantamento_resgate_recibo` / `survey_redemptions.id` | D 24.32 · C 22.3 | `invoice_em`, estado `fatura_recebida` ou `paga`; sem IVA não há lançamento |
+| Resgate pago | `levantamento_resgate_pago` / `survey_redemptions.id` | D 22.3 (comissão + IVA) · C 24.2 (retenção) · C 12.1 (líquido) | `paga_em`, estado `paga` |
+| Comissão sem efeito, ou recibo de resgate anulado | `…_estorno` | o inverso, só se o original já estava lançado | dia da sincronização |
+
+Um resgate só **pedido** ou **anulado antes do recibo** não lança nada. Idempotente por `(origem, origem_id)`. Código: `src/domain/accounting/entries.ts` (`surveyAccrued`, `surveyRedemptionInvoiced`, `surveyRedemptionPaid`), `plan.ts`, `src/lib/accounting.ts`; contas na migração `20261106201820`. ◆ Por validar pelo contabilista: ver `DECISOES.md`, 06/11/2026.

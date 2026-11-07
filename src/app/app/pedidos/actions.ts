@@ -39,6 +39,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import { isPlatformAdmin } from '@/lib/access';
 import { guardContact } from '@/lib/strikes';
 import { getUser } from '@/lib/supabase/server';
+import { isForma, lerFaceDoPredio } from '@/domain/volume';
 
 const NOT_SIGNED_IN: FormState = { errors: {}, message: 'A sessão expirou. Entre de novo.' };
 
@@ -168,16 +169,53 @@ export async function addSurface(requestId: string, _prev: FormState, form: Form
   const v = parsed.value;
   const refused = await guardContact(supabase, user.id, 'zona do pedido', { descricao: v.descricao });
   if (refused) return refused;
-  const { error } = await supabase.from('request_surfaces').insert({
-    request_id: requestId,
-    ...colunasDaZona(v),
-    // Zona nova: a medição é sempre de quem a está a criar.
-    registado_por: user.id,
-    registado_em: new Date().toISOString(),
-  });
+  const { data, error } = await supabase
+    .from('request_surfaces')
+    .insert({
+      request_id: requestId,
+      ...colunasDaZona(v),
+      // Zona nova: a medição é sempre de quem a está a criar.
+      registado_por: user.id,
+      registado_em: new Date().toISOString(),
+    })
+    .select('id');
   if (error) return { errors: {}, message: 'Não foi possível acrescentar. O pedido tem de estar em rascunho.' };
+  const face = faceDoFormulario(form, v.kind);
+  // O lado vai à parte (a coluna pode não estar aplicada): se não gravou, diz-se — o lado escolhido não se perde em silêncio.
+  const faceGravada = face === undefined || !data?.[0] ? true : await gravarFaceDaZona(supabase, requestId, data[0].id, face);
   revalidarPedido(requestId);
-  return { errors: {}, ok: true };
+  return { errors: {}, ok: true, ...(faceGravada ? {} : { message: MENSAGEM_DO_LADO_NAO_GUARDADO, lerAntesDeFechar: true }) };
+}
+
+/** O que se diz quando a zona ficou gravada mas o lado do prédio não (a coluna `face_do_predio` por aplicar). */
+const MENSAGEM_DO_LADO_NAO_GUARDADO = 'Guardado, mas o lado do prédio ainda não se guarda: o desenho usa a ordem das zonas.';
+
+/** Os tipos de zona que ocupam um lado da planta do prédio: os alçados e as varandas. */
+const TIPOS_COM_LADO: readonly SurfaceKind[] = ['fachada', 'empena', 'varandas'];
+
+/**
+ * O lado do prédio que o editor enviou. `undefined`: o formulário não traz o campo (não se mexe); nulo: o desenho
+ * atribui. Um tipo de zona que não ocupa um lado fica sempre sem ele. O valor vem do navegador (regra 10): só passa
+ * o que é um identificador de lado (`lerFaceDoPredio`), e a base repete a verificação.
+ */
+function faceDoFormulario(form: FormData, kind: SurfaceKind): string | null | undefined {
+  if (!TIPOS_COM_LADO.includes(kind)) return form.has('face') ? null : undefined;
+  return form.has('face') ? lerFaceDoPredio(form.get('face')) : undefined;
+}
+
+/**
+ * Grava o lado de uma zona, à parte do resto da linha: a coluna é de 06/11/2026 (migração
+ * `face_do_predio`) e pode ainda não estar aplicada. Sem ela, a zona fica gravada na mesma e o desenho atribui o
+ * lado pela ordem — o que não se pode é a página, ou a gravação da zona, rebentar por causa de uma coluna.
+ */
+async function gravarFaceDaZona(
+  supabase: Awaited<ReturnType<typeof getUser>>['supabase'],
+  requestId: string,
+  surfaceId: string,
+  face: string | null,
+): Promise<boolean> {
+  const { error } = await supabase.from('request_surfaces').update({ face_do_predio: face }).eq('id', surfaceId).eq('request_id', requestId);
+  return !error;
 }
 
 /**
@@ -262,8 +300,15 @@ export async function updateSurface(
     .eq('id', surfaceId)
     .eq('request_id', requestId);
   if (error) return { errors: {}, message: 'Não foi possível guardar. O pedido tem de estar em rascunho.' };
+  const face = faceDoFormulario(form, v.kind);
+  const faceGravada = face === undefined ? true : await gravarFaceDaZona(supabase, requestId, surfaceId, face);
   revalidarPedido(requestId);
-  return { errors: {}, ok: true, message: 'Guardado.' };
+  return {
+    errors: {},
+    ok: true,
+    message: faceGravada ? 'Guardado.' : MENSAGEM_DO_LADO_NAO_GUARDADO,
+    ...(faceGravada ? {} : { lerAntesDeFechar: true }),
+  };
 }
 
 /**
@@ -379,6 +424,17 @@ export async function gravarMedicaoDaFotografia(
 export async function deleteSurface(requestId: string, surfaceId: string) {
   const { supabase } = await getUser();
   await supabase.from('request_surfaces').delete().eq('id', surfaceId).eq('request_id', requestId);
+  revalidarPedido(requestId);
+}
+
+/**
+ * Recomeçar o desenho: remove todas as zonas do pedido, com as medidas delas. As fotografias ficam (só
+ * perdem a ligação à zona, `on delete set null`), tal como as medidas do prédio. Pede-se confirmação no
+ * ecrã; aqui a RLS decide quem pode apagar — as mesmas regras de `deleteSurface`.
+ */
+export async function apagarTodasAsZonas(requestId: string) {
+  const { supabase } = await getUser();
+  await supabase.from('request_surfaces').delete().eq('request_id', requestId);
   revalidarPedido(requestId);
 }
 
@@ -655,6 +711,29 @@ export async function guardarMedidasDoPredio(
     .select('id');
   if (error || !data || data.length === 0) {
     return { errors: {}, message: 'Não foi possível guardar as medidas do prédio.' };
+  }
+  revalidatePath(`/app/pedidos/${requestId}`);
+  return { errors: {}, ok: true, message: 'Guardado.' };
+}
+
+/**
+ * A planta do prédio (quadrado, I, L, U, T), escolhida no passo 2 quando entra o segundo alçado (06/11/2026).
+ *
+ * É a mesma forma que o cadastro do prédio guarda (`buildings.forma_implantacao`, a que a ficha do prédio chega
+ * por `saveBuildingCharacteristic`): vive no prédio e não no pedido, porque é do prédio. O valor vem do navegador
+ * (regra 10): só uma das cinco formas passa, e a base repete a restrição. Quem pode alterar o prédio decide-o a
+ * política da tabela; uma gravação que a base recusou em silêncio (nenhuma linha) não diz «Guardado».
+ */
+export async function guardarFormaDoPredio(buildingId: string, requestId: string, forma: string): Promise<FormState> {
+  if (!isForma(forma)) return { errors: {}, message: 'Planta desconhecida.' };
+  const { supabase, user } = await getUser();
+  if (!user) return NOT_SIGNED_IN;
+  // O prédio vem do navegador (regra 10): tem de ser o do pedido, e não outro prédio da mesma organização.
+  const { data: pedido } = await supabase.from('work_requests').select('building_id').eq('id', requestId).maybeSingle();
+  if (!pedido || pedido.building_id !== buildingId) return { errors: {}, message: 'Este prédio não é o do pedido.' };
+  const { data, error } = await supabase.from('buildings').update({ forma_implantacao: forma }).eq('id', buildingId).select('id');
+  if (error || !data || data.length === 0) {
+    return { errors: {}, message: 'Não foi possível guardar a planta. Só quem gere o prédio a pode alterar.' };
   }
   revalidatePath(`/app/pedidos/${requestId}`);
   return { errors: {}, ok: true, message: 'Guardado.' };

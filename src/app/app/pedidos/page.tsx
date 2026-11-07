@@ -3,6 +3,7 @@ import { WORK_TYPE_LABELS } from '@/domain/request';
 import { CURRENT_RULES } from '@/domain/rules';
 import { localDate } from '@/domain/deadline';
 import { estadoDaEntrega } from '@/domain/entrega';
+import { Dica } from '@/components/Dica';
 import { getUser } from '@/lib/supabase/server';
 
 const dataCurta = (iso: string | null) =>
@@ -13,6 +14,9 @@ const dataCurta = (iso: string | null) =>
  * os números; à direita as obras em grelha, agrupadas pela fase em que estão — a receber propostas,
  * propostas abertas, em preparação, terminadas. Cada grupo tem a sua cor de pílula, uma só vez, no
  * título do grupo; dentro dos cartões o alarme é texto (regra 13).
+ *
+ * Refeito a 06/11/2026 (revisão taste-skill): uma lista por fase, em colunas, sem o painel lateral — a grelha
+ * de cartões deixava metade do ecrã vazio e o painel repetia os números dos títulos.
  */
 export default async function RequestsPage() {
   const { supabase, user } = await getUser();
@@ -42,12 +46,32 @@ export default async function RequestsPage() {
     .filter((o) => o.fase === 'a_receber' && o.entrega.abremEm)
     .sort((a, b) => (a.entrega.abremEm! < b.entrega.abremEm! ? -1 : 1))[0];
 
+  const maisDeUmaEntidade = clientOrgs.length > 1;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-semibold leading-tight">As minhas obras</h1>
-          <p className="mt-1 text-[17px] text-slate-600">Só empresas com documentos verificados respondem, com propostas discriminadas.</p>
+          <h1 className="text-[26px] font-semibold leading-tight">
+            As minhas obras
+            <span className="ml-1 align-middle">
+              <Dica rotulo="O que protege">
+                Só empresas com alvará e seguros verificados respondem, com propostas discriminadas. As propostas abrem todas ao mesmo tempo e
+                o contrato transcreve a proposta escolhida.
+              </Dica>
+            </span>
+          </h1>
+          {/* Uma frase com o que está à espera: substitui o cartão «Nada por fazer» e o painel «Em números»,
+              cujos números já estão nos títulos dos grupos (um facto dito uma vez). */}
+          {lista.length > 0 && (
+            <p className="mt-1 text-[17px] text-slate-600">
+              {porComparar.length > 0
+                ? `${porComparar.length === 1 ? 'Há propostas abertas numa obra' : `Há propostas abertas em ${porComparar.length} obras`}: comparar e escolher.`
+                : proximaAbertura
+                  ? `Nada por fazer. As próximas propostas abrem a ${dataCurta(proximaAbertura.entrega.abremEm)}.`
+                  : 'Nada por fazer. Avisamos quando houver algo que precise de si.'}
+            </p>
+          )}
         </div>
         {clientOrgs.length > 0 && (
           <Link href={`/app/organizacoes/${clientOrgs[0]!.id}/pedidos/novo`} className="btn-primary">
@@ -61,127 +85,86 @@ export default async function RequestsPage() {
           <p className="text-[17px]">Para pedir orçamentos, registe primeiro um condomínio ou um particular em «Início».</p>
         </div>
       ) : lista.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="rounded-2xl border border-dashed border-slate-300 p-6">
           <p className="text-[17px]">Ainda não há obras.</p>
           <Link href={`/app/organizacoes/${clientOrgs[0]!.id}/pedidos/novo`} className="btn-primary mt-4">
             Pedir orçamentos
           </Link>
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-12">
-          {/* Painel: o que pede atenção, e os números. */}
-          <aside className="space-y-4 lg:col-span-3">
-            {porComparar.length > 0 ? (
-              <section className="rounded-2xl bg-tinta-900 p-5 text-white">
-                <p className="text-[13px] font-semibold text-lima">Precisa de si</p>
-                <p className="mt-1 text-[20px] font-semibold leading-tight">
-                  {porComparar.length === 1 ? 'Propostas abertas numa obra' : `Propostas abertas em ${porComparar.length} obras`}
-                </p>
-                <ul className="mt-3 space-y-2">
-                  {porComparar.slice(0, 3).map((o) => (
-                    <li key={o.r.id}>
-                      <Link href={`/app/pedidos/${o.r.id}/propostas`} className="inline-flex min-h-[44px] items-center text-[15px] font-semibold text-lima hover:underline">
-                        Comparar · {o.r.titulo}
-                      </Link>
-                    </li>
-                  ))}
+        <>
+          {grupos.map((g) => (
+            <section key={g.id} aria-labelledby={`g-${g.id}`}>
+              <h2 id={`g-${g.id}`} className="text-[20px] font-semibold text-slate-900">
+                {g.nome} <span className="text-[17px] font-normal tabular-nums text-slate-600">{g.obras.length}</span>
+              </h2>
+              <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                {/* Cabeçalho de colunas só em ecrã largo: 13px, cinzento, sem faixa (guia, §7.2). */}
+                <div className="hidden grid-cols-[minmax(0,1fr)_9rem_11rem] gap-4 border-b border-slate-200 px-5 py-2 text-[13px] text-slate-600 md:grid">
+                  <span>Obra</span>
+                  <span className="text-right">{g.colunas[0]}</span>
+                  <span className="text-right">{g.colunas[1]}</span>
+                </div>
+                <ul className="divide-y divide-slate-200">
+                  {g.obras.map(({ r, entrega, propostas, fase }) => {
+                    const [c1, c2] = valores(fase, r.prazo_propostas, entrega.abremEm, propostas);
+                    return (
+                      <li key={r.id}>
+                        <Link
+                          href={`/app/pedidos/${r.id}`}
+                          className="grid min-h-[44px] grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 hover:bg-slate-50 focus-visible:bg-slate-50 md:grid-cols-[minmax(0,1fr)_9rem_11rem]"
+                        >
+                          <span className="col-span-2 min-w-0 md:col-span-1">
+                            <span className="block truncate font-semibold text-slate-900">{r.titulo}</span>
+                            <span className="block truncate text-[15px] text-slate-600">
+                              {[`Ref. ${r.ref}`, WORK_TYPE_LABELS[r.tipo_obra], maisDeUmaEntidade ? nomeDaOrg(r.org_id) : ''].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                          <span className="text-[17px] tabular-nums text-slate-900 md:text-right">
+                            <span className="text-[13px] text-slate-600 md:hidden">{g.colunas[0] ? `${g.colunas[0]} ` : ''}</span>
+                            {c1.texto}
+                          </span>
+                          <span
+                            className={`text-right text-[17px] tabular-nums ${c2.destaque ? 'font-semibold text-amber-800' : 'text-slate-900'}`}
+                          >
+                            <span className="text-[13px] font-normal text-slate-600 md:hidden">{g.colunas[1] ? `${g.colunas[1]} ` : ''}</span>
+                            {c2.texto}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
-              </section>
-            ) : (
-              <section className="rounded-2xl bg-paper p-5">
-                <p className="text-[13px] font-semibold text-slate-500">Nada por fazer</p>
-                <p className="mt-1 text-[17px]">
-                  {proximaAbertura
-                    ? `As próximas propostas abrem a ${dataCurta(proximaAbertura.entrega.abremEm)}.`
-                    : 'Avisamos quando houver algo que precise de si.'}
-                </p>
-              </section>
-            )}
-            <section className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 className="text-[13px] font-semibold text-slate-500">Em números</h2>
-              <dl className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-1">
-                {FASES.map((f) => {
-                  const n = lista.filter((o) => o.fase === f.id).length;
-                  return (
-                    <div key={f.id} className="flex items-baseline justify-between gap-2">
-                      <dt className="text-[15px] text-slate-600">{f.nome}</dt>
-                      <dd className="text-[20px] font-semibold tabular-nums">{n}</dd>
-                    </div>
-                  );
-                })}
-              </dl>
+              </div>
             </section>
-            <section className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h2 className="text-[13px] font-semibold text-slate-500">O que o protege</h2>
-              <ul className="mt-2 list-disc space-y-1 pl-4 text-[15px] text-slate-600">
-                <li>Empresas com alvará e seguros verificados</li>
-                <li>Propostas abertas todas ao mesmo tempo</li>
-                <li>Contrato que transcreve a proposta escolhida</li>
-              </ul>
-            </section>
-          </aside>
-
-          {/* As obras, por fase. */}
-          <div className="space-y-6 lg:col-span-9">
-            {grupos.map((g) => (
-              <section key={g.id}>
-                <h2 className="flex items-center gap-2 text-[17px] font-semibold">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[13px] ${g.pilula}`}>{g.nome}</span>
-                  <span className="text-slate-500">
-                    {g.obras.length} {g.obras.length === 1 ? 'obra' : 'obras'}
-                  </span>
-                </h2>
-                <ul className="mt-3 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                  {g.obras.map(({ r, entrega, propostas, fase }) => (
-                    <li key={r.id}>
-                      <Link href={`/app/pedidos/${r.id}`} className="block h-full rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-tinta-600">
-                        <p className="text-[13px] text-slate-500">
-                          Ref. {r.ref} · {nomeDaOrg(r.org_id)}
-                        </p>
-                        <h3 className="mt-1 text-[20px] font-semibold leading-tight">{r.titulo}</h3>
-                        <p className="mt-1 text-[15px] text-slate-600">{WORK_TYPE_LABELS[r.tipo_obra]}</p>
-                        <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-200 pt-3">
-                          {fase === 'a_receber' && (
-                            <>
-                              <Dado rotulo="Propostas até" valor={dataCurta(r.prazo_propostas)} />
-                              <Dado rotulo="Abrem" valor={dataCurta(entrega.abremEm)} />
-                            </>
-                          )}
-                          {fase === 'abertas' && (
-                            <>
-                              <Dado rotulo="Propostas" valor={String(propostas)} />
-                              <Dado rotulo="Por fazer" valor="Comparar" destaque />
-                            </>
-                          )}
-                          {fase === 'preparacao' && <Dado rotulo="Por fazer" valor="Completar e publicar" destaque />}
-                          {fase === 'terminadas' && <Dado rotulo="Propostas" valor={String(propostas)} />}
-                        </dl>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        </div>
+          ))}
+        </>
       )}
     </div>
   );
 }
 
 type Fase = 'abertas' | 'a_receber' | 'preparacao' | 'terminadas';
-const FASES: { id: Fase; nome: string; pilula: string }[] = [
-  { id: 'abertas', nome: 'Propostas abertas', pilula: 'bg-tinta-900 text-white' },
-  { id: 'a_receber', nome: 'A receber propostas', pilula: 'bg-tinta-100 text-tinta-900' },
-  { id: 'preparacao', nome: 'Em preparação', pilula: 'bg-slate-100 text-slate-700' },
-  { id: 'terminadas', nome: 'Terminadas', pilula: 'bg-slate-100 text-slate-600' },
+const FASES: { id: Fase; nome: string; colunas: [string, string] }[] = [
+  { id: 'abertas', nome: 'Propostas abertas', colunas: ['Propostas', 'Por fazer'] },
+  { id: 'a_receber', nome: 'A receber propostas', colunas: ['Propostas até', 'Abrem'] },
+  { id: 'preparacao', nome: 'Em preparação', colunas: ['', 'Por fazer'] },
+  { id: 'terminadas', nome: 'Terminadas', colunas: ['Propostas', ''] },
 ];
 
-function Dado({ rotulo, valor, destaque = false }: { rotulo: string; valor: string; destaque?: boolean }) {
-  return (
-    <div>
-      <dt className="text-[13px] text-slate-500">{rotulo}</dt>
-      <dd className={`text-[17px] font-semibold ${destaque ? 'text-amber-800' : ''}`}>{valor}</dd>
-    </div>
-  );
+type Celula = { texto: string; destaque?: boolean };
+const VAZIO: Celula = { texto: '' };
+
+/** O que cada fase mostra nas duas colunas da direita. Alarme em texto âmbar, nunca fundo (regra 13). */
+function valores(fase: Fase, prazo: string | null, abremEm: string | null, propostas: number): [Celula, Celula] {
+  switch (fase) {
+    case 'a_receber':
+      return [{ texto: dataCurta(prazo) }, { texto: dataCurta(abremEm) }];
+    case 'abertas':
+      return [{ texto: String(propostas) }, { texto: 'Comparar', destaque: true }];
+    case 'preparacao':
+      return [VAZIO, { texto: 'Completar e publicar', destaque: true }];
+    case 'terminadas':
+      return [{ texto: String(propostas) }, VAZIO];
+  }
 }

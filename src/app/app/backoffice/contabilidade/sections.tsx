@@ -52,6 +52,7 @@ export async function Dashboard() {
     ['Cauções de clientes', bal(ACCOUNTS.caucoesTerceiros.codigo), 'Dinheiro de terceiros: não é receita.'],
     ['IVA a entregar', bal(ACCOUNTS.ivaLiquidado.codigo) - bal(ACCOUNTS.ivaDedutivel.codigo), 'IVA liquidado menos dedutível (acumulado).'],
     ['Devido a fornecedores', bal(ACCOUNTS.fornecedoresTintas.codigo), 'Saldos de comissões de adesão ainda por pagar.'],
+    ['Devido a avaliadores', bal(ACCOUNTS.avaliadores.codigo), 'Comissões de levantamento ainda por pagar às pessoas.'],
     ['Retenções por entregar', bal(ACCOUNTS.retencoes.codigo), 'Retidas nos resgates.'],
     ['Rendimentos acumulados', incomeTotal, 'Comissões, mensalidades e cauções retidas (sem IVA).'],
   ];

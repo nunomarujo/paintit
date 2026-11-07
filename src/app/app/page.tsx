@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { acceptInvitation } from '@/app/app/actions';
-import { markNotificationsRead } from '@/app/app/extras-actions';
 import { MEMBER_ROLE_LABELS, ORG_KIND_LABELS } from '@/domain/organization';
 import { isPlatformAdmin } from '@/lib/access';
 import { aMinhaEspera } from '@/lib/contratosAMinhaEspera';
 import { painterOrgs } from '@/lib/queries';
 import { getUser } from '@/lib/supabase/server';
+import { AvisosDoInicio } from './AvisosDoInicio';
 import { InicioDoCliente } from './InicioDoCliente';
+import { InicioDoPintor } from './InicioDoPintor';
 import { residenciasDe } from '@/lib/condomino';
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ convite?: string }> }) {
@@ -89,6 +90,43 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     );
   }
 
+  // Conta de pintor (a conta é uma só entidade): o Início é o «Hoje» do ofício, não o ecrã genérico do
+  // cliente (06/11/2026). Os convites pendentes continuam a aparecer, no topo.
+  const soPintor = mine.length > 0 && mine.every((o) => o.kind === 'pintor') && painters.length > 0;
+  if (soPintor) {
+    return (
+      <div className="space-y-6">
+        {convite === 'invalido' && (
+          <p className="rounded-xl bg-red-50 p-4 text-[17px] text-red-800" role="alert">
+            Esse convite já não é válido. Peça um novo a quem o enviou.
+          </p>
+        )}
+        {(invites ?? []).length > 0 && (
+          <section className="rounded-2xl border border-tinta-100 bg-tinta-50 p-6">
+            <h2 className="font-semibold">Tem {invites!.length === 1 ? 'um convite' : `${invites!.length} convites`} para se juntar a uma equipa</h2>
+            <ul className="mt-3 space-y-2 text-[17px]">
+              {invites!.map((i) => (
+                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <strong>{i.org_nome}</strong>
+                    {i.org_kind && <> ({ORG_KIND_LABELS[i.org_kind]})</>} · papel: {MEMBER_ROLE_LABELS[i.role].label} · válido até{' '}
+                    {i.expires_at.slice(0, 10).split('-').reverse().join('/')}
+                  </span>
+                  <form action={acceptInvitation.bind(null, i.id)}>
+                    <button type="submit" className="btn-primary">
+                      Aceitar
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <InicioDoPintor supabase={supabase} orgIds={mine.map((o) => o.id)} contratacoes={todo} avisos={notes ?? []} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {convite === 'invalido' && (
@@ -119,43 +157,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </section>
       )}
 
-      {/* Fundo de cor é só para a banda do topo (convites, acima): aqui o alarme é texto âmbar,
-          nunca um segundo fundo — regra 13 do CLAUDE.md. */}
-      {notes && notes.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 text-[17px]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Avisos</h2>
-            <form action={markNotificationsRead}>
-              <button type="submit" className="inline-flex min-h-[44px] items-center text-tinta-700 hover:underline">
-                Marcar todos como lidos
-              </button>
-            </form>
-          </div>
-          {/* Um cartão por aviso, não uma lista corrida: ficava tudo colado, sem separação nenhuma
-              entre um aviso e o seguinte (pedido do promotor, 26/10/2026). `first-letter:uppercase`
-              garante maiúscula inicial mesmo se algum texto futuro vier sem ela — defesa, não
-              correção de dados: os textos guardados já começam maiúsculos. */}
-          <ul className="mt-2 space-y-2">
-            {notes.map((n) => (
-              // O cartão inteiro é o alvo, não só a frase (pedido do promotor, 28/10/2026). Antes a
-              // ligação era o texto e a data ficava de fora: carregar ao lado da frase, ou na data,
-              // não fazia nada. A data vai para dentro da ligação; o `block` com padding próprio
-              // dá o cartão todo.
-              <li key={n.id} className="rounded-lg border border-slate-200">
-                <Link
-                  href={n.link}
-                  className="block rounded-lg p-3 hover:bg-slate-50 focus-visible:bg-slate-50"
-                >
-                  <span className="block text-tinta-900 first-letter:uppercase">{n.texto}</span>
-                  <span className="mt-0.5 block text-[15px] text-slate-500">
-                    {new Date(n.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <AvisosDoInicio avisos={notes ?? []} />
 
       {(todo.length > 0 || ownRequests.length > 0 || painters.length > 0) && (
         <section className="grid gap-4 sm:grid-cols-2">

@@ -192,6 +192,7 @@ export default async function SurveyWorkspacePage({ params }: { params: Promise<
               origemDaQuantidade: paraZona(s).origemDaQuantidade,
               confirmacao: paraZona(s).confirmacao,
               margemBps: paraZona(s).margemBps,
+              face: s.face_do_predio ?? null,
               trabalhos: s.trabalhos,
             }))}
             modo="iguais"

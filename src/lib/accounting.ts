@@ -5,7 +5,7 @@ import { CURRENT_RULES } from '@/domain/rules';
 import { loadReplay } from '@/lib/engagements';
 import { adminClient } from '@/lib/supabase/admin';
 
-// Livro de movimentos: lê os acontecimentos que já existem (pagamentos Stripe, retenções, comissões de adesão, resgates,
+// Livro de movimentos: lê os acontecimentos que já existem (pagamentos Stripe, retenções, comissões de adesão e de levantamento, resgates,
 // mensalidades) e grava o lançamento de cada um que ainda não tem, pela função acc_post, que é idempotente por (origem, origem_id).
 // Corre todos os dias (cron) e quando a equipa pede «Sincronizar». As regras estão em src/domain/accounting/entries.ts.
 
@@ -32,13 +32,15 @@ export async function syncLedger(): Promise<SyncResult> {
     if ((data ?? []).length < 1000) break;
   }
 
-  const [{ data: payments }, { data: payouts }, { data: redemptions }, { data: subs }, { data: bts }, { data: spayouts }] = await Promise.all([
+  const [{ data: payments }, { data: payouts }, { data: redemptions }, { data: subs }, { data: bts }, { data: spayouts }, { data: sPayouts }, { data: sRedemptions }] = await Promise.all([
     db.from('stripe_payments').select('*').order('created_at'),
     db.from('referral_payouts').select('id, amount_cents, estado, fee_recebido_em'),
     db.from('referral_redemptions').select('*'),
     db.from('subscription_payments').select('stripe_invoice_id, amount_cents, vat_cents, paid_at'),
     db.from('stripe_bt').select('id, reporting_category, amount_cents, fee_cents, created_at, currency').eq('currency', 'eur'),
     db.from('stripe_payouts').select('id, amount_cents, status, arrival_at').eq('currency', 'eur'),
+    db.from('survey_payouts').select('id, amount_cents, estado, fee_recebido_em'),
+    db.from('survey_redemptions').select('*'),
   ]);
 
   // Caução retida: o motor de regras decide, contratação a contratação.
@@ -59,6 +61,8 @@ export async function syncLedger(): Promise<SyncResult> {
     retentions,
     payouts: (payouts ?? []).map((y) => ({ id: y.id, amountCents: y.amount_cents, estado: y.estado, feeRecebidoEm: y.fee_recebido_em })),
     redemptions: (redemptions ?? []).map((r) => ({ id: r.id, estado: r.estado, comissaoCents: r.comissao_cents, ivaCents: r.iva_cents, retencaoCents: r.retencao_cents, liquidoCents: r.liquido_cents, invoiceEm: r.invoice_em, pagaEm: r.paga_em })),
+    surveyPayouts: (sPayouts ?? []).map((y) => ({ id: y.id, amountCents: y.amount_cents, estado: y.estado, feeRecebidoEm: y.fee_recebido_em })),
+    surveyRedemptions: (sRedemptions ?? []).map((r) => ({ id: r.id, estado: r.estado, comissaoCents: r.comissao_cents, ivaCents: r.iva_cents, retencaoCents: r.retencao_cents, liquidoCents: r.liquido_cents, invoiceEm: r.invoice_em, pagaEm: r.paga_em })),
     subscriptions: (subs ?? []).map((s) => ({ invoiceId: s.stripe_invoice_id, amountCents: s.amount_cents, vatCents: s.vat_cents, paidAt: s.paid_at })),
     // Taxa: o campo `fee` das cobranças e os movimentos próprios de taxas (valor negativo).
     stripeFees: (bts ?? []).map((b) => ({ id: b.id, feeCents: b.reporting_category === 'fee' ? -b.amount_cents : b.fee_cents, createdAt: b.created_at })),
