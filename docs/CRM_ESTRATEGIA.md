@@ -78,3 +78,18 @@ porta legal na base de dados. A API do Claude entra nos agentes Escuta, Redator,
 **Fonte do dossier por indicar:** o promotor referiu informação num «founder-skill» onde clientes levantam críticas,
 apontam lacunas e indicam acertos. Não está neste repositório, e o que a pesquisa no Drive devolveu pertence a outro projeto
 do promotor, que não pode ser usado aqui (regra de isolamento). Falta dizer onde está, ou colar o conteúdo.
+
+## Fontes do dossier: o que é evidência e o que é simulação (07/11/2026)
+
+O repositório público `jakeschincariol/founder-skill` (MIT) traz onze skills que testam um negócio antes do lançamento. A skill
+`founder-consumer` **simula** 100 compradores (sub-agentes a fazer de clientes) e conta quem «compra» e porquê. É útil para
+levantar hipóteses de dores e objeções, mas **não é evidência de clientes reais**: são respostas inventadas por um modelo.
+
+Regra para o dossier (`crm_dossier`):
+- Entrada vinda de uma conversa, resposta a um email, chamada, crítica pública ou inquérito real: `fonte` descreve-a («resposta
+  a email, 12/11, Pinturas X»), `evidencias` conta quantas pessoas reais a disseram.
+- Entrada vinda de um painel simulado (`founder-consumer`, `board`, `competitors` feitos por IA): `fonte` começa por
+  **«simulado:»** e `evidencias = 1` por tema, **nunca 100**. Serve para decidir o que perguntar a pessoas reais, não para
+  afirmar que os clientes sentem aquilo.
+- Nenhuma mensagem de campanha afirma uma dor como facto («os pintores perdem 3 horas por orçamento») sem uma fonte real ou um
+  número do próprio produto.
