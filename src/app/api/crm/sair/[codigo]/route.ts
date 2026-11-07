@@ -1,3 +1,4 @@
+import { registarDesistencia } from '@/lib/crmServico';
 import { adminClient } from '@/lib/supabase/admin';
 
 /**
@@ -26,12 +27,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ codigo
   if (!valido(codigo)) return pagina('<p>Ligação inválida.</p>');
   const db = adminClient();
   if (!db) return new Response('Indisponível', { status: 503 });
-  const { data: c } = await db.from('crm_contactos').select('id, desistiu_em').eq('codigo', codigo).maybeSingle();
-  if (c && !c.desistiu_em) {
-    await db.from('crm_contactos').update({ desistiu_em: new Date().toISOString(), estado: 'desistiu' }).eq('id', c.id);
-    await db.from('crm_eventos').insert({ contacto_id: c.id, tipo: 'desistencia' });
-    // O que ainda não saiu deixa de sair.
-    await db.from('crm_envios').update({ estado: 'rejeitado' }).eq('contacto_id', c.id).in('estado', ['proposto', 'aprovado']);
-  }
+  const { data: c } = await db.from('crm_contactos').select('id').eq('codigo', codigo).maybeSingle();
+  if (c) await registarDesistencia(db, c.id);
   return pagina('<h1 style="font-size:24px">Feito</h1><p>Não voltará a receber mensagens da Quem Pinta.</p>');
 }

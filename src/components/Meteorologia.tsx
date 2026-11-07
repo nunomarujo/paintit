@@ -51,8 +51,8 @@ export function Meteorologia({ dias, local }: { dias: DiaDeTempo[]; local: strin
 
 const CAIXA: Record<Veredicto, string> = {
   sim: 'border-slate-200 bg-white',
-  talvez: 'border-amber-200 bg-amber-50',
-  nao: 'border-amber-300 bg-amber-50',
+  talvez: 'border-slate-200 bg-white',
+  nao: 'border-slate-200 bg-white',
 };
 
 const TEXTO: Record<Veredicto, string> = {

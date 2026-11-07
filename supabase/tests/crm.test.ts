@@ -190,3 +190,24 @@ describe('Catálogo de lançamento (fornecedores)', () => {
     await db.query(`insert into public.ofertas_de_lancamento (org_id, origem_flyer, concedida, valida_ate) values ($1, 'fl-for-1', 'catalogo', '2027-01-31')`, [FORN2]);
   });
 });
+
+describe('Caixa de correio do CRM', () => {
+  it('uma entrada é «nova» ou «tratada»; uma saída é rascunho, enviada ou descartada', async () => {
+    await db.query(`insert into public.crm_mensagens (direcao, texto, estado) values ('entrada', 'x', 'nova'), ('saida', 'y', 'rascunho')`);
+    await expect(db.query(`insert into public.crm_mensagens (direcao, texto, estado) values ('entrada', 'x', 'rascunho')`)).rejects.toThrow(/check/);
+    await expect(db.query(`insert into public.crm_mensagens (direcao, texto, estado) values ('saida', 'x', 'nova')`)).rejects.toThrow(/check/);
+  });
+  it('só se aceitam as categorias conhecidas', async () => {
+    await expect(db.query(`insert into public.crm_mensagens (direcao, texto, estado, categoria) values ('entrada', 'x', 'nova', 'inventada')`)).rejects.toThrow(/check/);
+  });
+  it('a mesma mensagem não entra duas vezes', async () => {
+    await db.query(`insert into public.crm_mensagens (direcao, texto, estado, message_id) values ('entrada', 'x', 'nova', '<m1@x>')`);
+    await expect(db.query(`insert into public.crm_mensagens (direcao, texto, estado, message_id) values ('entrada', 'x', 'nova', '<m1@x>')`)).rejects.toThrow(/duplicate key/);
+  });
+  it('só a equipa lê e escreve; anónimo nada', async () => {
+    expect((await as(ADMIN, () => db.query('select * from public.crm_mensagens'))).rows.length).toBeGreaterThan(0);
+    expect((await as(OUTRO, () => db.query('select * from public.crm_mensagens'))).rows).toHaveLength(0);
+    await expect(as(OUTRO, () => db.query(`insert into public.crm_mensagens (direcao, texto, estado) values ('entrada', 'x', 'nova')`))).rejects.toThrow(/row-level security/);
+    await expect(as(null, () => db.query('select * from public.crm_mensagens'))).rejects.toThrow(/permission denied/);
+  });
+});

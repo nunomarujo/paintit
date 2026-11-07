@@ -282,6 +282,13 @@ export type Database = {
         Update: { org_id?: string; origem_flyer?: string | null; origem_contacto?: string | null; concedida?: string | null; valida_ate?: string | null; criado_em?: string };
         Relationships: [];
       };
+      // Migração `crm_mensagens` (06/11/2026). Escrita à mão: coincide coluna a coluna com a migração.
+      crm_mensagens: {
+        Row: { id: string; contacto_id: string | null; direcao: string; de: string | null; assunto: string; texto: string; categoria: string | null; estado: string; em_resposta_a: string | null; campanha_id: string | null; message_id: string | null; criado_em: string };
+        Insert: { id?: string; contacto_id?: string | null; direcao: string; de?: string | null; assunto?: string; texto: string; categoria?: string | null; estado: string; em_resposta_a?: string | null; campanha_id?: string | null; message_id?: string | null; criado_em?: string };
+        Update: { id?: string; contacto_id?: string | null; direcao?: string; de?: string | null; assunto?: string; texto?: string; categoria?: string | null; estado?: string; em_resposta_a?: string | null; campanha_id?: string | null; message_id?: string | null; criado_em?: string };
+        Relationships: [];
+      };
       // Migração `toques` (27/10/2026). Escrita à mão enquanto não for aplicada à base real.
       toques: {
         Row: {

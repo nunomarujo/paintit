@@ -6616,6 +6616,47 @@ oportunidades de **todo o país** (a convenção das entregas de produtos). Para
 - **Fica como estava:** os concelhos de **entrega de produtos** do fornecedor («Concelhos servidos», vazio = todo o
   país). É outra regra; muda-se só se o promotor o pedir.
 
+## 06/11/2026 — Sem concelhos indicados, vale o concelho da morada da empresa
+
+Promotor, a seguir à entrada anterior: «quando não indicados devem ficar associados à morada registada da empresa».
+- **`organizations.concelho`** (migração `20261106155820_concelho_da_morada_da_empresa`): o concelho da morada
+  fiscal, tirado do código postal pelo servidor sempre que os dados da empresa são gravados (base dos CTT, a mesma da
+  morada; com o serviço em baixo não se apaga o que já lá estava). Os dois fornecedores existentes ficaram com
+  «Viana do Castelo», lido dos seus códigos postais a 06/11/2026; as outras entidades preenchem-no na próxima gravação.
+- **Levantamentos:** sem zona escolhida, a empresa cobre o concelho da sua morada (`private.supplier_covers` e
+  `zonaEfetiva` em `coberturaDaEmpresa.ts`); a zona escolhida manda sobre a morada. Sem zona e sem morada, nada. O Hoje
+  diz «Disponível · Viana do Castelo (morada da empresa)» e, no cartão, «Os levantamentos chegam de …, o concelho da
+  morada da empresa», com a ligação para escolher outros. Gravar o formulário sem concelhos grava o da morada.
+- **Entregas de produtos** (pergunta da sessão, respondida aqui): «Todo o país» passa a ser uma caixa marcada
+  (`supplier_delivery.todo_o_pais`); sem concelhos, a condição fica com o concelho da morada; a base recusa uma condição
+  sem escolha. A lista vazia deixou de querer dizer todo o país também em `deliveryFor`.
+- **«Loja»:** ver a entrada seguinte (registo de lojas, 06/11/2026).
+
+## 06/11/2026 — Registo de lojas do fornecedor
+
+Promotor: «sim, avança com o registo de lojas».
+- **Tabela `supplier_stores`** (migrações `20261106165506_lojas_do_fornecedor` e `20261106165537_lojas_indice_created_by`):
+  nome, morada, código postal, localidade e concelho. O concelho tira-o o servidor do código postal, como o da empresa;
+  a morada confere-se com a base dos CTT. Grava e remove quem gere a empresa fornecedora; veem a empresa e a plataforma.
+- **Onde:** dados da empresa do fornecedor (`/app/organizacoes/<id>`, separador Dados), secção «Lojas».
+- **Para que serve, por agora:** os concelhos por omissão. Sem concelhos indicados, de levantamento ou de entrega, valem
+  o da morada da empresa **e** os das lojas (`concelhosPorOmissao` em `coberturaDaEmpresa.ts`, `private.supplier_covers`,
+  os convites por WhatsApp). O ecrã diz de onde vêm: «Viana do Castelo e Braga (morada e lojas da empresa)».
+- **Aos pintores:** decidido a seguir — ver a entrada «As lojas veem-se pelos pintores».
+- **Base real, de passagem:** uma migração reaplicada por outra sessão (`20261106151731`, mesmo nome da de 05/11) tinha
+  desfeito a correção `20261105094822` (search_path de `private.versao_da_autodeclaracao_do_avaliador`); a correção,
+  que já estava no repositório, foi reposta e o aviso de segurança voltou a zero.
+
+## 06/11/2026 — As lojas do fornecedor veem-se pelos pintores
+
+Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem
+pertence a uma empresa de pintura lê as lojas dos fornecedores; clientes e outros fornecedores continuam sem as ver, e
+a morada fiscal da empresa continua reservada. Onde aparecem:
+- **Escolha de materiais no orçamento** (`MaterialPicker`): linha «Loja»/«Lojas» por baixo da entrega, com as do
+  concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
+- **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
+  concelho, um vendedor com loja nesse concelho também aparece.
+
 ## 06/11/2026 — Os resgates dos avaliadores entram no livro de movimentos
 
 **Pedido:** ligar os resgates de avaliadores ao livro antes do primeiro pagamento real (`EM_ABERTO.md` §1b). Até aqui o
@@ -6815,6 +6856,8 @@ outreach por email com campanhas gratuitas, gira as respostas e aprenda o que re
 
 ## 06/11/2026 — Sem concelhos indicados, vale o concelho da morada da empresa
 
+## 06/11/2026 — Revisão dos workspaces dos três perfis contra o taste-skill (ponto C)
+
 Promotor, a seguir à entrada anterior: «quando não indicados devem ficar associados à morada registada da empresa».
 - **`organizations.concelho`** (migração `20261106155820_concelho_da_morada_da_empresa`): o concelho da morada
   fiscal, tirado do código postal pelo servidor sempre que os dados da empresa são gravados (base dos CTT, a mesma da
@@ -6840,22 +6883,62 @@ quais há. **Atenção, perigo:** em **produção** as `MOLONI_*` são as da emp
 no deploy do ramo `moloni-teste`.
 - **«Loja»:** ver a entrada seguinte (registo de lojas, 06/11/2026).
 
-## 06/11/2026 — Registo de lojas do fornecedor
+Revisão pedida pelo promotor aos workspaces de cliente, pintor e fornecedor (não à página inicial). Capturas dos
+ecrãs reais com dados fictícios, numa ferramenta local que não entra no repositório. Corrigido: `SeletorDeContexto`
+(Vendas / Avaliações) com raio fora da escala (`rounded-[10px]`) e altura de 40px — passa a `rounded-lg` e 44px;
+`Meteorologia` (dias de obra) tinha fundo âmbar em cada linha da lista — regra 13: o aviso fica só no texto.
+Fica por decidir com o promotor (crítica por ecrã, ver a resposta da sessão): o «Início» do pintor é o mesmo
+ecrã genérico do cliente, sem um «Hoje» próprio.
 
-Promotor: «sim, avança com o registo de lojas».
-- **Tabela `supplier_stores`** (migrações `20261106165506_lojas_do_fornecedor` e `20261106165537_lojas_indice_created_by`):
-  nome, morada, código postal, localidade e concelho. O concelho tira-o o servidor do código postal, como o da empresa;
-  a morada confere-se com a base dos CTT. Grava e remove quem gere a empresa fornecedora; veem a empresa e a plataforma.
-- **Onde:** dados da empresa do fornecedor (`/app/organizacoes/<id>`, separador Dados), secção «Lojas».
-- **Para que serve, por agora:** os concelhos por omissão. Sem concelhos indicados, de levantamento ou de entrega, valem
-  o da morada da empresa **e** os das lojas (`concelhosPorOmissao` em `coberturaDaEmpresa.ts`, `private.supplier_covers`,
-  os convites por WhatsApp). O ecrã diz de onde vêm: «Viana do Castelo e Braga (morada e lojas da empresa)».
-- **Aos pintores:** decidido a seguir — ver a entrada «As lojas veem-se pelos pintores».
-- **Base real, de passagem:** uma migração reaplicada por outra sessão (`20261106151731`, mesmo nome da de 05/11) tinha
-  desfeito a correção `20261105094822` (search_path de `private.versao_da_autodeclaracao_do_avaliador`); a correção,
-  que já estava no repositório, foi reposta e o aviso de segurança voltou a zero.
+## 06/11/2026 — «Hoje» do pintor
 
-## 06/11/2026 — As lojas do fornecedor veem-se pelos pintores
+O Início do pintor era o ecrã genérico do cliente («Pedidos em curso», «As suas entidades»), enquanto o do
+fornecedor já tinha um «Hoje» com ação. A pedido do promotor, o pintor ganha o seu (`InicioDoPintor.tsx`),
+para contas só de pintor; as outras contas mantêm o Início anterior.
+
+Pergunta do ecrã: o que pede ação desta empresa hoje? Ordem: **o que espera por si** (contratos a assinar,
+pagar ou confirmar; a única banda de cor, no topo; sem nada, o quadro fica e di-lo); **prazos a fechar**
+(pedidos abertos que terminam em 7 dias e em que a empresa ainda não enviou proposta; o rascunho à frente a
+igualdade; âmbar em texto até 3 dias); **a decorrer** (orçamentos por enviar, propostas à espera de resposta,
+pedidos abertos por propor, obras em curso, em algarismos tabulares); **obras em curso**; **documentos a
+caducar** só quando algum caduca em 30 dias (âmbar o que ainda se resolve, vermelho o que já caducou); avisos.
+As escolhas vivem em `src/domain/hojeDoPintor.ts`, com testes. O bloco «Avisos» passou a componente comum
+(`AvisosDoInicio.tsx`). Visto com dados fictícios no computador e no telemóvel (390px: sem deslocamento
+horizontal, sem alvos abaixo de 44px); não visto com dados reais.
+
+## 06/11/2026 — Oportunidades do pintor: lista em colunas
+
+A lista era um bloco cinzento em duas colunas de texto corrido («· Porto», área e prazo misturados na mesma
+linha). Passa a **uma lista de linhas** num cartão: identidade à esquerda (tipo · concelho, pedido, pisos, a
+proposta da empresa se houver), **área** e **propostas até** em colunas à direita, em algarismos tabulares, com
+cabeçalho de 13px sem faixa; no telemóvel a área e o prazo ficam lado a lado. O aviso de prazo é texto âmbar
+(nunca fundo, regra 13). A frase longa sobre anonimato passou para um (i) e uma linha diz o que a vista tem
+(«7 pedidos abertos · 3 a fechar em 3 dias · 2 com proposta sua»), que muda com os filtros. Os campos usam
+`campo` (regra 17). Visto com dados fictícios no computador e no telemóvel (sem deslocamento, sem alvos < 44px).
+
+## 06/11/2026 — «As minhas obras» do cliente: uma lista por fase
+
+A página tinha um painel lateral (cartão marinho «Precisa de si», «Em números», «O que o protege») e, à direita,
+uma grelha de cartões por fase que deixava metade do ecrã vazio quando uma fase tinha uma só obra; a mesma
+entidade repetia-se em todos os cartões e os números do painel diziam o que os títulos dos grupos já diziam.
+Passa a **uma lista por fase, em largura total**: título da fase com a contagem (sem pílula acima do título),
+colunas à direita em algarismos tabulares com cabeçalho de 13px (propostas até / abrem; propostas / por fazer),
+e o que há por fazer em texto âmbar. O nome da entidade só aparece se a conta tiver mais de uma. O «Precisa de si»
+virou uma frase sob o título (o cartão repetia a obra que a lista já mostra), e «O que o protege» passou para um
+(i). Visto com dados fictícios, computador e telemóvel (sem deslocamento, sem alvos < 44px); não visto com dados reais.
+
+## 06/11/2026 — Publicar o que faltava: o que entrou e o que ficou
+
+Pedido do promotor: «commit, push e publica em produção tudo que falte».
+- **Entraram:** `claude/eloquent-darwin-cayk66` (CRM e ofertas de lançamento; as cinco migrações já estavam na base) e
+  `claude/quempinta-taste-skill-j9der5` (ecrãs do pintor: Hoje, Oportunidades, As minhas obras). Conflitos só nos
+  registos (DECISOES), resolvidos ficando com as duas partes.
+- **Migrações que estavam só na base, agora com ficheiro:** `20261106151731` (reaplicação de
+  `reserva_so_para_avaliadores_inscritos`, igual à de 05/11) (a `20261106200620_minuta_com_layout_novo` pô-la a própria sessão que a escreveu); mais
+  `20261106201651_versao_do_avaliador_search_path_outra_vez`, que volta a fixar o search_path que a reaplicação desfez.
+- **`claude/sweet-cray-xfehwj`:** não foi juntado aqui — a sessão dele estava ativa e publicou-o por si logo a seguir,
+  com as suas migrações (incluindo a dos números de WhatsApp confirmados). **Ficou de fora:** `moloni-teste` é um ramo de ensaio («só neste ramo»). `formulario-icones` e
+  `workspace-fornecedor` (01/11) são de um histórico antigo do repositório e não se juntam ao atual.
 
 Promotor: «sim, mostra a morada das lojas aos pintores». Migração `20261106172024_lojas_visiveis_aos_pintores`: quem
 pertence a uma empresa de pintura lê as lojas dos fornecedores; clientes e outros fornecedores continuam sem as ver, e
@@ -6864,3 +6947,19 @@ a morada fiscal da empresa continua reservada. Onde aparecem:
   concelho da obra primeiro (`lojasParaOPintor`, `src/domain/lojas.ts`).
 - **Ficha de um produto no catálogo** (`/app/catalogo/referencia/<id>`): «Loja: …» em cada vendedor; ao filtrar por
   concelho, um vendedor com loja nesse concelho também aparece.
+
+### 07/11/2026 — CRM: receção e classificação das respostas
+
+- **Entrada** `POST /api/crm/entrada` (segredo `CRM_ENTRADA_SEGREDO`; fechada sem ele). Cada mensagem é guardada em
+  `crm_mensagens` (idempotente por `message_id`), classificada por regras sobre o texto, sem IA e sem custo
+  (`src/domain/crmRespostas.ts`), e tratada por `tratarMensagemRecebida`. Instruções e script do Gmail em `docs/CRM_ENTRADA.md`.
+- **Só se faz sozinho o que a lei ou o bom senso mandam:** pedido para sair (contacto marcado, o que ia sair rejeitado,
+  desistência contada), recusa (pára), ressalto (o email deixa de existir para a base). Interesse, perguntas e o resto esperam por
+  uma pessoa na **Caixa** do separador CRM; só o interesse tem rascunho, que se edita e envia ali.
+- **A nossa mensagem citada não conta** (o rodapé tem «não quero receber mais mensagens»): `semCitacao`, com testes.
+- **Um ressalto** vem do servidor de correio: o contacto encontra-se pelo endereço lido dentro da mensagem (defeito apanhado
+  pelo teste com a base simulada).
+- **`CRM_RESPOSTAS_EMAIL`**: `Reply-To` dedicado, para o que se entrega ao CRM ser só o das campanhas, não toda a caixa pessoal.
+- O cron deixa de propor a quem «recusou». Migração `20261107024456_crm_mensagens` aplicada e verificada (estados inválidos e
+  mensagem repetida recusados; sem rasto).
+- **Por construir:** classificação com IA para o que as regras não apanham; rascunhos para perguntas; testar o script do Gmail.
