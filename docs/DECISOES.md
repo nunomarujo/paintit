@@ -6963,3 +6963,15 @@ a morada fiscal da empresa continua reservada. Onde aparecem:
 - O cron deixa de propor a quem «recusou». Migração `20261107024456_crm_mensagens` aplicada e verificada (estados inválidos e
   mensagem repetida recusados; sem rasto).
 - **Por construir:** classificação com IA para o que as regras não apanham; rascunhos para perguntas; testar o script do Gmail.
+
+### 07/11/2026 — Remetente «Tom» e o domínio de envio
+
+- **Remetente dos emails do CRM:** `Tom da Quem Pinta <tom@mail.quempinta.pt>` (`CRM_REMETENTE`, na Vercel desde 07/11/2026), a pedido
+  do promotor, em vez de «Nuno». Respostas para `crm@quempinta.pt` (`CRM_RESPOSTAS_EMAIL`). Os textos das seis campanhas e o
+  rascunho de resposta ainda dizem «Sou o Nuno» / «Nuno, Quem Pinta»: **por alinhar com o remetente**, à espera da decisão de quem
+  assina (ver pergunta ao promotor).
+- **DNS de `quempinta.pt`** (consultado a 07/11/2026): servidores de nomes `dns1..4.host-redirect.com`; MX da raiz no ImprovMX;
+  SPF da raiz com Google e ImprovMX; DMARC já existente (`p=none`); `mail.quempinta.pt` sem registo nenhum, logo sem conflito.
+  O alias `crm@` cria-se no ImprovMX, não no Gmail.
+- **Lacuna:** um ressalto de um email enviado pelo Resend volta ao Resend (o remetente técnico é `send.mail`), não à caixa
+  `crm@`. A deteção de ressaltos por mensagem só apanha os que chegam a `crm@`; falta ligar o webhook `email.bounced` do Resend.

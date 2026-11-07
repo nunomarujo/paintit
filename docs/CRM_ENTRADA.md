@@ -22,7 +22,7 @@ não apanham.
 
 ## Pôr a entrada a funcionar
 
-1. **Um endereço só para as respostas**, por exemplo `crm@quempinta.pt` (um alias do Gmail de `nm@quempinta.pt`). Na Vercel:
+1. **Um endereço só para as respostas**: `crm@quempinta.pt`. O correio do domínio passa pelo **ImprovMX** (os registos MX de `quempinta.pt` apontam para `mx1/mx2.improvmx.com`), por isso o alias cria-se **no ImprovMX** (Aliases → novo alias `crm` → reencaminhar para o Gmail que corre o script), e não no Gmail. Na Vercel (já feito a 07/11/2026):
    `CRM_RESPOSTAS_EMAIL=crm@quempinta.pt`. Todos os emails do CRM passam a ter esse `Reply-To`. **Sem isto, as respostas vão
    para a caixa pessoal e o script abaixo teria de ler tudo.**
 2. **Um segredo**: `CRM_ENTRADA_SEGREDO` na Vercel (uma frase longa e aleatória, só sua).

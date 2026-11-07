@@ -3,7 +3,7 @@ import type { EmailRenderizado } from '@/domain/crmEmails';
 
 /**
  * Envia um email do CRM pelo Resend, de um subdomínio próprio (`CRM_REMETENTE`, por exemplo
- * «Nuno · Quem Pinta <nuno@mail.quempinta.pt>») para não pôr em risco a reputação do domínio principal.
+ * «Tom da Quem Pinta <tom@mail.quempinta.pt>») para não pôr em risco a reputação do domínio principal.
  * `CRM_RESPOSTAS_EMAIL` é para onde vão as respostas (por defeito o contacto da empresa).
  * `nao_configurado` quando falta a chave ou o remetente: quem chama deixa o envio como estava.
  */
