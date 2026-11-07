@@ -6963,3 +6963,14 @@ a morada fiscal da empresa continua reservada. Onde aparecem:
 - O cron deixa de propor a quem «recusou». Migração `20261107024456_crm_mensagens` aplicada e verificada (estados inválidos e
   mensagem repetida recusados; sem rasto).
 - **Por construir:** classificação com IA para o que as regras não apanham; rascunhos para perguntas; testar o script do Gmail.
+
+## 07/11/2026 — O WhatsApp recusou o nome de apresentação «Quem Pinta»
+
+A Meta mostra o nome do número +351 926 549 194 como **«Rejeitado»**: «O nome de apresentação "Quem Pinta" não respeita as
+nossas políticas. Envia um nome diferente e tenta novamente.» Não há recurso nem nova análise do mesmo nome: só se submete
+um nome diferente. O que se viu: a empresa está **verificada** (RELEVANTEPLANETA, UNIPESSOAL, LDA, a 04/11/2026), a qualidade é
+**Elevada** e o limite é de 2000 conversas por dia — o número continua a enviar. No site, «Quem Pinta» só aparecia como imagem de
+logótipo e no título da página, e a empresa só na página «Aviso legal». **Feito:** o rodapé das duas páginas públicas passa a
+dizer em texto «© 2026 Quem Pinta, marca de RELEVANTEPLANETA, UNIPESSOAL LDA» (o nome tal como na verificação da Meta). **Por
+fazer, pelo promotor, depois do deploy:** submeter um nome novo em WhatsApp Manager › Números de telefone › Editar nome de
+apresentação — ver as opções em `docs/EM_ABERTO.md`.

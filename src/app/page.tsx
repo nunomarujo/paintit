@@ -1,5 +1,6 @@
 'use client';
 
+import { COMPANY } from '@/config/company';
 import Link from 'next/link';
 import { BrandMark } from '@/components/BrandMark';
 import { LegalLinks } from '@/components/LegalPage';
@@ -364,7 +365,9 @@ export default function Home() {
       <footer className="bg-paper">
         <div className="mx-auto flex max-w-[120rem] flex-wrap items-center gap-x-5 gap-y-2 px-5 sm:px-10 lg:px-14 py-6 text-[15px] text-slate-500">
           <BrandMark />
-          <span>© {new Date().getFullYear()} {BRAND.name}</span>
+          <span>
+            © {new Date().getFullYear()} {BRAND.name}, marca de {COMPANY.name}
+          </span>
           <a href={`mailto:${BRAND.email}`} className="inline-flex min-h-[44px] items-center hover:underline">{BRAND.email}</a>
           <LegalLinks />
           <span className="basis-full text-[13px] text-slate-600">
